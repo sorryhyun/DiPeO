@@ -636,8 +636,35 @@ const PANEL_CONFIGS: PanelConfig = {
   job: {
     icon: <Settings className="w-5 h-5" />,
     title: "Job Properties",
-    render: ({ nodeId, data }: { nodeId: string; data: JobBlockData }) => {
+    render: (props: { nodeId: string; data: JobBlockData }) => <JobPanelContent {...props} />
+  }
+};
+
+// Job Panel Content Component
+const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nodeId, data }) => {
       const { formData, handleChange } = usePropertyForm<JobBlockData>(nodeId, data);
+      
+      // API Keys state for web search
+      const [apiKeysList, setApiKeysList] = useState<ApiKey[]>([]);
+      const [loadingApiKeys, setLoadingApiKeys] = useState(false);
+      
+      // Load API keys on mount
+      useEffect(() => {
+        const fetchApiKeys = async () => {
+          setLoadingApiKeys(true);
+          try {
+            const res = await fetch('/api/apikeys');
+            if (!res.ok) throw new Error('Failed to load API keys');
+            const body = await res.json();
+            setApiKeysList(body.apiKeys);
+          } catch (err) {
+            console.error('Failed to load API keys:', err);
+          } finally {
+            setLoadingApiKeys(false);
+          }
+        };
+        fetchApiKeys();
+      }, []);
 
       const jobTypeOptions = [
         { value: 'code', label: 'Code Execution' },
@@ -857,8 +884,11 @@ const PANEL_CONFIGS: PanelConfig = {
                     label="API Key"
                     value={apiConfig.apiKeyId || ''}
                     onChange={(v) => handleApiConfigChange('apiKeyId', v)}
-                    options={apiConfig.filter(k => k.service === 'web_search')}
-                    placeholder="Select API Key"
+                    options={apiKeysList
+                      .filter(k => k.service === 'custom')
+                      .map(k => ({ value: k.id, label: k.name }))}
+                    placeholder="Select API Key for Web Search"
+                    loading={loadingApiKeys}
                   />
                 </>
               )}
@@ -888,8 +918,6 @@ const PANEL_CONFIGS: PanelConfig = {
           )}
         </Form>
       );
-    }
-  }
 };
 
 export const PersonJobPropertiesPanel: React.FC<{ nodeId: string; data: PersonJobBlockData }> = (props) => (

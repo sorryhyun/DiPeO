@@ -65,6 +65,7 @@ class DiagramMigrator:
                             'label': conn.get('label', 'flow'),
                             'contentType': conn.get('content_type'),
                             'branch': conn.get('branch'),
+                            'objectKeyPath': conn.get('object_key_path'),
                             'controlPointOffsetX': conn.get('control_offset', {}).get('x', 0),
                             'controlPointOffsetY': conn.get('control_offset', {}).get('y', 0)
                         }

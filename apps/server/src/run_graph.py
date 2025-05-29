@@ -402,7 +402,7 @@ class NodeExecutor:
                 raise ValueError(f"Unknown Notion action: {action}")
 
         elif api_type == "web_search":
-            from ..services.web_search_service import WebSearchService
+            from .services.web_search_service import WebSearchService
             search_service = WebSearchService()
 
             # Get search query from config or inputs
@@ -549,6 +549,61 @@ class DiagramExecutor:
                 except (ValueError, TypeError):
                     pass
         return node_max_iterations
+
+    @staticmethod
+    def _extract_from_object(obj: Any, path: str) -> Any:
+        """Extract a value from an object using dot notation or array indexing.
+        
+        Examples:
+            - "user.name" extracts obj['user']['name']
+            - "items[0].value" extracts obj['items'][0]['value']
+            - "nested.deep.value" extracts obj['nested']['deep']['value']
+        """
+        if obj is None:
+            return None
+            
+        # Handle JSON strings
+        if isinstance(obj, str):
+            try:
+                obj = json.loads(obj)
+            except json.JSONDecodeError:
+                # If it's not valid JSON, return None or the string itself
+                return None
+        
+        # Split the path by dots, but handle array indices specially
+        import re
+        parts = re.split(r'\.', path)
+        
+        current = obj
+        for part in parts:
+            if current is None:
+                return None
+                
+            # Check if this part contains array indexing
+            array_match = re.match(r'^(\w+)\[(\d+)\]$', part)
+            if array_match:
+                key = array_match.group(1)
+                index = int(array_match.group(2))
+                
+                # First get the array
+                if isinstance(current, dict) and key in current:
+                    current = current[key]
+                else:
+                    return None
+                
+                # Then get the item at index
+                if isinstance(current, list) and 0 <= index < len(current):
+                    current = current[index]
+                else:
+                    return None
+            else:
+                # Regular property access
+                if isinstance(current, dict) and part in current:
+                    current = current[part]
+                else:
+                    return None
+        
+        return current
 
     async def _send_status_update(self, update_type: str, node_id: str, **extra_data):
         """Send status update via callback if available."""
