@@ -48,6 +48,7 @@ packages/CLAUDE.md
 *.swp
 *.swo
 *~
+agent-diagram.json
 
 # Project specific
 apps/server/.venv/
