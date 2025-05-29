@@ -1,0 +1,38 @@
+{
+  "name": "agent-diagram",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "preview:web": "pnpm --filter web serve",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@types/js-yaml": "^4.0.9",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1",
+    "eslint": "^9.27.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "react-resizable-panels": "^3.0.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "yaml": "^2.8.0"
+  },
+  "dependencies": {
+    "globals": "^16.2.0",
+    "inquirer": "^12.6.3",
+    "js-yaml": "^4.1.0",
+    "require": "^2.4.20",
+    "typescript-eslint": "^8.32.1",
+    "vite": "^5.4.19"
+  }
+}

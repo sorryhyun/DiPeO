@@ -1,0 +1,46 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "sideEffects": false,
+  "proxy": "http://localhost:8000",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "analyze": "pnpm build && node scripts/analyze-bundle.js",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/core-model": "workspace:*",
+    "@repo/diagram-ui": "workspace:*",
+    "@repo/properties-ui": "workspace:*",
+    "@repo/ui-kit": "workspace:*",
+    "@types/react-window": "^1.8.8",
+    "@xyflow/react": "^12.6.4",
+    "lucide-react": "^0.511.0",
+    "nanoid": "5.1.5",
+    "openai": "^4.100.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2",
+    "react-resizable-panels": "^3.0.2",
+    "react-window": "^1.8.11",
+    "sonner": "2.0.3",
+    "zustand": "^4.3.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "terser": "^5.40.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19"
+  }
+}

@@ -1,0 +1,152 @@
+version: "1.0"
+metadata:
+  description: "AgentDiagram workflow export"
+apiKeys:
+  APIKEY_NDDUFP:
+    service: "chatgpt"
+    name: "openai_api_key"
+persons:
+  PERSON_MEJZWR:
+    id: "PERSON_MEJZWR"
+    model: "gpt-4.1-nano"
+    service: "chatgpt"
+    apiKeyId: "APIKEY_F47746"
+    system: "Be pessimistic."
+  PERSON_10X2HO:
+    id: "PERSON_10X2HO"
+    model: "gpt-4.1-nano"
+    service: "chatgpt"
+    apiKeyId: "APIKEY_F47746"
+  PERSON_4YEQ4Q:
+    id: "PERSON_4YEQ4Q"
+    model: "gpt-4.1-nano"
+    service: "chatgpt"
+    apiKeyId: "APIKEY_F47746"
+    system: "Be optimistic."
+workflow:
+  - id: "personjobNode-P85ESC"
+    type: "personjobNode"
+    position:
+      x: 490
+      y: 178
+    label: "Pessimist panel"
+    connections:
+      - to: "personjobNode-HH28Q0"
+        label: "conversation"
+        content_type: "conversation_state"
+        source_handle: "personjobNode-P85ESC-output-default"
+        target_handle: "personjobNode-HH28Q0-input-default"
+        control_offset:
+          x: -12
+          y: 0
+    person: "PERSON_MEJZWR"
+    prompt: "Argue against the previous conversation."
+    first_prompt: "Suggest a reasonable opinion on the following topic: {{topic}}"
+    forget: "on_every_turn"
+    max_iterations: 2
+    mode: "sync"
+  - id: "dbNode-KY9MHH"
+    type: "dbNode"
+    position:
+      x: 326
+      y: -22
+    label: "New DB Source"
+    connections:
+      - to: "personjobNode-P85ESC"
+        label: "topic"
+        source_handle: "dbNode-KY9MHH-output-data"
+        target_handle: "personjobNode-P85ESC-input-first"
+        control_offset:
+          x: -37
+          y: 6
+      - to: "personjobNode-HH28Q0"
+        label: "topic"
+        source_handle: "dbNode-KY9MHH-output-data"
+        target_handle: "personjobNode-HH28Q0-input-first"
+        control_offset:
+          x: 24
+          y: -1
+    sub_type: "file"
+    source: "uploads/questions.txt"
+  - id: "personjobNode-VKO6WK"
+    type: "personjobNode"
+    position:
+      x: 372
+      y: 409
+    label: "Judge panel"
+    connections:
+      - to: "endpointNode-vP0dbJ"
+        label: "New Arrow"
+        source_handle: "personjobNode-VKO6WK-output-default"
+        target_handle: "endpointNode-vP0dbJ-input-default"
+    person: "PERSON_10X2HO"
+    prompt: "Judge which panel is more reasonable."
+    forget: "no_forget"
+    max_iterations: 1
+    mode: "sync"
+  - id: "personjobNode-HH28Q0"
+    type: "personjobNode"
+    position:
+      x: 864
+      y: 152
+    label: "Optimist panel"
+    connections:
+      - to: "conditionNode-WPKS8Q"
+        label: "conversation"
+        content_type: "conversation_state"
+        source_handle: "personjobNode-HH28Q0-output-default"
+        target_handle: "conditionNode-WPKS8Q-input-default"
+        control_offset:
+          x: 50
+          y: -2
+    person: "PERSON_4YEQ4Q"
+    prompt: "Argue against the previous conversation."
+    first_prompt: "Suggest a reasonable opinion on the following topic: {{topic}}"
+    forget: "on_every_turn"
+    max_iterations: 2
+    mode: "sync"
+  - id: "conditionNode-WPKS8Q"
+    type: "conditionNode"
+    position:
+      x: 773
+      y: 462
+    label: "Conditionddd"
+    connections:
+      - to: "personjobNode-P85ESC"
+        label: "conversation"
+        source_handle: "conditionNode-WPKS8Q-output-false"
+        target_handle: "personjobNode-P85ESC-input-default"
+        control_offset:
+          x: -346
+          y: -69
+      - to: "personjobNode-VKO6WK"
+        label: "conversation"
+        source_handle: "conditionNode-WPKS8Q-output-true"
+        target_handle: "personjobNode-VKO6WK-input-default"
+        control_offset:
+          x: 24
+          y: -12
+    condition_type: "max_iterations"
+    max_iterations: 1
+  - id: "startNode-qLSrKO"
+    type: "startNode"
+    position:
+      x: 197
+      y: 193
+    label: "Start"
+    connections:
+      - to: "dbNode-KY9MHH"
+        label: "New Arrow"
+        source_handle: "startNode-qLSrKO-output-default"
+        target_handle: "dbNode-KY9MHH-input-trigger"
+        control_offset:
+          x: -3
+          y: 30
+  - id: "endpointNode-vP0dbJ"
+    type: "endpointNode"
+    position:
+      x: 168
+      y: 317
+    label: "Endpoint"
+    file: "results/output.txt"
+    file_format: "text"

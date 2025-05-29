@@ -1,0 +1,176 @@
+import React, { useState, useEffect } from 'react';
+import { Layers } from 'lucide-react';
+import { Button } from '@repo/ui-kit';
+import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/stores';
+import { useDiagramActions } from '@/hooks/useDiagramActions';
+import { useDiagramRunner } from '@/hooks/useDiagramRunner';
+import { useKeyboardShortcuts } from '@repo/diagram-ui';
+import { LazyApiKeysModal } from '../modals/LazyModals';
+
+
+const TopBar = () => {
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
+  // Bypass Vite dev server proxy for backend API calls in development
+  const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
+  const { apiKeys, addApiKey } = useConsolidatedDiagramStore();
+  const { handleLoad, handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
+  const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
+  const { isMemoryLayerTilted, toggleMemoryLayer } = useConsolidatedUIStore();
+  useEffect(() => {
+    const checkBackendApiKeys = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/apikeys`);
+        if (res.ok) {
+          const data = await res.json();
+          const backendKeys = data.apiKeys || [];
+          
+          if (backendKeys.length > 0 && apiKeys.length === 0) {
+            backendKeys.forEach((key: any) => {
+              addApiKey({
+                ...key,
+                name: key.name,
+                service: key.service,
+                key: key.key
+              });
+            });
+          }
+          
+          if (backendKeys.length === 0 && apiKeys.length === 0) {
+            setIsApiModalOpen(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check backend API keys:', error);
+        if (apiKeys.length === 0) {
+          setIsApiModalOpen(true);
+        }
+      } finally {
+        setHasCheckedBackend(true);
+      }
+    };
+
+    if (!hasCheckedBackend) {
+      checkBackendApiKeys();
+    }
+  }, [hasCheckedBackend, apiKeys.length, addApiKey]);
+
+  useKeyboardShortcuts({
+    onSave: () => handleSaveToDirectory(),
+  });
+
+  return (
+    <header className="p-3 border-b bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
+            📄 New
+          </Button>
+          <Button 
+            variant="outline" 
+            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            onClick={() => document.getElementById('load-diagram-input')?.click()}
+          >
+            📂 Open
+          </Button>
+          <input type="file" id="load-diagram-input" accept=".json" style={{ display: 'none' }} onChange={handleLoad} />
+          <Button 
+            variant="outline" 
+            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            onClick={() => handleSaveToDirectory()}
+          >
+            💾 Save
+          </Button>
+          
+          <div className="border-l border-gray-300 h-6 mx-2" />
+          
+          <Button
+            variant="outline"
+            className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
+            onClick={()=>handleSaveYAMLToDirectory()}
+            title="Export to YAML format (download)"
+          >
+            📤 Export YAML
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
+            onClick={() => document.getElementById('import-canonical-input')?.click()}
+            title="Import from YAML format"
+          >
+            📥 Import YAML
+          </Button>
+          <input
+            type="file"
+            id="import-canonical-input"
+            accept=".yaml,.yml"
+            style={{ display: 'none' }}
+            onChange={handleImportYAML}
+          />
+
+          <div className="border-l border-gray-300 h-6 mx-2" />
+          
+          <Button 
+            variant="outline" 
+            className="bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors"
+            onClick={() => setIsApiModalOpen(true)}
+          >
+            🔑 API Keys
+          </Button>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          {runStatus === 'running' ? (
+            <Button 
+              variant="outline" 
+              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
+              onClick={stopExecution}
+            >
+              ⏹️ Stop
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
+              onClick={handleRunDiagram}
+            >
+              ▶️ Run Diagram
+            </Button>
+          )}
+          <div className="whitespace-nowrap text-base font-medium">
+            {runStatus === 'running' && <span className="text-blue-600 animate-pulse">⚡ Running...</span>}
+            {runStatus === 'success' && <span className="text-green-600">✅ Success</span>}
+            {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            className={`bg-white transition-all duration-300 ${
+              isMemoryLayerTilted 
+                ? 'bg-purple-100 border-purple-400 hover:bg-purple-200' 
+                : 'hover:bg-gray-50 hover:border-gray-300'
+            }`}
+            onClick={toggleMemoryLayer}
+            title={isMemoryLayerTilted ? 'Hide Memory Layer' : 'Show Memory Layer'}
+          >
+            <Layers className={`h-4 w-4 mr-1 transition-transform duration-300 ${
+              isMemoryLayerTilted ? 'rotate-12' : ''
+            }`} />
+            Memory
+          </Button>
+        </div>
+
+        <div className="w-32" />
+      </div>
+
+      <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
+    </header>
+  );
+};
+
+export default TopBar;

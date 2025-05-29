@@ -1,0 +1,118 @@
+import js from '@eslint/js';
+import typescript from '@typescript-eslint/eslint-plugin';
+import typescriptParser from '@typescript-eslint/parser';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import globals from 'globals';
+
+export default [
+  // Ignore patterns
+  {
+    ignores: [
+      '**/dist/**',
+      '**/build/**',
+      '**/node_modules/**',
+      '**/.turbo/**',
+      '**/coverage/**',
+      '**/*.config.js',
+      '**/*.config.ts',
+      '**/vite.config.ts',
+      'apps/server/**', // Python backend
+    ],
+  },
+
+  {
+    ...js.configs.recommended,
+    languageOptions: {
+      globals: {
+        ...globals.browser,  // This adds all browser globals like document, window, etc.
+        ...globals.es2021,   // ES2021 globals
+      },
+    },
+  },
+
+  // TypeScript files configuration
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: typescriptParser,
+      globals: {
+        ...globals.browser,  // Also add here for TypeScript files
+        ...globals.es2021,
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: [
+          './apps/web/tsconfig.json',
+          './packages/*/tsconfig.json',
+        ],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescript,
+    },
+    rules: {
+      ...typescript.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+
+  // React files configuration
+  {
+    files: ['**/*.{jsx,tsx}'],
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    languageOptions: {
+      globals: {
+        ...globals.browser,  // And here for React files
+      },
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+    rules: {
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      'react/react-in-jsx-scope': 'off', // Not needed in React 17+
+      'react/prop-types': 'off', // Using TypeScript
+      'react/display-name': 'off',
+      'react-refresh/only-export-components': ['warn', {
+        allowConstantExport: true
+      }],
+    },
+  },
+
+  // General rules for all files
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+      'no-debugger': 'warn',
+      'no-duplicate-imports': 'error',
+      'no-unused-vars': 'off', // TypeScript handles this
+      'prefer-const': 'warn',
+      'no-var': 'error',
+      'object-shorthand': 'warn',
+      'prefer-template': 'warn',
+    },
+  },
+];
