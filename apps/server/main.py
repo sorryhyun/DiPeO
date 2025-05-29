@@ -14,18 +14,18 @@ from typing import Optional
 from datetime import datetime
 import inspect
 
-from .src.services.memory_service import MemoryService
-from .src.exceptions import AgentDiagramException
-from .src.run_graph import DiagramExecutor
-from .src.services.api_key_service import APIKeyService
-from .src.services.llm_service import LLMService
-from .src.services.diagram_service import DiagramService
-from .src.utils.dependencies import (
+from src.services.memory_service import MemoryService
+from src.exceptions import AgentDiagramException
+from src.run_graph import DiagramExecutor
+from src.services.api_key_service import APIKeyService
+from src.services.llm_service import LLMService
+from src.services.diagram_service import DiagramService
+from src.utils.dependencies import (
     get_api_key_service, get_llm_service, get_diagram_service, 
     get_unified_file_service, get_memory_service
 )
-from .src.utils.diagram_migrator import DiagramMigrator
-from .config import BASE_DIR, CONVERSATION_LOG_DIR
+from src.utils.diagram_migrator import DiagramMigrator
+from config import BASE_DIR, CONVERSATION_LOG_DIR
 
 load_dotenv()
 
@@ -56,67 +56,21 @@ def safe_json_dumps(obj):
 
 # apps/server/main.py
 from fastapi import WebSocket, WebSocketDisconnect
-from typing import Dict, Set
-import json
-
-# Store active WebSocket connections
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.execution_subscriptions: Dict[str, Set[str]] = {}  # execution_id -> client_ids
-
-    async def connect(self, websocket: WebSocket, client_id: str):
-        await websocket.accept()
-        self.active_connections[client_id] = websocket
-
-    def disconnect(self, client_id: str):
-        if client_id in self.active_connections:
-            del self.active_connections[client_id]
-        # Clean up subscriptions
-        for exec_id in list(self.execution_subscriptions.keys()):
-            if client_id in self.execution_subscriptions[exec_id]:
-                self.execution_subscriptions[exec_id].remove(client_id)
-
-    async def broadcast_execution_start(self, execution_id: str, diagram: dict):
-        """Notify all connected clients about new execution"""
-        message = {
-            "type": "execution_started",
-            "execution_id": execution_id,
-            "diagram": diagram,
-            "timestamp": datetime.now().isoformat()
-        }
-        for websocket in self.active_connections.values():
-            try:
-                await websocket.send_json(message)
-            except:
-                pass
-
-    async def send_execution_update(self, execution_id: str, update: dict):
-        """Send execution updates to subscribed clients"""
-        if execution_id in self.execution_subscriptions:
-            for client_id in self.execution_subscriptions[execution_id]:
-                if client_id in self.active_connections:
-                    try:
-                        await self.active_connections[client_id].send_json(update)
-                    except:
-                        pass
-
-manager = ConnectionManager()
+from src.streaming.stream_manager import stream_manager
 
 
 class StreamingExecutor:
     def __init__(self, broadcast_to_websocket: bool = False):
-        self.queue: asyncio.Queue = asyncio.Queue()
         self.completed = False
         self.error = None
         self.broadcast_to_websocket = broadcast_to_websocket
         self.execution_id = None
+        self.stream_context = None
 
     async def status_callback(self, update: dict):
-        await self.queue.put(update)
-        # Also broadcast to WebSocket clients
-        if self.broadcast_to_websocket and self.execution_id:
-            await manager.send_execution_update(self.execution_id, update)
+        # Publish to stream manager
+        if self.execution_id:
+            await stream_manager.publish_update(self.execution_id, update)
 
     async def execute_diagram(self, diagram: dict):
         """Execute diagram and collect all updates."""
@@ -130,8 +84,21 @@ class StreamingExecutor:
                 status_callback=self.status_callback
             )
             self.execution_id = executor.execution_id
+            
+            # Create stream context
+            output_format = 'both' if self.broadcast_to_websocket else 'sse'
+            self.stream_context = await stream_manager.create_stream(
+                self.execution_id, output_format
+            )
+            
+            # Broadcast execution start
             if self.broadcast_to_websocket:
-                await manager.broadcast_execution_start(self.execution_id, diagram)
+                await stream_manager.publish_update(self.execution_id, {
+                    "type": "execution_started",
+                    "execution_id": self.execution_id,
+                    "diagram": diagram,
+                    "timestamp": datetime.now().isoformat()
+                })
 
             context, total_cost = await executor.run()
             
@@ -140,7 +107,7 @@ class StreamingExecutor:
                 log_dir=CONVERSATION_LOG_DIR
             )
 
-            await self.queue.put({
+            await stream_manager.publish_update(self.execution_id, {
                 "type": "execution_complete",
                 "context": context,
                 "total_cost": total_cost,
@@ -154,12 +121,16 @@ class StreamingExecutor:
 
         except Exception as e:
             self.error = e
-            await self.queue.put({
+            await stream_manager.publish_update(self.execution_id, {
                 "type": "execution_error",
                 "error": str(e),
                 "traceback": traceback.format_exc()
             })
             self.completed = True
+        finally:
+            # Clean up stream resources
+            if self.execution_id:
+                await stream_manager.cleanup_stream(self.execution_id)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -183,17 +154,15 @@ app.add_middleware(
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    await manager.connect(websocket, client_id)
+    await stream_manager.connect_websocket(websocket, client_id)
     try:
         while True:
             data = await websocket.receive_json()
             if data["type"] == "subscribe_execution":
                 execution_id = data["execution_id"]
-                if execution_id not in manager.execution_subscriptions:
-                    manager.execution_subscriptions[execution_id] = set()
-                manager.execution_subscriptions[execution_id].add(client_id)
+                await stream_manager.subscribe_to_execution(client_id, execution_id)
     except WebSocketDisconnect:
-        manager.disconnect(client_id)
+        await stream_manager.disconnect_websocket(client_id)
 
 @app.exception_handler(AgentDiagramException)
 async def handle_agent_diagram_exception(request, exc: AgentDiagramException):
@@ -300,17 +269,24 @@ async def run_diagram_endpoint(diagram: dict, broadcast: bool=True):
             # Send initial connection confirmation
             yield f"data: {safe_json_dumps({'type': 'connection_established'})}\n\n"
             
-            while not streaming_executor.completed or not streaming_executor.queue.empty():
-                try:
-                    update = await asyncio.wait_for(
-                        streaming_executor.queue.get(), 
-                        timeout=0.1  # Increased timeout
-                    )
-                    yield f"data: {safe_json_dumps(update)}\n\n"
-                except asyncio.TimeoutError:
-                    # Send heartbeat to keep connection alive
-                    yield f": heartbeat\n\n"
-                    continue
+            # Get the SSE queue from stream manager
+            queue = None
+            while queue is None and streaming_executor.execution_id:
+                queue = stream_manager.get_stream_queue(streaming_executor.execution_id)
+                if queue is None:
+                    await asyncio.sleep(0.01)  # Wait for stream to be created
+            
+            while not streaming_executor.completed or (queue and not queue.empty()):
+                if queue:
+                    try:
+                        update = await asyncio.wait_for(queue.get(), timeout=0.1)
+                        yield f"data: {safe_json_dumps(update)}\n\n"
+                    except asyncio.TimeoutError:
+                        # Send heartbeat to keep connection alive
+                        yield f": heartbeat\n\n"
+                        continue
+                else:
+                    await asyncio.sleep(0.1)
 
             await execution_task
 
@@ -338,58 +314,12 @@ async def external_run_diagram(diagram: dict):
     return await run_diagram_endpoint(diagram, broadcast=True)
 
 @app.post("/api/run-diagram-sync")
-async def run_diagram_sync_endpoint(diagram: dict):
-
+async def run_diagram_sync_endpoint(
+    diagram: dict,
+    diagram_service: DiagramService = Depends(get_diagram_service)
+):
     try:
-        # Migrate diagram format if needed
-        diagram = DiagramMigrator.migrate(diagram)
-
-        # Validate and fix API keys (NEW)
-        api_key_service = get_api_key_service()
-        valid_api_keys = {key["id"] for key in api_key_service.list_api_keys()}
-
-        # Fix invalid API key references in persons
-        for person in diagram.get("persons", []):
-            if person.get("apiKeyId") and person["apiKeyId"] not in valid_api_keys:
-                # Try to find a fallback key for the same service
-                all_keys = api_key_service.list_api_keys()
-                fallback = next(
-                    (k for k in all_keys if k["service"] == person.get("service")),
-                    None
-                )
-                if fallback:
-                    print(f"Replaced invalid apiKeyId {person['apiKeyId']} with {fallback['id']}")
-                    person["apiKeyId"] = fallback["id"]
-                else:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"No valid API key found for service: {person.get('service')}"
-                    )
-
-        # Validate required fields (NEW)
-        if not diagram.get("nodes"):
-            raise HTTPException(status_code=400, detail="Diagram must contain nodes")
-
-        memory_service = get_memory_service()
-        executor = DiagramExecutor(diagram=diagram, memory_service=memory_service)
-
-        context, total_cost = await executor.run()
-
-        log_path = await memory_service.save_conversation_log(
-            execution_id=executor.execution_id,
-            log_dir=CONVERSATION_LOG_DIR
-        )
-
-        memory_service.clear_execution_memory(executor.execution_id)
-
-        return {
-            "context": context,
-            "total_cost": total_cost,
-            "memory_stats": executor.get_memory_stats(),
-            "conversation_log": log_path,
-            "execution_id": executor.execution_id  # NEW - useful for debugging
-        }
-
+        return await diagram_service.run_diagram_sync(diagram, CONVERSATION_LOG_DIR)
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
@@ -506,6 +436,21 @@ async def call_llm(
     )
     return {"text": text, "cost": cost}
 
+
+@app.get("/metrics")
+async def metrics():
+    """Expose Prometheus metrics."""
+    try:
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+        from fastapi.responses import Response
+        
+        return Response(
+            content=generate_latest(),
+            media_type=CONTENT_TYPE_LATEST
+        )
+    except ImportError:
+        # If prometheus_client is not installed, return a simple message
+        return {"message": "Prometheus client not installed. Install with: pip install prometheus-client"}
 
 @app.get("/api/conversations")
 async def get_conversations(

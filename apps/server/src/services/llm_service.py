@@ -1,3 +1,4 @@
+import time
 from typing import Any, List, Optional, Tuple, Union
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
@@ -33,7 +34,7 @@ class LLMService(BaseService):
             raise LLMServiceError(f"Failed to get API key: {e}")
     
     def _get_adapter(self, service: str, model: str, api_key_id: str) -> Any:
-        """Get the appropriate LLM adapter with connection pooling."""
+        """Get the appropriate LLM adapter with connection pooling and TTL."""
         normalized_service = self.normalize_service_name(service)
         
         if normalized_service not in self._adapters:
@@ -43,11 +44,24 @@ class LLMService(BaseService):
         cache_key = f"{normalized_service}:{model}:{api_key_id}"
         
         if cache_key not in self._adapter_pool:
+            # Only get the key when creating new adapter
             raw_key = self._get_api_key(api_key_id)
             adapter_class = self._adapters[normalized_service]
-            self._adapter_pool[cache_key] = adapter_class(model, raw_key)
+            
+            # Store both adapter AND the resolved key with timestamp
+            self._adapter_pool[cache_key] = {
+                'adapter': adapter_class(model, raw_key),
+                'created_at': time.time()
+            }
         
-        return self._adapter_pool[cache_key]
+        # Add TTL check - 1 hour TTL
+        entry = self._adapter_pool[cache_key]
+        if time.time() - entry['created_at'] > 3600:  
+            # Recreate adapter after TTL expiry
+            del self._adapter_pool[cache_key]
+            return self._get_adapter(service, model, api_key_id)
+        
+        return entry['adapter']
     
     def _get_token_counts(self, usage: Any, service: str) -> Tuple[int, int, int]:
         """Extract token counts from usage object based on service."""
