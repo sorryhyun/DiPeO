@@ -10,6 +10,59 @@ import requests
 import yaml
 from pathlib import Path
 from typing import Dict, Any
+import asyncio
+import aiohttp
+import time
+from typing import Optional
+
+
+async def run_diagram_streaming(diagram: Dict[str, Any], show_in_browser: bool = True) -> Dict[str, Any]:
+    """Execute diagram with streaming support for browser visualization."""
+
+    # Use the external endpoint that broadcasts to browsers
+    endpoint = "/api/external/run-diagram" if show_in_browser else "/api/run-diagram"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+                f"{API_URL}{endpoint}",
+                json=diagram,
+                headers={"Content-Type": "application/json"}
+        ) as response:
+            result = {
+                "context": {},
+                "total_cost": 0,
+                "messages": []
+            }
+
+            # Process streaming response
+            async for line in response.content:
+                line = line.decode('utf-8').strip()
+                if line.startswith('data: '):
+                    try:
+                        data = json.loads(line[6:])
+
+                        # Print progress to console
+                        if data['type'] == 'node_start':
+                            print(f"  ▶️  Starting node: {data['nodeId']}")
+                        elif data['type'] == 'node_complete':
+                            print(f"  ✅ Completed node: {data['nodeId']}")
+                            if data.get('output_preview'):
+                                print(f"     Output: {data['output_preview'][:50]}...")
+                        elif data['type'] == 'execution_complete':
+                            result['context'] = data.get('context', {})
+                            result['total_cost'] = data.get('total_cost', 0)
+                            print(f"\n✓ Execution complete")
+                        elif data['type'] == 'execution_error':
+                            print(f"  ❌ Error: {data.get('error', 'Unknown error')}")
+                            raise Exception(data.get('error', 'Execution failed'))
+                        elif data['type'] == 'message_added':
+                            result['messages'].append(data.get('message'))
+
+                    except json.JSONDecodeError:
+                        continue
+
+            return result
+
 
 API_URL = "http://localhost:8000"
 
@@ -53,11 +106,17 @@ def export_uml(diagram: Dict[str, Any]) -> str:
     return response.text
 
 
-def run_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute diagram - backend handles format conversion."""
-    response = requests.post(f"{API_URL}/api/run-diagram-sync", json=diagram)
-    response.raise_for_status()
-    return response.json()
+def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True) -> Dict[str, Any]:
+    """Synchronous wrapper for streaming execution."""
+    return asyncio.run(run_diagram_streaming(diagram, show_in_browser))
+
+
+def open_browser_monitor():
+    """Open browser to monitoring page."""
+    import webbrowser
+    monitor_url = "http://localhost:5173/?monitor=true"
+    print(f"🌐 Opening browser monitor at {monitor_url}")
+    webbrowser.open(monitor_url)
 
 
 def analyze_conversation_logs(log_dir: str = "conversation_logs") -> Dict[str, Any]:
@@ -171,25 +230,70 @@ def main():
         print("AgentDiagram CLI Tool\n")
         print("Usage: python agentdiagram_tool.py <command> [options]\n")
         print("Commands:")
-        print("  run <file>              - Run diagram from file (JSON/YAML)")
-        print("  convert <input> <output> - Convert between JSON/YAML/UML formats")
-        print("  stats <file>            - Show diagram statistics")
-        print("  server-save <file> <name> - Save diagram to server")
-        print("  check-forget [log_dir]  - Check forget rule compliance in conversation logs")
-        print("  run-and-check <file>    - Run diagram and check forget rules afterwards")
-        print()
-        print("Examples:")
-        print("  python agentdiagram_tool.py run workflow.yaml")
-        print("  python agentdiagram_tool.py convert diagram.json workflow.yaml")
-        print("  python agentdiagram_tool.py convert diagram.yaml workflow.puml")
-        print("  python agentdiagram_tool.py check-forget conversation_logs")
-        print("  python agentdiagram_tool.py run-and-check workflow.yaml")
+        print("  run <file> [--no-browser]     - Run diagram (with browser visualization by default)")
+        print("  run-headless <file>           - Run diagram without browser visualization")
+        print("  monitor                       - Open browser monitoring page")
+        print("  run-and-monitor <file>        - Open browser then run diagram")
+        # ... other commands ...
         sys.exit(1)
 
     command = sys.argv[1]
 
     try:
-        if command == 'run':
+        if command == 'monitor':
+            open_browser_monitor()
+            print("Browser monitor opened. Run diagrams with 'run' command to see them visualized.")
+
+        elif command == 'run-and-monitor':
+            if len(sys.argv) < 3:
+                print("Error: Missing input file")
+                sys.exit(1)
+
+            # Open browser first
+            open_browser_monitor()
+
+            # Wait a bit for browser to connect
+            print("Waiting for browser to connect...")
+            time.sleep(2)
+
+            # Then run the diagram
+            print(f"\nLoading diagram from {sys.argv[2]}...")
+            diagram = load_diagram(sys.argv[2])
+
+            print("Running diagram with browser visualization...")
+            result = run_diagram(diagram, show_in_browser=True)
+
+            print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
+            if 'context' in result:
+                print(f"  Context keys: {list(result['context'].keys())}")
+
+        elif command == 'run':
+            if len(sys.argv) < 3:
+                print("Error: Missing input file")
+                sys.exit(1)
+
+            # Check for --no-browser flag
+            show_in_browser = '--no-browser' not in sys.argv
+
+            print(f"Loading diagram from {sys.argv[2]}...")
+            diagram = load_diagram(sys.argv[2])
+
+            if show_in_browser:
+                print("🌐 Running diagram (browser visualization enabled)")
+                print("   Open http://localhost:5173 in your browser to see the execution")
+            else:
+                print("Running diagram (browser visualization disabled)")
+
+            result = run_diagram(diagram, show_in_browser=show_in_browser)
+
+            # Save results
+            output_file = 'results.json'
+            with open(output_file, 'w') as f:
+                json.dump(result, f, indent=2)
+            print(f"  Results saved to: {output_file}")
+
+        elif command == 'run-headless':
+            # Original sync execution without browser
             if len(sys.argv) < 3:
                 print("Error: Missing input file")
                 sys.exit(1)
@@ -197,20 +301,13 @@ def main():
             print(f"Loading diagram from {sys.argv[2]}...")
             diagram = load_diagram(sys.argv[2])
 
-            print("Running diagram...")
-            result = run_diagram(diagram)
+            print("Running diagram (headless)...")
+            response = requests.post(f"{API_URL}/api/run-diagram-sync", json=diagram)
+            response.raise_for_status()
+            result = response.json()
 
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
-
-            if 'context' in result:
-                print(f"  Context keys: {list(result['context'].keys())}")
-
-            # Save results
-            output_file = sys.argv[3] if len(sys.argv) > 3 else 'results.json'
-            with open(output_file, 'w') as f:
-                json.dump(result, f, indent=2)
-            print(f"  Results saved to: {output_file}")
 
         elif command == 'convert':
             if len(sys.argv) < 4:
@@ -282,28 +379,28 @@ def main():
 
         elif command == 'check-forget':
             log_dir = sys.argv[2] if len(sys.argv) > 2 else "conversation_logs"
-            
+
             print(f"Analyzing forget rule compliance in {log_dir}...")
             analysis = analyze_conversation_logs(log_dir)
-            
+
             if "error" in analysis:
                 print(f"Error: {analysis['error']}")
                 sys.exit(1)
-            
+
             print(f"\n🔍 Forget Rule Analysis Report")
             print(f"  Total conversations: {analysis['total_conversations']}")
             print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")
             print(f"  Total violations: {analysis['summary']['total_violations']}")
             print(f"  Total compliant: {analysis['summary']['total_compliant']}")
-            
+
             if analysis['forget_rule_violations']:
                 print(f"\n⚠️  Forget Rule Violations:")
                 for violation in analysis['forget_rule_violations'][:5]:  # Show first 5
                     print(f"    {Path(violation['file']).name} (msg {violation['message_index']}): {violation['content_preview']}")
-                
+
                 if len(analysis['forget_rule_violations']) > 5:
                     print(f"    ... and {len(analysis['forget_rule_violations']) - 5} more")
-            
+
             # Save detailed analysis
             analysis_file = 'apps/tools/forget_rule_analysis.json'
             with open(analysis_file, 'w') as f:
@@ -336,11 +433,11 @@ def main():
             # Now check forget rules in conversation logs
             print(f"\n🔍 Checking forget rule compliance...")
             analysis = analyze_conversation_logs("conversation_logs")
-            
+
             if "error" not in analysis:
                 print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")
                 print(f"  Violations found: {analysis['summary']['total_violations']}")
-                
+
                 if analysis['summary']['total_violations'] > 0:
                     print(f"  ⚠️  Run 'check-forget' for detailed violation analysis")
                 else:

@@ -1,17 +1,34 @@
 // Application root component
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import TopBar from './components/layout/TopBar';
 import Sidebar from './components/layout/Sidebar';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { DiagramCanvasSkeleton } from './components/skeletons/SkeletonComponents';
+import { useSearchParams } from 'react-router-dom';
+import { useExecutionMonitor } from './hooks/useExecutionMonitor';
 
 // Lazy load heavy components
 const DiagramCanvas = React.lazy(() => import('./components/diagram/Canvas'));
 const IntegratedDashboard = React.lazy(() => import('./components/layout/IntegratedDashboard'));
 
 function App() {
+  const [searchParams] = useSearchParams();
+  const isMonitorMode = searchParams.get('monitor') === 'true';
+    useEffect(() => {
+    if (isMonitorMode) {
+      toast.info('Monitor Mode Active - Waiting for external executions...', {
+        duration: 5000,
+        icon: '👁️'
+      });
+
+      // You could also set a special UI state
+      document.title = 'AgentDiagram - Monitor Mode';
+    }
+  }, [isMonitorMode]);
+
+  useExecutionMonitor();
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col">

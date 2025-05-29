@@ -6,11 +6,14 @@ import { useDiagramActions } from '@/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@repo/diagram-ui';
 import { LazyApiKeysModal } from '../modals/LazyModals';
+import {useSearchParams} from "react-router-dom";
 
 
 const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
+  const [searchParams] = useSearchParams();
+  const isMonitorMode = searchParams.get('monitor') === 'true';
   // Bypass Vite dev server proxy for backend API calls in development
   const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
   const { apiKeys, addApiKey } = useConsolidatedDiagramStore();
@@ -146,7 +149,15 @@ const TopBar = () => {
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
           </div>
         </div>
-
+        {isMonitorMode && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md animate-pulse">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            </span>
+            <span className="text-sm font-medium">Monitor Mode Active</span>
+          </div>
+        )}
         <div className="flex items-center space-x-4">
           <Button
             variant="outline"

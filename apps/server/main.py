@@ -54,18 +54,69 @@ def safe_json_dumps(obj):
     """Safely serialize objects to JSON, handling non-serializable types."""
     return json.dumps(obj, cls=SafeJSONEncoder, default=str)
 
+# apps/server/main.py
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import Dict, Set
+import json
+
+# Store active WebSocket connections
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+        self.execution_subscriptions: Dict[str, Set[str]] = {}  # execution_id -> client_ids
+
+    async def connect(self, websocket: WebSocket, client_id: str):
+        await websocket.accept()
+        self.active_connections[client_id] = websocket
+
+    def disconnect(self, client_id: str):
+        if client_id in self.active_connections:
+            del self.active_connections[client_id]
+        # Clean up subscriptions
+        for exec_id in list(self.execution_subscriptions.keys()):
+            if client_id in self.execution_subscriptions[exec_id]:
+                self.execution_subscriptions[exec_id].remove(client_id)
+
+    async def broadcast_execution_start(self, execution_id: str, diagram: dict):
+        """Notify all connected clients about new execution"""
+        message = {
+            "type": "execution_started",
+            "execution_id": execution_id,
+            "diagram": diagram,
+            "timestamp": datetime.now().isoformat()
+        }
+        for websocket in self.active_connections.values():
+            try:
+                await websocket.send_json(message)
+            except:
+                pass
+
+    async def send_execution_update(self, execution_id: str, update: dict):
+        """Send execution updates to subscribed clients"""
+        if execution_id in self.execution_subscriptions:
+            for client_id in self.execution_subscriptions[execution_id]:
+                if client_id in self.active_connections:
+                    try:
+                        await self.active_connections[client_id].send_json(update)
+                    except:
+                        pass
+
+manager = ConnectionManager()
+
 
 class StreamingExecutor:
-    """Helper class to manage streaming execution updates."""
-
-    def __init__(self):
+    def __init__(self, broadcast_to_websocket: bool = False):
         self.queue: asyncio.Queue = asyncio.Queue()
         self.completed = False
         self.error = None
+        self.broadcast_to_websocket = broadcast_to_websocket
+        self.execution_id = None
 
     async def status_callback(self, update: dict):
-        """Queue status updates for immediate streaming."""
         await self.queue.put(update)
+        # Also broadcast to WebSocket clients
+        if self.broadcast_to_websocket and self.execution_id:
+            await manager.send_execution_update(self.execution_id, update)
 
     async def execute_diagram(self, diagram: dict):
         """Execute diagram and collect all updates."""
@@ -78,6 +129,9 @@ class StreamingExecutor:
                 memory_service=memory_service,
                 status_callback=self.status_callback
             )
+            self.execution_id = executor.execution_id
+            if self.broadcast_to_websocket:
+                await manager.broadcast_execution_start(self.execution_id, diagram)
 
             context, total_cost = await executor.run()
             
@@ -127,6 +181,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await manager.connect(websocket, client_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data["type"] == "subscribe_execution":
+                execution_id = data["execution_id"]
+                if execution_id not in manager.execution_subscriptions:
+                    manager.execution_subscriptions[execution_id] = set()
+                manager.execution_subscriptions[execution_id].add(client_id)
+    except WebSocketDisconnect:
+        manager.disconnect(client_id)
 
 @app.exception_handler(AgentDiagramException)
 async def handle_agent_diagram_exception(request, exc: AgentDiagramException):
@@ -214,16 +281,16 @@ async def save_content(
 
 
 @app.post("/api/run-diagram")
-async def run_diagram_endpoint(diagram: dict):
+async def run_diagram_endpoint(diagram: dict, broadcast: bool=True):
     """
     Execute a diagram with streaming node status updates.
     Returns a streaming response with real-time node execution status.
     """
-
+    diagram = DiagramMigrator.migrate(diagram)
     async def generate_stream() -> AsyncGenerator[str, None]:
         """Generate streaming updates during diagram execution."""
 
-        streaming_executor = StreamingExecutor()
+        streaming_executor = StreamingExecutor(broadcast_to_websocket=broadcast)
 
         execution_task = asyncio.create_task(
             streaming_executor.execute_diagram(diagram)
@@ -265,6 +332,10 @@ async def run_diagram_endpoint(diagram: dict):
         }
     )
 
+@app.post("/api/external/run-diagram")
+async def external_run_diagram(diagram: dict):
+    """API endpoint for external services - always broadcasts to connected browsers"""
+    return await run_diagram_endpoint(diagram, broadcast=True)
 
 @app.post("/api/run-diagram-sync")
 async def run_diagram_sync_endpoint(diagram: dict):
