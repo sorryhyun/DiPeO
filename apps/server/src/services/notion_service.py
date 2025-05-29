@@ -174,3 +174,36 @@ class NotionService(BaseService):
                 raise DiagramExecutionError(f"Notion API error: {e.response.text}")
             except Exception as e:
                 raise DiagramExecutionError(f"Failed to search Notion: {str(e)}")
+    
+    async def update_block_children(
+        self,
+        api_key: str,
+        block_id: str,
+        children: List[Dict[str, Any]],
+        after: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Update/append children blocks to a parent block."""
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Notion-Version": self.version
+        }
+        
+        payload = {"children": children}
+        if after:
+            payload["after"] = after
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.patch(
+                    f"{self.base_url}/blocks/{block_id}/children",
+                    json=payload,
+                    headers=headers,
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                raise DiagramExecutionError(f"Notion API error: {e.response.text}")
+            except Exception as e:
+                raise DiagramExecutionError(f"Failed to update block children: {str(e)}")

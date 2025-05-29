@@ -299,7 +299,9 @@ class NodeExecutor:
             
             # Get API key from the prompts/notion.yaml file
             import yaml
-            with open("prompts/notion.yaml", "r") as f:
+            import os
+            notion_yaml_path = os.path.join(os.path.dirname(__file__), "../../../prompts/notion.yaml")
+            with open(notion_yaml_path, "r") as f:
                 notion_config = yaml.safe_load(f)
                 api_key = notion_config.get("token", "")
             
@@ -362,6 +364,37 @@ class NodeExecutor:
                 result = await notion_service.search(
                     api_key=api_key,
                     query=query
+                )
+                return result
+            
+            elif action == "update_block_children":
+                block_id = api_config.get("blockId", "")
+                children = api_config.get("children", [])
+                after = api_config.get("after", None)
+                
+                # If inputs provided, use the first input as children
+                if inputs and isinstance(inputs[0], (list, str)):
+                    if isinstance(inputs[0], str):
+                        # Try to parse as JSON
+                        try:
+                            children = json.loads(inputs[0])
+                        except:
+                            # If not JSON, create a simple paragraph block
+                            children = [{
+                                "object": "block",
+                                "type": "paragraph",
+                                "paragraph": {
+                                    "text": [{"type": "text", "text": {"content": inputs[0]}}]
+                                }
+                            }]
+                    else:
+                        children = inputs[0]
+                
+                result = await notion_service.update_block_children(
+                    api_key=api_key,
+                    block_id=block_id,
+                    children=children,
+                    after=after
                 )
                 return result
             
