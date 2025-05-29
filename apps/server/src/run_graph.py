@@ -400,7 +400,47 @@ class NodeExecutor:
             
             else:
                 raise ValueError(f"Unknown Notion action: {action}")
-        
+
+        elif api_type == "web_search":
+            from ..services.web_search_service import WebSearchService
+            search_service = WebSearchService()
+
+            # Get search query from config or inputs
+            query = api_config.get("query", "")
+            if inputs and isinstance(inputs[0], str):
+                query = inputs[0]
+
+            if not query:
+                raise ValueError("Search query is required")
+
+            # Get API key - you'll need to handle this based on your API key management
+            api_key_id = api_config.get("apiKeyId")
+            if api_key_id:
+                api_key_data = self.llm_service.api_key_service.get_api_key(api_key_id)
+                api_key = api_key_data["key"]
+            else:
+                raise ValueError("API key is required for web search")
+
+            # Perform search
+            provider = api_config.get("provider", "serper")
+            num_results = api_config.get("numResults", 10)
+
+            results = await search_service.search(
+                query=query,
+                api_key=api_key,
+                provider=provider,
+                num_results=num_results
+            )
+
+            # Format results based on configuration
+            format_type = api_config.get("outputFormat", "full")
+            if format_type == "urls_only":
+                return [r.get("link") for r in results.get("organic", [])]
+            elif format_type == "snippets":
+                return [{"title": r.get("title"), "snippet": r.get("snippet")}
+                        for r in results.get("organic", [])]
+            else:
+                return results
         else:
             raise ValueError(f"Unknown API type: '{api_type}'. Available types: 'notion'")
 

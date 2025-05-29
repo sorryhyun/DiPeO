@@ -664,6 +664,7 @@ const PANEL_CONFIGS: PanelConfig = {
       const apiTypeOptions = [
         { value: 'notion', label: 'Notion' },
         { value: 'slack', label: 'Slack (Coming Soon)' },
+        { value: 'web_search', label: 'Web Search' },
         { value: 'github', label: 'GitHub (Coming Soon)' }
       ];
 
@@ -810,6 +811,57 @@ const PANEL_CONFIGS: PanelConfig = {
                 </>
               )}
 
+              {apiConfig.apiType === 'web_search' && (
+                <>
+                  <FormRow>
+                    <InlineSelectField
+                      label="Search Provider"
+                      value={apiConfig.provider || 'serper'}
+                      onChange={(v) => handleApiConfigChange('provider', v)}
+                      options={[
+                        { value: 'serper', label: 'Serper (Google)' },
+                        { value: 'bing', label: 'Bing Search' },
+                      ]}
+                      className="flex-1"
+                    />
+                    <InlineTextField
+                      label="Results"
+                      value={String(apiConfig.numResults || 10)}
+                      onChange={(v) => handleApiConfigChange('numResults', parseInt(v) || 10)}
+                      placeholder="10"
+                      className="w-24"
+                    />
+                  </FormRow>
+
+                  <FormField label="Search Query">
+                    <Input
+                      type="text"
+                      value={apiConfig.query || ''}
+                      onChange={(e) => handleApiConfigChange('query', e.target.value)}
+                      placeholder="Enter search query or use input from previous node"
+                    />
+                  </FormField>
+
+                  <SelectField
+                    label="Output Format"
+                    value={apiConfig.outputFormat || 'full'}
+                    onChange={(v) => handleApiConfigChange('outputFormat', v)}
+                    options={[
+                      { value: 'full', label: 'Full Results (JSON)' },
+                      { value: 'urls_only', label: 'URLs Only (Array)' },
+                      { value: 'snippets', label: 'Title + Snippets' },
+                    ]}
+                  />
+
+                  <SelectField
+                    label="API Key"
+                    value={apiConfig.apiKeyId || ''}
+                    onChange={(v) => handleApiConfigChange('apiKeyId', v)}
+                    options={apiConfig.filter(k => k.service === 'web_search')}
+                    placeholder="Select API Key"
+                  />
+                </>
+              )}
               {apiConfig.apiType !== 'notion' && (
                 <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded">
                   {apiConfig.apiType} integration coming soon...
