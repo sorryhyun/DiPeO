@@ -1,93 +1,92 @@
-# AgentDiagram Backend – Essential Guide
+# AgentDiagram Backend
 
-## Purpose
+FastAPI-based execution engine for visual LLM agent workflows with real-time streaming and conversation memory.
 
-A streamlined reference for setting up, running, and integrating the **AgentDiagram Backend**—a high‑performance FastAPI service for visual LLM workflows with real‑time streaming and conversation memory.
-
----
-
-## Quick Start
+## Quick Start
 
 ```bash
-# Clone & enter backend
 cd apps/server
-
-# Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Copy example config and edit as needed
 cp .env.example .env
-
-# Run the server
 python main.py
-# or. uvicorn main:app --reload --port 8000
 ```
 
-Visit **[http://localhost:8000/docs](http://localhost:8000/docs)** for interactive Swagger UI.
+Visit http://localhost:8000/docs for API documentation.
 
----
-
-## Directory Layout (trimmed)
+## Architecture
 
 ```
 src/
-├── services/          # Business logic & integrations
-├── utils/             # Helper utilities
-├── run_graph.py       # Core execution engine
-├── constants.py       # Enums & constants
-└── exceptions.py      # Custom errors
+├── execution/         # Core execution engine
+│   ├── executor.py    # Main diagram orchestrator
+│   ├── nodes/         # Node type executors
+│   └── state.py       # Execution state management
+├── services/          # Business logic
+│   ├── llm_service.py # Multi-provider LLM integration
+│   └── memory_service.py # Conversation persistence
+├── streaming/         # Real-time updates (SSE/WebSocket)
+└── utils/            # Helpers and utilities
 ```
 
----
+## Core Concepts
 
-## Execution Flow (high level)
+**Nodes**: Execution units (PersonJob, Condition, DB, Job, Start, Endpoint)  
+**Arrows**: Data flow connections with content types (variable, raw_text, conversation_state)  
+**Persons**: LLM agent configurations with memory  
+**Dynamic Execution**: Condition-based branching and iteration support
 
-1. **Diagram Validation** – checks structure & dependencies
-2. **Scheduling** – topological sort with condition handling
-3. **Node Execution** – processes nodes, streams updates (SSE)
-4. **Memory Update** – persists conversation context
-5. **Result Aggregation** – collects outputs, costs, and statuses
+## Key Endpoints
 
----
+| Endpoint | Purpose | Features |
+|----------|---------|----------|
+| `POST /api/run-diagram` | Execute with streaming | SSE real-time updates |
+| `POST /api/run-diagram-sync` | Execute synchronously | Complete results |
+| `GET /api/conversations` | Query conversation history | Pagination, filtering |
+| `POST /api/apikeys` | Manage LLM API keys | Multi-provider support |
+| `WS /ws/{client_id}` | WebSocket connection | Real-time execution monitoring |
 
-## Key API Endpoints
+## Execution Flow
 
-| Endpoint                | Method          | Description                 | Stream |
-| ----------------------- | --------------- | --------------------------- | ------ |
-| `/api/run-diagram`      | POST            | Execute diagram (streaming) | ✅      |
-| `/api/run-diagram-sync` | POST            | Execute diagram (sync)      | ❌      |
-| `/api/apikeys`          | GET/POST/DELETE | Manage API keys             | ❌      |
-| `/api/models`           | GET             | List available models       | ❌      |
-| `/api/conversations`    | GET             | Query conversation history  | ❌      |
+1. **Validation** → Check diagram structure and dependencies
+2. **Scheduling** → Topological sort with dynamic condition handling  
+3. **Node Execution** → Process nodes in parallel where possible
+4. **Memory Update** → Persist conversation context per person
+5. **Stream Updates** → Real-time status via SSE/WebSocket
 
-### Example Streaming Payload
+## Configuration
 
-```json
-{"type":"node_start","nodeId":"node-123"}
-{"type":"node_complete","nodeId":"node-123","output_preview":"..."}
-{"type":"execution_complete","total_cost":0.05}
+```env
+BASE_DIR=/app                    # File operation root
+MAX_CONCURRENT_NODES=10          # Parallel execution limit
+REQUEST_TIMEOUT=300              # Node execution timeout (seconds)
+REDIS_URL=redis://localhost:6379 # Optional: distributed memory
 ```
 
----
+## Node Types
 
-## Core Environment Variables
+- **PersonJob**: LLM agent with conversation memory
+- **Condition**: Boolean branching logic
+- **DB**: File/code data sources
+- **Job**: Stateless LLM operations or API calls
+- **Start/Endpoint**: Execution boundaries
 
-| Variable               | Purpose                  | Default                     |
-| ---------------------- | ------------------------ | --------------------------- |
-| `BASE_DIR`             | Allowed file root        | `/app`                      |
-| `MAX_CONCURRENT_NODES` | Parallel execution limit | `10`                        |
-| `REQUEST_TIMEOUT`      | Seconds to wait for node | `300`                       |
-| `ALLOWED_ORIGINS`      | CORS whitelist           | `["http://localhost:3000"]` |
-| `MAX_FILE_SIZE`        | Upload limit (bytes)     | `10485760`                  |
-| `LOG_LEVEL`            | Logging level            | `INFO`                      |
+## Streaming Architecture
 
----
+Unified streaming supports both SSE and WebSocket:
+- SSE for simple client integration
+- WebSocket for bidirectional communication
+- Automatic fallback and queue management
 
-## Deployment (Docker)
+## Security
+
+- Path validation against `BASE_DIR`
+- API key encryption at rest
+- Rate limiting ready (implement in production)
+- Sandboxed code execution for DB nodes
+
+## Deployment
 
 ```dockerfile
 FROM python:3.11-slim
@@ -98,17 +97,21 @@ COPY . .
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
----
+## Development
 
-## Security Essentials
+```bash
+# Run with auto-reload
+uvicorn main:app --reload
 
-* **Validate paths** against `BASE_DIR` before any file I/O.
-* **Never log** raw API keys or sensitive data.
-* **Rate‑limit** endpoints and enable SSL/TLS in production.
-* Use **sandboxed code execution** and Pydantic validation for all inputs.
+# Run tests
+pytest tests/
 
----
+# Check metrics
+curl http://localhost:8000/metrics
+```
 
-## Need More?
+## LLM Providers
 
-For advanced features—custom node types, multi‑LLM adapters, testing, or observability—refer to the full documentation in the original `CLAUDE.md`.
+Supported: OpenAI/ChatGPT, Anthropic/Claude, Google/Gemini, xAI/Grok
+
+Adapters handle provider-specific APIs with unified interface and automatic retry logic.
