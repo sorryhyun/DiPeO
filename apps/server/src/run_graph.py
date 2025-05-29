@@ -13,6 +13,7 @@ from .constants import NodeType
 from .services.llm_service import LLMService
 from .services.api_key_service import APIKeyService
 from .services.memory_service import MemoryService
+from .services.notion_service import NotionService
 from .utils.resolve_utils import resolve_inputs, render_prompt
 from .utils.personjob_utils import execute_personjob
 from .utils.dynamic_executor import DynamicExecutor
@@ -121,13 +122,20 @@ class NodeExecutor:
                 cost = 0.0
 
             elif ntype == NodeType.JOB:
-                result = await run_db_block({"subType": "code", "sourceDetails": data.get("sourceDetails", "")}, inputs)
+                sub_type = data.get("subType", "code")
+                if sub_type == "api_tool":
+                    result = await self._execute_api_tool(data, inputs)
+                else:
+                    result = await run_db_block({"subType": "code", "sourceDetails": data.get("sourceDetails", "")}, inputs)
                 cost = 0.0
 
             elif ntype == NodeType.ENDPOINT:
                 # Handle endpoint blocks with optional file save
-                if data.get("saveToFile"):
+                if data.get("saveToFile") or data.get("filePath"):
                     result = await self._execute_endpoint_save(data, inputs)
+                else:
+                    # Just pass through the input if no file save
+                    result = inputs[0] if inputs else None
                 cost = 0.0
             
             # Record metrics
@@ -259,8 +267,109 @@ class NodeExecutor:
     
     async def _execute_endpoint_save(self, data: dict, inputs: List[Any]) -> Any:
         """Execute endpoint node with file save."""
-        # Implementation would go here
-        return None
+        from .db_blocks import run_db_target_block
+        
+        # Convert to the format expected by run_db_target_block
+        target_data = {
+            "targetType": "local_file",
+            "targetDetails": data.get("filePath", ""),
+            "fileFormat": data.get("fileFormat", "text")
+        }
+        
+        return await run_db_target_block(target_data, inputs)
+    
+    async def _execute_api_tool(self, data: dict, inputs: List[Any]) -> Any:
+        """Execute API tool operations like Notion integration."""
+        # Parse the sourceDetails JSON string to get the API configuration
+        source_details = data.get("sourceDetails", "{}")
+        logger.debug(f"[API Tool] Raw sourceDetails: {source_details}")
+        
+        try:
+            api_config = json.loads(source_details) if isinstance(source_details, str) else source_details
+        except json.JSONDecodeError:
+            raise ValueError(f"Invalid API configuration JSON: {source_details}")
+        
+        logger.debug(f"[API Tool] Parsed config: {api_config}")
+        api_type = api_config.get("apiType", "")
+        logger.debug(f"[API Tool] API type: '{api_type}'")
+        
+        if api_type == "notion":
+            notion_service = NotionService()
+            action = api_config.get("action", "query_database")
+            
+            # Get API key from the prompts/notion.yaml file
+            import yaml
+            with open("prompts/notion.yaml", "r") as f:
+                notion_config = yaml.safe_load(f)
+                api_key = notion_config.get("token", "")
+            
+            if action == "query_database":
+                database_id = api_config.get("databaseId", "")
+                filter_obj = api_config.get("filter", None)
+                sorts = api_config.get("sorts", None)
+                
+                if not database_id:
+                    raise ValueError("Database ID is required for Notion query")
+                
+                result = await notion_service.query_database(
+                    api_key=api_key,
+                    database_id=database_id,
+                    filter_obj=filter_obj,
+                    sorts=sorts
+                )
+                return result
+            
+            elif action == "create_page":
+                database_id = api_config.get("databaseId", "")
+                properties = api_config.get("properties", {})
+                
+                # If inputs provided, use the first input as content
+                if inputs and isinstance(inputs[0], str):
+                    # Try to parse as JSON for properties
+                    try:
+                        properties = json.loads(inputs[0])
+                    except:
+                        # If not JSON, create a simple title property
+                        properties = {
+                            "Name": {
+                                "title": [{"text": {"content": inputs[0]}}]
+                            }
+                        }
+                
+                result = await notion_service.create_page(
+                    api_key=api_key,
+                    parent_database_id=database_id,
+                    properties=properties
+                )
+                return result
+            
+            elif action == "update_page":
+                page_id = api_config.get("pageId", "")
+                properties = api_config.get("properties", {})
+                
+                result = await notion_service.update_page(
+                    api_key=api_key,
+                    page_id=page_id,
+                    properties=properties
+                )
+                return result
+            
+            elif action == "search":
+                query = api_config.get("query", "")
+                if inputs and isinstance(inputs[0], str):
+                    query = inputs[0]
+                
+                result = await notion_service.search(
+                    api_key=api_key,
+                    query=query
+                )
+                return result
+            
+            else:
+                raise ValueError(f"Unknown Notion action: {action}")
+        
+        else:
+            raise ValueError(f"Unknown API type: '{api_type}'. Available types: 'notion'")
 
 
 class ExecutionScheduler:

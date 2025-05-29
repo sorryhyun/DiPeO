@@ -132,7 +132,7 @@ class DiagramMigrator:
             base_node['data'].update({
                 'type': 'job',
                 'subType': step.get('sub_type', 'code'),
-                'sourceDetails': step.get('code', '')
+                'sourceDetails': step.get('sourceDetails', step.get('code', ''))
             })
 
         elif step['type'] == 'endpointNode':

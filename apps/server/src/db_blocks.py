@@ -125,7 +125,7 @@ async def _handle_file_write(details: str, inputs: List[Any]) -> str:
         else:
             content = str(first_input)
     
-    relative_path = file_service.write(details, content, relative_to="results")
+    relative_path = await file_service.write(details, content, relative_to="results")
     return f"Wrote to {relative_path}"
 
 
