@@ -2,26 +2,26 @@ version: "1.0"
 metadata:
   description: "AgentDiagram workflow export"
 apiKeys:
-  APIKEY_NDDUFP:
+  APIKEY_C880A4:
     service: "chatgpt"
-    name: "openai_api_key"
+    name: "abc"
 persons:
   PERSON_MEJZWR:
     id: "PERSON_MEJZWR"
     model: "gpt-4.1-nano"
     service: "chatgpt"
-    apiKeyId: "APIKEY_F47746"
+    apiKeyId: "APIKEY_C880A4"
     system: "Be pessimistic."
   PERSON_10X2HO:
     id: "PERSON_10X2HO"
     model: "gpt-4.1-nano"
     service: "chatgpt"
-    apiKeyId: "APIKEY_F47746"
+    apiKeyId: "APIKEY_C880A4"
   PERSON_4YEQ4Q:
     id: "PERSON_4YEQ4Q"
     model: "gpt-4.1-nano"
     service: "chatgpt"
-    apiKeyId: "APIKEY_F47746"
+    apiKeyId: "APIKEY_C880A4"
     system: "Be optimistic."
 workflow:
   - id: "personjobNode-P85ESC"
@@ -71,8 +71,8 @@ workflow:
   - id: "personjobNode-VKO6WK"
     type: "personjobNode"
     position:
-      x: 372
-      y: 409
+      x: 288
+      y: 398
     label: "Judge panel"
     connections:
       - to: "endpointNode-vP0dbJ"
@@ -117,8 +117,8 @@ workflow:
         source_handle: "conditionNode-WPKS8Q-output-false"
         target_handle: "personjobNode-P85ESC-input-default"
         control_offset:
-          x: -346
-          y: -69
+          x: -208
+          y: -32
       - to: "personjobNode-VKO6WK"
         label: "conversation"
         source_handle: "conditionNode-WPKS8Q-output-true"
@@ -145,8 +145,8 @@ workflow:
   - id: "endpointNode-vP0dbJ"
     type: "endpointNode"
     position:
-      x: 168
-      y: 317
+      x: 77
+      y: 341
     label: "Endpoint"
     file: "results/output.txt"
     file_format: "text"
