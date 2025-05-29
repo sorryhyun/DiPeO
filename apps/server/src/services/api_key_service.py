@@ -48,14 +48,29 @@ class APIKeyService(BaseService):
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
         
-        return self._store[key_id]
+        info = self._store[key_id]
+        # Ensure the returned format is consistent
+        if isinstance(info, dict):
+            return {
+                "id": key_id,
+                "name": info.get("name", key_id),
+                "service": info.get("service", "unknown"),
+                "key": info.get("key") or info.get("token", "")
+            }
+        return info
     
     def list_api_keys(self) -> List[dict]:
         """List all stored API keys."""
-        return [
-            {"id": key_id, "name": info["name"], "service": info["service"]}
-            for key_id, info in self._store.items()
-        ]
+        result = []
+        for key_id, info in self._store.items():
+            # Handle both old and new format API keys
+            if isinstance(info, dict) and "service" in info:
+                result.append({
+                    "id": key_id,
+                    "name": info.get("name", key_id),  # Use key_id as fallback name
+                    "service": info["service"]
+                })
+        return result
     
     def create_api_key(self, name: str, service: str, key: str) -> dict:
         """Create a new API key entry."""

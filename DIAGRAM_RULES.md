@@ -41,6 +41,8 @@ python agentdiagram_tool.py server-save workflow.yaml my-workflow.yaml
 
 ### 1. **File Structure Rules**
 
+- it should be created at `diagrams/`
+
 ```yaml
 version: "1.0"  # Required - must be exactly "1.0"
 metadata:       # Optional but recommended
@@ -54,12 +56,12 @@ workflow:       # Required - contains all nodes
 - Each API key must have a unique ID
 - Required fields: `service`, `name`
 - Valid services: `chatgpt`, `claude`, `gemini`, `grok`, `custom`
-- Example:
+- For chatgpt, it should be the same as follow:
 ```yaml
 apiKeys:
-  APIKEY_ABC123:
-    service: chatgpt
-    name: "Production OpenAI Key"
+  APIKEY_C880A4:
+    service: "chatgpt"
+    name: "abc"
 ```
 
 ### 3. **Persons Rules**
@@ -74,7 +76,7 @@ persons:
     id: researcher
     model: gpt-4.1-nano
     service: chatgpt
-    apiKeyId: APIKEY_ABC123
+    apiKeyId: APIKEY_C880A4
     system: "You are a helpful research assistant"
 ```
 

@@ -199,7 +199,8 @@ export const useDiagramRunner = () => {
         // Validate API keys first
         const keysRes = await fetch(`${API_BASE}/api/apikeys`, { signal });
         if (keysRes.ok) {
-          const keys = await keysRes.json();
+          const response = await keysRes.json();
+          const keys = response.apiKeys || response; // Handle both formats
           const validIds = new Set(Array.isArray(keys) ? keys.map((k: any) => k.id) : []);
 
           // Validate person API keys

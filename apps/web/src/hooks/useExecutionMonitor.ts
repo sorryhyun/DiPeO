@@ -1,6 +1,6 @@
 // apps/web/src/hooks/useExecutionMonitor.ts
 import { useEffect, useRef } from 'react';
-import { useExecutionStore } from '@/stores';
+import { useExecutionStore, useConsolidatedDiagramStore } from '@/stores';
 import { toast } from 'sonner';
 
 export const useExecutionMonitor = () => {
@@ -11,6 +11,7 @@ export const useExecutionMonitor = () => {
     removeRunningNode,
     setCurrentRunningNode
   } = useExecutionStore();
+  const { loadDiagram } = useConsolidatedDiagramStore();
 
   useEffect(() => {
     const clientId = `browser-${Date.now()}`;
@@ -26,6 +27,10 @@ export const useExecutionMonitor = () => {
       switch (data.type) {
         case 'execution_started':
           toast.info(`External execution started: ${data.execution_id}`);
+          // Load the diagram into the UI
+          if (data.diagram) {
+            loadDiagram(data.diagram);
+          }
           // Auto-subscribe to this execution
           ws.send(JSON.stringify({
             type: 'subscribe_execution',

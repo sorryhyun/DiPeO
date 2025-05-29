@@ -114,7 +114,7 @@ def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True) -> Dict[s
 def open_browser_monitor():
     """Open browser to monitoring page."""
     import webbrowser
-    monitor_url = "http://localhost:5173/?monitor=true"
+    monitor_url = "http://localhost:3000/?monitor=true"
     print(f"🌐 Opening browser monitor at {monitor_url}")
     webbrowser.open(monitor_url)
 
@@ -280,7 +280,7 @@ def main():
 
             if show_in_browser:
                 print("🌐 Running diagram (browser visualization enabled)")
-                print("   Open http://localhost:5173 in your browser to see the execution")
+                print("   Open http://localhost:3000 in your browser to see the execution")
             else:
                 print("Running diagram (browser visualization disabled)")
 

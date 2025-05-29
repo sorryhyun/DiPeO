@@ -24,7 +24,9 @@
       "measured": {
         "width": 208,
         "height": 144
-      }
+      },
+      "selected": true,
+      "dragging": false
     },
     {
       "id": "dbNode-KY9MHH",

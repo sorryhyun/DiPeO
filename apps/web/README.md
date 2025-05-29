@@ -59,7 +59,7 @@ apps/web
 
 ```bash
 pnpm install       # dependencies
-pnpm dev:web       # dev server @localhost:5173
+pnpm dev:web       # dev server @localhost:3000
 pnpm build:web     # production build
 pnpm analyze       # bundle stats
 ```

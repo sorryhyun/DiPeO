@@ -45,7 +45,7 @@ class UnifiedFileService(BaseService):
     async def write(self,
               path: str,
               content: Any,
-              relative_to: str = "results",
+              relative_to: str = "",
               format: Optional[str] = None,
               encoding: str = "utf-8") -> str:
         """Write file with automatic format handling."""

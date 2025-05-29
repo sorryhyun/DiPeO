@@ -77,11 +77,11 @@ $ cp apps/server/.env.example apps/server/.env  # add your API keys
 
 # 4. Run all services
 # in one terminal
-$ pnpm dev:web            # React dev server on :5173
+$ pnpm dev:web            # React dev server on :3000
 # in another
 $ uvicorn apps.server.main:app --reload --port 8000
 
-# 5. Open http://localhost:5173 and start building diagrams!
+# 5. Open http://localhost:3000 and start building diagrams!
 ```
 
 ---

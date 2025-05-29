@@ -6,14 +6,12 @@ import { useDiagramActions } from '@/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@repo/diagram-ui';
 import { LazyApiKeysModal } from '../modals/LazyModals';
-import {useSearchParams} from "react-router-dom";
 
 
 const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
-  const [searchParams] = useSearchParams();
-  const isMonitorMode = searchParams.get('monitor') === 'true';
+  const [isMonitorMode, setIsMonitorMode] = useState(false);
   // Bypass Vite dev server proxy for backend API calls in development
   const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
   const { apiKeys, addApiKey } = useConsolidatedDiagramStore();
@@ -21,6 +19,8 @@ const TopBar = () => {
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useConsolidatedUIStore();
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsMonitorMode(params.get('monitor') === 'true');
     const checkBackendApiKeys = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/apikeys`);
