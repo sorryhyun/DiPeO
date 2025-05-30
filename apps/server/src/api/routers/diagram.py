@@ -3,17 +3,14 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from typing import AsyncGenerator
 import json
 import asyncio
-import traceback
 import inspect
-from datetime import datetime
 
 from ...services.diagram_service import DiagramService
 from ...services.memory_service import MemoryService
 from ...utils.dependencies import get_diagram_service, get_memory_service
 from ...utils.converter import DiagramMigrator
-from ...streaming.stream_manager import stream_manager
+from ...streaming import StreamingDiagramExecutor
 from ...run_graph import DiagramExecutor
-from config import CONVERSATION_LOG_DIR
 
 router = APIRouter(prefix="/api", tags=["diagram"])
 
@@ -41,80 +38,6 @@ def safe_json_dumps(obj):
     return json.dumps(obj, cls=SafeJSONEncoder, default=str)
 
 
-class StreamingExecutor:
-    """Executes diagram with streaming updates."""
-    
-    def __init__(self, broadcast_to_websocket: bool = False):
-        self.completed = False
-        self.error = None
-        self.broadcast_to_websocket = broadcast_to_websocket
-        self.execution_id = None
-        self.stream_context = None
-
-    async def status_callback(self, update: dict):
-        # Publish to stream manager
-        if self.execution_id:
-            await stream_manager.publish_update(self.execution_id, update)
-
-    async def execute_diagram(self, diagram: dict):
-        """Execute diagram and collect all updates."""
-        try:
-            diagram = DiagramMigrator.migrate(diagram)
-            
-            memory_service = get_memory_service()
-            executor = DiagramExecutor(
-                diagram=diagram,
-                memory_service=memory_service,
-                status_callback=self.status_callback
-            )
-            self.execution_id = executor.execution_id
-            
-            # Create stream context
-            output_format = 'both' if self.broadcast_to_websocket else 'sse'
-            self.stream_context = await stream_manager.create_stream(
-                self.execution_id, output_format
-            )
-            
-            # Broadcast execution start
-            if self.broadcast_to_websocket:
-                await stream_manager.publish_update(self.execution_id, {
-                    "type": "execution_started",
-                    "execution_id": self.execution_id,
-                    "diagram": diagram,
-                    "timestamp": datetime.now().isoformat()
-                })
-
-            context, total_cost = await executor.run()
-            
-            log_path = await memory_service.save_conversation_log(
-                execution_id=executor.execution_id,
-                log_dir=CONVERSATION_LOG_DIR
-            )
-
-            await stream_manager.publish_update(self.execution_id, {
-                "type": "execution_complete",
-                "context": context,
-                "total_cost": total_cost,
-                "memory_stats": executor.get_memory_stats(),
-                "conversation_log": log_path
-            })
-            
-            memory_service.clear_execution_memory(executor.execution_id)
-
-            self.completed = True
-
-        except Exception as e:
-            self.error = e
-            await stream_manager.publish_update(self.execution_id, {
-                "type": "execution_error",
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            })
-            self.completed = True
-        finally:
-            # Clean up stream resources
-            if self.execution_id:
-                await stream_manager.cleanup_stream(self.execution_id)
 
 
 @router.post("/import-uml")
@@ -180,29 +103,33 @@ async def run_diagram_endpoint(diagram: dict, broadcast: bool = True):
     Execute a diagram with streaming node status updates.
     Returns a streaming response with real-time node execution status.
     """
-    diagram = DiagramMigrator.migrate(diagram)
+    memory_service = get_memory_service()
     
     async def generate_stream() -> AsyncGenerator[str, None]:
         """Generate streaming updates during diagram execution."""
-
-        streaming_executor = StreamingExecutor(broadcast_to_websocket=broadcast)
-
-        execution_task = asyncio.create_task(
-            streaming_executor.execute_diagram(diagram)
+        # Create streaming executor
+        executor = StreamingDiagramExecutor(
+            diagram=diagram,
+            memory_service=memory_service,
+            broadcast_to_websocket=broadcast
         )
-
+        
+        # Start execution
+        execution_task = asyncio.create_task(executor.execute())
+        
         try:
             # Send initial connection confirmation
             yield f"data: {safe_json_dumps({'type': 'connection_established'})}\n\n"
             
-            # Get the SSE queue from stream manager
-            queue = None
-            while queue is None and streaming_executor.execution_id:
-                queue = stream_manager.get_stream_queue(streaming_executor.execution_id)
-                if queue is None:
-                    await asyncio.sleep(0.01)  # Wait for stream to be created
+            # Wait for stream to be ready
+            if not await executor.wait_for_stream_ready():
+                raise HTTPException(status_code=500, detail="Failed to initialize stream")
             
-            while not streaming_executor.completed or (queue and not queue.empty()):
+            # Get the SSE queue
+            queue = executor.get_stream_queue()
+            
+            # Stream updates until completion
+            while not executor.completed or (queue and not queue.empty()):
                 if queue:
                     try:
                         update = await asyncio.wait_for(queue.get(), timeout=0.1)
@@ -213,17 +140,19 @@ async def run_diagram_endpoint(diagram: dict, broadcast: bool = True):
                         continue
                 else:
                     await asyncio.sleep(0.1)
-
+            
+            # Wait for execution to complete
             await execution_task
-
-            if streaming_executor.error:
-                raise streaming_executor.error
-
+            
+            # Check for errors
+            if executor.error:
+                raise executor.error
+                
         except Exception as e:
             if not execution_task.done():
                 execution_task.cancel()
             raise HTTPException(status_code=500, detail=str(e))
-
+    
     return StreamingResponse(
         generate_stream(),
         media_type="text/event-stream",

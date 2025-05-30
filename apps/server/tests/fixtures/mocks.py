@@ -3,7 +3,7 @@
 from typing import Dict, List, Tuple, Any, Optional
 from unittest.mock import AsyncMock
 
-from ...src.llm_adapters import ChatResult
+from ...src.llm import ChatResult
 
 
 class MockLLMService:

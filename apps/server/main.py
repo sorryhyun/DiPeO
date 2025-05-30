@@ -13,14 +13,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 load_dotenv()
 
 # Import routers and middleware
-from src.api.routers import (
+from .src.api.routers import (
     diagram_router,
     apikeys_router,
     files_router,
     conversations_router,
     websocket_router
 )
-from src.api.middleware import setup_middleware
+from .src.api.middleware import setup_middleware
 
 
 @asynccontextmanager

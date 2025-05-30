@@ -42,6 +42,11 @@ class ConditionNodeExecutor(BaseNodeExecutor):
         data = self.get_node_data(node)
         incoming_arrows = kwargs.get('incoming_arrows', [])
         
+        # Check for max_iterations condition type
+        condition_type = data.get("conditionType", "").strip()
+        if condition_type == "max_iterations":
+            return self._evaluate_max_iterations(state, kwargs.get('diagram', {})), 0.0
+        
         # Get the condition expression
         condition_expr = data.get("condition", "").strip()
         if not condition_expr:
@@ -113,3 +118,56 @@ class ConditionNodeExecutor(BaseNodeExecutor):
                 error=str(e)
             )
             raise
+    
+    def _evaluate_max_iterations(self, state: ExecutionState, diagram: dict) -> bool:
+        """Evaluate if all executed PersonJob nodes have reached their max iterations.
+        
+        Args:
+            state: Current execution state with counts
+            diagram: Full diagram data containing node configurations
+            
+        Returns:
+            True if all executed PersonJob nodes reached their max iterations
+        """
+        nodes = diagram.get('nodes', [])
+        personjob_nodes = [
+            n for n in nodes 
+            if n.get('data', {}).get('type') == 'person_job'
+        ]
+        
+        if not personjob_nodes:
+            logger.warning("no_personjob_nodes_for_max_iterations")
+            return True
+        
+        # Check each PersonJob node that has been executed
+        all_at_max = True
+        executed_count = 0
+        
+        for node in personjob_nodes:
+            node_id = node['id']
+            iteration_count = node.get('data', {}).get('iterationCount', 1)
+            current_count = state.counts.get(node_id, 0)
+            
+            # Only consider nodes that have been executed at least once
+            if current_count > 0:
+                executed_count += 1
+                if current_count < iteration_count:
+                    all_at_max = False
+                    logger.debug(
+                        "personjob_not_at_max",
+                        node_id=node_id,
+                        current=current_count,
+                        max=iteration_count
+                    )
+        
+        # If no PersonJob nodes have been executed yet, return False
+        if executed_count == 0:
+            return False
+        
+        logger.info(
+            "max_iterations_check",
+            all_at_max=all_at_max,
+            executed_nodes=executed_count
+        )
+        
+        return all_at_max

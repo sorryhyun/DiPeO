@@ -79,7 +79,8 @@ class DiagramExecutor:
             llm_service=self.llm_service,
             memory_service=self.memory_service,
             execution_id=self.execution_id,
-            send_status_update_fn=self._send_status_update
+            send_status_update_fn=self._send_status_update,
+            diagram={'nodes': self.nodes, 'arrows': self.arrows, 'persons': self.persons}
         )
 
     def _extract_max_iterations(self) -> Dict[str, int]:

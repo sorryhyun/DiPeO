@@ -316,7 +316,7 @@
       "label": "PERSON MEJZWR",
       "modelName": "gpt-4.1-nano",
       "service": "chatgpt",
-      "apiKeyId": "APIKEY_C880A4",
+      "apiKeyId": "APIKEY_TEST00",
       "systemPrompt": "Be pessimistic."
     },
     {
@@ -324,21 +324,21 @@
       "label": "PERSON 10X2HO",
       "modelName": "gpt-4.1-nano",
       "service": "chatgpt",
-      "apiKeyId": "APIKEY_C880A4"
+      "apiKeyId": "APIKEY_TEST00"
     },
     {
       "id": "PERSON_4YEQ4Q",
       "label": "PERSON 4YEQ4Q",
       "modelName": "gpt-4.1-nano",
       "service": "chatgpt",
-      "apiKeyId": "APIKEY_C880A4",
+      "apiKeyId": "APIKEY_TEST00",
       "systemPrompt": "Be optimistic."
     }
   ],
   "apiKeys": [
     {
-      "id": "APIKEY_C880A4",
-      "name": "abc",
+      "id": "APIKEY_TEST00",
+      "name": "test",
       "service": "chatgpt",
       "keyReference": "***hidden***"
     }

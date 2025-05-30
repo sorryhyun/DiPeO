@@ -43,13 +43,15 @@ class NodeExecutor:
                  llm_service: LLMService,
                  memory_service: MemoryService,
                  execution_id: str,
-                 send_status_update_fn: Callable):
+                 send_status_update_fn: Callable,
+                 diagram: Optional[dict] = None):
         self.nodes_by_id = nodes
         self.persons = persons
         self.llm_service = llm_service
         self.memory_service = memory_service
         self.execution_id = execution_id
         self._send_status_update = send_status_update_fn
+        self.diagram = diagram or {'nodes': list(nodes.values())}
         
     async def execute_node(
             self,
@@ -99,6 +101,10 @@ class NodeExecutor:
                 person_id = node.get("data", {}).get("personId")
                 kwargs['person'] = self.persons.get(person_id, {})
                 kwargs['get_all_person_ids_fn'] = self._get_all_person_ids_in_diagram
+            
+            # Add diagram for Condition nodes
+            if NodeType.from_legacy(node_type) == NodeType.CONDITION:
+                kwargs['diagram'] = self.diagram
             
             # Execute node
             result, cost = await executor.execute(

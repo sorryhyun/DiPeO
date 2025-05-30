@@ -4,7 +4,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 
 from ..constants import LLMService as LLMServiceEnum, COST_RATES
 from ..exceptions import LLMServiceError, APIKeyError
-from ..llm_adapters import ClaudeAdapter, GrokAdapter, GeminiAdapter, ChatGPTAdapter, ChatResult
+from ..llm import ChatResult, create_adapter
 from .api_key_service import APIKeyService
 from ..utils.base_service import BaseService
 
@@ -15,13 +15,6 @@ class LLMService(BaseService):
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()
         self.api_key_service = api_key_service
-        self._adapters = {
-            LLMServiceEnum.CLAUDE.value: ClaudeAdapter,
-            LLMServiceEnum.GROK.value: GrokAdapter,
-            LLMServiceEnum.GEMINI.value: GeminiAdapter,
-            LLMServiceEnum.CHATGPT.value: ChatGPTAdapter,
-            LLMServiceEnum.OPENAI.value: ChatGPTAdapter,
-        }
         # Connection pool for adapters to avoid creating new instances
         self._adapter_pool = {}
     
@@ -37,7 +30,16 @@ class LLMService(BaseService):
         """Get the appropriate LLM adapter with connection pooling and TTL."""
         normalized_service = self.normalize_service_name(service)
         
-        if normalized_service not in self._adapters:
+        # Map service names to provider names for the factory
+        provider_map = {
+            LLMServiceEnum.CLAUDE.value: 'anthropic',
+            LLMServiceEnum.GROK.value: 'xai',
+            LLMServiceEnum.GEMINI.value: 'google',
+            LLMServiceEnum.CHATGPT.value: 'openai',
+            LLMServiceEnum.OPENAI.value: 'openai'
+        }
+        
+        if normalized_service not in provider_map:
             raise LLMServiceError(f"Unsupported LLM service: {service}")
         
         # Use pooling - cache key includes service, model, and api_key_id
@@ -46,11 +48,11 @@ class LLMService(BaseService):
         if cache_key not in self._adapter_pool:
             # Only get the key when creating new adapter
             raw_key = self._get_api_key(api_key_id)
-            adapter_class = self._adapters[normalized_service]
+            provider = provider_map[normalized_service]
             
             # Store both adapter AND the resolved key with timestamp
             self._adapter_pool[cache_key] = {
-                'adapter': adapter_class(model, raw_key),
+                'adapter': create_adapter(provider, model, raw_key),
                 'created_at': time.time()
             }
         
