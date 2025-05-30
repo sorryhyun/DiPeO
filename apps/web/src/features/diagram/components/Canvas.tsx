@@ -20,7 +20,7 @@ import {
   ContextMenu as ContextMenuBase 
 } from '../wrappers';
 import { roundPosition } from '../utils/diagramSanitizer';
-import { nodeTypes } from '@/features/nodes';
+import { nodeTypes, useNodeDrag } from '@/features/nodes';
 import { DiagramNode, Arrow } from '@repo/core-model';
 import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 
@@ -109,36 +109,26 @@ const DiagramCanvas: React.FC = () => {
   });
 
   // Helper to project screen coords to RF coords
-  const projectPosition = (x: number, y: number) => {
+  const projectPosition = useCallback((x: number, y: number) => {
     if (!reactFlowWrapper.current || !rfInstance) return { x: 0, y: 0 };
     const bounds = reactFlowWrapper.current.getBoundingClientRect();
     const position = rfInstance.screenToFlowPosition({ x: x - bounds.left, y: y - bounds.top });
     return roundPosition(position);
-  };
+  }, [rfInstance]);
 
   // Context menu actions
+  // Use extracted node drag hook
+  const { onDragOver, onDrop: onNodeDrop } = useNodeDrag();
+
   const handleAddPerson = () => {
     addPerson({ label: 'New Person' });
   };
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
-
   const onDrop = useCallback(
     (event: React.DragEvent) => {
-      event.preventDefault();
-      if (!reactFlowWrapper.current || !rfInstance) return;
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (!type) return;
-      const position = rfInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-      addNode(type, roundPosition(position));
+      onNodeDrop(event, addNode, projectPosition);
     },
-    [rfInstance, addNode]
+    [onNodeDrop, addNode, projectPosition]
   );
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {

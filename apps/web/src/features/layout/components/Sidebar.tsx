@@ -7,12 +7,10 @@ import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { useFileImport } from '@/features/diagram/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
+import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
-  const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.effectAllowed = 'move';
-  };
+  const { onDragStart } = useNodeDrag();
 
   // Extract emoji from label (assuming it's the first character(s))
   const emoji = label.split(' ')[0];

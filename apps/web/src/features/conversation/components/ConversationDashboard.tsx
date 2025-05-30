@@ -1,178 +1,54 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User, MessageSquare,
-  Search, Filter, Download, DollarSign, Hash
+  Search, Filter, Download, DollarSign
 } from 'lucide-react';
 import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/shared/stores';
 import { Button, Input, Select, SelectItem } from '@repo/ui-kit';
 import { downloadJson } from '@/shared/utils/downloadUtils';
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
-import { createErrorHandlerFactory } from '@repo/core-model';
-
-interface ConversationMessage {
-  id: string;
-  role: 'assistant' | 'user';
-  content: string;
-  timestamp: string;
-  sender_person_id: string;
-  execution_id: string;
-  node_id?: string;
-  node_label?: string;
-  token_count?: number;
-  cost?: number;
-}
-
-interface PersonMemoryState {
-  person_id: string;
-  messages: ConversationMessage[];
-  total_messages: number;
-  visible_messages: number;
-  forgotten_messages: number;
-  has_more: boolean;
-}
-
-interface ConversationFilters {
-  searchTerm: string;
-  executionId: string;
-  showForgotten: boolean;
-  startTime?: string;
-  endTime?: string;
-}
-
-const MESSAGES_PER_PAGE = 50;
+import { useConversationData } from '../hooks/useConversationData';
+import { useMessagePolling } from '../hooks/useMessagePolling';
+import { MessageList } from './MessageList';
+import { ConversationMessage, ConversationFilters } from '../types';
 
 const ConversationDashboard: React.FC = () => {
-  const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [filters, setFilters] = useState<ConversationFilters>({
     searchTerm: '',
     executionId: '',
     showForgotten: false,
   });
   const [showFilters, setShowFilters] = useState(false);
-  const createErrorHandler = createErrorHandlerFactory(toast);
 
   const { persons } = useConsolidatedDiagramStore();
   const { runContext } = useExecutionStore();
+  const { selectedPersonId } = useConsolidatedUIStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const lastUpdateTime = useRef<string | null>(null);
-  const messageCounts = useRef<Record<string, number>>({});
-  const fetchConversationDataRef = useRef<typeof fetchConversationData | null>(null);
 
-  // Subscribe to real-time updates
-  useEffect(() => {
-    const handleRealtimeUpdate = (event: CustomEvent) => {
-      const { type, data } = event.detail;
+  // Use extracted hooks
+  const {
+    conversationData,
+    loading,
+    loadingMore,
+    fetchConversationData,
+    addMessage,
+    fetchMore
+  } = useConversationData(filters);
 
-      if (type === 'message_added' && dashboardSelectedPerson) {
-        // Add new message to the current view
-        const message = data.message as ConversationMessage;
-        setConversationData(prev => {
-          const personData = prev[dashboardSelectedPerson];
-          if (!personData) return prev;
-
-          return {
-            ...prev,
-            [dashboardSelectedPerson]: {
-              ...personData,
-              messages: [...personData.messages, message],
-              visible_messages: personData.visible_messages + 1,
-            }
-          };
-        });
-
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      }
-    };
-
-    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListener);
-    return () => {
-      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListener);
-    };
-  }, [dashboardSelectedPerson]);
-
-  // Fetch conversation data
-  const fetchConversationData = useCallback(async (
-    personId?: string,
-    append: boolean = false,
-    since?: string
-  ) => {
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
-
-    try {
-      // Build params with functional state update to avoid stale closure
-      const params = new URLSearchParams({
-        limit: MESSAGES_PER_PAGE.toString(),
-        ...(personId && { personId }),
-        ...(since && { since }),
-        ...(filters.searchTerm && { search: filters.searchTerm }),
-        ...(filters.executionId && { executionId: filters.executionId }),
-        ...(filters.showForgotten && { showForgotten: 'true' }),
-        ...(filters.startTime && { startTime: filters.startTime }),
-        ...(filters.endTime && { endTime: filters.endTime }),
-      });
-
-      // Add offset for pagination
-      if (append && personId && messageCounts.current[personId]) {
-        params.append('offset', messageCounts.current[personId].toString());
-      }
-
-      const res = await fetch(`${getApiUrl(API_ENDPOINTS.CONVERSATIONS)}?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-
-        if (append && personId) {
-          // Append to existing messages using functional update
-          setConversationData(prev => {
-            const newData = {
-              ...prev,
-              [personId]: {
-                ...data.persons[personId],
-                messages: [...(prev[personId]?.messages || []), ...data.persons[personId].messages],
-              }
-            };
-            // Update message counts ref
-            messageCounts.current[personId] = newData[personId].messages.length;
-            return newData;
-          });
-        } else {
-          // Replace data
-          setConversationData(data.persons);
-          // Update message counts ref for all persons
-          Object.keys(data.persons).forEach(pid => {
-            messageCounts.current[pid] = data.persons[pid].messages.length;
-          });
-        }
-
-        // Update last fetch time
-        if (data.persons[personId!]?.messages.length > 0) {
-          const lastMsg = data.persons[personId!].messages[data.persons[personId!].messages.length - 1];
-          lastUpdateTime.current = lastMsg.timestamp;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch conversation data:', error);
-      createErrorHandler('Failed to load conversations')(error as Error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [filters]);
-
-  // Update the ref whenever fetchConversationData changes
-  useEffect(() => {
-    fetchConversationDataRef.current = fetchConversationData;
-  }, [fetchConversationData]);
+  useMessagePolling({
+    personId: dashboardSelectedPerson,
+    runContext,
+    lastUpdateTime: null, // Will be managed internally by the hook
+    onNewMessage: (personId: string, message: ConversationMessage) => {
+      addMessage(personId, message);
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    },
+    fetchConversationData
+  });
 
   // Initial load when runContext changes
   useEffect(() => {
@@ -181,31 +57,7 @@ const ConversationDashboard: React.FC = () => {
     }
   }, [runContext, fetchConversationData]);
 
-  // Separate polling logic with stable interval
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    const hasRunContext = Object.keys(runContext).length > 0;
-
-    // Only start polling if we have a selected person and runContext
-    if (dashboardSelectedPerson && hasRunContext) {
-      interval = setInterval(() => {
-        // Check if we still have a selected person and last update time
-        if (dashboardSelectedPerson && lastUpdateTime.current && fetchConversationDataRef.current) {
-          fetchConversationDataRef.current(dashboardSelectedPerson, false, lastUpdateTime.current);
-        }
-      }, 5000); // Poll every 5 seconds
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [dashboardSelectedPerson, runContext]); // Stable dependencies
-
   // Handle person selection from sidebar
-  const { selectedPersonId } = useConsolidatedUIStore();
-  
   useEffect(() => {
     if (selectedPersonId && selectedPersonId !== dashboardSelectedPerson) {
       setDashboardSelectedPerson(selectedPersonId);
@@ -213,7 +65,7 @@ const ConversationDashboard: React.FC = () => {
         fetchConversationData(selectedPersonId);
       }
     }
-  }, [selectedPersonId]);
+  }, [selectedPersonId, dashboardSelectedPerson, conversationData, fetchConversationData]);
 
   // Handle infinite scroll
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -226,9 +78,9 @@ const ConversationDashboard: React.FC = () => {
       conversationData[dashboardSelectedPerson]?.has_more &&
       !loadingMore
     ) {
-      fetchConversationData(dashboardSelectedPerson, true);
+      fetchMore(dashboardSelectedPerson);
     }
-  }, [dashboardSelectedPerson, conversationData, loadingMore, fetchConversationData]);
+  }, [dashboardSelectedPerson, conversationData, loadingMore, fetchMore]);
 
   // Export conversations
   const exportConversations = () => {
@@ -250,7 +102,6 @@ const ConversationDashboard: React.FC = () => {
     };
 
     downloadJson(exportData, `conversation-${person?.label || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
-
     toast.success('Conversation exported');
   };
 
@@ -342,7 +193,6 @@ const ConversationDashboard: React.FC = () => {
         onValueChange={(value) => setFilters(prev => ({ ...prev, executionId: value }))}
       >
         <SelectItem value="">All Executions</SelectItem>
-        {/* Add execution options dynamically */}
       </Select>
       <label className="flex items-center space-x-2 text-sm">
         <input
@@ -363,57 +213,7 @@ const ConversationDashboard: React.FC = () => {
     </div>
   );
 
-  // Render single message
-  const renderMessage = (message: ConversationMessage) => {
-    const isFromSelectedPerson = message.sender_person_id === dashboardSelectedPerson;
-    const senderPerson = persons.find(p => p.id === message.sender_person_id);
-
-    return (
-      <div
-        key={message.id}
-        className={`flex ${isFromSelectedPerson ? 'justify-end' : 'justify-start'} px-4 py-2`}
-      >
-        <div
-          className={`
-            max-w-2xl p-3 rounded-lg
-            ${isFromSelectedPerson 
-              ? 'bg-blue-500 text-white' 
-              : 'bg-gray-100 text-gray-800'
-            }
-          `}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-xs opacity-75">
-              {isFromSelectedPerson ? 'Wrote' : `Read from ${senderPerson?.label || 'Unknown'}`}
-              {message.node_label && (
-                <span className="ml-2">• {message.node_label}</span>
-              )}
-            </div>
-            <div className="flex items-center space-x-2 text-xs opacity-60">
-              {message.token_count && (
-                <span className="flex items-center">
-                  <Hash className="h-3 w-3 mr-1" />
-                  {message.token_count}
-                </span>
-              )}
-              {message.cost && (
-                <span className="flex items-center">
-                  <DollarSign className="h-3 w-3" />
-                  {message.cost.toFixed(4)}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="text-sm whitespace-pre-wrap break-words">{message.content}</div>
-          <div className="text-xs opacity-50 mt-1">
-            {new Date(message.timestamp).toLocaleString()}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Render conversation with virtual scrolling
+  // Render conversation with extracted MessageList component
   const renderConversation = () => {
     if (!dashboardSelectedPerson) return null;
 
@@ -446,10 +246,12 @@ const ConversationDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {allMessages.map((message) => renderMessage(message))}
-            <div ref={messagesEndRef} />
-          </div>
+          <MessageList
+            messages={allMessages}
+            currentPersonId={dashboardSelectedPerson}
+            persons={persons}
+            messagesEndRef={messagesEndRef}
+          />
         </div>
       );
     }
@@ -477,18 +279,14 @@ const ConversationDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div
-          className="flex-1 overflow-y-auto"
+        <MessageList
+          messages={personMemory.messages}
+          currentPersonId={dashboardSelectedPerson}
+          persons={persons}
           onScroll={handleScroll}
-        >
-          {personMemory.messages.map((message) => renderMessage(message))}
-          {loadingMore && (
-            <div className="text-center py-4">
-              <span className="text-sm text-gray-500">Loading more messages...</span>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          messagesEndRef={messagesEndRef}
+          loadingMore={loadingMore}
+        />
       </div>
     );
   };
@@ -513,7 +311,7 @@ const ConversationDashboard: React.FC = () => {
             <div className="flex-1 flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Select a person from the left sidebar or click "Whole Conversation"</p>
+                <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
               </div>
             </div>
           )}

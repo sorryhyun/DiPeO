@@ -5,6 +5,8 @@ export { default as PersonClass } from './components/PersonClass';
 
 // Hooks
 export * from './hooks/useNodeOperations';
+export * from './hooks/useNodeDrag';
+export * from './hooks/useNodeConfig';
 
 // Utils
 export * from './utils/nodeHelpers';

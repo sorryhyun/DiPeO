@@ -14,6 +14,7 @@ export * from './components/PersonPanel';
 // Hooks
 export * from './hooks/useApiKeys';
 export * from './hooks/usePropertyPanel';
+export * from './hooks/usePropertyFormState';
 
 // Utils
 export * from './utils/fieldRenderers';
