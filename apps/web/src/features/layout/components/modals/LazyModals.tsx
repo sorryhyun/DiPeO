@@ -1,6 +1,6 @@
 // Lazy loaded modal components with fallbacks
 import React, { Suspense } from 'react';
-import { ModalSkeleton } from '../skeletons/SkeletonComponents';
+import { ModalSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 
 const ApiKeysModal = React.lazy(() => import('./ApiKeysModal'));
 

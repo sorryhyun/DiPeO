@@ -11,6 +11,7 @@ The feature-based refactoring has been successfully implemented! All code has be
 3. **Import Paths Updated** - All imports use new `@/features/*` and `@/shared/*` aliases
 4. **TypeScript Configuration** - Path aliases added to tsconfig.json
 5. **Build & Type Checking** - All verification passes (build ✅, typecheck ✅, dev server ✅)
+6. **Legacy Code Cleanup** - ✅ **COMPLETED (2025-05-30)** Old directories removed, imports updated
 
 ### 📁 Current Structure:
 
@@ -24,38 +25,36 @@ src/
 │   └── conversation/     ✅ ConversationDashboard
 ├── shared/               ✅ Common components, hooks, contexts, utils
 ├── stores/               ✅ (unchanged - cross-feature)
-└── components/           🔄 (legacy - to be cleaned up)
+└── components/           ✅ Clean! Only modals/, common/, skeletons/ remain
+    ├── common/           ✅ (temporary - FileUploadButton)
+    ├── modals/           ✅ (temporary - ApiKeysModal, LazyModals)
+    └── skeletons/        ✅ (temporary - SkeletonComponents)
 ```
 
 ---
 
+# ✅ Phase 1: Legacy Code Cleanup - COMPLETED (2025-05-30)
+
+### ✅ 1.1 Remove Old Component Directories - COMPLETED
+- ✅ Removed `src/components/diagram/`
+- ✅ Removed `src/components/nodes/`  
+- ✅ Removed `src/components/layout/`
+- ✅ Removed `src/components/properties/`
+
+### ✅ 1.2 Update Remaining Import References - COMPLETED
+- ✅ Fixed `@/features/diagram/components/Canvas.tsx` import
+- ✅ Fixed `@/features/layout/components/Sidebar.tsx` import  
+- ✅ Updated `vite.config.ts` manual chunk paths
+- ✅ All imports now use new feature-based structure
+
+### ✅ 1.3 Final Verification - COMPLETED
+- ✅ Build passes without errors
+- ✅ TypeScript checking passes
+- ✅ All functionality verified working
+
+---
+
 # 🎯 Next Steps & Future Improvements
-
-## Phase 1: Clean Up Legacy Code (High Priority)
-
-### 1.1 Remove Old Component Directories
-```bash
-# After confirming no remaining references
-rm -rf src/components/diagram/
-rm -rf src/components/nodes/
-rm -rf src/components/layout/
-# Keep src/components/modals/ and src/components/common/ temporarily
-```
-
-### 1.2 Update Remaining Import References
-- [ ] Search for any remaining `@/components/diagram` imports
-- [ ] Search for any remaining `@/components/nodes` imports  
-- [ ] Search for any remaining `@/components/layout` imports
-- [ ] Update to use new feature-based imports
-
-### 1.3 Create Re-export Compatibility Layer (Temporary)
-```typescript
-// src/components/index.ts (temporary compatibility)
-export * from '@/features/diagram';
-export * from '@/features/nodes';
-export * from '@/features/properties';
-export * from '@/features/layout';
-```
 
 ## Phase 2: Enhanced Feature Organization (Medium Priority)
 
@@ -147,7 +146,55 @@ const FEATURES = {
 - ✅ Dev server starts successfully
 - ✅ All features properly isolated
 - ✅ Clean import structure implemented
-- 🔄 Legacy code cleanup (pending)
+- ✅ Legacy code cleanup (COMPLETED)
 - 🔄 Enhanced feature organization (pending)
 
-**Next milestone**: Complete Phase 1 (Clean Up Legacy Code) within 1-2 days.
+---
+
+# 🚨 IMMEDIATE NEXT ACTIONS (Priority Order):
+
+## 🎯 Phase 2: Enhanced Feature Organization (Current Focus)
+
+**Recommended Next Steps:**
+
+### 1. **Move Remaining Components to Features** (High Priority)
+```bash
+# Move remaining components to appropriate features
+mv src/components/common/FileUploadButton.tsx → src/shared/components/common/
+mv src/components/skeletons/SkeletonComponents.tsx → src/shared/components/skeletons/
+mv src/components/modals/* → src/features/layout/components/modals/
+```
+
+### 2. **Extract Feature-Specific Hooks** (High Priority)
+- [ ] **Diagram Feature**: Extract `useCanvasState`, `useDiagramActions` into `src/features/diagram/hooks/`
+- [ ] **Nodes Feature**: Extract `useNodeConfig`, `useNodeDrag` into `src/features/nodes/hooks/`  
+- [ ] **Properties Feature**: Extract `usePropertyPanel` into `src/features/properties/hooks/`
+- [ ] **Layout Feature**: Extract `useLayoutState`, `useSidebarState` into `src/features/layout/hooks/`
+
+### 3. **Create Feature Index Files** (Medium Priority)
+```typescript
+// src/features/diagram/index.ts
+export * from './components';
+export * from './hooks';
+export * from './utils';
+
+// src/features/nodes/index.ts  
+export * from './components';
+export * from './hooks';
+
+// ... etc for all features
+```
+
+### 4. **Add Feature-Specific Utils** (Medium Priority)
+- [ ] **Diagram Feature**: Create `diagramHelpers.ts`, `canvasUtils.ts`
+- [ ] **Nodes Feature**: Create `nodeHelpers.ts`, `nodeValidation.ts`
+- [ ] **Properties Feature**: Create `propertyHelpers.ts`, `fieldValidation.ts`
+
+### 5. **Testing & Documentation** (Low Priority)
+- [ ] Add feature-specific tests in `src/features/*/tests/`
+- [ ] Create feature README files
+- [ ] Update documentation with new structure
+
+**Estimated Timeline**: 2-3 days for Phase 2 completion
+
+**Next Milestone**: Complete Phase 2 (Enhanced Feature Organization) by 2025-06-02

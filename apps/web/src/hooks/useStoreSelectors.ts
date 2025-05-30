@@ -1,28 +1,11 @@
 import React from 'react';
 import { useConsolidatedDiagramStore } from '@/stores/consolidatedDiagramStore';
 import { useExecutionStore } from '@/stores/executionStore';
-import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
 
 // ===== Key Optimized Selectors =====
 
-// Execution state for specific node - avoids subscribing to entire execution store
-export const useNodeExecutionState = (nodeId: string) => {
-  const isRunning = useExecutionStore(state => state.runningNodes.includes(nodeId));
-  const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
-  const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
-  
-  // Memoize the return object to prevent unnecessary re-renders
-  return React.useMemo(() => ({
-    isRunning,
-    isCurrentRunning,
-    nodeRunningState,
-  }), [isRunning, isCurrentRunning, nodeRunningState]);
-};
-
-// Single function selectors for common operations to avoid re-renders
-export const useNodeDataUpdater = () => {
-  return useConsolidatedDiagramStore(state => state.updateNodeData);
-};
+// Re-export node hooks from features
+export { useNodeExecutionState, useNodeDataUpdater, useNodes } from '@/features/nodes/hooks/useNodeOperations';
 
 export const useArrowDataUpdater = () => {
   return useConsolidatedDiagramStore(state => state.updateArrowData);
@@ -69,20 +52,6 @@ export const usePersons = () => {
   }), [persons, addPerson, updatePerson, deletePerson, getPersonById]);
 };
 
-// Node operations
-export const useNodes = () => {
-  const nodes = useConsolidatedDiagramStore(state => state.nodes);
-  const onNodesChange = useConsolidatedDiagramStore(state => state.onNodesChange);
-  const addNode = useConsolidatedDiagramStore(state => state.addNode);
-  const deleteNode = useConsolidatedDiagramStore(state => state.deleteNode);
-  
-  return {
-    nodes,
-    onNodesChange,
-    addNode,
-    deleteNode,
-  };
-};
 
 // Arrow operations
 export const useArrows = () => {
@@ -99,44 +68,8 @@ export const useArrows = () => {
   };
 };
 
-// UI state selectors
-export const useSelectedElement = () => {
-  const selectedNodeId = useConsolidatedUIStore(state => state.selectedNodeId);
-  const selectedArrowId = useConsolidatedUIStore(state => state.selectedArrowId);
-  const selectedPersonId = useConsolidatedUIStore(state => state.selectedPersonId);
-  const setSelectedNodeId = useConsolidatedUIStore(state => state.setSelectedNodeId);
-  const setSelectedArrowId = useConsolidatedUIStore(state => state.setSelectedArrowId);
-  const setSelectedPersonId = useConsolidatedUIStore(state => state.setSelectedPersonId);
-  const clearSelection = useConsolidatedUIStore(state => state.clearSelection);
-  
-  return {
-    selectedNodeId,
-    selectedArrowId,
-    selectedPersonId,
-    setSelectedNodeId,
-    setSelectedArrowId,
-    setSelectedPersonId,
-    clearSelection,
-  };
-};
-
-export const useUIState = () => {
-  const dashboardTab = useConsolidatedUIStore(state => state.dashboardTab);
-  const setDashboardTab = useConsolidatedUIStore(state => state.setDashboardTab);
-  const isMemoryLayerTilted = useConsolidatedUIStore(state => state.isMemoryLayerTilted);
-  const setMemoryLayerTilted = useConsolidatedUIStore(state => state.setMemoryLayerTilted);
-  const toggleMemoryLayer = useConsolidatedUIStore(state => state.toggleMemoryLayer);
-  const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
-  
-  return {
-    dashboardTab,
-    setDashboardTab,
-    isMemoryLayerTilted,
-    setMemoryLayerTilted,
-    toggleMemoryLayer,
-    hasSelection,
-  };
-};
+// Re-export layout hooks from features
+export { useUIState, useSelectedElement } from '@/features/layout/hooks/useLayoutState';
 
 // Execution status
 export const useExecutionStatus = () => {

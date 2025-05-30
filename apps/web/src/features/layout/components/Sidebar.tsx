@@ -4,7 +4,7 @@ import { Button } from '@repo/ui-kit';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/stores';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
-import { useFileImport } from '@/hooks/useFileImport';
+import { useFileImport } from '@/features/diagram/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 

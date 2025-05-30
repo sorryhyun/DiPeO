@@ -27,7 +27,7 @@ export default defineConfig({
           // Large components - lazy loaded
           'conversation': ['./src/features/layout/components/ConversationDashboard'],
           'properties': ['./src/features/properties/components/PropertiesRenderer'],
-          'modals': ['./src/components/modals/ApiKeysModal'],
+          'modals': ['./src/features/layout/components/modals/ApiKeysModal'],
         },
         
         // Better chunk naming
