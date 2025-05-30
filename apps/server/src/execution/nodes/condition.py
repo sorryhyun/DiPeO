@@ -58,13 +58,18 @@ class ConditionNodeExecutor(BaseNodeExecutor):
         
         try:
             # Resolve inputs from incoming arrows
-            resolved_inputs = resolve_inputs(incoming_arrows, state.context)
+            vars_map_resolved, inputs_resolved = resolve_inputs(
+                node_id, incoming_arrows, state.context
+            )
             
             # Create evaluation context
             eval_context = {
                 **vars_map,
-                **resolved_inputs,
-                'inputs': inputs if inputs else resolved_inputs
+                **vars_map_resolved,
+                'inputs': inputs if inputs else inputs_resolved,
+                # Add common convenience variables
+                'input': inputs[0] if inputs else (inputs_resolved[0] if inputs_resolved else ''),
+                'output': inputs[0] if inputs else (inputs_resolved[0] if inputs_resolved else '')
             }
             
             # Evaluate the condition
@@ -88,6 +93,7 @@ class ConditionNodeExecutor(BaseNodeExecutor):
                 node_id=node_id,
                 condition=condition_expr,
                 error=str(e),
+                available_vars=list(eval_context.keys()) if 'eval_context' in locals() else [],
                 exc_info=True
             )
             # Default to False on error

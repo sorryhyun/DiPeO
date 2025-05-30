@@ -89,7 +89,14 @@ class DynamicExecutor:
         # Special handling for PersonJob nodes with first-only inputs
         if self._can_execute_with_first_only(node, node_id, incoming_arrows, context):
             logger.debug(f"[Dependency Check] PersonJobNode {node_id} can execute with first_only input")
-            return True, valid_arrows
+            # Return all first-only arrows that have data available
+            first_only_arrows = []
+            for arrow in incoming_arrows:
+                if self._is_handle_first_only(arrow):
+                    src_id = ArrowUtils.get_source(arrow)
+                    if src_id and src_id in context:
+                        first_only_arrows.append(arrow)
+            return True, first_only_arrows
 
         dependencies_met = len(missing_deps) == 0
         return dependencies_met, valid_arrows
@@ -177,6 +184,11 @@ class DynamicExecutor:
         branch = arrow.get("branch") or arrow.get("data", {}).get("branch")
         if branch:
             return branch
+        
+        # Check label field
+        label = arrow.get("data", {}).get("label", "")
+        if label.lower() in ["true", "false"]:
+            return label.lower()
             
         # Extract from sourceHandle (e.g., "conditionNode-WPKS8Q-output-true" -> "true")
         source_handle = arrow.get("sourceHandle") or ""
