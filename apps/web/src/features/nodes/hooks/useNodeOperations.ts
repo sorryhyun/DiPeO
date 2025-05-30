@@ -1,6 +1,6 @@
 import React from 'react';
-import { useConsolidatedDiagramStore } from '@/stores/consolidatedDiagramStore';
-import { useExecutionStore } from '@/stores/executionStore';
+import { useConsolidatedDiagramStore } from '@/shared/stores/consolidatedDiagramStore';
+import { useExecutionStore } from '@/shared/stores/executionStore';
 
 // ===== Node-Specific Hooks =====
 

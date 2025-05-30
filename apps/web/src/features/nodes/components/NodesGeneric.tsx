@@ -3,7 +3,7 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from './BaseNode';
-import { useConsolidatedDiagramStore } from '@/stores';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { Code, Zap, Link as LinkIcon, Save } from 'lucide-react';
 import {
   UNIFIED_NODE_CONFIGS,

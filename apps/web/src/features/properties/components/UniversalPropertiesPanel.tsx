@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { Panel, Form, usePropertyForm } from '../wrappers';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
-import { usePersons } from '@/hooks/useStoreSelectors';
+import { usePersons } from '@/shared/hooks/useStoreSelectors';
 import { renderInlineField, renderTextAreaField, isTextAreaField } from '../utils/fieldRenderers';
 
 

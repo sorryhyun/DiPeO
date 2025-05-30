@@ -1,6 +1,6 @@
 import React from 'react';
 import { ContextMenu as ContextMenuBase } from '@repo/diagram-ui';
-import { useDiagramContext } from '@/contexts/DiagramContext';
+import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
 // Re-export types from diagram-ui package
 export type { ContextMenuProps } from '@repo/diagram-ui';

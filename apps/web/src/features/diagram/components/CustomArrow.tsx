@@ -1,6 +1,6 @@
 import React from 'react';
 import { CustomArrow as CustomArrowBase } from '@repo/diagram-ui';
-import { useArrowDataUpdater } from '@/hooks/useStoreSelectors';
+import { useArrowDataUpdater } from '@/shared/hooks/useStoreSelectors';
 
 // Re-export types from diagram-ui package
 export type { CustomArrowProps } from '@repo/diagram-ui';

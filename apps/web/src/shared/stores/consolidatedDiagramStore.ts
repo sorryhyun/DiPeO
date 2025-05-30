@@ -11,9 +11,9 @@ import {
   StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
   ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
 } from '@repo/core-model';
-import { sanitizeDiagram } from "@/utils/diagramSanitizer";
-import { createPersonCrudActions, createApiKeyCrudActions } from "@/utils/storeCrudUtils";
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { sanitizeDiagram } from "@/shared/utils/diagramSanitizer";
+import { createPersonCrudActions, createApiKeyCrudActions } from "@/shared/utils/storeCrudUtils";
+import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
 
 

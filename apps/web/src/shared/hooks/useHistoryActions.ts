@@ -1,6 +1,6 @@
 // Hook for history (undo/redo) actions
 import { useCallback } from 'react';
-import { useHistoryStore, useConsolidatedDiagramStore } from '@/stores';
+import { useHistoryStore, useConsolidatedDiagramStore } from '@/shared/stores';
 
 export const useHistoryActions = () => {
   const { undo, redo, canUndo, canRedo, saveToHistory, clearHistory, initializeHistory } = useHistoryStore();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BaseNode as BaseNodeComponent, GenericNode as GenericNodeComponent } from '@/features/diagram/wrappers';
-import { useNodeExecutionState } from '@/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/contexts/DiagramContext';
+import { useNodeExecutionState } from '@/shared/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
 // Re-export types from diagram-ui package
 export type { BaseNodeProps } from '@repo/diagram-ui';

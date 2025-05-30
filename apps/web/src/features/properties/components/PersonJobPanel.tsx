@@ -1,6 +1,6 @@
 import React from 'react';
 import { type PersonJobBlockData } from '@repo/core-model';
-import { usePersons } from '@/hooks/useStoreSelectors';
+import { usePersons } from '@/shared/hooks/useStoreSelectors';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormRow,

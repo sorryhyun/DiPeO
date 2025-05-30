@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Input, Spinner } from '@repo/ui-kit';
-import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 import { createErrorHandlerFactory, type DBBlockData } from '@repo/core-model';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {

@@ -12,16 +12,16 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
-import { useHistoryStore } from '@/stores';
+import { useHistoryStore } from '@/shared/stores';
 import {
   useContextMenu,
   useKeyboardShortcuts,
   CustomArrow as CustomArrowBase,
   ContextMenu as ContextMenuBase 
 } from '../wrappers';
-import { roundPosition } from '@/utils/diagramSanitizer';
+import { roundPosition } from '../utils/diagramSanitizer';
 import { nodeTypes } from '@/features/nodes';
-import { UNIFIED_NODE_CONFIGS, DiagramNode, Arrow } from '@repo/core-model';
+import { DiagramNode, Arrow } from '@repo/core-model';
 import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 
 // Lazy load memory layer  
@@ -32,8 +32,8 @@ import {
   useExecutionStatus,
   useUIState,
   usePersons
-} from '@/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/contexts/DiagramContext';
+} from '@/shared/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@repo/ui-kit';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/stores';
+import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/shared/stores';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { useFileImport } from '@/features/diagram/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';

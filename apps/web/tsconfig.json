@@ -19,11 +19,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@/features/*": ["src/features/*"],
-      "@/shared/*": ["src/shared/*"],
-      "@/components/*": ["src/components/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/stores/*": ["src/stores/*"]
+      "@/shared/*": ["src/shared/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { useExecutionStore, useConsolidatedDiagramStore } from '@/stores';
+import { useExecutionStore, useConsolidatedDiagramStore } from '@/shared/stores';
 import { toast } from 'sonner';
-import { getStreamingUrl } from '@/utils/apiConfig';
+import { getStreamingUrl } from '@/shared/utils/apiConfig';
 
 export const useExecutionMonitor = () => {
   const eventSourceRef = useRef<EventSource | null>(null);

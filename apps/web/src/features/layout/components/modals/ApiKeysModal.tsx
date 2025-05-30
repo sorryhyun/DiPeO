@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select, SelectItem } from '@repo/ui-kit';
 import { ApiKey, createErrorHandlerFactory } from '@repo/core-model';
-import { useConsolidatedDiagramStore } from '@/stores';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
 
 interface ApiKeysModalProps {

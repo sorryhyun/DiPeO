@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input } from '@repo/ui-kit';
-import { useConsolidatedDiagramStore } from '@/stores';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { type ArrowData } from '@repo/core-model';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {

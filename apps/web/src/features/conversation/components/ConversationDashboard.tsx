@@ -3,11 +3,11 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign, Hash
 } from 'lucide-react';
-import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/stores';
+import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/shared/stores';
 import { Button, Input, Select, SelectItem } from '@repo/ui-kit';
-import { downloadJson } from '@/utils/downloadUtils';
+import { downloadJson } from '@/shared/utils/downloadUtils';
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { createErrorHandlerFactory } from '@repo/core-model';
 
 interface ConversationMessage {

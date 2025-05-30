@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 import { type ApiKey } from '@repo/core-model';
 
 export const useApiKeys = () => {

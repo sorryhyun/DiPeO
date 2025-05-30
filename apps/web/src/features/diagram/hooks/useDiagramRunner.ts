@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useConsolidatedDiagramStore, useExecutionStore } from '@/stores';
+import { useConsolidatedDiagramStore, useExecutionStore } from '@/shared/stores';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory } from '@repo/core-model';
-import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/shared/utils/apiConfig';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 

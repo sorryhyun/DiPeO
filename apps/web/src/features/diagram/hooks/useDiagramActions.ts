@@ -1,11 +1,11 @@
 // apps/web/src/hooks/useDiagramActions.ts
 import { useCallback, ChangeEvent } from 'react';
-import { useConsolidatedDiagramStore } from '@/stores';
-import { YamlExporter } from '@/utils/yamlExporter';
-import { useDownload } from '@/hooks/useDownload';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { YamlExporter } from '@/shared/utils/yamlExporter';
+import { useDownload } from '@/shared/hooks/useDownload';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@repo/core-model';
 import { toast } from 'sonner';
-import { getApiUrl } from '@/utils/apiConfig';
+import { getApiUrl } from '@/shared/utils/apiConfig';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);

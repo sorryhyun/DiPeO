@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@repo/ui-kit';
-import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/stores';
+import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/shared/stores';
 import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/features/diagram/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/features/diagram/wrappers';
 import { LazyApiKeysModal } from './modals/LazyModals';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory } from '@repo/core-model';
 
