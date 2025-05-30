@@ -50,3 +50,12 @@ class GrokAdapter(BaseAdapter):
             )
         except Exception as e:
             return ChatResult(text='', usage=None)
+
+    def list_models(self) -> list[str]:
+        """List available Grok models."""
+        # Grok doesn't provide a models.list() API, so return known models
+        return [
+            "grok-2-latest",
+            "grok-2-vision-1212",
+            "grok-beta"
+        ]

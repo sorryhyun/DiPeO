@@ -72,3 +72,17 @@ class ChatGPTAdapter(BaseAdapter):
             
         except Exception as e:
             return ChatResult(text='', usage=None)
+
+    def list_models(self) -> list[str]:
+        """List available OpenAI models."""
+        try:
+            models = self.client.models.list()
+            # Filter for chat models and sort by name
+            chat_models = [
+                model.id for model in models.data 
+                if 'gpt' in model.id.lower() or 'text' in model.id.lower()
+            ]
+            return sorted(chat_models)
+        except Exception as e:
+            # Return fallback models if API call fails
+            return ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]

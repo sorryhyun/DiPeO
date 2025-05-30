@@ -1,14 +1,19 @@
 """Streaming diagram executor with real-time updates."""
 
 import asyncio
+import os
+import sys
 import traceback
 from datetime import datetime
 from typing import Dict, Optional, Callable, Any
 
+# Add server root to path for config import
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from ...config import CONVERSATION_LOG_DIR
+
 from ..run_graph import DiagramExecutor
 from ..services.memory_service import MemoryService
 from .stream_manager import stream_manager
-from ...config import CONVERSATION_LOG_DIR
 
 
 class StreamingDiagramExecutor:
@@ -34,6 +39,12 @@ class StreamingDiagramExecutor:
     async def execute(self) -> None:
         """Execute the diagram with streaming updates."""
         try:
+            # Validate diagram has start nodes before creating executor
+            nodes = self.diagram.get("nodes", [])
+            has_start_node = any(node.get("type") == "startNode" for node in nodes)
+            if not has_start_node:
+                raise ValueError("No start nodes found in diagram. Add at least one start node to begin execution.")
+            
             # Create the diagram executor
             executor = DiagramExecutor(
                 diagram=self.diagram,

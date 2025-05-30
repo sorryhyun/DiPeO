@@ -5,7 +5,7 @@ import { Settings } from 'lucide-react';
 import { Panel, Form } from '@repo/properties-ui';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { usePersons } from '@/hooks/useStoreSelectors';
-import { renderField } from './fieldRenderers';
+import { renderInlineField, renderTextAreaField, isTextAreaField } from './fieldRenderers';
 
 // Create a wrapper that connects to the store
 function usePropertyForm<T extends Record<string, any>>(
@@ -32,13 +32,26 @@ export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: any }> =
     );
   }
 
+  const inlineFields = config.propertyFields.filter(field => !isTextAreaField(field));
+  const textAreaFields = config.propertyFields.filter(field => isTextAreaField(field));
+
   return (
     <Panel icon={<span>{config.emoji}</span>} title={config.propertyTitle}>
       <Form>
-        <div className="space-y-4">
-          {config.propertyFields.map((field) => 
-            renderField(field, formData, handleChange, { persons, data })
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Left column - Horizontal arrangement of other fields */}
+          <div className="space-y-4">
+            {inlineFields.map((field) => 
+              renderInlineField(field, formData, handleChange, { persons, data })
+            )}
+          </div>
+
+          {/* Right column - Text areas */}
+          <div className="space-y-4">
+            {textAreaFields.map((field) => 
+              renderTextAreaField(field, formData, handleChange, { persons, data })
+            )}
+          </div>
         </div>
       </Form>
     </Panel>

@@ -1,14 +1,20 @@
 import json
 import csv
+import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 import sqlite3
 from docx import Document
 import aiofiles
+
+# Add server root to path for config import
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from ...config import UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
+
 from ..exceptions import ValidationError, FileOperationError
 from ..utils.base_service import BaseService
-from ...config import UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
 
 
 class UnifiedFileService(BaseService):

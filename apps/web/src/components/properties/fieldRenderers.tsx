@@ -1,7 +1,8 @@
 import React from 'react';
 import { Switch } from '@repo/ui-kit';
 import {
-  FormField, TextField, SelectField, TextAreaField
+  FormField, TextAreaField,
+  InlineTextField, InlineSelectField
 } from '@repo/properties-ui';
 
 type FieldConfig = {
@@ -19,20 +20,21 @@ type RenderContext = {
   data: any;
 };
 
-export const renderField = (
+// Render inline fields (for horizontal layout)
+export const renderInlineField = (
   field: FieldConfig,
   formData: Record<string, any>,
   handleChange: (name: string, value: any) => void,
   context: RenderContext
 ): React.ReactNode => {
-  const { name, label, type, placeholder, options, rows, hint } = field;
+  const { name, label, type, placeholder, options } = field;
   const value = formData[name];
 
   // Special handling for person selection - populate dynamic options
   if (name === 'personId') {
     const personOptions = context.persons.map(p => ({ value: p.id, label: p.label }));
     return (
-      <SelectField
+      <InlineSelectField
         key={name}
         label={label}
         value={value || ''}
@@ -46,7 +48,7 @@ export const renderField = (
   switch (type) {
     case 'text':
       return (
-        <TextField
+        <InlineTextField
           key={name}
           label={label}
           value={value || ''}
@@ -57,7 +59,7 @@ export const renderField = (
       
     case 'number':
       return (
-        <TextField
+        <InlineTextField
           key={name}
           label={label}
           value={String(value || '')}
@@ -66,22 +68,9 @@ export const renderField = (
         />
       );
       
-    case 'textarea':
-      return (
-        <TextAreaField
-          key={name}
-          label={label}
-          value={value || ''}
-          onChange={(v) => handleChange(name, v)}
-          rows={rows || 3}
-          placeholder={placeholder}
-          hint={hint}
-        />
-      );
-      
     case 'select':
       return (
-        <SelectField
+        <InlineSelectField
           key={name}
           label={label}
           value={value || ''}
@@ -104,4 +93,45 @@ export const renderField = (
     default:
       return null;
   }
+};
+
+// Render textarea fields (for right column)
+export const renderTextAreaField = (
+  field: FieldConfig,
+  formData: Record<string, any>,
+  handleChange: (name: string, value: any) => void,
+  _context: RenderContext
+): React.ReactNode => {
+  const { name, label, placeholder, rows, hint } = field;
+  const value = formData[name];
+
+  return (
+    <TextAreaField
+      key={name}
+      label={label}
+      value={value || ''}
+      onChange={(v) => handleChange(name, v)}
+      rows={rows || 3}
+      placeholder={placeholder}
+      hint={hint}
+    />
+  );
+};
+
+// Helper function to determine if field should be in right column
+export const isTextAreaField = (field: FieldConfig): boolean => {
+  return field.type === 'textarea';
+};
+
+// Legacy render function for backward compatibility
+export const renderField = (
+  field: FieldConfig,
+  formData: Record<string, any>,
+  handleChange: (name: string, value: any) => void,
+  context: RenderContext
+): React.ReactNode => {
+  if (isTextAreaField(field)) {
+    return renderTextAreaField(field, formData, handleChange, context);
+  }
+  return renderInlineField(field, formData, handleChange, context);
 };

@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime
 from typing import Dict, Set, Literal, Optional
-from fastapi import WebSocket
 
 
 class StreamContext:
@@ -101,6 +100,13 @@ class StreamManager:
 
     # Remove all WebSocket methods
     # Remove: connect_websocket, disconnect_websocket, subscribe_to_execution, _broadcast_to_websockets
+
+    def get_stream_queue(self, execution_id: str) -> Optional[asyncio.Queue]:
+        """Get the SSE queue for a specific execution."""
+        context = self.active_streams.get(execution_id)
+        if context:
+            return context.sse_queue
+        return None
 
     async def cleanup_stream(self, execution_id: str):
         """Clean up resources for a completed stream."""

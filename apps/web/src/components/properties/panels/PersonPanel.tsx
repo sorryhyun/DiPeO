@@ -5,8 +5,8 @@ import { type PersonDefinition, type ApiKey } from '@repo/core-model';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import { useApiKeys } from '../hooks/useApiKeys';
 import {
-  Form, FormGrid,
-  TextField, SelectField, TextAreaField
+  Form, FormRow,
+  InlineTextField, InlineSelectField, TextAreaField
 } from '@repo/properties-ui';
 
 export const PersonPanelContent: React.FC<{ personId: string; data: PersonDefinition }> = ({ personId, data }) => {
@@ -28,9 +28,17 @@ export const PersonPanelContent: React.FC<{ personId: string; data: PersonDefini
       return;
     }
     setLoadingModels(true);
-    fetch(getApiUrl(`${API_ENDPOINTS.MODELS}?service=${formData.service}&apiKeyId=${formData.apiKeyId}`))
+    setModelError(null);
+    fetch(getApiUrl(`${API_ENDPOINTS.MODELS}?service=${formData.service}&api_key_id=${formData.apiKeyId}`))
       .then(res => res.json())
-      .then(body => setModelOptions(body.models.map((m: string) => ({ value: m, label: m }))))
+      .then(body => {
+        if (body.error) {
+          setModelError(body.error);
+          setModelOptions([]);
+        } else {
+          setModelOptions(body.models.map((m: string) => ({ value: m, label: m })));
+        }
+      })
       .catch(err => setModelError(err.message))
       .finally(() => setLoadingModels(false));
   }, [formData.service, formData.apiKeyId]);
@@ -38,6 +46,12 @@ export const PersonPanelContent: React.FC<{ personId: string; data: PersonDefini
   const handleChange = (field: keyof PersonDefinition, value: any) => {
     updateData(field, value);
     updatePerson(personId, { [field]: value });
+    
+    // Clear model selection when service or API key changes
+    if (field === 'service' || field === 'apiKeyId') {
+      updateData('modelName', '');
+      updatePerson(personId, { modelName: '' });
+    }
   };
 
   const serviceOptions = [
@@ -54,46 +68,55 @@ export const PersonPanelContent: React.FC<{ personId: string; data: PersonDefini
 
   return (
     <Form>
-      <FormGrid columns={2}>
-        <TextField
-          label="Person Name"
-          value={formData.label || ''}
-          onChange={(v) => handleChange('label', v)}
-          placeholder="Person Name"
-        />
-        <SelectField
-          label="Service"
-          value={formData.service || ''}
-          onChange={(v) => handleChange('service', v)}
-          options={serviceOptions}
-        />
-        <SelectField
-          label="API Key"
-          value={formData.apiKeyId || ''}
-          onChange={(v) => handleChange('apiKeyId', v)}
-          options={apiKeyOptions}
-          placeholder="Select API Key"
-          loading={loadingApiKeys}
-          error={apiKeysError}
-        />
-        <SelectField
-          label="Model"
-          value={formData.modelName || ''}
-          onChange={(v) => handleChange('modelName', v)}
-          options={modelOptions}
-          placeholder="Select Model"
-          loading={loadingModels}
-          error={modelError}
-          disabled={modelOptions.length === 0}
-        />
-      </FormGrid>
+      <div className="space-y-4">
+        <FormRow>
+          <InlineTextField
+            label="Person Name"
+            value={formData.label || ''}
+            onChange={(v) => handleChange('label', v)}
+            placeholder="Person Name"
+            className="flex-1"
+          />
+          <InlineSelectField
+            label="Service"
+            value={formData.service || ''}
+            onChange={(v) => handleChange('service', v)}
+            options={serviceOptions}
+            className="flex-1"
+          />
+        </FormRow>
 
-      <TextAreaField
-        label="System Prompt"
-        value={formData.systemPrompt || ''}
-        onChange={(v) => handleChange('systemPrompt', v)}
-        placeholder="Enter system prompt"
-      />
+        <FormRow>
+          <InlineSelectField
+            label="API Key"
+            value={formData.apiKeyId || ''}
+            onChange={(v) => handleChange('apiKeyId', v)}
+            options={apiKeyOptions}
+            placeholder="Select API Key"
+            loading={loadingApiKeys}
+            error={apiKeysError}
+            className="flex-1"
+          />
+          <InlineSelectField
+            label="Model"
+            value={formData.modelName || ''}
+            onChange={(v) => handleChange('modelName', v)}
+            options={modelOptions}
+            placeholder="Select Model"
+            loading={loadingModels}
+            error={modelError}
+            disabled={modelOptions.length === 0}
+            className="flex-1"
+          />
+        </FormRow>
+
+        <TextAreaField
+          label="System Prompt"
+          value={formData.systemPrompt || ''}
+          onChange={(v) => handleChange('systemPrompt', v)}
+          placeholder="Enter system prompt"
+        />
+      </div>
     </Form>
   );
 };

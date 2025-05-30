@@ -15,7 +15,8 @@ export const useApiKeys = () => {
         const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
         if (!res.ok) throw new Error('Failed to load API keys');
         const body = await res.json();
-        setApiKeysList(body.apiKeys);
+        // Backend returns array directly, not wrapped in object
+        setApiKeysList(Array.isArray(body) ? body : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load API keys');
       } finally {
