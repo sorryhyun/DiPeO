@@ -1,5 +1,5 @@
 # DiPeO, Diagrammed People (agents) & Organizations (agent system)
-![image info](/img.png)
+![image info](/image.png)
 
 DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI‑powered agent workflows through an intuitive visual programming environment. The repository is composed of reusable TypeScript **packages**, a React‑based **frontend**, and a FastAPI **backend** that work together to deliver real‑time, multi‑LLM automation at scale.
 
