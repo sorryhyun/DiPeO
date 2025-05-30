@@ -920,30 +920,11 @@ const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nod
       );
 };
 
-export const PersonJobPropertiesPanel: React.FC<{ nodeId: string; data: PersonJobBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.personJob}>{PANEL_CONFIGS.personJob.render(props)}</Panel>
-);
-
-export const ConditionPropertiesPanel: React.FC<{ nodeId: string; data: ConditionBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.condition}>{PANEL_CONFIGS.condition.render(props)}</Panel>
-);
-
-export const DBPropertiesPanel: React.FC<{ nodeId: string; data: DBBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.db}>{PANEL_CONFIGS.db.render(props)}</Panel>
-);
-
+// Keep only the panels that are still in use
 export const ArrowPropertiesPanel: React.FC<{ arrowId: string; data: ArrowData }> = (props) => (
   <Panel {...PANEL_CONFIGS.arrow}>{PANEL_CONFIGS.arrow.render(props)}</Panel>
 );
 
 export const PersonPropertiesPanel: React.FC<{ personId: string; data: PersonDefinition }> = (props) => (
   <Panel {...PANEL_CONFIGS.person}>{PANEL_CONFIGS.person.render(props)}</Panel>
-);
-
-export const EndpointPropertiesPanel: React.FC<{ nodeId: string; data: EndpointBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.endpoint}>{PANEL_CONFIGS.endpoint.render(props)}</Panel>
-);
-
-export const JobPropertiesPanel: React.FC<{ nodeId: string; data: JobBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.job}>{PANEL_CONFIGS.job.render(props)}</Panel>
 );

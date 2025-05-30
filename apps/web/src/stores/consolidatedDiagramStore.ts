@@ -6,8 +6,10 @@ import {
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import {
-  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode,
+  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode, DiagramNodeData,
   getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
+  StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
+  ConditionBlockData, EndpointBlockData
 } from '@repo/core-model';
 import { sanitizeDiagram } from "@/utils/diagramSanitizer";
 import { createPersonCrudActions } from "@/utils/storeCrudUtils";
@@ -89,7 +91,8 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
         addNode: (type: string, position: { x: number; y: number }) => {
           const reactFlowType = getReactFlowType(type);
           const nodeId = `${reactFlowType}-${nanoid().slice(0, 6)}`;
-          let nodeData: any = {};
+          type BlockData = StartBlockData | PersonJobBlockData | DBBlockData | JobBlockData | ConditionBlockData | EndpointBlockData;
+          let nodeData: BlockData;
 
           // Set default data based on node type with proper interfaces
           switch (type) {
@@ -107,8 +110,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 type: 'person_job',
                 label: 'Person Job', 
                 prompt: '', 
-                personId: null,
-                maxIterations: null,
+                personId: undefined,
                 description: ''
               };
               break;
@@ -128,8 +130,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 type: 'condition',
                 conditionType: 'expression',
                 label: 'Condition', 
-                condition: '',
-                description: ''
+                expression: ''
               };
               break;
             case 'db':
@@ -153,6 +154,13 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 fileFormat: 'json'
               };
               break;
+            default:
+              // Default to start node for unknown types
+              nodeData = {
+                id: nodeId,
+                type: 'start',
+                label: 'Unknown'
+              };
           }
 
           const newNode: DiagramNode = {
@@ -165,10 +173,10 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           set({ nodes: [...get().nodes, newNode] });
         },
 
-        updateNodeData: (nodeId: string, data: Record<string, any>) => {
+        updateNodeData: (nodeId: string, data: Record<string, unknown>) => {
           set({
             nodes: get().nodes.map(node =>
-              node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+              node.id === nodeId ? { ...node, data: { ...node.data, ...data } as DiagramNodeData } : node
             )
           });
         },
@@ -245,7 +253,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
             }
             
             const data = await response.json();
-            const apiKeys = data.apiKeys.map((key: any) => ({
+            const apiKeys = data.apiKeys.map((key: {id: string; name: string; service: string}) => ({
               id: key.id,
               name: key.name,
               service: key.service,

@@ -2,7 +2,7 @@ import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@repo/ui-kit';
-import { BaseNodeProps, NodeConfig } from '@repo/core-model';
+import { BaseNodeProps, UnifiedNodeConfig } from '@repo/core-model';
 import { createHandleId } from '../utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 

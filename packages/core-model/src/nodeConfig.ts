@@ -293,27 +293,15 @@ export function getNodesByCategory(category: string): string[] {
     .map(([nodeType]) => nodeType);
 }
 
-// Legacy compatibility function for old NodeConfig format
-export function getLegacyNodeConfigs(): Record<string, {
-  handles: HandleConfig[];
-  borderColor: string;
-  width: string;
-  className?: string;
-  emoji?: string;
-}> {
-  const legacy: Record<string, any> = {};
+// Get unified node configs mapped by React Flow type for component usage
+export function getUnifiedNodeConfigsByReactFlowType(): Record<string, UnifiedNodeConfig> {
+  const mapped: Record<string, UnifiedNodeConfig> = {};
   
   for (const [blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
-    legacy[config.reactFlowType] = {
-      handles: config.handles,
-      borderColor: config.borderColor,
-      width: config.width,
-      className: config.className,
-      emoji: config.emoji
-    };
+    mapped[config.reactFlowType] = config;
   }
   
-  return legacy;
+  return mapped;
 }
 
 // Legacy types from diagram-ui for backwards compatibility
@@ -345,7 +333,7 @@ export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   isRunning?: boolean;
   onUpdateData?: (nodeId: string, data: any) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, NodeConfig>;
+  nodeConfigs?: Record<string, UnifiedNodeConfig>;
   // Add the missing properties that were being used
   onDragOver?: React.DragEventHandler<HTMLDivElement>;
   onDrop?: React.DragEventHandler<HTMLDivElement>;
@@ -363,7 +351,7 @@ export interface GenericNodeProps {
   isRunning?: boolean;
   onUpdateData?: (nodeId: string, data: any) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, NodeConfig>;
+  nodeConfigs?: Record<string, UnifiedNodeConfig>;
 }
 
 // Legacy types from properties-ui for backwards compatibility

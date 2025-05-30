@@ -8,7 +8,8 @@
     "build:web": "pnpm --filter web build",
     "preview:web": "pnpm --filter web serve",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "typecheck": "cd apps/web && tsc --noEmit"
   },
   "workspaces": [
     "apps/*",

@@ -2,7 +2,7 @@ import React from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { BaseNode as BaseNodeComponent, GenericNode as GenericNodeComponent } from '@repo/diagram-ui';
 import { useNodeExecutionState, useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import {getLegacyNodeConfigs} from '@repo/core-model';
+import { getUnifiedNodeConfigsByReactFlowType } from '@repo/core-model';
 
 // Re-export types from diagram-ui package
 export type { BaseNodeProps } from '@repo/diagram-ui';
@@ -22,7 +22,7 @@ export const BaseNode = React.memo((props: Parameters<typeof BaseNodeComponent>[
       isRunning={isRunning}
       onUpdateData={updateNodeData}
       onUpdateNodeInternals={updateNodeInternals}
-      nodeConfigs={getLegacyNodeConfigs()}
+      nodeConfigs={getUnifiedNodeConfigsByReactFlowType()}
     />
   );
 }, (prevProps, nextProps) => {
@@ -54,7 +54,7 @@ export const GenericNode = React.memo((props: Parameters<typeof GenericNodeCompo
       isRunning={isRunning}
       onUpdateData={updateNodeData}
       onUpdateNodeInternals={updateNodeInternals}
-      nodeConfigs={getLegacyNodeConfigs()}
+      nodeConfigs={getUnifiedNodeConfigsByReactFlowType()}
     />
   );
 }, (prevProps, nextProps) => {
