@@ -11,7 +11,7 @@ import {
   PersonPanelContent,
   EndpointPanelContent,
   JobPanelContent
-} from './PanelContent';
+} from './panels';
 import type {
   PersonJobBlockData, ConditionBlockData, DBBlockData,
   ArrowData, PersonDefinition, EndpointBlockData, JobBlockData
