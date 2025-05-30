@@ -1,5 +1,5 @@
 import time
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, Coroutine
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from ..constants import LLMService as LLMServiceEnum, COST_RATES
@@ -147,7 +147,7 @@ class LLMService(BaseService):
         model: str,
         messages: Union[str, List[dict]],
         system_prompt: str = ""
-    ) -> Tuple[str, float]:
+    ) -> dict[str, str | float]:
         """Make a call to the specified LLM service with retry logic."""
         try:
             adapter = self._get_adapter(service or "chatgpt", model, api_key_id)
@@ -160,7 +160,7 @@ class LLMService(BaseService):
             
             text, usage = self._extract_result_and_usage(result)
             cost = self.calculate_cost(service or "chatgpt", usage)
-            return text, cost
+            return {"response":text, "cost":cost}
             
         except Exception as e:
             raise LLMServiceError(f"LLM call failed: {e}")

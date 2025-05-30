@@ -226,13 +226,28 @@ class DiagramExecutor:
     ):
         """Execute a single node with status tracking."""
         iteration_count = self.state.counts[node_id] + 1
+        self.state.counts[node_id] += 1
+
+        # Check if this is a first-only execution that should be skipped
+        if hasattr(self, 'dynamic_executor') and self.dynamic_executor.first_only_consumed.get(node_id, False):
+            # Check if there are only first-only inputs
+            has_only_first_only = all(
+                self.dynamic_executor._is_handle_first_only(arrow)
+                for arrow in valid_incoming
+            )
+
+            if has_only_first_only:
+                # Skip execution but count the iteration
+                logger.debug(f"Skipping {node_id} - first-only already consumed, iteration {iteration_count}")
+                self.state.context[node_id] = self.state.context.get(node_id)  # Keep previous result
+                return
+
         logger.debug(
             "executing_node_iteration",
             node_id=node_id,
             iteration=iteration_count
         )
-        
-        self.state.counts[node_id] += 1
+
         execution_key = f"{node_id}_{self.state.counts[node_id] - 1}"
         executed_in_iteration.add(execution_key)
 
