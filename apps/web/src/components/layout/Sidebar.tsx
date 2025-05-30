@@ -6,6 +6,7 @@ import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/stores';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { useFileImport } from '@/hooks/useFileImport';
 import PropertiesRenderer from '@/components/properties/PropertiesRenderer';
+import { FileUploadButton } from '../common/FileUploadButton';
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
@@ -166,37 +167,27 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         </h3>
         {importExpanded && (
           <div className="grid grid-cols-2 gap-2 px-2">
-            <Button
+            <FileUploadButton
+              accept=".puml,.mmd"
+              onChange={handleImportUML}
               variant="outline"
               className="text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
-              onClick={() => document.getElementById('import-uml-input')?.click()}
+              size="sm"
             >
               <span className="mr-1">📋</span> UML
-            </Button>
-            <Button
+            </FileUploadButton>
+            <FileUploadButton
+              accept=".yaml,.yml"
+              onChange={handleImportYAML}
               variant="outline"
               className="text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
-              onClick={() => document.getElementById('import-yaml-input')?.click()}
+              size="sm"
             >
               <span className="mr-1">📄</span> YAML
-            </Button>
+            </FileUploadButton>
           </div>
         )}
       </div>
-      <input
-        type="file"
-        id="import-uml-input"
-        accept=".puml,.mmd"
-        style={{ display: 'none' }}
-        onChange={handleImportUML}
-      />
-      <input
-        type="file"
-        id="import-yaml-input"
-        accept=".yaml,.yml"
-        style={{ display: 'none' }}
-        onChange={handleImportYAML}
-      />
     </aside>
   );
 };

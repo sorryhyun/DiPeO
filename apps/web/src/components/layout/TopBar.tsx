@@ -6,6 +6,7 @@ import { useDiagramActions } from '@/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@repo/diagram-ui';
 import { LazyApiKeysModal } from '../modals/LazyModals';
+import { FileUploadButton } from '../common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory } from '@repo/core-model';
@@ -76,14 +77,14 @@ const TopBar = () => {
           >
             📄 New
           </Button>
-          <Button 
-            variant="outline" 
+          <FileUploadButton
+            accept=".json"
+            onChange={handleLoad}
+            variant="outline"
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => document.getElementById('load-diagram-input')?.click()}
           >
             📂 Open
-          </Button>
-          <input type="file" id="load-diagram-input" accept=".json" style={{ display: 'none' }} onChange={handleLoad} />
+          </FileUploadButton>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
@@ -102,21 +103,15 @@ const TopBar = () => {
           >
             📤 Export YAML
           </Button>
-          <Button
+          <FileUploadButton
+            accept=".yaml,.yml"
+            onChange={handleImportYAML}
             variant="outline"
             className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={() => document.getElementById('import-canonical-input')?.click()}
             title="Import from YAML format"
           >
             📥 Import YAML
-          </Button>
-          <input
-            type="file"
-            id="import-canonical-input"
-            accept=".yaml,.yml"
-            style={{ display: 'none' }}
-            onChange={handleImportYAML}
-          />
+          </FileUploadButton>
 
           <div className="border-l border-gray-300 h-6 mx-2" />
           

@@ -2,7 +2,7 @@
 import { useCallback, ChangeEvent } from 'react';
 import { useConsolidatedDiagramStore } from '@/stores';
 import { YamlExporter } from '@/utils/yamlExporter';
-import { downloadFile, downloadJson } from '@/utils/downloadUtils';
+import { useDownload } from '@/hooks/useDownload';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@repo/core-model';
 import { toast } from 'sonner';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -13,13 +13,14 @@ const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useDiagramActions = () => {
   const { exportDiagram, loadDiagram } = useConsolidatedDiagramStore();
+  const { downloadJson, downloadYaml } = useDownload();
 
   // Save as traditional JSON (for backwards compatibility)
   const handleSave = useCallback(() => {
     const diagramData = exportDiagram();
     downloadJson(diagramData, 'agent-diagram.json');
     toast.success('Saved diagram as JSON');
-  }, [exportDiagram]);
+  }, [exportDiagram, downloadJson]);
 
   // Export as clean YAML
   const handleExportYAML = useCallback(() => {
@@ -27,13 +28,13 @@ export const useDiagramActions = () => {
     try {
       const diagramData = exportDiagram();
       const yamlContent = YamlExporter.toYAML(diagramData);
-      downloadFile(yamlContent, 'agent-diagram.yaml', 'text/yaml');
+      downloadYaml(yamlContent, 'agent-diagram.yaml');
       toast.success('Exported to YAML format');
     } catch (error) {
       console.error('Export YAML error:', error);
       errorHandler(error instanceof Error ? error : new Error('Failed to export to YAML format'));
     }
-  }, [exportDiagram]);
+  }, [exportDiagram, downloadYaml]);
 
   // Import from YAML
   const handleImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
@@ -180,7 +181,7 @@ export const useDiagramActions = () => {
         const yamlContent = YamlExporter.toYAML(diagram);
 
         const yamlFilename = file.name.replace('.json', '.yaml');
-        downloadFile(yamlContent, yamlFilename, 'text/yaml');
+        downloadYaml(yamlContent, yamlFilename);
         toast.success('Converted JSON to YAML');
       } catch (error) {
         console.error(error);
