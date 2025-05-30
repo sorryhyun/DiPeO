@@ -1,7 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useConsolidatedDiagramStore, useExecutionStore } from '@/stores';
 import { toast } from 'sonner';
+import { createErrorHandlerFactory } from '@repo/core-model';
 import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/utils/apiConfig';
+
+const createErrorHandler = createErrorHandlerFactory(toast);
 
 type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
@@ -345,8 +348,9 @@ export const useDiagramRunner = () => {
         setRunError(errorMessage);
         console.error('Run Diagram Error:', errorMessage);
         
-        // Show error toast
-        toast.error(`Run Diagram: ${errorMessage}`);
+        // Show error toast using error handler factory
+        const errorHandler = createErrorHandler('Run Diagram');
+        errorHandler(new Error(errorMessage));
         
         setRunStatus('fail');
       }

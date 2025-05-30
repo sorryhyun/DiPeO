@@ -23,6 +23,7 @@ export const useDiagramActions = () => {
 
   // Export as clean YAML
   const handleExportYAML = useCallback(() => {
+    const errorHandler = createErrorHandler('Export YAML');
     try {
       const diagramData = exportDiagram();
       const yamlContent = YamlExporter.toYAML(diagramData);
@@ -30,7 +31,7 @@ export const useDiagramActions = () => {
       toast.success('Exported to YAML format');
     } catch (error) {
       console.error('Export YAML error:', error);
-      toast.error('Failed to export to YAML format');
+      errorHandler(error instanceof Error ? error : new Error('Failed to export to YAML format'));
     }
   }, [exportDiagram]);
 
@@ -170,6 +171,7 @@ export const useDiagramActions = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const errorHandler = createErrorHandler('Convert JSON to YAML');
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -181,8 +183,8 @@ export const useDiagramActions = () => {
         downloadFile(yamlContent, yamlFilename, 'text/yaml');
         toast.success('Converted JSON to YAML');
       } catch (error) {
-        toast.error('Failed to convert JSON to YAML');
         console.error(error);
+        errorHandler(error instanceof Error ? error : new Error('Failed to convert JSON to YAML'));
       }
     };
 

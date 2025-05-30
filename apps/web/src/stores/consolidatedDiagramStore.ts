@@ -9,11 +9,12 @@ import {
   ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode, DiagramNodeData,
   getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
   StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
-  ConditionBlockData, EndpointBlockData
+  ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
 } from '@repo/core-model';
 import { sanitizeDiagram } from "@/utils/diagramSanitizer";
 import { createPersonCrudActions } from "@/utils/storeCrudUtils";
 import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { toast } from 'sonner';
 
 
 export interface ConsolidatedDiagramState {
@@ -48,6 +49,8 @@ export interface ConsolidatedDiagramState {
   loadDiagram: (state: DiagramState) => void;
   exportDiagram: () => DiagramState;
 }
+
+const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
   devtools(
@@ -247,6 +250,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
         },
 
         loadApiKeys: async () => {
+          const errorHandler = createErrorHandler('Load API Keys');
           try {
             const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!response.ok) {
@@ -264,6 +268,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
             set({ apiKeys });
           } catch (error) {
             console.error('Error loading API keys:', error);
+            errorHandler(error as Error);
             throw error;
           }
         },

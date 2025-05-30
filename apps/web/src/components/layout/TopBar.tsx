@@ -7,6 +7,8 @@ import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@repo/diagram-ui';
 import { LazyApiKeysModal } from '../modals/LazyModals';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { toast } from 'sonner';
+import { createErrorHandlerFactory } from '@repo/core-model';
 
 
 const TopBar = () => {
@@ -17,6 +19,8 @@ const TopBar = () => {
   const { handleLoad, handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useConsolidatedUIStore();
+  
+  const createErrorHandler = createErrorHandlerFactory(toast);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsMonitorMode(params.get('monitor') === 'true');
@@ -43,7 +47,8 @@ const TopBar = () => {
           }
         }
       } catch (error) {
-        console.error('Failed to check backend API keys:', error);
+        const errorHandler = createErrorHandler('Check Backend API Keys');
+        errorHandler(error instanceof Error ? error : new Error('Failed to check backend API keys'));
         if (apiKeys.length === 0) {
           setIsApiModalOpen(true);
         }
@@ -55,7 +60,7 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys();
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey]);
+  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler]);
 
   useKeyboardShortcuts({
     onSave: () => handleSaveToDirectory(),

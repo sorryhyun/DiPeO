@@ -10,11 +10,7 @@ import {
   Input, Spinner, Switch
 } from '@repo/ui-kit';
 import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
-import type {
-  PersonJobBlockData, ConditionBlockData, DBBlockData,
-  ArrowData, PersonDefinition, EndpointBlockData, ApiKey, JobBlockData,
-} from '@repo/core-model';
-import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
+import { UNIFIED_NODE_CONFIGS, createErrorHandlerFactory, type PersonJobBlockData, type ConditionBlockData, type DBBlockData, type ArrowData, type PersonDefinition, type EndpointBlockData, type ApiKey, type JobBlockData } from '@repo/core-model';
 import { usePersons } from '@/hooks/useStoreSelectors';
 
 // Import reusable components from properties-ui package
@@ -325,7 +321,8 @@ const PANEL_CONFIGS: PanelConfig = {
           handleChange('sourceDetails', path);
           toast.success(`File uploaded: ${file.name}`);
         } catch (error) {
-          toast.error('Upload failed');
+          const createErrorHandler = createErrorHandlerFactory(toast);
+          createErrorHandler('File upload failed')(error as Error);
         } finally {
           setUploading(false);
         }
@@ -659,7 +656,8 @@ const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nod
             const body = await res.json();
             setApiKeysList(body.apiKeys);
           } catch (err) {
-            console.error('Failed to load API keys:', err);
+            const createErrorHandler = createErrorHandlerFactory(toast);
+            createErrorHandler('Failed to load API keys')(err as Error);
           } finally {
             setLoadingApiKeys(false);
           }
