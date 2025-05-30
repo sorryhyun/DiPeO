@@ -4,6 +4,7 @@ import { RotateCcw } from 'lucide-react';
 import { Button } from '@repo/ui-kit';
 import { BaseNodeProps, NodeConfig } from '@repo/core-model';
 import { createHandleId } from '../utils/nodeHelpers';
+import { FlowHandle } from './FlowHandle';
 
 function BaseNodeComponent({
   id,
@@ -47,7 +48,9 @@ function BaseNodeComponent({
           type: handle.type,
           position,
           id: createHandleId(id, handle.type, handle.name),
+          name: handle.name,
           style,
+          offset: handle.offset,
           className: handle.color
         };
       });
@@ -128,27 +131,16 @@ function BaseNodeComponent({
 
       {/* Handles */}
       {effectiveHandles.map((handle, index) => (
-        <Handle
+        <FlowHandle
           key={handle.id || index}
-          type={handle.type === 'input' ? 'target' : 'source'}
+          nodeId={id}
+          type={handle.type}
+          name={'name' in handle ? handle.name : `${handle.type}-${index}`}
           position={handle.position}
-          id={handle.id}
-          style={{ 
-            width: '16px',
-            height: '16px',
-            backgroundColor: handle.className?.includes('bg-green') ? '#16a34a' :
-                           handle.className?.includes('bg-blue') ? '#2563eb' :
-                           handle.className?.includes('bg-red') ? '#dc2626' :
-                           handle.className?.includes('bg-purple') ? '#9333ea' :
-                           handle.className?.includes('bg-teal') ? '#0d9488' :
-                           handle.className?.includes('bg-orange') ? '#ea580c' :
-                           handle.className?.includes('bg-indigo') ? '#4f46e5' :
-                           handle.className?.includes('bg-amber') ? '#d97706' :
-                           '#6b7280',
-            border: '2px solid white',
-            ...handle.style 
-          }}
-          className={`w-4 h-4 ${isRunning ? 'animate-pulse' : ''}`}
+          offset={'offset' in handle ? handle.offset : 50}
+          color={handle.className}  // Extract color from className
+          style={handle.style}
+          className={`${isRunning ? 'animate-pulse' : ''}`}
         />
       ))}
     </div>

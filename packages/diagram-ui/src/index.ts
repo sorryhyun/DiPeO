@@ -4,6 +4,8 @@ export { GenericNode } from './components/GenericNode';
 export { CustomArrow } from './components/Arrow';
 export { default as Arrow } from './components/Arrow';
 export { default as ContextMenu } from './components/ContextMenu';
+export { FlowHandle } from './components/FlowHandle';
+export type { FlowHandleProps } from './components/FlowHandle';
 
 // Types from @repo/core-model
 export type { 
