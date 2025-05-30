@@ -18,11 +18,9 @@ class StreamingDiagramExecutor:
         self,
         diagram: Dict[str, Any],
         memory_service: MemoryService,
-        broadcast_to_websocket: bool = False
     ):
         self.diagram = diagram
         self.memory_service = memory_service
-        self.broadcast_to_websocket = broadcast_to_websocket
         self.execution_id: Optional[str] = None
         self.stream_context = None
         self.completed = False
@@ -45,20 +43,17 @@ class StreamingDiagramExecutor:
             self.execution_id = executor.execution_id
             
             # Create stream context
-            output_format = 'both' if self.broadcast_to_websocket else 'sse'
             self.stream_context = await stream_manager.create_stream(
-                self.execution_id, output_format
+                self.execution_id, 'sse'
             )
-            
-            # Broadcast execution start if needed
-            if self.broadcast_to_websocket:
-                await stream_manager.publish_update(self.execution_id, {
-                    "type": "execution_started",
-                    "execution_id": self.execution_id,
-                    "diagram": self.diagram,
-                    "timestamp": datetime.now().isoformat()
-                })
-            
+
+            await stream_manager.publish_update(self.execution_id, {
+                "type": "execution_started",
+                "execution_id": self.execution_id,
+                "diagram": self.diagram,
+                "timestamp": datetime.now().isoformat()
+            })
+
             # Run the diagram
             context, total_cost = await executor.run()
             

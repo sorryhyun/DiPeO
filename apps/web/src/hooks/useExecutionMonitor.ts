@@ -1,65 +1,123 @@
-// apps/web/src/hooks/useExecutionMonitor.ts
 import { useEffect, useRef } from 'react';
 import { useExecutionStore, useConsolidatedDiagramStore } from '@/stores';
 import { toast } from 'sonner';
+import { getStreamingUrl } from '@/utils/apiConfig';
 
 export const useExecutionMonitor = () => {
-  const wsRef = useRef<WebSocket | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {
-    setRunContext,
     addRunningNode,
     removeRunningNode,
-    setCurrentRunningNode
+    setCurrentRunningNode,
+    setRunContext
   } = useExecutionStore();
   const { loadDiagram } = useConsolidatedDiagramStore();
 
   useEffect(() => {
-    const clientId = `browser-${Date.now()}`;
-    const ws = new WebSocket(`ws://localhost:8000/ws/${clientId}`);
+    let isComponentMounted = true;
 
-    ws.onopen = () => {
-      console.log('WebSocket connected for execution monitoring');
-    };
+    const connectSSE = () => {
+      if (!isComponentMounted) return;
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const eventSource = new EventSource(getStreamingUrl('/api/monitor/stream'));
+      eventSourceRef.current = eventSource;
 
-      switch (data.type) {
-        case 'execution_started':
-          toast.info(`External execution started: ${data.execution_id}`);
-          // Load the diagram into the UI
-          if (data.diagram) {
-            loadDiagram(data.diagram);
+      eventSource.onopen = () => {
+        console.log('SSE connected for execution monitoring');
+        // Clear any reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+      };
+
+      eventSource.onmessage = (event) => {
+        if (!isComponentMounted) return;
+
+        try {
+          const data = JSON.parse(event.data);
+
+          // Skip if this is from our own execution (not external)
+          if (data.from_monitor && !data.is_external) {
+            // You might want to check execution_id against current execution
+            return;
           }
-          // Auto-subscribe to this execution
-          ws.send(JSON.stringify({
-            type: 'subscribe_execution',
-            execution_id: data.execution_id
-          }));
-          break;
 
-        case 'node_start':
-          addRunningNode(data.nodeId);
-          setCurrentRunningNode(data.nodeId);
-          break;
+          switch (data.type) {
+            case 'monitor_connected':
+              console.log('Monitor connected:', data.monitor_id);
+              break;
 
-        case 'node_complete':
-          removeRunningNode(data.nodeId);
-          break;
+            case 'execution_started':
+              if (data.from_monitor) {
+                toast.info(`External execution started: ${data.execution_id}`);
+                if (data.diagram) {
+                  loadDiagram(data.diagram);
+                }
+              }
+              break;
 
-        case 'execution_complete':
-          setRunContext(data.context);
-          toast.success('External execution completed');
-          break;
-      }
+            case 'node_start':
+              if (data.nodeId) {
+                addRunningNode(data.nodeId);
+                setCurrentRunningNode(data.nodeId);
+              }
+              break;
+
+            case 'node_complete':
+              if (data.nodeId) {
+                removeRunningNode(data.nodeId);
+              }
+              break;
+
+            case 'execution_complete':
+              if (data.context) {
+                setRunContext(data.context);
+              }
+              if (data.from_monitor) {
+                toast.success('External execution completed');
+              }
+              break;
+
+            case 'execution_error':
+              if (data.from_monitor) {
+                toast.error(`External execution failed: ${data.error}`);
+              }
+              break;
+          }
+        } catch (error) {
+          console.error('Failed to parse monitor update:', error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('SSE monitor connection error:', error);
+        eventSource.close();
+
+        // Reconnect after 5 seconds
+        if (isComponentMounted) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('Reconnecting SSE monitor...');
+            connectSSE();
+          }, 5000);
+        }
+      };
     };
 
-    wsRef.current = ws;
+    // Initial connection
+    connectSSE();
 
     return () => {
-      ws.close();
+      isComponentMounted = false;
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [addRunningNode, removeRunningNode, setCurrentRunningNode, setRunContext, loadDiagram]);
 
-  return wsRef.current;
+  return null;
 };

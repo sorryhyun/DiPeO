@@ -26,8 +26,8 @@ export const API_ENDPOINTS = {
   STREAMING_RUN: '/api/stream/run-diagram',
   
   // API Keys
-  API_KEYS: '/api/apikeys',
-  API_KEY_BY_ID: (id: string) => `/api/apikeys/${id}`,
+  API_KEYS: '/api/api-keys',
+  API_KEY_BY_ID: (id: string) => `/api/api-keys/${id}`,
   
   // File operations
   UPLOAD_FILE: '/api/upload-file',
@@ -37,9 +37,8 @@ export const API_ENDPOINTS = {
   
   // Conversations
   CONVERSATIONS: '/api/conversations',
-  
-  // WebSocket (to be deprecated)
-  WS_EXECUTION: (clientId: string) => `/ws/${clientId}`,
+
+  MONITOR_STREAM: '/api/monitor/stream',
 } as const;
 
 // Helper functions
@@ -56,6 +55,3 @@ export function getStreamingUrl(endpoint: string): string {
   return `${API_CONFIG.STREAMING_BASE_URL}${endpoint}`;
 }
 
-export function getWebSocketUrl(endpoint: string): string {
-  return `${API_CONFIG.WS_BASE_URL}${endpoint}`;
-}
