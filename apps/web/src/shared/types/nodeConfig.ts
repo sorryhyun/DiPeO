@@ -53,6 +53,12 @@ export interface UnifiedNodeConfig {
   // Additional metadata
   description?: string;
   category?: 'control' | 'processing' | 'data' | 'output';
+  
+  // Additional properties for backwards compatibility
+  defaultData?: Record<string, any>;
+  backgroundColor?: string;
+  textColor?: string;
+  capabilities?: string[];
 }
 
 export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {

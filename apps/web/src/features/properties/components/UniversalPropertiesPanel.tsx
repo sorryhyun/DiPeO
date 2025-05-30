@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
 import { Panel, Form, usePropertyForm } from '../wrappers';
-import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
+import { UNIFIED_NODE_CONFIGS } from '../../../shared/types';
 import { usePersons } from '@/shared/hooks/useStoreSelectors';
 import { renderInlineField, renderTextAreaField, isTextAreaField } from '../utils/fieldRenderers';
 

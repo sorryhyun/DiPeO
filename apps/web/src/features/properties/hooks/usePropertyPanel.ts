@@ -1,5 +1,5 @@
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { usePropertyForm as usePropertyFormBase } from '@repo/diagram-ui';
+import { usePropertyForm as usePropertyFormBase } from '../../diagram/hooks/ui-hooks/usePropertyForm';
 
 export function usePropertyPanel<T extends Record<string, any>>(
   entityId: string,

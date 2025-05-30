@@ -3,7 +3,7 @@ import { useCallback, ChangeEvent } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { YamlExporter } from '@/shared/utils/yamlExporter';
 import { useDownload } from '@/shared/hooks/useDownload';
-import { createAsyncErrorHandler, createErrorHandlerFactory } from '@repo/core-model';
+import { createAsyncErrorHandler, createErrorHandlerFactory } from '../../../shared/types';
 import { toast } from 'sonner';
 import { getApiUrl } from '@/shared/utils/apiConfig';
 

@@ -16,7 +16,7 @@ export default defineConfig({
           'diagram-vendor': ['@xyflow/react'],
           
           // UI libraries
-          'ui-vendor': ['@repo/ui-kit', 'sonner', 'react-resizable-panels'],
+          'ui-vendor': ['sonner', 'react-resizable-panels'],
           
           // Icon library
           'icon-vendor': ['lucide-react'],

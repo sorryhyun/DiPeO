@@ -3,8 +3,8 @@ import { BaseNode as BaseNodeComponent, GenericNode as GenericNodeComponent } fr
 import { useNodeExecutionState } from '@/shared/hooks/useStoreSelectors';
 import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
-// Re-export types from diagram-ui package
-export type { BaseNodeProps } from '@repo/diagram-ui';
+// Re-export types from local types
+export type { BaseNodeProps } from '../../../shared/types';
 
 // Memoized wrapper component that integrates with app stores
 export const BaseNode = React.memo((props: Parameters<typeof BaseNodeComponent>[0]) => {
@@ -35,7 +35,7 @@ export const BaseNode = React.memo((props: Parameters<typeof BaseNodeComponent>[
 BaseNode.displayName = 'BaseNodeWrapper';
 
 // Re-export GenericNodeProps type
-export type { GenericNodeProps } from '@repo/diagram-ui';
+export type { GenericNodeProps } from '../../../shared/types';
 
 // Memoized wrapper for GenericNode that integrates with app stores
 export const GenericNode = React.memo((props: Parameters<typeof GenericNodeComponent>[0]) => {

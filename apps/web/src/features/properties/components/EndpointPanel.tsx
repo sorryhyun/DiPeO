@@ -1,6 +1,6 @@
 import React from 'react';
-import { Switch } from '@repo/ui-kit';
-import { type EndpointBlockData } from '@repo/core-model';
+import { Switch } from '../../../shared/components';
+import { type EndpointBlockData } from '../../../shared/types';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField,

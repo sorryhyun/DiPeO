@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
-import { type PersonDefinition, type ApiKey } from '@repo/core-model';
+import { type PersonDefinition, type ApiKey } from '../../../shared/types';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import { useApiKeys } from '../hooks/useApiKeys';
 import {

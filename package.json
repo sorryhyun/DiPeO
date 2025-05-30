@@ -12,8 +12,7 @@
     "typecheck": "cd apps/web && tsc --noEmit"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/*"
   ],
   "devDependencies": {
     "@eslint/js": "^9.27.0",

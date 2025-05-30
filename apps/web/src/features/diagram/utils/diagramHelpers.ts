@@ -1,5 +1,5 @@
 import { Node, Edge } from '@xyflow/react';
-import { DiagramState } from '@repo/core-model';
+import { DiagramState } from '../../../shared/types';
 
 /**
  * General diagram utility functions

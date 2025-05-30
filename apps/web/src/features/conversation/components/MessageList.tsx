@@ -1,6 +1,6 @@
 import React from 'react';
 import { Hash, DollarSign } from 'lucide-react';
-import { PersonDefinition } from '@repo/core-model';
+import { PersonDefinition } from '../../../shared/types';
 import { ConversationMessage } from '../types';
 
 interface MessageListProps {

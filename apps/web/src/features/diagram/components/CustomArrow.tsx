@@ -1,17 +1,17 @@
 import React from 'react';
-import { CustomArrow as CustomArrowBase } from '@repo/diagram-ui';
+import { CustomArrow as CustomArrowBase } from './ui-components/Arrow';
 import { useArrowDataUpdater } from '@/shared/hooks/useStoreSelectors';
-import { ArrowData } from '@repo/core-model';
+import { ArrowData } from '@/shared/types';
 
-// Re-export types from diagram-ui package
-export type { CustomArrowProps } from '@repo/diagram-ui';
+// Re-export types from local ui-components
+export type { CustomArrowProps } from './ui-components/Arrow';
 
 // Wrapper component that integrates with app stores
 export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>[0]) => {
   const updateArrowData = useArrowDataUpdater();
   
   // Create a type-safe wrapper that converts diagram-ui ArrowData to core-model ArrowData
-  const handleUpdateData = React.useCallback((edgeId: string, data: Partial<import('@repo/diagram-ui').ArrowData>) => {
+  const handleUpdateData = React.useCallback((edgeId: string, data: Partial<ArrowData>) => {
     // Filter and convert data to match core-model ArrowData type
     const coreModelData: Partial<ArrowData> = {};
     

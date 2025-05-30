@@ -1,5 +1,5 @@
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { usePropertyForm as usePropertyFormBase } from '@repo/diagram-ui';
+import { usePropertyForm as usePropertyFormBase } from '../../diagram/hooks/ui-hooks/usePropertyForm';
 
 // Wrapper hook that integrates with app stores
 export function usePropertyForm<T extends Record<string, any>>(
@@ -13,4 +13,4 @@ export function usePropertyForm<T extends Record<string, any>>(
 }
 
 // Re-export types
-export type { PropertyFormHookResult } from '@repo/diagram-ui';
+// Type inference will handle the return type automatically

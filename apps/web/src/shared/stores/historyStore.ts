@@ -6,7 +6,7 @@ import {
 } from 'immer';
 import { 
   PersonDefinition, DiagramNode, Arrow
-} from '@repo/core-model';
+} from '../types';
 
 // Enable Immer patches feature
 enablePatches();

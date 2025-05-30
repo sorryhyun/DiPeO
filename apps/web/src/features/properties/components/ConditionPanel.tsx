@@ -1,5 +1,5 @@
 import React from 'react';
-import { type ConditionBlockData } from '@repo/core-model';
+import { type ConditionBlockData } from '../../../shared/types';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField,

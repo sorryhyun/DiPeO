@@ -1,9 +1,9 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState } from 'react';
-import { Button } from '@repo/ui-kit';
+import { Button } from '../../../shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/shared/stores';
-import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
+import { UNIFIED_NODE_CONFIGS } from '../../../shared/types';
 import { useFileImport } from '@/features/diagram/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';

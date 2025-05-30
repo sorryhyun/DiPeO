@@ -1,4 +1,4 @@
-// --- File: packages/core-model/src/types.ts ---
+// --- File: apps/web/src/shared/types/types.ts ---
 // (Expanded and corrected)
 import {Node, Edge, OnEdgesChange, EdgeChange, Connection,
   applyEdgeChanges as applyEdgeChangesRF,
@@ -142,4 +142,3 @@ export function addArrow<T = any>(
 export type ArrowChange = EdgeChange;
 export type Arrow<T extends Record<string, unknown> = any> = Edge<T>;
 export type OnArrowsChange = OnEdgesChange;
-

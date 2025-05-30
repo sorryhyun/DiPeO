@@ -1,7 +1,7 @@
 // Hook for importing diagrams from UML or YAML
 import React, { useCallback } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { createAsyncErrorHandler, createErrorHandlerFactory } from '@repo/core-model';
+import { createAsyncErrorHandler, createErrorHandlerFactory } from '../../../shared/types';
 import { toast } from 'sonner';
 import { getApiUrl } from '@/shared/utils/apiConfig';
 

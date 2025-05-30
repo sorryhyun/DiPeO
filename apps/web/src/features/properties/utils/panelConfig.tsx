@@ -15,7 +15,7 @@ import {
 import type {
   PersonJobBlockData, ConditionBlockData, DBBlockData,
   ArrowData, PersonDefinition, EndpointBlockData, JobBlockData
-} from '@repo/core-model';
+} from '../../../shared/types';
 
 export type PanelConfig = {
   [key: string]: {

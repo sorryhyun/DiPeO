@@ -1,7 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
-import { Input } from '@repo/ui-kit';
-import { createErrorHandlerFactory, type JobBlockData } from '@repo/core-model';
+import { Input } from '../../../shared/components';
+import { createErrorHandlerFactory, type JobBlockData } from '../../../shared/types';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import { useApiKeys } from '../hooks/useApiKeys';
 import {

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
-import { createErrorHandlerFactory } from '@repo/core-model';
+import { createErrorHandlerFactory } from '../../../shared/types';
 import { ConversationMessage, PersonMemoryState, ConversationFilters } from '../types';
 
 const MESSAGES_PER_PAGE = 50;

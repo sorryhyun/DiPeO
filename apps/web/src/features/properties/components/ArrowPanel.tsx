@@ -1,7 +1,7 @@
 import React from 'react';
-import { Input } from '@repo/ui-kit';
+import { Input } from '../../../shared/components';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { type ArrowData } from '@repo/core-model';
+import { type ArrowData } from '../../../shared/types';
 import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField, FormGrid,

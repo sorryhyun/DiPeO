@@ -10,7 +10,7 @@ import {
   getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
   StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
   ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
-} from '@repo/core-model';
+} from '../types';
 import { sanitizeDiagram } from "@/shared/utils/diagramSanitizer";
 import { createPersonCrudActions, createApiKeyCrudActions } from "@/shared/utils/storeCrudUtils";
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';

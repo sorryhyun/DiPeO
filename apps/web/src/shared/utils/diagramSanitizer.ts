@@ -1,5 +1,5 @@
 // apps/web/src/utils/diagramSanitizer.ts
-import { DiagramState } from '@repo/core-model';
+import { DiagramState } from '../types';
 
 export function sanitizeDiagram(diagram: DiagramState): DiagramState {
   return {

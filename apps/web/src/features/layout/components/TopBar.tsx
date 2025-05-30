@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
-import { Button } from '@repo/ui-kit';
+import { Button } from '../../../shared/components';
 import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/shared/stores';
 import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/features/diagram/hooks/useDiagramRunner';
@@ -9,7 +9,7 @@ import { LazyApiKeysModal } from './modals/LazyModals';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory } from '@repo/core-model';
+import { createErrorHandlerFactory } from '../../../shared/types';
 
 
 const TopBar = () => {

@@ -15,12 +15,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/core-model": "workspace:*",
-    "@repo/diagram-ui": "workspace:*",
-    "@repo/properties-ui": "workspace:*",
-    "@repo/ui-kit": "workspace:*",
     "@types/react-window": "^1.8.8",
     "@xyflow/react": "^12.6.4",
+    "clsx": "^2.1.1",
     "immer": "^10.1.1",
     "lucide-react": "^0.511.0",
     "nanoid": "5.1.5",

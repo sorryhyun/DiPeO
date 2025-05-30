@@ -21,7 +21,7 @@ import {
 } from '../wrappers';
 import { roundPosition } from '../utils/diagramSanitizer';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
-import { DiagramNode, Arrow } from '@repo/core-model';
+import { DiagramNode, Arrow } from '@/shared/types';
 import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 
 // Lazy load memory layer  

@@ -33,7 +33,7 @@ export const usePropertyFormState = <T extends Record<string, any>>(
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
+  const autoSaveTimeoutRef = useRef<number | undefined>(undefined);
   const initialDataRef = useRef(initialData);
 
   // Update form data when initial data changes
@@ -92,7 +92,7 @@ export const usePropertyFormState = <T extends Record<string, any>>(
           clearTimeout(autoSaveTimeoutRef.current);
         }
         
-        autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveTimeoutRef.current = window.setTimeout(() => {
           if (!fieldError) {
             handleSave(newData);
           }
@@ -131,7 +131,7 @@ export const usePropertyFormState = <T extends Record<string, any>>(
           clearTimeout(autoSaveTimeoutRef.current);
         }
         
-        autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveTimeoutRef.current = window.setTimeout(() => {
           handleSave(newData);
         }, autoSaveDelay);
       }
@@ -202,7 +202,7 @@ export const usePropertyFormState = <T extends Record<string, any>>(
     hasErrors: Object.keys(errors).length > 0,
     handleChange,
     updateFormData,
-    handleSave: () => handleSave(),
+    handleSave: () => handleSave(formData),
     reset,
     validateForm: () => validateForm(formData)
   };

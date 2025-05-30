@@ -4,7 +4,7 @@ import {
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
 import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/shared/stores';
-import { Button, Input, Select, SelectItem } from '@repo/ui-kit';
+import { Button, Input, Select, SelectItem } from '../../../shared/components';
 import { downloadJson } from '@/shared/utils/downloadUtils';
 import { toast } from 'sonner';
 import { useConversationData } from '../hooks/useConversationData';

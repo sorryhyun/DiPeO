@@ -1,9 +1,9 @@
 import React from 'react';
-import { ContextMenu as ContextMenuBase } from '@repo/diagram-ui';
+import ContextMenuBase from './ui-components/ContextMenu';
 import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
 // Re-export types from diagram-ui package
-export type { ContextMenuProps } from '@repo/diagram-ui';
+export type { ContextMenuProps } from './ui-components/ContextMenu';
 
 // Wrapper component that integrates with app stores and context
 export const ContextMenu = React.memo((props: Parameters<typeof ContextMenuBase>[0]) => {

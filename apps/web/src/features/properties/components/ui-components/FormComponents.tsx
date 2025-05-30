@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   Input, Label, Select, SelectItem, Textarea, Spinner
-} from '@repo/ui-kit';
-import { FormFieldProps } from '@repo/core-model';
+} from '../../../../shared/components';
+import { FormFieldProps } from '../../../../shared/types';
 
 export const FormField: React.FC<FormFieldProps> = ({ label, id, children, className = "space-y-1" }) => (
   <div className={className}>

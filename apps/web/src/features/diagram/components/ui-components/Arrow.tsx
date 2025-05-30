@@ -1,14 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 
-export interface ArrowData {
-  label?: string;
-  branch?: string;
-  contentType?: string;
-  controlPointOffsetX?: number;
-  controlPointOffsetY?: number;
-  loopRadius?: number;
-}
+import { ArrowData } from '@/shared/types';
 
 export interface CustomArrowProps extends EdgeProps {
   onUpdateData?: (edgeId: string, data: Partial<ArrowData>) => void;

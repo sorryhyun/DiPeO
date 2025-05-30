@@ -1,5 +1,6 @@
-// Direct exports from properties-ui package (no store integration needed)
-export { Panel, Form, FormField, FormGrid, FormRow, TextAreaField, TextField, SelectField, InlineTextField, InlineSelectField } from '@repo/properties-ui';
+// Direct exports from local ui-components (no store integration needed)
+export { Panel } from '../components/ui-components/Panel';
+export { Form, FormField, FormGrid, FormRow, TextAreaField, TextField, SelectField, InlineTextField, InlineSelectField } from '../components/ui-components/FormComponents';
 
 // Hooks
 export { usePropertyForm } from '../hooks/usePropertyForm';
@@ -9,4 +10,4 @@ export { usePropertyPanel } from '../hooks/usePropertyPanel';
 export type {
   PanelProps,
   FormFieldProps
-} from '@repo/properties-ui';
+} from '../../../shared/types';

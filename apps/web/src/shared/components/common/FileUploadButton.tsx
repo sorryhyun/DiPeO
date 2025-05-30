@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@repo/ui-kit';
+import { Button } from '../';
 
 interface FileUploadButtonProps {
   accept?: string;
