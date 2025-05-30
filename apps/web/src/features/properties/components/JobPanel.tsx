@@ -1,8 +1,8 @@
 import React from 'react';
 import { toast } from 'sonner';
-import { Input } from '../../../shared/components';
-import { createErrorHandlerFactory, type JobBlockData } from '../../../shared/types';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { Input } from '@/shared/components';
+import { createErrorHandlerFactory, type JobBlockData } from '@/shared/types';
+import { usePropertyPanel } from '@/features/properties';
 import { useApiKeys } from '../hooks/useApiKeys';
 import {
   Form, FormField, FormRow,

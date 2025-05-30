@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Select, SelectItem, Label } from '../../../../shared/components';
+import { Select, SelectItem, Label } from '@/shared/components';
 import { Panel } from './Panel';
 import { Form, FormField, TextField, TextAreaField } from './FormComponents';
-import { GenericPropertiesPanelProps, FieldConfig } from '../../../../shared/types';
+import { GenericPropertiesPanelProps, FieldConfig } from '@/shared/types';
 
 export function GenericPropertiesPanel({ 
   nodeId, 

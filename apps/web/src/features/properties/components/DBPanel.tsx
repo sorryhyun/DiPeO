@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Input, Spinner } from '../../../shared/components';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
-import { createErrorHandlerFactory, type DBBlockData } from '../../../shared/types';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { createErrorHandlerFactory, type DBBlockData } from '@/shared/types';
+import { usePropertyPanel } from '@/features/properties';
 import {
   Form, FormField, FormRow,
   InlineTextField, InlineSelectField, TextAreaField

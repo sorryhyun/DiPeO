@@ -11,7 +11,7 @@ import {
   Arrow,
   ApiKey,
   DiagramNode
-} from '../../../shared/types';
+} from '@/shared/types';
 import { nanoid } from 'nanoid';
 
 interface YamlDiagram {

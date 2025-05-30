@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
-import { GenericNodeProps } from '../../../../shared/types';
+import { GenericNodeProps } from '@/shared/types';
 
 function GenericNodeComponent({ 
   id: nodeId,

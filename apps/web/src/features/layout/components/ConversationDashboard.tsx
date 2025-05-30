@@ -4,11 +4,11 @@ import {
   Search, Filter, Download, DollarSign, Hash
 } from 'lucide-react';
 import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/shared/stores';
-import { Button, Input, Select, SelectItem } from '../../../shared/components';
+import { Button, Input, Select, SelectItem } from '@/shared/components';
 import { downloadJson } from '@/shared/utils/downloadUtils';
 import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
-import { createErrorHandlerFactory } from '../../../shared/types';
+import { createErrorHandlerFactory } from '@/shared/types';
 
 interface ConversationMessage {
   id: string;

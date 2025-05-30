@@ -1,7 +1,7 @@
 import React from 'react';
 import { Panel } from '../wrappers';
 import { PANEL_CONFIGS } from '../utils/panelConfig';
-import type { ArrowData, PersonDefinition } from '../../../shared/types';
+import type { ArrowData, PersonDefinition } from '@/shared/types';
 
 // Re-export the UniversalPropertiesPanel from its own file
 export { UniversalPropertiesPanel } from './UniversalPropertiesPanel';

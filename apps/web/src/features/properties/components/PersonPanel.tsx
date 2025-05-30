@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
-import { type PersonDefinition, type ApiKey } from '../../../shared/types';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { type PersonDefinition, type ApiKey } from '@/shared/types';
+import { usePropertyPanel } from '@/features/properties';
 import { useApiKeys } from '../hooks/useApiKeys';
 import {
   Form, FormRow,

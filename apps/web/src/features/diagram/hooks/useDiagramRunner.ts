@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useConsolidatedDiagramStore, useExecutionStore } from '@/shared/stores';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory } from '../../../shared/types';
+import { createErrorHandlerFactory } from '@/shared/types';
 import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/shared/utils/apiConfig';
 
 const createErrorHandler = createErrorHandlerFactory(toast);

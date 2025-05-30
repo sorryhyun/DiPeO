@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Modal, Select, SelectItem } from '../../../../shared/components';
-import { ApiKey, createErrorHandlerFactory } from '../../../../shared/types';
+import { Button, Input, Modal, Select, SelectItem } from '@/shared/components';
+import { ApiKey, createErrorHandlerFactory } from '@/shared/types';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';

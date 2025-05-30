@@ -1,8 +1,8 @@
 import React from 'react';
-import { Input } from '../../../shared/components';
+import { Input } from '@/shared/components';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { type ArrowData } from '../../../shared/types';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { type ArrowData } from '@/shared/types';
+import { usePropertyPanel } from '@/features/properties';
 import {
   Form, FormField, FormGrid,
   TextField, SelectField

@@ -13,7 +13,7 @@ import {
   type DBBlockData,
   type JobBlockData,
   type EndpointBlockData
-} from '../../../shared/types';
+} from '@/shared/types';
 
 // Universal Node Component - replaces all individual node components
 const UniversalNode: React.FC<NodeProps> = ({ id, data, selected }) => {

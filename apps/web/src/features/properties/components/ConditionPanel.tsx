@@ -1,6 +1,6 @@
 import React from 'react';
-import { type ConditionBlockData } from '../../../shared/types';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { type ConditionBlockData } from '@/shared/types';
+import { usePropertyPanel } from '@/features/properties';
 import {
   Form, FormField,
   TextField, TextAreaField

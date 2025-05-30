@@ -1,7 +1,7 @@
 // Component for Person nodes (LLM instances)
 import React from 'react';
 import { Position, NodeProps } from '@xyflow/react';
-import { PersonDefinition } from '../../../shared/types';
+import { PersonDefinition } from '@/shared/types';
 import { User } from 'lucide-react';
 import { FlowHandle, createHandleId } from '@/features/diagram/wrappers';
 

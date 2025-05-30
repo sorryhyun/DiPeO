@@ -1,7 +1,7 @@
 import React from 'react';
-import { Switch } from '../../../shared/components';
-import { type EndpointBlockData } from '../../../shared/types';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { Switch } from '@/shared/components';
+import { type EndpointBlockData } from '@/shared/types';
+import { usePropertyPanel } from '@/features/properties';
 import {
   Form, FormField,
   TextField, SelectField

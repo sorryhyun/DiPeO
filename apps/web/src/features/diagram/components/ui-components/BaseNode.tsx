@@ -1,8 +1,8 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
-import { Button } from '../../../../shared/components';
-import { BaseNodeProps, UnifiedNodeConfig } from '../../../../shared/types';
+import { Button } from '@/shared/components';
+import { BaseNodeProps, UnifiedNodeConfig } from '@/shared/types';
 import { createHandleId } from '../../utils/ui-utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import './BaseNode.css';

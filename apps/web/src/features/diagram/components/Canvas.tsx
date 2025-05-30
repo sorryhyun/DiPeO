@@ -19,7 +19,7 @@ import {
   CustomArrow as CustomArrowBase,
   ContextMenu as ContextMenuBase 
 } from '../wrappers';
-import { roundPosition } from '../utils/diagramSanitizer';
+import { roundPosition } from '@/features/diagram';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
 import { DiagramNode, Arrow } from '@/shared/types';
 import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';

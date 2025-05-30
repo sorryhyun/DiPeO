@@ -1,7 +1,7 @@
 import React from 'react';
-import { type PersonJobBlockData } from '../../../shared/types';
+import { type PersonJobBlockData } from '@/shared/types';
 import { usePersons } from '@/shared/hooks/useStoreSelectors';
-import { usePropertyPanel } from '../hooks/usePropertyPanel';
+import { usePropertyPanel } from '@/features/properties';
 import {
   Form, FormRow,
   InlineTextField, InlineSelectField, TextAreaField
