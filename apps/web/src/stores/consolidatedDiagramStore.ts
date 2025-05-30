@@ -12,7 +12,7 @@ import {
   ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
 } from '@repo/core-model';
 import { sanitizeDiagram } from "@/utils/diagramSanitizer";
-import { createPersonCrudActions } from "@/utils/storeCrudUtils";
+import { createPersonCrudActions, createApiKeyCrudActions } from "@/utils/storeCrudUtils";
 import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 import { toast } from 'sonner';
 
@@ -218,36 +218,12 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           'PERSON'
         ),
 
-        // API key operations
-        addApiKey: (apiKeyData: Omit<ApiKey, 'id'>) => {
-          const newApiKey = {
-            ...apiKeyData,
-            id: `APIKEY_${nanoid().slice(0, 6).toUpperCase()}`
-          } as ApiKey;
-          set({ apiKeys: [...get().apiKeys, newApiKey] });
-        },
-
-        updateApiKey: (apiKeyId: string, apiKeyData: Partial<ApiKey>) => {
-          set({
-            apiKeys: get().apiKeys.map(apiKey =>
-              apiKey.id === apiKeyId ? { ...apiKey, ...apiKeyData } : apiKey
-            )
-          });
-        },
-
-        deleteApiKey: (apiKeyId: string) => {
-          set({
-            apiKeys: get().apiKeys.filter(apiKey => apiKey.id !== apiKeyId)
-          });
-        },
-
-        getApiKeyById: (apiKeyId: string) => {
-          return get().apiKeys.find(apiKey => apiKey.id === apiKeyId);
-        },
-
-        clearApiKeys: () => {
-          set({ apiKeys: [] });
-        },
+        // API key operations using generic CRUD
+        ...createApiKeyCrudActions<ApiKey>(
+          () => get().apiKeys,
+          (apiKeys) => set({ apiKeys }),
+          'APIKEY'
+        ),
 
         loadApiKeys: async () => {
           const errorHandler = createErrorHandler('Load API Keys');

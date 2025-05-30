@@ -1,8 +1,7 @@
 import React from 'react';
-import { useUpdateNodeInternals } from '@xyflow/react';
 import { BaseNode as BaseNodeComponent, GenericNode as GenericNodeComponent } from '@repo/diagram-ui';
-import { useNodeExecutionState, useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import { getUnifiedNodeConfigsByReactFlowType } from '@repo/core-model';
+import { useNodeExecutionState } from '@/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/contexts/DiagramContext';
 
 // Re-export types from diagram-ui package
 export type { BaseNodeProps } from '@repo/diagram-ui';
@@ -13,8 +12,7 @@ export const BaseNode = React.memo((props: Parameters<typeof BaseNodeComponent>[
   
   // Use optimized selectors to prevent unnecessary re-renders
   const { isRunning } = useNodeExecutionState(id);
-  const updateNodeData = useNodeDataUpdater();
-  const updateNodeInternals = useUpdateNodeInternals();
+  const { updateNodeData, updateNodeInternals, nodeConfigs } = useDiagramContext();
   
   return (
     <BaseNodeComponent
@@ -22,7 +20,7 @@ export const BaseNode = React.memo((props: Parameters<typeof BaseNodeComponent>[
       isRunning={isRunning}
       onUpdateData={updateNodeData}
       onUpdateNodeInternals={updateNodeInternals}
-      nodeConfigs={getUnifiedNodeConfigsByReactFlowType()}
+      nodeConfigs={nodeConfigs}
     />
   );
 }, (prevProps, nextProps) => {
@@ -45,8 +43,7 @@ export const GenericNode = React.memo((props: Parameters<typeof GenericNodeCompo
   
   // Use optimized selectors to prevent unnecessary re-renders
   const { isRunning } = useNodeExecutionState(id);
-  const updateNodeData = useNodeDataUpdater();
-  const updateNodeInternals = useUpdateNodeInternals();
+  const { updateNodeData, updateNodeInternals, nodeConfigs } = useDiagramContext();
   
   return (
     <GenericNodeComponent
@@ -54,7 +51,7 @@ export const GenericNode = React.memo((props: Parameters<typeof GenericNodeCompo
       isRunning={isRunning}
       onUpdateData={updateNodeData}
       onUpdateNodeInternals={updateNodeInternals}
-      nodeConfigs={getUnifiedNodeConfigsByReactFlowType()}
+      nodeConfigs={nodeConfigs}
     />
   );
 }, (prevProps, nextProps) => {

@@ -30,28 +30,19 @@ import {
   useSelectedElement, 
   useExecutionStatus,
   useUIState,
-  usePersons,
-  useArrowDataUpdater
+  usePersons
 } from '@/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/contexts/DiagramContext';
 
-// Create wrapper for CustomArrow that connects to the store
-const CustomArrow = (props: any) => {
-  const updateArrowData = useArrowDataUpdater();
-  return <CustomArrowBase {...props} onUpdateData={updateArrowData} />;
-};
-
+// Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
-  customArrow: CustomArrow,
+  customArrow: CustomArrowBase,
 };
 
-// Create wrapper for ContextMenu - extract node types and labels from UNIFIED_NODE_CONFIGS
-const nodeTypesFromConfig = Object.keys(UNIFIED_NODE_CONFIGS);
-const nodeLabelsFromConfig = Object.fromEntries(
-  Object.entries(UNIFIED_NODE_CONFIGS).map(([key, config]) => [key, config.label])
-);
-
+// ContextMenu component that uses dependency injection
 const ContextMenu = (props: any) => {
-  return <ContextMenuBase {...props} nodeTypes={nodeTypesFromConfig} nodeLabels={nodeLabelsFromConfig} />;
+  const { nodeTypes, nodeLabels } = useDiagramContext();
+  return <ContextMenuBase {...props} nodeTypes={nodeTypes} nodeLabels={nodeLabels} />;
 };
 
 
