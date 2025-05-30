@@ -93,12 +93,15 @@ async def save_diagram(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/stream/run-diagram")
 @router.post("/run-diagram")
-async def run_diagram_endpoint(diagram: dict, broadcast: bool = True):
+async def run_diagram_endpoint(payload: dict):
     """
     Execute a diagram with streaming node status updates.
     Returns a streaming response with real-time node execution status.
     """
+    diagram = payload.get('diagram', payload)  # Handle both formats
+    broadcast = payload.get('broadcast', True)  # Keep for API compatibility (SSE always broadcasts)
     memory_service = get_memory_service()
     
     async def generate_stream() -> AsyncGenerator[str, None]:
@@ -106,8 +109,7 @@ async def run_diagram_endpoint(diagram: dict, broadcast: bool = True):
         # Create streaming executor
         executor = StreamingDiagramExecutor(
             diagram=diagram,
-            memory_service=memory_service,
-            broadcast_to_websocket=broadcast
+            memory_service=memory_service
         )
         
         # Start execution
@@ -116,6 +118,9 @@ async def run_diagram_endpoint(diagram: dict, broadcast: bool = True):
         try:
             # Send initial connection confirmation
             yield f"data: {safe_json_dumps({'type': 'connection_established'})}\n\n"
+            
+            # Give the execution task time to initialize the stream
+            await asyncio.sleep(0.1)
             
             # Wait for stream to be ready
             if not await executor.wait_for_stream_ready():
@@ -163,9 +168,7 @@ async def run_diagram_endpoint(diagram: dict, broadcast: bool = True):
 @router.post("/external/run-diagram")
 async def external_run_diagram(payload: dict):
     """Alias for run-diagram endpoint for external access."""
-    diagram = payload.get('diagram', {})
-    broadcast = payload.get('broadcast', True)
-    return await run_diagram_endpoint(diagram=diagram, broadcast=broadcast)
+    return await run_diagram_endpoint(payload)
 
 
 @router.post("/run-diagram-sync")

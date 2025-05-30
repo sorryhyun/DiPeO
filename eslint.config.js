@@ -107,7 +107,7 @@ export default [
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     rules: {
-      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+      'no-console': 'off',
       'no-debugger': 'warn',
       'no-duplicate-imports': 'error',
       'no-unused-vars': 'off', // TypeScript handles this

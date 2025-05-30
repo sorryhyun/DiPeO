@@ -134,9 +134,14 @@ class DiagramExecutor:
                 cycle_nodes=execution_plan['cycle_nodes']
             )
 
+        # Validate start nodes
+        start_nodes = execution_plan["start_nodes"]
+        if not start_nodes:
+            raise ValueError("No start nodes found in diagram. Add at least one start node to begin execution.")
+
         # Initialize scheduler and execution queue
         scheduler = ExecutionScheduler(dynamic_executor, self.state)
-        execution_queue = deque(execution_plan["start_nodes"])
+        execution_queue = deque(start_nodes)
         executed_in_iteration = set()
 
         # Main execution loop

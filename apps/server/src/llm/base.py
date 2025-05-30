@@ -22,3 +22,7 @@ class BaseAdapter:
     def chat(self, system_prompt: str, cacheable_prompt: str = '', user_prompt: str = '', citation_target: str = '',
              **kwargs) -> ChatResult:  # noqa: E501
         raise NotImplementedError
+
+    def list_models(self) -> list[str]:
+        """List available models for this provider."""
+        raise NotImplementedError

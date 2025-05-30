@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime
 from typing import Dict, Set, Literal, Optional
-from fastapi import WebSocket
 
 
 class StreamContext:
@@ -37,87 +36,83 @@ class StreamContext:
 
 
 class StreamManager:
-    """Unified streaming for both SSE and WebSocket."""
-    
+    """Unified streaming for SSE only."""
+
     def __init__(self):
         self.active_streams: Dict[str, StreamContext] = {}
-        self.websocket_connections: Dict[str, WebSocket] = {}
-        self.execution_subscriptions: Dict[str, Set[str]] = {}  # execution_id -> client_ids
+        self.monitor_queues: Dict[str, asyncio.Queue] = {}  # Add monitor queues
         self._lock = asyncio.Lock()
-        
+
     async def create_stream(
-        self, 
-        execution_id: str,
-        output_format: Literal['sse', 'websocket', 'both']
+            self,
+            execution_id: str,
+            output_format: Literal['sse'] = 'sse'  # SSE only
     ) -> StreamContext:
         """Create a new stream context."""
         async with self._lock:
             context = StreamContext(execution_id, output_format)
             self.active_streams[execution_id] = context
             return context
-    
+
+    async def add_monitor(self, monitor_id: str) -> asyncio.Queue:
+        """Add a monitoring client and return its queue."""
+        async with self._lock:
+            queue = asyncio.Queue(maxsize=100)
+            self.monitor_queues[monitor_id] = queue
+            return queue
+
+    async def remove_monitor(self, monitor_id: str):
+        """Remove a monitoring client."""
+        async with self._lock:
+            if monitor_id in self.monitor_queues:
+                del self.monitor_queues[monitor_id]
+
     async def publish_update(self, execution_id: str, update: dict):
         """Publish to all subscribers of this execution."""
         async with self._lock:
             context = self.active_streams.get(execution_id)
-            
+
         if context:
             await context.publish(update)
-            
-            # Handle WebSocket publishing
-            if context.output_format in ('websocket', 'both'):
-                await self._broadcast_to_websockets(execution_id, update)
-    
-    async def _broadcast_to_websockets(self, execution_id: str, update: dict):
-        """Broadcast update to WebSocket subscribers."""
-        subscribers = self.execution_subscriptions.get(execution_id, set()).copy()
-        
-        # Send outside the lock to avoid blocking
-        for client_id in subscribers:
-            if client_id in self.websocket_connections:
-                try:
-                    await self.websocket_connections[client_id].send_json(update)
-                except Exception:
-                    await self.disconnect_websocket(client_id)
-    
-    async def connect_websocket(self, websocket: WebSocket, client_id: str):
-        """Connect a WebSocket client."""
+
+        # Broadcast to all monitors
+        await self._broadcast_to_monitors(execution_id, update)
+
+    async def _broadcast_to_monitors(self, execution_id: str, update: dict):
+        """Broadcast update to all SSE monitors."""
+        # Get monitor list without holding lock
         async with self._lock:
-            await websocket.accept()
-            self.websocket_connections[client_id] = websocket
-    
-    async def disconnect_websocket(self, client_id: str):
-        """Disconnect a WebSocket client."""
-        async with self._lock:
-            if client_id in self.websocket_connections:
-                del self.websocket_connections[client_id]
-            
-            # Clean up subscriptions
-            for exec_id in list(self.execution_subscriptions.keys()):
-                if client_id in self.execution_subscriptions[exec_id]:
-                    self.execution_subscriptions[exec_id].remove(client_id)
-                    if not self.execution_subscriptions[exec_id]:
-                        del self.execution_subscriptions[exec_id]
-    
-    async def subscribe_to_execution(self, client_id: str, execution_id: str):
-        """Subscribe a WebSocket client to execution updates."""
-        async with self._lock:
-            if execution_id not in self.execution_subscriptions:
-                self.execution_subscriptions[execution_id] = set()
-            self.execution_subscriptions[execution_id].add(client_id)
-    
+            monitor_items = list(self.monitor_queues.items())
+
+        # Broadcast outside lock
+        for monitor_id, queue in monitor_items:
+            try:
+                # Add execution_id to update
+                monitor_update = {
+                    **update,
+                    'execution_id': execution_id,
+                    'from_monitor': True
+                }
+                queue.put_nowait(monitor_update)
+            except asyncio.QueueFull:
+                # Skip if queue is full
+                pass
+
+    # Remove all WebSocket methods
+    # Remove: connect_websocket, disconnect_websocket, subscribe_to_execution, _broadcast_to_websockets
+
+    def get_stream_queue(self, execution_id: str) -> Optional[asyncio.Queue]:
+        """Get the SSE queue for a specific execution."""
+        context = self.active_streams.get(execution_id)
+        if context:
+            return context.sse_queue
+        return None
+
     async def cleanup_stream(self, execution_id: str):
         """Clean up resources for a completed stream."""
         async with self._lock:
             if execution_id in self.active_streams:
                 del self.active_streams[execution_id]
-            if execution_id in self.execution_subscriptions:
-                del self.execution_subscriptions[execution_id]
-    
-    def get_stream_queue(self, execution_id: str) -> Optional[asyncio.Queue]:
-        """Get the SSE queue for a stream."""
-        context = self.active_streams.get(execution_id)
-        return context.sse_queue if context else None
 
 
 # Global stream manager instance

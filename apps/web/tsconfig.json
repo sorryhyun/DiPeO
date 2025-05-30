@@ -18,11 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@/components/*": ["src/components/*"],
-      "@/shared/*": ["src/shared/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/stores/*": ["src/stores/*"]
+      "@/features/*": ["src/features/*"],
+      "@/shared/*": ["src/shared/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

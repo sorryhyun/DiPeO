@@ -36,3 +36,21 @@ class GeminiAdapter(BaseAdapter):
             )
         except Exception as e:
             return ChatResult(text='', usage=None)
+
+    def list_models(self) -> list[str]:
+        """List available Gemini models."""
+        try:
+            models = self.client.models.list()
+            # Filter for generateContent models
+            gemini_models = [
+                model.name.replace('models/', '') for model in models 
+                if 'gemini' in model.name.lower() and 'generateContent' in model.supported_generation_methods
+            ]
+            return sorted(gemini_models)
+        except Exception:
+            # Return fallback models if API call fails
+            return [
+                "gemini-2.0-flash-exp",
+                "gemini-1.5-pro",
+                "gemini-1.5-flash"
+            ]
