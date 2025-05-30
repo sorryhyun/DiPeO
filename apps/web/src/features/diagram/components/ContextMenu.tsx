@@ -9,10 +9,13 @@ export type { ContextMenuProps } from '@repo/diagram-ui';
 export const ContextMenu = React.memo((props: Parameters<typeof ContextMenuBase>[0]) => {
   const { nodeTypes, nodeLabels } = useDiagramContext();
   
+  // Convert nodeTypes array to Record<string, string> format expected by ContextMenuBase
+  const nodeTypesRecord = Object.fromEntries(nodeTypes.map(type => [type, type]));
+  
   return (
     <ContextMenuBase
       {...props}
-      nodeTypes={nodeTypes}
+      nodeTypes={nodeTypesRecord}
       nodeLabels={nodeLabels}
     />
   );
