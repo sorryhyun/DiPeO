@@ -31,7 +31,7 @@ async def execute_personjob(
     person_id = data.get("personId") or data.get("agent")
     iteration = counts[node["id"]]
     
-    context["skipped_max_iter"] = False
+    # context["skipped_max_iter"] = False
 
     forget_mode = data.get("memoryForget") or data.get("memory", "none")
     if forget_mode == "all":

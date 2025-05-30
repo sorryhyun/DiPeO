@@ -84,7 +84,6 @@ class DiagramExecutor:
         )
 
     def _extract_max_iterations(self) -> Dict[str, int]:
-        """Extract iterationCount for nodes that need it."""
         node_max_iterations = {}
         for node in self.nodes:
             data = node.get("data", {})
@@ -93,8 +92,11 @@ class DiagramExecutor:
                     max_iter = int(data["iterationCount"])
                     if max_iter > 0:
                         node_max_iterations[node["id"]] = max_iter
+                        logger.debug(f"Set max iterations for {node['id']}: {max_iter}")
                 except (ValueError, TypeError):
-                    pass
+                    logger.warning(f"Invalid iterationCount for {node['id']}: {data['iterationCount']}")
+
+        logger.info(f"Extracted max iterations: {node_max_iterations}")
         return node_max_iterations
 
     async def _send_status_update(self, update_type: str, node_id: str, **extra_data):
