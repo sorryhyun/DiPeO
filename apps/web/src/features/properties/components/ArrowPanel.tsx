@@ -6,7 +6,7 @@ import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField, FormGrid,
   TextField, SelectField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const ArrowPanelContent: React.FC<{ arrowId: string; data: ArrowData }> = ({ arrowId, data }) => {
   const { updateArrowData, arrows, nodes } = useConsolidatedDiagramStore();

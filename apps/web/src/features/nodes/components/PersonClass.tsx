@@ -3,7 +3,7 @@ import React from 'react';
 import { Position, NodeProps } from '@xyflow/react';
 import { PersonDefinition } from '@repo/core-model';
 import { User } from 'lucide-react';
-import { FlowHandle, createHandleId, FlowHandleProps } from '@repo/diagram-ui';
+import { FlowHandle, createHandleId } from '@/features/diagram/wrappers';
 
 const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
   const baseHandleStyle = 'w-3 h-3';

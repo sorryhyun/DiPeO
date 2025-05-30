@@ -7,7 +7,7 @@ import { useApiKeys } from '../hooks/useApiKeys';
 import {
   Form, FormRow,
   InlineTextField, InlineSelectField, TextAreaField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const PersonPanelContent: React.FC<{ personId: string; data: PersonDefinition }> = ({ personId, data }) => {
   const { updatePerson } = useConsolidatedDiagramStore();

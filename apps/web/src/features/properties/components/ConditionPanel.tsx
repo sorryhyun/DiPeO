@@ -4,7 +4,7 @@ import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField,
   TextField, TextAreaField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const ConditionPanelContent: React.FC<{ nodeId: string; data: ConditionBlockData }> = ({ nodeId, data }) => {
   const { formData, handleChange } = usePropertyPanel<ConditionBlockData>(nodeId, 'node', data);

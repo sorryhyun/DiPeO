@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel } from '@repo/properties-ui';
+import { Panel } from '../wrappers';
 import { PANEL_CONFIGS } from '../utils/panelConfig';
 import type { ArrowData, PersonDefinition } from '@repo/core-model';
 

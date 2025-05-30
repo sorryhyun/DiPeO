@@ -1,5 +1,5 @@
 import React from 'react';
-import { BaseNode as BaseNodeComponent, GenericNode as GenericNodeComponent } from '@repo/diagram-ui';
+import { BaseNode as BaseNodeComponent, GenericNode as GenericNodeComponent } from '@/features/diagram/wrappers';
 import { useNodeExecutionState } from '@/hooks/useStoreSelectors';
 import { useDiagramContext } from '@/contexts/DiagramContext';
 

@@ -5,7 +5,7 @@ import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField,
   TextField, SelectField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const EndpointPanelContent: React.FC<{ nodeId: string; data: EndpointBlockData }> = ({ nodeId, data }) => {
   const { formData, handleChange } = usePropertyPanel<EndpointBlockData>(nodeId, 'node', data);

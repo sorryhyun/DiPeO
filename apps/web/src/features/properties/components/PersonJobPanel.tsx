@@ -5,7 +5,7 @@ import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormRow,
   InlineTextField, InlineSelectField, TextAreaField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const PersonJobPanelContent: React.FC<{ nodeId: string; data: PersonJobBlockData }> = ({ nodeId, data }) => {
   const { persons } = usePersons();

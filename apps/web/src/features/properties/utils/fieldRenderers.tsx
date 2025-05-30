@@ -3,7 +3,7 @@ import { Switch } from '@repo/ui-kit';
 import {
   FormField, TextAreaField,
   InlineTextField, InlineSelectField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 type FieldConfig = {
   name: string;

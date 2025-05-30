@@ -7,7 +7,7 @@ import { usePropertyPanel } from '../hooks/usePropertyPanel';
 import {
   Form, FormField, FormRow,
   InlineTextField, InlineSelectField, TextAreaField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const DBPanelContent: React.FC<{ nodeId: string; data: DBBlockData }> = ({ nodeId, data }) => {
   const { formData, handleChange } = usePropertyPanel<DBBlockData>(nodeId, 'node', data);

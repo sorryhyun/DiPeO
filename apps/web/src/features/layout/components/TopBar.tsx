@@ -4,7 +4,7 @@ import { Button } from '@repo/ui-kit';
 import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/stores';
 import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/features/diagram/hooks/useDiagramRunner';
-import { useKeyboardShortcuts } from '@repo/diagram-ui';
+import { useKeyboardShortcuts } from '@/features/diagram/wrappers';
 import { LazyApiKeysModal } from './modals/LazyModals';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';

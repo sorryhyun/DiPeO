@@ -17,7 +17,8 @@ import {
   useContextMenu,
   useKeyboardShortcuts,
   CustomArrow as CustomArrowBase,
-  ContextMenu as ContextMenuBase } from '@repo/diagram-ui';
+  ContextMenu as ContextMenuBase 
+} from '../wrappers';
 import { roundPosition } from '@/utils/diagramSanitizer';
 import { nodeTypes } from '@/features/nodes';
 import { UNIFIED_NODE_CONFIGS, DiagramNode, Arrow } from '@repo/core-model';

@@ -7,7 +7,7 @@ import { useApiKeys } from '../hooks/useApiKeys';
 import {
   Form, FormField, FormRow,
   InlineTextField, InlineSelectField, TextAreaField, SelectField
-} from '@repo/properties-ui';
+} from '../wrappers';
 
 export const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nodeId, data }) => {
   const { formData, handleChange } = usePropertyPanel<JobBlockData>(nodeId, 'node', data);

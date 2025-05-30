@@ -1,22 +1,10 @@
 import React from 'react';
-import { useConsolidatedDiagramStore } from '@/stores';
-import { usePropertyForm as usePropertyFormBase } from '@repo/diagram-ui';
 import { Settings } from 'lucide-react';
-import { Panel, Form } from '@repo/properties-ui';
+import { Panel, Form, usePropertyForm } from '../wrappers';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { usePersons } from '@/hooks/useStoreSelectors';
 import { renderInlineField, renderTextAreaField, isTextAreaField } from '../utils/fieldRenderers';
 
-// Create a wrapper that connects to the store
-function usePropertyForm<T extends Record<string, any>>(
-  nodeId: string,
-  initialData: T
-) {
-  const updateNodeData = useConsolidatedDiagramStore(state => state.updateNodeData);
-  return usePropertyFormBase(initialData, (updates) => {
-    updateNodeData(nodeId, updates);
-  });
-}
 
 export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: any }> = ({ nodeId, data }) => {
   const nodeType = data.type;
