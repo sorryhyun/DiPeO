@@ -7,6 +7,7 @@ from collections import Counter
 from ..services.memory_service import MemoryService
 from ..services.llm_service import LLMService
 from .resolve_utils import render_prompt
+from .output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +58,8 @@ async def execute_personjob(
                 src_value = context.get(arrow_src_fn(e))
                 if src_value is not None:
                     # Handle PersonJob output
-                    if isinstance(src_value, dict) and src_value.get('_type') == 'personjob_output':
-                        preamble_parts.append(str(src_value.get('text', '')))
-                    else:
-                        preamble_parts.append(str(src_value))
+                    extracted_value = OutputProcessor.extract_value(src_value)
+                    preamble_parts.append(str(extracted_value))
 
     body = render_prompt(template, vars_map)
 
@@ -136,12 +135,13 @@ async def execute_personjob(
     )
 
     # Return a structured output that includes the text and metadata
-    output = {
-        "text": result_text,
-        "person_id": person_id,
-        "conversation_history": memory_service.get_conversation_history(person_id),
-        "_type": "personjob_output"
-    }
+    output = OutputProcessor.create_personjob_output(
+        text=result_text,
+        conversation_history=memory_service.get_conversation_history(person_id),
+        cost=cost or 0.0,
+        model=person.get("modelType", {}).get("model") if person else None
+    )
+    output["person_id"] = person_id
     
     return output, cost or 0.0
 

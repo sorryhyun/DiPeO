@@ -4,6 +4,7 @@ from typing import Any, List
 from .constants import DBBlockSubType, DBTargetSubType, SUPPORTED_DOC_EXTENSIONS, SUPPORTED_CODE_EXTENSIONS
 from .exceptions import FileOperationError, DatabaseError, ValidationError
 from .utils.dependencies import get_unified_file_service
+from .utils.output_processor import OutputProcessor
 
 
 async def run_db_block(data: dict, inputs: List[Any]) -> Any:
@@ -64,12 +65,7 @@ async def _handle_code_execution(data: dict, inputs: List[Any]) -> Any:
             safe_globals = {"__builtins__": builtins}
             
             # Process inputs to handle PersonJob outputs
-            processed_inputs = []
-            for inp in inputs:
-                if isinstance(inp, dict) and inp.get('_type') == 'personjob_output':
-                    processed_inputs.append(inp.get('text', ''))
-                else:
-                    processed_inputs.append(inp)
+            processed_inputs = OutputProcessor.process_list(inputs)
             
             local_env = {"inputs": processed_inputs}
             
@@ -120,10 +116,7 @@ async def _handle_file_write(details: str, inputs: List[Any]) -> str:
     content = ""
     if inputs:
         first_input = inputs[0]
-        if isinstance(first_input, dict) and first_input.get('_type') == 'personjob_output':
-            content = str(first_input.get('text', ''))
-        else:
-            content = str(first_input)
+        content = str(OutputProcessor.extract_value(first_input))
     
     relative_path = await file_service.write(details, content, relative_to="results")
     return f"Wrote to {relative_path}"
@@ -142,10 +135,8 @@ async def _handle_sqlite_insert(details: str, inputs: List[Any]) -> str:
         # Extract values, handling PersonJob outputs
         data = []
         for val in inputs:
-            if isinstance(val, dict) and val.get('_type') == 'personjob_output':
-                data.append({"value": str(val.get('text', ''))})
-            else:
-                data.append({"value": str(val)})
+            extracted_value = OutputProcessor.extract_value(val)
+            data.append({"value": str(extracted_value)})
         
         relative_path = file_service.write_sqlite(db_path, table_name, data, relative_to="results")
         

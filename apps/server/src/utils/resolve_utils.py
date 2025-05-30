@@ -1,6 +1,7 @@
 
 import re
 from typing import Any, Dict, List, Tuple
+from .output_processor import OutputProcessor
 
 def render_prompt(template: str, variables: Dict[str, Any]) -> str:
     """Replace {{var}} with its value. Unknown names are left untouched."""
@@ -30,10 +31,7 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
         
         if ctype == 'raw_text':
             # Extract text content if this is a PersonJob output
-            if isinstance(value, dict) and value.get('_type') == 'personjob_output':
-                processed_value = value.get('text', '')
-            else:
-                processed_value = value
+            processed_value = OutputProcessor.extract_value(value)
             var_name = label or f'raw_text_{arrow_id}'
         elif ctype == 'variable_in_object':
             object_key_path = data.get('objectKeyPath', '')
@@ -43,9 +41,9 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
             var_name = label or object_key_path.split('.')[-1]
         elif ctype == 'conversation_state':
             # For conversation_state, we need to provide the conversation history as Messages object
-            if isinstance(value, dict) and value.get('_type') == 'personjob_output':
+            if OutputProcessor.is_personjob_output(value):
                 # This is output from a PersonJob node, extract conversation history
-                processed_value = value.get('conversation_history', [])
+                processed_value = OutputProcessor.extract_conversation_history(value)
             elif isinstance(value, list) and all(isinstance(msg, dict) and 'role' in msg and 'content' in msg for msg in value):
                 # Already properly formatted as Messages object
                 processed_value = value

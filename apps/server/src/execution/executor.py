@@ -18,6 +18,7 @@ from ..services.api_key_service import APIKeyService
 from ..services.memory_service import MemoryService
 from ..utils.dynamic_executor import DynamicExecutor
 from ..utils.resolve_utils import resolve_inputs
+from ..utils.output_processor import OutputProcessor
 
 logger = structlog.get_logger(__name__)
 
@@ -270,8 +271,8 @@ class DiagramExecutor:
             return None
             
         # Handle PersonJob output specially
-        if isinstance(output, dict) and output.get('_type') == 'personjob_output':
-            return str(output.get('text', ''))[:100]
+        if OutputProcessor.is_personjob_output(output):
+            return str(OutputProcessor.extract_value(output))[:100]
         
         # Default preview
         return str(output)[:100]
