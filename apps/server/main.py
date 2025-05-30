@@ -14,18 +14,20 @@ from typing import Optional
 from datetime import datetime
 import inspect
 
-from src.services.memory_service import MemoryService
-from src.exceptions import AgentDiagramException
-from src.run_graph import DiagramExecutor
-from src.services.api_key_service import APIKeyService
-from src.services.llm_service import LLMService
-from src.services.diagram_service import DiagramService
-from src.utils.dependencies import (
+from .src.services.memory_service import MemoryService
+from .src.exceptions import AgentDiagramException
+from .src.run_graph import DiagramExecutor
+from .src.services.api_key_service import APIKeyService
+from .src.services.llm_service import LLMService
+from .src.services.diagram_service import DiagramService
+from .src.utils.dependencies import (
     get_api_key_service, get_llm_service, get_diagram_service, 
     get_unified_file_service, get_memory_service
 )
-from src.utils.diagram_migrator import DiagramMigrator
-from config import BASE_DIR, CONVERSATION_LOG_DIR
+from .src.utils.converter import DiagramMigrator
+from .config import BASE_DIR, CONVERSATION_LOG_DIR
+from fastapi import WebSocket, WebSocketDisconnect
+from .src.streaming.stream_manager import stream_manager
 
 load_dotenv()
 
@@ -53,10 +55,6 @@ class SafeJSONEncoder(json.JSONEncoder):
 def safe_json_dumps(obj):
     """Safely serialize objects to JSON, handling non-serializable types."""
     return json.dumps(obj, cls=SafeJSONEncoder, default=str)
-
-# apps/server/main.py
-from fastapi import WebSocket, WebSocketDisconnect
-from src.streaming.stream_manager import stream_manager
 
 
 class StreamingExecutor:

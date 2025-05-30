@@ -8,7 +8,7 @@ from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
 from ..utils.arrow_utils import ArrowUtils
-from ..utils.diagram_migrator import DiagramMigrator
+from ..utils.converter import DiagramMigrator
 
 
 def round_position(position: dict) -> dict:

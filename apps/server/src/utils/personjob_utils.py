@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Tuple, Optional
 from datetime import datetime
 from collections import Counter
 
-from apps.server.src.services.memory_service import MemoryService
-from apps.server.src.services.llm_service import LLMService
+from ..services.memory_service import MemoryService
+from ..services.llm_service import LLMService
 from .resolve_utils import render_prompt
 
 logger = logging.getLogger(__name__)
