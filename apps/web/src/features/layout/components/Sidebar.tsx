@@ -5,8 +5,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/stores';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { useFileImport } from '@/hooks/useFileImport';
-import PropertiesRenderer from '@/components/properties/PropertiesRenderer';
-import { FileUploadButton } from '../common/FileUploadButton';
+import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
+import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {

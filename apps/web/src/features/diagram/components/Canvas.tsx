@@ -19,9 +19,9 @@ import {
   CustomArrow as CustomArrowBase,
   ContextMenu as ContextMenuBase } from '@repo/diagram-ui';
 import { roundPosition } from '@/utils/diagramSanitizer';
-import { nodeTypes } from '@/components/nodes';
+import { nodeTypes } from '@/features/nodes';
 import { UNIFIED_NODE_CONFIGS, DiagramNode, Arrow } from '@repo/core-model';
-import { MemoryLayerSkeleton } from '../skeletons/SkeletonComponents';
+import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 
 // Lazy load memory layer  
 const MemoryLayer = React.lazy(() => import('./MemoryLayer'));

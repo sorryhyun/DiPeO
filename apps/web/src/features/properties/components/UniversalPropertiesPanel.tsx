@@ -5,7 +5,7 @@ import { Settings } from 'lucide-react';
 import { Panel, Form } from '@repo/properties-ui';
 import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
 import { usePersons } from '@/hooks/useStoreSelectors';
-import { renderInlineField, renderTextAreaField, isTextAreaField } from './fieldRenderers';
+import { renderInlineField, renderTextAreaField, isTextAreaField } from '../utils/fieldRenderers';
 
 // Create a wrapper that connects to the store
 function usePropertyForm<T extends Record<string, any>>(

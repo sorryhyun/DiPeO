@@ -1,6 +1,6 @@
 import React from 'react';
 import { Panel } from '@repo/properties-ui';
-import { PANEL_CONFIGS } from './PanelConfig';
+import { PANEL_CONFIGS } from '../utils/panelConfig';
 import type { ArrowData, PersonDefinition } from '@repo/core-model';
 
 // Re-export the UniversalPropertiesPanel from its own file

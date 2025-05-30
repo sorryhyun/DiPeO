@@ -25,8 +25,8 @@ export default defineConfig({
           'store-vendor': ['zustand'],
           
           // Large components - lazy loaded
-          'conversation': ['./src/components/layout/ConversationDashboard'],
-          'properties': ['./src/components/properties/PropertiesRenderer'],
+          'conversation': ['./src/features/layout/components/ConversationDashboard'],
+          'properties': ['./src/features/properties/components/PropertiesRenderer'],
           'modals': ['./src/components/modals/ApiKeysModal'],
         },
         
