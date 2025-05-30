@@ -48,7 +48,7 @@ class DynamicExecutor:
         start_nodes = []
         for nid, node in self.nodes_by_id.items():
             try:
-                node_type = NodeType.from_legacy(node.get("type", ""))
+                node_type = NodeType(node.get("type", ""))
                 if node_type == NodeType.START:
                     start_nodes.append(nid)
             except ValueError:
@@ -89,19 +89,26 @@ class DynamicExecutor:
         # Special handling for PersonJob nodes with first-only inputs
         if self._can_execute_with_first_only(node, node_id, incoming_arrows, context):
             logger.debug(f"[Dependency Check] PersonJobNode {node_id} can execute with first_only input")
-            return True, valid_arrows
+            # Return all first-only arrows that have data available
+            first_only_arrows = []
+            for arrow in incoming_arrows:
+                if self._is_handle_first_only(arrow):
+                    src_id = ArrowUtils.get_source(arrow)
+                    if src_id and src_id in context:
+                        first_only_arrows.append(arrow)
+            return True, first_only_arrows
 
         dependencies_met = len(missing_deps) == 0
         return dependencies_met, valid_arrows
 
     def _is_start_node(self, node: dict) -> bool:
         """Check if node is a start node."""
-        return node.get("type") in ["startNode", "start"]
+        return node.get("type") == NodeType.START.value
 
     def _get_node_type(self, node: dict) -> Optional[NodeType]:
         """Safely get node type."""
         try:
-            return NodeType.from_legacy(node.get("type", ""))
+            return NodeType(node.get("type", ""))
         except ValueError:
             return None
 
@@ -174,9 +181,14 @@ class DynamicExecutor:
     def _extract_branch_from_arrow(self, arrow: dict) -> Optional[str]:
         """Extract branch information from arrow sourceHandle or data."""
         # First check if branch is explicitly set in data
-        branch = arrow.get("branch") or arrow.get("data", {}).get("branch")
+        branch = arrow.get("data", {}).get("branch")
         if branch:
             return branch
+        
+        # Check label field
+        label = arrow.get("data", {}).get("label", "")
+        if label.lower() in ["true", "false"]:
+            return label.lower()
             
         # Extract from sourceHandle (e.g., "conditionNode-WPKS8Q-output-true" -> "true")
         source_handle = arrow.get("sourceHandle") or ""

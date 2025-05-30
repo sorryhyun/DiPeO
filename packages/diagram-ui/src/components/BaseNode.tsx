@@ -2,8 +2,10 @@ import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@repo/ui-kit';
-import { BaseNodeProps, NodeConfig } from '@repo/core-model';
+import { BaseNodeProps, UnifiedNodeConfig } from '@repo/core-model';
 import { createHandleId } from '../utils/nodeHelpers';
+import { FlowHandle } from './FlowHandle';
+import './BaseNode.css';
 
 function BaseNodeComponent({
   id,
@@ -47,7 +49,9 @@ function BaseNodeComponent({
           type: handle.type,
           position,
           id: createHandleId(id, handle.type, handle.name),
+          name: handle.name,
           style,
+          offset: handle.offset,
           className: handle.color
         };
       });
@@ -70,30 +74,22 @@ function BaseNodeComponent({
   }, [autoHandles, id, isFlipped, onFlip, onUpdateData, onUpdateNodeInternals]);
   
 
-  // Pre-defined color mappings for Tailwind CSS
-  const colorMappings = {
-    gray: { border: 'border-gray-400', ring: 'ring-gray-300', handle: 'bg-gray-500', shadow: 'shadow-gray-200' },
-    blue: { border: 'border-blue-400', ring: 'ring-blue-300', handle: 'bg-blue-500', shadow: 'shadow-blue-200' },
-    green: { border: 'border-green-400', ring: 'ring-green-300', handle: 'bg-green-500', shadow: 'shadow-green-200' },
-    red: { border: 'border-red-400', ring: 'ring-red-300', handle: 'bg-red-500', shadow: 'shadow-red-200' },
-    purple: { border: 'border-purple-400', ring: 'ring-purple-300', handle: 'bg-purple-500', shadow: 'shadow-purple-200' },
-    yellow: { border: 'border-yellow-400', ring: 'ring-yellow-300', handle: 'bg-yellow-500', shadow: 'shadow-yellow-200' },
-  };
-
-  const colors = colorMappings[effectiveBorderColor as keyof typeof colorMappings] || colorMappings.gray;
-
-  const borderClass = selected
-    ? `${colors.border} ring-2 ${colors.ring}` // Removed: ${colors.shadow}
-    : isRunning
-    ? 'border-green-500 ring-4 ring-green-300 shadow-lg shadow-green-200 scale-105'
-    : `border-gray-300`; // Removed: hover:${colors.border} hover:${colors.shadow} transition-all duration-200
-
-  const finalClassName = `relative p-2 border-2 rounded-lg ${borderClass} ${effectiveClassName} ${isRunning ? 'animate-pulse bg-green-50' : 'bg-white'}`;
+  // Apply base classes with data attributes for dynamic styling
+  const baseClasses = 'relative p-2 border-2 rounded-lg transition-all duration-200';
+  const stateClasses = isRunning 
+    ? 'animate-pulse scale-105' 
+    : '';
+  const backgroundClass = isRunning ? 'bg-green-50' : 'bg-white';
+  
+  const finalClassName = `${baseClasses} ${stateClasses} ${backgroundClass} ${effectiveClassName}`;
   
 
   return (
     <div
       {...divProps}
+      data-node-color={effectiveBorderColor}
+      data-node-selected={selected}
+      data-node-running={isRunning}
       className={finalClassName}
     >
       {/* Add multiple visual indicators for running state */}
@@ -128,27 +124,16 @@ function BaseNodeComponent({
 
       {/* Handles */}
       {effectiveHandles.map((handle, index) => (
-        <Handle
+        <FlowHandle
           key={handle.id || index}
-          type={handle.type === 'input' ? 'target' : 'source'}
+          nodeId={id}
+          type={handle.type}
+          name={'name' in handle ? handle.name : `${handle.type}-${index}`}
           position={handle.position}
-          id={handle.id}
-          style={{ 
-            width: '16px',
-            height: '16px',
-            backgroundColor: handle.className?.includes('bg-green') ? '#16a34a' :
-                           handle.className?.includes('bg-blue') ? '#2563eb' :
-                           handle.className?.includes('bg-red') ? '#dc2626' :
-                           handle.className?.includes('bg-purple') ? '#9333ea' :
-                           handle.className?.includes('bg-teal') ? '#0d9488' :
-                           handle.className?.includes('bg-orange') ? '#ea580c' :
-                           handle.className?.includes('bg-indigo') ? '#4f46e5' :
-                           handle.className?.includes('bg-amber') ? '#d97706' :
-                           '#6b7280',
-            border: '2px solid white',
-            ...handle.style 
-          }}
-          className={`w-4 h-4 ${isRunning ? 'animate-pulse' : ''}`}
+          offset={'offset' in handle ? handle.offset : 50}
+          color={handle.className}  // Extract color from className
+          style={handle.style}
+          className={`${isRunning ? 'animate-pulse' : ''}`}
         />
       ))}
     </div>

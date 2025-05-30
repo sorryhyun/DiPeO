@@ -62,7 +62,7 @@ apikeys.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
 .claude
-TODO.md
+example.yaml
 prompts/notion.yaml
 
 # Temporary files

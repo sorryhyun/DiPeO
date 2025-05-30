@@ -31,6 +31,55 @@ class DiagramExecutionError(AgentDiagramException):
     pass
 
 
+class NodeExecutionError(DiagramExecutionError):
+    """Raised when a specific node fails to execute."""
+    
+    def __init__(self, node_id: str, node_type: str, message: str, details: Optional[dict[str, Any]] = None):
+        self.node_id = node_id
+        self.node_type = node_type
+        super().__init__(f"Node {node_id} ({node_type}) failed: {message}", details)
+
+
+class DependencyError(DiagramExecutionError):
+    """Raised when node dependencies aren't met."""
+    
+    def __init__(self, node_id: str, missing_dependencies: list[str], details: Optional[dict[str, Any]] = None):
+        self.node_id = node_id
+        self.missing_dependencies = missing_dependencies
+        super().__init__(
+            f"Node {node_id} dependencies not met: {', '.join(missing_dependencies)}", 
+            details
+        )
+
+
+class MaxIterationsError(DiagramExecutionError):
+    """Raised when max iterations are exceeded."""
+    
+    def __init__(self, node_id: str, max_iterations: int, details: Optional[dict[str, Any]] = None):
+        self.node_id = node_id
+        self.max_iterations = max_iterations
+        super().__init__(
+            f"Node {node_id} exceeded maximum iterations ({max_iterations})", 
+            details
+        )
+
+
+class ConditionEvaluationError(NodeExecutionError):
+    """Raised when condition evaluation fails."""
+    
+    def __init__(self, node_id: str, condition: str, message: str, details: Optional[dict[str, Any]] = None):
+        self.condition = condition
+        super().__init__(node_id, "condition", f"Condition evaluation failed: {message}", details)
+
+
+class PersonJobExecutionError(NodeExecutionError):
+    """Raised when PersonJob node execution fails."""
+    
+    def __init__(self, node_id: str, person_id: str, message: str, details: Optional[dict[str, Any]] = None):
+        self.person_id = person_id
+        super().__init__(node_id, "personjob", f"PersonJob execution failed: {message}", details)
+
+
 class FileOperationError(AgentDiagramException):
     """Raised when file operations fail."""
     pass

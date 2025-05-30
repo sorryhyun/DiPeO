@@ -9,11 +9,8 @@ import {
 import {
   Input, Spinner, Switch
 } from '@repo/ui-kit';
-import type {
-  PersonJobBlockData, ConditionBlockData, DBBlockData,
-  ArrowData, PersonDefinition, EndpointBlockData, ApiKey, JobBlockData,
-} from '@repo/core-model';
-import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
+import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
+import { UNIFIED_NODE_CONFIGS, createErrorHandlerFactory, type PersonJobBlockData, type ConditionBlockData, type DBBlockData, type ArrowData, type PersonDefinition, type EndpointBlockData, type ApiKey, type JobBlockData } from '@repo/core-model';
 import { usePersons } from '@/hooks/useStoreSelectors';
 
 // Import reusable components from properties-ui package
@@ -318,13 +315,14 @@ const PANEL_CONFIGS: PanelConfig = {
         try {
           const form = new FormData();
           form.append('file', file);
-          const res = await fetch('/api/upload-file', { method: 'POST', body: form });
+          const res = await fetch(getApiUrl(API_ENDPOINTS.UPLOAD_FILE), { method: 'POST', body: form });
           if (!res.ok) throw new Error('Upload failed');
           const { path } = await res.json();
           handleChange('sourceDetails', path);
           toast.success(`File uploaded: ${file.name}`);
         } catch (error) {
-          toast.error('Upload failed');
+          const createErrorHandler = createErrorHandlerFactory(toast);
+          createErrorHandler('File upload failed')(error as Error);
         } finally {
           setUploading(false);
         }
@@ -491,7 +489,7 @@ const PANEL_CONFIGS: PanelConfig = {
         const fetchApiKeys = async () => {
           setLoadingApiKeys(true);
           try {
-            const res = await fetch('/api/apikeys');
+            const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!res.ok) throw new Error('Failed to load API keys');
             const body = await res.json();
             setApiKeysList(body.apiKeys);
@@ -510,7 +508,7 @@ const PANEL_CONFIGS: PanelConfig = {
           return;
         }
         setLoadingModels(true);
-        fetch(`/api/models?service=${formData.service}&apiKeyId=${formData.apiKeyId}`)
+        fetch(getApiUrl(`${API_ENDPOINTS.MODELS}?service=${formData.service}&apiKeyId=${formData.apiKeyId}`))
           .then(res => res.json())
           .then(body => setModelOptions(body.models.map((m: string) => ({ value: m, label: m }))))
           .catch(err => setModelError(err.message))
@@ -653,12 +651,13 @@ const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nod
         const fetchApiKeys = async () => {
           setLoadingApiKeys(true);
           try {
-            const res = await fetch('/api/apikeys');
+            const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!res.ok) throw new Error('Failed to load API keys');
             const body = await res.json();
             setApiKeysList(body.apiKeys);
           } catch (err) {
-            console.error('Failed to load API keys:', err);
+            const createErrorHandler = createErrorHandlerFactory(toast);
+            createErrorHandler('Failed to load API keys')(err as Error);
           } finally {
             setLoadingApiKeys(false);
           }
@@ -920,30 +919,11 @@ const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nod
       );
 };
 
-export const PersonJobPropertiesPanel: React.FC<{ nodeId: string; data: PersonJobBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.personJob}>{PANEL_CONFIGS.personJob.render(props)}</Panel>
-);
-
-export const ConditionPropertiesPanel: React.FC<{ nodeId: string; data: ConditionBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.condition}>{PANEL_CONFIGS.condition.render(props)}</Panel>
-);
-
-export const DBPropertiesPanel: React.FC<{ nodeId: string; data: DBBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.db}>{PANEL_CONFIGS.db.render(props)}</Panel>
-);
-
+// Keep only the panels that are still in use
 export const ArrowPropertiesPanel: React.FC<{ arrowId: string; data: ArrowData }> = (props) => (
   <Panel {...PANEL_CONFIGS.arrow}>{PANEL_CONFIGS.arrow.render(props)}</Panel>
 );
 
 export const PersonPropertiesPanel: React.FC<{ personId: string; data: PersonDefinition }> = (props) => (
   <Panel {...PANEL_CONFIGS.person}>{PANEL_CONFIGS.person.render(props)}</Panel>
-);
-
-export const EndpointPropertiesPanel: React.FC<{ nodeId: string; data: EndpointBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.endpoint}>{PANEL_CONFIGS.endpoint.render(props)}</Panel>
-);
-
-export const JobPropertiesPanel: React.FC<{ nodeId: string; data: JobBlockData }> = (props) => (
-  <Panel {...PANEL_CONFIGS.job}>{PANEL_CONFIGS.job.render(props)}</Panel>
 );

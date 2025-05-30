@@ -1,9 +1,10 @@
 import asyncio
 from typing import Any, List
 
-from .constants import DBBlockSubType, DBTargetSubType, SUPPORTED_DOC_EXTENSIONS, SUPPORTED_CODE_EXTENSIONS
+from .constants import DBBlockSubType
 from .exceptions import FileOperationError, DatabaseError, ValidationError
 from .utils.dependencies import get_unified_file_service
+from .utils.output_processor import OutputProcessor
 
 
 async def run_db_block(data: dict, inputs: List[Any]) -> Any:
@@ -11,17 +12,11 @@ async def run_db_block(data: dict, inputs: List[Any]) -> Any:
     sub_type = data.get("subType")
     
     if not sub_type:
-        if data.get("source") or data.get("sourceDetails"):
-            source = data.get("source") or data.get("sourceDetails", "")
-            all_extensions = SUPPORTED_DOC_EXTENSIONS | SUPPORTED_CODE_EXTENSIONS
-            if any(source.endswith(ext) for ext in all_extensions):
-                sub_type = DBBlockSubType.FILE.value
-            else:
-                sub_type = DBBlockSubType.FIXED_PROMPT.value
+        raise ValidationError("DB block requires explicit 'subType' specification")
     
     try:
         if sub_type == DBBlockSubType.FIXED_PROMPT.value:
-            return data.get("sourceDetails") or data.get("source", "")
+            return data.get("sourceDetails", "")
         
         elif sub_type == DBBlockSubType.FILE.value:
             return await _handle_file_read(data)
@@ -40,7 +35,7 @@ async def run_db_block(data: dict, inputs: List[Any]) -> Any:
 
 async def _handle_file_read(data: dict) -> str:
     """Handle file reading with security checks."""
-    source_path = data.get("sourceDetails") or data.get("source", "")
+    source_path = data.get("sourceDetails", "")
     
     file_service = get_unified_file_service()
     return file_service.read(source_path, relative_to="base")
@@ -64,12 +59,7 @@ async def _handle_code_execution(data: dict, inputs: List[Any]) -> Any:
             safe_globals = {"__builtins__": builtins}
             
             # Process inputs to handle PersonJob outputs
-            processed_inputs = []
-            for inp in inputs:
-                if isinstance(inp, dict) and inp.get('_type') == 'personjob_output':
-                    processed_inputs.append(inp.get('text', ''))
-                else:
-                    processed_inputs.append(inp)
+            processed_inputs = OutputProcessor.process_list(inputs)
             
             local_env = {"inputs": processed_inputs}
             
@@ -86,72 +76,5 @@ async def _handle_code_execution(data: dict, inputs: List[Any]) -> Any:
     return await loop.run_in_executor(None, _run)
 
 
-async def run_db_target_block(data: dict, inputs: List[Any]) -> str:
-    """Handle different DB target block subtypes with improved error handling."""
-    target_type = data.get("targetType")
-    details = data.get("targetDetails") or data.get("target", "")
-    
-    if not target_type and details:
-        all_extensions = SUPPORTED_DOC_EXTENSIONS | SUPPORTED_CODE_EXTENSIONS
-        if any(details.endswith(ext) for ext in all_extensions):
-            target_type = DBTargetSubType.LOCAL_FILE.value
-    
-    try:
-        if target_type == DBTargetSubType.LOCAL_FILE.value:
-            return await _handle_file_write(details, inputs)
-        
-        elif target_type == DBTargetSubType.SQLITE.value:
-            return await _handle_sqlite_insert(details, inputs)
-        
-        else:
-            raise ValidationError(f"Unsupported dbTargetBlock subType: {target_type}")
-            
-    except Exception as e:
-        if isinstance(e, (ValidationError, FileOperationError, DatabaseError)):
-            raise
-        raise DatabaseError(f"DB target block execution failed: {e}")
-
-
-async def _handle_file_write(details: str, inputs: List[Any]) -> str:
-    """Handle file writing with security checks."""
-    file_service = get_unified_file_service()
-    
-    # Extract content, handling PersonJob outputs
-    content = ""
-    if inputs:
-        first_input = inputs[0]
-        if isinstance(first_input, dict) and first_input.get('_type') == 'personjob_output':
-            content = str(first_input.get('text', ''))
-        else:
-            content = str(first_input)
-    
-    relative_path = await file_service.write(details, content, relative_to="results")
-    return f"Wrote to {relative_path}"
-
-
-async def _handle_sqlite_insert(details: str, inputs: List[Any]) -> str:
-    """Handle SQLite database insertion."""
-    try:
-        if ":" not in details:
-            raise ValidationError("SQLite details must be in format 'db_path:table_name'")
-        
-        db_path, table_name = details.split(":", 1)
-        
-        file_service = get_unified_file_service()
-        
-        # Extract values, handling PersonJob outputs
-        data = []
-        for val in inputs:
-            if isinstance(val, dict) and val.get('_type') == 'personjob_output':
-                data.append({"value": str(val.get('text', ''))})
-            else:
-                data.append({"value": str(val)})
-        
-        relative_path = file_service.write_sqlite(db_path, table_name, data, relative_to="results")
-        
-        return f"Inserted {len(inputs)} rows into {table_name} at {relative_path}"
-        
-    except Exception as e:
-        if isinstance(e, (DatabaseError, ValidationError)):
-            raise
-        raise DatabaseError(f"Database operation failed: {e}")
+# db_target_block functionality has been deprecated and removed.
+# Use 'endpoint' block type with saveToFile capability instead.

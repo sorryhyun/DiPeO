@@ -1,6 +1,10 @@
 // --- File: packages/core-model/src/types.ts ---
 // (Expanded and corrected)
-import type { Node, Edge } from '@xyflow/react';
+import {Node, Edge, OnEdgesChange, EdgeChange, Connection,
+  applyEdgeChanges as applyEdgeChangesRF,
+  addEdge as addEdgeRF
+} from '@xyflow/react';
+
 
 export interface ApiKey {
   id: string;
@@ -12,7 +16,7 @@ export interface ApiKey {
 }
 
 export type ArrowKind = 'normal' | 'fixed';
-export type BlockType = 'start' | 'person_job' | 'db' | 'job' | 'condition' | 'endpoint' ; // db_target is deprecated
+export type BlockType = 'start' | 'person_job' | 'db' | 'job' | 'condition' | 'endpoint';
 
 // Base for all canvas blocks (nodes) with discriminating `type`
 export interface BaseBlockData {
@@ -121,3 +125,21 @@ export interface DiagramState {
   arrows: Edge<ArrowData>[];
   apiKeys: ApiKey[];
 }
+
+export function applyArrowChanges(
+  changes: EdgeChange[],
+  arrows: Arrow[]
+): Arrow[] {
+  return applyEdgeChangesRF(changes, arrows);
+}
+export function addArrow<T = any>(
+  arrow: Arrow | Connection,
+  arrows: Arrow[]
+): Arrow[] {
+  return addEdgeRF(arrow, arrows);
+}
+
+export type ArrowChange = EdgeChange;
+export type Arrow<T extends Record<string, unknown> = any> = Edge<T>;
+export type OnArrowsChange = OnEdgesChange;
+

@@ -1,25 +1,30 @@
 import { create } from 'zustand';
 import { persist, devtools, subscribeWithSelector } from 'zustand/middleware';
 import {
-  Edge, OnNodesChange, OnEdgesChange, OnConnect,
-  applyNodeChanges, applyEdgeChanges, addEdge, Connection
+  OnNodesChange, OnConnect,
+  applyNodeChanges, Connection
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import {
-  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode, getReactFlowType
+  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode, DiagramNodeData,
+  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
+  StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
+  ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
 } from '@repo/core-model';
 import { sanitizeDiagram } from "@/utils/diagramSanitizer";
-import { createPersonCrudActions } from "@/utils/storeCrudUtils";
+import { createPersonCrudActions, createApiKeyCrudActions } from "@/utils/storeCrudUtils";
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { toast } from 'sonner';
 
 
 export interface ConsolidatedDiagramState {
   nodes: DiagramNode[];
-  arrows: Edge<ArrowData>[];
+  arrows: Arrow[];
   persons: PersonDefinition[];
   apiKeys: ApiKey[];
 
   onNodesChange: OnNodesChange;
-  onArrowsChange: OnEdgesChange;
+  onArrowsChange: OnArrowsChange;
   onConnect: OnConnect;
   addNode: (type: string, position: { x: number; y: number }) => void;
   updateNodeData: (nodeId: string, data: Record<string, any>) => void;
@@ -45,6 +50,8 @@ export interface ConsolidatedDiagramState {
   exportDiagram: () => DiagramState;
 }
 
+const createErrorHandler = createErrorHandlerFactory(toast);
+
 export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
   devtools(
     subscribeWithSelector(
@@ -60,12 +67,12 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
         },
 
         onArrowsChange: (changes) => {
-          set({ arrows: applyEdgeChanges(changes, get().arrows) as Edge<ArrowData>[] });
+          set({ arrows: applyArrowChanges(changes, get().arrows) as Arrow<ArrowData>[] });
         },
 
         onConnect: (connection: Connection) => {
           const arrowId = `arrow-${nanoid().slice(0, 6)}`;
-          const newArrow: Edge<ArrowData> = {
+          const newArrow: Arrow = {
             id: arrowId,
             source: connection.source!,
             target: connection.target!,
@@ -82,13 +89,14 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
               label: 'New Arrow'
             }
           };
-          set({ arrows: addEdge(newArrow, get().arrows) });
+          set({ arrows: addArrow(newArrow, get().arrows) });
         },
 
         addNode: (type: string, position: { x: number; y: number }) => {
           const reactFlowType = getReactFlowType(type);
           const nodeId = `${reactFlowType}-${nanoid().slice(0, 6)}`;
-          let nodeData: any = {};
+          type BlockData = StartBlockData | PersonJobBlockData | DBBlockData | JobBlockData | ConditionBlockData | EndpointBlockData;
+          let nodeData: BlockData;
 
           // Set default data based on node type with proper interfaces
           switch (type) {
@@ -106,8 +114,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 type: 'person_job',
                 label: 'Person Job', 
                 prompt: '', 
-                personId: null,
-                maxIterations: null,
+                personId: undefined,
                 description: ''
               };
               break;
@@ -127,8 +134,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 type: 'condition',
                 conditionType: 'expression',
                 label: 'Condition', 
-                condition: '',
-                description: ''
+                expression: ''
               };
               break;
             case 'db':
@@ -152,6 +158,13 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 fileFormat: 'json'
               };
               break;
+            default:
+              // Default to start node for unknown types
+              nodeData = {
+                id: nodeId,
+                type: 'start',
+                label: 'Unknown'
+              };
           }
 
           const newNode: DiagramNode = {
@@ -164,10 +177,10 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           set({ nodes: [...get().nodes, newNode] });
         },
 
-        updateNodeData: (nodeId: string, data: Record<string, any>) => {
+        updateNodeData: (nodeId: string, data: Record<string, unknown>) => {
           set({
             nodes: get().nodes.map(node =>
-              node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+              node.id === nodeId ? { ...node, data: { ...node.data, ...data } as DiagramNodeData } : node
             )
           });
         },
@@ -205,46 +218,23 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           'PERSON'
         ),
 
-        // API key operations
-        addApiKey: (apiKeyData: Omit<ApiKey, 'id'>) => {
-          const newApiKey = {
-            ...apiKeyData,
-            id: `APIKEY_${nanoid().slice(0, 6).toUpperCase()}`
-          } as ApiKey;
-          set({ apiKeys: [...get().apiKeys, newApiKey] });
-        },
-
-        updateApiKey: (apiKeyId: string, apiKeyData: Partial<ApiKey>) => {
-          set({
-            apiKeys: get().apiKeys.map(apiKey =>
-              apiKey.id === apiKeyId ? { ...apiKey, ...apiKeyData } : apiKey
-            )
-          });
-        },
-
-        deleteApiKey: (apiKeyId: string) => {
-          set({
-            apiKeys: get().apiKeys.filter(apiKey => apiKey.id !== apiKeyId)
-          });
-        },
-
-        getApiKeyById: (apiKeyId: string) => {
-          return get().apiKeys.find(apiKey => apiKey.id === apiKeyId);
-        },
-
-        clearApiKeys: () => {
-          set({ apiKeys: [] });
-        },
+        // API key operations using generic CRUD
+        ...createApiKeyCrudActions<ApiKey>(
+          () => get().apiKeys,
+          (apiKeys) => set({ apiKeys }),
+          'APIKEY'
+        ),
 
         loadApiKeys: async () => {
+          const errorHandler = createErrorHandler('Load API Keys');
           try {
-            const response = await fetch('/api/apikeys');
+            const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!response.ok) {
               throw new Error(`Failed to load API keys: ${response.statusText}`);
             }
             
             const data = await response.json();
-            const apiKeys = data.apiKeys.map((key: any) => ({
+            const apiKeys = data.apiKeys.map((key: {id: string; name: string; service: string}) => ({
               id: key.id,
               name: key.name,
               service: key.service,
@@ -254,6 +244,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
             set({ apiKeys });
           } catch (error) {
             console.error('Error loading API keys:', error);
+            errorHandler(error as Error);
             throw error;
           }
         },
@@ -272,7 +263,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           const sanitized = sanitizeDiagram(state);
           set({
             nodes: (sanitized.nodes || []) as DiagramNode[],
-            arrows: (sanitized.arrows || []) as Edge<ArrowData>[],
+            arrows: (sanitized.arrows || []) as Arrow[],
             persons: sanitized.persons || [],
             apiKeys: sanitized.apiKeys || []
           });

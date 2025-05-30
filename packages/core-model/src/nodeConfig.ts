@@ -2,6 +2,18 @@
 import React from 'react';
 import { Position } from '@xyflow/react';
 
+// Handle color constants for consistency
+export const HANDLE_COLORS = {
+  green: '#059669',    // green-600
+  purple: '#9333ea',   // purple-600
+  teal: '#0d9488',     // teal-600
+  orange: '#ea580c',   // orange-600
+  blue: '#2563eb',     // blue-600
+  red: '#dc2626',      // red-600
+  indigo: '#4f46e5',   // indigo-600
+  amber: '#d97706',    // amber-600
+} as const;
+
 export interface HandleConfig {
   type: 'input' | 'output';
   position: Position;
@@ -47,7 +59,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   start: {
     // Visual config
     handles: [
-      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '!bg-green-600 !border-2 !border-white' }
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#059669' }
     ],
     borderColor: 'green',
     width: 'w-28 h-28',
@@ -73,9 +85,9 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   person_job: {
     // Visual config
     handles: [
-      { type: 'input', position: Position.Left, name: 'first', offset: 30, color: '!bg-purple-600 !border-2 !border-white' },
-      { type: 'input', position: Position.Left, name: 'default', offset: 70, color: '!bg-teal-600 !border-2 !border-white' },
-      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '!bg-orange-600 !border-2 !border-white' }
+      { type: 'input', position: Position.Left, name: 'first', offset: 30, color: '#9333ea' },
+      { type: 'input', position: Position.Left, name: 'default', offset: 70, color: '#0d9488' },
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#ea580c' }
     ],
     borderColor: 'blue',
     width: 'w-52',
@@ -113,9 +125,9 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   condition: {
     // Visual config
     handles: [
-      { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '!bg-blue-600 !border-2 !border-white' },
-      { type: 'output', position: Position.Right, name: 'true', offset: 70, color: '!bg-green-600 !border-2 !border-white' },
-      { type: 'output', position: Position.Right, name: 'false', offset: 30, color: '!bg-red-600 !border-2 !border-white' }
+      { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '#2563eb' },
+      { type: 'output', position: Position.Right, name: 'true', offset: 70, color: '#059669' },
+      { type: 'output', position: Position.Right, name: 'false', offset: 30, color: '#dc2626' }
     ],
     borderColor: 'yellow',
     width: 'w-48',
@@ -146,8 +158,8 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   db: {
     // Visual config
     handles: [
-      { type: 'input', position: Position.Bottom, name: 'trigger', offset: 30, color: '!bg-indigo-600 !border-2 !border-white' },
-      { type: 'output', position: Position.Bottom, name: 'data', offset: 70, color: '!bg-amber-600 !border-2 !border-white' }
+      { type: 'input', position: Position.Bottom, name: 'trigger', offset: 30, color: '#4f46e5' },
+      { type: 'output', position: Position.Bottom, name: 'data', offset: 70, color: '#d97706' }
     ],
     borderColor: 'purple',
     width: 'w-64',
@@ -177,8 +189,8 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   job: {
     // Visual config
     handles: [
-      { type: 'input', position: Position.Left, name: 'job', offset: 50, color: '!bg-blue-600 !border-2 !border-white' },
-      { type: 'output', position: Position.Right, name: 'job', offset: 50, color: '!bg-green-600 !border-2 !border-white' }
+      { type: 'input', position: Position.Left, name: 'job', offset: 50, color: '#2563eb' },
+      { type: 'output', position: Position.Right, name: 'job', offset: 50, color: '#059669' }
     ],
     borderColor: 'blue',
     width: 'w-48',
@@ -209,7 +221,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   endpoint: {
     // Visual config
     handles: [
-      { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '!bg-red-600 !border-2 !border-white' }
+      { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '#dc2626' }
     ],
     borderColor: 'red',
     width: 'w-40 h-40',
@@ -293,27 +305,15 @@ export function getNodesByCategory(category: string): string[] {
     .map(([nodeType]) => nodeType);
 }
 
-// Legacy compatibility function for old NodeConfig format
-export function getLegacyNodeConfigs(): Record<string, {
-  handles: HandleConfig[];
-  borderColor: string;
-  width: string;
-  className?: string;
-  emoji?: string;
-}> {
-  const legacy: Record<string, any> = {};
+// Get unified node configs mapped by React Flow type for component usage
+export function getUnifiedNodeConfigsByReactFlowType(): Record<string, UnifiedNodeConfig> {
+  const mapped: Record<string, UnifiedNodeConfig> = {};
   
   for (const [blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
-    legacy[config.reactFlowType] = {
-      handles: config.handles,
-      borderColor: config.borderColor,
-      width: config.width,
-      className: config.className,
-      emoji: config.emoji
-    };
+    mapped[config.reactFlowType] = config;
   }
   
-  return legacy;
+  return mapped;
 }
 
 // Legacy types from diagram-ui for backwards compatibility
@@ -345,7 +345,7 @@ export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   isRunning?: boolean;
   onUpdateData?: (nodeId: string, data: any) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, NodeConfig>;
+  nodeConfigs?: Record<string, UnifiedNodeConfig>;
   // Add the missing properties that were being used
   onDragOver?: React.DragEventHandler<HTMLDivElement>;
   onDrop?: React.DragEventHandler<HTMLDivElement>;
@@ -363,7 +363,7 @@ export interface GenericNodeProps {
   isRunning?: boolean;
   onUpdateData?: (nodeId: string, data: any) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, NodeConfig>;
+  nodeConfigs?: Record<string, UnifiedNodeConfig>;
 }
 
 // Legacy types from properties-ui for backwards compatibility

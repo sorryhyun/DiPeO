@@ -7,6 +7,8 @@ import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore 
 import { Button, Input, Select, SelectItem } from '@repo/ui-kit';
 import { downloadJson } from '@/utils/downloadUtils';
 import { toast } from 'sonner';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { createErrorHandlerFactory } from '@repo/core-model';
 
 interface ConversationMessage {
   id: string;
@@ -51,6 +53,7 @@ const ConversationDashboard: React.FC = () => {
     showForgotten: false,
   });
   const [showFilters, setShowFilters] = useState(false);
+  const createErrorHandler = createErrorHandlerFactory(toast);
 
   const { persons } = useConsolidatedDiagramStore();
   const { runContext } = useExecutionStore();
@@ -124,7 +127,7 @@ const ConversationDashboard: React.FC = () => {
         params.append('offset', messageCounts.current[personId].toString());
       }
 
-      const res = await fetch(`/api/conversations?${params}`);
+      const res = await fetch(`${getApiUrl(API_ENDPOINTS.CONVERSATIONS)}?${params}`);
       if (res.ok) {
         const data = await res.json();
 
@@ -159,7 +162,7 @@ const ConversationDashboard: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch conversation data:', error);
-      toast.error('Failed to load conversations');
+      createErrorHandler('Failed to load conversations')(error as Error);
     } finally {
       setLoading(false);
       setLoadingMore(false);

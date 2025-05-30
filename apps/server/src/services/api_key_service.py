@@ -55,7 +55,7 @@ class APIKeyService(BaseService):
                 "id": key_id,
                 "name": info.get("name", key_id),
                 "service": info.get("service", "unknown"),
-                "key": info.get("key") or info.get("token", "")
+                "key": info.get("key", "")
             }
         return info
     

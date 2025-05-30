@@ -20,7 +20,7 @@ import {
   ContextMenu as ContextMenuBase } from '@repo/diagram-ui';
 import { roundPosition } from '@/utils/diagramSanitizer';
 import { nodeTypes } from '@/components/nodes';
-import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
+import { UNIFIED_NODE_CONFIGS, DiagramNode, Arrow } from '@repo/core-model';
 import { MemoryLayerSkeleton } from '../skeletons/SkeletonComponents';
 
 // Lazy load memory layer  
@@ -30,28 +30,19 @@ import {
   useSelectedElement, 
   useExecutionStatus,
   useUIState,
-  usePersons,
-  useArrowDataUpdater
+  usePersons
 } from '@/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/contexts/DiagramContext';
 
-// Create wrapper for CustomArrow that connects to the store
-const CustomArrow = (props: any) => {
-  const updateArrowData = useArrowDataUpdater();
-  return <CustomArrowBase {...props} onUpdateData={updateArrowData} />;
-};
-
+// Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
-  customArrow: CustomArrow,
+  customArrow: CustomArrowBase,
 };
 
-// Create wrapper for ContextMenu - extract node types and labels from UNIFIED_NODE_CONFIGS
-const nodeTypesFromConfig = Object.keys(UNIFIED_NODE_CONFIGS);
-const nodeLabelsFromConfig = Object.fromEntries(
-  Object.entries(UNIFIED_NODE_CONFIGS).map(([key, config]) => [key, config.label])
-);
-
+// ContextMenu component that uses dependency injection
 const ContextMenu = (props: any) => {
-  return <ContextMenuBase {...props} nodeTypes={nodeTypesFromConfig} nodeLabels={nodeLabelsFromConfig} />;
+  const { nodeTypes, nodeLabels } = useDiagramContext();
+  return <ContextMenuBase {...props} nodeTypes={nodeTypes} nodeLabels={nodeLabels} />;
 };
 
 
@@ -85,7 +76,11 @@ const DiagramCanvas: React.FC = () => {
   const { addPerson, deletePerson } = usePersons();  
 
   const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
-  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<DiagramNode, Arrow> | null>(null);
+  
+  const handleInit = useCallback((instance: ReactFlowInstance<DiagramNode, Arrow>) => {
+    setRfInstance(instance);
+  }, []);
   const { contextMenu, openContextMenu, closeContextMenu, isOpen } = useContextMenu();
   const { isMemoryLayerTilted } = useUIState();
 
@@ -188,7 +183,7 @@ const DiagramCanvas: React.FC = () => {
           onNodeClick={onNodeClick}
           onEdgeClick={onArrowClick}
           onPaneClick={onPaneClick}
-          onInit={setRfInstance}
+          onInit={handleInit}
           onNodeContextMenu={(event, node) => {
             event.preventDefault();
             setSelectedNodeId(node.id);

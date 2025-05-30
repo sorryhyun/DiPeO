@@ -158,7 +158,7 @@ def analyze_conversation_logs(log_dir: str = "conversation_logs") -> Dict[str, A
             # "person only remembers what the previous person said and the prompt given to them"
             
             for i, message in enumerate(messages):
-                person_id = message.get("sender_person_id") or message.get("person_id")
+                person_id = message.get("sender_person_id")
                 if not person_id:
                     continue
                 

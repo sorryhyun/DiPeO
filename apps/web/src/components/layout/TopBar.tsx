@@ -6,24 +6,27 @@ import { useDiagramActions } from '@/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@repo/diagram-ui';
 import { LazyApiKeysModal } from '../modals/LazyModals';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { toast } from 'sonner';
+import { createErrorHandlerFactory } from '@repo/core-model';
 
 
 const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
-  // Bypass Vite dev server proxy for backend API calls in development
-  const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
   const { apiKeys, addApiKey } = useConsolidatedDiagramStore();
   const { handleLoad, handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useConsolidatedUIStore();
+  
+  const createErrorHandler = createErrorHandlerFactory(toast);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsMonitorMode(params.get('monitor') === 'true');
     const checkBackendApiKeys = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/apikeys`);
+        const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
         if (res.ok) {
           const data = await res.json();
           const backendKeys = data.apiKeys || [];
@@ -44,7 +47,8 @@ const TopBar = () => {
           }
         }
       } catch (error) {
-        console.error('Failed to check backend API keys:', error);
+        const errorHandler = createErrorHandler('Check Backend API Keys');
+        errorHandler(error instanceof Error ? error : new Error('Failed to check backend API keys'));
         if (apiKeys.length === 0) {
           setIsApiModalOpen(true);
         }
@@ -56,7 +60,7 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys();
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey]);
+  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler]);
 
   useKeyboardShortcuts({
     onSave: () => handleSaveToDirectory(),

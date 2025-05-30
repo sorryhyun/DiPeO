@@ -7,6 +7,7 @@ import Sidebar from './components/layout/Sidebar';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { DiagramCanvasSkeleton } from './components/skeletons/SkeletonComponents';
 import { useExecutionMonitor } from './hooks/useExecutionMonitor';
+import { DiagramProvider } from './contexts/DiagramContext';
 
 // Lazy load heavy components
 const DiagramCanvas = React.lazy(() => import('./components/diagram/Canvas'));
@@ -27,42 +28,44 @@ function App() {
   useExecutionMonitor();
   return (
     <ReactFlowProvider>
-      <div className="h-screen flex flex-col">
-        {/* Top Bar */}
-        <TopBar />
+      <DiagramProvider>
+        <div className="h-screen flex flex-col">
+          {/* Top Bar */}
+          <TopBar />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Sidebar */}
-          <div className="w-64 border-r flex-shrink-0">
-            <Sidebar position="left" />
-          </div>
+          {/* Main Content Area */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left Sidebar */}
+            <div className="w-64 border-r flex-shrink-0">
+              <Sidebar position="left" />
+            </div>
 
-          {/* Right Content - Canvas + Dashboard */}
-          <div className="flex-1 flex flex-col">
-            <PanelGroup direction="vertical">
-              {/* Canvas Panel */}
-              <Panel defaultSize={65} minSize={30}>
-                <Suspense fallback={<DiagramCanvasSkeleton />}>
-                  <DiagramCanvas />
-                </Suspense>
-              </Panel>
+            {/* Right Content - Canvas + Dashboard */}
+            <div className="flex-1 flex flex-col">
+              <PanelGroup direction="vertical">
+                {/* Canvas Panel */}
+                <Panel defaultSize={65} minSize={30}>
+                  <Suspense fallback={<DiagramCanvasSkeleton />}>
+                    <DiagramCanvas />
+                  </Suspense>
+                </Panel>
 
-              {/* Resizable Handle */}
-              <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
+                {/* Resizable Handle */}
+                <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
 
-              {/* Dashboard Panel */}
-              <Panel defaultSize={35} minSize={20}>
-                <Suspense fallback={<div className="h-full bg-white flex items-center justify-center animate-pulse"><div className="text-gray-500">Loading dashboard...</div></div>}>
-                  <IntegratedDashboard />
-                </Suspense>
-              </Panel>
-            </PanelGroup>
+                {/* Dashboard Panel */}
+                <Panel defaultSize={35} minSize={20}>
+                  <Suspense fallback={<div className="h-full bg-white flex items-center justify-center animate-pulse"><div className="text-gray-500">Loading dashboard...</div></div>}>
+                    <IntegratedDashboard />
+                  </Suspense>
+                </Panel>
+              </PanelGroup>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Toaster richColors position="top-center" />
+        <Toaster richColors position="top-center" />
+      </DiagramProvider>
     </ReactFlowProvider>
   );
 }

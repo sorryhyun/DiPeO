@@ -1,9 +1,10 @@
-from typing import Any, List, Optional, Tuple, Union
+import time
+from typing import Any, List, Optional, Tuple, Union, Coroutine
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from ..constants import LLMService as LLMServiceEnum, COST_RATES
 from ..exceptions import LLMServiceError, APIKeyError
-from ..llm_adapters import ClaudeAdapter, GrokAdapter, GeminiAdapter, ChatGPTAdapter, ChatResult
+from ..llm import ChatResult, create_adapter
 from .api_key_service import APIKeyService
 from ..utils.base_service import BaseService
 
@@ -14,13 +15,6 @@ class LLMService(BaseService):
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()
         self.api_key_service = api_key_service
-        self._adapters = {
-            LLMServiceEnum.CLAUDE.value: ClaudeAdapter,
-            LLMServiceEnum.GROK.value: GrokAdapter,
-            LLMServiceEnum.GEMINI.value: GeminiAdapter,
-            LLMServiceEnum.CHATGPT.value: ChatGPTAdapter,
-            LLMServiceEnum.OPENAI.value: ChatGPTAdapter,
-        }
         # Connection pool for adapters to avoid creating new instances
         self._adapter_pool = {}
     
@@ -33,21 +27,42 @@ class LLMService(BaseService):
             raise LLMServiceError(f"Failed to get API key: {e}")
     
     def _get_adapter(self, service: str, model: str, api_key_id: str) -> Any:
-        """Get the appropriate LLM adapter with connection pooling."""
+        """Get the appropriate LLM adapter with connection pooling and TTL."""
         normalized_service = self.normalize_service_name(service)
         
-        if normalized_service not in self._adapters:
+        # Map service names to provider names for the factory
+        provider_map = {
+            LLMServiceEnum.CLAUDE.value: 'anthropic',
+            LLMServiceEnum.GROK.value: 'xai',
+            LLMServiceEnum.GEMINI.value: 'google',
+            LLMServiceEnum.OPENAI.value: 'openai'
+        }
+        
+        if normalized_service not in provider_map:
             raise LLMServiceError(f"Unsupported LLM service: {service}")
         
         # Use pooling - cache key includes service, model, and api_key_id
         cache_key = f"{normalized_service}:{model}:{api_key_id}"
         
         if cache_key not in self._adapter_pool:
+            # Only get the key when creating new adapter
             raw_key = self._get_api_key(api_key_id)
-            adapter_class = self._adapters[normalized_service]
-            self._adapter_pool[cache_key] = adapter_class(model, raw_key)
+            provider = provider_map[normalized_service]
+            
+            # Store both adapter AND the resolved key with timestamp
+            self._adapter_pool[cache_key] = {
+                'adapter': create_adapter(provider, model, raw_key),
+                'created_at': time.time()
+            }
         
-        return self._adapter_pool[cache_key]
+        # Add TTL check - 1 hour TTL
+        entry = self._adapter_pool[cache_key]
+        if time.time() - entry['created_at'] > 3600:  
+            # Recreate adapter after TTL expiry
+            del self._adapter_pool[cache_key]
+            return self._get_adapter(service, model, api_key_id)
+        
+        return entry['adapter']
     
     def _get_token_counts(self, usage: Any, service: str) -> Tuple[int, int, int]:
         """Extract token counts from usage object based on service."""
@@ -72,7 +87,7 @@ class LLMService(BaseService):
         )
         
         cached_tokens = 0
-        if service in {LLMServiceEnum.CHATGPT.value, LLMServiceEnum.OPENAI.value}:
+        if service == LLMServiceEnum.OPENAI.value:
             cached_tokens = self.safe_get_nested(usage, 'input_tokens_details.cached_tokens', 0)
         
         return input_tokens, output_tokens, cached_tokens
@@ -99,11 +114,6 @@ class LLMService(BaseService):
         """Extract text and usage from adapter result."""
         if isinstance(result, ChatResult):
             return result.text, result.usage
-        # Fallback for old tuple format (can be removed later)
-        elif isinstance(result, (list, tuple)):
-            text = result[0] if result else ""
-            usage = result[1] if len(result) > 1 else None
-            return text, usage
         else:
             return result or "", None
     
@@ -131,7 +141,7 @@ class LLMService(BaseService):
         model: str,
         messages: Union[str, List[dict]],
         system_prompt: str = ""
-    ) -> Tuple[str, float]:
+    ) -> dict[str, str | float]:
         """Make a call to the specified LLM service with retry logic."""
         try:
             adapter = self._get_adapter(service or "chatgpt", model, api_key_id)
@@ -144,7 +154,7 @@ class LLMService(BaseService):
             
             text, usage = self._extract_result_and_usage(result)
             cost = self.calculate_cost(service or "chatgpt", usage)
-            return text, cost
+            return {"response":text, "cost":cost}
             
         except Exception as e:
             raise LLMServiceError(f"LLM call failed: {e}")
@@ -154,7 +164,7 @@ class LLMService(BaseService):
         raw_key = self._get_api_key(api_key_id)
         normalized_service = self.normalize_service_name(service)
         
-        if normalized_service in {LLMServiceEnum.CHATGPT.value, LLMServiceEnum.OPENAI.value}:
+        if normalized_service == LLMServiceEnum.OPENAI.value:
             try:
                 import openai
                 client = openai.OpenAI(api_key=raw_key)

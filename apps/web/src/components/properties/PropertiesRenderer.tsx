@@ -1,16 +1,10 @@
 // Reusable component for rendering property panels based on selection
 import React from 'react';
 import {
-  PersonJobPropertiesPanel,
-  ConditionPropertiesPanel,
-  DBPropertiesPanel,
-  JobPropertiesPanel,
+  UniversalPropertiesPanel,
   PersonPropertiesPanel,
-  ArrowPropertiesPanel,
-  EndpointPropertiesPanel
+  ArrowPropertiesPanel
 } from './PropertyPanels';
-import { GenericPropertiesPanel } from '@repo/properties-ui';
-import { getNodeConfig, getBlockType } from '@repo/core-model';
 
 interface PropertiesRendererProps {
   selectedNodeId?: string | null;
@@ -48,41 +42,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         title = `${node.data.label || 'Block'} Properties`;
-        switch (node.type) {
-          case 'personjobNode':
-            content = <PersonJobPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
-            break;
-          case 'conditionNode':
-            content = <ConditionPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
-            break;
-          case 'dbNode':
-            content = <DBPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
-            break;
-          case 'jobNode':
-            content = <JobPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
-            break;
-          case 'endpointNode':
-            content = <EndpointPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
-            break;
-          case 'startNode': {
-            const blockType = getBlockType(node.type);
-            const nodeConfig = getNodeConfig(blockType);
-            if (nodeConfig) {
-              content = (
-                <GenericPropertiesPanel
-                  nodeId={selectedNodeId}
-                  nodeType={node.type}
-                  fields={nodeConfig.propertyFields}
-                  title={nodeConfig.propertyTitle}
-                />
-              );
-            }
-            break;
-          }
-          default:
-            console.log('Unknown node type:', node.type);
-            content = <p className="p-4 text-sm text-red-500">Unknown node type: {node.type}</p>;
-        }
+        content = <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
       }
     } else if (selectedArrowId) {
       const arrow = arrows.find(a => a.id === selectedArrowId);

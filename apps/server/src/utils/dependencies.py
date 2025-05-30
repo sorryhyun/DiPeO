@@ -23,7 +23,7 @@ def get_llm_service() -> LLMService:
 @lru_cache()
 def get_diagram_service() -> DiagramService:
     """Get singleton DiagramService instance."""
-    return DiagramService(get_llm_service())
+    return DiagramService(get_llm_service(), get_api_key_service(), get_memory_service())
 
 
 @lru_cache()

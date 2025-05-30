@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select, SelectItem } from '@repo/ui-kit';
-import { ApiKey } from '@repo/core-model';
+import { ApiKey, createErrorHandlerFactory } from '@repo/core-model';
 import { useConsolidatedDiagramStore } from '@/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { toast } from 'sonner';
 
 interface ApiKeysModalProps {
   isOpen: boolean;
@@ -27,6 +29,9 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Create error handler for API key operations
+  const createErrorHandler = createErrorHandlerFactory(toast);
 
   // Load API keys when modal opens
   useEffect(() => {
@@ -56,7 +61,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
 
     try {
       // Call backend API to create API key
-      const response = await fetch('/api/apikeys', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,7 +104,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
     if (window.confirm('Are you sure you want to delete this API key?')) {
       try {
         // Call backend API to delete
-        const response = await fetch(`/api/apikeys/${id}`, {
+        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEY_BY_ID(id)), {
           method: 'DELETE'
         });
 
@@ -110,8 +115,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         // Remove from local store
         deleteApiKey(id);
       } catch (error) {
-        console.error('Error deleting API key:', error);
-        // You might want to show an error message to the user
+        const errorHandler = createErrorHandler('Delete API Key');
+        errorHandler(error as Error);
       }
     }
   };

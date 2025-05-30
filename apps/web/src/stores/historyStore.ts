@@ -1,14 +1,13 @@
 // History state store for undo/redo functionality
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { Edge } from '@xyflow/react';
 import { 
-  ArrowData, PersonDefinition, DiagramNode
+  ArrowData, PersonDefinition, DiagramNode, Arrow
 } from '@repo/core-model';
 
 export interface HistoryState {
   nodes: DiagramNode[];
-  arrows: Edge<ArrowData>[];
+  arrows: Arrow[];
   persons: PersonDefinition[];
 }
 
