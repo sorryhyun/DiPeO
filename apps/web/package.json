@@ -11,7 +11,8 @@
     "analyze": "pnpm build && node scripts/analyze-bundle.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/core-model": "workspace:*",

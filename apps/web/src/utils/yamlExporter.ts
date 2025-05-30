@@ -8,11 +8,10 @@ import {
   DBBlockData,
   ConditionBlockData,
   EndpointBlockData,
-  ArrowData,
+  Arrow,
   ApiKey,
   DiagramNode
 } from '@repo/core-model';
-import type { Edge } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 
 interface YamlDiagram {
@@ -121,11 +120,11 @@ export class YamlExporter {
     });
 
     // Build adjacency map for connections
-    const connectionMap = new Map<string, Edge<ArrowData>[]>();
+    const connectionMap = new Map<string, Arrow[]>();
     diagram.arrows.forEach(arrow => {
-      const edges = connectionMap.get(arrow.source) || [];
-      edges.push(arrow);
-      connectionMap.set(arrow.source, edges);
+      const arrows = connectionMap.get(arrow.source) || [];
+      arrows.push(arrow);
+      connectionMap.set(arrow.source, arrows);
     });
 
     // Convert nodes to workflow steps with full data
@@ -153,7 +152,7 @@ export class YamlExporter {
    */
   private static nodeToEnhancedStep(
     node: DiagramNode,
-    connections: Edge<ArrowData>[],
+    connections: Arrow[],
     _persons: PersonDefinition[]
   ): YamlDiagram['workflow'][0] | null {
     const data = node.data;
@@ -169,22 +168,14 @@ export class YamlExporter {
 
     // Add connections if any
     if (connections.length > 0) {
-      baseStep.connections = connections.map(edge => ({
-        to: edge.target,
-        ...(edge.data?.label && { label: edge.data.label }),
-        ...(edge.data?.contentType && { content_type: edge.data.contentType }),
-        ...(edge.data?.branch && { branch: edge.data.branch }),
+      baseStep.connections = connections.map(arrow => ({
+        to: arrow.target,
+        ...(arrow.data?.label && { label: arrow.data.label }),
         // Prioritize edge's direct handle properties, fallback to data
-        ...((edge.sourceHandle || edge.data?.sourceHandleId) && { 
-          source_handle: edge.sourceHandle || edge.data?.sourceHandleId 
-        }),
-        ...((edge.targetHandle || edge.data?.targetHandleId) && { 
-          target_handle: edge.targetHandle || edge.data?.targetHandleId 
-        }),
-        ...((edge.data?.controlPointOffsetX !== undefined || edge.data?.controlPointOffsetY !== undefined) && {
+        ...((arrow.data?.controlPointOffsetX !== undefined || arrow.data?.controlPointOffsetY !== undefined) && {
           control_offset: {
-            x: Math.round(edge.data?.controlPointOffsetX || 0),
-            y: Math.round(edge.data?.controlPointOffsetY || 0)
+            x: Math.round(arrow.data?.controlPointOffsetX || 0),
+            y: Math.round(arrow.data?.controlPointOffsetY || 0)
           }
         })
       }));
@@ -255,7 +246,7 @@ export class YamlExporter {
    */
   private static fromYamlFormat(yamlDiagram: YamlDiagram): DiagramState {
     const nodes: DiagramNode[] = [];
-    const arrows: Edge<ArrowData>[] = [];
+    const arrows: Arrow[] = [];
     const persons: PersonDefinition[] = [];
     const apiKeys: ApiKey[] = [];
 
@@ -432,55 +423,6 @@ export class YamlExporter {
   /**
    * Utility functions
    */
-  private static toCleanId(label: string): string {
-    return label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_|_$/g, '')
-      .substring(0, 30);
-  }
-
-  private static fromCleanId(id: string): string {
-    return id
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  private static stepToNodeId(step: YamlDiagram['workflow'][0]): string {
-    const typeMap: Record<string, string> = {
-      'task': 'personjobNode',
-      'condition': 'conditionNode',
-      'data': 'dbNode',
-      'process': 'jobNode',
-      'save': 'endpointNode',
-      'start': 'startNode'
-    };
-
-    const nodeType = typeMap[step.type] || 'personjobNode';
-    return `${nodeType}-${nanoid(6)}`;
-  }
-
-  private static createArrow(
-    source: string,
-    target: string,
-    branch?: 'true' | 'false'
-  ): Edge<ArrowData> {
-    const arrowId = `arrow-${nanoid(6)}`;
-    return {
-      id: arrowId,
-      source,
-      target,
-      type: 'customArrow',
-      data: {
-        id: arrowId,
-        sourceBlockId: source,
-        targetBlockId: target,
-        label: branch || 'flow',
-        ...(branch && { branch })
-      }
-    };
-  }
 
   private static extractLabelFromId(id: string): string {
     // Extract meaningful label from IDs like "PERSON_ABC123" -> "Person ABC123"
@@ -489,7 +431,7 @@ export class YamlExporter {
 
   private static detectVariables(...prompts: string[]): string[] {
     const vars = new Set<string>();
-    const varPattern = /\{\{(\w+)\}\}/g;
+    const varPattern = /{{(\w+)}}/g;
 
     prompts.forEach(prompt => {
       if (prompt) {

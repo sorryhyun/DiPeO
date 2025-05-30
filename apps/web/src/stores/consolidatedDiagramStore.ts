@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist, devtools, subscribeWithSelector } from 'zustand/middleware';
 import {
-  Edge, OnNodesChange, OnEdgesChange, OnConnect,
-  applyNodeChanges, applyEdgeChanges, addEdge, Connection
+  OnNodesChange, OnConnect,
+  applyNodeChanges, Connection
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import {
-  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode, getReactFlowType
+  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode,
+  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
 } from '@repo/core-model';
 import { sanitizeDiagram } from "@/utils/diagramSanitizer";
 import { createPersonCrudActions } from "@/utils/storeCrudUtils";
@@ -14,12 +15,12 @@ import { createPersonCrudActions } from "@/utils/storeCrudUtils";
 
 export interface ConsolidatedDiagramState {
   nodes: DiagramNode[];
-  arrows: Edge<ArrowData>[];
+  arrows: Arrow[];
   persons: PersonDefinition[];
   apiKeys: ApiKey[];
 
   onNodesChange: OnNodesChange;
-  onArrowsChange: OnEdgesChange;
+  onArrowsChange: OnArrowsChange;
   onConnect: OnConnect;
   addNode: (type: string, position: { x: number; y: number }) => void;
   updateNodeData: (nodeId: string, data: Record<string, any>) => void;
@@ -60,12 +61,12 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
         },
 
         onArrowsChange: (changes) => {
-          set({ arrows: applyEdgeChanges(changes, get().arrows) as Edge<ArrowData>[] });
+          set({ arrows: applyArrowChanges(changes, get().arrows) as Arrow<ArrowData>[] });
         },
 
         onConnect: (connection: Connection) => {
           const arrowId = `arrow-${nanoid().slice(0, 6)}`;
-          const newArrow: Edge<ArrowData> = {
+          const newArrow: Arrow = {
             id: arrowId,
             source: connection.source!,
             target: connection.target!,
@@ -82,7 +83,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
               label: 'New Arrow'
             }
           };
-          set({ arrows: addEdge(newArrow, get().arrows) });
+          set({ arrows: addArrow(newArrow, get().arrows) });
         },
 
         addNode: (type: string, position: { x: number; y: number }) => {
@@ -272,7 +273,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           const sanitized = sanitizeDiagram(state);
           set({
             nodes: (sanitized.nodes || []) as DiagramNode[],
-            arrows: (sanitized.arrows || []) as Edge<ArrowData>[],
+            arrows: (sanitized.arrows || []) as Arrow[],
             persons: sanitized.persons || [],
             apiKeys: sanitized.apiKeys || []
           });

@@ -20,7 +20,7 @@ import {
   ContextMenu as ContextMenuBase } from '@repo/diagram-ui';
 import { roundPosition } from '@/utils/diagramSanitizer';
 import { nodeTypes } from '@/components/nodes';
-import { UNIFIED_NODE_CONFIGS } from '@repo/core-model';
+import { UNIFIED_NODE_CONFIGS, DiagramNode, Arrow } from '@repo/core-model';
 import { MemoryLayerSkeleton } from '../skeletons/SkeletonComponents';
 
 // Lazy load memory layer  
@@ -85,7 +85,11 @@ const DiagramCanvas: React.FC = () => {
   const { addPerson, deletePerson } = usePersons();  
 
   const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
-  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<DiagramNode, Arrow> | null>(null);
+  
+  const handleInit = useCallback((instance: ReactFlowInstance<DiagramNode, Arrow>) => {
+    setRfInstance(instance);
+  }, []);
   const { contextMenu, openContextMenu, closeContextMenu, isOpen } = useContextMenu();
   const { isMemoryLayerTilted } = useUIState();
 
@@ -188,7 +192,7 @@ const DiagramCanvas: React.FC = () => {
           onNodeClick={onNodeClick}
           onEdgeClick={onArrowClick}
           onPaneClick={onPaneClick}
-          onInit={setRfInstance}
+          onInit={handleInit}
           onNodeContextMenu={(event, node) => {
             event.preventDefault();
             setSelectedNodeId(node.id);
