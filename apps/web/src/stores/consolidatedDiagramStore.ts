@@ -13,6 +13,7 @@ import {
 } from '@repo/core-model';
 import { sanitizeDiagram } from "@/utils/diagramSanitizer";
 import { createPersonCrudActions } from "@/utils/storeCrudUtils";
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 
 
 export interface ConsolidatedDiagramState {
@@ -247,7 +248,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
 
         loadApiKeys: async () => {
           try {
-            const response = await fetch('/api/apikeys');
+            const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!response.ok) {
               throw new Error(`Failed to load API keys: ${response.statusText}`);
             }

@@ -5,6 +5,7 @@ import { YamlExporter } from '@/utils/yamlExporter';
 import { downloadFile, downloadJson } from '@/utils/downloadUtils';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@repo/core-model';
 import { toast } from 'sonner';
+import { getApiUrl } from '@/utils/apiConfig';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
@@ -106,7 +107,7 @@ export const useDiagramActions = () => {
         const diagramData = exportDiagram();
         const yamlContent = YamlExporter.toYAML(diagramData);
 
-        const res = await fetch('/api/save', {
+        const res = await fetch(getApiUrl('/api/save'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -139,7 +140,7 @@ export const useDiagramActions = () => {
       async () => {
         const diagramData = exportDiagram();
 
-        const res = await fetch('/api/save', {
+        const res = await fetch(getApiUrl('/api/save'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

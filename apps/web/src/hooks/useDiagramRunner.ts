@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useConsolidatedDiagramStore, useExecutionStore } from '@/stores';
 import { toast } from 'sonner';
+import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/utils/apiConfig';
 
 type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
@@ -26,12 +27,6 @@ export const useDiagramRunner = () => {
     removeRunningNode,
     setCurrentRunningNode
   } = useExecutionStore();
-  // Bypass Vite dev server proxy for streaming in development
-  const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
-  // Use direct connection for streaming to bypass potential Vite proxy buffering
-  const STREAMING_API_BASE = import.meta.env.DEV 
-    ? 'http://localhost:8000'  // Direct connection in dev
-    : '';
   const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [runError, setRunError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -197,7 +192,7 @@ export const useDiagramRunner = () => {
         const diagramData = exportDiagram();
         
         // Validate API keys first
-        const keysRes = await fetch(`${API_BASE}/api/apikeys`, { signal });
+        const keysRes = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), { signal });
         if (keysRes.ok) {
           const response = await keysRes.json();
           const keys = response.apiKeys || response; // Handle both formats
@@ -223,7 +218,7 @@ export const useDiagramRunner = () => {
 
         // Start streaming execution with retry
         const res = await executeWithRetry(async () => {
-          const response = await fetch(`${STREAMING_API_BASE}/api/run-diagram`, {
+          const response = await fetch(getStreamingUrl(API_ENDPOINTS.STREAMING_RUN), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(diagramData),
@@ -359,7 +354,7 @@ export const useDiagramRunner = () => {
       // Clean up resources
       cleanup();
     }
-  }, [exportDiagram, processStreamUpdate, clearRunningNodes, clearRunContext, setCurrentRunningNode, cleanup, API_BASE, STREAMING_API_BASE]);
+  }, [exportDiagram, processStreamUpdate, clearRunningNodes, clearRunContext, setCurrentRunningNode, cleanup]);
 
   const handleRunDiagramSync = useCallback(async () => {
     // Fallback to synchronous execution (for debugging or compatibility)
@@ -370,7 +365,7 @@ export const useDiagramRunner = () => {
 
     try {
         const diagramData = exportDiagram();
-        const res = await fetch(`${API_BASE}/api/run-diagram-sync`, {
+        const res = await fetch(getApiUrl('/api/run-diagram-sync'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(diagramData),

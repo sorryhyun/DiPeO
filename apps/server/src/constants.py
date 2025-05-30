@@ -16,9 +16,6 @@ class DBBlockSubType(Enum):
     FILE = "file"
     CODE = "code"
 
-class DBTargetSubType(Enum):
-    LOCAL_FILE = "local_file"
-    SQLITE = "sqlite"
 
 class ContentType(Enum):
     VARIABLE = "variable"

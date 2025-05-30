@@ -9,6 +9,7 @@ import {
 import {
   Input, Spinner, Switch
 } from '@repo/ui-kit';
+import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
 import type {
   PersonJobBlockData, ConditionBlockData, DBBlockData,
   ArrowData, PersonDefinition, EndpointBlockData, ApiKey, JobBlockData,
@@ -318,7 +319,7 @@ const PANEL_CONFIGS: PanelConfig = {
         try {
           const form = new FormData();
           form.append('file', file);
-          const res = await fetch('/api/upload-file', { method: 'POST', body: form });
+          const res = await fetch(getApiUrl(API_ENDPOINTS.UPLOAD_FILE), { method: 'POST', body: form });
           if (!res.ok) throw new Error('Upload failed');
           const { path } = await res.json();
           handleChange('sourceDetails', path);
@@ -491,7 +492,7 @@ const PANEL_CONFIGS: PanelConfig = {
         const fetchApiKeys = async () => {
           setLoadingApiKeys(true);
           try {
-            const res = await fetch('/api/apikeys');
+            const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!res.ok) throw new Error('Failed to load API keys');
             const body = await res.json();
             setApiKeysList(body.apiKeys);
@@ -510,7 +511,7 @@ const PANEL_CONFIGS: PanelConfig = {
           return;
         }
         setLoadingModels(true);
-        fetch(`/api/models?service=${formData.service}&apiKeyId=${formData.apiKeyId}`)
+        fetch(getApiUrl(`${API_ENDPOINTS.MODELS}?service=${formData.service}&apiKeyId=${formData.apiKeyId}`))
           .then(res => res.json())
           .then(body => setModelOptions(body.models.map((m: string) => ({ value: m, label: m }))))
           .catch(err => setModelError(err.message))
@@ -653,7 +654,7 @@ const JobPanelContent: React.FC<{ nodeId: string; data: JobBlockData }> = ({ nod
         const fetchApiKeys = async () => {
           setLoadingApiKeys(true);
           try {
-            const res = await fetch('/api/apikeys');
+            const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
             if (!res.ok) throw new Error('Failed to load API keys');
             const body = await res.json();
             setApiKeysList(body.apiKeys);

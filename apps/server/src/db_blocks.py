@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, List
 
-from .constants import DBBlockSubType, DBTargetSubType
+from .constants import DBBlockSubType
 from .exceptions import FileOperationError, DatabaseError, ValidationError
 from .utils.dependencies import get_unified_file_service
 from .utils.output_processor import OutputProcessor
@@ -76,65 +76,5 @@ async def _handle_code_execution(data: dict, inputs: List[Any]) -> Any:
     return await loop.run_in_executor(None, _run)
 
 
-async def run_db_target_block(data: dict, inputs: List[Any]) -> str:
-    """Handle different DB target block subtypes with improved error handling."""
-    target_type = data.get("targetType")
-    details = data.get("targetDetails", "")
-    
-    if not target_type:
-        raise ValidationError("DB target block requires explicit 'targetType' specification")
-    
-    try:
-        if target_type == DBTargetSubType.LOCAL_FILE.value:
-            return await _handle_file_write(details, inputs)
-        
-        elif target_type == DBTargetSubType.SQLITE.value:
-            return await _handle_sqlite_insert(details, inputs)
-        
-        else:
-            raise ValidationError(f"Unsupported dbTargetBlock subType: {target_type}")
-            
-    except Exception as e:
-        if isinstance(e, (ValidationError, FileOperationError, DatabaseError)):
-            raise
-        raise DatabaseError(f"DB target block execution failed: {e}")
-
-
-async def _handle_file_write(details: str, inputs: List[Any]) -> str:
-    """Handle file writing with security checks."""
-    file_service = get_unified_file_service()
-    
-    # Extract content, handling PersonJob outputs
-    content = ""
-    if inputs:
-        first_input = inputs[0]
-        content = str(OutputProcessor.extract_value(first_input))
-    
-    relative_path = await file_service.write(details, content, relative_to="results")
-    return f"Wrote to {relative_path}"
-
-
-async def _handle_sqlite_insert(details: str, inputs: List[Any]) -> str:
-    """Handle SQLite database insertion."""
-    try:
-        if ":" not in details:
-            raise ValidationError("SQLite details must be in format 'db_path:table_name'")
-        
-        db_path, table_name = details.split(":", 1)
-        
-        file_service = get_unified_file_service()
-        
-        # Extract values, handling PersonJob outputs
-        data = []
-        for val in inputs:
-            extracted_value = OutputProcessor.extract_value(val)
-            data.append({"value": str(extracted_value)})
-        
-        relative_path = file_service.write_sqlite(db_path, table_name, data, relative_to="results")
-        
-        return f"Inserted {len(inputs)} rows into {table_name} at {relative_path}"
-        
-    except Exception as e:
-        if isinstance(e, (DatabaseError, ValidationError)):
-            raise
-        raise DatabaseError(f"Database operation failed: {e}")
+# db_target_block functionality has been deprecated and removed.
+# Use 'endpoint' block type with saveToFile capability instead.

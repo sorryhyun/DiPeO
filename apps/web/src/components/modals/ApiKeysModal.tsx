@@ -3,6 +3,7 @@ import { Button, Input, Modal, Select, SelectItem } from '@repo/ui-kit';
 import { ApiKey } from '@repo/core-model';
 import { useConsolidatedDiagramStore } from '@/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 
 interface ApiKeysModalProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
 
     try {
       // Call backend API to create API key
-      const response = await fetch('/api/apikeys', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,7 +100,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
     if (window.confirm('Are you sure you want to delete this API key?')) {
       try {
         // Call backend API to delete
-        const response = await fetch(`/api/apikeys/${id}`, {
+        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEY_BY_ID(id)), {
           method: 'DELETE'
         });
 

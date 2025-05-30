@@ -16,7 +16,7 @@ export interface ApiKey {
 }
 
 export type ArrowKind = 'normal' | 'fixed';
-export type BlockType = 'start' | 'person_job' | 'db' | 'job' | 'condition' | 'endpoint' ; // db_target is deprecated
+export type BlockType = 'start' | 'person_job' | 'db' | 'job' | 'condition' | 'endpoint';
 
 // Base for all canvas blocks (nodes) with discriminating `type`
 export interface BaseBlockData {

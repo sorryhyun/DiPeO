@@ -7,6 +7,7 @@ import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore 
 import { Button, Input, Select, SelectItem } from '@repo/ui-kit';
 import { downloadJson } from '@/utils/downloadUtils';
 import { toast } from 'sonner';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 
 interface ConversationMessage {
   id: string;
@@ -124,7 +125,7 @@ const ConversationDashboard: React.FC = () => {
         params.append('offset', messageCounts.current[personId].toString());
       }
 
-      const res = await fetch(`/api/conversations?${params}`);
+      const res = await fetch(`${getApiUrl(API_ENDPOINTS.CONVERSATIONS)}?${params}`);
       if (res.ok) {
         const data = await res.json();
 
