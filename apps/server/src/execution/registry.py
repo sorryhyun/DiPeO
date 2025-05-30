@@ -34,14 +34,6 @@ class NodeExecutorRegistry:
         self.register(NodeType.JOB.value, JobNodeExecutor)
         self.register(NodeType.START.value, StartNodeExecutor)
         self.register(NodeType.ENDPOINT.value, EndpointNodeExecutor)
-        
-        # Also register legacy string names for backward compatibility
-        self.register("personjobNode", PersonJobNodeExecutor)
-        self.register("conditionNode", ConditionNodeExecutor)
-        self.register("dbNode", DBNodeExecutor)
-        self.register("jobNode", JobNodeExecutor)
-        self.register("startNode", StartNodeExecutor)
-        self.register("endpointNode", EndpointNodeExecutor)
     
     def register(self, node_type: str, executor_class: Type[BaseNodeExecutor]):
         """Register a node executor for a given node type.
@@ -61,16 +53,7 @@ class NodeExecutorRegistry:
         Returns:
             The executor class or None if not found
         """
-        # First try direct lookup
-        if node_type in self._executors:
-            return self._executors[node_type]
-        
-        # Try converting from legacy format
-        try:
-            ntype = NodeType.from_legacy(node_type)
-            return self._executors.get(ntype.value)
-        except ValueError:
-            return None
+        return self._executors.get(node_type)
     
     def create_executor(
         self, 

@@ -18,7 +18,7 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
     from ..run_graph import DiagramExecutor
 
     for e in incoming:
-        src_id = e.get("source") or e.get("from") or e.get("data", {}).get("sourceBlockId")
+        src_id = e.get("source")
         value = context.get(src_id)
         if src_id == nid and value is None:
             continue
@@ -27,7 +27,7 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
         data = e.get('data', {})
         ctype = data.get('contentType', 'raw_text')
 
-        label = e.get('label') or data.get('label')
+        label = data.get('label')
         
         if ctype == 'raw_text':
             # Extract text content if this is a PersonJob output

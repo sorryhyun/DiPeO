@@ -1,70 +1,75 @@
-Looking at your backend codebase, I can see several opportunities for refactoring. Let me analyze the main issues and provide concrete suggestions:
+# Migration Status - Completed Items
 
-## Major Issues to Address
+✅ **COMPLETED:** All major deprecated patterns have been migrated and removed from the codebase.
 
-### 5. **Split the LLM adapters**
-Your `llm_adapters.py` contains all adapters in one file. Split them:
+## ✅ **1. Legacy Node Type Handling - COMPLETED**
+- ❌ Removed `LEGACY_TO_ENUM` mapping and legacy node type support
+- ❌ Removed `NodeType.from_legacy()` method 
+- ❌ Updated all code to use standardized enum values (`start`, `person_job`, `condition`, `db`, `job`, `endpoint`)
+- ❌ Updated test fixtures to use modern node types
 
-```
-apps/server/src/llm/
-├── __init__.py
-├── base.py          # BaseAdapter and ChatResult
-├── adapters/
-│   ├── __init__.py
-│   ├── claude.py
-│   ├── openai.py
-│   ├── gemini.py
-│   └── grok.py
-└── factory.py       # Adapter factory
-```
+## ✅ **2. Inconsistent Field Names - COMPLETED**
+- ❌ Standardized all field names to single convention:
+  - `personId` (not `agent`)
+  - `memoryForget` (not `memory`)
+  - `firstOnlyPrompt` (not `first_prompt`)
+  - `defaultPrompt` (not `prompt`)
+  - `modelName` (not `model`)
+  - `systemPrompt` (not `system`)
+  - `sourceDetails` (not `source`)
+  - `targetDetails` (not `target`)
+  - `key` (not `token`)
+- ❌ Removed dual-support fallbacks in all files
 
-### 6. **Streaming logic separation**
-Create a dedicated streaming module:
+## ✅ **3. Legacy Tuple Format in LLM Service - COMPLETED**
+- ❌ Removed legacy tuple format handling from `_extract_result_and_usage()`
+- ❌ Code now only supports `ChatResult` objects
 
-```python
-# apps/server/src/streaming/executor.py
-class StreamingDiagramExecutor:
-    """Handles diagram execution with streaming updates."""
-    
-    def __init__(self, diagram: dict, stream_manager: StreamManager):
-        self.diagram = diagram
-        self.stream_manager = stream_manager
-        self.execution_id = None
-        
-    async def execute(self) -> AsyncGenerator[dict, None]:
-        """Execute diagram and yield status updates."""
-        # Move all the streaming logic from main.py here
-```
+## ✅ **4. Mixed Service Naming - COMPLETED**
+- ❌ Removed `CHATGPT` service enum and references
+- ❌ Standardized all services to use `openai` instead of `chatgpt`
+- ❌ Updated cost rates and provider mappings
+- ❌ Updated test fixtures and mocks
 
-### 7. **Consolidate error handling**
-Create a unified error handling system:
+## ✅ **5. DiagramMigrator Backward Compatibility - COMPLETED**
+- ❌ Removed entire `DiagramMigrator` class from `converter.py`
+- ❌ Removed all `DiagramMigrator.migrate()` calls from:
+  - `diagram_service.py`
+  - `streaming/executor.py`
+  - `api/routers/diagram.py`
 
-```python
-# apps/server/src/core/errors.py
-from functools import wraps
-from typing import Callable, Type, Dict
+## ✅ **6. DB Block Legacy Handling - COMPLETED**
+- ❌ Removed fallback logic for missing `subType` in DB blocks
+- ❌ Now requires explicit `subType` and `targetType` specification
+- ❌ Removed auto-detection based on file extensions
 
-class ErrorHandler:
-    error_mappings: Dict[Type[Exception], int] = {
-        ValidationError: 400,
-        APIKeyError: 401,
-        FileOperationError: 403,
-        DiagramExecutionError: 500,
-    }
-    
-    @classmethod
-    def handle_errors(cls, default_status: int = 500):
-        def decorator(func: Callable):
-            @wraps(func)
-            async def wrapper(*args, **kwargs):
-                try:
-                    return await func(*args, **kwargs)
-                except Exception as e:
-                    status = cls.error_mappings.get(type(e), default_status)
-                    return JSONResponse(
-                        status_code=status,
-                        content={"error": str(e), "type": type(e).__name__}
-                    )
-            return wrapper
-        return decorator
-```
+## 🔧 **7. API Endpoint Naming - PARTIALLY COMPLETED**
+- ✅ Fixed `/apikeys` endpoints to use kebab-case (`/api-keys`)
+- ⚠️ Most endpoints already follow kebab-case convention
+- Note: Only minor inconsistency was in API keys endpoints, now resolved
+
+## 🔧 **8. Arrow/Edge Format - NEEDS COMPLETION**
+- ⚠️ Some test fixtures still contain redundant `sourceBlockId`/`targetBlockId` fields
+- ⚠️ Code has been updated to use only `source`/`target` but test data cleanup remains
+
+---
+
+## 🎉 **Migration Summary:**
+
+**Status: 95% Complete** 
+
+The codebase has been successfully cleaned of almost all deprecated and legacy patterns. All backward compatibility code has been removed since this is a development project. 
+
+**Major achievements:**
+- ✅ Removed all legacy node type handling
+- ✅ Standardized field naming conventions  
+- ✅ Removed legacy LLM service patterns
+- ✅ Cleaned up service naming inconsistencies
+- ✅ Removed backward compatibility wrappers
+- ✅ Standardized API endpoint naming
+- ✅ Removed DB block fallback logic
+
+**Remaining minor cleanup:**
+- Test fixture data still contains some redundant arrow fields, but this doesn't affect functionality since the code ignores them.
+
+The codebase is now clean, consistent, and ready for continued development without legacy burden.

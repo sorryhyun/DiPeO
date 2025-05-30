@@ -97,13 +97,13 @@ class NodeExecutor:
             }
             
             # Add person for PersonJob nodes
-            if NodeType.from_legacy(node_type) == NodeType.PERSON_JOB:
+            if NodeType(node_type) == NodeType.PERSON_JOB:
                 person_id = node.get("data", {}).get("personId")
                 kwargs['person'] = self.persons.get(person_id, {})
                 kwargs['get_all_person_ids_fn'] = self._get_all_person_ids_in_diagram
             
             # Add diagram for Condition nodes
-            if NodeType.from_legacy(node_type) == NodeType.CONDITION:
+            if NodeType(node_type) == NodeType.CONDITION:
                 kwargs['diagram'] = self.diagram
             
             # Execute node
@@ -147,11 +147,11 @@ class NodeExecutor:
             active_executions.dec()
             
     def _get_all_person_ids_in_diagram(self) -> List[str]:
-        """Get all person IDs that have personjobNode in the current diagram."""
+        """Get all person IDs that have person_job nodes in the current diagram."""
         person_ids = set()
         for node in self.nodes_by_id.values():
             try:
-                node_type = NodeType.from_legacy(node.get("type", ""))
+                node_type = NodeType(node.get("type", ""))
                 if node_type == NodeType.PERSON_JOB:
                     person_id = node.get("data", {}).get("personId")
                     if person_id:

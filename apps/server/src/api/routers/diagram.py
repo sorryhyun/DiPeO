@@ -8,7 +8,6 @@ import inspect
 from ...services.diagram_service import DiagramService
 from ...services.memory_service import MemoryService
 from ...utils.dependencies import get_diagram_service, get_memory_service
-from ...utils.converter import DiagramMigrator
 from ...streaming import StreamingDiagramExecutor
 from ...run_graph import DiagramExecutor
 
@@ -82,9 +81,6 @@ async def save_diagram(
     file_format = payload.get('format', 'json')
     
     try:
-        # Migrate if needed
-        migrator = DiagramMigrator()
-        migrated_diagram = migrator.migrate(diagram)
         
         # TODO: Implement actual file saving logic
         # This would typically use UnifiedFileService

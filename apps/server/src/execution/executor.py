@@ -173,7 +173,7 @@ class DiagramExecutor:
 
             # Skip nodes with no valid incoming arrows (except start nodes)
             node = self.nodes_by_id[node_id]
-            if node.get("type") not in ["startNode", "start"] and not valid_incoming:
+            if node.get("type") != NodeType.START.value and not valid_incoming:
                 logger.debug(
                     "skipping_no_incoming",
                     node_id=node_id
@@ -195,7 +195,7 @@ class DiagramExecutor:
 
             # Check for endpoint
             try:
-                current_type = NodeType.from_legacy(node.get("type", ""))
+                current_type = NodeType(node.get("type", ""))
                 if current_type == NodeType.ENDPOINT:
                     logger.info(
                         "endpoint_reached",

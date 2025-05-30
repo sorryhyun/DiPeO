@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, List
 
-from .constants import DBBlockSubType, DBTargetSubType, SUPPORTED_DOC_EXTENSIONS, SUPPORTED_CODE_EXTENSIONS
+from .constants import DBBlockSubType, DBTargetSubType
 from .exceptions import FileOperationError, DatabaseError, ValidationError
 from .utils.dependencies import get_unified_file_service
 from .utils.output_processor import OutputProcessor
@@ -12,17 +12,11 @@ async def run_db_block(data: dict, inputs: List[Any]) -> Any:
     sub_type = data.get("subType")
     
     if not sub_type:
-        if data.get("source") or data.get("sourceDetails"):
-            source = data.get("source") or data.get("sourceDetails", "")
-            all_extensions = SUPPORTED_DOC_EXTENSIONS | SUPPORTED_CODE_EXTENSIONS
-            if any(source.endswith(ext) for ext in all_extensions):
-                sub_type = DBBlockSubType.FILE.value
-            else:
-                sub_type = DBBlockSubType.FIXED_PROMPT.value
+        raise ValidationError("DB block requires explicit 'subType' specification")
     
     try:
         if sub_type == DBBlockSubType.FIXED_PROMPT.value:
-            return data.get("sourceDetails") or data.get("source", "")
+            return data.get("sourceDetails", "")
         
         elif sub_type == DBBlockSubType.FILE.value:
             return await _handle_file_read(data)
@@ -41,7 +35,7 @@ async def run_db_block(data: dict, inputs: List[Any]) -> Any:
 
 async def _handle_file_read(data: dict) -> str:
     """Handle file reading with security checks."""
-    source_path = data.get("sourceDetails") or data.get("source", "")
+    source_path = data.get("sourceDetails", "")
     
     file_service = get_unified_file_service()
     return file_service.read(source_path, relative_to="base")
@@ -85,12 +79,10 @@ async def _handle_code_execution(data: dict, inputs: List[Any]) -> Any:
 async def run_db_target_block(data: dict, inputs: List[Any]) -> str:
     """Handle different DB target block subtypes with improved error handling."""
     target_type = data.get("targetType")
-    details = data.get("targetDetails") or data.get("target", "")
+    details = data.get("targetDetails", "")
     
-    if not target_type and details:
-        all_extensions = SUPPORTED_DOC_EXTENSIONS | SUPPORTED_CODE_EXTENSIONS
-        if any(details.endswith(ext) for ext in all_extensions):
-            target_type = DBTargetSubType.LOCAL_FILE.value
+    if not target_type:
+        raise ValidationError("DB target block requires explicit 'targetType' specification")
     
     try:
         if target_type == DBTargetSubType.LOCAL_FILE.value:

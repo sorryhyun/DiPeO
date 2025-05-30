@@ -8,7 +8,6 @@ from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
 from ..utils.arrow_utils import ArrowUtils
-from ..utils.converter import DiagramMigrator
 
 
 def round_position(position: dict) -> dict:
@@ -42,8 +41,6 @@ class DiagramService(BaseService):
 
     async def run_diagram_sync(self, diagram: dict, log_dir: str) -> Dict[str, Any]:
         """Handle all business logic for synchronous diagram execution."""
-        # Migrate diagram format if needed
-        diagram = DiagramMigrator.migrate(diagram)
 
         # Validate and fix API keys
         self._validate_and_fix_api_keys(diagram)
@@ -145,7 +142,7 @@ class DiagramService(BaseService):
                 "arrows": arrows,
                 "apiKeys": []
             }
-            return DiagramMigrator.migrate(diagram)
+            return diagram
             
         except Exception as e:
             raise ValidationError(f"Failed to parse UML: {e}")

@@ -28,11 +28,11 @@ async def execute_personjob(
 ) -> Tuple[Any, float]:
     """Execute person job node."""
     data = node.get("data", {})
-    person_id = data.get("personId") or data.get("agent")
+    person_id = data.get("personId")
     iteration = counts[node["id"]]
 
     # Handle memory forget mode (separate from context cleaning)
-    forget_mode = data.get("memoryForget") or data.get("memory", "none")
+    forget_mode = data.get("memoryForget", "none")
     if forget_mode == "all":
         memory_service.forget_for_person(person_id)
     elif forget_mode == "current_execution":
@@ -79,8 +79,8 @@ async def execute_personjob(
             preamble_parts.append(str(extracted_value))
 
     # Choose the appropriate prompt template
-    first_prompt = data.get("firstOnlyPrompt") or data.get("first_prompt")
-    default_prompt = data.get("defaultPrompt") or data.get("prompt")
+    first_prompt = data.get("firstOnlyPrompt")
+    default_prompt = data.get("defaultPrompt")
     template = (
         first_prompt if iteration == 1 and first_prompt else default_prompt
     )
@@ -123,7 +123,7 @@ async def execute_personjob(
     logger.debug(f"[PersonJob {person_id}] Own history: {len(own_conversation_history)} messages")
 
     # Get model configuration
-    model_name = person.get("modelName") or person.get("model")
+    model_name = person.get("modelName")
     service = person.get("service")
     api_key_id = person.get("apiKeyId")
     # temperature = person.get("temperature", 0.7)
@@ -131,7 +131,7 @@ async def execute_personjob(
     # Auto-detect service if not specified
     if not service and model_name:
         if "gpt" in model_name.lower():
-            service = "chatgpt"
+            service = "openai"
             if not api_key_id:
                 api_key_id = await _find_default_api_key(service)
 
@@ -160,7 +160,7 @@ async def execute_personjob(
         model=model_name,
         # temperature=temperature,
         api_key_id=api_key_id,
-        system_prompt=person.get("systemPrompt") or person.get("system", ""),
+        system_prompt=person.get("systemPrompt", ""),
     )
 
     result_text = result.get("response", "")

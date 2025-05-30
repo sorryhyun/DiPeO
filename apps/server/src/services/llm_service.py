@@ -35,7 +35,6 @@ class LLMService(BaseService):
             LLMServiceEnum.CLAUDE.value: 'anthropic',
             LLMServiceEnum.GROK.value: 'xai',
             LLMServiceEnum.GEMINI.value: 'google',
-            LLMServiceEnum.CHATGPT.value: 'openai',
             LLMServiceEnum.OPENAI.value: 'openai'
         }
         
@@ -88,7 +87,7 @@ class LLMService(BaseService):
         )
         
         cached_tokens = 0
-        if service in {LLMServiceEnum.CHATGPT.value, LLMServiceEnum.OPENAI.value}:
+        if service == LLMServiceEnum.OPENAI.value:
             cached_tokens = self.safe_get_nested(usage, 'input_tokens_details.cached_tokens', 0)
         
         return input_tokens, output_tokens, cached_tokens
@@ -115,11 +114,6 @@ class LLMService(BaseService):
         """Extract text and usage from adapter result."""
         if isinstance(result, ChatResult):
             return result.text, result.usage
-        # Fallback for old tuple format (can be removed later)
-        elif isinstance(result, (list, tuple)):
-            text = result[0] if result else ""
-            usage = result[1] if len(result) > 1 else None
-            return text, usage
         else:
             return result or "", None
     
@@ -170,7 +164,7 @@ class LLMService(BaseService):
         raw_key = self._get_api_key(api_key_id)
         normalized_service = self.normalize_service_name(service)
         
-        if normalized_service in {LLMServiceEnum.CHATGPT.value, LLMServiceEnum.OPENAI.value}:
+        if normalized_service == LLMServiceEnum.OPENAI.value:
             try:
                 import openai
                 client = openai.OpenAI(api_key=raw_key)

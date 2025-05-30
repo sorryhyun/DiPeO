@@ -13,13 +13,13 @@ class DiagramFixtures:
             "nodes": [
                 {
                     "id": "start1",
-                    "type": "startNode",
+                    "type": "start",
                     "position": {"x": 0, "y": 0},
                     "data": {"id": "start1", "label": "Start"}
                 },
                 {
                     "id": "person1",
-                    "type": "personJobNode",
+                    "type": "person_job",
                     "position": {"x": 200, "y": 0},
                     "data": {
                         "id": "person1",
@@ -30,7 +30,7 @@ class DiagramFixtures:
                 },
                 {
                     "id": "end1",
-                    "type": "endpointNode",
+                    "type": "endpoint",
                     "position": {"x": 400, "y": 0},
                     "data": {"id": "end1", "label": "End"}
                 }
@@ -67,7 +67,7 @@ class DiagramFixtures:
                 {
                     "id": "assistant1",
                     "name": "AI Assistant",
-                    "service": "chatgpt",
+                    "service": "openai",
                     "model": "gpt-3.5-turbo",
                     "apiKeyId": "test-key-1"
                 }
@@ -76,7 +76,7 @@ class DiagramFixtures:
                 {
                     "id": "test-key-1",
                     "name": "Test OpenAI Key",
-                    "service": "chatgpt"
+                    "service": "openai"
                 }
             ]
         }
@@ -88,13 +88,13 @@ class DiagramFixtures:
             "nodes": [
                 {
                     "id": "start1",
-                    "type": "startNode",
+                    "type": "start",
                     "position": {"x": 0, "y": 0},
                     "data": {"id": "start1", "label": "Start"}
                 },
                 {
                     "id": "condition1",
-                    "type": "conditionNode",
+                    "type": "condition",
                     "position": {"x": 200, "y": 0},
                     "data": {
                         "id": "condition1",
@@ -104,7 +104,7 @@ class DiagramFixtures:
                 },
                 {
                     "id": "person1",
-                    "type": "personJobNode",
+                    "type": "person_job",
                     "position": {"x": 400, "y": -100},
                     "data": {
                         "id": "person1",
@@ -115,7 +115,7 @@ class DiagramFixtures:
                 },
                 {
                     "id": "person2",
-                    "type": "personJobNode",
+                    "type": "person_job",
                     "position": {"x": 400, "y": 100},
                     "data": {
                         "id": "person2",
@@ -126,7 +126,7 @@ class DiagramFixtures:
                 },
                 {
                     "id": "end1",
-                    "type": "endpointNode",
+                    "type": "endpoint",
                     "position": {"x": 600, "y": 0},
                     "data": {"id": "end1", "label": "End"}
                 }
@@ -202,14 +202,14 @@ class DiagramFixtures:
                 {
                     "id": "urgent_handler",
                     "name": "Urgent Handler",
-                    "service": "chatgpt",
+                    "service": "openai",
                     "model": "gpt-4",
                     "apiKeyId": "test-key-1"
                 },
                 {
                     "id": "normal_handler",
                     "name": "Normal Handler",
-                    "service": "chatgpt",
+                    "service": "openai",
                     "model": "gpt-3.5-turbo",
                     "apiKeyId": "test-key-1"
                 }
@@ -218,7 +218,7 @@ class DiagramFixtures:
                 {
                     "id": "test-key-1",
                     "name": "Test OpenAI Key",
-                    "service": "chatgpt"
+                    "service": "openai"
                 }
             ]
         }
@@ -230,13 +230,13 @@ class DiagramFixtures:
             "nodes": [
                 {
                     "id": "start1",
-                    "type": "startNode",
+                    "type": "start",
                     "position": {"x": 0, "y": 0},
                     "data": {"id": "start1", "label": "Start"}
                 },
                 {
                     "id": "person1",
-                    "type": "personJobNode",
+                    "type": "person_job",
                     "position": {"x": 200, "y": 0},
                     "data": {
                         "id": "person1",
@@ -248,7 +248,7 @@ class DiagramFixtures:
                 },
                 {
                     "id": "condition1",
-                    "type": "conditionNode",
+                    "type": "condition",
                     "position": {"x": 400, "y": 0},
                     "data": {
                         "id": "condition1",
@@ -258,7 +258,7 @@ class DiagramFixtures:
                 },
                 {
                     "id": "end1",
-                    "type": "endpointNode",
+                    "type": "endpoint",
                     "position": {"x": 600, "y": 0},
                     "data": {"id": "end1", "label": "End"}
                 }
@@ -321,7 +321,7 @@ class DiagramFixtures:
                 {
                     "id": "processor",
                     "name": "Processor",
-                    "service": "chatgpt",
+                    "service": "openai",
                     "model": "gpt-3.5-turbo",
                     "apiKeyId": "test-key-1"
                 }
@@ -330,7 +330,7 @@ class DiagramFixtures:
                 {
                     "id": "test-key-1",
                     "name": "Test OpenAI Key",
-                    "service": "chatgpt"
+                    "service": "openai"
                 }
             ]
         }

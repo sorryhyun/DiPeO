@@ -12,29 +12,6 @@ import string
 import json
 
 
-# Backward compatibility wrapper
-class DiagramMigrator:
-    """Wrapper class for backward compatibility with DiagramMigrator interface."""
-    
-    @staticmethod
-    def migrate(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Migrate diagram from various formats to standard format."""
-        # If it's YAML format, convert it first
-        if isinstance(diagram, dict) and diagram.get('version') == '1.0' and 'workflow' in diagram:
-            return DiagramMigrator.from_yaml_format(diagram)
-        
-        # Otherwise return as-is (already in correct format)
-        return diagram.copy()
-    
-    @staticmethod
-    def from_yaml_format(yaml_diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert YAML format to standard DiagramState format."""
-        # Use the new importer for conversion
-        importer = LLMYamlImporter()
-        # Convert the workflow format to the new flow format
-        # This is a simplified conversion - you may need to adjust based on your needs
-        return importer.import_yaml(yaml.dump(yaml_diagram))
-
 
 class LLMYamlImporter:
     """

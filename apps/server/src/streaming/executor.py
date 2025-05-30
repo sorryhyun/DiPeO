@@ -5,7 +5,6 @@ import traceback
 from datetime import datetime
 from typing import Dict, Optional, Callable, Any
 
-from ..utils.converter import DiagramMigrator
 from ..run_graph import DiagramExecutor
 from ..services.memory_service import MemoryService
 from .stream_manager import stream_manager
@@ -21,7 +20,7 @@ class StreamingDiagramExecutor:
         memory_service: MemoryService,
         broadcast_to_websocket: bool = False
     ):
-        self.diagram = DiagramMigrator.migrate(diagram)
+        self.diagram = diagram
         self.memory_service = memory_service
         self.broadcast_to_websocket = broadcast_to_websocket
         self.execution_id: Optional[str] = None

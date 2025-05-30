@@ -25,7 +25,7 @@ async def get_models():
     }
 
 
-@router.get("/apikeys")
+@router.get("/api-keys")
 async def get_api_keys(
     api_key_service: APIKeyService = Depends(get_api_key_service)
 ) -> List[dict]:
@@ -33,7 +33,7 @@ async def get_api_keys(
     return api_key_service.list_api_keys()
 
 
-@router.post("/apikeys")
+@router.post("/api-keys")
 @handle_api_errors
 async def add_api_key(
     payload: dict,
@@ -52,7 +52,7 @@ async def add_api_key(
     return {"message": "API key added successfully"}
 
 
-@router.delete("/apikeys/{key_id}")
+@router.delete("/api-keys/{key_id}")
 @handle_api_errors
 async def delete_api_key(
     key_id: str,

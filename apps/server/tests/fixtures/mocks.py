@@ -39,7 +39,7 @@ class MockAPIKeyService:
             {
                 "id": "test-key-1",
                 "name": "Test OpenAI Key",
-                "service": "chatgpt",
+                "service": "openai",
                 "key": "sk-test123"
             }
         ]
