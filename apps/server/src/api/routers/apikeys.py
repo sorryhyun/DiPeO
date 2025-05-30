@@ -40,16 +40,21 @@ async def add_api_key(
     api_key_service: APIKeyService = Depends(get_api_key_service)
 ):
     """Add a new API key."""
-    provider = payload.get('provider')
+    # Support both 'provider' and 'service' field names for compatibility
+    service = payload.get('service') or payload.get('provider')
     key = payload.get('key')
+    name = payload.get('name')
     
-    if not provider or not key:
-        raise ValidationError("Provider and key are required")
+    if not service or not key:
+        raise ValidationError("Service/provider and key are required")
     
-    # Create a name for the API key based on the provider
-    name = f"{provider} API Key"
-    api_key_service.create_api_key(name, provider, key)
-    return {"message": "API key added successfully"}
+    # Use provided name or generate default
+    if not name:
+        name = f"{service} API Key"
+    
+    # Create the API key and return the result
+    created_key = api_key_service.create_api_key(name, service, key)
+    return created_key
 
 
 @router.delete("/api-keys/{key_id}")

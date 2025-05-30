@@ -234,7 +234,7 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
             }
             
             const data = await response.json();
-            const apiKeys = data.apiKeys.map((key: {id: string; name: string; service: string}) => ({
+            const apiKeys = (Array.isArray(data) ? data : data.apiKeys || []).map((key: {id: string; name: string; service: string}) => ({
               id: key.id,
               name: key.name,
               service: key.service,

@@ -13,7 +13,7 @@ interface ApiKeysModalProps {
 
 const API_SERVICES = [
   { value: 'claude', label: 'Claude (Anthropic)' },
-  { value: 'chatgpt', label: 'ChatGPT (OpenAI)' },
+  { value: 'openai', label: 'ChatGPT (OpenAI)' },
   { value: 'grok', label: 'Grok' },
   { value: 'gemini', label: 'Gemini (Google)' },
   { value: 'custom', label: 'Custom' },
@@ -82,12 +82,15 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       // Add to local store with backend ID
       const newKey: ApiKey = {
         id: result.id,
-        name: newKeyForm.name.trim(),
-        service: newKeyForm.service || 'claude',
-        keyReference: newKeyForm.keyReference.trim(),
+        name: result.name || newKeyForm.name.trim(),
+        service: result.service || newKeyForm.service || 'claude',
+        keyReference: '***hidden***', // Don't store raw key in frontend
       };
 
       addApiKey(newKey);
+      
+      // Reload API keys to ensure everything is in sync
+      await loadApiKeys();
       
       // Reset form
       setNewKeyForm({
@@ -95,6 +98,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         service: 'claude',
         keyReference: '',
       });
+      
+      toast.success(`API key "${newKey.name}" added successfully`);
     } catch (error) {
       setErrors({ keyReference: 'Network error: Failed to create API key' });
     }

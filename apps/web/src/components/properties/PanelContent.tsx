@@ -385,14 +385,19 @@ export const PersonPanelContent: React.FC<{ personId: string; data: PersonDefini
   };
 
   const serviceOptions = [
-    { value: 'chatgpt', label: 'ChatGPT' },
+    { value: 'openai', label: 'OpenAI' },
     { value: 'claude', label: 'Claude' },
     { value: 'gemini', label: 'Gemini' },
     { value: 'grok', label: 'Grok' },
     { value: 'custom', label: 'Custom' }
   ];
 
-  const apiKeyOptions = apiKeysList
+  // Debug logging
+  console.log('formData.service:', formData.service);
+  console.log('apiKeysList:', apiKeysList);
+  console.log('Filtered keys:', apiKeysList.filter(k => k.service === formData.service));
+  
+  const apiKeyOptions = (apiKeysList || [])
     .filter(k => k.service === formData.service)
     .map(key => ({ value: key.id, label: key.name }));
 
