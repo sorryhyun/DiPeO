@@ -132,25 +132,58 @@ export const getModelOptions = async (): Promise<Array<{ value: string; label: s
   } catch (error) {
     console.error('Failed to fetch models from API:', error);
     
-    // Fallback to default models on error
-    return [
-      // OpenAI models
-      { value: 'gpt-4o', label: 'GPT-4o (OpenAI)' },
-      { value: 'gpt-4o-mini', label: 'GPT-4o Mini (OpenAI)' },
-      { value: 'gpt-4-turbo', label: 'GPT-4 Turbo (OpenAI)' },
-      { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (OpenAI)' },
-      
-      // Claude models
-      { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Anthropic)' },
-      { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku (Anthropic)' },
-      { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus (Anthropic)' },
-      
-      // Gemini models
-      { value: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Google)' },
-      { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash (Google)' },
-      
-      // Grok models
-      { value: 'grok-beta', label: 'Grok Beta (xAI)' },
-    ];
+    // Return empty array on error - no confusing fallback models
+    return [];
   }
 };
+
+/**
+ * Get model options dynamically based on selected service and API key
+ * This fetches real available models from the API provider
+ */
+export const getDynamicModelOptions = async (
+  service?: string, 
+  apiKeyId?: string
+): Promise<Array<{ value: string; label: string }>> => {
+  // If no service or API key provided, return empty array
+  if (!service || !apiKeyId) {
+    return [];
+  }
+
+  try {
+    // Fetch models for the specific service and API key
+    const url = new URL(API_ENDPOINTS.MODELS);
+    url.searchParams.append('service', service);
+    url.searchParams.append('api_key_id', apiKeyId);
+    
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Handle error response from backend
+    if (data.error) {
+      console.warn(`API returned error: ${data.error}`);
+      return [];
+    }
+    
+    // If specific models are returned, use those
+    if (data.models && Array.isArray(data.models)) {
+      return data.models.map((model: string) => ({
+        value: model,
+        label: model
+      }));
+    }
+    
+    // Return empty array if no models found
+    return [];
+    
+  } catch (error) {
+    console.error('Failed to fetch dynamic models from API:', error);
+    return [];
+  }
+};
+

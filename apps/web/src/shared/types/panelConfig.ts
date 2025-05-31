@@ -34,8 +34,9 @@ export interface TextFieldConfig extends BaseFieldConfig {
 export interface SelectFieldConfig extends BaseFieldConfig {
   type: 'select';
   name: string;
-  options: Array<{ value: string; label: string }> | (() => Array<{ value: string; label: string }>) | (() => Promise<Array<{ value: string; label: string }>>);
+  options: Array<{ value: string; label: string }> | (() => Array<{ value: string; label: string }>) | (() => Promise<Array<{ value: string; label: string }>>) | ((formData: any) => Promise<Array<{ value: string; label: string }>>);
   placeholder?: string;
+  dependsOn?: string[]; // Fields that this select depends on - will reload when they change
 }
 
 export interface TextAreaFieldConfig extends BaseFieldConfig {

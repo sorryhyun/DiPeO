@@ -1,6 +1,6 @@
 import { PanelConfig } from '@/shared/types/panelConfig';
 import { PersonDefinition } from '@/shared/types';
-import { getApiKeyOptions, getModelOptions } from '../utils/propertyHelpers';
+import { getApiKeyOptions, getDynamicModelOptions } from '../utils/propertyHelpers';
 
 export const personConfig: PanelConfig<PersonDefinition> = {
   layout: 'twoColumn',
@@ -41,8 +41,9 @@ export const personConfig: PanelConfig<PersonDefinition> = {
       type: 'select',
       name: 'modelName',
       label: 'Model',
-      options: getModelOptions,  // Function to get available models
-      placeholder: 'Select Model'
+      options: (formData: any) => getDynamicModelOptions(formData.service, formData.apiKeyId),
+      placeholder: 'Select Model',
+      dependsOn: ['service', 'apiKeyId']  // Reload when service or API key changes
     }
   ],
   rightColumn: [

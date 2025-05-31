@@ -20,9 +20,6 @@ export type BlockType = 'start' | 'person_job' | 'person_batch_job' | 'db' | 'jo
 
 // Base for all canvas blocks (nodes) with discriminating `type`
 export interface BaseBlockData {
-  // Satisfy Record<string, unknown> for React Flow
-  [key: string]: unknown;
-
   id: string;
   type: BlockType;
   label: string;
@@ -126,11 +123,11 @@ export interface ArrowData {
   controlPointOffsetY?: number;
 }
 
-// Union type for all block data types
+// Union type for all block data types  
 export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData;
 
-// Type for diagram nodes
-export type DiagramNode = Node<DiagramNodeData>;
+// Type for diagram nodes with React Flow compatibility
+export type DiagramNode = Node<DiagramNodeData & Record<string, unknown>>;
 
 export interface DiagramState {
   // Person definitions shown in top bar, not as nodes

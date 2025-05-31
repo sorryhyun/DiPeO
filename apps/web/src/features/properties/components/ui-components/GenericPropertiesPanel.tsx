@@ -13,13 +13,13 @@ export function GenericPropertiesPanel({
   data = {},
   onChange
 }: GenericPropertiesPanelProps) {
-  const [formData, setFormData] = useState<Record<string, any>>(data);
+  const [formData, setFormData] = useState<Record<string, unknown>>(data);
 
   useEffect(() => {
     setFormData(data);
   }, [data]);
 
-  const handleChange = (fieldName: string, value: any) => {
+  const handleChange = (fieldName: string, value: unknown) => {
     const newData = { ...formData, [fieldName]: value };
     setFormData(newData);
     if (onChange) {
@@ -28,7 +28,8 @@ export function GenericPropertiesPanel({
   };
 
   const renderField = (field: FieldConfig) => {
-    const value = formData[field.name] || '';
+    const rawValue = formData[field.name];
+    const value = rawValue != null ? String(rawValue) : '';
 
     switch (field.type) {
       case 'text':
@@ -90,13 +91,14 @@ export function GenericPropertiesPanel({
           </FormField>
         );
 
-      case 'checkbox':
+      case 'checkbox': {
+        const isChecked = rawValue === true || rawValue === 'true' || rawValue === '1';
         return (
           <FormField key={field.name} label="" className="flex items-center space-x-2">
             <input
               type="checkbox"
               id={field.name}
-              checked={value === true || value === 'true'}
+              checked={isChecked}
               onChange={(e) => handleChange(field.name, e.target.checked)}
               className="w-4 h-4"
             />
@@ -105,6 +107,7 @@ export function GenericPropertiesPanel({
             </Label>
           </FormField>
         );
+      }
 
       default:
         return null;

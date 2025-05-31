@@ -40,7 +40,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   const entityType = getEntityType(data.type);
   const { formData, handleChange } = usePropertyPanel<T>(nodeId, entityType, data);
   
-  // Load async options when component mounts
+  // Load async options when component mounts or when dependencies change
   useEffect(() => {
     const loadAsyncOptions = async () => {
       const fieldsToProcess: FieldConfig[] = [];
@@ -72,7 +72,17 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
       for (const field of fieldsToProcess) {
         try {
           if (field.type === 'select' && typeof field.options === 'function' && field.name) {
-            const result = field.options();
+            let result;
+            
+            // Check if the options function expects formData (for dependent fields)
+            if (field.options.length > 0) {
+              // Function expects formData parameter
+              result = (field.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
+            } else {
+              // Function doesn't expect parameters
+              result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
+            }
+            
             const options = result instanceof Promise ? await result : result;
             optionsMap[field.name] = options;
           }
@@ -88,7 +98,68 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
     };
     
     loadAsyncOptions();
-  }, [config]);
+  }, [config, formData]); // Added formData as dependency
+  
+  // Reload options for dependent fields when their dependencies change
+  useEffect(() => {
+    const reloadDependentOptions = async () => {
+      const fieldsToUpdate: FieldConfig[] = [];
+      
+      // Collect fields that have dependencies
+      const collectDependentFields = (fields: FieldConfig[]) => {
+        fields.forEach(field => {
+          if (field.type === 'select' && field.dependsOn && typeof field.options === 'function') {
+            fieldsToUpdate.push(field);
+          } else if (field.type === 'row' && field.fields) {
+            collectDependentFields(field.fields);
+          }
+        });
+      };
+      
+      if (config.fields) {
+        collectDependentFields(config.fields);
+      }
+      if (config.leftColumn) {
+        collectDependentFields(config.leftColumn);
+      }
+      if (config.rightColumn) {
+        collectDependentFields(config.rightColumn);
+      }
+      
+      // Check if any dependent fields need updating
+      const updatedOptions: Record<string, Array<{ value: string; label: string }>> = {};
+      let hasUpdates = false;
+      
+      for (const field of fieldsToUpdate) {
+        if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
+          // Check if any dependency has changed (we'll reload all for simplicity)
+          try {
+            let result;
+            
+            if (field.options.length > 0) {
+              result = (field.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
+            } else {
+              result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
+            }
+            
+            const options = result instanceof Promise ? await result : result;
+            updatedOptions[field.name] = options;
+            hasUpdates = true;
+          } catch (error) {
+            console.error(`Failed to reload options for dependent field ${field.name}:`, error);
+            updatedOptions[field.name] = [];
+            hasUpdates = true;
+          }
+        }
+      }
+      
+      if (hasUpdates) {
+        setAsyncOptions(prev => ({ ...prev, ...updatedOptions }));
+      }
+    };
+    
+    reloadDependentOptions();
+  }, [formData.service, formData.apiKeyId]); // Only trigger when these specific dependencies change
   
   // Type-safe update function
   const updateField = (name: string, value: any) => {
@@ -147,7 +218,15 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
           } else {
             // Try to call the function synchronously as a fallback
             try {
-              const result = fieldConfig.options();
+              let result;
+              if (fieldConfig.options.length > 0) {
+                // Function expects formData parameter
+                result = (fieldConfig.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
+              } else {
+                // Function doesn't expect parameters
+                result = (fieldConfig.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
+              }
+              
               if (result instanceof Promise) {
                 // For async functions not yet loaded, show empty options
                 options = [];

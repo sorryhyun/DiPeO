@@ -20,6 +20,6 @@ export interface GenericPropertiesPanelProps {
   fields: FieldConfig[];
   title: string;
   icon?: React.ReactNode;
-  data?: Record<string, any>;
-  onChange?: (nodeId: string, data: Record<string, any>) => void;
+  data?: Record<string, unknown>;
+  onChange?: (nodeId: string, data: Record<string, unknown>) => void;
 }
