@@ -6,3 +6,4 @@ export { jobConfig } from './jobConfig';
 export { personBatchJobConfig } from './personBatchJobConfig';
 export { arrowConfig } from './arrowConfig';
 export { personConfig } from './personConfig';
+export { startConfig } from './startConfig';

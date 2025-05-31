@@ -3,7 +3,7 @@
  */
 
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { API_ENDPOINTS } from '@/shared/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 
 export const formatPropertyValue = (value: any, type: string): string => {
   if (value === null || value === undefined) {
@@ -151,12 +151,13 @@ export const getDynamicModelOptions = async (
   }
 
   try {
-    // Fetch models for the specific service and API key
-    const url = new URL(API_ENDPOINTS.MODELS);
-    url.searchParams.append('service', service);
-    url.searchParams.append('api_key_id', apiKeyId);
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('service', service);
+    params.append('api_key_id', apiKeyId);
     
-    const response = await fetch(url.toString());
+    const url = `${getApiUrl(API_ENDPOINTS.MODELS)}?${params.toString()}`;
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.status}`);

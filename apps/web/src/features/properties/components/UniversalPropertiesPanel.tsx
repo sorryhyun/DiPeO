@@ -12,7 +12,8 @@ import {
   jobConfig,
   personBatchJobConfig,
   arrowConfig,
-  personConfig
+  personConfig,
+  startConfig
 } from '../configs';
 
 // Mapping from node types to their configurations
@@ -25,6 +26,7 @@ const PANEL_CONFIGS: Record<string, PanelConfig<any>> = {
   'person_batch_job': personBatchJobConfig,
   'arrow': arrowConfig,
   'person': personConfig,
+  'start': startConfig,
 };
 
 export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: any }> = ({ nodeId, data }) => {

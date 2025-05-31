@@ -23,7 +23,7 @@ const ConditionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
       <div className="text-xs text-gray-600 mb-1 text-center">
         {isMaxIterationMode ? (
-          <span className="font-medium">🔄 Max Iterations</span>
+          <span className="font-medium">🔄 Detect Max Iterations</span>
         ) : (
           <span className="font-medium">📐 Expression</span>
         )}

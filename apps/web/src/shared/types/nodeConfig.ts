@@ -61,7 +61,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#059669' }
     ],
     borderColor: 'green',
-    width: 'w-28 h-28',
+    width: 'w-20 h-20',
     className: 'rounded-full',
     emoji: '🚀',
     label: 'Start',
@@ -139,10 +139,10 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter condition name', required: true },
       { name: 'conditionType', label: 'Condition Type', type: 'select', options: [
         { value: 'expression', label: 'Expression' },
-        { value: 'max_iterations', label: 'Max Iterations' }
+        { value: 'max_iterations', label: 'Detect Max Iterations' }
       ]},
       { name: 'expression', label: 'Expression', type: 'textarea', placeholder: 'Enter condition expression', rows: 3 },
-      { name: 'maxIterations', label: 'Max Iterations', type: 'number', placeholder: '10' }
+      { name: 'maxIterations', label: 'Detect Max Iterations', type: 'number', placeholder: '10' }
     ],
     
     // Metadata
@@ -256,7 +256,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '#dc2626' }
     ],
     borderColor: 'red',
-    width: 'w-40 h-40',
+    width: 'w-24 h-24',
     className: 'rounded-lg',
     emoji: '🎯',
     label: 'Endpoint',

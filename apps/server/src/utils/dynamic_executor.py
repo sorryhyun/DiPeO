@@ -289,3 +289,8 @@ class DynamicExecutor:
     def mark_first_only_consumed(self, node_id: str) -> None:
         """Mark that a node has consumed its first-only inputs."""
         self.first_only_consumed[node_id] = True
+    
+    def reset_first_only_consumed(self, node_id: str) -> None:
+        """Reset first-only consumed status for a node (used in loops)."""
+        if node_id in self.first_only_consumed:
+            del self.first_only_consumed[node_id]

@@ -37,6 +37,17 @@ src/
 **Persons**: LLM agent configurations with memory  
 **Dynamic Execution**: Condition-based branching and iteration support
 
+## Loop rules
+
+There is no special mechanism dedicated to loops, but a loop can be implemented using the following two mechanisms:
+
+1. The person job block has an attribute called max_iteration. Once the block has been executed up to the number of times specified by max_iteration, it will be skipped for any subsequent requests. During this skipping, the forget rule does not apply, and all inputs are counted regardless of whether they were received via the first only handle or the default handle. For reference, the first only handle is used only for the initial execution of the block, after which it only accepts inputs through the default handle. If a first only handle is defined, the block will not accept input from the default handle on its first execution.
+
+2. The condition block decides whether to proceed with true or false using either the detect max iteration feature or an expression. When using detect max iteration, it proceeds with true if the preceding blocks have reached their max iteration and have been skipped; otherwise, it proceeds with false.
+
+Therefore, if you place two person job blocks with max_iterations=2 and connect them to a condition block set to detect max iteration, you can implement a loop that runs twice.
+
+
 ## Key Endpoints
 
 | Endpoint | Purpose | Features |
