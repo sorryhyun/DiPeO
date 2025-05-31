@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PanelConfig, FieldConfig } from '@/shared/types/panelConfig';
-import { usePropertyPanel } from '../../hooks/usePropertyPanel';
+import { usePropertyPanel } from '@/features/properties';
 import {
   Form,
   TwoColumnPanelLayout,
@@ -210,11 +210,11 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
         let options: Array<{ value: string; label: string }> = [];
         
         if (Array.isArray(fieldConfig.options)) {
-          options = fieldConfig.options;
+          options = fieldConfig.options as Array<{ value: string; label: string }>;
         } else if (typeof fieldConfig.options === 'function') {
           // Check if we have loaded async options for this field
           if (fieldConfig.name && asyncOptions[fieldConfig.name]) {
-            options = asyncOptions[fieldConfig.name];
+            options = asyncOptions[fieldConfig.name] || [];
           } else {
             // Try to call the function synchronously as a fallback
             try {
@@ -231,7 +231,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
                 // For async functions not yet loaded, show empty options
                 options = [];
               } else {
-                options = result;
+                options = result as Array<{ value: string; label: string }>;
               }
             } catch (error) {
               console.error(`Error getting options for ${fieldConfig.name}:`, error);

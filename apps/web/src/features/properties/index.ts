@@ -1,5 +1,4 @@
 // Components
-export * from './components/PropertyPanels';
 export { UniversalPropertiesPanel } from './components/UniversalPropertiesPanel';
 export { default as PropertiesRenderer } from './components/PropertiesRenderer';
 

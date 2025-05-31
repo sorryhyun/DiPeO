@@ -1,6 +1,6 @@
 import { PanelConfig } from '@/shared/types/panelConfig';
 import { PersonDefinition } from '@/shared/types';
-import { getApiKeyOptions, getDynamicModelOptions } from '../utils/propertyHelpers';
+import { getApiKeyOptions, getDynamicModelOptions } from '@/features/properties';
 
 export const personConfig: PanelConfig<PersonDefinition> = {
   layout: 'twoColumn',

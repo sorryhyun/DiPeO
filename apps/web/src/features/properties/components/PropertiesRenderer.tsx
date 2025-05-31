@@ -1,6 +1,6 @@
 // Reusable component for rendering property panels based on selection
 import React from 'react';
-import { UniversalPropertiesPanel } from './PropertyPanels';
+import { UniversalPropertiesPanel } from '@/features/properties';
 import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types/domain';
 
 interface PropertiesRendererProps {

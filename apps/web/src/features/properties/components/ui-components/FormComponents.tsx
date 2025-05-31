@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Input, Label, Select, SelectItem, Textarea, Spinner, Switch
 } from '../../../../shared/components';
-import { FileUploadButton } from '../../../../shared/components/common/FileUploadButton';
+import { FileUploadButton } from '@/shared';
 import { FormFieldProps } from '@/shared/types';
 import { usePersons } from '@/shared/hooks/useStoreSelectors';
 

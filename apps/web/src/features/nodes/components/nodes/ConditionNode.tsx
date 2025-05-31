@@ -4,7 +4,7 @@ import { GenericNode } from '@/features/diagram/components/ui-components/Generic
 import { UNIFIED_NODE_CONFIGS, type ConditionBlockData } from '@/shared/types';
 
 const ConditionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const config = UNIFIED_NODE_CONFIGS.condition;
+  const config = UNIFIED_NODE_CONFIGS.condition!;
   const conditionData = data as ConditionBlockData;
   const isFlipped = conditionData.flipped === true;
   const isMaxIterationMode = conditionData.detectMaxIteration || conditionData.conditionType === 'max_iterations';
