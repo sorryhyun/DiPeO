@@ -7,7 +7,6 @@ import logging
 from .base_executor import BaseExecutor
 from ..core.execution_context import ExecutionContext
 from ..core.skip_manager import SkipManager
-from ...utils.resolve_utils import render_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +155,7 @@ class PersonBatchJobExecutor(BaseExecutor):
         item_vars['_index'] = getattr(item, '_index', 0)  # If item has index
         
         # Render prompt with item context
-        rendered_prompt = render_prompt(prompt_template, item_vars)
+        rendered_prompt = self._render_template(prompt_template, item_vars)
         
         # Add item to prompt if it's not already included
         if '_item' not in prompt_template and str(item) not in rendered_prompt:
@@ -232,3 +231,11 @@ class PersonBatchJobExecutor(BaseExecutor):
             return results[-1] if results else None
         else:
             return results
+    
+    def _render_template(self, template: str, variables: dict) -> str:
+        """Replace {{var}} with its value. Unknown names are left untouched."""
+        import re
+        def repl(m):
+            key = m.group(1)
+            return str(variables.get(key, m.group(0)))
+        return re.sub(r"{{(\w+)}}", repl, template)

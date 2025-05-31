@@ -7,7 +7,6 @@ import logging
 from .base_executor import BaseExecutor
 from ..core.execution_context import ExecutionContext
 from ..core.skip_manager import SkipManager
-from ...utils.resolve_utils import render_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -115,13 +114,8 @@ class JobExecutor(BaseExecutor):
         temperature = data.get('temperature', 0.7)
         api_key_id = data.get('apiKey')
         
-        # Create vars_map from context outputs
-        vars_map = {}
-        for node_id, output in context.node_outputs.items():
-            vars_map[node_id] = output
-        
-        # Render the prompt
-        rendered_prompt = render_prompt(prompt_template, vars_map)
+        # Render the prompt using base executor's resolution method
+        rendered_prompt = self._resolve_value(prompt_template, context)
         
         # Add inputs to prompt if available
         input_list = []
