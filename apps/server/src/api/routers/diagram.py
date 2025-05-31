@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import json
 import inspect
+import asyncio
+import uuid
+from typing import Dict, Any
 
 from ...services.diagram_service import DiagramService
 from ...utils.dependencies import get_diagram_service
@@ -32,6 +35,94 @@ def safe_json_dumps(obj):
     return json.dumps(obj, cls=SafeJSONEncoder, default=str)
 
 
+async def execution_stream_generator(diagram_data: Dict[str, Any]):
+    """Generate SSE stream for diagram execution."""
+    execution_id = str(uuid.uuid4())
+    
+    try:
+        # Send execution started event
+        yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id})}\n\n"
+        
+        # Simulate execution process
+        nodes = diagram_data.get('nodes', [])
+        start_nodes = [n for n in nodes if n.get('type') == 'startNode']
+        
+        if not start_nodes:
+            yield f"data: {json.dumps({'type': 'execution_error', 'error': 'No start nodes found'})}\n\n"
+            return
+        
+        # Process each node (simplified execution)
+        for node in nodes:
+            node_id = node.get('id')
+            node_type = node.get('type', 'unknown')
+            
+            if not node_id:
+                continue
+                
+            # Start node
+            yield f"data: {json.dumps({'type': 'node_start', 'nodeId': node_id})}\n\n"
+            
+            # Simulate processing time
+            await asyncio.sleep(0.5)
+            
+            # Complete node
+            yield f"data: {json.dumps({'type': 'node_complete', 'nodeId': node_id})}\n\n"
+        
+        # Execution complete
+        yield f"data: {json.dumps({'type': 'execution_complete', 'execution_id': execution_id, 'context': {'execution_id': execution_id}})}\n\n"
+        
+    except Exception as e:
+        yield f"data: {json.dumps({'type': 'execution_error', 'error': str(e)})}\n\n"
+
+
+@router.post("/stream/run-diagram")
+async def stream_run_diagram(diagram_data: dict):
+    """
+    Execute diagram with SSE streaming updates.
+    
+    This is a simplified implementation that provides the streaming interface
+    expected by the frontend. A full implementation would integrate with
+    the execution engine.
+    """
+    return StreamingResponse(
+        execution_stream_generator(diagram_data),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control"
+        }
+    )
+
+
+@router.post("/run-diagram")
+async def run_diagram(diagram_data: dict):
+    """
+    Execute diagram synchronously.
+    
+    This is a simplified implementation for synchronous execution.
+    """
+    try:
+        nodes = diagram_data.get('nodes', [])
+        start_nodes = [n for n in nodes if n.get('type') == 'startNode']
+        
+        if not start_nodes:
+            raise HTTPException(status_code=400, detail="No start nodes found")
+        
+        execution_id = str(uuid.uuid4())
+        
+        return {
+            "success": True,
+            "execution_id": execution_id,
+            "context": {
+                "execution_id": execution_id,
+                "nodes_processed": len(nodes)
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/import-uml")

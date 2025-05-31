@@ -1,0 +1,113 @@
+"""
+Monitor router for real-time execution monitoring via SSE.
+"""
+
+import asyncio
+import json
+import uuid
+from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
+from typing import Set, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/monitor", tags=["monitor"])
+
+# Global sets to track active monitor connections
+active_monitors: Set[str] = set()
+monitor_queues: Dict[str, asyncio.Queue] = {}
+
+
+async def broadcast_to_monitors(event_data: Dict[str, Any]):
+    """Broadcast an event to all active monitor connections."""
+    if not active_monitors:
+        return
+    
+    # Add monitor flag to distinguish from direct execution events
+    event_data["from_monitor"] = True
+    message = f"data: {json.dumps(event_data)}\n\n"
+    
+    # Send to all active monitors
+    disconnected_monitors = set()
+    for monitor_id in active_monitors.copy():
+        try:
+            queue = monitor_queues.get(monitor_id)
+            if queue:
+                await queue.put(message)
+            else:
+                disconnected_monitors.add(monitor_id)
+        except Exception as e:
+            logger.warning(f"Failed to send to monitor {monitor_id}: {e}")
+            disconnected_monitors.add(monitor_id)
+    
+    # Clean up disconnected monitors
+    for monitor_id in disconnected_monitors:
+        active_monitors.discard(monitor_id)
+        monitor_queues.pop(monitor_id, None)
+
+
+async def monitor_event_generator(monitor_id: str):
+    """Generate SSE events for a specific monitor connection."""
+    queue = asyncio.Queue()
+    monitor_queues[monitor_id] = queue
+    active_monitors.add(monitor_id)
+    
+    try:
+        # Send initial connection event
+        yield f"data: {json.dumps({'type': 'monitor_connected', 'monitor_id': monitor_id})}\n\n"
+        
+        # Send heartbeat and queued events
+        while True:
+            try:
+                # Wait for events with timeout for heartbeat
+                message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                yield message
+            except asyncio.TimeoutError:
+                # Send heartbeat to keep connection alive
+                yield f"data: {json.dumps({'type': 'heartbeat', 'timestamp': asyncio.get_event_loop().time()})}\n\n"
+    except asyncio.CancelledError:
+        logger.info(f"Monitor {monitor_id} connection cancelled")
+    except Exception as e:
+        logger.error(f"Monitor {monitor_id} error: {e}")
+    finally:
+        # Clean up on disconnection
+        active_monitors.discard(monitor_id)
+        monitor_queues.pop(monitor_id, None)
+        logger.info(f"Monitor {monitor_id} disconnected")
+
+
+@router.get("/stream")
+async def monitor_stream(request: Request):
+    """
+    SSE endpoint for monitoring all diagram executions.
+    
+    This endpoint allows multiple clients to monitor execution status
+    across all running diagrams in real-time.
+    """
+    monitor_id = str(uuid.uuid4())
+    logger.info(f"New monitor connection: {monitor_id}")
+    
+    return StreamingResponse(
+        monitor_event_generator(monitor_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control"
+        }
+    )
+
+
+@router.get("/status")
+async def monitor_status():
+    """Get current monitoring status."""
+    return {
+        "active_monitors": len(active_monitors),
+        "monitor_ids": list(active_monitors)
+    }
+
+
+# Export broadcast function for use by execution engine
+__all__ = ["router", "broadcast_to_monitors"]
