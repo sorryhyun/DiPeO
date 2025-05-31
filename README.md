@@ -48,13 +48,6 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 │   ├── web/        # React 19 + Vite frontend (AgentDiagram UI)
 │   └── server/     # FastAPI backend (diagram executor)
 │
-├── packages/       # Shared, framework‑agnostic libraries
-│   ├── core-model/     # TS types for nodes, arrows, persons, API keys
-│   ├── ui-kit/         # Design‑system components (Button, Input, Select …)
-│   ├── diagram-ui/     # React Flow node & edge primitives
-│   ├── properties-ui/  # Dynamic property‑panel builder
-│   └── hooks/          # Reusable React hooks (context menu, shortcuts …)
-│
 └── README.md       # ← you are here
 ```
 
@@ -64,18 +57,15 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ```bash
 # 1. Clone
-$ git clone https://github.com/your-org/agent-diagram.git
-$ cd agent-diagram
+$ git clone https://github.com/sorryhyun/DiPeO.git
+$ cd DiPeO
 
 # 2. Install deps (pnpm & Python virtualenv recommended)
 $ pnpm install          # JS/TS workspace deps
 $ cd apps/server && python -m venv venv && source venv/bin/activate
 $ pip install -r requirements.txt
 
-# 3. Environment
-$ cp apps/server/.env.example apps/server/.env  # add your API keys
-
-# 4. Run all services
+# 3. Run all services
 # in one terminal
 $ pnpm dev:web            # React dev server on :3000
 # in another
@@ -83,20 +73,6 @@ $ uvicorn apps.server.main:app --reload --port 8000
 
 # 5. Open http://localhost:3000 and start building diagrams!
 ```
-
----
-
-## 🏗️ Core Packages at a Glance
-
-| Package               | Purpose                                                                             |
-| --------------------- | ----------------------------------------------------------------------------------- |
-| `@repo/core-model`    | Central type definitions – DiagramState, Node/Arrow data, Person & API‑key schemas. |
-| `@repo/ui-kit`        | Tailwind‑styled primitives: Button, Input, Select, Modal, Switch, Spinner …         |
-| `@repo/diagram-ui`    | React Flow powered nodes, arrows, context menu, animations, handle helpers.         |
-| `@repo/properties-ui` | Generic & field‑based property panels with auto‑save and loading states.            |
-| `@repo/hooks`         | `useContextMenu`, `useKeyboardShortcuts`, `usePropertyForm`, and more.              |
-
-> **Tip:** packages are completely framework‑agnostic except where React is unavoidable for UI rendering.
 
 ---
 
