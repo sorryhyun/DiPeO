@@ -32,13 +32,16 @@ function BaseNodeComponent({
   let storeState = null;
   let storeContext = null;
   
+  // Always call hooks - React requires this
   try {
-    // These will only work if component is used within store providers
     storeState = useNodeExecutionState(id);
+  } catch {
+    storeState = null;
+  }
+  
+  try {
     storeContext = useDiagramContext();
   } catch {
-    // Fallback to props when store is not available
-    storeState = null;
     storeContext = null;
   }
   

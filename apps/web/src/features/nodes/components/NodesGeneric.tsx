@@ -7,11 +7,17 @@ import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
 import { StartNode, ConditionNode, JobNode, DBNode, EndpointNode, PersonJobNode, PersonBatchJobNode } from './nodes';
 
 // Loading component for lazy-loaded nodes
-const NodeLoadingFallback: React.FC<NodeProps> = ({ id, data, selected }) => (
-  <GenericNode id={id} data={data} selected={selected} nodeType="defaultNode">
-    <span className="text-gray-400">Loading...</span>
-  </GenericNode>
-);
+const NodeLoadingFallback: React.FC<NodeProps> = ({ id, data, selected }) => {
+  const nodeType = (data as { type: string }).type;
+  const config = UNIFIED_NODE_CONFIGS[nodeType];
+  const reactFlowType = config?.reactFlowType || "startNode";
+  
+  return (
+    <GenericNode id={id} data={data} selected={selected} nodeType={reactFlowType}>
+      <span className="text-gray-400">Loading...</span>
+    </GenericNode>
+  );
+};
 
 // Map of node types to their lazy-loaded components
 const nodeComponents: Record<string, React.LazyExoticComponent<React.FC<NodeProps>>> = {
@@ -32,7 +38,7 @@ const UniversalNode: React.FC<NodeProps> = (props) => {
   if (!NodeComponent) {
     const config = UNIFIED_NODE_CONFIGS[nodeType];
     return (
-      <GenericNode {...props} nodeType={config?.reactFlowType || "defaultNode"}>
+      <GenericNode {...props} nodeType={config?.reactFlowType || "startNode"}>
         <span className="text-red-500">Unknown node type: {nodeType}</span>
       </GenericNode>
     );

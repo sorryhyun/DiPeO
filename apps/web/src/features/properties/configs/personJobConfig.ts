@@ -24,7 +24,8 @@ export const personJobConfig: PanelConfig<PersonJobBlockData> = {
         },
         {
           type: 'iterationCount',
-          name: 'iterationCount'
+          name: 'iterationCount',
+          className: 'flex-1'
         }
       ]
     }

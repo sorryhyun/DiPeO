@@ -19,11 +19,20 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
+  const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
   const { handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
+  
+  // Load API keys on mount
+  useEffect(() => {
+    loadApiKeys().catch(error => {
+      console.error('Failed to load API keys on mount:', error);
+    });
+  }, [loadApiKeys]);
+  
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsMonitorMode(params.get('monitor') === 'true');

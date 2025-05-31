@@ -1,19 +1,19 @@
 import { PanelConfig } from '@/shared/types/panelConfig';
 import { PersonDefinition } from '@/shared/types';
+import { getApiKeyOptions, getModelOptions } from '../utils/propertyHelpers';
 
 export const personConfig: PanelConfig<PersonDefinition> = {
-  layout: 'single',
-  fields: [
+  layout: 'twoColumn',
+  leftColumn: [
+    {
+      type: 'text',
+      name: 'label',
+      label: 'Person Name',
+      placeholder: 'Person Name'
+    },
     {
       type: 'row',
       fields: [
-        {
-          type: 'text',
-          name: 'label',
-          label: 'Person Name',
-          placeholder: 'Person Name',
-          className: 'flex-1'
-        },
         {
           type: 'select',
           name: 'service',
@@ -26,30 +26,26 @@ export const personConfig: PanelConfig<PersonDefinition> = {
             { value: 'custom', label: 'Custom' }
           ],
           className: 'flex-1'
-        }
-      ]
-    },
-    {
-      type: 'row',
-      fields: [
+        },
         {
           type: 'select',
           name: 'apiKeyId',
           label: 'API Key',
-          options: [],  // Will be populated dynamically
+          options: getApiKeyOptions,  // Function to get current API keys
           placeholder: 'Select API Key',
-          className: 'flex-1'
-        },
-        {
-          type: 'select',
-          name: 'modelName',
-          label: 'Model',
-          options: [],  // Will be populated dynamically
-          placeholder: 'Select Model',
           className: 'flex-1'
         }
       ]
     },
+    {
+      type: 'select',
+      name: 'modelName',
+      label: 'Model',
+      options: getModelOptions,  // Function to get available models
+      placeholder: 'Select Model'
+    }
+  ],
+  rightColumn: [
     {
       type: 'textarea',
       name: 'systemPrompt',

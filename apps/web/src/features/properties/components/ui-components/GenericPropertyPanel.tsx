@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PanelConfig, FieldConfig } from '@/shared/types/panelConfig';
 import { usePropertyPanel } from '../../hooks/usePropertyPanel';
 import {
@@ -27,7 +27,68 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   data,
   config
 }: GenericPropertyPanelProps<T>) => {
-  const { formData, handleChange } = usePropertyPanel<T>(nodeId, 'node', data);
+  // State for async options
+  const [asyncOptions, setAsyncOptions] = useState<Record<string, Array<{ value: string; label: string }>>>({});
+  
+  // Determine entity type based on data.type
+  const getEntityType = (dataType: string): 'node' | 'arrow' | 'person' => {
+    if (dataType === 'arrow') return 'arrow';
+    if (dataType === 'person') return 'person';
+    return 'node';
+  };
+  
+  const entityType = getEntityType(data.type);
+  const { formData, handleChange } = usePropertyPanel<T>(nodeId, entityType, data);
+  
+  // Load async options when component mounts
+  useEffect(() => {
+    const loadAsyncOptions = async () => {
+      const fieldsToProcess: FieldConfig[] = [];
+      
+      // Collect all fields that need async options
+      const collectFields = (fields: FieldConfig[]) => {
+        fields.forEach(field => {
+          if (field.type === 'select' && typeof field.options === 'function') {
+            fieldsToProcess.push(field);
+          } else if (field.type === 'row' && field.fields) {
+            collectFields(field.fields);
+          }
+        });
+      };
+      
+      if (config.fields) {
+        collectFields(config.fields);
+      }
+      if (config.leftColumn) {
+        collectFields(config.leftColumn);
+      }
+      if (config.rightColumn) {
+        collectFields(config.rightColumn);
+      }
+      
+      // Load options for all async fields
+      const optionsMap: Record<string, Array<{ value: string; label: string }>> = {};
+      
+      for (const field of fieldsToProcess) {
+        try {
+          if (field.type === 'select' && typeof field.options === 'function' && field.name) {
+            const result = field.options();
+            const options = result instanceof Promise ? await result : result;
+            optionsMap[field.name] = options;
+          }
+        } catch (error) {
+          console.error(`Failed to load options for field ${field.name}:`, error);
+          if (field.name) {
+            optionsMap[field.name] = [];
+          }
+        }
+      }
+      
+      setAsyncOptions(optionsMap);
+    };
+    
+    loadAsyncOptions();
+  }, [config]);
   
   // Type-safe update function
   const updateField = (name: string, value: any) => {
@@ -75,9 +136,30 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
       }
 
       case 'select': {
-        const options = typeof fieldConfig.options === 'function' 
-          ? fieldConfig.options() 
-          : fieldConfig.options;
+        let options: Array<{ value: string; label: string }> = [];
+        
+        if (Array.isArray(fieldConfig.options)) {
+          options = fieldConfig.options;
+        } else if (typeof fieldConfig.options === 'function') {
+          // Check if we have loaded async options for this field
+          if (fieldConfig.name && asyncOptions[fieldConfig.name]) {
+            options = asyncOptions[fieldConfig.name];
+          } else {
+            // Try to call the function synchronously as a fallback
+            try {
+              const result = fieldConfig.options();
+              if (result instanceof Promise) {
+                // For async functions not yet loaded, show empty options
+                options = [];
+              } else {
+                options = result;
+              }
+            } catch (error) {
+              console.error(`Error getting options for ${fieldConfig.name}:`, error);
+              options = [];
+            }
+          }
+        }
         
         return (
           <InlineSelectField

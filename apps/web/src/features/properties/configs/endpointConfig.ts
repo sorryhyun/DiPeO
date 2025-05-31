@@ -2,8 +2,8 @@ import { PanelConfig } from '@/shared/types/panelConfig';
 import { EndpointBlockData } from '@/shared/types';
 
 export const endpointConfig: PanelConfig<EndpointBlockData> = {
-  layout: 'single',
-  fields: [
+  layout: 'twoColumn',
+  leftColumn: [
     {
       type: 'text',
       name: 'label',
@@ -16,28 +16,36 @@ export const endpointConfig: PanelConfig<EndpointBlockData> = {
       label: 'Save output to file'
     },
     {
-      type: 'text',
-      name: 'filePath',
-      label: 'File Path',
-      placeholder: 'results/output.txt',
-      conditional: {
-        field: 'saveToFile',
-        values: [true]
-      }
-    },
-    {
-      type: 'select',
-      name: 'fileFormat',
-      label: 'File Format',
-      options: [
-        { value: 'text', label: 'Plain Text' },
-        { value: 'json', label: 'JSON' },
-        { value: 'csv', label: 'CSV' }
-      ],
-      conditional: {
-        field: 'saveToFile',
-        values: [true]
-      }
+      type: 'row',
+      fields: [
+        {
+          type: 'text',
+          name: 'filePath',
+          label: 'File Path',
+          placeholder: 'results/output.txt',
+          conditional: {
+            field: 'saveToFile',
+            values: [true]
+          },
+          className: 'flex-1'
+        },
+        {
+          type: 'select',
+          name: 'fileFormat',
+          label: 'File Format',
+          options: [
+            { value: 'text', label: 'Plain Text' },
+            { value: 'json', label: 'JSON' },
+            { value: 'csv', label: 'CSV' }
+          ],
+          conditional: {
+            field: 'saveToFile',
+            values: [true]
+          },
+          className: 'flex-1'
+        }
+      ]
     }
-  ]
+  ],
+  rightColumn: []
 };
