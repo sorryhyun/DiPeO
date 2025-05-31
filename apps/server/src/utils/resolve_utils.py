@@ -3,6 +3,22 @@ import re
 from typing import Any, Dict, List, Tuple
 from .output_processor import OutputProcessor
 
+
+def _extract_from_object(obj: Any, key_path: str) -> Any:
+    """Extract a value from an object using dot notation key path."""
+    keys = key_path.split('.')
+    current = obj
+    
+    for key in keys:
+        if isinstance(current, dict):
+            current = current.get(key)
+        elif hasattr(current, key):
+            current = getattr(current, key)
+        else:
+            return None
+    
+    return current
+
 def render_prompt(template: str, variables: Dict[str, Any]) -> str:
     """Replace {{var}} with its value. Unknown names are left untouched."""
     def repl(m):
@@ -15,7 +31,6 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
     """Resolve incoming arrow values into vars_map and inputs list."""
     vars_map: Dict[str, Any] = {}
     inputs: List[Any] = []
-    from ..execution import DiagramExecutor
 
     for e in incoming:
         src_id = e.get("source")
@@ -37,7 +52,7 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
             object_key_path = data.get('objectKeyPath', '')
             if not object_key_path:
                 raise ValueError(f"Arrow {arrow_id} with type 'variable_in_object' missing 'objectKeyPath'")
-            processed_value = DiagramExecutor._extract_from_object(value, object_key_path)
+            processed_value = _extract_from_object(value, object_key_path)
             var_name = label or object_key_path.split('.')[-1]
         elif ctype == 'conversation_state':
             # For conversation_state, we need to provide the conversation history as Messages object

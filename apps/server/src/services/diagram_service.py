@@ -1,8 +1,7 @@
 import re
-from typing import Any, Dict, List, Tuple
 from fastapi import HTTPException
 
-from ..exceptions import DiagramExecutionError, ValidationError
+from ..exceptions import ValidationError
 from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
@@ -27,48 +26,6 @@ class DiagramService(BaseService):
         self.api_key_service = api_key_service
         self.memory_service = memory_service
 
-    async def run_diagram(self, diagram: dict) -> Tuple[Dict[str, Any], float]:
-        """Execute a diagram and return results."""
-        try:
-            from ..execution import DiagramExecutor
-
-            self._validate_diagram(diagram)
-            executor = DiagramExecutor(diagram)
-            context, cost = await executor.run()
-            return context, cost
-        except Exception as e:
-            raise DiagramExecutionError(f"Diagram execution failed: {e}")
-
-    async def run_diagram_sync(self, diagram: dict, log_dir: str) -> Dict[str, Any]:
-        """Handle all business logic for synchronous diagram execution."""
-
-        # Validate and fix API keys
-        self._validate_and_fix_api_keys(diagram)
-        
-        # Validate required fields
-        if not diagram.get("nodes"):
-            raise HTTPException(status_code=400, detail="Diagram must contain nodes")
-
-        # Execute diagram
-        from ..execution import DiagramExecutor
-        executor = DiagramExecutor(diagram=diagram, memory_service=self.memory_service)
-        
-        context, total_cost = await executor.run()
-        
-        # Save logs and cleanup
-        log_path = await self.memory_service.save_conversation_log(
-            execution_id=executor.execution_id,
-            log_dir=log_dir
-        )
-        self.memory_service.clear_execution_memory(executor.execution_id)
-        
-        return {
-            "context": context,
-            "total_cost": total_cost,
-            "memory_stats": executor.get_memory_stats(),
-            "conversation_log": log_path,
-            "execution_id": executor.execution_id
-        }
 
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
         """Validate and fix API keys in diagram persons."""
@@ -175,44 +132,3 @@ class DiagramService(BaseService):
             "apiKeys": []
         }
     
-    async def execute_diagram_hybrid(self, diagram: dict, api_keys: dict, session_id: str, stream_manager) -> Dict[str, Any]:
-        """Execute diagram with hybrid client-server model."""
-        try:
-            # Validate diagram
-            self._validate_diagram(diagram)
-            
-            # Partition nodes by execution environment
-            client_safe_types = {"startNode", "conditionNode", "jobNode"}
-            server_only_types = {"personJobNode", "personBatchJobNode", "dbNode", "endpointNode"}
-            
-            client_nodes = []
-            server_nodes = []
-            
-            for node in diagram.get("nodes", []):
-                node_type = node.get("type", "")
-                if node_type in client_safe_types:
-                    client_nodes.append(node)
-                elif node_type in server_only_types:
-                    server_nodes.append(node)
-                    
-            # For now, execute all on server (will be optimized in Phase 6)
-            # This is a placeholder for hybrid execution
-            from ..execution import DiagramExecutor
-            executor = DiagramExecutor(
-                diagram=diagram, 
-                memory_service=self.memory_service,
-                stream_callback=lambda update: stream_manager.send_update(session_id, update)
-            )
-            
-            context, cost = await executor.run()
-            
-            return {
-                "context": context,
-                "total_cost": cost,
-                "execution_id": executor.execution_id,
-                "client_nodes": len(client_nodes),
-                "server_nodes": len(server_nodes)
-            }
-            
-        except Exception as e:
-            raise DiagramExecutionError(f"Hybrid execution failed: {str(e)}")

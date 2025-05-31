@@ -1,6 +1,6 @@
 """tRPC-style API for Python backend."""
 from typing import Any, Dict, Optional, TypeVar, Callable
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from pydantic import BaseModel
 import json
 
@@ -8,8 +8,10 @@ T = TypeVar('T')
 
 class TRPCContext(BaseModel):
     """Context passed to all tRPC procedures."""
-    request: Optional[Request] = None
     api_keys: Optional[Dict[str, str]] = None
+    
+    class Config:
+        arbitrary_types_allowed = True
     
 class Procedure:
     """Base procedure class for tRPC-style endpoints."""
