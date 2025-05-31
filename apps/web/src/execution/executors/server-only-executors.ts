@@ -18,7 +18,7 @@ import { ServerOnlyExecutor } from './base-executor';
  * PersonJob executor - handles LLM API calls with context and memory
  */
 export class PersonJobExecutor extends ServerOnlyExecutor {
-  async validateInputs(node: Node, context: TypedExecutionContext): Promise<ExecutorValidation> {
+  async validateInputs(node: Node, _context: TypedExecutionContext): Promise<ExecutorValidation> {
     const commonValidation = this.validateCommonInputs(node);
     if (!commonValidation.isValid) {
       return commonValidation;
@@ -50,7 +50,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
     };
   }
 
-  async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
+  async execute(node: Node, context: TypedExecutionContext, _options?: any): Promise<ExecutorResult> {
     const personId = this.getNodeProperty(node, 'personId', '');
     const prompt = this.getNodeProperty(node, 'prompt', '');
     const llmService = this.getNodeProperty(node, 'llmService', '') as LLMService;
@@ -60,7 +60,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
       // This would be implemented by the server-side version
       const result = await this.executeLLMCall(personId, prompt, llmService, inputs, node, context);
       
-      return this.createSuccessResult(result.text, result.cost || 0, {
+      return this.createSuccessResult(result.text, 0, {
         personId,
         llmService,
         usage: result.usage,
@@ -70,10 +70,11 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
         executedAt: new Date().toISOString()
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw this.createExecutionError(
-        `Failed to execute PersonJob: ${error.message}`,
+        `Failed to execute PersonJob: ${errorMessage}`,
         node,
-        { personId, llmService, error: error.message }
+        { personId, llmService, error: errorMessage }
       );
     }
   }
@@ -83,20 +84,30 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
    */
   private async executeLLMCall(
     personId: string,
-    prompt: string,
+    _prompt: string,
     llmService: LLMService,
-    inputs: Record<string, any>,
+    _inputs: Record<string, any>,
     node: Node,
-    context: TypedExecutionContext
+    _context: TypedExecutionContext
   ): Promise<ChatResult> {
-    // In a real implementation, this would:
-    // 1. Load person context and memory
-    // 2. Construct the full prompt with inputs and context
-    // 3. Make the API call to the specified LLM service
-    // 4. Update person memory with the conversation
-    // 5. Track costs and usage
+    // This is a client-side executor running in browser environment
+    // PersonJob nodes require server-side execution for:
+    // 1. Secure API key access
+    // 2. LLM API calls
+    // 3. Memory management
+    // 4. Cost tracking
     
-    throw new Error('PersonJob execution must be implemented by server-side executor factory');
+    throw this.createExecutionError(
+      'PersonJob nodes require server-side execution. Use hybrid execution mode or run diagram on server.',
+      node,
+      { 
+        personId, 
+        llmService,
+        requiredEnvironment: 'server',
+        currentEnvironment: 'client',
+        suggestion: 'This node will be executed on the server in hybrid execution mode'
+      }
+    );
   }
 }
 
@@ -104,7 +115,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
  * PersonBatchJob executor - handles batch LLM processing
  */
 export class PersonBatchJobExecutor extends ServerOnlyExecutor {
-  async validateInputs(node: Node, context: TypedExecutionContext): Promise<ExecutorValidation> {
+  async validateInputs(node: Node, _context: TypedExecutionContext): Promise<ExecutorValidation> {
     const commonValidation = this.validateCommonInputs(node);
     if (!commonValidation.isValid) {
       return commonValidation;
@@ -132,7 +143,7 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
 
     // Validate batch size
     const batchSize = this.getNodeProperty(node, 'batchSize', 10);
-    if (typeof batchSize !== 'number' || batchSize < 1) {
+    if (batchSize < 1) {
       errors.push('Batch size must be a positive number');
     }
 
@@ -142,7 +153,7 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
     };
   }
 
-  async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
+  async execute(node: Node, context: TypedExecutionContext, _options?: Record<string, unknown>): Promise<ExecutorResult> {
     const personId = this.getNodeProperty(node, 'personId', '');
     const batchPrompt = this.getNodeProperty(node, 'batchPrompt', '');
     const llmService = this.getNodeProperty(node, 'llmService', '') as LLMService;
@@ -193,14 +204,25 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
     node: Node,
     context: TypedExecutionContext
   ): Promise<Array<ChatResult & { cost?: number }>> {
-    // In a real implementation, this would:
-    // 1. Extract batch data from inputs
-    // 2. Split into batches of specified size
-    // 3. Execute LLM calls for each batch item
-    // 4. Aggregate results and costs
-    // 5. Update person memory appropriately
+    // This is a client-side executor running in browser environment
+    // PersonBatchJob nodes require server-side execution for:
+    // 1. Secure API key access
+    // 2. Batch LLM API calls
+    // 3. Memory management across batch items
+    // 4. Cost tracking and rate limiting
     
-    throw new Error('PersonBatchJob execution must be implemented by server-side executor factory');
+    throw this.createExecutionError(
+      'PersonBatchJob nodes require server-side execution. Use hybrid execution mode or run diagram on server.',
+      node,
+      { 
+        personId, 
+        llmService,
+        batchSize,
+        requiredEnvironment: 'server',
+        currentEnvironment: 'client',
+        suggestion: 'This node will be executed on the server in hybrid execution mode'
+      }
+    );
   }
 }
 
@@ -217,7 +239,7 @@ export class DBExecutor extends ServerOnlyExecutor {
     const errors: string[] = [];
 
     // Validate operation type
-    const operation = this.getNodeProperty(node, 'operation', '');
+    const operation = this.getNodeProperty(node, 'operation', '') as string;
     if (!operation) {
       errors.push('Database operation is required');
     }
@@ -272,27 +294,64 @@ export class DBExecutor extends ServerOnlyExecutor {
     inputs: Record<string, any>,
     node: Node
   ): Promise<any> {
-    // In a real implementation, this would:
-    // 1. Validate file paths and permissions
-    // 2. Handle different file formats (JSON, CSV, txt, etc.)
-    // 3. Perform the requested operation
-    // 4. Return appropriate results
+    // This is a client-side executor running in browser environment
+    // DB nodes require server-side execution for:
+    // 1. File system access
+    // 2. Security and path validation
+    // 3. Database connections
+    // 4. Large file processing
+    
+    const errorDetails = {
+      operation,
+      filePath,
+      requiredEnvironment: 'server',
+      currentEnvironment: 'client',
+      suggestion: 'This node will be executed on the server in hybrid execution mode'
+    };
     
     switch (operation) {
       case 'read':
-        throw new Error('File read operation must be implemented by server-side executor factory');
+        throw this.createExecutionError(
+          'File read operations require server-side execution for security and file system access.',
+          node,
+          errorDetails
+        );
       case 'write':
-        throw new Error('File write operation must be implemented by server-side executor factory');
+        throw this.createExecutionError(
+          'File write operations require server-side execution for security and file system access.',
+          node,
+          errorDetails
+        );
       case 'append':
-        throw new Error('File append operation must be implemented by server-side executor factory');
+        throw this.createExecutionError(
+          'File append operations require server-side execution for security and file system access.',
+          node,
+          errorDetails
+        );
       case 'delete':
-        throw new Error('File delete operation must be implemented by server-side executor factory');
+        throw this.createExecutionError(
+          'File delete operations require server-side execution for security and file system access.',
+          node,
+          errorDetails
+        );
       case 'list':
-        throw new Error('Directory list operation must be implemented by server-side executor factory');
+        throw this.createExecutionError(
+          'Directory listing operations require server-side execution for security and file system access.',
+          node,
+          errorDetails
+        );
       case 'query':
-        throw new Error('Database query operation must be implemented by server-side executor factory');
+        throw this.createExecutionError(
+          'Database query operations require server-side execution for security and database access.',
+          node,
+          errorDetails
+        );
       default:
-        throw new Error(`Unsupported DB operation: ${operation}`);
+        throw this.createExecutionError(
+          `Unsupported DB operation: ${operation}`,
+          node,
+          { ...errorDetails, operation }
+        );
     }
   }
 }
