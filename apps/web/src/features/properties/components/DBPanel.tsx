@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { toast } from 'sonner';
-import { Input, Spinner } from '../../../shared/components';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 import { createErrorHandlerFactory, type DBBlockData } from '@/shared/types';
 import { usePropertyPanel } from '@/features/properties';
 import {
-  Form, FormField, FormRow,
-  InlineTextField, InlineSelectField, TextAreaField
-} from '../wrappers';
+  Form,
+  TwoColumnPanelLayout,
+  FormRow,
+  InlineTextField,
+  InlineSelectField,
+  TextAreaField,
+  FileUploadField
+} from './ui-components/FormComponents';
 
 export const DBPanelContent: React.FC<{ nodeId: string; data: DBBlockData }> = ({ nodeId, data }) => {
   const { formData, handleChange } = usePropertyPanel<DBBlockData>(nodeId, 'node', data);
-  const [uploading, setUploading] = useState(false);
 
   const dbTypeOptions = [
     { value: 'fixed_prompt', label: 'Fixed Prompt' },
@@ -19,7 +22,6 @@ export const DBPanelContent: React.FC<{ nodeId: string; data: DBBlockData }> = (
   ];
 
   const handleFileUpload = async (file: File) => {
-    setUploading(true);
     try {
       const form = new FormData();
       form.append('file', file);
@@ -31,16 +33,13 @@ export const DBPanelContent: React.FC<{ nodeId: string; data: DBBlockData }> = (
     } catch (error) {
       const createErrorHandler = createErrorHandlerFactory(toast);
       createErrorHandler('File upload failed')(error as Error);
-    } finally {
-      setUploading(false);
     }
   };
 
   return (
     <Form>
-      <div className="grid grid-cols-2 gap-4">
-        {/* Left column - Option properties */}
-        <div className="space-y-4">
+      <TwoColumnPanelLayout
+        leftColumn={
           <FormRow>
             <InlineTextField
               label="Label"
@@ -52,37 +51,22 @@ export const DBPanelContent: React.FC<{ nodeId: string; data: DBBlockData }> = (
             <InlineSelectField
               label="Source Type"
               value={formData.subType || 'fixed_prompt'}
-              onChange={(v) => handleChange('subType', v as any)}
+              onChange={(v) => handleChange('subType', v as 'fixed_prompt' | 'file')}
               options={dbTypeOptions}
               className="flex-1"
             />
           </FormRow>
-        </div>
-
-        {/* Right column - Text properties */}
-        <div className="space-y-4">
-          {formData.subType === 'file' ? (
-            <FormField label="File Path">
-              <Input
-                type="text"
-                value={formData.sourceDetails || ''}
-                placeholder="Or upload a file below"
-                onChange={(e) => handleChange('sourceDetails', e.target.value)}
-              />
-              <Input
-                type="file"
-                accept=".txt,.docx,.doc,.pdf,.csv,.json"
-                className="mt-2"
-                disabled={uploading}
-                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-              />
-              {uploading && (
-                <div className="flex items-center mt-2 text-sm text-gray-600">
-                  <Spinner size="sm" className="mr-2" />
-                  <span>Uploading...</span>
-                </div>
-              )}
-            </FormField>
+        }
+        rightColumn={
+          formData.subType === 'file' ? (
+            <FileUploadField
+              label="File Path"
+              value={formData.sourceDetails || ''}
+              onChange={(v) => handleChange('sourceDetails', v)}
+              onFileUpload={handleFileUpload}
+              accept=".txt,.docx,.doc,.pdf,.csv,.json"
+              placeholder="Enter file path or upload below"
+            />
           ) : (
             <TextAreaField
               label="Prompt Content"
@@ -92,9 +76,9 @@ export const DBPanelContent: React.FC<{ nodeId: string; data: DBBlockData }> = (
               rows={5}
               hint="Enter the fixed prompt text that will be used by this database block"
             />
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
     </Form>
   );
 };
