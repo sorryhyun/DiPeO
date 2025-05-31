@@ -174,3 +174,45 @@ class DiagramService(BaseService):
             "arrows": [],
             "apiKeys": []
         }
+    
+    async def execute_diagram_hybrid(self, diagram: dict, api_keys: dict, session_id: str, stream_manager) -> Dict[str, Any]:
+        """Execute diagram with hybrid client-server model."""
+        try:
+            # Validate diagram
+            self._validate_diagram(diagram)
+            
+            # Partition nodes by execution environment
+            client_safe_types = {"startNode", "conditionNode", "jobNode"}
+            server_only_types = {"personJobNode", "personBatchJobNode", "dbNode", "endpointNode"}
+            
+            client_nodes = []
+            server_nodes = []
+            
+            for node in diagram.get("nodes", []):
+                node_type = node.get("type", "")
+                if node_type in client_safe_types:
+                    client_nodes.append(node)
+                elif node_type in server_only_types:
+                    server_nodes.append(node)
+                    
+            # For now, execute all on server (will be optimized in Phase 6)
+            # This is a placeholder for hybrid execution
+            from ..execution import DiagramExecutor
+            executor = DiagramExecutor(
+                diagram=diagram, 
+                memory_service=self.memory_service,
+                stream_callback=lambda update: stream_manager.send_update(session_id, update)
+            )
+            
+            context, cost = await executor.run()
+            
+            return {
+                "context": context,
+                "total_cost": cost,
+                "execution_id": executor.execution_id,
+                "client_nodes": len(client_nodes),
+                "server_nodes": len(server_nodes)
+            }
+            
+        except Exception as e:
+            raise DiagramExecutionError(f"Hybrid execution failed: {str(e)}")

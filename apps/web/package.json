@@ -15,6 +15,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.79.0",
+    "@trpc/client": "^11.1.4",
+    "@trpc/react-query": "^11.1.4",
+    "@trpc/server": "^11.1.4",
     "@types/react-window": "^1.8.8",
     "@xyflow/react": "^12.6.4",
     "clsx": "^2.1.1",
@@ -28,6 +32,7 @@
     "react-resizable-panels": "^3.0.2",
     "react-window": "^1.8.11",
     "sonner": "2.0.3",
+    "zod": "^3.25.42",
     "zustand": "^4.3.8"
   },
   "devDependencies": {

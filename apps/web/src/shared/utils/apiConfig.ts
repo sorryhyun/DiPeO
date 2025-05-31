@@ -16,6 +16,9 @@ export const API_CONFIG = {
   STREAMING_BASE_URL: isDev ? `http://${apiHost}` : '',
 } as const;
 
+// Export for backward compatibility
+export const API_BASE_URL = API_CONFIG.BASE_URL;
+
 // API Endpoints
 export const API_ENDPOINTS = {
   // Diagram execution

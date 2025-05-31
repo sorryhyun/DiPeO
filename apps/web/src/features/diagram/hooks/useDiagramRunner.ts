@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/shared/types';
 import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/shared/utils/apiConfig';
 import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
+import { useHybridExecution } from './useHybridExecution';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 
@@ -49,6 +50,9 @@ export const useDiagramRunner = () => {
   const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [runError, setRunError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  
+  // Hybrid execution hook
+  const { executeHybrid } = useHybridExecution();
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
@@ -413,12 +417,55 @@ export const useDiagramRunner = () => {
       }
   }, [exportDiagram, clearRunningNodes, clearRunContext]);
 
+  // Hybrid execution mode
+  const handleRunDiagramHybrid = useCallback(async () => {
+    clearRunContext();
+    clearRunningNodes();
+    setCurrentRunningNode(null);
+    setRunStatus('running');
+    setRunError(null);
+    setRetryCount(0);
+
+    try {
+      const diagramData = exportDiagram();
+      
+      // Execute with hybrid approach
+      const result = await executeHybrid(diagramData as any);
+      
+      if (result.context) {
+        setRunContext(result.context);
+      }
+      
+      setRunStatus('success');
+      
+      // Show cost if available
+      if (result.total_cost) {
+        toast.success(`Execution completed. Total cost: $${result.total_cost.toFixed(4)}`);
+      }
+      
+      return result;
+    } catch (error) {
+      clearRunningNodes();
+      setCurrentRunningNode(null);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setRunError(errorMessage);
+      console.error('[Hybrid Execution] Error:', errorMessage);
+      
+      // Show error toast
+      const errorHandler = createErrorHandler('Hybrid Execution');
+      errorHandler(new Error(errorMessage));
+      
+      setRunStatus('fail');
+    }
+  }, [exportDiagram, executeHybrid, clearRunningNodes, clearRunContext, setCurrentRunningNode]);
+
   return {
     runStatus,
     runError,
     retryCount,
     handleRunDiagram,
     handleRunDiagramSync, // For fallback/debugging
+    handleRunDiagramHybrid, // Hybrid execution mode
     stopExecution, // Manual stop function
   };
 };
