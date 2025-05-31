@@ -12,6 +12,7 @@ export * from './hooks/useNodeConfig';
 export * from './utils/nodeHelpers';
 export * from './utils/nodeValidation';
 
-// Export nodeTypes for backward compatibility
-import nodeTypes from './components/NodesGeneric';
-export { nodeTypes };
+// Export nodeTypes for React Flow
+import NodesGeneric from './components/NodesGeneric';
+export const nodeTypes = NodesGeneric;
+

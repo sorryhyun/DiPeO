@@ -123,15 +123,3 @@ export const isTextAreaField = (field: FieldConfig): boolean => {
   return field.type === 'textarea';
 };
 
-// Legacy render function for backward compatibility
-export const renderField = (
-  field: FieldConfig,
-  formData: Record<string, any>,
-  handleChange: (name: string, value: any) => void,
-  context: RenderContext
-): React.ReactNode => {
-  if (isTextAreaField(field)) {
-    return renderTextAreaField(field, formData, handleChange, context);
-  }
-  return renderInlineField(field, formData, handleChange, context);
-};

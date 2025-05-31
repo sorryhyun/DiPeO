@@ -35,7 +35,7 @@ function BaseNodeComponent({
   // Use auto-generated handles if autoHandles is true and config exists
   const effectiveHandles = React.useMemo(() => {
     if (autoHandles && config) {
-      return config.handles.map(handle => {
+      return config.handles.map((handle: any) => {
         const isVertical = handle.position === Position.Top || handle.position === Position.Bottom;
         const position = isFlipped && !isVertical
           ? (handle.position === Position.Left ? Position.Right : Position.Left)
@@ -123,7 +123,7 @@ function BaseNodeComponent({
       </div>
 
       {/* Handles */}
-      {effectiveHandles.map((handle, index) => (
+      {effectiveHandles.map((handle: any, index: any) => (
         <FlowHandle
           key={handle.id || index}
           nodeId={id}

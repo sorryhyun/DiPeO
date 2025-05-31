@@ -45,11 +45,6 @@ export const createErrorHandlerFactory = (toast: ToastNotifier) => (context: str
   toast.error(`${context}: ${error.message}`);
 };
 
-/**
- * Backward compatible functions for existing code
- */
-export const handleAsyncError = createAsyncErrorHandler(defaultNotifier);
-export const createErrorHandler = createErrorHandlerFactory(defaultNotifier);
 
 /**
  * Simplified error handler for sync operations

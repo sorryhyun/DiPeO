@@ -19,7 +19,7 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
-  const { handleLoad, handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
+  const { handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
@@ -79,14 +79,6 @@ const TopBar = () => {
           >
             📄 New
           </Button>
-          <FileUploadButton
-            accept=".json"
-            onChange={handleLoad}
-            variant="outline"
-            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-          >
-            📂 Open
-          </FileUploadButton>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"

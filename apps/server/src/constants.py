@@ -4,7 +4,7 @@ from typing import Final
 
 class NodeType(Enum):
     START = "startNode"
-    PERSON_JOB = "personjobNode"
+    PERSON_JOB = "personJobNode"
     CONDITION = "conditionNode" 
     DB = "dbNode"
     JOB = "jobNode"

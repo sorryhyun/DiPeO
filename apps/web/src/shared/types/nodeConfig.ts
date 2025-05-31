@@ -1,5 +1,4 @@
 // Unified node configuration system
-import React from 'react';
 import { Position } from '@xyflow/react';
 
 // Handle color constants for consistency
@@ -53,12 +52,6 @@ export interface UnifiedNodeConfig {
   // Additional metadata
   description?: string;
   category?: 'control' | 'processing' | 'data' | 'output';
-  
-  // Additional properties for backwards compatibility
-  defaultData?: Record<string, any>;
-  backgroundColor?: string;
-  textColor?: string;
-  capabilities?: string[];
 }
 
 export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
@@ -101,7 +94,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Person Job',
     
     // React Flow mapping
-    reactFlowType: 'personjobNode',
+    reactFlowType: 'personJobNode',
     blockType: 'person_job',
     
     // Properties config
@@ -315,83 +308,10 @@ export function getNodesByCategory(category: string): string[] {
 export function getUnifiedNodeConfigsByReactFlowType(): Record<string, UnifiedNodeConfig> {
   const mapped: Record<string, UnifiedNodeConfig> = {};
   
-  for (const [blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
+  for (const [_blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
     mapped[config.reactFlowType] = config;
   }
   
   return mapped;
 }
 
-// Legacy types from diagram-ui for backwards compatibility
-export interface NodeConfig {
-  handles: HandleConfig[];
-  borderColor: string;
-  width: string;
-  className?: string;
-  emoji?: string;
-}
-
-export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
-  id: string;
-  children: React.ReactNode;
-  selected?: boolean;
-  onFlip?: () => void;
-  handles?: {
-    type: 'input' | 'output';
-    position: Position;
-    id?: string;
-    style?: React.CSSProperties;
-    className?: string;
-  }[];
-  borderColor?: string;
-  showFlipButton?: boolean;
-  nodeType?: string;
-  data?: any;
-  autoHandles?: boolean;
-  isRunning?: boolean;
-  onUpdateData?: (nodeId: string, data: any) => void;
-  onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, UnifiedNodeConfig>;
-  // Add the missing properties that were being used
-  onDragOver?: React.DragEventHandler<HTMLDivElement>;
-  onDrop?: React.DragEventHandler<HTMLDivElement>;
-}
-
-export interface GenericNodeProps {
-  id: string;
-  data: any;
-  selected?: boolean;
-  nodeType: string;
-  children: React.ReactNode;
-  showFlipButton?: boolean;
-  onDragOver?: React.DOMAttributes<HTMLDivElement>['onDragOver'];
-  onDrop?: React.DOMAttributes<HTMLDivElement>['onDrop'];
-  isRunning?: boolean;
-  onUpdateData?: (nodeId: string, data: any) => void;
-  onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, UnifiedNodeConfig>;
-}
-
-// Legacy types from properties-ui for backwards compatibility
-export interface FormFieldProps {
-  label: string;
-  id?: string;
-  children: React.ReactNode;
-  className?: string;
-}
-
-export interface PanelProps {
-  icon?: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}
-
-export interface GenericPropertiesPanelProps {
-  nodeId: string;
-  nodeType: string;
-  fields: FieldConfig[];
-  title: string;
-  icon?: React.ReactNode;
-  data?: Record<string, any>;
-  onChange?: (nodeId: string, data: Record<string, any>) => void;
-}

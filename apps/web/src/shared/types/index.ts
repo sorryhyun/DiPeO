@@ -1,3 +1,5 @@
 export * from './types'
 export * from './nodeConfig'
 export * from './errorHandling'
+export * from './nodeTypes'
+export * from './propertyTypes'

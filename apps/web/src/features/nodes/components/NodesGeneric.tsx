@@ -44,8 +44,6 @@ const UniversalNode: React.FC<NodeProps> = (props) => {
   );
 };
 
-// Export named component for backward compatibility
-export { PersonJobNode as PersonJobNodeGeneric };
 
 // Default export mapping for React Flow using UNIFIED_NODE_CONFIGS
 export default Object.fromEntries(

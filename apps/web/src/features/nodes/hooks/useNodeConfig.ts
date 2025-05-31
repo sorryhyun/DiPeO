@@ -30,8 +30,7 @@ export const useNodeConfig = (nodeType: string) => {
     
     return {
       type: nodeType,
-      label: config.label,
-      ...config.defaultData
+      label: config.label
     };
   }, [nodeType, config]);
 
@@ -40,17 +39,14 @@ export const useNodeConfig = (nodeType: string) => {
     if (!config) return {};
     
     return {
-      borderColor: config.borderColor,
-      backgroundColor: config.backgroundColor,
-      textColor: config.textColor
+      borderColor: config.borderColor
     };
   }, [config]);
 
   // Check if node has specific capabilities
-  const hasCapability = useCallback((capability: string) => {
-    if (!config) return false;
-    return config.capabilities?.includes(capability) || false;
-  }, [config]);
+  const hasCapability = useCallback((_capability: string) => {
+    return false;
+  }, []);
 
   return {
     config,
