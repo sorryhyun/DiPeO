@@ -19,7 +19,7 @@ export type ArrowKind = 'normal' | 'fixed';
 export type BlockType = 'start' | 'person_job' | 'person_batch_job' | 'db' | 'job' | 'condition' | 'endpoint';
 
 // Base for all canvas blocks (nodes) with discriminating `type`
-export interface BaseBlockData {
+export interface BaseBlockData extends Record<string, unknown> {
   id: string;
   type: BlockType;
   label: string;
@@ -103,8 +103,7 @@ export interface PersonDefinition {
   systemPrompt?: string;
 }
 
-export interface ArrowData {
-  [key: string]: unknown;
+export interface ArrowData extends Record<string, unknown> {
   id: string;
   sourceBlockId: string;
   targetBlockId: string;
@@ -139,17 +138,17 @@ export interface DiagramState {
 
 export function applyArrowChanges(
   changes: EdgeChange[],
-  arrows: Arrow[]
-): Arrow[] {
-  return applyEdgeChangesRF(changes, arrows);
+  arrows: Arrow<ArrowData>[]
+): Arrow<ArrowData>[] {
+  return applyEdgeChangesRF(changes, arrows) as Arrow<ArrowData>[];
 }
-export function addArrow<T = any>(
-  arrow: Arrow | Connection,
-  arrows: Arrow[]
-): Arrow[] {
+export function addArrow(
+  arrow: Edge<ArrowData> | Connection,
+  arrows: Edge<ArrowData>[]
+): Edge<ArrowData>[] {
   return addEdgeRF(arrow, arrows);
 }
 
 export type ArrowChange = EdgeChange;
-export type Arrow<T extends Record<string, unknown> = any> = Edge<T>;
+export type Arrow<T extends Record<string, unknown> = ArrowData> = Edge<T>;
 export type OnArrowsChange = OnEdgesChange;

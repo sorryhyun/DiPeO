@@ -11,6 +11,7 @@ import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory } from '@/shared/types';
+import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
 
 
 const TopBar = () => {
@@ -41,15 +42,14 @@ const TopBar = () => {
         const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
         if (res.ok) {
           const data = await res.json();
-          const backendKeys = data.apiKeys || [];
+          const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
           
           if (backendKeys.length > 0 && apiKeys.length === 0) {
-            backendKeys.forEach((key: any) => {
+            backendKeys.forEach((key) => {
               addApiKey({
-                ...key,
                 name: key.name,
                 service: key.service,
-                key: key.key
+                keyReference: key.keyReference
               });
             });
           }

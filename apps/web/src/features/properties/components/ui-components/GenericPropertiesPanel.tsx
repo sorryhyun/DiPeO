@@ -2,7 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Select, SelectItem, Label } from '@/shared/components';
 import { Panel } from './Panel';
 import { Form, FormField, TextField, TextAreaField } from './FormComponents';
-import { GenericPropertiesPanelProps, FieldConfig } from '@/shared/types';
+import { FieldConfig } from '@/shared/types';
+
+interface GenericPropertiesPanelProps<T extends Record<string, unknown> = Record<string, unknown>> {
+  nodeId: string;
+  nodeType: string;
+  fields: FieldConfig[];
+  title: string;
+  icon?: React.ReactNode;
+  data?: T;
+  onChange?: (nodeId: string, data: T) => void;
+}
 
 export function GenericPropertiesPanel({ 
   nodeId, 
