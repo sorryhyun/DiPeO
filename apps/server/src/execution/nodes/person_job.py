@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Tuple
 
 from .base import BaseNodeExecutor
 from ..state import ExecutionState
-from ...utils.personjob_utils import execute_personjob
+from ..person_job_executor import PersonJobExecutor
+from ...utils.arrow_utils import ArrowUtils
 
 logger = structlog.get_logger(__name__)
 
@@ -25,7 +26,7 @@ class PersonJobNodeExecutor(BaseNodeExecutor):
         state: ExecutionState,
         **kwargs
     ) -> Tuple[Any, float]:
-        """Execute a PersonJob node.
+        """Execute a PersonJob node using the simplified executor.
         
         Args:
             node: Node configuration with personId in data
@@ -52,19 +53,19 @@ class PersonJobNodeExecutor(BaseNodeExecutor):
             return None, 0.0
         
         try:
-            # The original execute_personjob function expects different parameters
-            from ...utils.arrow_utils import ArrowUtils
+            # Use the simplified PersonJobExecutor
+            executor = PersonJobExecutor(
+                memory_service=self.memory_service,
+                llm_service=self.llm_service,
+                execution_id=self.execution_id
+            )
             
-            result, cost = await execute_personjob(
+            result, cost = await executor.execute(
                 node=node,
                 person=person,
                 vars_map=vars_map,
                 incoming_arrows=incoming_arrows,
-                counts=state.counts,
-                context=state.context,
-                memory_service=self.memory_service,
-                llm_service=self.llm_service,
-                execution_id=self.execution_id,
+                state=state,
                 arrow_src_fn=ArrowUtils.get_source,
                 send_status_update_fn=kwargs.get('send_status_update'),
                 get_all_person_ids_fn=kwargs.get('get_all_person_ids_fn', lambda: [])

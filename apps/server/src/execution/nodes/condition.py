@@ -45,7 +45,7 @@ class ConditionNodeExecutor(BaseNodeExecutor):
         # Check for max_iterations condition type
         condition_type = data.get("conditionType", "").strip()
         if condition_type == "max_iterations":
-            return self._evaluate_max_iterations(state, kwargs.get('diagram', {})), 0.0
+            return self._evaluate_max_iterations(state, incoming_arrows), 0.0
         
         # Get the condition expression
         condition_expr = data.get("condition", "").strip()
@@ -125,57 +125,33 @@ class ConditionNodeExecutor(BaseNodeExecutor):
             )
             raise
 
-    def _evaluate_max_iterations(self, state: ExecutionState, diagram: dict) -> bool:
+    def _evaluate_max_iterations(self, state: ExecutionState, incoming_arrows: List[dict]) -> bool:
         """
-        Evaluate if all executed PersonJob nodes have been skipped due to max iterations.
-        Note: Despite the name, this checks for completion/skipping, not just iteration count.
+        Simplified: Just check if all upstream nodes are skipped.
         """
-        nodes = diagram.get('nodes', [])
-        personjob_nodes = [
-            n for n in nodes
-            if n.get('data', {}).get('type') == 'person_job' or
-               n.get('type') in ['personjobNode', 'personJobNode']
-        ]
-
-        if not personjob_nodes:
-            logger.warning("no_personjob_nodes_for_max_iterations")
+        if not incoming_arrows:
             return True
-
-        # Check if all executed PersonJob nodes were skipped
-        all_complete = True
-        any_executed = False
-
-        for node in personjob_nodes:
-            node_id = node['id']
-
-            # Check if node was executed
-            if state.counts.get(node_id, 0) > 0:
-                any_executed = True
-
-                # Check the NODE's context, not global context!
-                node_context = state.context.get(node_id)
-
-                # The skipped node's context is {"skipped_max_iter": True}
-                is_skipped = (isinstance(node_context, dict) and
-                              node_context.get('skipped_max_iter') == True)
-
-                if not is_skipped:
-                    all_complete = False
-                    logger.debug(
-                        "personjob_not_skipped",
-                        node_id=node_id,
-                        node_context=node_context,
-                        execution_count=state.counts.get(node_id, 0)
-                    )
-
-        # Only return true if some were executed AND all of those are complete
-        result = any_executed and all_complete
-
+        
+        # Get all source node IDs from incoming arrows
+        incoming_nodes = []
+        for arrow in incoming_arrows:
+            source = arrow.get('source')
+            if source:
+                incoming_nodes.append(source)
+        
+        if not incoming_nodes:
+            return True
+        
+        # Check if all incoming nodes are skipped
+        result = all(
+            state.context.get(node_id, {}).get('skipped', False) 
+            for node_id in incoming_nodes
+        )
+        
         logger.info(
-            "max_iterations_detected",  # Better logging name
-            all_complete=all_complete,
-            any_executed=any_executed,
+            "max_iterations_evaluated",
+            incoming_nodes=incoming_nodes,
             result=result
         )
-
+        
         return result

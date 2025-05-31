@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Add server root to path for config import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from config import BASE_DIR
+from ...config import BASE_DIR
 
 from ..exceptions import ValidationError
 

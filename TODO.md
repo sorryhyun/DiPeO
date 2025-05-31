@@ -1,123 +1,238 @@
-Yes, the codebase could be significantly simplified using your proposed logic. Here are the key areas where simplification would help:
+Here's a suggested architecture that builds on your `loop_controller.py` and `person_job_executor.py`:
 
-## 1. **Centralize Skip Logic** (Currently scattered)
+## Proposed New Architecture
 
-Instead of checking max iterations in multiple places, create a single source of truth:
+### 1. **Core Components Structure**
 
+```
+apps/server/src/execution_v2/
+├── core/
+│   ├── execution_engine.py      # Main orchestrator
+│   ├── loop_controller.py       # ✓ Already created
+│   ├── skip_manager.py          # Centralized skip logic
+│   └── execution_context.py     # Simplified state management
+├── executors/
+│   ├── base_executor.py         # Simplified base class
+│   ├── person_job_executor.py   # ✓ Already created
+│   ├── condition_executor.py    # Simplified condition logic
+│   └── ...other executors
+├── flow/
+│   ├── dependency_resolver.py   # Clean dependency checking
+│   └── execution_planner.py     # Execution order planning
+└── memory/
+    └── memory_manager.py        # Separated memory concerns
+```
+
+### 2. **Key New Components to Create**
+
+#### **SkipManager** - Centralized skip decisions
 ```python
-# Simplified version
-class NodeExecutor:
-    def should_skip(self, node_id: str, state: ExecutionState) -> bool:
-        """Single place to determine if node should be skipped"""
-        max_iter = state.node_max_iterations.get(node_id)
-        if max_iter and state.counts[node_id] >= max_iter:
+# skip_manager.py
+from typing import Dict, Set, Optional
+
+class SkipManager:
+    """Centralized skip decision making"""
+    
+    def __init__(self):
+        self.skip_reasons: Dict[str, str] = {}
+        self.skipped_nodes: Set[str] = set()
+    
+    def should_skip(self, node_id: str, execution_count: int, 
+                    max_iterations: Optional[int]) -> bool:
+        """Single source of truth for skip decisions"""
+        if max_iterations and execution_count >= max_iterations:
+            self.mark_skipped(node_id, "max_iterations_reached")
             return True
         return False
     
-    async def execute_node(self, node_id: str, ...):
-        if self.should_skip(node_id, state):
-            # True no-op - don't touch memory or anything
-            state.context[node_id] = {"skipped": True}
-            return state.context.get(node_id), 0.0
-        # ... normal execution
+    def mark_skipped(self, node_id: str, reason: str):
+        self.skipped_nodes.add(node_id)
+        self.skip_reasons[node_id] = reason
+    
+    def is_skipped(self, node_id: str) -> bool:
+        return node_id in self.skipped_nodes
+    
+    def get_skip_reason(self, node_id: str) -> Optional[str]:
+        return self.skip_reasons.get(node_id)
 ```
 
-## 2. **Simplify Condition Node's Max Iteration Detection**
-
-Current implementation is overly complex:
-
+#### **ExecutionContext** - Simplified state
 ```python
-# Current: Complex nested loops and checks
-def _evaluate_max_iterations(self, state: ExecutionState, diagram: dict) -> bool:
-    personjob_nodes = [n for n in nodes if n.get('type') == 'person_job']
-    all_complete = True
-    any_executed = False
-    for node in personjob_nodes:
-        # ... complex logic
+# execution_context.py
+from dataclasses import dataclass, field
+from typing import Dict, Any, Optional
+
+@dataclass
+class ExecutionContext:
+    """Simplified execution state"""
+    execution_id: str
+    node_outputs: Dict[str, Any] = field(default_factory=dict)
+    node_execution_counts: Dict[str, int] = field(default_factory=dict)
+    total_cost: float = 0.0
+    
+    def increment_execution_count(self, node_id: str) -> int:
+        self.node_execution_counts[node_id] = self.node_execution_counts.get(node_id, 0) + 1
+        return self.node_execution_counts[node_id]
+    
+    def set_node_output(self, node_id: str, output: Any, cost: float = 0.0):
+        self.node_outputs[node_id] = output
+        self.total_cost += cost
+    
+    def get_node_output(self, node_id: str) -> Optional[Any]:
+        return self.node_outputs.get(node_id)
 ```
 
-Could be simplified to:
-
+#### **ExecutionEngine** - Main orchestrator
 ```python
-# Simplified: Just check if all upstream nodes are skipped
-def _evaluate_max_iterations(self, state: ExecutionState, incoming_nodes: List[str]) -> bool:
-    return all(
-        state.context.get(node_id, {}).get('skipped', False) 
-        for node_id in incoming_nodes
-    )
+# execution_engine.py
+import asyncio
+from typing import Dict, List, Optional
+
+class ExecutionEngine:
+    """Simplified main execution engine"""
+    
+    def __init__(self, diagram: dict, memory_service, llm_service):
+        self.diagram = diagram
+        self.memory_service = memory_service
+        self.llm_service = llm_service
+        
+        # Initialize components
+        self.context = ExecutionContext(execution_id=str(uuid.uuid4()))
+        self.skip_manager = SkipManager()
+        self.loop_controller = LoopController()
+        
+        # Create executors
+        self.executors = self._create_executors()
+        
+    def _create_executors(self) -> Dict[str, BaseExecutor]:
+        """Create executor instances for each node type"""
+        return {
+            'personJobNode': PersonJobExecutor(self.llm_service, self.memory_service),
+            'conditionNode': ConditionExecutor(),
+            'startNode': StartExecutor(),
+            # ... other executors
+        }
+    
+    async def execute(self) -> Tuple[Dict[str, Any], float]:
+        """Main execution loop - much simpler"""
+        execution_queue = self._get_start_nodes()
+        
+        while execution_queue:
+            node_id = execution_queue.pop(0)
+            node = self._get_node(node_id)
+            
+            # Check if we should skip
+            if self._should_skip_node(node):
+                self.context.set_node_output(node_id, {"skipped": True})
+                execution_queue.extend(self._get_next_nodes(node_id))
+                continue
+            
+            # Execute the node
+            executor = self.executors.get(node['type'])
+            if not executor:
+                continue
+                
+            try:
+                output, cost = await executor.execute(
+                    node=node,
+                    context=self.context,
+                    skip_manager=self.skip_manager,
+                    loop_controller=self.loop_controller
+                )
+                
+                self.context.set_node_output(node_id, output, cost)
+                self.context.increment_execution_count(node_id)
+                
+                # Handle loop completion
+                if self.loop_controller.is_loop_node(node_id):
+                    self.loop_controller.mark_iteration(node_id)
+                    if self.loop_controller.should_restart_loop(node_id):
+                        execution_queue.extend(self.loop_controller.get_loop_start_nodes(node_id))
+                        continue
+                
+                # Queue next nodes
+                execution_queue.extend(self._get_next_nodes(node_id))
+                
+            except Exception as e:
+                await self._handle_error(node_id, e)
+        
+        return self.context.node_outputs, self.context.total_cost
 ```
 
-## 3. **Unify First-Only Handle Logic**
+### 3. **Migration Strategy**
 
-Currently spread across multiple files. Could be simplified:
-
+#### Phase 1: Parallel Implementation
 ```python
-class Arrow:
-    def should_accept_input(self, node_execution_count: int) -> bool:
-        if self.is_first_only:
-            return node_execution_count == 0
+# In existing executor.py
+class DiagramExecutor:
+    def __init__(self, diagram, use_v2=False):
+        self.use_v2 = use_v2
+        
+    async def run(self):
+        if self.use_v2:
+            from ..execution_v2.core.execution_engine import ExecutionEngine
+            engine = ExecutionEngine(self.diagram, self.memory_service, self.llm_service)
+            return await engine.execute()
         else:
-            return node_execution_count > 0 or not self.has_first_only_sibling
+            # Existing implementation
 ```
 
-## 4. **Create Explicit Loop Abstraction**
+#### Phase 2: Gradual Rollout
+```python
+# Feature flag for testing
+ENABLE_V2_EXECUTION = os.getenv('ENABLE_V2_EXECUTION', 'false').lower() == 'true'
 
-Instead of implicit loops through conditions, make it explicit:
+# Or percentage-based rollout
+import random
+USE_V2 = random.random() < float(os.getenv('V2_ROLLOUT_PERCENTAGE', '0.0'))
+```
 
+### 4. **Integration with Your Components**
+
+Your `loop_controller.py` would integrate like:
 ```python
 class LoopController:
-    """Manages loop execution state"""
-    def __init__(self, max_iterations: int, loop_nodes: List[str]):
-        self.max_iterations = max_iterations
-        self.loop_nodes = loop_nodes
-        self.current_iteration = 0
+    def register_loop(self, loop_id: str, config: LoopConfig):
+        """Register a loop with its configuration"""
+        self.loops[loop_id] = {
+            'nodes': config.nodes,
+            'max_iterations': config.max_iterations,
+            'current_iteration': 0,
+            'condition_node': config.condition_node
+        }
     
-    def should_continue(self) -> bool:
-        return self.current_iteration < self.max_iterations
-    
-    def mark_iteration_complete(self):
-        self.current_iteration += 1
+    def should_continue_loop(self, loop_id: str) -> bool:
+        """Check if loop should continue"""
+        loop = self.loops.get(loop_id)
+        if not loop:
+            return False
+        return loop['current_iteration'] < loop['max_iterations']
 ```
 
-## 5. **Simplify PersonJob Execution**
-
-The current `execute_personjob` function is 200+ lines. Could be broken down:
-
+Your `person_job_executor.py` would be simplified:
 ```python
-class PersonJobExecutor:
-    async def execute(self, node: dict, state: ExecutionState) -> Tuple[Any, float]:
-        # Skip if at max iterations (no memory operations)
-        if self.is_at_max_iterations(node, state):
-            return self.skip_result(), 0.0
+class PersonJobExecutor(BaseExecutor):
+    async def execute(self, node: dict, context: ExecutionContext, 
+                     skip_manager: SkipManager, **kwargs) -> Tuple[Any, float]:
+        node_id = node['id']
         
-        # Clear separation of concerns
-        memory_state = self.prepare_memory(node, state)
-        prompt = self.build_prompt(node, memory_state)
-        response = await self.call_llm(prompt)
-        self.update_memory(memory_state, response)
+        # No need to check skip here - done by engine
+        # No need to handle memory here - done by memory_manager
         
-        return response, response.cost
+        # Just focus on execution
+        prompt = self._build_prompt(node, context)
+        response = await self.llm_service.call(prompt)
+        
+        # Let memory_manager handle memory updates separately
+        await self.memory_manager.add_message(node_id, response)
+        
+        return response.text, response.cost
 ```
 
-## Key Benefits of Simplification:
+### 5. **Benefits of This Architecture**
 
-1. **Predictable behavior**: Skipping means true no-op
-2. **Easier testing**: Each component has single responsibility  
-3. **Better loop support**: Explicit loop constructs instead of implicit behavior
-4. **Cleaner flow**: Less conditional branching and edge cases
-5. **Performance**: Skip operations are truly free (no memory operations)
-
-## Potential New Architecture:
-
-```
-┌─────────────────┐
-│ ExecutionEngine │
-├─────────────────┤
-│ - Loop Manager  │ ← Handles all loop logic
-│ - Skip Manager  │ ← Centralized skip decisions
-│ - Memory Manager│ ← Clear separation from execution
-│ - Node Executor │ ← Simple, focused execution
-└─────────────────┘
-```
-
-Would you like me to elaborate on any of these simplification strategies?
+1. **Separation of Concerns**: Each component has one job
+2. **Testability**: Mock any component easily
+3. **Extensibility**: Add new node types without touching core logic
+4. **Performance**: Skip operations are true no-ops
+5. **Clarity**: Execution flow is linear and predictable
