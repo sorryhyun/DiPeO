@@ -6,7 +6,6 @@ from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
-from ..utils.arrow_utils import ArrowUtils
 
 
 def round_position(position: dict) -> dict:
@@ -113,8 +112,8 @@ class DiagramService(BaseService):
             lines = ['@startuml']
             
             for edge in arrows:
-                src = ArrowUtils.get_source(edge)
-                tgt = ArrowUtils.get_target(edge)
+                src = edge.get("source")
+                tgt = edge.get("target")
                 if src and tgt:
                     lines.append(f"{src} -> {tgt}")
             
