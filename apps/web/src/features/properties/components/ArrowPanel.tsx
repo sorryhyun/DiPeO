@@ -3,17 +3,20 @@ import { Input } from '@/shared/components';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { type ArrowData } from '@/shared/types';
 import { usePropertyPanel } from '@/features/properties';
+import { useArrowDataUpdater } from '@/shared/hooks/useStoreSelectors';
 import {
   Form, FormField, FormGrid,
   TextField, SelectField
 } from '../wrappers';
 
 export const ArrowPanelContent: React.FC<{ arrowId: string; data: ArrowData }> = ({ arrowId, data }) => {
-  const { updateArrowData, arrows, nodes } = useConsolidatedDiagramStore();
+  const updateArrowData = useArrowDataUpdater();
+  const arrow = useConsolidatedDiagramStore(state => state.arrows.find(e => e.id === arrowId));
+  const sourceNode = useConsolidatedDiagramStore(state => 
+    arrow ? state.nodes.find(n => n.id === arrow.source) : null
+  );
   const { formData, handleChange: updateForm } = usePropertyPanel<ArrowData>(arrowId, 'arrow', data);
 
-  const arrow = arrows.find(e => e.id === arrowId);
-  const sourceNode = arrow ? nodes.find(n => n.id === arrow.source) : null;
   const isFromConditionNode = sourceNode?.type === 'conditionNode';
   const fixed = data.edgeKind === 'fixed';
 

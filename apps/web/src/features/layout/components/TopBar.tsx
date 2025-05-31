@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components';
-import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/shared/stores';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { useUIState } from '@/shared/hooks/useStoreSelectors';
 import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/features/diagram/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/features/diagram/wrappers';
@@ -16,10 +17,11 @@ const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
-  const { apiKeys, addApiKey } = useConsolidatedDiagramStore();
+  const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
+  const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const { handleLoad, handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
-  const { isMemoryLayerTilted, toggleMemoryLayer } = useConsolidatedUIStore();
+  const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
   useEffect(() => {

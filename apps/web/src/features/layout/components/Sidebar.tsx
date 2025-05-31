@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useConsolidatedDiagramStore, useConsolidatedUIStore } from '@/shared/stores';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { usePersons, useSelectedElement, useUIState } from '@/shared/hooks/useStoreSelectors';
 import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
 import { useFileImport } from '@/features/diagram/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
@@ -33,9 +34,11 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const { nodes, arrows } = useConsolidatedDiagramStore();
-  const { setDashboardTab, selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useConsolidatedUIStore();
-  const { addPerson, persons } = useConsolidatedDiagramStore();
+  const nodes = useConsolidatedDiagramStore(state => state.nodes);
+  const arrows = useConsolidatedDiagramStore(state => state.arrows);
+  const { setDashboardTab } = useUIState();
+  const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
+  const { persons, addPerson } = usePersons();
   const { handleImportUML, handleImportYAML } = useFileImport();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);

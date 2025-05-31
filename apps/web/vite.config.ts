@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 import * as path from 'path';
 
 export default defineConfig({
@@ -25,7 +26,7 @@ export default defineConfig({
           'store-vendor': ['zustand'],
           
           // Large components - lazy loaded
-          'conversation': ['./src/features/layout/components/ConversationDashboard'],
+          'conversation': ['./src/features/conversation/components/ConversationDashboard'],
           'properties': ['./src/features/properties/components/PropertiesRenderer'],
           'modals': ['./src/features/layout/components/modals/ApiKeysModal'],
         },
@@ -69,6 +70,12 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    visualizer({
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+      filename: './dist/bundle-analysis.html',
+    }),
   ],
   preview: {
     port: 3000,

@@ -11,7 +11,7 @@ import {
   StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
   ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
 } from '../types';
-import { sanitizeDiagram } from "@/shared/utils/diagramSanitizer";
+import { sanitizeDiagram } from "@/features/diagram/utils/diagramSanitizer";
 import { createPersonCrudActions, createApiKeyCrudActions } from "@/shared/utils/storeCrudUtils";
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
