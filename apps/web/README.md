@@ -1,107 +1,93 @@
-# AgentDiagram Frontend – Essential Guide
+# AgentDiagram Web Frontend
 
-## 1. Overview
+React-based visual workflow editor for multi-LLM agent orchestration.
 
-AgentDiagram Frontend is a React‑19 + TypeScript application that lets you design, execute, and monitor multi‑LLM agent workflows through an intuitive drag‑and‑drop diagram editor.
-
-Key capabilities:
-
-* Visual workflow authoring with React Flow nodes/edges
-* Out‑of‑the‑box connectors for OpenAI, Anthropic, Gemini, Grok
-* Live execution streaming and token/cost tracking
-* 3D memory‑layer visualisation
-
-## 2. Core Tech Stack
-
-* **React 19** (concurrent features)
-* **TypeScript**
-* **Zustand** for state management
-* **React Flow** for diagrams
-* **Tailwind CSS** for styling
-* **Vite** build tool
-
-## 3. Project Skeleton (condensed)
-
-```text
-apps/web
-  └─ src
-     ├─ components/        UI + nodes
-     ├─ stores/            Zustand state
-     ├─ hooks/             Custom hooks
-     ├─ utils/             Helpers & export
-```
-
-## 4. Main UI Components
-
-* **TopBar** – file operations, run controls, API keys
-* **Sidebar** – node palette, personas, import
-* **DiagramCanvas** – React Flow canvas
-* **Dashboard** – conversation & properties tabs
-
-### Node Types (selected)
-
-| Node              | Purpose               |
-| ----------------- | --------------------- |
-| **StartNode**     | Entry point           |
-| **PersonJobNode** | LLM call with persona |
-| **ConditionNode** | True / false branch   |
-| **DBNode**        | Data source           |
-| **JobNode**       | Code / API execution  |
-| **EndpointNode**  | Terminate / save      |
-
-## 5. State Stores (keys only)
-
-* **consolidatedDiagramStore** – nodes, arrows, persons, apiKeys
-* **consolidatedUIStore** – selected\*, dashboardTab, isMemoryLayerTilted
-* **executionStore** – runContext, runningNodes, currentRunningNode
-
-## 6. Developer Guide
+## Quick Start
 
 ```bash
-pnpm install       # dependencies
-pnpm dev:web       # dev server @localhost:3000
-pnpm build:web     # production build
-pnpm analyze       # bundle stats
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm build      # Production build
+pnpm analyze    # Bundle analysis
 ```
 
-## 7. Testing Strategy
+## Tech Stack
 
-1. **Component** – render & interaction
-2. **Integration** – execution flow, SSE
-3. **E2E** – full workflow create → run → export
+- **React 19** + **TypeScript**
+- **Zustand** (state management)
+- **React Flow** (diagram editor)
+- **Tailwind CSS** (styling)
+- **Vite** (build tool)
 
-## 8. Performance & Optimisation
+## Key Features
 
-* Code‑split heavy panels
-* Memoise node components; debounced property updates
-* Virtualise long lists; optimise SVG edge rendering
+- 🎨 Drag-drop workflow designer
+- 🤖 Multi-LLM support (OpenAI, Claude, Gemini, Grok)
+- ⚡ Real-time execution with SSE streaming
+- 💾 YAML/JSON import/export
+- 🧠 3D memory layer visualization
+- 💬 Conversation tracking & cost analytics
 
-## 9. Security Essentials
+## Project Structure
 
-* Backend‑stored encrypted API keys
-* Sandboxed backend code execution
-* Size/MIME validation on uploads
-* Rate limiting & input validation
+```
+src/
+├── features/          # Feature modules
+│   ├── diagram/       # Canvas, nodes, execution
+│   ├── nodes/         # Node components & logic
+│   ├── properties/    # Property panels
+│   ├── conversation/  # Chat dashboard
+│   └── layout/        # TopBar, Sidebar, modals
+├── shared/           # Shared code
+│   ├── stores/       # Zustand stores
+│   ├── hooks/        # Custom hooks
+│   ├── components/   # UI components
+│   └── types/        # TypeScript types
+└── App.tsx           # Root component
+```
 
-## 10. Troubleshooting Cheatsheet
+## Development
 
-| Symptom               | Quick Checks                                  |
-| --------------------- | --------------------------------------------- |
-| Nodes not updating    | call `useUpdateNodeInternals` after mutations |
-| Streaming blank       | backend on :8000? SSE errors?                 |
-| Handles won’t connect | handle IDs & configs                          |
-| Slow large diagrams   | profiler, avoid unnecessary re‑renders        |
+### API Proxy
+Dev server proxies `/api/*` to `localhost:8000`
 
-## 11. API Endpoints (dev proxy)
+### State Management
+- `consolidatedDiagramStore` - nodes, arrows, persons
+- `consolidatedUIStore` - selections, UI state
+- `executionStore` - runtime state
 
-* `POST /api/run-diagram`
-* `GET/POST /api/apikeys`
-* `GET /api/conversations`
-* `POST /api/save`
+### Adding a Node Type
+1. Define in `shared/types/nodeConfig.ts`
+2. Create component in `features/nodes/components/nodes/`
+3. Add to `features/nodes/components/NodesGeneric.tsx`
 
-## 12. Further Reading
+### Key Hooks
+- `useDiagramRunner()` - execute workflows
+- `usePropertyPanel()` - property form state
+- `useNodeExecutionState()` - node runtime state
 
-* React Flow documentation
-* Zustand usage guide
-* Tailwind CSS docs
-* Vite configuration reference
+## Common Commands
+
+```bash
+# Type checking
+pnpm typecheck
+
+# Bundle analysis
+pnpm analyze
+
+# Preview production build
+pnpm serve
+```
+
+## Environment
+
+```env
+VITE_API_HOST=localhost:8000  # Backend URL
+```
+
+## Tips
+
+- Nodes auto-save on property changes
+- Double-click arrows to straighten
+- Hold Shift for multi-select
+- Ctrl+S saves to backend

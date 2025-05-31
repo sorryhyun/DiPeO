@@ -1,45 +1,118 @@
-## Bundle Size Optimization - COMPLETED ✅
+Let me trace through the wrapper overhead problem with a concrete example from your codebase:
 
-The following optimizations have been successfully applied to reduce the frontend bundle size:
+## The BaseNode Wrapper Chain
 
-### 1. ✅ Split Large Components
-- **NodesGeneric.tsx** has been refactored into individual lazy-loaded node components
-- Each node type (StartNode, ConditionNode, JobNode, etc.) is now code-split
-- Lazy loading with Suspense boundaries reduces initial bundle size
+Here's how a simple node component goes through **3 layers of wrapping**:
 
-### 2. ✅ Added Bundle Analyzer
-- Installed `rollup-plugin-visualizer` for visual bundle analysis
-- Configured in vite.config.ts to generate bundle analysis on build
-- Run `pnpm analyze` to see detailed bundle composition
+### Layer 1: Original BaseNode Component
+```typescript
+// apps/web/src/features/diagram/components/ui-components/BaseNode.tsx
+function BaseNodeComponent({
+  id, children, selected, isRunning, ...props
+}: BaseNodeProps) {
+  // 113 lines of actual implementation
+  return <div>{children}</div>
+}
+```
 
-### 3. ✅ Optimized Store Subscriptions
-- Replaced broad store destructuring with shallow selectors
-- Used existing optimized hooks from `useStoreSelectors.ts`
-- Components now only re-render when their specific data changes
+### Layer 2: First Wrapper
+```typescript
+// apps/web/src/features/diagram/wrappers/index.ts
+export { BaseNode } from '../components/ui-components/BaseNode';
+// Just re-exports, but creates import indirection
+```
 
-### 4. ✅ Fixed Import Paths
-- Corrected misplaced utility imports (yamlExporter, diagramSanitizer)
-- Fixed duplicate component naming to improve clarity
+### Layer 3: Store Integration Wrapper
+```typescript
+// apps/web/src/features/nodes/components/BaseNode.tsx
+export const BaseNode = React.memo((props) => {
+  const { id } = props;
+  
+  // Gets data from stores
+  const { isRunning } = useNodeExecutionState(id);
+  const { updateNodeData, updateNodeInternals, nodeConfigs } = useDiagramContext();
+  
+  // Passes everything to the actual BaseNode
+  return (
+    <BaseNodeComponent
+      {...props}
+      isRunning={isRunning}
+      onUpdateData={updateNodeData}
+      onUpdateNodeInternals={updateNodeInternals}
+      nodeConfigs={nodeConfigs}
+    />
+  );
+});
+```
 
-### 5. ✅ Tree-Shaking Enabled
-- `"sideEffects": false` already set in package.json
-- Proper ES module imports ensure unused code is eliminated
+### Layer 4: Usage in Actual Nodes
+```typescript
+// apps/web/src/features/nodes/components/nodes/StartNode.tsx
+const StartNode = ({ id, data, selected }) => {
+  return (
+    <GenericNode id={id} data={data} selected={selected}>
+      {/* content */}
+    </GenericNode>
+  );
+};
 
-## Results
+// GenericNode also wraps BaseNode!
+```
 
-After optimizations:
-- Total build size: **672.36 KB** (49.15 KB CSS + 623.21 KB JS)
-- Successfully code-split into multiple chunks
-- Individual node components load on-demand
-- Better performance through reduced re-renders
+## Why This Is Inefficient
 
-## Remaining Task
+1. **Props Drilling**: Every prop must pass through 3-4 components
+2. **Bundle Size**: Each wrapper adds ~20-50 lines of code
+3. **Runtime Overhead**: Extra function calls and React reconciliation
+4. **Debugging Complexity**: Stack traces become harder to follow
 
-### Build Packages Properly (High Priority)
-The monorepo is configured for a packages directory that doesn't exist. To fully optimize:
-1. Create the packages directory structure
-2. Move shared components to packages with proper build steps
-3. Use tsup or similar to pre-build packages with tree-shaking
-4. This would further reduce bundle size by eliminating duplicate code
+## The Same Pattern Repeats
 
-Run `pnpm build && pnpm analyze` to see the current bundle composition and verify improvements.
+```typescript
+// CustomArrow has similar wrapping:
+CustomArrow (ui) → CustomArrowWrapper → CustomArrowWithStore
+
+// ContextMenu:
+ContextMenu (ui) → ContextMenuWrapper → ContextMenuWithDiagram
+
+// Properties panels:
+Panel → PanelWrapper → UniversalPropertiesPanel → PropertyRenderer
+```
+
+## What Should Have Been Done
+
+Instead of wrapping, inject dependencies directly:
+
+```typescript
+// Single component with optional store integration
+export const BaseNode = ({ id, children, ...props }) => {
+  // Hooks are optional - component works without them
+  const isRunning = useNodeExecutionState?.(id) ?? props.isRunning;
+  const updateNodeData = useNodeDataUpdater?.() ?? props.onUpdateData;
+  
+  // Single implementation
+  return <div className={isRunning ? 'running' : ''}>{children}</div>
+};
+```
+
+Or use a provider pattern:
+
+```typescript
+// Provide dependencies once at the top
+<DiagramProvider>
+  <BaseNode id="123" /> {/* Gets deps from context */}
+</DiagramProvider>
+
+// For testing/isolation
+<BaseNode id="123" isRunning={true} /> {/* Works without provider */}
+```
+
+## Impact on Your Bundle
+
+Looking at your code:
+- ~15 wrapper components
+- Each adds 30-100 lines
+- **Total overhead: ~1000-1500 lines of wrapper code**
+- Plus increased complexity and harder tree-shaking
+
+This wrapper pattern is why your "refactored" code is larger - you've added layers instead of simplifying the architecture.

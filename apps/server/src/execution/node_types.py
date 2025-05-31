@@ -10,12 +10,14 @@ class NodeTypeMapping:
     # Node types that require LLM service
     LLM_DEPENDENT_TYPES: Set[NodeType] = {
         NodeType.PERSON_JOB,
+        NodeType.PERSON_BATCH_JOB,
         NodeType.JOB
     }
     
     # Node types that can have iteration limits
     ITERATABLE_TYPES: Set[NodeType] = {
         NodeType.PERSON_JOB,
+        NodeType.PERSON_BATCH_JOB,
         NodeType.CONDITION,
         NodeType.JOB
     }

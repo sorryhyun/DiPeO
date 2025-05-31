@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Input, Label, Select, SelectItem, Textarea, Spinner
+  Input, Label, Select, SelectItem, Textarea, Spinner, Switch
 } from '../../../../shared/components';
 import { FormFieldProps } from '@/shared/types';
 
@@ -166,4 +166,22 @@ export const InlineSelectField: React.FC<SelectFieldProps & { className?: string
       </Select>
     )}
   </InlineFormField>
+);
+
+interface CheckboxFieldProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  id?: string;
+}
+
+export const CheckboxField: React.FC<CheckboxFieldProps> = ({ label, checked, onChange, id }) => (
+  <div className="flex items-center space-x-2">
+    <Switch
+      id={id}
+      checked={checked}
+      onChange={onChange}
+    />
+    <Label htmlFor={id} className="text-sm font-medium cursor-pointer">{label}</Label>
+  </div>
 );

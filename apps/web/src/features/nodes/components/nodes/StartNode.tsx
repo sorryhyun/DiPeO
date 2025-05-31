@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '../BaseNode';
+import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
 import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
 
 const StartNode: React.FC<NodeProps> = ({ id, data, selected }) => {

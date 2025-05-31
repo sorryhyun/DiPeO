@@ -11,11 +11,6 @@ export const PersonJobPanelContent: React.FC<{ nodeId: string; data: PersonJobBl
   const { persons } = usePersons();
   const { formData, handleChange } = usePropertyPanel<PersonJobBlockData>(nodeId, 'node', data);
 
-  const modeOptions = [
-    { value: 'sync', label: 'Sync' },
-    { value: 'batch', label: 'Batch' }
-  ];
-
   const forgetOptions = [
     { value: 'upon_request', label: 'Upon This Request' },
     { value: 'no_forget', label: 'Do Not Forget' },
@@ -48,13 +43,6 @@ export const PersonJobPanelContent: React.FC<{ nodeId: string; data: PersonJobBl
           </FormRow>
 
           <FormRow>
-            <InlineSelectField
-              label="Mode"
-              value={formData.mode || 'sync'}
-              onChange={(v) => handleChange('mode', v as any)}
-              options={modeOptions}
-              className="flex-1"
-            />
             <InlineSelectField
               label="Forget"
               value={formData.contextCleaningRule || 'upon_request'}

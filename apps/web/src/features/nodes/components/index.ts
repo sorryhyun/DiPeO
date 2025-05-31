@@ -8,4 +8,5 @@ export { nodeTypes };
 export { default as PersonClass } from './PersonClass';
 
 // Export BaseNode and GenericNode for direct usage
-export { BaseNode, GenericNode } from './BaseNode';
+export { BaseNode } from '@/features/diagram/components/ui-components/BaseNode';
+export { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';

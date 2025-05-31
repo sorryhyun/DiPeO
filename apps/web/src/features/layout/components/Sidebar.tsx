@@ -84,6 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
             <div className="grid grid-cols-2 gap-2 px-2">
               <DraggableBlock type="start" label={`${UNIFIED_NODE_CONFIGS.start.emoji} ${UNIFIED_NODE_CONFIGS.start.label} Block`} />
               <DraggableBlock type="person_job" label={`${UNIFIED_NODE_CONFIGS.person_job.emoji} ${UNIFIED_NODE_CONFIGS.person_job.label} Block`} />
+              <DraggableBlock type="person_batch_job" label={`${UNIFIED_NODE_CONFIGS.person_batch_job.emoji} ${UNIFIED_NODE_CONFIGS.person_batch_job.label} Block`} />
               <DraggableBlock type="condition" label={`${UNIFIED_NODE_CONFIGS.condition.emoji} ${UNIFIED_NODE_CONFIGS.condition.label} Block`} />
               <DraggableBlock type="job" label={`${UNIFIED_NODE_CONFIGS.job.emoji} ${UNIFIED_NODE_CONFIGS.job.label} Block`} />
               <DraggableBlock type="endpoint" label={`${UNIFIED_NODE_CONFIGS.endpoint.emoji} ${UNIFIED_NODE_CONFIGS.endpoint.label} Block`} />

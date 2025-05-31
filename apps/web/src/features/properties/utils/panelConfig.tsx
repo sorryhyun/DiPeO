@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import {
   PersonJobPanelContent,
+  PersonBatchJobPanelContent,
   ConditionPanelContent,
   DBPanelContent,
   ArrowPanelContent,
@@ -13,7 +14,7 @@ import {
   JobPanelContent
 } from '../components';
 import type {
-  PersonJobBlockData, ConditionBlockData, DBBlockData,
+  PersonJobBlockData, PersonBatchJobBlockData, ConditionBlockData, DBBlockData,
   ArrowData, PersonDefinition, EndpointBlockData, JobBlockData
 } from '@/shared/types';
 
@@ -31,6 +32,13 @@ export const PANEL_CONFIGS: PanelConfig = {
     title: "Person Job Properties",
     render: (props: { nodeId: string; data: PersonJobBlockData }) => 
       <PersonJobPanelContent {...props} />
+  },
+
+  personBatchJob: {
+    icon: <UserCheckIcon className="w-5 h-5" />,
+    title: "Person Batch Job Properties",
+    render: (props: { nodeId: string; data: PersonBatchJobBlockData }) => 
+      <PersonBatchJobPanelContent {...props} />
   },
 
   condition: {

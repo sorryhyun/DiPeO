@@ -5,6 +5,7 @@ from typing import Final
 class NodeType(Enum):
     START = "startNode"
     PERSON_JOB = "personJobNode"
+    PERSON_BATCH_JOB = "personBatchJobNode"
     CONDITION = "conditionNode" 
     DB = "dbNode"
     JOB = "jobNode"

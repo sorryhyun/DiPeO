@@ -104,10 +104,6 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { name: 'personId', label: 'Person', type: 'select', options: [] }, // Will be populated dynamically
       { name: 'defaultPrompt', label: 'Default Prompt', type: 'textarea', placeholder: 'Enter default prompt', rows: 4 },
       { name: 'firstOnlyPrompt', label: 'First Only Prompt', type: 'textarea', placeholder: 'Enter first only prompt', rows: 4 },
-      { name: 'mode', label: 'Mode', type: 'select', options: [
-        { value: 'sync', label: 'Synchronous' },
-        { value: 'batch', label: 'Batch' }
-      ]},
       { name: 'contextCleaningRule', label: 'Context Cleaning', type: 'select', options: [
         { value: 'upon_request', label: 'Upon Request' },
         { value: 'no_forget', label: 'No Forget' },
@@ -214,6 +210,43 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     
     // Metadata
     description: 'Execute code or call APIs',
+    category: 'processing'
+  },
+  
+  person_batch_job: {
+    // Visual config
+    handles: [
+      { type: 'input', position: Position.Left, name: 'batch', offset: 50, color: '#4f46e5' },
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#d97706' }
+    ],
+    borderColor: 'indigo',
+    width: 'w-52',
+    emoji: '🤖📦',
+    label: 'Person Batch Job',
+    
+    // React Flow mapping
+    reactFlowType: 'personBatchJobNode',
+    blockType: 'person_batch_job',
+    
+    // Properties config
+    propertyTitle: 'Person Batch Job Properties',
+    propertyFields: [
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter batch job name', required: true },
+      { name: 'personId', label: 'Person', type: 'select', options: [] }, // Will be populated dynamically
+      { name: 'batchPrompt', label: 'Batch Prompt', type: 'textarea', placeholder: 'Enter batch processing prompt', rows: 4 },
+      { name: 'batchSize', label: 'Batch Size', type: 'number', placeholder: '10' },
+      { name: 'parallelProcessing', label: 'Parallel Processing', type: 'checkbox' },
+      { name: 'aggregationMethod', label: 'Aggregation Method', type: 'select', options: [
+        { value: 'concatenate', label: 'Concatenate' },
+        { value: 'summarize', label: 'Summarize' },
+        { value: 'custom', label: 'Custom' }
+      ]},
+      { name: 'customAggregationPrompt', label: 'Custom Aggregation Prompt', type: 'textarea', placeholder: 'Enter custom aggregation prompt', rows: 3 },
+      { name: 'iterationCount', label: 'Max Iterations', type: 'number', placeholder: '1' }
+    ],
+    
+    // Metadata
+    description: 'Process multiple items in batches with LLM',
     category: 'processing'
   },
   

@@ -1,5 +1,5 @@
 // Components
-export { BaseNode } from './components/BaseNode';
+export { BaseNode } from '@/features/diagram/components/ui-components/BaseNode';
 export { default as NodesGeneric } from './components/NodesGeneric';
 export { default as PersonClass } from './components/PersonClass';
 

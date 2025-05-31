@@ -16,7 +16,7 @@ export interface ApiKey {
 }
 
 export type ArrowKind = 'normal' | 'fixed';
-export type BlockType = 'start' | 'person_job' | 'db' | 'job' | 'condition' | 'endpoint';
+export type BlockType = 'start' | 'person_job' | 'person_batch_job' | 'db' | 'job' | 'condition' | 'endpoint';
 
 // Base for all canvas blocks (nodes) with discriminating `type`
 export interface BaseBlockData {
@@ -42,9 +42,23 @@ export interface PersonJobBlockData extends BaseBlockData {
   defaultPrompt?: string;
   firstOnlyPrompt?: string;
   detectedVariables?: string[];
-  mode?: 'sync' | 'batch';
   contextCleaningRule?: 'upon_request' | 'no_forget' | 'on_every_turn';
   contextCleaningTurns?: number;
+  iterationCount?: number;
+}
+
+export interface PersonBatchJobBlockData extends BaseBlockData {
+  type: 'person_batch_job';
+  personId?: string;
+  llmApi?: ApiKey['service'];
+  apiKeyId?: ApiKey['id'];
+  modelName?: string;
+  batchPrompt?: string;
+  batchSize?: number;
+  parallelProcessing?: boolean;
+  aggregationMethod?: 'concatenate' | 'summarize' | 'custom';
+  customAggregationPrompt?: string;
+  detectedVariables?: string[];
   iterationCount?: number;
 }
 
@@ -113,7 +127,7 @@ export interface ArrowData {
 }
 
 // Union type for all block data types
-export type DiagramNodeData = StartBlockData | PersonJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData;
+export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData;
 
 // Type for diagram nodes
 export type DiagramNode = Node<DiagramNodeData>;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '../BaseNode';
+import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { UNIFIED_NODE_CONFIGS, type PersonJobBlockData } from '@/shared/types';
 
@@ -56,12 +56,7 @@ const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => 
         </p>
       )}
       <div className="mt-2 space-y-0.5 text-center">
-        {jobData.mode && (
-          <p className="text-sm text-gray-600">
-            Mode: <span className="font-medium">{jobData.mode}</span>
-          </p>
-        )}
-        {jobData.contextCleaningRule && (
+        {jobData.contextCleaningRule ? (
           <p className="text-sm text-gray-600">
             Forget: <span className="font-medium">
               {jobData.contextCleaningRule === 'no_forget'
@@ -71,12 +66,12 @@ const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => 
                 : 'Upon request'}
             </span>
           </p>
-        )}
-        {jobData.iterationCount !== undefined && (
+        ) : null}
+        {jobData.iterationCount !== undefined ? (
           <p className="text-sm text-gray-600">
             Max iterations: <span className="font-medium">{jobData.iterationCount}</span>
           </p>
-        )}
+        ) : null}
       </div>
     </GenericNode>
   );

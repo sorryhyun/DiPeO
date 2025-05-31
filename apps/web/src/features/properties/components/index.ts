@@ -1,4 +1,5 @@
 export { PersonJobPanelContent } from './PersonJobPanel';
+export { PersonBatchJobPanelContent } from './PersonBatchJobPanel';
 export { ConditionPanelContent } from './ConditionPanel';
 export { DBPanelContent } from './DBPanel';
 export { ArrowPanelContent } from './ArrowPanel';

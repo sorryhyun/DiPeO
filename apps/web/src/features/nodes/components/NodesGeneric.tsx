@@ -2,9 +2,9 @@
 
 import React, { Suspense } from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from './BaseNode';
+import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
 import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
-import { StartNode, ConditionNode, JobNode, DBNode, EndpointNode, PersonJobNode } from './nodes';
+import { StartNode, ConditionNode, JobNode, DBNode, EndpointNode, PersonJobNode, PersonBatchJobNode } from './nodes';
 
 // Loading component for lazy-loaded nodes
 const NodeLoadingFallback: React.FC<NodeProps> = ({ id, data, selected }) => (
@@ -21,6 +21,7 @@ const nodeComponents: Record<string, React.LazyExoticComponent<React.FC<NodeProp
   db: DBNode,
   endpoint: EndpointNode,
   person_job: PersonJobNode,
+  person_batch_job: PersonBatchJobNode,
 };
 
 // Universal Node Component - routes to appropriate lazy-loaded component

@@ -5,6 +5,7 @@ from typing import Dict, Type, Optional
 from .nodes.base import BaseNodeExecutor
 from .nodes import (
     PersonJobNodeExecutor,
+    PersonBatchJobNodeExecutor,
     ConditionNodeExecutor,
     DBNodeExecutor,
     JobNodeExecutor,
@@ -29,6 +30,7 @@ class NodeExecutorRegistry:
         """Register all built-in node executors."""
         # Register using NodeType enum values
         self.register(NodeType.PERSON_JOB.value, PersonJobNodeExecutor)
+        self.register(NodeType.PERSON_BATCH_JOB.value, PersonBatchJobNodeExecutor)
         self.register(NodeType.CONDITION.value, ConditionNodeExecutor)
         self.register(NodeType.DB.value, DBNodeExecutor)
         self.register(NodeType.JOB.value, JobNodeExecutor)

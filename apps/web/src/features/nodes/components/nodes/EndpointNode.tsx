@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '../BaseNode';
+import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
 import { Save } from 'lucide-react';
 import { UNIFIED_NODE_CONFIGS, type EndpointBlockData } from '@/shared/types';
 
