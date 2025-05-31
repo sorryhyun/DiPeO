@@ -5,8 +5,8 @@ from typing import Dict, List, Tuple, Optional, Any, Set
 from dataclasses import dataclass
 
 from ..core.execution_context import ExecutionContext
-from apps.server.src.utils.arrow_utils import ArrowUtils
-from apps.server.src.constants import NodeType
+from ...utils.arrow_utils import ArrowUtils
+from ...constants import NodeType
 
 logger = logging.getLogger(__name__)
 

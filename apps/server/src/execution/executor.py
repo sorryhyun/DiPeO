@@ -30,12 +30,12 @@ class DiagramExecutor:
         """
         self.diagram = diagram
         self.status_callback = status_callback
+        self.engine = None
 
         # Initialize services
         self.api_key_service = APIKeyService()
         self.llm_service = LLMService(self.api_key_service)
         self.memory_service = memory_service or MemoryService()
-        logger.info("Using V2 execution engine")
 
     async def run(self) -> Tuple[Dict[str, Any], float]:
         """Run the diagram execution
@@ -45,10 +45,17 @@ class DiagramExecutor:
         """
         from apps.server.src.execution.core.execution_engine import ExecutionEngine
 
-        engine = ExecutionEngine(
+        self.engine = ExecutionEngine(
             diagram=self.diagram,
             memory_service=self.memory_service,
             llm_service=self.llm_service,
             streaming_update_callback=self.status_callback
         )
-        return await engine.execute()
+        return await self.engine.execute()
+    
+    @property
+    def execution_id(self) -> Optional[str]:
+        """Get the execution ID from the engine's context."""
+        if hasattr(self, 'engine') and self.engine:
+            return self.engine.context.execution_id
+        return None

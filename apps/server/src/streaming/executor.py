@@ -105,8 +105,9 @@ class StreamingDiagramExecutor:
             self.completed = True
             
         finally:
-            # Clean up stream resources
+            # Allow time for final messages to be consumed before cleanup
             if self.execution_id:
+                await asyncio.sleep(0.5)  # Grace period for message delivery
                 await stream_manager.cleanup_stream(self.execution_id)
     
     def get_stream_queue(self):

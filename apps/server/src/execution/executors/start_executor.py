@@ -36,7 +36,7 @@ class StartExecutor(BaseExecutor):
             Tuple of (inputs_dict, 0.0) - start nodes have no cost
         """
         # Get initial inputs from kwargs if provided
-        initial_inputs = kwargs.get('initial_inputs', {})
+        initial_inputs = kwargs.get('initial_inputs', {'data':None})
         
         # Prepare any configured default values
         node_inputs = self._prepare_inputs(node, context)

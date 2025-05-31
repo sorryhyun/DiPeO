@@ -112,35 +112,45 @@ async def run_diagram_endpoint(payload: dict):
             memory_service=memory_service
         )
         
-        # Start execution
-        execution_task = asyncio.create_task(executor.execute())
-        
+        execution_task = None
         try:
             # Send initial connection confirmation
             yield f"data: {safe_json_dumps({'type': 'connection_established'})}\n\n"
             
-            # Give the execution task time to initialize the stream
-            await asyncio.sleep(0.1)
+            # Start execution
+            execution_task = asyncio.create_task(executor.execute())
             
-            # Wait for stream to be ready
-            if not await executor.wait_for_stream_ready():
-                raise HTTPException(status_code=500, detail="Failed to initialize stream")
+            # Wait for stream to be ready with longer timeout and better error handling
+            if not await executor.wait_for_stream_ready(timeout=10.0):
+                if execution_task and not execution_task.done():
+                    execution_task.cancel()
+                raise ValueError("Stream initialization timed out - execution may have failed to start")
             
             # Get the SSE queue
             queue = executor.get_stream_queue()
+            if not queue:
+                if execution_task and not execution_task.done():
+                    execution_task.cancel()
+                raise ValueError("Stream queue not available after initialization")
             
             # Stream updates until completion
-            while not executor.completed or (queue and not queue.empty()):
-                if queue:
-                    try:
-                        update = await asyncio.wait_for(queue.get(), timeout=0.1)
-                        yield f"data: {safe_json_dumps(update)}\n\n"
-                    except asyncio.TimeoutError:
-                        # Send heartbeat to keep connection alive
-                        yield f": heartbeat\n\n"
-                        continue
-                else:
-                    await asyncio.sleep(0.1)
+            while True:
+                try:
+                    # Use longer timeout for more stability
+                    update = await asyncio.wait_for(queue.get(), timeout=1.0)
+                    yield f"data: {safe_json_dumps(update)}\n\n"
+                    
+                    # Check if this is the final completion message
+                    if update.get('type') in ['execution_complete', 'execution_error']:
+                        break
+                        
+                except asyncio.TimeoutError:
+                    # Check if execution is complete and queue is empty
+                    if executor.completed and queue.empty():
+                        break
+                    # Send heartbeat to keep connection alive
+                    yield f": heartbeat\n\n"
+                    continue
             
             # Wait for execution to complete
             await execution_task
@@ -150,7 +160,7 @@ async def run_diagram_endpoint(payload: dict):
                 raise executor.error
                 
         except Exception as e:
-            if not execution_task.done():
+            if execution_task and not execution_task.done():
                 execution_task.cancel()
             raise HTTPException(status_code=500, detail=str(e))
     
@@ -186,7 +196,7 @@ async def run_diagram_sync(
         "success": True,
         "context": context,
         "total_cost": total_cost,
-        "execution_id": executor.execution_id
+        "execution_id": executor.execution_id or "unknown"
     }
 
 

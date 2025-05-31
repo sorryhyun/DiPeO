@@ -77,7 +77,7 @@ class PersonJobExecutionError(NodeExecutionError):
     
     def __init__(self, node_id: str, person_id: str, message: str, details: Optional[dict[str, Any]] = None):
         self.person_id = person_id
-        super().__init__(node_id, "personjob", f"PersonJob execution failed: {message}", details)
+        super().__init__(node_id, "personJob", f"PersonJob execution failed: {message}", details)
 
 
 class FileOperationError(AgentDiagramException):

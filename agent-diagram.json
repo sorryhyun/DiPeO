@@ -339,7 +339,7 @@
     {
       "id": "APIKEY_TEST00",
       "name": "test",
-      "service": "openai",
+      "service": "openai"
     }
   ]
 }

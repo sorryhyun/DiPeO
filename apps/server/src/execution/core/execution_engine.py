@@ -118,7 +118,7 @@ class ExecutionEngine:
                 self.incoming_arrows[target] = []
             self.incoming_arrows[target].append(arrow)
     
-    async def execute(self, initial_inputs: Optional[Dict[str, Any]] = None) -> Tuple[Dict[str, Any], float]:
+    async def execute(self, initial_inputs: Optional[Dict[str, Any]] = {'data': None}) -> Tuple[Dict[str, Any], float]:
         """Main execution loop - simplified and linear.
         
         Args:
@@ -167,7 +167,7 @@ class ExecutionEngine:
                     context=self.context,
                     skip_manager=self.skip_manager,
                     loop_controller=self.loop_controller,
-                    initial_inputs=initial_inputs if node['type'] == 'startNode' else None
+                    initial_inputs=initial_inputs if node_type == 'startNode' else None
                 )
                 
                 self.context.set_node_output(node_id, output, cost)
@@ -242,7 +242,7 @@ class ExecutionEngine:
         for arrow in outgoing:
             # Handle conditional arrows
             if arrow.get('label') in ['true', 'false'] and isinstance(output, bool):
-                if (arrow['label'] == 'true' and output) or (arrow['label'] == 'false' and not output):
+                if (arrow['label'] == 'source' and output) or (arrow['label'] == 'false' and not output):
                     next_nodes.append(arrow['target'])
             else:
                 # Non-conditional arrow

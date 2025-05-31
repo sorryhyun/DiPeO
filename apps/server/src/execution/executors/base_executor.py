@@ -159,3 +159,36 @@ class BaseExecutor(ABC):
             The node type string
         """
         return self.__class__.__name__.replace('Executor', '').lower()
+    
+    def _get_person_property(
+        self,
+        person_id: str,
+        property_path: str,
+        default: Any = None
+    ) -> Any:
+        """Get a property from a person in the context.
+        
+        Args:
+            person_id: The ID of the person
+            property_path: Dot-separated path to the property (e.g., "data.llm")
+            default: Default value if property not found
+            
+        Returns:
+            The property value or default
+        """
+        if not self.context.diagram:
+            return default
+        
+        persons = self.context.diagram.get('persons', {})
+        person = persons.get(person_id)
+        
+        if not person:
+            return default
+        
+        try:
+            value = person
+            for key in property_path.split('.'):
+                value = value.get(key, {})
+            return value if value != {} else default
+        except (AttributeError, TypeError):
+            return default

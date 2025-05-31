@@ -6,8 +6,8 @@ import logging
 
 from ..core.execution_context import ExecutionContext
 from .dependency_resolver import DependencyResolver
-from apps.server.src.constants import NodeType
-from apps.server.src.utils.arrow_utils import ArrowUtils
+from ...constants import NodeType
+from ...utils.arrow_utils import ArrowUtils
 
 logger = logging.getLogger(__name__)
 

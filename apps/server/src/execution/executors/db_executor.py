@@ -6,8 +6,8 @@ import logging
 from .base_executor import BaseExecutor
 from ..core.execution_context import ExecutionContext
 from ..core.skip_manager import SkipManager
-from apps.server.src.db_blocks import run_db_block
-from apps.server.src.constants import DBBlockSubType
+from ...db_blocks import run_db_block
+from ...constants import DBBlockSubType
 
 logger = logging.getLogger(__name__)
 
