@@ -185,9 +185,9 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
       });
     } catch (error) {
       throw this.createExecutionError(
-        `Failed to execute PersonBatchJob: ${error.message}`,
+        `Failed to execute PersonBatchJob: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { personId, llmService, batchSize, error: error.message }
+        { personId, llmService, batchSize, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -278,9 +278,9 @@ export class DBExecutor extends ServerOnlyExecutor {
       });
     } catch (error) {
       throw this.createExecutionError(
-        `Failed to execute DB operation: ${error.message}`,
+        `Failed to execute DB operation: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { operation, filePath, error: error.message }
+        { operation, filePath, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }

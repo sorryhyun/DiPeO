@@ -13,6 +13,9 @@ export {
 } from './base-executor';
 export type { ExecutorFactory } from './base-executor';
 
+// Import ExecutorFactory type for use in this file
+import type { ExecutorFactory } from './base-executor';
+
 // Client-safe executors
 export {
   StartExecutor,

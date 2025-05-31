@@ -305,9 +305,9 @@ export class ExecutionEngine {
           const nodeError = error instanceof NodeExecutionError 
             ? error 
             : new NodeExecutionError(
-                `Error executing node ${nodeId}: ${error.message}`,
+                `Error executing node ${nodeId}: ${error instanceof Error ? error.message : String(error)}`,
                 nodeId,
-                diagram.nodes.find(n => n.id === nodeId)?.type || 'unknown',
+                diagram.nodes.find(n => n.id === nodeId)?.type || 'start',
                 { originalError: error }
               );
 
@@ -415,7 +415,7 @@ export class ExecutionEngine {
         type: 'node_failed',
         executionId: context.executionId,
         nodeId,
-        data: { error: error.message },
+        data: { error: error instanceof Error ? error.message : String(error) },
         timestamp: new Date()
       });
 
@@ -446,11 +446,11 @@ export class ExecutionEngine {
     // Populate arrow maps
     for (const arrow of diagram.arrows) {
       if (arrow.source && arrow.target) {
-        outgoingArrows[arrow.source] = outgoingArrows[arrow.source] || [];
-        incomingArrows[arrow.target] = incomingArrows[arrow.target] || [];
+        const sourceArrows = outgoingArrows[arrow.source] || [];
+        const targetArrows = incomingArrows[arrow.target] || [];
         
-        outgoingArrows[arrow.source].push(arrow);
-        incomingArrows[arrow.target].push(arrow);
+        outgoingArrows[arrow.source] = [...sourceArrows, arrow];
+        incomingArrows[arrow.target] = [...targetArrows, arrow];
       }
     }
 

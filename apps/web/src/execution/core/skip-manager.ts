@@ -139,8 +139,12 @@ export class SkipManager {
     const comparisonOps = ['===', '!==', '==', '!=', '<=', '>=', '<', '>'];
     for (const op of comparisonOps) {
       if (cleanExpr.includes(op)) {
-        const [left, right] = cleanExpr.split(op).map(s => s.trim());
-        return this.compareValues(left, right, op);
+        const parts = cleanExpr.split(op).map(s => s.trim());
+        const left = parts[0];
+        const right = parts[1];
+        if (left && right) {
+          return this.compareValues(left, right, op);
+        }
       }
     }
 

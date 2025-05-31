@@ -92,7 +92,10 @@ export class ExecutionPlanner {
           remaining.delete(processed_node);
         }
         if (remaining.size > 0) {
-          readyNodes.add(remaining.values().next().value);
+          const firstRemaining = remaining.values().next().value;
+          if (firstRemaining) {
+            readyNodes.add(firstRemaining);
+          }
         }
       }
 
@@ -122,24 +125,26 @@ export class ExecutionPlanner {
     for (let i = 0; i < path.length; i++) {
       const nodeId = path[i];
       
-      if (!(nodeId in this.context.nodes_by_id)) {
+      if (!nodeId || !(nodeId in this.context.nodes_by_id)) {
         validationResult.is_valid = false;
         validationResult.errors.push(`Node ${nodeId} not found in diagram`);
         continue;
       }
 
       // Check dependencies
-      const deps = new Set(this.dependencyResolver.getDependencies(nodeId));
-      const missingDeps = new Set([...deps].filter(dep => !executed.has(dep)));
+      if (nodeId) {
+        const deps = new Set(this.dependencyResolver.getDependencies(nodeId));
+        const missingDeps = new Set([...deps].filter(dep => !executed.has(dep)));
 
-      if (missingDeps.size > 0) {
-        validationResult.is_valid = false;
-        validationResult.errors.push(
-          `Node ${nodeId} at position ${i} has unmet dependencies: ${Array.from(missingDeps).join(', ')}`
-        );
+        if (missingDeps.size > 0) {
+          validationResult.is_valid = false;
+          validationResult.errors.push(
+            `Node ${nodeId} at position ${i} has unmet dependencies: ${Array.from(missingDeps).join(', ')}`
+          );
+        }
+
+        executed.add(nodeId);
       }
-
-      executed.add(nodeId);
     }
 
     return validationResult;

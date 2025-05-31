@@ -84,9 +84,9 @@ export class ConditionExecutor extends ClientSafeExecutor {
       });
     } catch (error) {
       throw this.createExecutionError(
-        `Failed to evaluate condition: ${error.message}`,
+        `Failed to evaluate condition: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { condition, inputs, error: error.message }
+        { condition, inputs, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -145,8 +145,10 @@ export class ConditionExecutor extends ClientSafeExecutor {
     const comparisonOps = ['===', '!==', '==', '!=', '<=', '>=', '<', '>'];
     for (const op of comparisonOps) {
       if (cleaned.includes(op)) {
-        const [left, right] = cleaned.split(op).map(s => s.trim());
-        return this.compareValues(left, right, op);
+        const parts = cleaned.split(op).map(s => s.trim());
+        if (parts.length === 2) {
+          return this.compareValues(parts[0]!, parts[1]!, op);
+        }
       }
     }
 
@@ -165,8 +167,8 @@ export class ConditionExecutor extends ClientSafeExecutor {
   }
 
   private compareValues(left: string, right: string, operator: string): boolean {
-    const leftVal = this.parseValue(left);
-    const rightVal = this.parseValue(right);
+    const leftVal = this.parseValue(left || '');
+    const rightVal = this.parseValue(right || '');
 
     switch (operator) {
       case '===':
@@ -249,9 +251,9 @@ export class JobExecutor extends ClientSafeExecutor {
       });
     } catch (error) {
       throw this.createExecutionError(
-        `Failed to execute job: ${error.message}`,
+        `Failed to execute job: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { jobType, inputs, error: error.message }
+        { jobType, inputs, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -402,8 +404,10 @@ export class JobExecutor extends ClientSafeExecutor {
     const comparisonOps = ['===', '!==', '==', '!=', '<=', '>=', '<', '>'];
     for (const op of comparisonOps) {
       if (cleaned.includes(op)) {
-        const [left, right] = cleaned.split(op).map(s => s.trim());
-        return this.compareValues(left, right, op);
+        const parts = cleaned.split(op).map(s => s.trim());
+        if (parts.length === 2) {
+          return this.compareValues(parts[0]!, parts[1]!, op);
+        }
       }
     }
 
@@ -411,8 +415,8 @@ export class JobExecutor extends ClientSafeExecutor {
   }
 
   private compareValues(left: string, right: string, operator: string): boolean {
-    const leftVal = this.parseValue(left);
-    const rightVal = this.parseValue(right);
+    const leftVal = this.parseValue(left || '');
+    const rightVal = this.parseValue(right || '');
 
     switch (operator) {
       case '===':
@@ -491,9 +495,9 @@ export class EndpointExecutor extends ClientSafeExecutor {
       });
     } catch (error) {
       throw this.createExecutionError(
-        `Failed to format endpoint output: ${error.message}`,
+        `Failed to format endpoint output: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { outputFormat, inputs, error: error.message }
+        { outputFormat, inputs, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -521,11 +525,11 @@ export class EndpointExecutor extends ClientSafeExecutor {
   }
 
   private formatAsText(inputs: Record<string, any>, node: Node): string {
-    const template = this.getNodeProperty(node, 'textTemplate', '');
+    const template = this.getNodeProperty<string>(node, 'textTemplate', '');
     
     if (template) {
       // Apply template with inputs
-      let result = template;
+      let result: string = template;
       for (const [key, value] of Object.entries(inputs)) {
         const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
         result = result.replace(regex, String(value));
