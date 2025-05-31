@@ -5,13 +5,13 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from typing import Dict, Optional, Callable, Any
+from typing import Dict, Optional, Any
 
 # Add server root to path for config import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from ...config import CONVERSATION_LOG_DIR
 
-from ..execution_v2.core.execution_engine import ExecutionEngine
+from ..execution.core.execution_engine import ExecutionEngine
 from ..services.memory_service import MemoryService
 from .stream_manager import stream_manager
 

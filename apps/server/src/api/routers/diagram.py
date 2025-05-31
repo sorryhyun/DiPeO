@@ -9,7 +9,7 @@ from ...services.diagram_service import DiagramService
 from ...services.memory_service import MemoryService
 from ...utils.dependencies import get_diagram_service, get_memory_service
 from ...streaming import StreamingDiagramExecutor
-from ...run_graph import DiagramExecutor
+from ...execution import DiagramExecutor
 
 router = APIRouter(prefix="/api", tags=["diagram"])
 

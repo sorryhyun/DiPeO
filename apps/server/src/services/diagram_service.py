@@ -30,7 +30,7 @@ class DiagramService(BaseService):
     async def run_diagram(self, diagram: dict) -> Tuple[Dict[str, Any], float]:
         """Execute a diagram and return results."""
         try:
-            from ..run_graph import DiagramExecutor
+            from ..execution import DiagramExecutor
 
             self._validate_diagram(diagram)
             executor = DiagramExecutor(diagram)
@@ -50,7 +50,7 @@ class DiagramService(BaseService):
             raise HTTPException(status_code=400, detail="Diagram must contain nodes")
 
         # Execute diagram
-        from ..run_graph import DiagramExecutor
+        from ..execution import DiagramExecutor
         executor = DiagramExecutor(diagram=diagram, memory_service=self.memory_service)
         
         context, total_cost = await executor.run()

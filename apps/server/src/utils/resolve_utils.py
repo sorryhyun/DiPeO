@@ -15,7 +15,7 @@ def resolve_inputs(nid: str, incoming: List[dict], context: Dict[str, Any]) -> T
     """Resolve incoming arrow values into vars_map and inputs list."""
     vars_map: Dict[str, Any] = {}
     inputs: List[Any] = []
-    from ..run_graph import DiagramExecutor
+    from ..execution import DiagramExecutor
 
     for e in incoming:
         src_id = e.get("source")

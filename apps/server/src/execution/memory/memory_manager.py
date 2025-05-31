@@ -8,8 +8,8 @@ from datetime import datetime
 import logging
 import json
 
-from ...services.memory_service import MemoryService
-from ...constants import ContentType
+from apps.server.src.services.memory_service import MemoryService
+from apps.server.src.constants import ContentType
 from ..core.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
