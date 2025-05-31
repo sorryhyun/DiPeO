@@ -13,48 +13,23 @@ This plan outlines the migration of business logic from the Python backend (`app
 
 ## Migration Phases
 
+  📁 File Structure Created
 
-### Phase 3: Execution Engine
+  apps/web/src/execution/
+  ├── core/
+  │   ├── execution-engine.ts          # Main orchestration engine
+  │   ├── skip-manager.ts             # Existing
+  │   └── loop-controller.ts          # Existing
+  ├── executors/
+  │   ├── base-executor.ts            # Abstract base classes
+  │   ├── client-safe-executors.ts    # Browser-safe implementations
+  │   ├── server-only-executors.ts    # Server-required implementations
+  │   ├── client-executor-factory.ts  # Client factory
+  │   ├── server-executor-factory.ts  # Server factory
+  │   └── index.ts                    # Exports
+  ├── execution-orchestrator.ts       # High-level execution interface
+  └── index.ts                       # Main exports
 
-**Purpose**: Build a core execution engine in TypeScript that orchestrates diagram execution. This engine is environment-agnostic and can run in both browser and Node.js environments.
-
-**Key Design**: The engine uses dependency injection for executors, allowing different implementations for client vs server environments. This enables the same core logic to work everywhere.
-
-Create a unified execution engine that can run on both client and server:
-
-```typescript
-// shared/execution/execution-engine.ts
-export class ExecutionEngine {
-  constructor(
-    private executorFactory: ExecutorFactory,
-    private streamManager?: StreamManager
-  ) {}
-
-  async execute(diagram: Diagram, options: ExecutionOptions): Promise<ExecutionResult> {
-    // Core execution logic
-    // Delegates to executors based on node type
-  }
-}
-```
-
-### Phase 4: Node Executors
-
-**Purpose**: Implement node-specific execution logic, categorized by where they can safely run. This separation ensures security while maximizing client-side performance.
-
-**Strategy**: Client-safe executors handle pure computation and logic, while server-only executors manage external API calls and sensitive operations.
-
-Split executors into client-safe and server-only:
-
-#### Client-Safe Executors
-- **ConditionExecutor**: Simple boolean logic
-- **JobExecutor**: Stateless operations (filtering, transformation)
-- **StartExecutor**: Initialization
-- **EndpointExecutor**: Output handling
-
-#### Server-Only Executors
-- **PersonJobExecutor**: Requires LLM API calls
-- **PersonBatchJobExecutor**: Batch LLM processing
-- **DBExecutor**: File I/O operations (when accessing server files)
 
 ### Phase 5: API Layer (tRPC)
 
