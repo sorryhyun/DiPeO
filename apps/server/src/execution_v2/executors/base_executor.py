@@ -14,9 +14,32 @@ class BaseExecutor(ABC):
     while keeping the implementation simple and focused.
     """
     
-    def __init__(self):
-        """Initialize the base executor."""
-        pass
+    def __init__(self, context: ExecutionContext, llm_service=None, memory_service=None):
+        """Initialize the base executor.
+        
+        Args:
+            context: The execution context
+            llm_service: Optional LLM service for nodes that need it
+            memory_service: Optional memory service for nodes that need it
+        """
+        self.context = context
+        self.llm_service = llm_service
+        self.memory_service = memory_service
+        self.node = None
+        self.node_id = None
+    
+    async def validate_inputs(self, node: Dict[str, Any], context: ExecutionContext) -> Optional[str]:
+        """Validate inputs for the node.
+        
+        Args:
+            node: The node configuration
+            context: The execution context
+            
+        Returns:
+            Error message if validation fails, None if validation passes
+        """
+        # Default implementation - no validation
+        return None
     
     @abstractmethod
     async def execute(

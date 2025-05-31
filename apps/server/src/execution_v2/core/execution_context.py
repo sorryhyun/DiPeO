@@ -21,6 +21,16 @@ class ExecutionContext:
     errors: Dict[str, str] = field(default_factory=dict)
     execution_order: List[str] = field(default_factory=list)
     
+    # Additional state from dynamic_executor integration
+    condition_values: Dict[str, bool] = field(default_factory=dict)
+    first_only_consumed: Dict[str, bool] = field(default_factory=dict)
+    
+    # Diagram structure (set by execution engine)
+    diagram: Optional[Dict[str, Any]] = None
+    nodes_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    outgoing_arrows: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
+    incoming_arrows: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
+    
     def increment_execution_count(self, node_id: str) -> int:
         """Increment and return the execution count for a node.
         
@@ -120,3 +130,64 @@ class ExecutionContext:
             "error_count": len(self.errors),
             "execution_order": self.execution_order
         }
+    
+    # Additional methods for condition handling and first-only inputs
+    
+    def set_condition_value(self, node_id: str, value: bool) -> None:
+        """Set condition evaluation result.
+        
+        Args:
+            node_id: The condition node ID
+            value: The condition result
+        """
+        self.condition_values[node_id] = value
+    
+    def get_condition_value(self, node_id: str) -> Optional[bool]:
+        """Get condition evaluation result.
+        
+        Args:
+            node_id: The condition node ID
+            
+        Returns:
+            The condition result or None if not found
+        """
+        return self.condition_values.get(node_id)
+    
+    def mark_first_only_consumed(self, node_id: str) -> None:
+        """Mark that a node has consumed its first-only inputs.
+        
+        Args:
+            node_id: The node ID
+        """
+        self.first_only_consumed[node_id] = True
+    
+    def is_first_only_consumed(self, node_id: str) -> bool:
+        """Check if node has consumed first-only inputs.
+        
+        Args:
+            node_id: The node ID
+            
+        Returns:
+            True if first-only inputs have been consumed
+        """
+        return self.first_only_consumed.get(node_id, False)
+    
+    def reset_first_only_consumed(self, node_id: str) -> None:
+        """Reset first-only consumed status (used in loops).
+        
+        Args:
+            node_id: The node ID
+        """
+        if node_id in self.first_only_consumed:
+            del self.first_only_consumed[node_id]
+    
+    def has_node_output(self, node_id: str) -> bool:
+        """Check if node has output.
+        
+        Args:
+            node_id: The node ID
+            
+        Returns:
+            True if node has output
+        """
+        return node_id in self.node_outputs

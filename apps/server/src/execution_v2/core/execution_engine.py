@@ -8,10 +8,19 @@ from collections import deque
 from .execution_context import ExecutionContext
 from .skip_manager import SkipManager
 from .loop_controller import LoopController
-from ..executors.base_executor import BaseExecutor
-from ..executors.person_job_executor import PersonJobExecutor
-from ..executors.condition_executor import ConditionExecutor
-from ..executors.start_executor import StartExecutor
+from ..flow.dependency_resolver import DependencyResolver
+from ..flow.execution_planner import ExecutionPlanner
+from ..memory.memory_manager import MemoryManager
+from ..executors import (
+    BaseExecutor,
+    StartExecutor,
+    PersonJobExecutor,
+    PersonBatchJobExecutor,
+    ConditionExecutor,
+    DBExecutor,
+    JobExecutor,
+    EndpointExecutor
+)
 
 
 class ExecutionEngine:
@@ -39,8 +48,19 @@ class ExecutionEngine:
         
         # Initialize components
         self.context = ExecutionContext(execution_id=str(uuid.uuid4()))
+        self.context.diagram = diagram
         self.skip_manager = SkipManager()
-        self.loop_controller = LoopController()
+        self.loop_controller = LoopController(
+            max_iterations=100,  # Default max iterations
+            loop_nodes=self._identify_loop_nodes()
+        )
+        
+        # Initialize flow control components
+        self.dependency_resolver = DependencyResolver(self.context)
+        self.execution_planner = ExecutionPlanner(self.context, self.dependency_resolver)
+        
+        # Initialize memory manager
+        self.memory_manager = MemoryManager(memory_service)
         
         # Create executors
         self.executors = self._create_executors()
@@ -50,17 +70,35 @@ class ExecutionEngine:
         self.arrows = diagram.get('arrows', [])
         self._build_connections()
     
+    def _identify_loop_nodes(self) -> List[str]:
+        """Identify nodes that are part of loops.
+        
+        Returns:
+            List of node IDs that are part of loops
+        """
+        # Simple cycle detection - more sophisticated logic can be added
+        cycles = self.dependency_resolver.detect_cycles() if hasattr(self, 'dependency_resolver') else []
+        loop_nodes = set()
+        for cycle in cycles:
+            loop_nodes.update(cycle)
+        return list(loop_nodes)
+    
     def _create_executors(self) -> Dict[str, BaseExecutor]:
         """Create executor instances for each node type.
         
         Returns:
             Dictionary mapping node type to executor instance
         """
+        # Note: Executors are now stateless and receive context during execution
         return {
-            'personJobNode': PersonJobExecutor(self.llm_service, self.memory_service),
-            'conditionNode': ConditionExecutor(),
-            'startNode': StartExecutor(),
-            # Add more executors as they are implemented
+            # Use string keys for node types
+            'startNode': StartExecutor(self.context, self.llm_service, self.memory_service),
+            'personJobNode': PersonJobExecutor(self.context, self.llm_service, self.memory_service),
+            'personBatchJobNode': PersonBatchJobExecutor(self.context, self.llm_service, self.memory_service),
+            'conditionNode': ConditionExecutor(self.context, self.llm_service, self.memory_service),
+            'dbNode': DBExecutor(self.context, self.llm_service, self.memory_service),
+            'jobNode': JobExecutor(self.context, self.llm_service, self.memory_service),
+            'endpointNode': EndpointExecutor(self.context, self.llm_service, self.memory_service),
         }
     
     def _build_connections(self) -> None:
@@ -111,9 +149,10 @@ class ExecutionEngine:
                 continue
             
             # Execute the node
-            executor = self.executors.get(node['type'])
+            node_type = node.get('type')
+            executor = self.executors.get(node_type)
             if not executor:
-                await self._send_update(node_id, "error", "No executor for node type")
+                await self._send_update(node_id, "error", f"No executor for node type: {node_type}")
                 continue
             
             try:
@@ -137,11 +176,15 @@ class ExecutionEngine:
                 await self._send_update(node_id, "completed", output=output)
                 
                 # Handle loop completion
-                if self.loop_controller.is_loop_node(node_id):
-                    self.loop_controller.mark_iteration(node_id)
-                    if self.loop_controller.should_restart_loop(node_id):
-                        loop_start_nodes = self.loop_controller.get_loop_start_nodes(node_id)
-                        execution_queue.extend(loop_start_nodes)
+                if node_id in self.loop_controller.loop_nodes:
+                    self.context.increment_execution_count(node_id)
+                    exec_count = self.context.get_execution_count(node_id)
+                    max_iter = node.get('data', {}).get('maxIterations', self.loop_controller.max_iterations)
+                    
+                    if exec_count < max_iter:
+                        # Re-queue the loop start nodes
+                        loop_deps = self.dependency_resolver.get_dependencies(node_id)
+                        execution_queue.extend(loop_deps)
                         continue
                 
                 # Queue next nodes based on execution result
