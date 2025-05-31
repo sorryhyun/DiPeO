@@ -19,6 +19,15 @@ class ArrowValidation:
     reason: Optional[str] = None
 
 
+@dataclass
+class DependencyInfo:
+    """Information about node dependencies."""
+    node_id: str
+    dependencies_met: bool
+    valid_arrows: List[dict]
+    missing_dependencies: List[str] = None
+
+
 class DependencyResolver:
     """Handles dependency resolution and validation, integrating dynamic_executor logic."""
     

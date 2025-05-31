@@ -10,9 +10,9 @@ from ..core.skip_manager import SkipManager
 class ConditionExecutor(BaseExecutor):
     """Executor for Condition nodes - handles boolean branching logic."""
     
-    def __init__(self):
+    def __init__(self, context: ExecutionContext, llm_service=None, memory_service=None):
         """Initialize the condition executor."""
-        super().__init__()
+        super().__init__(context, llm_service, memory_service)
     
     async def execute(
         self,

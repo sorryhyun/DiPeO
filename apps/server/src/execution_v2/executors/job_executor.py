@@ -1,26 +1,39 @@
-"""
-Job node executor for stateless LLM operations.
-Handles LLM calls without memory, code execution, and API tool operations.
-"""
-from typing import Any, Dict, Optional
+"""Job node executor for stateless operations."""
+
+from typing import Any, Dict, Tuple, Optional
 import json
 import logging
 
 from .base_executor import BaseExecutor
-from ...constants import NodeType
+from ..core.execution_context import ExecutionContext
+from ..core.skip_manager import SkipManager
 from ...utils.resolve_utils import render_prompt
 
 logger = logging.getLogger(__name__)
 
 
 class JobExecutor(BaseExecutor):
-    """Executes Job nodes for stateless operations."""
+    """Executor for Job nodes - handles stateless operations."""
     
-    node_type = NodeType.JOB
-    
-    async def validate_inputs(self, inputs: Dict[str, Any]) -> None:
-        """Validate Job node inputs."""
-        data = self.node.get('data', {})
+    def __init__(self, context: ExecutionContext, llm_service=None, memory_service=None):
+        """Initialize the job executor."""
+        super().__init__(context, llm_service, memory_service)
+
+    async def validate_inputs(
+        self,
+        node: Dict[str, Any],
+        context: ExecutionContext
+    ) -> Optional[str]:
+        """Validate Job node inputs.
+        
+        Args:
+            node: The node configuration
+            context: The execution context
+            
+        Returns:
+            Error message if validation fails, None if valid
+        """
+        data = node.get('data', {})
         sub_type = data.get('subType', 'code')
         
         if sub_type == 'api_tool':
@@ -30,47 +43,71 @@ class JobExecutor(BaseExecutor):
                 api_config = json.loads(source_details) if isinstance(source_details, str) else source_details
                 api_type = api_config.get('apiType')
                 if not api_type:
-                    raise ValueError("API tool requires 'apiType' specification")
+                    return "API tool requires 'apiType' specification"
             except json.JSONDecodeError:
-                raise ValueError(f"Invalid API configuration JSON: {source_details}")
+                return f"Invalid API configuration JSON: {source_details}"
         elif sub_type == 'llm' or data.get('prompt'):
             # Validate LLM configuration
             if not data.get('prompt'):
-                raise ValueError("LLM job requires 'prompt' specification")
+                return "LLM job requires 'prompt' specification"
             if not data.get('apiKey'):
-                raise ValueError("LLM job requires API key selection")
-    
-    async def execute_node(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the Job node logic."""
-        data = self.node.get('data', {})
+                return "LLM job requires API key selection"
+        
+        return None
+
+    async def execute(
+        self,
+        node: Dict[str, Any],
+        context: ExecutionContext,
+        skip_manager: SkipManager,
+        **kwargs
+    ) -> Tuple[Any, float]:
+        """Execute a Job node.
+        
+        Args:
+            node: The node configuration
+            context: The execution context
+            skip_manager: The skip manager (not used here)
+            **kwargs: Additional arguments
+            
+        Returns:
+            Tuple of (result, cost)
+        """
+        data = node.get('data', {})
         sub_type = data.get('subType', 'code')
+        
+        # Prepare inputs
+        inputs = self._prepare_inputs(node, context)
         
         # Handle different job types
         if sub_type == 'api_tool':
-            return await self._execute_api_tool(data, inputs)
+            result, cost = await self._execute_api_tool(data, inputs, context)
         elif sub_type == 'code' or not data.get('prompt'):
-            return await self._execute_code(data, inputs)
+            result, cost = await self._execute_code(data, inputs, context)
         else:
             # LLM job
-            return await self._execute_llm_job(data, inputs)
-    
-    async def _execute_code(self, data: dict, inputs: dict) -> dict:
+            result, cost = await self._execute_llm_job(data, inputs, context)
+        
+        return result, cost
+
+    async def _execute_code(self, data: dict, inputs: dict, context: ExecutionContext) -> Tuple[Any, float]:
         """Execute code-based job."""
         from ...db_blocks import run_db_block
         
-        input_list = self._prepare_inputs(inputs)
+        # Convert inputs dict to list format
+        input_list = []
+        for key, value in inputs.items():
+            if value is not None:
+                input_list.append(value)
         
         result = await run_db_block({
             'subType': 'code',
             'sourceDetails': data.get('sourceDetails', '')
         }, input_list)
         
-        return {
-            'value': result,
-            'cost': 0.0
-        }
-    
-    async def _execute_llm_job(self, data: dict, inputs: dict) -> dict:
+        return result, 0.0
+
+    async def _execute_llm_job(self, data: dict, inputs: dict, context: ExecutionContext) -> Tuple[Any, float]:
         """Execute LLM-based job."""
         prompt_template = data.get('prompt', '')
         service = data.get('service', 'openai')
@@ -80,20 +117,24 @@ class JobExecutor(BaseExecutor):
         
         # Create vars_map from context outputs
         vars_map = {}
-        for node_id, output in self.context.outputs.items():
-            vars_map[node_id] = self._resolve_value(f"{{{{{node_id}}}}}")
+        for node_id, output in context.node_outputs.items():
+            vars_map[node_id] = output
         
         # Render the prompt
         rendered_prompt = render_prompt(prompt_template, vars_map)
         
         # Add inputs to prompt if available
-        input_list = self._prepare_inputs(inputs)
+        input_list = []
+        for key, value in inputs.items():
+            if value is not None:
+                input_list.append(value)
+        
         if input_list:
             inputs_text = "\n".join(str(inp) for inp in input_list if inp is not None)
             if inputs_text:
                 rendered_prompt = f"{rendered_prompt}\n\nInputs:\n{inputs_text}"
         
-        logger.debug(f"Calling LLM for job {self.node_id}")
+        logger.debug(f"Calling LLM for job node")
         
         # Call LLM service
         result = await self.llm_service.call_llm(
@@ -107,26 +148,33 @@ class JobExecutor(BaseExecutor):
         response = result.get('response')
         cost = result.get('cost', 0.0)
         
-        return {
-            'value': response,
-            'cost': cost
-        }
-    
-    async def _execute_api_tool(self, data: dict, inputs: dict) -> dict:
+        return response, cost
+
+    async def _execute_api_tool(self, data: dict, inputs: dict, context: ExecutionContext) -> Tuple[Any, float]:
         """Execute API tool operations."""
         source_details = data.get('sourceDetails', '{}')
         api_config = json.loads(source_details) if isinstance(source_details, str) else source_details
         api_type = api_config.get('apiType', '')
         
-        input_list = self._prepare_inputs(inputs)
+        # Convert inputs dict to list format
+        input_list = []
+        for key, value in inputs.items():
+            if value is not None:
+                input_list.append(value)
         
         if api_type == 'notion':
-            return await self._execute_notion_api(api_config, input_list)
+            result = await self._execute_notion_api(api_config, input_list)
         elif api_type == 'web_search':
-            return await self._execute_web_search_api(api_config, input_list)
+            result = await self._execute_web_search_api(api_config, input_list)
         else:
             raise ValueError(f"Unknown API type: '{api_type}'")
-    
+        
+        # Extract result and cost from the old format
+        if isinstance(result, dict) and 'value' in result:
+            return result['value'], result.get('cost', 0.0)
+        else:
+            return result, 0.0
+
     async def _execute_notion_api(self, api_config: dict, inputs: list) -> dict:
         """Execute Notion API operations."""
         import yaml
@@ -162,7 +210,7 @@ class JobExecutor(BaseExecutor):
             return {'value': result, 'cost': 0.0}
         else:
             raise ValueError(f"Unknown Notion action: {action}")
-    
+
     async def _execute_web_search_api(self, api_config: dict, inputs: list) -> dict:
         """Execute web search API operations."""
         from ...services.web_search_service import WebSearchService

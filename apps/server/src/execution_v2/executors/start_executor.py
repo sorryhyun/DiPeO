@@ -10,9 +10,9 @@ from ..core.skip_manager import SkipManager
 class StartExecutor(BaseExecutor):
     """Executor for Start nodes - the entry point of diagram execution."""
     
-    def __init__(self):
+    def __init__(self, context: ExecutionContext, llm_service=None, memory_service=None):
         """Initialize the start executor."""
-        super().__init__()
+        super().__init__(context, llm_service, memory_service)
     
     async def execute(
         self,

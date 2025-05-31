@@ -10,16 +10,15 @@ from ..core.skip_manager import SkipManager
 class PersonJobExecutor(BaseExecutor):
     """Executor for PersonJob nodes - handles LLM interactions with memory."""
     
-    def __init__(self, llm_service, memory_service):
+    def __init__(self, context: ExecutionContext, llm_service=None, memory_service=None):
         """Initialize with required services.
         
         Args:
+            context: The execution context
             llm_service: Service for LLM interactions
             memory_service: Service for memory management
         """
-        super().__init__()
-        self.llm_service = llm_service
-        self.memory_service = memory_service
+        super().__init__(context, llm_service, memory_service)
     
     async def execute(
         self,

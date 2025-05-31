@@ -1,52 +1,82 @@
-"""
-Endpoint node executor for terminal nodes.
-Marks the end of execution paths and collects results.
-"""
-from typing import Any, Dict, Optional
+"""Endpoint node executor for terminal nodes."""
+
+from typing import Any, Dict, Tuple, Optional
 import logging
 
 from .base_executor import BaseExecutor
-from ...constants import NodeType
+from ..core.execution_context import ExecutionContext
+from ..core.skip_manager import SkipManager
 
 logger = logging.getLogger(__name__)
 
 
 class EndpointExecutor(BaseExecutor):
-    """Executes Endpoint nodes which mark diagram termination points."""
+    """Executor for Endpoint nodes - marks diagram termination points."""
     
-    node_type = NodeType.ENDPOINT
+    def __init__(self, context: ExecutionContext, llm_service=None, memory_service=None):
+        """Initialize the endpoint executor."""
+        super().__init__(context, llm_service, memory_service)
     
-    async def validate_inputs(self, inputs: Dict[str, Any]) -> None:
-        """Validate Endpoint node inputs."""
-        # Endpoint nodes accept any inputs
-        pass
+    async def validate_inputs(
+        self,
+        node: Dict[str, Any],
+        context: ExecutionContext
+    ) -> Optional[str]:
+        """Validate Endpoint node inputs.
+        
+        Args:
+            node: The node configuration
+            context: The execution context
+            
+        Returns:
+            Always None - endpoint nodes accept any inputs
+        """
+        return None
     
-    async def execute_node(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the Endpoint node logic."""
+    async def execute(
+        self,
+        node: Dict[str, Any],
+        context: ExecutionContext,
+        skip_manager: SkipManager,
+        **kwargs
+    ) -> Tuple[Any, float]:
+        """Execute an Endpoint node.
+        
+        Args:
+            node: The node configuration
+            context: The execution context
+            skip_manager: The skip manager (not used here)
+            **kwargs: Additional arguments
+            
+        Returns:
+            Tuple of (result, 0.0) - endpoint nodes have no cost
+        """
         # Prepare inputs
-        input_list = self._prepare_inputs(inputs)
+        inputs = self._prepare_inputs(node, context)
+        
+        # Convert inputs to list format
+        input_list = []
+        for key, value in inputs.items():
+            if value is not None:
+                input_list.append(value)
         
         # Endpoint nodes collect their inputs as results
         result = input_list[0] if input_list and len(input_list) == 1 else input_list
         
-        logger.info(f"Endpoint node {self.node_id} reached with {len(input_list) if input_list else 0} inputs")
+        logger.info(f"Endpoint node {node['id']} reached with {len(input_list) if input_list else 0} inputs")
         
         # Check if file save is requested
-        data = self.node.get('data', {})
+        data = node.get('data', {})
         if data.get('saveToFile'):
-            await self._save_to_file(result, data)
+            await self._save_to_file(result, data, node['id'])
         
-        return {
-            'value': result,
-            'cost': 0.0,
-            'is_terminal': True  # Mark as terminal node
-        }
+        return result, 0.0
     
-    async def _save_to_file(self, result: Any, data: dict) -> None:
+    async def _save_to_file(self, result: Any, data: dict, node_id: str) -> None:
         """Save result to file if configured."""
         file_path = data.get('filePath')
         if not file_path:
-            logger.warning(f"Endpoint node {self.node_id} has saveToFile enabled but no filePath specified")
+            logger.warning(f"Endpoint node {node_id} has saveToFile enabled but no filePath specified")
             return
         
         try:
@@ -61,8 +91,8 @@ class EndpointExecutor(BaseExecutor):
                 content = str(result)
             
             # Save to file
-            file_service.write(file_path, content, relative_to='base')
-            logger.info(f"Endpoint node {self.node_id} saved result to {file_path}")
+            await file_service.write(file_path, content, relative_to='base')
+            logger.info(f"Endpoint node {node_id} saved result to {file_path}")
             
         except Exception as e:
             logger.error(f"Failed to save endpoint result to file: {e}")
