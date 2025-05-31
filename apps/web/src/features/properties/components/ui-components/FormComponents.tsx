@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Input, Label, Select, SelectItem, Textarea, Spinner, Switch
 } from '../../../../shared/components';
+import { FileUploadButton } from '../../../../shared/components/common/FileUploadButton';
 import { FormFieldProps } from '@/shared/types';
 import { usePersons } from '@/shared/hooks/useStoreSelectors';
 
@@ -337,5 +338,114 @@ export const VariableDetectionTextArea: React.FC<VariableDetectionTextAreaProps>
       placeholder={placeholder}
       hint={hint}
     />
+  );
+};
+
+interface RadioGroupFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  id?: string;
+}
+
+export const RadioGroupField: React.FC<RadioGroupFieldProps> = ({
+  label,
+  value,
+  onChange,
+  options,
+  id
+}) => (
+  <FormField label={label} id={id}>
+    <div className="space-y-2" role="radiogroup" aria-labelledby={id}>
+      {options.map((option) => (
+        <div key={option.value} className="flex items-center space-x-2">
+          <input
+            type="radio"
+            id={`${id || label}-${option.value}`}
+            value={option.value}
+            checked={value === option.value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+          />
+          <Label 
+            htmlFor={`${id || label}-${option.value}`}
+            className="text-sm font-medium cursor-pointer"
+          >
+            {option.label}
+          </Label>
+        </div>
+      ))}
+    </div>
+  </FormField>
+);
+
+interface FileUploadFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onFileUpload: (file: File) => Promise<void>;
+  accept?: string;
+  loading?: boolean;
+  placeholder?: string;
+  id?: string;
+}
+
+export const FileUploadField: React.FC<FileUploadFieldProps> = ({
+  label,
+  value,
+  onChange,
+  onFileUpload,
+  accept = ".txt,.docx,.doc,.pdf,.csv,.json",
+  loading = false,
+  placeholder = "Enter file path or upload below",
+  id
+}) => {
+  const [localLoading, setLocalLoading] = useState(false);
+  const isLoading = loading || localLoading;
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLocalLoading(true);
+    try {
+      await onFileUpload(file);
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  return (
+    <FormField label={label} id={id}>
+      <div className="space-y-2">
+        <Input
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={isLoading}
+        />
+        
+        <div className="flex items-center gap-2">
+          <FileUploadButton
+            accept={accept}
+            onChange={handleFileUpload}
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            {isLoading ? "Uploading..." : "Upload File"}
+          </FileUploadButton>
+          
+          {isLoading && (
+            <div className="flex items-center text-sm text-gray-600">
+              <Spinner size="sm" className="mr-2" />
+              <span>Uploading...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </FormField>
   );
 };
