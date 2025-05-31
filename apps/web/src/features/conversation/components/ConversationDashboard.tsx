@@ -3,12 +3,11 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
-import { useConsolidatedDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/shared/stores';
 import { Button, Input, Select, SelectItem } from '@/shared/components';
 import { downloadJson } from '@/shared/utils/downloadUtils';
 import { toast } from 'sonner';
-import { useConversationData } from '@/features/conversation';
-import { useMessagePolling } from '@/features/conversation';
+import { usePersons, useSelectedElement, useExecutionStatus } from '@/shared/hooks/useStoreSelectors';
+import { useConversationData, useMessagePolling } from '../hooks';
 import { MessageList } from './MessageList';
 import { ConversationMessage, ConversationFilters } from '../types';
 
@@ -21,9 +20,9 @@ const ConversationDashboard: React.FC = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const { persons } = useConsolidatedDiagramStore();
-  const { runContext } = useExecutionStore();
-  const { selectedPersonId } = useConsolidatedUIStore();
+  const { persons } = usePersons();
+  const { runContext } = useExecutionStatus();
+  const { selectedPersonId } = useSelectedElement();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use extracted hooks

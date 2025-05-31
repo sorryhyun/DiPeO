@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components';
-import {useConsolidatedDiagramStore, useConsolidatedUIStore} from '@/shared/stores';
+import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { useUIState } from '@/shared/hooks/useStoreSelectors';
 import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
 import { useDiagramRunner } from '@/features/diagram/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/features/diagram/wrappers';
@@ -10,18 +11,29 @@ import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory } from '@/shared/types';
+import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
 
 
 const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
-  const { apiKeys, addApiKey } = useConsolidatedDiagramStore();
-  const { handleLoad, handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
+  const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
+  const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
+  const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
+  const { handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
-  const { isMemoryLayerTilted, toggleMemoryLayer } = useConsolidatedUIStore();
+  const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
+  
+  // Load API keys on mount
+  useEffect(() => {
+    loadApiKeys().catch(error => {
+      console.error('Failed to load API keys on mount:', error);
+    });
+  }, [loadApiKeys]);
+  
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsMonitorMode(params.get('monitor') === 'true');
@@ -30,15 +42,14 @@ const TopBar = () => {
         const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
         if (res.ok) {
           const data = await res.json();
-          const backendKeys = data.apiKeys || [];
+          const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
           
           if (backendKeys.length > 0 && apiKeys.length === 0) {
-            backendKeys.forEach((key: any) => {
+            backendKeys.forEach((key) => {
               addApiKey({
-                ...key,
                 name: key.name,
                 service: key.service,
-                key: key.key
+                keyReference: key.keyReference
               });
             });
           }
@@ -77,14 +88,6 @@ const TopBar = () => {
           >
             📄 New
           </Button>
-          <FileUploadButton
-            accept=".json"
-            onChange={handleLoad}
-            variant="outline"
-            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-          >
-            📂 Open
-          </FileUploadButton>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"

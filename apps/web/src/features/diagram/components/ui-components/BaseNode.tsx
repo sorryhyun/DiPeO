@@ -5,6 +5,8 @@ import { Button } from '@/shared/components';
 import { BaseNodeProps, UnifiedNodeConfig } from '@/shared/types';
 import { createHandleId } from '../../utils/ui-utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
+import { useNodeExecutionState } from '@/shared/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 import './BaseNode.css';
 
 function BaseNodeComponent({
@@ -19,12 +21,35 @@ function BaseNodeComponent({
   nodeType,
   data,
   autoHandles = false,
-  isRunning = false,
-  onUpdateData,
-  onUpdateNodeInternals,
-  nodeConfigs = {},
+  isRunning: isRunningProp,
+  onUpdateData: onUpdateDataProp,
+  onUpdateNodeInternals: onUpdateNodeInternalsProp,
+  nodeConfigs: nodeConfigsProp = {},
   ...divProps
 }: BaseNodeProps) {
+  
+  // Optional store integration - use store values if available, fallback to props
+  let storeState = null;
+  let storeContext = null;
+  
+  // Always call hooks - React requires this
+  try {
+    storeState = useNodeExecutionState(id);
+  } catch {
+    storeState = null;
+  }
+  
+  try {
+    storeContext = useDiagramContext();
+  } catch {
+    storeContext = null;
+  }
+  
+  // Use store values or fallback to props
+  const isRunning = storeState?.isRunning ?? isRunningProp ?? false;
+  const onUpdateData = storeContext?.updateNodeData ?? onUpdateDataProp;
+  const onUpdateNodeInternals = storeContext?.updateNodeInternals ?? onUpdateNodeInternalsProp;
+  const nodeConfigs = storeContext?.nodeConfigs ?? nodeConfigsProp;
   
   // Check if node is flipped
   const isFlipped = data?.flipped === true;
@@ -35,7 +60,7 @@ function BaseNodeComponent({
   // Use auto-generated handles if autoHandles is true and config exists
   const effectiveHandles = React.useMemo(() => {
     if (autoHandles && config) {
-      return config.handles.map(handle => {
+      return config.handles.map((handle: any) => {
         const isVertical = handle.position === Position.Top || handle.position === Position.Bottom;
         const position = isFlipped && !isVertical
           ? (handle.position === Position.Left ? Position.Right : Position.Left)
@@ -123,7 +148,7 @@ function BaseNodeComponent({
       </div>
 
       {/* Handles */}
-      {effectiveHandles.map((handle, index) => (
+      {effectiveHandles.map((handle: any, index: any) => (
         <FlowHandle
           key={handle.id || index}
           nodeId={id}

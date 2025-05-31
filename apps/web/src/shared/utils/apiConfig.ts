@@ -14,9 +14,6 @@ export const API_CONFIG = {
   
   // SSE streaming base URL
   STREAMING_BASE_URL: isDev ? `http://${apiHost}` : '',
-  
-  // WebSocket base URL (to be deprecated)
-  WS_BASE_URL: isDev ? `ws://${apiHost}` : `ws://${window.location.host}`,
 } as const;
 
 // API Endpoints

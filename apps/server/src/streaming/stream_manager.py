@@ -22,11 +22,13 @@ class StreamContext:
             try:
                 self.sse_queue.put_nowait(update)
             except asyncio.QueueFull:
-                # Drop oldest update to prevent memory leak
+                # Drop oldest update to prevent memory leak, with longer timeout
                 try:
-                    await asyncio.wait_for(self.sse_queue.get(), timeout=0.01)
+                    await asyncio.wait_for(self.sse_queue.get(), timeout=0.1)
                     self.sse_queue.put_nowait(update)
                 except (asyncio.TimeoutError, asyncio.QueueFull):
+                    # Log dropped messages for debugging
+                    print(f"Warning: Dropped message due to full queue: {update.get('type', 'unknown')}")
                     pass
         
         # WebSocket publishing will be handled by StreamManager

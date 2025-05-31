@@ -71,11 +71,14 @@ async def metrics():
         # If prometheus_client is not installed, return a simple message
         return {"message": "Prometheus client not installed. Install with: pip install prometheus-client"}
 
-
-if __name__ == "__main__":
+def start():
+    import uvicorn
     uvicorn.run(
-        "main:app",
+        "apps.server.main:app",
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8000)),
         reload=os.environ.get("RELOAD", "false").lower() == "true"
     )
+
+if __name__ == "__main__":
+    start()

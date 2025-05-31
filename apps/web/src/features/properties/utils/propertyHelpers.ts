@@ -2,6 +2,9 @@
  * Property panel utility functions
  */
 
+import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
+
 export const formatPropertyValue = (value: any, type: string): string => {
   if (value === null || value === undefined) {
     return '';
@@ -29,9 +32,10 @@ export const parsePropertyValue = (value: string, type: string): any => {
   switch (type) {
     case 'boolean':
       return value.toLowerCase() === 'true';
-    case 'number':
+    case 'number': {
       const num = Number(value);
       return isNaN(num) ? 0 : num;
+    }
     case 'array':
       return value.split(',').map(item => item.trim()).filter(Boolean);
     case 'object':
@@ -65,3 +69,122 @@ export const shouldShowProperty = (key: string, value: any): boolean => {
 
   return true;
 };
+
+/**
+ * Get API key options for select fields
+ * This function accesses the store directly to get the current API keys
+ */
+export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
+  // We need to access the store directly since this is called from config
+  // Use the store's getState method to access current state
+  const store = useConsolidatedDiagramStore.getState();
+  const apiKeys = store.apiKeys || [];
+  
+  return apiKeys.map(apiKey => ({
+    value: apiKey.id,
+    label: `${apiKey.name} (${apiKey.service})`
+  }));
+};
+
+/**
+ * Get model options for select fields
+ * Fetches available models from the backend API
+ */
+export const getModelOptions = async (): Promise<Array<{ value: string; label: string }>> => {
+  try {
+    const response = await fetch(API_ENDPOINTS.MODELS);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // If providers data is available, use that to create options
+    if (data.providers) {
+      const options: Array<{ value: string; label: string }> = [];
+      
+      Object.entries(data.providers).forEach(([provider, models]) => {
+        if (Array.isArray(models)) {
+          models.forEach((model: string) => {
+            options.push({
+              value: model,
+              label: `${model} (${provider})`
+            });
+          });
+        }
+      });
+      
+      return options;
+    }
+    
+    // If specific models are returned, use those
+    if (data.models && Array.isArray(data.models)) {
+      return data.models.map((model: string) => ({
+        value: model,
+        label: model
+      }));
+    }
+    
+    // Fallback to empty array if no models found
+    return [];
+    
+  } catch (error) {
+    console.error('Failed to fetch models from API:', error);
+    
+    // Return empty array on error - no confusing fallback models
+    return [];
+  }
+};
+
+/**
+ * Get model options dynamically based on selected service and API key
+ * This fetches real available models from the API provider
+ */
+export const getDynamicModelOptions = async (
+  service?: string, 
+  apiKeyId?: string
+): Promise<Array<{ value: string; label: string }>> => {
+  // If no service or API key provided, return empty array
+  if (!service || !apiKeyId) {
+    return [];
+  }
+
+  try {
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('service', service);
+    params.append('api_key_id', apiKeyId);
+    
+    const url = `${getApiUrl(API_ENDPOINTS.MODELS)}?${params.toString()}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Handle error response from backend
+    if (data.error) {
+      console.warn(`API returned error: ${data.error}`);
+      return [];
+    }
+    
+    // If specific models are returned, use those
+    if (data.models && Array.isArray(data.models)) {
+      return data.models.map((model: string) => ({
+        value: model,
+        label: model
+      }));
+    }
+    
+    // Return empty array if no models found
+    return [];
+    
+  } catch (error) {
+    console.error('Failed to fetch dynamic models from API:', error);
+    return [];
+  }
+};
+

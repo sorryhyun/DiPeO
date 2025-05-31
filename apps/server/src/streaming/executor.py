@@ -5,13 +5,13 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from typing import Dict, Optional, Callable, Any
+from typing import Dict, Optional, Any
 
 # Add server root to path for config import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from ...config import CONVERSATION_LOG_DIR
 
-from ..run_graph import DiagramExecutor
+from ..execution.core.execution_engine import ExecutionEngine
 from ..services.memory_service import MemoryService
 from .stream_manager import stream_manager
 
@@ -45,13 +45,20 @@ class StreamingDiagramExecutor:
             if not has_start_node:
                 raise ValueError("No start nodes found in diagram. Add at least one start node to begin execution.")
             
-            # Create the diagram executor
-            executor = DiagramExecutor(
+            # Create the V2 execution engine
+            from ..services.llm_service import LLMService
+            from ..services.api_key_service import APIKeyService
+            
+            api_key_service = APIKeyService()
+            llm_service = LLMService(api_key_service)
+            
+            executor = ExecutionEngine(
                 diagram=self.diagram,
                 memory_service=self.memory_service,
-                status_callback=self.status_callback
+                llm_service=llm_service,
+                streaming_update_callback=self.status_callback
             )
-            self.execution_id = executor.execution_id
+            self.execution_id = executor.context.execution_id
             
             # Create stream context
             self.stream_context = await stream_manager.create_stream(
@@ -66,11 +73,11 @@ class StreamingDiagramExecutor:
             })
 
             # Run the diagram
-            context, total_cost = await executor.run()
+            context, total_cost = await executor.execute()
             
             # Save conversation log
             log_path = await self.memory_service.save_conversation_log(
-                execution_id=executor.execution_id,
+                execution_id=executor.context.execution_id,
                 log_dir=CONVERSATION_LOG_DIR
             )
             
@@ -79,12 +86,12 @@ class StreamingDiagramExecutor:
                 "type": "execution_complete",
                 "context": context,
                 "total_cost": total_cost,
-                "memory_stats": executor.get_memory_stats(),
+                "memory_stats": executor.get_execution_summary(),
                 "conversation_log": log_path
             })
             
             # Clear execution memory
-            self.memory_service.clear_execution_memory(executor.execution_id)
+            self.memory_service.clear_execution_memory(executor.context.execution_id)
             self.completed = True
             
         except Exception as e:
@@ -98,8 +105,9 @@ class StreamingDiagramExecutor:
             self.completed = True
             
         finally:
-            # Clean up stream resources
+            # Allow time for final messages to be consumed before cleanup
             if self.execution_id:
+                await asyncio.sleep(0.5)  # Grace period for message delivery
                 await stream_manager.cleanup_stream(self.execution_id)
     
     def get_stream_queue(self):

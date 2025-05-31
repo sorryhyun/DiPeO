@@ -15,16 +15,16 @@ type FieldConfig = {
   hint?: string;
 };
 
-type RenderContext = {
+type RenderContext<T = Record<string, unknown>> = {
   persons: Array<{ id: string; label: string }>;
-  data: any;
+  data: T;
 };
 
 // Render inline fields (for horizontal layout)
 export const renderInlineField = (
   field: FieldConfig,
-  formData: Record<string, any>,
-  handleChange: (name: string, value: any) => void,
+  formData: Record<string, unknown>,
+  handleChange: (name: string, value: unknown) => void,
   context: RenderContext
 ): React.ReactNode => {
   const { name, label, type, placeholder, options } = field;
@@ -37,7 +37,7 @@ export const renderInlineField = (
       <InlineSelectField
         key={name}
         label={label}
-        value={value || ''}
+        value={String(value || '')}
         onChange={(v) => handleChange(name, v || undefined)}
         options={personOptions}
         placeholder={placeholder || "Select person"}
@@ -51,7 +51,7 @@ export const renderInlineField = (
         <InlineTextField
           key={name}
           label={label}
-          value={value || ''}
+          value={String(value || '')}
           onChange={(v) => handleChange(name, v)}
           placeholder={placeholder}
         />
@@ -73,7 +73,7 @@ export const renderInlineField = (
         <InlineSelectField
           key={name}
           label={label}
-          value={value || ''}
+          value={String(value || '')}
           onChange={(v) => handleChange(name, v)}
           options={options || []}
           placeholder={placeholder}
@@ -98,8 +98,8 @@ export const renderInlineField = (
 // Render textarea fields (for right column)
 export const renderTextAreaField = (
   field: FieldConfig,
-  formData: Record<string, any>,
-  handleChange: (name: string, value: any) => void,
+  formData: Record<string, unknown>,
+  handleChange: (name: string, value: unknown) => void,
   _context: RenderContext
 ): React.ReactNode => {
   const { name, label, placeholder, rows, hint } = field;
@@ -109,7 +109,7 @@ export const renderTextAreaField = (
     <TextAreaField
       key={name}
       label={label}
-      value={value || ''}
+      value={String(value || '')}
       onChange={(v) => handleChange(name, v)}
       rows={rows || 3}
       placeholder={placeholder}
@@ -123,15 +123,3 @@ export const isTextAreaField = (field: FieldConfig): boolean => {
   return field.type === 'textarea';
 };
 
-// Legacy render function for backward compatibility
-export const renderField = (
-  field: FieldConfig,
-  formData: Record<string, any>,
-  handleChange: (name: string, value: any) => void,
-  context: RenderContext
-): React.ReactNode => {
-  if (isTextAreaField(field)) {
-    return renderTextAreaField(field, formData, handleChange, context);
-  }
-  return renderInlineField(field, formData, handleChange, context);
-};

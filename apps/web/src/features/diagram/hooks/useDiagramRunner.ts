@@ -1,22 +1,38 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useConsolidatedDiagramStore, useExecutionStore } from '@/shared/stores';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory } from '@/shared/types';
+import { createErrorHandlerFactory, PersonDefinition } from '@/shared/types';
 import { API_ENDPOINTS, getApiUrl, getStreamingUrl } from '@/shared/utils/apiConfig';
+import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 
 type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
+interface ExecutionContext {
+  [key: string]: unknown;
+}
+
+interface MemoryStats {
+  [key: string]: unknown;
+}
+
+interface Message {
+  role: string;
+  content: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
 interface StreamUpdate {
   type: string;
   nodeId?: string;
-  context?: any;
+  context?: ExecutionContext;
   total_cost?: number;
-  memory_stats?: any;
+  memory_stats?: MemoryStats;
   error?: string;
   output_preview?: string;
-  message?: any;
+  message?: Message;
   conversation_log?: string;
 }
 
@@ -154,7 +170,7 @@ export const useDiagramRunner = () => {
   }, [addRunningNode, removeRunningNode, clearRunningNodes, setRunContext, setCurrentRunningNode]);
 
 
-  const executeWithRetry = async (fn: () => Promise<any>, retries = 0): Promise<any> => {
+  const executeWithRetry = async <T>(fn: () => Promise<T>, retries = 0): Promise<T> => {
     try {
       return await fn();
     } catch (error) {
@@ -198,14 +214,15 @@ export const useDiagramRunner = () => {
         const keysRes = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), { signal });
         if (keysRes.ok) {
           const response = await keysRes.json();
-          const keys = response.apiKeys || response; // Handle both formats
-          const validIds = new Set(Array.isArray(keys) ? keys.map((k: any) => k.id) : []);
+          const apiKeysData = response.apiKeys || response; // Handle both formats
+          const apiKeys = parseApiArrayResponse(apiKeysData, isApiKey);
+          const validIds = new Set(apiKeys.map(k => k.id));
 
           // Validate person API keys
-          if (Array.isArray(keys)) {
-            (diagramData.persons || []).forEach((person: any) => {
-              if (!validIds.has(person.apiKeyId)) {
-                const fallback = keys.find((k: any) => k.service === person.service);
+          if (apiKeys.length > 0) {
+            (diagramData.persons || []).forEach((person: PersonDefinition) => {
+              if (person.apiKeyId && !validIds.has(person.apiKeyId)) {
+                const fallback = apiKeys.find(k => k.service === person.service);
                 if (fallback) {
                   console.warn(
                     `Replaced invalid apiKeyId ${person.apiKeyId} → ${fallback.id}`
@@ -252,7 +269,7 @@ export const useDiagramRunner = () => {
 
         const decoder = new TextDecoder();
         let buffer = '';
-        let finalResult: any = null;
+        let finalResult: StreamUpdate | null = null;
 
         try {
           while (true) {

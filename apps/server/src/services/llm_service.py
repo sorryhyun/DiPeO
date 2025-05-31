@@ -26,7 +26,7 @@ class LLMService(BaseService):
         except APIKeyError as e:
             raise LLMServiceError(f"Failed to get API key: {e}")
     
-    def _get_adapter(self, service: str, model: str, api_key_id: str) -> Any:
+    def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
         """Get the appropriate LLM adapter with connection pooling and TTL."""
         normalized_service = self.normalize_service_name(service)
         
@@ -60,7 +60,7 @@ class LLMService(BaseService):
         if time.time() - entry['created_at'] > 3600:  
             # Recreate adapter after TTL expiry
             del self._adapter_pool[cache_key]
-            return self._get_adapter(service, model, api_key_id)
+            return self._get_client(service, model, api_key_id)
         
         return entry['adapter']
     
@@ -92,23 +92,24 @@ class LLMService(BaseService):
         
         return input_tokens, output_tokens, cached_tokens
     
-    def calculate_cost(self, service: str, usage: Any) -> float:
+    def calculate_cost(self, client_name: str, usage: Any) -> float:
         """Calculate cost for LLM usage."""
-        normalized_service = self.normalize_service_name(service)
-        
-        if normalized_service not in COST_RATES or usage is None:
-            return 0.0
-        
-        rates = COST_RATES[normalized_service]
-        input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
-        
-        cost = (
-            (input_tokens - cached_tokens) * (rates["input"] / 1_000_000) +
-            output_tokens * (rates["output"] / 1_000_000) +
-            cached_tokens * (rates.get("cached", rates["input"]) / 1_000_000)
-        )
-        
-        return cost
+
+        # Use client to calculate cost
+
+        # if normalized_service not in COST_RATES or usage is None:
+        #     return 0.0
+        #
+        # rates = COST_RATES[normalized_service]
+        # input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
+        #
+        # cost = (
+        #     (input_tokens - cached_tokens) * (rates["input"] / 1_000_000) +
+        #     output_tokens * (rates["output"] / 1_000_000) +
+        #     cached_tokens * (rates.get("cached", rates["input"]) / 1_000_000)
+        # )
+        #
+        return 0
     
     def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
         """Extract text and usage from adapter result."""
@@ -124,12 +125,12 @@ class LLMService(BaseService):
     )
     async def _call_llm_with_retry(
         self, 
-        adapter: Any, 
+        client: Any,
         system_prompt: str, 
         user_prompt: str
     ) -> Any:
         """Internal method for LLM calls with retry logic."""
-        return adapter.chat(
+        return client.chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt
         )

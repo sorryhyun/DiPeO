@@ -1,5 +1,4 @@
 // Unified node configuration system
-import React from 'react';
 import { Position } from '@xyflow/react';
 
 // Handle color constants for consistency
@@ -53,12 +52,6 @@ export interface UnifiedNodeConfig {
   // Additional metadata
   description?: string;
   category?: 'control' | 'processing' | 'data' | 'output';
-  
-  // Additional properties for backwards compatibility
-  defaultData?: Record<string, any>;
-  backgroundColor?: string;
-  textColor?: string;
-  capabilities?: string[];
 }
 
 export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
@@ -68,7 +61,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#059669' }
     ],
     borderColor: 'green',
-    width: 'w-28 h-28',
+    width: 'w-20 h-20',
     className: 'rounded-full',
     emoji: '🚀',
     label: 'Start',
@@ -101,7 +94,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Person Job',
     
     // React Flow mapping
-    reactFlowType: 'personjobNode',
+    reactFlowType: 'personJobNode',
     blockType: 'person_job',
     
     // Properties config
@@ -111,10 +104,6 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { name: 'personId', label: 'Person', type: 'select', options: [] }, // Will be populated dynamically
       { name: 'defaultPrompt', label: 'Default Prompt', type: 'textarea', placeholder: 'Enter default prompt', rows: 4 },
       { name: 'firstOnlyPrompt', label: 'First Only Prompt', type: 'textarea', placeholder: 'Enter first only prompt', rows: 4 },
-      { name: 'mode', label: 'Mode', type: 'select', options: [
-        { value: 'sync', label: 'Synchronous' },
-        { value: 'batch', label: 'Batch' }
-      ]},
       { name: 'contextCleaningRule', label: 'Context Cleaning', type: 'select', options: [
         { value: 'upon_request', label: 'Upon Request' },
         { value: 'no_forget', label: 'No Forget' },
@@ -150,10 +139,10 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter condition name', required: true },
       { name: 'conditionType', label: 'Condition Type', type: 'select', options: [
         { value: 'expression', label: 'Expression' },
-        { value: 'max_iterations', label: 'Max Iterations' }
+        { value: 'max_iterations', label: 'Detect Max Iterations' }
       ]},
       { name: 'expression', label: 'Expression', type: 'textarea', placeholder: 'Enter condition expression', rows: 3 },
-      { name: 'maxIterations', label: 'Max Iterations', type: 'number', placeholder: '10' }
+      { name: 'maxIterations', label: 'Detect Max Iterations', type: 'number', placeholder: '10' }
     ],
     
     // Metadata
@@ -224,13 +213,50 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     category: 'processing'
   },
   
+  person_batch_job: {
+    // Visual config
+    handles: [
+      { type: 'input', position: Position.Left, name: 'batch', offset: 50, color: '#4f46e5' },
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#d97706' }
+    ],
+    borderColor: 'indigo',
+    width: 'w-52',
+    emoji: '🤖📦',
+    label: 'Person Batch Job',
+    
+    // React Flow mapping
+    reactFlowType: 'personBatchJobNode',
+    blockType: 'person_batch_job',
+    
+    // Properties config
+    propertyTitle: 'Person Batch Job Properties',
+    propertyFields: [
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter batch job name', required: true },
+      { name: 'personId', label: 'Person', type: 'select', options: [] }, // Will be populated dynamically
+      { name: 'batchPrompt', label: 'Batch Prompt', type: 'textarea', placeholder: 'Enter batch processing prompt', rows: 4 },
+      { name: 'batchSize', label: 'Batch Size', type: 'number', placeholder: '10' },
+      { name: 'parallelProcessing', label: 'Parallel Processing', type: 'checkbox' },
+      { name: 'aggregationMethod', label: 'Aggregation Method', type: 'select', options: [
+        { value: 'concatenate', label: 'Concatenate' },
+        { value: 'summarize', label: 'Summarize' },
+        { value: 'custom', label: 'Custom' }
+      ]},
+      { name: 'customAggregationPrompt', label: 'Custom Aggregation Prompt', type: 'textarea', placeholder: 'Enter custom aggregation prompt', rows: 3 },
+      { name: 'iterationCount', label: 'Max Iterations', type: 'number', placeholder: '1' }
+    ],
+    
+    // Metadata
+    description: 'Process multiple items in batches with LLM',
+    category: 'processing'
+  },
+  
   endpoint: {
     // Visual config
     handles: [
       { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '#dc2626' }
     ],
     borderColor: 'red',
-    width: 'w-40 h-40',
+    width: 'w-24 h-24',
     className: 'rounded-lg',
     emoji: '🎯',
     label: 'Endpoint',
@@ -315,83 +341,10 @@ export function getNodesByCategory(category: string): string[] {
 export function getUnifiedNodeConfigsByReactFlowType(): Record<string, UnifiedNodeConfig> {
   const mapped: Record<string, UnifiedNodeConfig> = {};
   
-  for (const [blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
+  for (const [_blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
     mapped[config.reactFlowType] = config;
   }
   
   return mapped;
 }
 
-// Legacy types from diagram-ui for backwards compatibility
-export interface NodeConfig {
-  handles: HandleConfig[];
-  borderColor: string;
-  width: string;
-  className?: string;
-  emoji?: string;
-}
-
-export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
-  id: string;
-  children: React.ReactNode;
-  selected?: boolean;
-  onFlip?: () => void;
-  handles?: {
-    type: 'input' | 'output';
-    position: Position;
-    id?: string;
-    style?: React.CSSProperties;
-    className?: string;
-  }[];
-  borderColor?: string;
-  showFlipButton?: boolean;
-  nodeType?: string;
-  data?: any;
-  autoHandles?: boolean;
-  isRunning?: boolean;
-  onUpdateData?: (nodeId: string, data: any) => void;
-  onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, UnifiedNodeConfig>;
-  // Add the missing properties that were being used
-  onDragOver?: React.DragEventHandler<HTMLDivElement>;
-  onDrop?: React.DragEventHandler<HTMLDivElement>;
-}
-
-export interface GenericNodeProps {
-  id: string;
-  data: any;
-  selected?: boolean;
-  nodeType: string;
-  children: React.ReactNode;
-  showFlipButton?: boolean;
-  onDragOver?: React.DOMAttributes<HTMLDivElement>['onDragOver'];
-  onDrop?: React.DOMAttributes<HTMLDivElement>['onDrop'];
-  isRunning?: boolean;
-  onUpdateData?: (nodeId: string, data: any) => void;
-  onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, UnifiedNodeConfig>;
-}
-
-// Legacy types from properties-ui for backwards compatibility
-export interface FormFieldProps {
-  label: string;
-  id?: string;
-  children: React.ReactNode;
-  className?: string;
-}
-
-export interface PanelProps {
-  icon?: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}
-
-export interface GenericPropertiesPanelProps {
-  nodeId: string;
-  nodeType: string;
-  fields: FieldConfig[];
-  title: string;
-  icon?: React.ReactNode;
-  data?: Record<string, any>;
-  onChange?: (nodeId: string, data: Record<string, any>) => void;
-}

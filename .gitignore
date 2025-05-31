@@ -64,6 +64,7 @@ pnpm-workspace.yaml
 .claude
 example.yaml
 prompts/notion.yaml
+TODO.md
 
 # Temporary files
 *.tmp

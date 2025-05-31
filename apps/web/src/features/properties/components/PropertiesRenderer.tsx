@@ -1,18 +1,15 @@
 // Reusable component for rendering property panels based on selection
 import React from 'react';
-import {
-  UniversalPropertiesPanel,
-  PersonPropertiesPanel,
-  ArrowPropertiesPanel
-} from './PropertyPanels';
+import { UniversalPropertiesPanel } from '@/features/properties';
+import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types/domain';
 
 interface PropertiesRendererProps {
   selectedNodeId?: string | null;
   selectedArrowId?: string | null;
   selectedPersonId?: string | null;
-  nodes: any[];
-  arrows: any[];
-  persons: any[];
+  nodes: DiagramNode[];
+  arrows: Arrow<ArrowData>[];
+  persons: PersonDefinition[];
 }
 
 interface PropertiesResult {
@@ -36,7 +33,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       const person = persons.find(p => p.id === selectedPersonId);
       if (person) {
         title = `${person.label || 'Person'} Properties`;
-        content = <PersonPropertiesPanel personId={selectedPersonId} data={person} />;
+        content = <UniversalPropertiesPanel nodeId={selectedPersonId} data={{...person, type: 'person'}} />;
       }
     } else if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);
@@ -48,7 +45,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       const arrow = arrows.find(a => a.id === selectedArrowId);
       if (arrow) {
         title = `Arrow Properties`;
-        content = <ArrowPropertiesPanel arrowId={selectedArrowId} data={arrow.data} />;
+        content = <UniversalPropertiesPanel nodeId={selectedArrowId} data={{...arrow.data, type: 'arrow'}} />;
       }
     }
 

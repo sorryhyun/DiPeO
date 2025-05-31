@@ -1,7 +1,7 @@
 // apps/web/src/hooks/useDiagramActions.ts
 import { useCallback, ChangeEvent } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { YamlExporter } from '@/shared/utils/yamlExporter';
+import { YamlExporter } from '@/features/diagram';
 import { useDownload } from '@/shared/hooks/useDownload';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/shared/types';
 import { toast } from 'sonner';
@@ -13,14 +13,8 @@ const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useDiagramActions = () => {
   const { exportDiagram, loadDiagram } = useConsolidatedDiagramStore();
-  const { downloadJson, downloadYaml } = useDownload();
+  const { downloadYaml } = useDownload();
 
-  // Save as traditional JSON (for backwards compatibility)
-  const handleSave = useCallback(() => {
-    const diagramData = exportDiagram();
-    downloadJson(diagramData, 'agent-diagram.json');
-    toast.success('Saved diagram as JSON');
-  }, [exportDiagram, downloadJson]);
 
   // Export as clean YAML
   const handleExportYAML = useCallback(() => {
@@ -68,37 +62,6 @@ export const useDiagramActions = () => {
     reader.readAsText(file);
   }, [loadDiagram]);
 
-  // Load traditional JSON (for backwards compatibility)
-  const handleLoad = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const errorHandler = createErrorHandler('Load Diagram');
-    const reader = new FileReader();
-
-    reader.onload = async (e) => {
-      await handleAsyncError(
-        async () => {
-          const result = e.target?.result as string;
-          if (!result) {
-            throw new Error('Failed to read file content');
-          }
-
-          const json = JSON.parse(result);
-          loadDiagram(json);
-          toast.success('Loaded diagram from JSON');
-        },
-        undefined,
-        errorHandler
-      );
-    };
-
-    reader.onerror = () => {
-      errorHandler(new Error('Failed to read file'));
-    };
-
-    reader.readAsText(file);
-  }, [loadDiagram]);
 
   // Save YAML to backend directory
   const handleSaveYAMLToDirectory = useCallback(async (filename?: string) => {
@@ -193,17 +156,11 @@ export const useDiagramActions = () => {
   }, []);
 
   return {
-    handleSave,
-    handleLoad,
     handleExportYAML,
     handleImportYAML,
     handleSaveToDirectory,
     handleSaveYAMLToDirectory,
     handleConvertJSONtoYAML,
-    // Aliases for backwards compatibility with UI
-    handleExportMinimal: handleExportYAML,
-    handleImportCanonical: handleImportYAML,
-    handleExportMinimalToDirectory: handleSaveYAMLToDirectory,
     handleExportCanonical: handleExportYAML, // Add this for TopBar compatibility
   };
 };

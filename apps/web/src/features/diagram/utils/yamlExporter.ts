@@ -194,8 +194,7 @@ export class YamlExporter {
           ...(pjData.defaultPrompt && { prompt: pjData.defaultPrompt }),
           ...(pjData.firstOnlyPrompt && { first_prompt: pjData.firstOnlyPrompt }),
           ...(pjData.contextCleaningRule && { forget: pjData.contextCleaningRule }),
-          ...(pjData.iterationCount && { max_iterations: pjData.iterationCount }),
-          ...(pjData.mode && { mode: pjData.mode })
+          ...(pjData.iterationCount && { max_iterations: pjData.iterationCount })
         };
       }
 

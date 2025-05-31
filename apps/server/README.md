@@ -1,117 +1,229 @@
-# AgentDiagram Backend
+# AgentDiagram Server
 
-FastAPI-based execution engine for visual LLM agent workflows with real-time streaming and conversation memory.
+A FastAPI-based backend server for executing visual agent diagrams with LLM integrations, streaming capabilities, and conversation memory management.
 
-## Quick Start
+## Overview
 
-```bash
-cd apps/server
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-python main.py
-```
-
-Visit http://localhost:8000/docs for API documentation.
+AgentDiagram Server executes flow-based diagrams where nodes represent different operations (LLM calls, conditions, data sources) connected by arrows defining execution flow. It supports real-time streaming updates, conversation memory, and multiple LLM providers.
 
 ## Architecture
 
 ```
-src/
-├── execution/         # Core execution engine
-│   ├── executor.py    # Main diagram orchestrator
-│   ├── nodes/         # Node type executors
-│   └── state.py       # Execution state management
-├── services/          # Business logic
-│   ├── llm_service.py # Multi-provider LLM integration
-│   └── memory_service.py # Conversation persistence
-├── streaming/         # Real-time updates (SSE/WebSocket)
-└── utils/            # Helpers and utilities
+apps/server/
+├── src/
+│   ├── api/           # REST API endpoints
+│   ├── execution/     # V2 execution engine
+│   ├── llm/           # LLM adapters (OpenAI, Anthropic, etc.)
+│   ├── services/      # Business logic services
+│   ├── streaming/     # SSE streaming support
+│   └── utils/         # Shared utilities
+├── tests/             # Test suite
+├── config.py          # Configuration management
+└── main.py            # Application entry point
 ```
 
-## Core Concepts
+## Quick Start
 
-**Nodes**: Execution units (PersonJob, Condition, DB, Job, Start, Endpoint)  
-**Arrows**: Data flow connections with content types (variable, raw_text, conversation_state)  
-**Persons**: LLM agent configurations with memory  
-**Dynamic Execution**: Condition-based branching and iteration support
+### Installation
 
-## Key Endpoints
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-| Endpoint | Purpose | Features |
-|----------|---------|----------|
-| `POST /api/run-diagram` | Execute with streaming | SSE real-time updates |
-| `POST /api/run-diagram-sync` | Execute synchronously | Complete results |
-| `GET /api/conversations` | Query conversation history | Pagination, filtering |
-| `POST /api/apikeys` | Manage LLM API keys | Multi-provider support |
-| `WS /ws/{client_id}` | WebSocket connection | Real-time execution monitoring |
-
-## Execution Flow
-
-1. **Validation** → Check diagram structure and dependencies
-2. **Scheduling** → Topological sort with dynamic condition handling  
-3. **Node Execution** → Process nodes in parallel where possible
-4. **Memory Update** → Persist conversation context per person
-5. **Stream Updates** → Real-time status via SSE/WebSocket
-
-## Configuration
-
-```env
-BASE_DIR=/app                    # File operation root
-MAX_CONCURRENT_NODES=10          # Parallel execution limit
-REQUEST_TIMEOUT=300              # Node execution timeout (seconds)
-REDIS_URL=redis://localhost:6379 # Optional: distributed memory
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your API keys
 ```
 
-## Node Types
+### Running the Server
 
-- **PersonJob**: LLM agent with conversation memory
-- **Condition**: Boolean branching logic
-- **DB**: File/code data sources
-- **Job**: Stateless LLM operations or API calls
-- **Start/Endpoint**: Execution boundaries
+```bash
+# Development mode with auto-reload
+python -m apps.server.main
 
-## Streaming Architecture
+# Production mode
+uvicorn apps.server.main:app --host 0.0.0.0 --port 8000
+```
 
-Unified streaming supports both SSE and WebSocket:
-- SSE for simple client integration
-- WebSocket for bidirectional communication
-- Automatic fallback and queue management
+## Core Features
 
-## Security
+### Node Types
 
-- Path validation against `BASE_DIR`
-- API key encryption at rest
-- Rate limiting ready (implement in production)
-- Sandboxed code execution for DB nodes
+- **StartNode**: Entry point for diagram execution
+- **PersonJobNode**: LLM agent interactions with memory
+- **PersonBatchJobNode**: Batch processing with LLM agents
+- **ConditionNode**: Boolean branching logic
+- **DBNode**: Data source operations (files, code, fixed prompts)
+- **JobNode**: Stateless operations (API calls, code execution)
+- **EndpointNode**: Terminal nodes with optional file saving
 
-## Deployment
+### Supported LLM Providers
 
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+- OpenAI (GPT-4, GPT-3.5)
+- Anthropic (Claude 3.5, Claude 3)
+- Google (Gemini 2.0, Gemini 1.5)
+- xAI (Grok 2)
+
+### API Endpoints
+
+#### Diagram Execution
+```
+POST /api/run-diagram         # Execute with SSE streaming
+POST /api/run-diagram-sync    # Synchronous execution
+POST /api/stream/run-diagram  # Alias for streaming
+```
+
+#### Diagram Management
+```
+POST /api/import-uml          # Import UML format
+POST /api/import-yaml         # Import YAML format
+POST /api/export-uml          # Export to UML
+POST /api/save                # Save diagram
+```
+
+#### API Keys
+```
+GET  /api/api-keys            # List stored keys
+POST /api/api-keys            # Add new key
+DELETE /api/api-keys/{id}     # Remove key
+GET  /api/models              # List available models
+```
+
+#### Files
+```
+POST /api/upload-file         # Upload file
+```
+
+#### Conversations
+```
+GET  /api/conversations       # Get conversation history
+POST /api/conversations/clear # Clear all conversations
+```
+
+#### Monitoring
+```
+GET  /api/monitor/stream      # SSE endpoint for all executions
+GET  /api/health              # Health check
+GET  /metrics                 # Prometheus metrics
 ```
 
 ## Development
 
+### Project Structure
+
+**Execution Engine (V2)**
+- `execution/core/`: Core execution components
+- `execution/executors/`: Node-specific executors
+- `execution/flow/`: Dependency resolution and planning
+- `execution/memory/`: Conversation memory management
+
+**Services**
+- `DiagramService`: Diagram operations and validation
+- `LLMService`: Unified LLM provider interface
+- `MemoryService`: Conversation persistence (Redis/in-memory)
+- `UnifiedFileService`: Secure file operations
+- `APIKeyService`: API key management
+
+### Adding New Features
+
+#### New Node Type
+1. Create executor in `src/execution/executors/`
+2. Register in `ExecutionEngine._create_executors()`
+3. Add to `NodeType` enum in `constants.py`
+
+#### New LLM Provider
+1. Create adapter in `src/llm/adapters/`
+2. Update factory in `src/llm/factory.py`
+3. Add to `SUPPORTED_MODELS` mapping
+
+### Error Handling
+
+Unified error system with custom exceptions:
+- `ValidationError`: Input validation failures
+- `DiagramExecutionError`: Execution failures
+- `NodeExecutionError`: Node-specific errors
+- `LLMServiceError`: LLM call failures
+
+### Testing
+
 ```bash
-# Run with auto-reload
-uvicorn main:app --reload
+# Run all tests
+pytest
 
-# Run tests
-pytest tests/
+# Run with coverage
+pytest --cov=apps.server
 
-# Check metrics
-curl http://localhost:8000/metrics
+# Run specific test file
+pytest apps/server/tests/test_diagram_service.py
 ```
 
-## LLM Providers
+## Configuration
 
-Supported: OpenAI/ChatGPT, Anthropic/Claude, Google/Gemini, xAI/Grok
+### Environment Variables
+```env
+BASE_DIR=/path/to/project      # Base directory for file operations
+REDIS_URL=redis://localhost    # Redis for distributed memory (optional)
+API_KEY_STORE_FILE=apikeys.json # API key storage location
+PORT=8000                      # Server port
+RELOAD=false                   # Auto-reload for development
+```
 
-Adapters handle provider-specific APIs with unified interface and automatic retry logic.
+### File Storage
+- Uploads: `{BASE_DIR}/uploads/`
+- Results: `{BASE_DIR}/results/`
+- Logs: `{BASE_DIR}/conversation_logs/`
+
+## Streaming Architecture
+
+The server supports Server-Sent Events (SSE) for real-time execution updates:
+
+1. **Execution Updates**: Node status changes during execution
+2. **Monitor Stream**: Global stream for all diagram executions
+3. **Heartbeat**: Automatic keep-alive for long-running executions
+
+## Memory Management
+
+Conversation memory supports:
+- Per-person conversation history
+- Execution-scoped memory isolation
+- Redis backend for distributed deployments
+- Automatic conversation log persistence
+
+## Security Considerations
+
+- Path traversal protection in file operations
+- API key encryption (stored as plain text - use environment variables in production)
+- Input validation on all endpoints
+- CORS configured for development (restrict in production)
+
+## Performance
+
+- Connection pooling for LLM adapters
+- Async/await throughout for concurrent operations
+- Redis caching for conversation history
+- Streaming responses to reduce memory usage
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"No start nodes found"**: Ensure diagram has at least one `startNode`
+2. **API key errors**: Verify keys are properly configured in UI
+3. **Memory errors**: Check Redis connection or fallback to in-memory
+4. **File permissions**: Ensure write access to BASE_DIR subdirectories
+
+### Debug Mode
+
+Enable detailed logging:
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+## Contributing
+
+1. Follow existing code structure and patterns
+2. Add tests for new features
+3. Update this README for significant changes
+4. Use type hints and docstrings
+5. Handle errors gracefully with proper exceptions
