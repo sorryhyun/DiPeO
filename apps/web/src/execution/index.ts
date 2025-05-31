@@ -3,6 +3,13 @@ export { DependencyResolver } from './flow/dependency-resolver';
 export { ExecutionPlanner } from './flow/execution-planner';
 export { SkipManager } from './core/skip-manager';
 export { LoopController } from './core/loop-controller';
+export { ExecutionEngine } from './core/execution-engine';
+
+// Export executor classes and factories
+export * from './executors';
+
+// Export execution orchestrator
+export * from './execution-orchestrator';
 
 // Export utility functions for creating execution contexts
 import { DiagramNode, DiagramArrow, ExecutionContext } from '@/types/shared';
@@ -29,8 +36,8 @@ export function createExecutionContext(nodes: DiagramNode[], arrows: DiagramArro
       outgoing_arrows[arrow.source] = outgoing_arrows[arrow.source] || [];
       incoming_arrows[arrow.target] = incoming_arrows[arrow.target] || [];
       
-      outgoing_arrows[arrow.source].push(arrow);
-      incoming_arrows[arrow.target].push(arrow);
+      outgoing_arrows[arrow.source]?.push(arrow);
+      incoming_arrows[arrow.target]?.push(arrow);
     }
   }
 
