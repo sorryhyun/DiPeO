@@ -1,8 +1,3 @@
-export { PersonJobPanelContent } from './PersonJobPanel';
-export { PersonBatchJobPanelContent } from './PersonBatchJobPanel';
-export { ConditionPanelContent } from './ConditionPanel';
-export { DBPanelContent } from './DBPanel';
-export { ArrowPanelContent } from './ArrowPanel';
-export { PersonPanelContent } from './PersonPanel';
-export { EndpointPanelContent } from './EndpointPanel';
-export { JobPanelContent } from './JobPanel';
+// All panel components now use the configuration-driven system
+// Individual panel exports are no longer needed
+export { UniversalPropertiesPanel } from './UniversalPropertiesPanel';
