@@ -11,7 +11,7 @@ import {
   ExecutionOptions, 
   ExecutionResult,
   ExecutionStatus
-} from '@/shared/types/execution';
+} from '@/shared/types/core';
 
 import { ExecutionEngine } from './core/execution-engine';
 import { 

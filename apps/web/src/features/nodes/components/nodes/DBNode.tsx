@@ -1,10 +1,10 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
-import { UNIFIED_NODE_TYPES, type DBBlockData } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS, type DBBlockData } from '@/shared/types';
 
 const DBNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const config = UNIFIED_NODE_TYPES.db;
+  const config = UNIFIED_NODE_CONFIGS.db;
   const dbData = data as DBBlockData;
   
   return (

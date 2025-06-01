@@ -12,7 +12,7 @@ export * from './executors';
 export * from './execution-orchestrator';
 
 // Export utility functions for creating execution contexts
-import { DiagramNode, DiagramArrow, ExecutionContext } from '@/types/shared';
+import { DiagramNode, DiagramArrow, ExecutionContext } from '@/shared/types/core';
 
 export function createExecutionContext(nodes: DiagramNode[], arrows: DiagramArrow[]): ExecutionContext {
   const nodes_by_id: Record<string, DiagramNode> = {};

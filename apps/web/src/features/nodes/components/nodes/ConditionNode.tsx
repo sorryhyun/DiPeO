@@ -1,10 +1,10 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
-import { UNIFIED_NODE_TYPES, type ConditionBlockData } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS, type ConditionBlockData } from '@/shared/types';
 
 const ConditionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const config = UNIFIED_NODE_TYPES.condition!;
+  const config = UNIFIED_NODE_CONFIGS.condition!;
   const conditionData = data as ConditionBlockData;
   const isFlipped = conditionData.flipped === true;
   const isMaxIterationMode = conditionData.detectMaxIteration || conditionData.conditionType === 'max_iterations';

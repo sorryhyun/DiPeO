@@ -1,4 +1,4 @@
-import { ExecutionContext, ExecutionPlan, DiagramArrow } from '@/types/shared';
+import { ExecutionContext, ExecutionPlan, DiagramArrow } from '@/shared/types/core';
 import { DependencyResolver } from './dependency-resolver';
 
 export class ExecutionPlanner {

@@ -61,7 +61,7 @@ src/
 
 ### Adding a New Node Type
 
-1. **Define the node config** in `shared/types/nodeType.ts`:
+1. **Define the node config** in `shared/types/nodeConfig.ts`:
 ```typescript
 export const UNIFIED_NODE_CONFIGS = {
   my_node: {

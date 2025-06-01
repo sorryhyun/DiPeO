@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
-import { GenericNodeProps, UNIFIED_NODE_TYPES, getBlockType } from '@/shared/types';
+import { GenericNodeProps, UNIFIED_NODE_CONFIGS, getBlockType } from '@/shared/types';
 
 function GenericNodeComponent({ 
   id: nodeId,
@@ -16,12 +16,12 @@ function GenericNodeComponent({
   onUpdateNodeInternals,
   nodeConfigs = {}
 }: GenericNodeProps) {
-  // Try to get config from provided nodeConfigs first, then fallback to UNIFIED_NODE_TYPES
+  // Try to get config from provided nodeConfigs first, then fallback to UNIFIED_NODE_CONFIGS
   let config = nodeConfigs[nodeType];
   if (!config) {
-    // Convert React Flow type to block type and get config from UNIFIED_NODE_TYPES
+    // Convert React Flow type to block type and get config from UNIFIED_NODE_CONFIGS
     const blockType = getBlockType(nodeType);
-    config = UNIFIED_NODE_TYPES[blockType];
+    config = UNIFIED_NODE_CONFIGS[blockType];
   }
   
   if (!config) {

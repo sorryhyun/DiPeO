@@ -1,4 +1,4 @@
-import { ExecutionContext, DiagramArrow, DiagramNode, ArrowValidation, NodeType } from '@/types/shared';
+import { ExecutionContext, DiagramArrow, DiagramNode, ArrowValidation, NodeType } from '@/shared/types/core';
 
 export class DependencyResolver {
   constructor(private context: ExecutionContext) {}

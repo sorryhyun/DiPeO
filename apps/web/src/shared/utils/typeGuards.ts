@@ -9,8 +9,12 @@ import {
   EndpointBlockData,
   ApiKey,
   ArrowData,
-  PersonDefinition
-} from '@/shared/types';
+  PersonDefinition,
+  NodeType,
+  ExecutionStatus,
+  ExecutionError,
+  NodeExecutionError
+} from '@/shared/types/core';
 
 // Node type guards
 export function isStartBlockData(data: DiagramNodeData): data is StartBlockData {
@@ -111,4 +115,24 @@ export function parseApiArrayResponse<T>(
     return data.filter(typeGuard);
   }
   return [];
+}
+
+// ============================================================================
+// Additional Type Guards (from execution.ts)
+// ============================================================================
+
+export function isExecutionError(error: any): error is ExecutionError {
+  return error && typeof error.message === 'string' && error.timestamp instanceof Date;
+}
+
+export function isNodeExecutionError(error: any): error is NodeExecutionError {
+  return error instanceof NodeExecutionError;
+}
+
+export function isValidNodeType(type: string): type is NodeType {
+  return ['start', 'person_job', 'person_batch_job', 'condition', 'db', 'job', 'endpoint'].includes(type);
+}
+
+export function isValidExecutionStatus(status: string): status is ExecutionStatus {
+  return ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused'].includes(status);
 }

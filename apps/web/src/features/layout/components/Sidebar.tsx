@@ -4,7 +4,7 @@ import { Button } from '@/shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConsolidatedDiagramStore } from '@/core/stores';
 import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
-import { UNIFIED_NODE_TYPES } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
@@ -82,16 +82,16 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
           <div className="mt-3">
             <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="start" label={`${UNIFIED_NODE_TYPES.start?.emoji || '🚀'} ${UNIFIED_NODE_TYPES.start?.label || 'Start'} Block`} />
-              <DraggableBlock type="person_job" label={`${UNIFIED_NODE_TYPES.person_job?.emoji || '🤖'} ${UNIFIED_NODE_TYPES.person_job?.label || 'Person Job'} Block`} />
-              <DraggableBlock type="person_batch_job" label={`${UNIFIED_NODE_TYPES.person_batch_job?.emoji || '🤖📦'} ${UNIFIED_NODE_TYPES.person_batch_job?.label || 'Person Batch Job'} Block`} />
-              <DraggableBlock type="condition" label={`${UNIFIED_NODE_TYPES.condition?.emoji || '🔀'} ${UNIFIED_NODE_TYPES.condition?.label || 'Condition'} Block`} />
-              <DraggableBlock type="job" label={`${UNIFIED_NODE_TYPES.job?.emoji || '⚙️'} ${UNIFIED_NODE_TYPES.job?.label || 'Job'} Block`} />
-              <DraggableBlock type="endpoint" label={`${UNIFIED_NODE_TYPES.endpoint?.emoji || '🎯'} ${UNIFIED_NODE_TYPES.endpoint?.label || 'Endpoint'} Block`} />
+              <DraggableBlock type="start" label={`${UNIFIED_NODE_CONFIGS.start?.emoji || '🚀'} ${UNIFIED_NODE_CONFIGS.start?.label || 'Start'} Block`} />
+              <DraggableBlock type="person_job" label={`${UNIFIED_NODE_CONFIGS.person_job?.emoji || '🤖'} ${UNIFIED_NODE_CONFIGS.person_job?.label || 'Person Job'} Block`} />
+              <DraggableBlock type="person_batch_job" label={`${UNIFIED_NODE_CONFIGS.person_batch_job?.emoji || '🤖📦'} ${UNIFIED_NODE_CONFIGS.person_batch_job?.label || 'Person Batch Job'} Block`} />
+              <DraggableBlock type="condition" label={`${UNIFIED_NODE_CONFIGS.condition?.emoji || '🔀'} ${UNIFIED_NODE_CONFIGS.condition?.label || 'Condition'} Block`} />
+              <DraggableBlock type="job" label={`${UNIFIED_NODE_CONFIGS.job?.emoji || '⚙️'} ${UNIFIED_NODE_CONFIGS.job?.label || 'Job'} Block`} />
+              <DraggableBlock type="endpoint" label={`${UNIFIED_NODE_CONFIGS.endpoint?.emoji || '🎯'} ${UNIFIED_NODE_CONFIGS.endpoint?.label || 'Endpoint'} Block`} />
             </div>
             <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="db" label={`${UNIFIED_NODE_TYPES.db?.emoji || '📊'} ${UNIFIED_NODE_TYPES.db?.label || 'DB Source'} Block`} />
+              <DraggableBlock type="db" label={`${UNIFIED_NODE_CONFIGS.db?.emoji || '📊'} ${UNIFIED_NODE_CONFIGS.db?.label || 'DB Source'} Block`} />
             </div>
           </div>
         )}

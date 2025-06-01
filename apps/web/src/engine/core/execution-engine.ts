@@ -9,6 +9,7 @@ import {
   Diagram, 
   ExecutionOptions, 
   ExecutionResult, 
+  ExecutionContext,
   ExecutionContext as TypedExecutionContext,
   ExecutionMetadata,
   ExecutionStatus,
@@ -21,9 +22,7 @@ import {
   DEFAULT_EXECUTION_TIMEOUT,
   BaseExecutorInterface,
   ExecutorResult
-} from '@/shared/types/execution';
-
-import { ExecutionContext } from '@/types/shared';
+} from '@/shared/types/core';
 import { createExecutionContext } from '../index';
 import { DependencyResolver } from '../flow/dependency-resolver';
 import { ExecutionPlanner } from '../flow/execution-planner';

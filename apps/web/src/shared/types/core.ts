@@ -1,14 +1,200 @@
-// TypeScript types for execution engine and related structures
-// These mirror the Python backend types for Phase 1 of the migration
-
-import type { 
-  Arrow,
-  ArrowData,
-  PersonDefinition 
-} from './domain';
+// Core types for frontend - merged from execution.ts and domain.ts
+import {Node as ReactFlowNode, Edge, OnEdgesChange, EdgeChange, Connection,
+  applyEdgeChanges as applyEdgeChangesRF,
+  addEdge as addEdgeRF
+} from '@xyflow/react';
 
 // ============================================================================
-// Core Execution Types
+// Core Node and Block Types (Unified)
+// ============================================================================
+
+export type NodeType = 
+  | 'start'
+  | 'person_job'
+  | 'person_batch_job' 
+  | 'condition'
+  | 'db'
+  | 'job'
+  | 'endpoint';
+
+export type BlockType = NodeType; // Alias for compatibility
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+// ============================================================================
+// Node Data Types (from domain.ts)
+// ============================================================================
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  service: 'claude' | 'chatgpt' | 'grok' | 'gemini' | 'custom';
+  keyReference?: string;
+}
+
+export type ArrowKind = 'normal' | 'fixed';
+
+// Base for all canvas blocks (nodes) with discriminating `type`
+export interface BaseBlockData extends Record<string, unknown> {
+  id: string;
+  type: BlockType;
+  label: string;
+  flipped?: boolean;
+}
+
+export interface StartBlockData extends BaseBlockData {
+  type: 'start';
+}
+
+export interface PersonJobBlockData extends BaseBlockData {
+  type: 'person_job';
+  personId?: string;
+  llmApi?: ApiKey['service'];
+  apiKeyId?: ApiKey['id'];
+  modelName?: string;
+  defaultPrompt?: string;
+  firstOnlyPrompt?: string;
+  detectedVariables?: string[];
+  contextCleaningRule?: 'uponRequest' | 'noForget' | 'onEveryTurn';
+  contextCleaningTurns?: number;
+  iterationCount?: number;
+}
+
+export interface PersonBatchJobBlockData extends BaseBlockData {
+  type: 'person_batch_job';
+  personId?: string;
+  llmApi?: ApiKey['service'];
+  apiKeyId?: ApiKey['id'];
+  modelName?: string;
+  batchPrompt?: string;
+  batchSize?: number;
+  parallelProcessing?: boolean;
+  aggregationMethod?: 'concatenate' | 'summarize' | 'custom';
+  customAggregationPrompt?: string;
+  detectedVariables?: string[];
+  iterationCount?: number;
+}
+
+export type JobBlockSubType = 'api_tool' | 'diagram_link' | 'code';
+export interface JobBlockData extends BaseBlockData {
+  type: 'job';
+  subType: JobBlockSubType;
+  sourceDetails: string;
+}
+
+export type DBBlockSubType = 'fixed_prompt' | 'file';
+export interface DBBlockData extends BaseBlockData {
+  type: 'db';
+  subType: DBBlockSubType;
+  sourceDetails: string;
+}
+
+export type ConditionType = 'expression' | 'max_iterations';
+export interface ConditionBlockData extends BaseBlockData {
+  type: 'condition';
+  conditionType: ConditionType;
+  expression?: string;
+  maxIterations?: number;
+}
+
+export interface EndpointBlockData extends BaseBlockData {
+  type: 'endpoint';
+  // Optional file save properties
+  saveToFile?: boolean;
+  filePath?: string;
+  fileFormat?: 'json' | 'text' | 'csv';
+}
+
+// Union type for all block data types  
+export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData;
+
+// Unified Node interface combining execution.ts and domain.ts patterns
+export interface NodeData {
+  id: string;
+  type: NodeType;
+  label: string;
+  [key: string]: any;
+}
+
+export interface Node {
+  id: string;
+  type: NodeType;
+  position: Position;
+  data: NodeData;
+}
+
+// Type for diagram nodes with React Flow compatibility
+export type DiagramNode = ReactFlowNode<DiagramNodeData & Record<string, unknown>>;
+
+// ============================================================================
+// Person and Arrow Types
+// ============================================================================
+
+export interface PersonDefinition {
+  id: string;
+  label: string;
+  service?: ApiKey['service'];
+  apiKeyId?: ApiKey['id'];
+  modelName?: string;
+  systemPrompt?: string;
+}
+
+export interface ArrowData extends Record<string, unknown> {
+  id: string;
+  sourceBlockId: string;
+  targetBlockId: string;
+  sourceHandleId?: string;
+  targetHandleId?: string;
+  label?: string;
+  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state';
+  arrowKind?: ArrowKind;
+  variableName?: string;
+  objectKeyPath?: string;
+  loopRadius?: number;
+  branch?: 'true' | 'false';
+  controlPointOffsetX?: number;
+  controlPointOffsetY?: number;
+}
+
+export type Arrow<T extends Record<string, unknown> = ArrowData> = Edge<T>;
+export type ArrowChange = EdgeChange;
+export type OnArrowsChange = OnEdgesChange;
+
+// Backward compatibility aliases
+export type DiagramArrow = Arrow;
+
+// ============================================================================
+// Diagram and State Types
+// ============================================================================
+
+export interface Diagram {
+  nodes: Node[];
+  arrows: Arrow[];
+  persons: PersonDefinition[];
+  metadata?: DiagramMetadata;
+}
+
+export interface DiagramMetadata {
+  id?: string;
+  name?: string;
+  description?: string;
+  version?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface DiagramState {
+  persons: PersonDefinition[];
+  nodes: DiagramNode[];
+  arrows: Edge<ArrowData>[];
+  apiKeys: ApiKey[];
+}
+
+// ============================================================================
+// Execution Types
 // ============================================================================
 
 export interface ExecutionContext {
@@ -22,6 +208,7 @@ export interface ExecutionContext {
   conditionValues: Record<string, boolean>;
   firstOnlyConsumed: Record<string, boolean>;
   diagram?: Record<string, any> | null;
+  // Frontend aliases (camelCase) 
   nodesById: Record<string, Record<string, any>>;
   outgoingArrows: Record<string, Record<string, any>[]>;
   incomingArrows: Record<string, Record<string, any>[]>;
@@ -61,72 +248,6 @@ export interface ExecutionOptions {
 }
 
 // ============================================================================
-// Node and Diagram Types
-// ============================================================================
-
-export type NodeType = 
-  | 'start'
-  | 'person_job'
-  | 'person_batch_job' 
-  | 'condition'
-  | 'db'
-  | 'job'
-  | 'endpoint';
-
-export interface Position {
-  x: number;
-  y: number;
-}
-
-export interface NodeData {
-  id: string;
-  type: NodeType;
-  label: string;
-  [key: string]: any;
-}
-
-export interface Node {
-  id: string;
-  type: NodeType;
-  position: Position;
-  data: NodeData;
-}
-
-
-export interface Diagram {
-  nodes: Node[];
-  arrows: Arrow[];
-  persons: PersonDefinition[];
-  metadata?: DiagramMetadata;
-}
-
-export interface DiagramMetadata {
-  id?: string;
-  name?: string;
-  description?: string;
-  version?: string;
-  createdAt?: number;
-  updatedAt?: number;
-}
-
-// ============================================================================
-// Enums and Constants
-// ============================================================================
-
-export enum ContentType {
-  VARIABLE = 'variable',
-  RAW_TEXT = 'raw_text',
-  CONVERSATION_STATE = 'conversation_state'
-}
-
-export enum LLMService {
-  OPENAI = 'openai',
-  CLAUDE = 'claude',
-  GEMINI = 'gemini',
-  GROK = 'grok'
-}
-
-// ============================================================================
 // Memory and Conversation Types
 // ============================================================================
 
@@ -144,10 +265,22 @@ export interface PersonMemory {
   lastUpdated: Date;
 }
 
-
 // ============================================================================
 // LLM and Service Types
 // ============================================================================
+
+export enum ContentType {
+  VARIABLE = 'variable',
+  RAW_TEXT = 'raw_text',
+  CONVERSATION_STATE = 'conversation_state'
+}
+
+export enum LLMService {
+  OPENAI = 'openai',
+  CLAUDE = 'claude',
+  GEMINI = 'gemini',
+  GROK = 'grok'
+}
 
 export interface ChatResult {
   text: string;
@@ -294,6 +427,7 @@ export interface ValidationResult {
 }
 
 export interface ExecutionPlan {
+  // Frontend properties (camelCase)
   executionOrder: string[];
   parallelGroups: string[][];
   dependencies: Record<string, string[]>;
@@ -391,21 +525,19 @@ export const COST_RATES: Record<string, { input: number; output: number }> = {
 };
 
 // ============================================================================
-// Type Guards
+// React Flow Helper Functions (from domain.ts)
 // ============================================================================
 
-export function isExecutionError(error: any): error is ExecutionError {
-  return error && typeof error.message === 'string' && error.timestamp instanceof Date;
+export function applyArrowChanges(
+  changes: EdgeChange[],
+  arrows: Arrow<ArrowData>[]
+): Arrow<ArrowData>[] {
+  return applyEdgeChangesRF(changes, arrows) as Arrow<ArrowData>[];
 }
 
-export function isNodeExecutionError(error: any): error is NodeExecutionError {
-  return error instanceof NodeExecutionError;
-}
-
-export function isValidNodeType(type: string): type is NodeType {
-  return ['start', 'person_job', 'person_batch_job', 'condition', 'db', 'job', 'endpoint'].includes(type);
-}
-
-export function isValidExecutionStatus(status: string): status is ExecutionStatus {
-  return ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused'].includes(status);
+export function addArrow(
+  arrow: Edge<ArrowData> | Connection,
+  arrows: Edge<ArrowData>[]
+): Edge<ArrowData>[] {
+  return addEdgeRF(arrow, arrows);
 }
