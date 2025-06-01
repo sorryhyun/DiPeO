@@ -8,6 +8,10 @@ const EndpointNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.endpoint;
   const endpointData = data as EndpointBlockData;
   
+  if (!config) {
+    return null;
+  }
+  
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType}>
       <span className="text-2xl mb-0.5">{config.emoji}</span>

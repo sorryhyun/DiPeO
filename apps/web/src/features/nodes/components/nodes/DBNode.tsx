@@ -7,6 +7,10 @@ const DBNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.db;
   const dbData = data as DBBlockData;
   
+  if (!config) {
+    return null;
+  }
+  
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType} showFlipButton={false}>
       <div className="flex items-center space-x-2 mb-1">

@@ -12,20 +12,21 @@ export class ExecutionPlanner {
    */
   createExecutionPlan(): ExecutionPlan {
     const startNodes = this.dependencyResolver.validateStartNodes();
-    const cycles = this.dependencyResolver.detectCycles();
+    const parallelGroups = this.detectParallelExecutionOpportunities();
+    const executionOrder = this.determineExecutionOrder();
+    
+    // Create dependencies map
+    const dependencies: Record<string, string[]> = {};
+    for (const nodeId of Object.keys(this.context.nodesById)) {
+      dependencies[nodeId] = this.dependencyResolver.getDependencies(nodeId);
+    }
 
     return {
-      start_nodes: startNodes,
-      has_cycles: cycles.length > 0,
-      cycle_nodes: cycles,
-      total_nodes: Object.keys(this.context.nodesById).length,
-      total_arrows: this.getAllArrows().length,
-      node_types: Object.fromEntries(
-        Object.entries(this.context.nodesById).map(([nodeId, node]) => [
-          nodeId,
-          node.type || 'unknown'
-        ])
-      )
+      executionOrder,
+      parallelGroups: parallelGroups.map(group => Array.from(group)),
+      dependencies,
+      estimatedCost: 0, // TODO: Calculate based on node types
+      estimatedTime: 0  // TODO: Calculate based on node count and types
     };
   }
 
@@ -34,7 +35,7 @@ export class ExecutionPlanner {
    */
   getStartNodes(): string[] {
     return Object.entries(this.context.nodesById)
-      .filter(([_, node]) => node.type === 'startNode')
+      .filter(([_, node]) => node.type === 'start')
       .map(([nodeId, _]) => nodeId);
   }
 
@@ -46,12 +47,13 @@ export class ExecutionPlanner {
     const outgoing = this.context.outgoingArrows[nodeId] || [];
 
     for (const arrow of outgoing) {
-      const targetId = this.getArrowTarget(arrow);
+      const typedArrow = arrow as DiagramArrow;
+      const targetId = this.getArrowTarget(typedArrow);
       if (!targetId) continue;
 
       // Handle conditional arrows
-      if (this.isConditionalArrow(arrow) && typeof output === 'boolean') {
-        const arrowLabel = this.getArrowLabel(arrow);
+      if (this.isConditionalArrow(typedArrow) && typeof output === 'boolean') {
+        const arrowLabel = this.getArrowLabel(typedArrow);
         if ((arrowLabel === 'true' && output) || (arrowLabel === 'false' && !output)) {
           nextNodes.push(targetId);
         }
@@ -180,13 +182,13 @@ export class ExecutionPlanner {
       }
     }
 
-    return label.toLowerCase();
+    return typeof label === 'string' ? label.toLowerCase() : '';
   }
 
   private getAllArrows(): DiagramArrow[] {
     const allArrows: DiagramArrow[] = [];
     for (const arrows of Object.values(this.context.outgoingArrows)) {
-      allArrows.push(...arrows);
+      allArrows.push(...(arrows as DiagramArrow[]));
     }
     return allArrows;
   }

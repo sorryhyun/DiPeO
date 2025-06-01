@@ -42,8 +42,18 @@ export function createExecutionContext(nodes: DiagramNode[], arrows: DiagramArro
   }
 
   return {
-    nodesById,
-    incomingArrows,
-    outgoingArrows
+    executionId: '',
+    nodeOutputs: {},
+    nodeExecutionCounts: {},
+    totalCost: 0,
+    startTime: Date.now(),
+    errors: {},
+    executionOrder: [],
+    conditionValues: {},
+    firstOnlyConsumed: {},
+    diagram: null,
+    nodesById: nodesById as Record<string, Record<string, any>>,
+    incomingArrows: incomingArrows as Record<string, Record<string, any>[]>,
+    outgoingArrows: outgoingArrows as Record<string, Record<string, any>[]>
   };
 }

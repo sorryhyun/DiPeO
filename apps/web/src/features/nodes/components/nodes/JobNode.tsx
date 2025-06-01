@@ -7,6 +7,11 @@ import { UNIFIED_NODE_CONFIGS, type JobBlockData } from '@/shared/types';
 const JobNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.job;
   const jobData = data as JobBlockData;
+  
+  if (!config) {
+    return null;
+  }
+  
   const subType = jobData.subType || 'code';
   const icon = subType === 'code' ? (
     <Code className="h-5 w-5 text-purple-600 flex-shrink-0" />

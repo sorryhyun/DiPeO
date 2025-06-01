@@ -14,6 +14,8 @@ import {
   ExecutionMetadata,
   ExecutionStatus,
   Node,
+  DiagramNode,
+  DiagramArrow,
   ExecutionError,
   NodeExecutionError,
   DiagramExecutionError,
@@ -170,16 +172,8 @@ export class ExecutionEngine {
   ): void {
     // Create legacy context for existing components
     const legacyContext = createExecutionContext(
-      diagram.nodes.map(n => ({ ...n, data: n.data })),
-      diagram.arrows.map(a => ({
-        id: a.id,
-        source: a.source,
-        target: a.target,
-        sourceHandle: a.sourceHandle || undefined,
-        targetHandle: a.targetHandle || undefined,
-        data: a.data,
-        label: typeof a.label === 'string' ? a.label : undefined
-      }))
+      diagram.nodes.map(n => ({ ...n, data: n.data as any })) as DiagramNode[],
+      diagram.arrows as DiagramArrow[]
     );
     
     this.dependencyResolver = new DependencyResolver(legacyContext);

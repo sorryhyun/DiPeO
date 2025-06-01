@@ -167,7 +167,9 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   // Type-safe update function with model pre-initialization
   const updateField = async (name: string, value: any) => {
     // Update the form data first
-    handleChange(name as keyof T, value);
+    if (name in formData) {
+      handleChange(name as keyof T, value);
+    }
     
     // If this is a model selection and we have all required data, pre-initialize the model
     if (name === 'modelName' && value && formData.service && formData.apiKeyId) {

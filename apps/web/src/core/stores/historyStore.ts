@@ -138,7 +138,10 @@ export const useHistoryStore = create<HistoryStore>()(
         
         // Apply patches up to historyIndex - 1
         for (let i = 0; i < historyIndex; i++) {
-          currentState = applyPatches(currentState, history[i].patches);
+          const entry = history[i];
+          if (entry) {
+            currentState = applyPatches(currentState, entry.patches);
+          }
         }
         
         set({ historyIndex: historyIndex - 1 });
@@ -156,7 +159,10 @@ export const useHistoryStore = create<HistoryStore>()(
         
         // Apply patches up to historyIndex + 1
         for (let i = 0; i <= historyIndex + 1; i++) {
-          currentState = applyPatches(currentState, history[i].patches);
+          const entry = history[i];
+          if (entry) {
+            currentState = applyPatches(currentState, entry.patches);
+          }
         }
         
         set({ historyIndex: historyIndex + 1 });
@@ -171,7 +177,10 @@ export const useHistoryStore = create<HistoryStore>()(
         // Reconstruct current state
         let currentState = baseState;
         for (let i = 0; i <= historyIndex; i++) {
-          currentState = applyPatches(currentState, history[i].patches);
+          const entry = history[i];
+          if (entry) {
+            currentState = applyPatches(currentState, entry.patches);
+          }
         }
         
         // Make current state the new base
@@ -191,7 +200,10 @@ export const useHistoryStore = create<HistoryStore>()(
         
         let currentState = baseState;
         for (let i = 0; i <= historyIndex; i++) {
-          currentState = applyPatches(currentState, history[i].patches);
+          const entry = history[i];
+          if (entry) {
+            currentState = applyPatches(currentState, entry.patches);
+          }
         }
         
         return currentState;

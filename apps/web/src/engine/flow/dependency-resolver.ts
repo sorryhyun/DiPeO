@@ -1,4 +1,4 @@
-import { ExecutionContext, DiagramArrow, DiagramNode, ArrowValidation, NodeType } from '@/shared/types/core';
+import { ExecutionContext, DiagramArrow, ArrowValidation, NodeType } from '@/shared/types/core';
 
 export class DependencyResolver {
   constructor(private context: ExecutionContext) {}
@@ -13,7 +13,7 @@ export class DependencyResolver {
       if (!node) continue;
       try {
         const nodeType = node.type as NodeType;
-        if (nodeType === NodeType.START) {
+        if (nodeType === 'start') {
           startNodes.push(nodeId);
         }
       } catch {
@@ -59,8 +59,8 @@ export class DependencyResolver {
       this.validateArrowDependency(arrow, nodeId, executedNodes, conditionValues)
     );
 
-    const validArrows = arrowValidations.filter(v => v.is_valid).map(v => v.arrow);
-    const missingDeps = arrowValidations.filter(v => !v.is_valid).map(v => v.arrow);
+    const validArrows = arrowValidations.filter(v => v.isValid).map(v => v.arrow);
+    const missingDeps = arrowValidations.filter(v => !v.isValid).map(v => v.arrow);
 
     // Special handling for PersonJob nodes with first-only inputs
     if (this.canExecuteWithFirstOnly(node, nodeId, incomingArrows, executedNodes)) {
@@ -73,11 +73,11 @@ export class DependencyResolver {
         }
         return false;
       });
-      return [true, firstOnlyArrows];
+      return [true, firstOnlyArrows as DiagramArrow[]];
     }
 
     const dependenciesMet = missingDeps.length === 0;
-    return [dependenciesMet, validArrows];
+    return [dependenciesMet, validArrows as DiagramArrow[]];
   }
 
   /**
@@ -132,7 +132,7 @@ export class DependencyResolver {
 
       // Check condition branches
       const srcNode = this.context.nodesById[nodeId];
-      if (srcNode && this.getNodeType(srcNode) === NodeType.CONDITION) {
+      if (srcNode && this.getNodeType(srcNode) === 'condition') {
         const branch = this.extractBranchFromArrow(arrow);
         if (branch) {
           const condValue = conditionValues[nodeId] || false;
@@ -190,11 +190,11 @@ export class DependencyResolver {
 
   // Private helper methods
 
-  private isStartNode(node: DiagramNode): boolean {
-    return node.type === NodeType.START;
+  private isStartNode(node: Record<string, any>): boolean {
+    return node.type === 'start';
   }
 
-  private getNodeType(node: DiagramNode): NodeType | null {
+  private getNodeType(node: Record<string, any>): NodeType | null {
     try {
       return node.type as NodeType;
     } catch {
@@ -202,7 +202,7 @@ export class DependencyResolver {
     }
   }
 
-  private isHandleFirstOnly(arrow: DiagramArrow): boolean {
+  private isHandleFirstOnly(arrow: Record<string, any>): boolean {
     const targetHandle = arrow.targetHandle || '';
     if (targetHandle.endsWith('-input-first')) {
       return true;
@@ -211,14 +211,14 @@ export class DependencyResolver {
   }
 
   private validateArrowDependency(
-    arrow: DiagramArrow,
+    arrow: Record<string, any>,
     targetNodeId: string,
     executedNodes: Set<string>,
     conditionValues: Record<string, boolean>
   ): ArrowValidation {
     const srcId = this.getArrowSource(arrow);
     if (!srcId) {
-      return { is_valid: false, arrow, reason: 'no_source' };
+      return { isValid: false, arrow: arrow as DiagramArrow, reason: 'no_source' };
     }
 
     console.debug(`[Dependency Check] arrow from ${srcId} -> ${targetNodeId}`);
@@ -226,11 +226,11 @@ export class DependencyResolver {
     // Get source node info
     const srcNode = this.context.nodesById[srcId];
     if (!srcNode) {
-      return { is_valid: false, arrow, reason: 'source_node_not_found' };
+      return { isValid: false, arrow: arrow as DiagramArrow, reason: 'source_node_not_found' };
     }
     const srcType = this.getNodeType(srcNode);
-    const isStartSource = srcType === NodeType.START;
-    const isConditionSource = srcType === NodeType.CONDITION;
+    const isStartSource = srcType === 'start';
+    const isConditionSource = srcType === 'condition';
     const hasData = executedNodes.has(srcId);
 
     // Handle first-only mode
@@ -240,7 +240,7 @@ export class DependencyResolver {
 
     // Handle regular dependencies
     if (!hasData && srcId !== targetNodeId && !isStartSource) {
-      return { is_valid: false, arrow, reason: 'missing_data' };
+      return { isValid: false, arrow: arrow as DiagramArrow, reason: 'missing_data' };
     }
 
     // Handle condition branches
@@ -248,36 +248,36 @@ export class DependencyResolver {
       return this.validateConditionBranch(arrow, srcId, conditionValues);
     }
 
-    return { is_valid: true, arrow };
+    return { isValid: true, arrow: arrow as DiagramArrow };
   }
 
-  private validateFirstOnlyArrow(arrow: DiagramArrow, _targetNodeId: string, hasData: boolean): ArrowValidation {
+  private validateFirstOnlyArrow(arrow: Record<string, any>, _targetNodeId: string, hasData: boolean): ArrowValidation {
     // This would need access to execution context state - for now simplified
     if (hasData) {
-      return { is_valid: true, arrow };
+      return { isValid: true, arrow: arrow as DiagramArrow };
     }
-    return { is_valid: false, arrow, reason: 'first_only_no_data' };
+    return { isValid: false, arrow: arrow as DiagramArrow, reason: 'first_only_no_data' };
   }
 
-  private validateConditionBranch(arrow: DiagramArrow, srcId: string, conditionValues: Record<string, boolean>): ArrowValidation {
+  private validateConditionBranch(arrow: Record<string, any>, srcId: string, conditionValues: Record<string, boolean>): ArrowValidation {
     const branch = this.extractBranchFromArrow(arrow);
     if (!branch) {
-      return { is_valid: true, arrow };
+      return { isValid: true, arrow: arrow as DiagramArrow };
     }
 
     if (!(srcId in conditionValues)) {
-      return { is_valid: false, arrow, reason: 'condition_not_evaluated' };
+      return { isValid: false, arrow: arrow as DiagramArrow, reason: 'condition_not_evaluated' };
     }
 
     const condValue = conditionValues[srcId];
     if ((branch === 'true' && !condValue) || (branch === 'false' && condValue)) {
-      return { is_valid: false, arrow, reason: 'wrong_branch' };
+      return { isValid: false, arrow: arrow as DiagramArrow, reason: 'wrong_branch' };
     }
 
-    return { is_valid: true, arrow };
+    return { isValid: true, arrow: arrow as DiagramArrow };
   }
 
-  private extractBranchFromArrow(arrow: DiagramArrow): string | null {
+  private extractBranchFromArrow(arrow: Record<string, any>): string | null {
     // First check if branch is explicitly set in data
     const branch = arrow.data?.branch;
     if (branch) {
@@ -302,13 +302,13 @@ export class DependencyResolver {
   }
 
   private canExecuteWithFirstOnly(
-    node: DiagramNode,
+    node: Record<string, any>,
     _nodeId: string,
-    incomingArrows: DiagramArrow[],
+    incomingArrows: Record<string, any>[],
     executedNodes: Set<string>
   ): boolean {
     const nodeType = this.getNodeType(node);
-    if (nodeType !== NodeType.PERSON_JOB) {
+    if (nodeType !== 'person_job') {
       return false;
     }
 
@@ -328,11 +328,11 @@ export class DependencyResolver {
     return false;
   }
 
-  private getArrowSource(arrow: DiagramArrow): string | null {
+  private getArrowSource(arrow: Record<string, any>): string | null {
     return arrow.source || null;
   }
 
-  private getArrowTarget(arrow: DiagramArrow): string | null {
+  private getArrowTarget(arrow: Record<string, any>): string | null {
     return arrow.target || null;
   }
 }

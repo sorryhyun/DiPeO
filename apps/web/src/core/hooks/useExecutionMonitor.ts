@@ -5,7 +5,7 @@ import { getStreamingUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 
 export const useExecutionMonitor = () => {
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     addRunningNode,
     removeRunningNode,
