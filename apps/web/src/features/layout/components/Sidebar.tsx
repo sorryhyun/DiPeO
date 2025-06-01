@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConsolidatedDiagramStore } from '@/core/stores';
 import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
 import { UNIFIED_NODE_TYPES } from '@/shared/types';
-import { useFileImport } from '@/features/serialization/hooks/useFileImport';
+import { useFileImport } from '@/serialization/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
