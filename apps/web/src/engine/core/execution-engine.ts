@@ -14,6 +14,7 @@ import {
   ExecutionMetadata,
   ExecutionStatus,
   Node,
+  NodeType,
   DiagramNode,
   DiagramArrow,
   ExecutionError,
@@ -66,11 +67,42 @@ export class ExecutionEngine {
   private skipManager: SkipManager;
   private loopController?: LoopController;
   
+  // Node type mappings between React Flow types and core execution types
+  private static readonly NODE_TYPE_MAP: Record<string, string> = {
+    'startNode': 'start',
+    'personJobNode': 'person_job',
+    'personBatchJobNode': 'person_batch_job',
+    'conditionNode': 'condition',
+    'dbNode': 'db',
+    'jobNode': 'job',
+    'endpointNode': 'endpoint'
+  };
+  
   constructor(
     private executorFactory: ExecutorFactory,
     private streamManager?: StreamManager
   ) {
     this.skipManager = new SkipManager();
+  }
+
+  /**
+   * Normalize node types from React Flow types to core execution types
+   */
+  private normalizeNodeType(nodeType: string): string {
+    return ExecutionEngine.NODE_TYPE_MAP[nodeType] || nodeType;
+  }
+
+  /**
+   * Normalize diagram nodes to use core execution types
+   */
+  private normalizeDiagram(diagram: Diagram): Diagram {
+    return {
+      ...diagram,
+      nodes: diagram.nodes.map(node => ({
+        ...node,
+        type: this.normalizeNodeType(node.type) as NodeType
+      }))
+    };
   }
 
   /**
@@ -80,12 +112,15 @@ export class ExecutionEngine {
     const executionId = this.generateExecutionId();
     const startTime = Date.now();
     
+    // Normalize node types before execution
+    const normalizedDiagram = this.normalizeDiagram(diagram);
+    
     // Initialize execution metadata
     const metadata: ExecutionMetadata = {
       executionId,
       startTime,
       totalCost: 0,
-      nodeCount: diagram.nodes.length,
+      nodeCount: normalizedDiagram.nodes.length,
       status: 'running'
     };
 
@@ -93,24 +128,24 @@ export class ExecutionEngine {
     this.emitStreamUpdate({
       type: 'execution_started',
       executionId,
-      data: { diagram, options },
+      data: { diagram: normalizedDiagram, options },
       timestamp: new Date()
     });
 
     try {
-      // Create execution context from diagram
-      const context = this.createTypedExecutionContext(diagram, executionId, startTime);
+      // Create execution context from normalized diagram
+      const context = this.createTypedExecutionContext(normalizedDiagram, executionId, startTime);
       
       // Initialize components
-      this.initializeComponents(diagram, context, options);
+      this.initializeComponents(normalizedDiagram, context, options);
       
       // Validate diagram before execution
       if (!options.skipValidation) {
-        await this.validateDiagram(diagram, context);
+        await this.validateDiagram(normalizedDiagram, context);
       }
       
       // Execute the diagram
-      const finalOutputs = await this.executeNodes(diagram, context, options);
+      const finalOutputs = await this.executeNodes(normalizedDiagram, context, options);
       
       // Create successful result
       const result: ExecutionResult = {
@@ -140,7 +175,7 @@ export class ExecutionEngine {
       
       const result: ExecutionResult = {
         success: false,
-        context: this.createTypedExecutionContext(diagram, executionId, startTime),
+        context: this.createTypedExecutionContext(normalizedDiagram, executionId, startTime),
         metadata: {
           ...metadata,
           endTime: Date.now(),
