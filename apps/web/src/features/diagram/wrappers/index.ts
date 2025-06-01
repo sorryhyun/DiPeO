@@ -1,10 +1,10 @@
 // Diagram UI package wrappers with store integration
 export { CustomArrow } from '../components/CustomArrow';
-export { ContextMenu } from '../components/ContextMenu';
+export { default as ContextMenu } from '../components/ui-components/ContextMenu';
 
 // Direct exports from local ui-components and hooks (no store integration needed)
 export { FlowHandle } from '../components/ui-components/FlowHandle';
-export { createHandleId } from '../utils/ui-utils/nodeHelpers';
+export { createHandleId } from '@/shared/utils/nodeHelpers';
 export { useKeyboardShortcuts } from '../hooks/ui-hooks/useKeyboardShortcuts';
 export { useContextMenu } from '../hooks/ui-hooks/useContextMenu';
 

@@ -1,7 +1,7 @@
 // packages/diagram-ui/src/components/FlowHandle.tsx
 import React from 'react';
 import { Handle, Position, HandleProps } from '@xyflow/react';
-import { createHandleId } from '../../utils/ui-utils/nodeHelpers';
+import { createHandleId } from '@/shared/utils/nodeHelpers';
 
 export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   nodeId: string;

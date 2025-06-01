@@ -9,7 +9,7 @@ export * from './hooks/useNodeDrag';
 export * from './hooks/useNodeConfig';
 
 // Utils
-export * from './utils/nodeHelpers';
+export * from '@/shared/utils/nodeHelpers';
 export * from './utils/nodeValidation';
 
 // Export nodeTypes for React Flow

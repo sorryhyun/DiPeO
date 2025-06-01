@@ -4,6 +4,7 @@ from .files import router as files_router
 from .conversations import router as conversations_router
 from .trpc import router as trpc_router
 from .monitor import router as monitor_router
+from .node_operations import router as node_operations_router
 
 __all__ = [
     "diagram_router",
@@ -11,5 +12,6 @@ __all__ = [
     "files_router",
     "conversations_router",
     "trpc_router",
-    "monitor_router"
+    "monitor_router",
+    "node_operations_router"
 ]

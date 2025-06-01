@@ -17,7 +17,7 @@ import {
   useContextMenu,
   useKeyboardShortcuts,
   CustomArrow as CustomArrowBase,
-  ContextMenu as ContextMenuBase 
+  ContextMenu
 } from '../wrappers';
 import { roundPosition } from '@/features/diagram';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
@@ -33,18 +33,12 @@ import {
   useUIState,
   usePersons
 } from '@/shared/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
   customArrow: CustomArrowBase,
 };
 
-// ContextMenu component that uses dependency injection
-const ContextMenu = (props: any) => {
-  const { nodeTypes, nodeLabels } = useDiagramContext();
-  return <ContextMenuBase {...props} nodeTypes={nodeTypes} nodeLabels={nodeLabels} />;
-};
 
 
 const DiagramCanvas: React.FC = () => {

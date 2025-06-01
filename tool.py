@@ -16,52 +16,95 @@ import time
 from typing import Optional
 
 
-async def run_diagram_streaming(diagram: Dict[str, Any], show_in_browser: bool = True) -> Dict[str, Any]:
-    """Execute diagram with streaming support for browser visualization."""
-
-    # Use the external endpoint that broadcasts to browsers
-    endpoint = "/api/external/run-diagram" if show_in_browser else "/api/run-diagram"
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-                f"{API_URL}{endpoint}",
-                json=diagram,
-                headers={"Content-Type": "application/json"}
-        ) as response:
-            result = {
+async def run_diagram_node_execution(diagram: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute diagram using Node.js execution runner (same logic as frontend)."""
+    import subprocess
+    import tempfile
+    import os
+    
+    # Save diagram to temp file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(diagram, f, indent=2)
+        temp_diagram_path = f.name
+    
+    try:
+        # Run Node.js execution runner
+        runner_path = os.path.join(os.path.dirname(__file__), 'execution_runner.cjs')
+        
+        # Check if node-fetch is available, if not suggest installation
+        try:
+            subprocess.run(['node', '-e', 'require("node-fetch")'], 
+                         check=True, capture_output=True)
+        except subprocess.CalledProcessError:
+            print("⚠️  Missing node-fetch dependency. Install with: npm install node-fetch")
+            print("   Falling back to backend execution...")
+            return await run_diagram_backend_fallback(diagram)
+        
+        result = subprocess.run(
+            ['node', runner_path, temp_diagram_path],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minute timeout
+        )
+        
+        if result.returncode != 0:
+            print(f"Node.js execution failed: {result.stderr}")
+            print("Falling back to backend execution...")
+            return await run_diagram_backend_fallback(diagram)
+        
+        # Parse results from the saved file
+        results_path = 'results.json'
+        if os.path.exists(results_path):
+            with open(results_path, 'r') as f:
+                return json.load(f)
+        else:
+            return {
                 "context": {},
                 "total_cost": 0,
                 "messages": []
             }
+            
+    except subprocess.TimeoutExpired:
+        print("Execution timeout exceeded")
+        return {
+            "context": {},
+            "total_cost": 0,
+            "messages": [],
+            "error": "Execution timeout"
+        }
+    except Exception as e:
+        print(f"Execution error: {e}")
+        return await run_diagram_backend_fallback(diagram)
+    finally:
+        # Clean up temp file
+        try:
+            os.unlink(temp_diagram_path)
+        except:
+            pass
 
-            # Process streaming response
-            async for line in response.content:
-                line = line.decode('utf-8').strip()
-                if line.startswith('data: '):
-                    try:
-                        data = json.loads(line[6:])
 
-                        # Print progress to console
-                        if data['type'] == 'node_start':
-                            print(f"  ▶️  Starting node: {data['nodeId']}")
-                        elif data['type'] == 'node_complete':
-                            print(f"  ✅ Completed node: {data['nodeId']}")
-                            if data.get('output_preview'):
-                                print(f"     Output: {data['output_preview'][:50]}...")
-                        elif data['type'] == 'execution_complete':
-                            result['context'] = data.get('context', {})
-                            result['total_cost'] = data.get('total_cost', 0)
-                            print(f"\n✓ Execution complete")
-                        elif data['type'] == 'execution_error':
-                            print(f"  ❌ Error: {data.get('error', 'Unknown error')}")
-                            raise Exception(data.get('error', 'Execution failed'))
-                        elif data['type'] == 'message_added':
-                            result['messages'].append(data.get('message'))
-
-                    except json.JSONDecodeError:
-                        continue
-
-            return result
+async def run_diagram_backend_fallback(diagram: Dict[str, Any]) -> Dict[str, Any]:
+    """Fallback to direct backend execution (simplified)."""
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+                f"{API_URL}/api/run-diagram",
+                json=diagram,
+                headers={"Content-Type": "application/json"}
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                return {
+                    "context": result.get("context", {}),
+                    "total_cost": result.get("total_cost", 0),
+                    "messages": []
+                }
+            else:
+                return {
+                    "context": {},
+                    "total_cost": 0,
+                    "messages": [],
+                    "error": f"Backend execution failed: {response.status}"
+                }
 
 
 API_URL = "http://localhost:8000"
@@ -107,13 +150,13 @@ def export_uml(diagram: Dict[str, Any]) -> str:
 
 
 def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True) -> Dict[str, Any]:
-    """Synchronous wrapper for streaming execution with optional pre-initialization."""
+    """Synchronous wrapper for execution with optional pre-initialization."""
     if pre_initialize:
         print("🔧 Pre-initializing models...")
         pre_initialize_models(diagram)
         print()
     
-    return asyncio.run(run_diagram_streaming(diagram, show_in_browser))
+    return asyncio.run(run_diagram_node_execution(diagram))
 
 
 def open_browser_monitor():
@@ -343,7 +386,7 @@ def get_diagram_stats(diagram: Dict[str, Any]) -> Dict[str, Any]:
 def main():
     if len(sys.argv) < 2:
         print("AgentDiagram CLI Tool\n")
-        print("Usage: python agentdiagram_tool.py <command> [options]\n")
+        print("Usage: python tool.py <command> [options]\n")
         print("Commands:")
         print("  run-and-monitor <file>                    - 🚀 RECOMMENDED: Pre-load models, open browser, then run diagram")
         print("  run <file> [--no-browser] [--no-preload]  - Run diagram (with browser visualization by default)")
@@ -437,7 +480,7 @@ def main():
             print(f"  Results saved to: {output_file}")
 
         elif command == 'run-headless':
-            # Original sync execution without browser
+            # Use the streaming endpoint but without browser visualization
             if len(sys.argv) < 3:
                 print("Error: Missing input file")
                 sys.exit(1)
@@ -446,12 +489,16 @@ def main():
             diagram = load_diagram(sys.argv[2])
 
             print("Running diagram (headless)...")
-            response = requests.post(f"{API_URL}/api/run-diagram-sync", json=diagram)
-            response.raise_for_status()
-            result = response.json()
+            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True)
 
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
+            
+            # Save results
+            output_file = 'results.json'
+            with open(output_file, 'w') as f:
+                json.dump(result, f, indent=2)
+            print(f"  Results saved to: {output_file}")
 
         elif command == 'convert':
             if len(sys.argv) < 4:

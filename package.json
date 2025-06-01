@@ -32,6 +32,7 @@
     "globals": "^16.2.0",
     "inquirer": "^12.6.3",
     "js-yaml": "^4.1.0",
+    "node-fetch": "^2.7.0",
     "require": "^2.4.20",
     "typescript-eslint": "^8.32.1",
     "vite": "^5.4.19"

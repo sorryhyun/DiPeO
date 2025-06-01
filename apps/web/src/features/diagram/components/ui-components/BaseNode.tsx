@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components';
 import { BaseNodeProps, UnifiedNodeConfig } from '@/shared/types';
-import { createHandleId } from '../../utils/ui-utils/nodeHelpers';
+import { createHandleId } from '@/shared/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import { useNodeExecutionState } from '@/shared/hooks/useStoreSelectors';
 import { useDiagramContext } from '@/shared/contexts/DiagramContext';

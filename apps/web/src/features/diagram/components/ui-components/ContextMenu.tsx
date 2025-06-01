@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDiagramContext } from '@/shared/contexts/DiagramContext';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -28,9 +29,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onDeleteArrow,
   onClose,
   projectPosition,
-  nodeTypes = {},
-  nodeLabels = {},
+  nodeTypes: nodeTypesProp,
+  nodeLabels: nodeLabelsProp,
 }) => {
+  const diagramContext = useDiagramContext();
+  
+  // Use props if provided, otherwise use context
+  const nodeTypes = nodeTypesProp || 
+    (diagramContext.nodeTypes ? Object.fromEntries(diagramContext.nodeTypes.map(type => [type, type])) : {});
+  const nodeLabels = nodeLabelsProp || diagramContext.nodeLabels || {};
   const handleAddNode = (nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
     onAddNode(nodeType, pos);
@@ -74,7 +81,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       
       <div className="border-t border-gray-200">
         <div className="px-4 py-2 text-sm font-medium text-gray-700">Add Block</div>
-        {Object.entries(nodeTypes).map(([key, nodeType]) => (
+        {Object.entries(nodeTypes).map(([, nodeType]) => (
           <div
             key={nodeType}
             className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -97,4 +104,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   );
 };
 
-export default ContextMenu;
+export default React.memo(ContextMenu);
+
+// Wrapper component for backwards compatibility
+export const ContextMenuWrapper = ContextMenu;

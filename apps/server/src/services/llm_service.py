@@ -145,7 +145,7 @@ class LLMService(BaseService):
     ) -> dict[str, str | float]:
         """Make a call to the specified LLM service with retry logic."""
         try:
-            adapter = self._get_adapter(service or "chatgpt", model, api_key_id)
+            adapter = self._get_client(service or "chatgpt", model, api_key_id)
             
             user_prompt = str(messages) if isinstance(messages, list) else messages
             

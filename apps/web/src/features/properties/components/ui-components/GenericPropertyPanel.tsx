@@ -9,7 +9,9 @@ import {
   InlineTextField,
   InlineSelectField,
   TextAreaField,
-  CheckboxField,
+  CheckboxField
+} from '@/shared/components/forms';
+import {
   IterationCountField,
   PersonSelectionField,
   LabelPersonRow,
