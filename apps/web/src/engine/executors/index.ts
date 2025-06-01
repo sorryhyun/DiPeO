@@ -33,22 +33,22 @@ export {
 } from './server-only-executors';
 
 // Factory implementations
-export { ClientExecutorFactory } from './client-executor-factory';
-export { ServerExecutorFactory } from './server-executor-factory';
+import { ClientExecutorFactory } from './client-executor-factory';
+import { ServerExecutorFactory } from './server-executor-factory';
+
+export { ClientExecutorFactory, ServerExecutorFactory };
 
 // Convenience function to create appropriate factory based on environment
 export function createExecutorFactory(environment?: 'client' | 'server'): ExecutorFactory {
-  // Import the factories here to avoid circular dependencies
-  const { ClientExecutorFactory } = require('./client-executor-factory');
-  const { ServerExecutorFactory } = require('./server-executor-factory');
-  
   // Detect environment if not specified
   const env = environment || detectEnvironment();
   
   switch (env) {
     case 'client':
+      // Use ClientExecutorFactory for browser environments
       return new ClientExecutorFactory();
     case 'server':
+      // Use ServerExecutorFactory for Node.js environments  
       return new ServerExecutorFactory();
     default:
       throw new Error(`Unsupported environment: ${env}`);

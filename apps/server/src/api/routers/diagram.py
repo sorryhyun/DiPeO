@@ -36,14 +36,17 @@ def safe_json_dumps(obj):
 
 
 async def execution_stream_generator(diagram_data: Dict[str, Any]):
-    """Generate SSE stream for diagram execution."""
+    """Generate SSE stream for diagram execution status updates."""
     execution_id = str(uuid.uuid4())
     
     try:
         # Send execution started event
         yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id})}\n\n"
         
-        # Simulate execution process
+        # This is a placeholder that provides the streaming interface
+        # The actual execution happens in the frontend via the hybrid execution model
+        # Frontend executes client-safe nodes locally and calls backend APIs for server-only nodes
+        
         nodes = diagram_data.get('nodes', [])
         start_nodes = [n for n in nodes if n.get('type') == 'startNode']
         
@@ -51,7 +54,8 @@ async def execution_stream_generator(diagram_data: Dict[str, Any]):
             yield f"data: {json.dumps({'type': 'execution_error', 'error': 'No start nodes found'})}\n\n"
             return
         
-        # Process each node (simplified execution)
+        # Simple simulation for SSE interface
+        # Real execution happens in frontend with backend API calls for server-only nodes
         for node in nodes:
             node_id = node.get('id')
             node_type = node.get('type', 'unknown')
@@ -62,7 +66,7 @@ async def execution_stream_generator(diagram_data: Dict[str, Any]):
             # Start node
             yield f"data: {json.dumps({'type': 'node_start', 'nodeId': node_id})}\n\n"
             
-            # Simulate processing time
+            # Simulate processing
             await asyncio.sleep(0.5)
             
             # Complete node
@@ -80,9 +84,11 @@ async def stream_run_diagram(diagram_data: dict):
     """
     Execute diagram with SSE streaming updates.
     
-    This is a simplified implementation that provides the streaming interface
-    expected by the frontend. A full implementation would integrate with
-    the execution engine.
+    This is a placeholder endpoint that provides the streaming interface
+    expected by the frontend. The actual execution happens in the frontend
+    using the hybrid execution model:
+    - Frontend executes client-safe nodes locally
+    - Frontend calls backend APIs for server-only nodes (PersonJob, DB, etc.)
     """
     return StreamingResponse(
         execution_stream_generator(diagram_data),

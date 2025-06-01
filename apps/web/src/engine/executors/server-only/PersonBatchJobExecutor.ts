@@ -92,7 +92,7 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
   }
 
   /**
-   * Execute batch LLM calls - this would be implemented differently in server vs client
+   * Execute batch LLM calls via backend API
    */
   private async executeBatchLLMCall(
     personId: string,
@@ -103,24 +103,59 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
     node: Node,
     context: TypedExecutionContext
   ): Promise<Array<ChatResult & { cost?: number }>> {
-    // This is a client-side executor running in browser environment
-    // PersonBatchJob nodes require server-side execution for:
-    // 1. Secure API key access
-    // 2. Batch LLM API calls
-    // 3. Memory management across batch items
-    // 4. Cost tracking and rate limiting
-    
-    throw this.createExecutionError(
-      'PersonBatchJob nodes require server-side execution. Use hybrid execution mode or run diagram on server.',
-      node,
-      { 
-        personId, 
-        llmService,
-        batchSize,
-        requiredEnvironment: 'server',
-        currentEnvironment: 'client',
-        suggestion: 'This node will be executed on the server in hybrid execution mode'
+    // Call backend API for PersonBatchJob execution
+    const payload = {
+      nodeId: node.id,
+      personId,
+      batchPrompt,
+      llmService,
+      batchSize,
+      inputs,
+      context: {
+        nodeOutputs: context.nodeOutputs,
+        nodeExecutionCounts: context.nodeExecutionCounts,
+        conditionValues: context.conditionValues,
+        firstOnlyConsumed: context.firstOnlyConsumed
       }
-    );
+    };
+
+    // Note: PersonBatchJob might use the same endpoint as PersonJob
+    // or have its own endpoint - adjust as needed based on backend implementation
+    const response = await fetch('/api/nodes/personbatchjob/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw this.createExecutionError(
+        `PersonBatchJob API call failed: ${response.status} ${errorText}`,
+        node,
+        { 
+          personId, 
+          llmService,
+          batchSize,
+          status: response.status,
+          error: errorText
+        }
+      );
+    }
+
+    const result = await response.json();
+    
+    // Expect an array of results from batch processing
+    const results = Array.isArray(result.results) ? result.results : [result];
+    
+    return results.map((item: any) => ({
+      text: item.output || item.text || '',
+      usage: item.usage || {},
+      promptTokens: item.promptTokens || item.prompt_tokens || 0,
+      completionTokens: item.completionTokens || item.completion_tokens || 0,
+      totalTokens: item.totalTokens || item.total_tokens || 0,
+      cost: item.cost || 0
+    }));
   }
 }

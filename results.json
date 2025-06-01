@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "context": {
+    "nodeOutputs": {
+      "start1": "started",
+      "end1": ""
+    },
+    "errors": {
+      "job1": "[object Object]"
+    },
+    "totalCost": 0,
+    "executionOrder": [
+      "start1",
+      "end1"
+    ]
+  },
+  "total_cost": 0,
+  "messages": []
+}

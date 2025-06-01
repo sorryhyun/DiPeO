@@ -33,19 +33,32 @@ export class EndpointExecutor extends ClientSafeExecutor {
   async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
     const inputs = this.getInputValues(node, context);
     const outputFormat = this.getNodeProperty(node, 'outputFormat', 'json');
+    const saveToFile = this.getNodeProperty(node, 'saveToFile', false);
     
     try {
       const output = this.formatOutput(inputs, outputFormat, node);
+      
+      // If saveToFile is enabled, call server API for file saving
+      if (saveToFile) {
+        const filePath = this.getNodeProperty(node, 'filePath', '');
+        const fileFormat = this.getNodeProperty(node, 'fileFormat', 'text');
+        
+        if (filePath) {
+          await this.saveToFile(node, output, filePath, fileFormat);
+        }
+      }
       
       return this.createSuccessResult(output, 0, {
         outputFormat,
         inputCount: Object.keys(inputs).length,
         finalizedAt: new Date().toISOString(),
-        isEndpoint: true
+        isEndpoint: true,
+        savedToFile: saveToFile,
+        filePath: saveToFile ? this.getNodeProperty(node, 'filePath', '') : undefined
       });
     } catch (error) {
       throw this.createExecutionError(
-        `Failed to format endpoint output: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to execute endpoint: ${error instanceof Error ? error.message : String(error)}`,
         node,
         { outputFormat, inputs, error: error instanceof Error ? error.message : String(error) }
       );
@@ -119,5 +132,39 @@ export class EndpointExecutor extends ClientSafeExecutor {
     // Return the first input value if there's only one, otherwise return all inputs
     const values = Object.values(inputs);
     return values.length === 1 ? values[0] : inputs;
+  }
+
+  /**
+   * Save output to file via server API
+   */
+  private async saveToFile(node: Node, output: any, filePath: string, fileFormat: string): Promise<void> {
+    const payload = {
+      nodeId: node.id,
+      filePath,
+      fileFormat,
+      content: output
+    };
+
+    const response = await fetch('/api/nodes/endpoint/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw this.createExecutionError(
+        `File save API call failed: ${response.status} ${errorText}`,
+        node,
+        { 
+          filePath,
+          fileFormat,
+          status: response.status,
+          error: errorText
+        }
+      );
+    }
   }
 }

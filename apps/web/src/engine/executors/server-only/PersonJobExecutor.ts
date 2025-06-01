@@ -76,33 +76,63 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
   }
 
   /**
-   * Execute LLM call - this would be implemented differently in server vs client
+   * Execute LLM call via backend API
    */
   private async executeLLMCall(
     personId: string,
-    _prompt: string,
+    prompt: string,
     llmService: LLMService,
-    _inputs: Record<string, any>,
+    inputs: Record<string, any>,
     node: Node,
-    _context: TypedExecutionContext
+    context: TypedExecutionContext
   ): Promise<ChatResult> {
-    // This is a client-side executor running in browser environment
-    // PersonJob nodes require server-side execution for:
-    // 1. Secure API key access
-    // 2. LLM API calls
-    // 3. Memory management
-    // 4. Cost tracking
-    
-    throw this.createExecutionError(
-      'PersonJob nodes require server-side execution. Use hybrid execution mode or run diagram on server.',
-      node,
-      { 
-        personId, 
-        llmService,
-        requiredEnvironment: 'server',
-        currentEnvironment: 'client',
-        suggestion: 'This node will be executed on the server in hybrid execution mode'
+    // Call backend API for PersonJob execution
+    const payload = {
+      nodeId: node.id,
+      personId,
+      prompt,
+      llmService,
+      inputs,
+      context: {
+        nodeOutputs: context.nodeOutputs,
+        nodeExecutionCounts: context.nodeExecutionCounts,
+        conditionValues: context.conditionValues,
+        firstOnlyConsumed: context.firstOnlyConsumed
       }
-    );
+    };
+
+    const response = await fetch('/api/nodes/personjob/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw this.createExecutionError(
+        `PersonJob API call failed: ${response.status} ${errorText}`,
+        node,
+        { 
+          personId, 
+          llmService,
+          status: response.status,
+          error: errorText
+        }
+      );
+    }
+
+    const result = await response.json();
+    
+    // Return standardized ChatResult
+    return {
+      text: result.output || result.text || '',
+      usage: result.usage || {},
+      promptTokens: result.promptTokens || result.prompt_tokens || 0,
+      completionTokens: result.completionTokens || result.completion_tokens || 0,
+      totalTokens: result.totalTokens || result.total_tokens || 0,
+      cost: result.cost || 0
+    };
   }
 }

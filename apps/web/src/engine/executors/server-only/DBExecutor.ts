@@ -68,7 +68,7 @@ export class DBExecutor extends ServerOnlyExecutor {
   }
 
   /**
-   * Execute database operation - this would be implemented differently in server vs client
+   * Execute database operation via backend API
    */
   private async executeDBOperation(
     operation: string,
@@ -76,64 +76,40 @@ export class DBExecutor extends ServerOnlyExecutor {
     inputs: Record<string, any>,
     node: Node
   ): Promise<any> {
-    // This is a client-side executor running in browser environment
-    // DB nodes require server-side execution for:
-    // 1. File system access
-    // 2. Security and path validation
-    // 3. Database connections
-    // 4. Large file processing
-    
-    const errorDetails = {
+    // Call backend API for DB operation execution
+    const payload = {
+      nodeId: node.id,
       operation,
       filePath,
-      requiredEnvironment: 'server',
-      currentEnvironment: 'client',
-      suggestion: 'This node will be executed on the server in hybrid execution mode'
+      inputs,
+      data: this.getNodeProperty(node, 'data', '')
     };
-    
-    switch (operation) {
-      case 'read':
-        throw this.createExecutionError(
-          'File read operations require server-side execution for security and file system access.',
-          node,
-          errorDetails
-        );
-      case 'write':
-        throw this.createExecutionError(
-          'File write operations require server-side execution for security and file system access.',
-          node,
-          errorDetails
-        );
-      case 'append':
-        throw this.createExecutionError(
-          'File append operations require server-side execution for security and file system access.',
-          node,
-          errorDetails
-        );
-      case 'delete':
-        throw this.createExecutionError(
-          'File delete operations require server-side execution for security and file system access.',
-          node,
-          errorDetails
-        );
-      case 'list':
-        throw this.createExecutionError(
-          'Directory listing operations require server-side execution for security and file system access.',
-          node,
-          errorDetails
-        );
-      case 'query':
-        throw this.createExecutionError(
-          'Database query operations require server-side execution for security and database access.',
-          node,
-          errorDetails
-        );
-      default:
-        throw this.createExecutionError(
-          `Unsupported DB operation: ${operation}`,
-          node,
-          { ...errorDetails, operation }
-        );
+
+    const response = await fetch('/api/nodes/db/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw this.createExecutionError(
+        `DB operation API call failed: ${response.status} ${errorText}`,
+        node,
+        { 
+          operation,
+          filePath,
+          status: response.status,
+          error: errorText
+        }
+      );
     }
+
+    const result = await response.json();
+    
+    // Return the result from the API
+    return result.output || result.data || result;
   }
 }
