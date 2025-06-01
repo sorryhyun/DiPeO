@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
-import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
+import { UNIFIED_NODE_TYPES } from '@/shared/types';
 
-export const useNodeConfig = (nodeType: string) => {
-  const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType], [nodeType]);
+export const useNodeType = (nodeType: string) => {
+  const config = useMemo(() => UNIFIED_NODE_TYPES[nodeType], [nodeType]);
 
   // Get handle configurations based on flip state
   const getHandles = useCallback((isFlipped: boolean = false) => {

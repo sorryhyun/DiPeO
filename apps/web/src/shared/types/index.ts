@@ -1,5 +1,5 @@
 export * from './domain'
-export * from './nodeConfig'
+export * from './nodeType'
 export * from './errorHandling'
 export * from './components'
 export * from './properties'

@@ -2,10 +2,10 @@ import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { UNIFIED_NODE_CONFIGS, type PersonJobBlockData } from '@/shared/types';
+import { UNIFIED_NODE_TYPES, type PersonJobBlockData } from '@/shared/types';
 
 const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const cfg = UNIFIED_NODE_CONFIGS.person_job;
+  const cfg = UNIFIED_NODE_TYPES.person_job;
   const jobData = data as PersonJobBlockData;
   // Use shallow selectors to minimize re-renders
   const persons = useConsolidatedDiagramStore(state => state.persons);

@@ -11,7 +11,7 @@ export type { FlowHandleProps } from './components/base/FlowHandle';
 // Hooks
 export * from './hooks/useNodeOperations';
 export * from './hooks/useNodeDrag';
-export * from './hooks/useNodeConfig';
+export * from './hooks/useNodeType';
 
 // Utils
 export * from '@/shared/utils/nodeHelpers';

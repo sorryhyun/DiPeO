@@ -86,7 +86,7 @@ const ConfigurableNodeWrapper: React.FC<{
 ```
 /features/nodes/hooks/useNodeOperations.ts (60 lines)
 /features/nodes/hooks/useNodeDrag.ts (40 lines)
-/features/nodes/hooks/useNodeConfig.ts (30 lines)
+/features/nodes/hooks/useNodeType.ts (30 lines)
 ```
 **Solution:**
 ```typescript

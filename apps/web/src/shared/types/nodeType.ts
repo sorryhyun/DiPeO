@@ -54,7 +54,7 @@ export interface UnifiedNodeConfig {
   category?: 'control' | 'processing' | 'data' | 'output';
 }
 
-export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
+export const UNIFIED_NODE_TYPES: Record<string, UnifiedNodeConfig> = {
   start: {
     // Visual config
     handles: [
@@ -286,16 +286,16 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
 
 // Helper functions
 export function getNodeConfig(nodeType: string): UnifiedNodeConfig | undefined {
-  return UNIFIED_NODE_CONFIGS[nodeType];
+  return UNIFIED_NODE_TYPES[nodeType];
 }
 
 export function getReactFlowType(blockType: string): string {
-  const config = UNIFIED_NODE_CONFIGS[blockType];
+  const config = UNIFIED_NODE_TYPES[blockType];
   return config?.reactFlowType || blockType;
 }
 
 export function getBlockType(reactFlowType: string): string {
-  for (const [blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
+  for (const [blockType, config] of Object.entries(UNIFIED_NODE_TYPES)) {
     if (config.reactFlowType === reactFlowType) {
       return blockType;
     }
@@ -328,11 +328,11 @@ export function getNodeHandles(nodeType: string, nodeId: string, isFlipped: bool
 }
 
 export function getAllNodeTypes(): string[] {
-  return Object.keys(UNIFIED_NODE_CONFIGS);
+  return Object.keys(UNIFIED_NODE_TYPES);
 }
 
 export function getNodesByCategory(category: string): string[] {
-  return Object.entries(UNIFIED_NODE_CONFIGS)
+  return Object.entries(UNIFIED_NODE_TYPES)
     .filter(([_, config]) => config.category === category)
     .map(([nodeType]) => nodeType);
 }
@@ -341,7 +341,7 @@ export function getNodesByCategory(category: string): string[] {
 export function getUnifiedNodeConfigsByReactFlowType(): Record<string, UnifiedNodeConfig> {
   const mapped: Record<string, UnifiedNodeConfig> = {};
   
-  for (const [_blockType, config] of Object.entries(UNIFIED_NODE_CONFIGS)) {
+  for (const [_blockType, config] of Object.entries(UNIFIED_NODE_TYPES)) {
     mapped[config.reactFlowType] = config;
   }
   

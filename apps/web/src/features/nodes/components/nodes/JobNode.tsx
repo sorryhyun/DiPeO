@@ -2,10 +2,10 @@ import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
 import { Code, Zap, Link as LinkIcon } from 'lucide-react';
-import { UNIFIED_NODE_CONFIGS, type JobBlockData } from '@/shared/types';
+import { UNIFIED_NODE_TYPES, type JobBlockData } from '@/shared/types';
 
 const JobNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const config = UNIFIED_NODE_CONFIGS.job;
+  const config = UNIFIED_NODE_TYPES.job;
   const jobData = data as JobBlockData;
   const subType = jobData.subType || 'code';
   const icon = subType === 'code' ? (

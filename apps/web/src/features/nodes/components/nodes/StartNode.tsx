@@ -1,10 +1,10 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
-import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
+import { UNIFIED_NODE_TYPES } from '@/shared/types';
 
 const StartNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const config = UNIFIED_NODE_CONFIGS.start;
+  const config = UNIFIED_NODE_TYPES.start;
   
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType}>
