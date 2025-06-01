@@ -16,9 +16,9 @@ export const personJobConfig: PanelConfig<PersonJobBlockData> = {
           name: 'contextCleaningRule',
           label: 'Forget',
           options: [
-            { value: 'upon_request', label: 'Upon This Request' },
-            { value: 'no_forget', label: 'Do Not Forget' },
-            { value: 'on_every_turn', label: 'On Every Turn' }
+            { value: 'uponRequest', label: 'Upon This Request' },
+            { value: 'noForget', label: 'Do Not Forget' },
+            { value: 'onEveryTurn', label: 'On Every Turn' }
           ],
           className: 'flex-1'
         },

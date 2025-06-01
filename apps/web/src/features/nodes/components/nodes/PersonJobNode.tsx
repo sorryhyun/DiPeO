@@ -45,7 +45,7 @@ const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => 
         default
       </div>
       <div className="flex items-center justify-center mb-1">
-        <span className="text-xl mr-2">{cfg.emoji}</span>
+        <span className="text-xl mr-2">{cfg?.emoji}</span>
         <strong className="text-base truncate" title={jobData.label || 'Person Job'}>
           {jobData.label || 'Person Job'}
         </strong>
@@ -59,9 +59,9 @@ const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => 
         {jobData.contextCleaningRule ? (
           <p className="text-sm text-gray-600">
             Forget: <span className="font-medium">
-              {jobData.contextCleaningRule === 'no_forget'
+              {jobData.contextCleaningRule === 'noForget'
                 ? 'Never'
-                : jobData.contextCleaningRule === 'on_every_turn'
+                : jobData.contextCleaningRule === 'onEveryTurn'
                 ? 'Every turn'
                 : 'Upon request'}
             </span>

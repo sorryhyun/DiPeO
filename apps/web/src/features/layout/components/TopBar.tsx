@@ -21,8 +21,8 @@ const TopBar = () => {
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
-  const { handleSaveToDirectory, handleExportYAML, handleExportLLMYAML, handleImportYAML } = useDiagramActions();
-  const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
+  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onImportYAML } = useDiagramActions();
+  const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
@@ -75,7 +75,7 @@ const TopBar = () => {
   }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler]);
 
   useKeyboardShortcuts({
-    onSave: () => handleSaveToDirectory(),
+    onSave: () => onSaveToDirectory(),
   });
 
   return (
@@ -91,7 +91,7 @@ const TopBar = () => {
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => handleSaveToDirectory()}
+            onClick={() => onSaveToDirectory()}
             title="Save diagram to server (diagrams folder)"
           >
             💾 Save
@@ -102,7 +102,7 @@ const TopBar = () => {
           <Button
             variant="outline"
             className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={handleExportYAML}
+            onClick={onExportYAML}
             title="Export to YAML format (download)"
           >
             📤 Export YAML
@@ -110,14 +110,14 @@ const TopBar = () => {
           <Button
             variant="outline"
             className="bg-white hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
-            onClick={handleExportLLMYAML}
+            onClick={onExportLLMYAML}
             title="Export to LLM-friendly YAML format (download)"
           >
             🤖 Export LLM YAML
           </Button>
           <FileUploadButton
             accept=".yaml,.yml"
-            onChange={handleImportYAML}
+            onChange={onImportYAML}
             variant="outline"
             className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
             title="Import from YAML format (supports both standard and LLM-friendly formats)"
@@ -149,7 +149,7 @@ const TopBar = () => {
             <Button 
               variant="outline" 
               className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-              onClick={handleRunDiagram}
+              onClick={onRunDiagram}
             >
               ▶️ Run Diagram
             </Button>

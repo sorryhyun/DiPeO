@@ -68,16 +68,16 @@ interface SelectFieldProps {
   options: Array<{ value: string; label: string }>;
   placeholder?: string;
   id?: string;
-  disabled?: boolean;
-  loading?: boolean;
+  isDisabled?: boolean;
+  isLoading?: boolean;
   error?: string | null;
 }
 
 export const SelectField: React.FC<SelectFieldProps> = ({
-  label, value, onChange, options, placeholder = "Select an option", id, disabled, loading, error
+  label, value, onChange, options, placeholder = "Select an option", id, isDisabled, isLoading, error
 }) => (
   <FormField label={label} id={id}>
-    {loading ? (
+    {isLoading ? (
       <div className="flex items-center space-x-2">
         <Spinner size="sm" />
         <span className="text-sm">Loading...</span>
@@ -89,7 +89,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         id={id}
         value={value}
         onValueChange={onChange}
-        disabled={disabled}
+        disabled={isDisabled}
       >
         <SelectItem value="">{placeholder}</SelectItem>
         {options.map(opt => (
@@ -141,10 +141,10 @@ export const InlineTextField: React.FC<TextFieldProps & { className?: string }> 
 );
 
 export const InlineSelectField: React.FC<SelectFieldProps & { className?: string }> = ({
-  label, value, onChange, options, placeholder = "Select", id, disabled, loading, error, className
+  label, value, onChange, options, placeholder = "Select", id, isDisabled, isLoading, error, className
 }) => (
   <InlineFormField label={label} id={id} className={className}>
-    {loading ? (
+    {isLoading ? (
       <div className="flex items-center space-x-2">
         <Spinner size="sm" />
         <span className="text-sm">Loading...</span>
@@ -156,7 +156,7 @@ export const InlineSelectField: React.FC<SelectFieldProps & { className?: string
         id={id}
         value={value}
         onValueChange={onChange}
-        disabled={disabled}
+        disabled={isDisabled}
         className="min-w-0"
       >
         <SelectItem value="">{placeholder}</SelectItem>
@@ -386,7 +386,7 @@ interface FileUploadFieldProps {
   onChange: (value: string) => void;
   onFileUpload: (file: File) => Promise<void>;
   accept?: string;
-  loading?: boolean;
+  isLoading?: boolean;
   placeholder?: string;
   id?: string;
 }
@@ -397,12 +397,12 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
   onChange,
   onFileUpload,
   accept = ".txt,.docx,.doc,.pdf,.csv,.json",
-  loading = false,
+  isLoading = false,
   placeholder = "Enter file path or upload below",
   id
 }) => {
   const [localLoading, setLocalLoading] = useState(false);
-  const isLoading = loading || localLoading;
+  const isLoadingState = isLoading || localLoading;
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -424,21 +424,21 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          disabled={isLoading}
+          disabled={isLoadingState}
         />
         
         <div className="flex items-center gap-2">
           <FileUploadButton
             accept={accept}
             onChange={handleFileUpload}
-            disabled={isLoading}
+            disabled={isLoadingState}
             variant="outline"
             size="sm"
           >
-            {isLoading ? "Uploading..." : "Upload File"}
+            {isLoadingState ? "Uploading..." : "Upload File"}
           </FileUploadButton>
           
-          {isLoading && (
+          {isLoadingState && (
             <div className="flex items-center text-sm text-gray-600">
               <Spinner size="sm" className="mr-2" />
               <span>Uploading...</span>

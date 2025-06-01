@@ -3,21 +3,21 @@ export interface ConversationMessage {
   role: 'assistant' | 'user';
   content: string;
   timestamp: string;
-  sender_person_id: string;
-  execution_id: string;
-  node_id?: string;
-  node_label?: string;
-  token_count?: number;
+  senderPersonId: string;
+  executionId: string;
+  nodeId?: string;
+  nodeLabel?: string;
+  tokenCount?: number;
   cost?: number;
 }
 
 export interface PersonMemoryState {
-  person_id: string;
+  personId: string;
   messages: ConversationMessage[];
-  total_messages: number;
-  visible_messages: number;
-  forgotten_messages: number;
-  has_more: boolean;
+  totalMessages: number;
+  visibleMessages: number;
+  forgottenMessages: number;
+  hasMore: boolean;
 }
 
 export interface ConversationFilters {

@@ -10,7 +10,7 @@ function extractFromObject(obj: unknown, keyPath: string): unknown {
   if (!obj) return null;
   
   const keys = keyPath.split('.');
-  let current = obj;
+  let current: unknown = obj;
   
   for (const key of keys) {
     if (typeof current === 'object' && current !== null && key in current) {
@@ -89,8 +89,8 @@ export function resolveInputs(
   }>,
   context: Record<string, unknown>
 ): ResolvedInputs {
-  const varsMap: Record<string, any> = {};
-  const inputs: any[] = [];
+  const varsMap: Record<string, unknown> = {};
+  const inputs: unknown[] = [];
 
   for (const edge of incoming) {
     const srcId = edge.source;

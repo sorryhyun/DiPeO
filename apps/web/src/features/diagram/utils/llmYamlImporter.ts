@@ -185,19 +185,19 @@ export class LLMYamlImporter {
       });
 
       // Track connections
-      nodeInfo[edge.source].outgoing.push(edge);
-      nodeInfo[edge.target].incoming.push(edge);
+      nodeInfo[edge.source]?.outgoing.push(edge);
+      nodeInfo[edge.target]?.incoming.push(edge);
     });
 
     // Refine node types based on connections
-    Object.entries(nodeInfo).forEach(([name, info]) => {
+    Object.entries(nodeInfo).forEach(([_name, info]) => {
       // Nodes with conditions become condition nodes
       if (info.outgoing.some(e => e.condition)) {
         info.type = 'condition';
       }
       // Nodes with prompts become person jobs (unless already typed)
       else if (info.hasPrompt && info.type === 'generic') {
-        info.type = 'personjob';
+        info.type = 'person_job';
       }
     });
 
@@ -242,13 +242,13 @@ export class LLMYamlImporter {
           } as StartBlockData;
           break;
 
-        case 'personjob':
+        case 'person_job':
           nodeData = {
             ...baseData,
             type: 'person_job',
             defaultPrompt: data.prompts?.[name] || '',
             firstOnlyPrompt: '',
-            contextCleaningRule: 'upon_request',
+            contextCleaningRule: 'uponRequest',
             iterationCount: 1,
             mode: 'sync',
             detectedVariables: this.detectVariables(data.prompts?.[name] || '')
@@ -296,7 +296,7 @@ export class LLMYamlImporter {
             type: 'person_job',
             defaultPrompt: '',
             firstOnlyPrompt: '',
-            contextCleaningRule: 'upon_request',
+            contextCleaningRule: 'uponRequest',
             iterationCount: 1,
             mode: 'sync',
             detectedVariables: []
@@ -380,8 +380,7 @@ export class LLMYamlImporter {
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: agentConfig.model || 'gpt-4',
           service: (agentConfig.service || 'chatgpt') as any,
-          systemPrompt: agentConfig.system,
-          temperature: agentConfig.temperature
+          systemPrompt: agentConfig.system
         });
       }
     });
@@ -425,7 +424,7 @@ export class LLMYamlImporter {
     // Update persons with API key IDs
     persons.forEach(person => {
       const service = person.service || 'chatgpt';
-      person.apiKeyId = apiKeys[service].id;
+      person.apiKeyId = apiKeys[service]?.id;
     });
 
     return Object.values(apiKeys);
@@ -438,7 +437,7 @@ export class LLMYamlImporter {
       if (!originalName) return;
 
       const info = nodeInfo[originalName];
-      if (info?.type === 'personjob' && node.data.type === 'person_job') {
+      if (info?.type === 'person_job' && node.data.type === 'person_job') {
         const nodeData = node.data as PersonJobBlockData;
         
         // Check if this node has a specific agent
@@ -457,11 +456,11 @@ export class LLMYamlImporter {
 
     // Find start nodes or nodes with no incoming edges
     const startNodes = Object.entries(nodeInfo)
-      .filter(([name, info]) => info.type === 'start' || info.incoming.length === 0)
+      .filter(([_name, info]) => info.type === 'start' || info.incoming.length === 0)
       .map(([name]) => name);
 
     if (startNodes.length === 0 && Object.keys(nodeInfo).length > 0) {
-      startNodes.push(Object.keys(nodeInfo)[0]);
+      startNodes.push(Object.keys(nodeInfo)[0] || '');
     }
 
     // BFS layout
@@ -507,13 +506,13 @@ export class LLMYamlImporter {
     const mapping: Record<string, string> = {
       start: 'startNode',
       endpoint: 'endpointNode',
-      personjob: 'personjobNode',
+      personjob: 'personJobNode',
       condition: 'conditionNode',
       db: 'dbNode',
       job: 'jobNode',
-      generic: 'personjobNode'
+      generic: 'personJobNode'
     };
-    return mapping[nodeType] || 'personjobNode';
+    return mapping[nodeType] || 'personJobNode';
   }
 
   private detectVariables(prompt: string): string[] {
@@ -522,7 +521,7 @@ export class LLMYamlImporter {
     
     const matches = prompt.matchAll(varPattern);
     for (const match of matches) {
-      vars.add(match[1]);
+      vars.add(match[1] || '');
     }
     
     return Array.from(vars);
@@ -611,12 +610,12 @@ export class LLMYamlImporter {
     diagram.nodes.forEach(node => {
       const nodeName = nodeNameMap[node.id];
       
-      if (node.type === 'personjobNode' && node.data.type === 'person_job') {
-        const data = node.data as PersonJobBlockData;
-        if (data.defaultPrompt) {
-          prompts[nodeName] = data.defaultPrompt;
+      if (nodeName && node.type === 'personJobNode' && node.data.type === 'person_job') {
+        const nodeData = node.data as PersonJobBlockData;
+        if (nodeData.defaultPrompt) {
+          prompts[nodeName] = nodeData.defaultPrompt;
         }
-      } else if (node.type === 'dbNode' && node.data.type === 'db') {
+      } else if (nodeName && node.type === 'dbNode' && node.data.type === 'db') {
         const dbData = node.data as DBBlockData;
         if (dbData.sourceDetails) {
           data[nodeName] = dbData.sourceDetails;
@@ -628,7 +627,7 @@ export class LLMYamlImporter {
     diagram.persons.forEach(person => {
       const personName = personNameMap[person.id];
       
-      if (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'chatgpt') {
+      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'chatgpt')) {
         const agent: any = {};
         
         if (person.modelName && person.modelName !== 'gpt-4') {

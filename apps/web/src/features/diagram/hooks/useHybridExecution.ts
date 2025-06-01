@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useExecutionStore } from '@/shared/stores/executionStore';
+import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 import type { Node } from '@/shared/types';
 
 interface DiagramData {
@@ -89,7 +90,7 @@ export function useHybridExecution() {
   ): Promise<ExecutionResult> => {
     try {
       // For now, use existing API endpoint
-      const response = await fetch('/api/run-diagram', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.RUN_DIAGRAM), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

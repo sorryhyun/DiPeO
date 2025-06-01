@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useExecutionStore, useConsolidatedDiagramStore } from '@/shared/stores';
 import { toast } from 'sonner';
-import { getStreamingUrl } from '@/shared/utils/apiConfig';
+import { getStreamingUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 
 export const useExecutionMonitor = () => {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -20,7 +20,7 @@ export const useExecutionMonitor = () => {
     const connectSSE = () => {
       if (!isComponentMounted) return;
 
-      const eventSource = new EventSource(getStreamingUrl('/api/monitor/stream'));
+      const eventSource = new EventSource(getStreamingUrl(API_ENDPOINTS.MONITOR_STREAM));
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {

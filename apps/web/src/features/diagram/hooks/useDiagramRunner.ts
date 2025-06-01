@@ -197,7 +197,7 @@ export const useDiagramRunner = () => {
     }
   };
 
-  const handleRunDiagram = useCallback(async () => {
+  const onRunDiagram = useCallback(async () => {
     // Clear any previous execution state and resources
     cleanup();
     clearRunContext();
@@ -237,7 +237,7 @@ export const useDiagramRunner = () => {
             });
           }
         } else {
-          console.warn('Failed to fetch /api/apikeys', keysRes.status);
+          console.warn('Failed to fetch API keys', keysRes.status);
         }
 
         // Start streaming execution with retry
@@ -381,7 +381,7 @@ export const useDiagramRunner = () => {
     }
   }, [exportDiagram, processStreamUpdate, clearRunningNodes, clearRunContext, setCurrentRunningNode, cleanup]);
 
-  const handleRunDiagramSync = useCallback(async () => {
+  const onRunDiagramSync = useCallback(async () => {
     // Fallback to synchronous execution (for debugging or compatibility)
     clearRunContext();
     clearRunningNodes();
@@ -390,7 +390,7 @@ export const useDiagramRunner = () => {
 
     try {
         const diagramData = exportDiagram();
-        const res = await fetch(getApiUrl('/api/run-diagram-sync'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.RUN_DIAGRAM_SYNC), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(diagramData),
@@ -418,7 +418,7 @@ export const useDiagramRunner = () => {
   }, [exportDiagram, clearRunningNodes, clearRunContext]);
 
   // Hybrid execution mode
-  const handleRunDiagramHybrid = useCallback(async () => {
+  const onRunDiagramHybrid = useCallback(async () => {
     clearRunContext();
     clearRunningNodes();
     setCurrentRunningNode(null);
@@ -463,9 +463,9 @@ export const useDiagramRunner = () => {
     runStatus,
     runError,
     retryCount,
-    handleRunDiagram,
-    handleRunDiagramSync, // For fallback/debugging
-    handleRunDiagramHybrid, // Hybrid execution mode
+    onRunDiagram,
+    onRunDiagramSync, // For fallback/debugging
+    onRunDiagramHybrid, // Hybrid execution mode
     stopExecution, // Manual stop function
   };
 };

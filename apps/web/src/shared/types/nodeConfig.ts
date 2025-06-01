@@ -26,7 +26,7 @@ export interface FieldConfig {
   label: string;
   type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox';
   placeholder?: string;
-  required?: boolean;
+  isRequired?: boolean;
   options?: { value: string; label: string }[];
   rows?: number;
   hint?: string;
@@ -73,7 +73,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Start Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'Start', required: true }
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Start', isRequired: true }
     ],
     
     // Metadata
@@ -100,14 +100,14 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Person Job Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter job name', required: true },
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter job name', isRequired: true },
       { name: 'personId', label: 'Person', type: 'select', options: [] }, // Will be populated dynamically
       { name: 'defaultPrompt', label: 'Default Prompt', type: 'textarea', placeholder: 'Enter default prompt', rows: 4 },
       { name: 'firstOnlyPrompt', label: 'First Only Prompt', type: 'textarea', placeholder: 'Enter first only prompt', rows: 4 },
       { name: 'contextCleaningRule', label: 'Context Cleaning', type: 'select', options: [
-        { value: 'upon_request', label: 'Upon Request' },
-        { value: 'no_forget', label: 'No Forget' },
-        { value: 'on_every_turn', label: 'On Every Turn' }
+        { value: 'uponRequest', label: 'Upon Request' },
+        { value: 'noForget', label: 'No Forget' },
+        { value: 'onEveryTurn', label: 'On Every Turn' }
       ]},
       { name: 'iterationCount', label: 'Max Iterations', type: 'number', placeholder: '1' }
     ],
@@ -136,7 +136,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Condition Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter condition name', required: true },
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter condition name', isRequired: true },
       { name: 'conditionType', label: 'Condition Type', type: 'select', options: [
         { value: 'expression', label: 'Expression' },
         { value: 'max_iterations', label: 'Detect Max Iterations' }
@@ -168,7 +168,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Database Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter database name', required: true },
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter database name', isRequired: true },
       { name: 'subType', label: 'Source Type', type: 'select', options: [
         { value: 'fixed_prompt', label: 'Fixed Prompt' },
         { value: 'file', label: 'File' }
@@ -199,7 +199,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Job Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter job name', required: true },
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter job name', isRequired: true },
       { name: 'subType', label: 'Job Type', type: 'select', options: [
         { value: 'code', label: 'Code Execution' },
         { value: 'api_tool', label: 'API Tool' },
@@ -231,7 +231,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Person Batch Job Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter batch job name', required: true },
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter batch job name', isRequired: true },
       { name: 'personId', label: 'Person', type: 'select', options: [] }, // Will be populated dynamically
       { name: 'batchPrompt', label: 'Batch Prompt', type: 'textarea', placeholder: 'Enter batch processing prompt', rows: 4 },
       { name: 'batchSize', label: 'Batch Size', type: 'number', placeholder: '10' },
@@ -268,7 +268,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Properties config
     propertyTitle: 'Endpoint Properties',
     propertyFields: [
-      { name: 'label', label: 'Label', type: 'text', placeholder: 'End', required: true },
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'End', isRequired: true },
       { name: 'saveToFile', label: 'Save to File', type: 'checkbox' },
       { name: 'filePath', label: 'File Path', type: 'text', placeholder: 'Enter file path' },
       { name: 'fileFormat', label: 'File Format', type: 'select', options: [

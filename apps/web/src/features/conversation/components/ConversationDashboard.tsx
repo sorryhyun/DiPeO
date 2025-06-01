@@ -28,8 +28,8 @@ const ConversationDashboard: React.FC = () => {
   // Use extracted hooks
   const {
     conversationData,
-    loading,
-    loadingMore,
+    isLoading,
+    isLoadingMore,
     fetchConversationData,
     addMessage,
     fetchMore
@@ -74,12 +74,12 @@ const ConversationDashboard: React.FC = () => {
     if (
       element.scrollTop + element.clientHeight >= element.scrollHeight - threshold &&
       dashboardSelectedPerson &&
-      conversationData[dashboardSelectedPerson]?.has_more &&
-      !loadingMore
+      conversationData[dashboardSelectedPerson]?.hasMore &&
+      !isLoadingMore
     ) {
       fetchMore(dashboardSelectedPerson);
     }
-  }, [dashboardSelectedPerson, conversationData, loadingMore, fetchMore]);
+  }, [dashboardSelectedPerson, conversationData, isLoadingMore, fetchMore]);
 
   // Export conversations
   const exportConversations = () => {
@@ -94,9 +94,9 @@ const ConversationDashboard: React.FC = () => {
       exportDate: new Date().toISOString(),
       messages: data.messages,
       stats: {
-        total: data.total_messages,
-        visible: data.visible_messages,
-        forgotten: data.forgotten_messages,
+        total: data.totalMessages,
+        visible: data.visibleMessages,
+        forgotten: data.forgottenMessages,
       }
     };
 
@@ -144,7 +144,7 @@ const ConversationDashboard: React.FC = () => {
               {conversationData[selectedPerson.id] && (
                 <div className="flex items-center space-x-1 text-xs">
                   <span className="opacity-70">•</span>
-                  <span>{conversationData[selectedPerson.id].visible_messages} messages</span>
+                  <span>{conversationData[selectedPerson.id]?.visibleMessages} messages</span>
                 </div>
               )}
             </div>
@@ -268,7 +268,7 @@ const ConversationDashboard: React.FC = () => {
             Conversation for {persons.find(p => p.id === dashboardSelectedPerson)?.label}
           </h3>
           <div className="flex items-center space-x-4 text-xs text-gray-600">
-            <span>{personMemory.visible_messages} messages</span>
+            <span>{personMemory.visibleMessages} messages</span>
             {totalCost > 0 && (
               <span className="flex items-center">
                 <DollarSign className="h-3 w-3 mr-1" />
@@ -284,7 +284,7 @@ const ConversationDashboard: React.FC = () => {
           persons={persons}
           onScroll={handleScroll}
           messagesEndRef={messagesEndRef}
-          loadingMore={loadingMore}
+          isLoadingMore={isLoadingMore}
         />
       </div>
     );
@@ -300,7 +300,7 @@ const ConversationDashboard: React.FC = () => {
         {renderPersonBar()}
         {showFilters && renderFilters()}
         <div className="flex-1 flex overflow-hidden">
-          {loading ? (
+          {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <span className="text-gray-500">Loading conversations...</span>
             </div>

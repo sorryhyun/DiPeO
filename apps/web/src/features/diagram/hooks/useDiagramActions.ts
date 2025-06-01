@@ -6,7 +6,7 @@ import { LLMYamlImporter } from '@/features/diagram/utils/llmYamlImporter';
 import { useDownload } from '@/shared/hooks/useDownload';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/shared/types';
 import { toast } from 'sonner';
-import { getApiUrl } from '@/shared/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
@@ -18,7 +18,7 @@ export const useDiagramActions = () => {
 
 
   // Export as clean YAML
-  const handleExportYAML = useCallback(() => {
+  const onExportYAML = useCallback(() => {
     const errorHandler = createErrorHandler('Export YAML');
     try {
       const diagramData = exportDiagram();
@@ -32,7 +32,7 @@ export const useDiagramActions = () => {
   }, [exportDiagram, downloadYaml]);
 
   // Import from YAML
-  const handleImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const onImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -74,14 +74,14 @@ export const useDiagramActions = () => {
 
 
   // Save YAML to backend directory
-  const handleSaveYAMLToDirectory = useCallback(async (filename?: string) => {
+  const onSaveYAMLToDirectory = useCallback(async (filename?: string) => {
     const errorHandler = createErrorHandler('Save YAML to Directory');
 
     await handleAsyncError(
       async () => {
         const diagramData = exportDiagram();
 
-        const res = await fetch(getApiUrl('/api/save'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -107,14 +107,14 @@ export const useDiagramActions = () => {
   }, [exportDiagram]);
 
   // Save JSON to backend directory (for compatibility)
-  const handleSaveToDirectory = useCallback(async (filename?: string) => {
+  const onSaveToDirectory = useCallback(async (filename?: string) => {
     const errorHandler = createErrorHandler('Save to Directory');
 
     await handleAsyncError(
       async () => {
         const diagramData = exportDiagram();
 
-        const res = await fetch(getApiUrl('/api/save'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -140,7 +140,7 @@ export const useDiagramActions = () => {
   }, [exportDiagram]);
 
   // Convert between formats
-  const handleConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const onConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -165,7 +165,7 @@ export const useDiagramActions = () => {
   }, []);
 
   // Export as LLM-friendly YAML
-  const handleExportLLMYAML = useCallback(() => {
+  const onExportLLMYAML = useCallback(() => {
     const errorHandler = createErrorHandler('Export LLM YAML');
     try {
       const diagramData = exportDiagram();
@@ -179,12 +179,12 @@ export const useDiagramActions = () => {
   }, [exportDiagram, downloadYaml]);
 
   return {
-    handleExportYAML,
-    handleExportLLMYAML,
-    handleImportYAML,
-    handleSaveToDirectory,
-    handleSaveYAMLToDirectory,
-    handleConvertJSONtoYAML,
-    handleExportCanonical: handleExportYAML, // Add this for TopBar compatibility
+    onExportYAML,
+    onExportLLMYAML,
+    onImportYAML,
+    onSaveToDirectory,
+    onSaveYAMLToDirectory,
+    onConvertJSONtoYAML,
+    onExportCanonical: onExportYAML, // Add this for TopBar compatibility
   };
 };

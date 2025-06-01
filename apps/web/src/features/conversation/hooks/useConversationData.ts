@@ -8,8 +8,8 @@ const MESSAGES_PER_PAGE = 50;
 
 export const useConversationData = (filters: ConversationFilters) => {
   const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const createErrorHandler = createErrorHandlerFactory(toast);
@@ -23,9 +23,9 @@ export const useConversationData = (filters: ConversationFilters) => {
     since?: string
   ) => {
     if (append) {
-      setLoadingMore(true);
+      setIsLoadingMore(true);
     } else {
-      setLoading(true);
+      setIsLoading(true);
     }
     
     setError(null);
@@ -89,8 +89,8 @@ export const useConversationData = (filters: ConversationFilters) => {
       setError(errorMessage);
       createErrorHandler(errorMessage)(error as Error);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [filters]);
 
@@ -105,7 +105,7 @@ export const useConversationData = (filters: ConversationFilters) => {
         [personId]: {
           ...personData,
           messages: [...personData.messages, message],
-          visible_messages: personData.visible_messages + 1,
+          visibleMessages: personData.visibleMessages + 1,
         }
       };
     });
@@ -122,10 +122,10 @@ export const useConversationData = (filters: ConversationFilters) => {
   // Load more messages for pagination
   const fetchMore = useCallback((personId: string) => {
     const personData = conversationData[personId];
-    if (personData?.has_more && !loadingMore) {
+    if (personData?.hasMore && !isLoadingMore) {
       return fetchConversationData(personId, true);
     }
-  }, [conversationData, loadingMore, fetchConversationData]);
+  }, [conversationData, isLoadingMore, fetchConversationData]);
 
   // Apply filters and refresh
   const applyFilters = useCallback(() => {
@@ -134,8 +134,8 @@ export const useConversationData = (filters: ConversationFilters) => {
 
   return {
     conversationData,
-    loading,
-    loadingMore,
+    isLoading,
+    isLoadingMore,
     error,
     lastUpdateTime: lastUpdateTime.current,
     fetchConversationData,
