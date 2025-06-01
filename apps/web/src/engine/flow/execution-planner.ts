@@ -18,10 +18,10 @@ export class ExecutionPlanner {
       start_nodes: startNodes,
       has_cycles: cycles.length > 0,
       cycle_nodes: cycles,
-      total_nodes: Object.keys(this.context.nodes_by_id).length,
+      total_nodes: Object.keys(this.context.nodesById).length,
       total_arrows: this.getAllArrows().length,
       node_types: Object.fromEntries(
-        Object.entries(this.context.nodes_by_id).map(([nodeId, node]) => [
+        Object.entries(this.context.nodesById).map(([nodeId, node]) => [
           nodeId,
           node.type || 'unknown'
         ])
@@ -33,7 +33,7 @@ export class ExecutionPlanner {
    * Get all start nodes in the diagram
    */
   getStartNodes(): string[] {
-    return Object.entries(this.context.nodes_by_id)
+    return Object.entries(this.context.nodesById)
       .filter(([_, node]) => node.type === 'startNode')
       .map(([nodeId, _]) => nodeId);
   }
@@ -43,7 +43,7 @@ export class ExecutionPlanner {
    */
   getNextNodes(nodeId: string, output?: unknown): string[] {
     const nextNodes: string[] = [];
-    const outgoing = this.context.outgoing_arrows[nodeId] || [];
+    const outgoing = this.context.outgoingArrows[nodeId] || [];
 
     for (const arrow of outgoing) {
       const targetId = this.getArrowTarget(arrow);
@@ -71,11 +71,11 @@ export class ExecutionPlanner {
     const parallelGroups: Set<string>[] = [];
     const processed = new Set<string>();
 
-    while (processed.size < Object.keys(this.context.nodes_by_id).length) {
+    while (processed.size < Object.keys(this.context.nodesById).length) {
       // Find nodes with no unprocessed dependencies
       const readyNodes = new Set<string>();
 
-      for (const nodeId of Object.keys(this.context.nodes_by_id)) {
+      for (const nodeId of Object.keys(this.context.nodesById)) {
         if (processed.has(nodeId)) continue;
 
         // Check if all dependencies are processed
@@ -87,7 +87,7 @@ export class ExecutionPlanner {
 
       if (readyNodes.size === 0) {
         // Handle cycles or disconnected nodes
-        const remaining = new Set(Object.keys(this.context.nodes_by_id));
+        const remaining = new Set(Object.keys(this.context.nodesById));
         for (const processed_node of processed) {
           remaining.delete(processed_node);
         }
@@ -125,7 +125,7 @@ export class ExecutionPlanner {
     for (let i = 0; i < path.length; i++) {
       const nodeId = path[i];
       
-      if (!nodeId || !(nodeId in this.context.nodes_by_id)) {
+      if (!nodeId || !(nodeId in this.context.nodesById)) {
         validationResult.is_valid = false;
         validationResult.errors.push(`Node ${nodeId} not found in diagram`);
         continue;
@@ -185,7 +185,7 @@ export class ExecutionPlanner {
 
   private getAllArrows(): DiagramArrow[] {
     const allArrows: DiagramArrow[] = [];
-    for (const arrows of Object.values(this.context.outgoing_arrows)) {
+    for (const arrows of Object.values(this.context.outgoingArrows)) {
       allArrows.push(...arrows);
     }
     return allArrows;

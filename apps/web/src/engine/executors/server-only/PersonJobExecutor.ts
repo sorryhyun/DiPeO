@@ -9,7 +9,7 @@ import {
   ExecutionContext as TypedExecutionContext,
   LLMService,
   ChatResult
-} from '@/shared/types/execution';
+} from '@/shared/types/core';
 
 import { ServerOnlyExecutor } from '../base-executor';
 

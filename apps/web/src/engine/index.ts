@@ -15,35 +15,35 @@ export * from './execution-orchestrator';
 import { DiagramNode, DiagramArrow, ExecutionContext } from '@/shared/types/core';
 
 export function createExecutionContext(nodes: DiagramNode[], arrows: DiagramArrow[]): ExecutionContext {
-  const nodes_by_id: Record<string, DiagramNode> = {};
-  const incoming_arrows: Record<string, DiagramArrow[]> = {};
-  const outgoing_arrows: Record<string, DiagramArrow[]> = {};
+  const nodesById: Record<string, DiagramNode> = {};
+  const incomingArrows: Record<string, DiagramArrow[]> = {};
+  const outgoingArrows: Record<string, DiagramArrow[]> = {};
 
   // Build nodes_by_id
   for (const node of nodes) {
-    nodes_by_id[node.id] = node;
+    nodesById[node.id] = node;
   }
 
   // Initialize arrow maps
   for (const node of nodes) {
-    incoming_arrows[node.id] = [];
-    outgoing_arrows[node.id] = [];
+    incomingArrows[node.id] = [];
+    outgoingArrows[node.id] = [];
   }
 
   // Build arrow maps
   for (const arrow of arrows) {
     if (arrow.source && arrow.target) {
-      outgoing_arrows[arrow.source] = outgoing_arrows[arrow.source] || [];
-      incoming_arrows[arrow.target] = incoming_arrows[arrow.target] || [];
+      outgoingArrows[arrow.source] = outgoingArrows[arrow.source] || [];
+      incomingArrows[arrow.target] = incomingArrows[arrow.target] || [];
       
-      outgoing_arrows[arrow.source]?.push(arrow);
-      incoming_arrows[arrow.target]?.push(arrow);
+      outgoingArrows[arrow.source]?.push(arrow);
+      incomingArrows[arrow.target]?.push(arrow);
     }
   }
 
   return {
-    nodes_by_id,
-    incoming_arrows,
-    outgoing_arrows
+    nodesById,
+    incomingArrows,
+    outgoingArrows
   };
 }

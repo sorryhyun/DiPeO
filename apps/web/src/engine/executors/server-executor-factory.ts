@@ -3,7 +3,7 @@
  * Supports both client-safe and server-only operations
  */
 
-import { BaseExecutorInterface } from '@/shared/types/execution';
+import { BaseExecutorInterface } from '@/shared/types/core';
 import { 
   BaseExecutorFactory, 
   ExecutorNotFoundError 

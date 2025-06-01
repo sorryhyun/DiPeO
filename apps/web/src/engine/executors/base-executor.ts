@@ -9,7 +9,7 @@ import {
   BaseExecutorInterface,
   ExecutionContext as TypedExecutionContext,
   NodeExecutionError
-} from '@/shared/types/execution';
+} from '@/shared/types/core';
 
 /**
  * Abstract base executor that provides common functionality

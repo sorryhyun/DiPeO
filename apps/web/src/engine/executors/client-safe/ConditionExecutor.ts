@@ -7,7 +7,7 @@ import {
   ExecutorResult, 
   ExecutorValidation,
   ExecutionContext as TypedExecutionContext
-} from '@/shared/types/execution';
+} from '@/shared/types/core';
 
 import { ClientSafeExecutor } from '../base-executor';
 

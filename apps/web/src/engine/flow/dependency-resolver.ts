@@ -9,7 +9,7 @@ export class DependencyResolver {
   validateStartNodes(): string[] {
     const startNodes: string[] = [];
     
-    for (const [nodeId, node] of Object.entries(this.context.nodes_by_id)) {
+    for (const [nodeId, node] of Object.entries(this.context.nodesById)) {
       if (!node) continue;
       try {
         const nodeType = node.type as NodeType;
@@ -36,7 +36,7 @@ export class DependencyResolver {
     executedNodes: Set<string>,
     conditionValues: Record<string, boolean>
   ): [boolean, DiagramArrow[]] {
-    const node = this.context.nodes_by_id[nodeId];
+    const node = this.context.nodesById[nodeId];
     if (!node) {
       return [false, []];
     }
@@ -47,7 +47,7 @@ export class DependencyResolver {
       return [true, []];
     }
 
-    const incomingArrows = this.context.incoming_arrows[nodeId] || [];
+    const incomingArrows = this.context.incomingArrows[nodeId] || [];
     console.debug(`[Dependency Check] Incoming arrows: ${incomingArrows.length}`);
     
     if (incomingArrows.length === 0) {
@@ -93,7 +93,7 @@ export class DependencyResolver {
       recStack.add(nodeId);
       path.push(nodeId);
 
-      const outgoingArrows = this.context.outgoing_arrows[nodeId] || [];
+      const outgoingArrows = this.context.outgoingArrows[nodeId] || [];
       for (const arrow of outgoingArrows) {
         const neighbor = this.getArrowTarget(arrow);
         if (!neighbor) continue;
@@ -110,7 +110,7 @@ export class DependencyResolver {
       recStack.delete(nodeId);
     };
 
-    for (const nodeId of Object.keys(this.context.nodes_by_id)) {
+    for (const nodeId of Object.keys(this.context.nodesById)) {
       if (!visited.has(nodeId)) {
         dfs(nodeId, []);
       }
@@ -123,7 +123,7 @@ export class DependencyResolver {
    * Get the next nodes to execute after a given node
    */
   getNextNodes(nodeId: string, conditionValues: Record<string, boolean>): string[] {
-    const outgoing = this.context.outgoing_arrows[nodeId] || [];
+    const outgoing = this.context.outgoingArrows[nodeId] || [];
     const nextNodes: string[] = [];
 
     for (const arrow of outgoing) {
@@ -131,7 +131,7 @@ export class DependencyResolver {
       if (!targetId) continue;
 
       // Check condition branches
-      const srcNode = this.context.nodes_by_id[nodeId];
+      const srcNode = this.context.nodesById[nodeId];
       if (srcNode && this.getNodeType(srcNode) === NodeType.CONDITION) {
         const branch = this.extractBranchFromArrow(arrow);
         if (branch) {
@@ -152,7 +152,7 @@ export class DependencyResolver {
    * Get direct dependencies for a node
    */
   getDependencies(nodeId: string): string[] {
-    const incomingArrows = this.context.incoming_arrows[nodeId] || [];
+    const incomingArrows = this.context.incomingArrows[nodeId] || [];
     return incomingArrows
       .map(arrow => this.getArrowSource(arrow))
       .filter((source): source is string => source !== null);
@@ -168,7 +168,7 @@ export class DependencyResolver {
     const dfs = (nodeId: string): void => {
       visited.add(nodeId);
 
-      const outgoingArrows = this.context.outgoing_arrows[nodeId] || [];
+      const outgoingArrows = this.context.outgoingArrows[nodeId] || [];
       for (const arrow of outgoingArrows) {
         const neighbor = this.getArrowTarget(arrow);
         if (neighbor && !visited.has(neighbor)) {
@@ -179,7 +179,7 @@ export class DependencyResolver {
       stack.push(nodeId);
     };
 
-    for (const nodeId of Object.keys(this.context.nodes_by_id)) {
+    for (const nodeId of Object.keys(this.context.nodesById)) {
       if (!visited.has(nodeId)) {
         dfs(nodeId);
       }
@@ -224,7 +224,7 @@ export class DependencyResolver {
     console.debug(`[Dependency Check] arrow from ${srcId} -> ${targetNodeId}`);
 
     // Get source node info
-    const srcNode = this.context.nodes_by_id[srcId];
+    const srcNode = this.context.nodesById[srcId];
     if (!srcNode) {
       return { is_valid: false, arrow, reason: 'source_node_not_found' };
     }
