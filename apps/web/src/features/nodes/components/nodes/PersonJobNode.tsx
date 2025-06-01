@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
+import { GenericNode } from '../base/GenericNode';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { UNIFIED_NODE_CONFIGS, type PersonJobBlockData } from '@/shared/types';
 

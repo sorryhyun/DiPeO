@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
+import { GenericNode } from '../base/GenericNode';
 import { Code, Zap, Link as LinkIcon } from 'lucide-react';
 import { UNIFIED_NODE_CONFIGS, type JobBlockData } from '@/shared/types';
 

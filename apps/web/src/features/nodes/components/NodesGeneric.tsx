@@ -2,7 +2,7 @@
 
 import React, { Suspense } from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
+import { GenericNode } from './base/GenericNode';
 import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
 import { StartNode, ConditionNode, JobNode, DBNode, EndpointNode, PersonJobNode, PersonBatchJobNode } from './nodes';
 
