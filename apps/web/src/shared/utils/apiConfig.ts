@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   API_KEYS: '/api/keys',
   API_KEY_BY_ID: (id: string) => `/api/keys/${id}`,
   MODELS: '/api/models',
+  INITIALIZE_MODEL: '/api/initialize-model',
   CONVERSATIONS: '/api/conversations',
   
   // File operations

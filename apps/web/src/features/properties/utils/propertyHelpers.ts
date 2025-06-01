@@ -188,3 +188,37 @@ export const getDynamicModelOptions = async (
   }
 };
 
+/**
+ * Pre-initialize a model client on the backend for faster subsequent execution
+ */
+export const preInitializeModel = async (
+  service: string,
+  model: string,
+  apiKeyId: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(getApiUrl(API_ENDPOINTS.INITIALIZE_MODEL), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service,
+        model,
+        api_key_id: apiKeyId,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to pre-initialize model: ${response.status}`);
+      return false;
+    }
+
+    const data = await response.json();
+    return data.success || false;
+  } catch (error) {
+    console.error('Error pre-initializing model:', error);
+    return false;
+  }
+};
+

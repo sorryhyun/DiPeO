@@ -106,8 +106,13 @@ def export_uml(diagram: Dict[str, Any]) -> str:
     return response.text
 
 
-def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True) -> Dict[str, Any]:
-    """Synchronous wrapper for streaming execution."""
+def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True) -> Dict[str, Any]:
+    """Synchronous wrapper for streaming execution with optional pre-initialization."""
+    if pre_initialize:
+        print("🔧 Pre-initializing models...")
+        pre_initialize_models(diagram)
+        print()
+    
     return asyncio.run(run_diagram_streaming(diagram, show_in_browser))
 
 
@@ -205,6 +210,116 @@ def analyze_conversation_logs(log_dir: str = "conversation_logs") -> Dict[str, A
     
     return analysis
 
+def extract_person_models(diagram: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+    """Extract all unique model configurations from person nodes in the diagram."""
+    person_models = {}
+    persons = diagram.get('persons', {})
+    
+    # Handle both dict format (YAML) and list format (JSON)
+    if isinstance(persons, dict):
+        # YAML format: persons is a dict with person_id as keys
+        for person_id, person in persons.items():
+            service = person.get('service')
+            model = person.get('modelName') or person.get('model')  # Support both formats
+            api_key_id = person.get('apiKeyId')
+            
+            if person_id and service and model and api_key_id:
+                # Use model+service+api_key_id as key to avoid duplicates
+                key = f"{service}:{model}:{api_key_id}"
+                person_models[key] = {
+                    'service': service,
+                    'model': model,
+                    'api_key_id': api_key_id,
+                    'person_id': person_id
+                }
+    elif isinstance(persons, list):
+        # JSON format: persons is a list of person objects
+        for person in persons:
+            person_id = person.get('id')
+            service = person.get('service')
+            model = person.get('modelName') or person.get('model')  # Support both formats
+            api_key_id = person.get('apiKeyId')
+            
+            if person_id and service and model and api_key_id:
+                # Use model+service+api_key_id as key to avoid duplicates
+                key = f"{service}:{model}:{api_key_id}"
+                person_models[key] = {
+                    'service': service,
+                    'model': model,
+                    'api_key_id': api_key_id,
+                    'person_id': person_id
+                }
+    
+    return person_models
+
+
+def pre_initialize_models(diagram: Dict[str, Any]) -> Dict[str, Any]:
+    """Pre-initialize all models used in the diagram."""
+    person_models = extract_person_models(diagram)
+    
+    if not person_models:
+        return {"message": "No person nodes with complete model configuration found", "initialized": 0}
+    
+    print(f"🔧 Pre-initializing {len(person_models)} unique model(s)...")
+    
+    results = {
+        "initialized": 0,
+        "failed": 0,
+        "details": []
+    }
+    
+    for key, config in person_models.items():
+        try:
+            response = requests.post(f"{API_URL}/api/initialize-model", json={
+                'service': config['service'],
+                'model': config['model'],
+                'api_key_id': config['api_key_id']
+            })
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success'):
+                    print(f"  ✅ {config['service']}:{config['model']} (person: {config['person_id']})")
+                    results["initialized"] += 1
+                    results["details"].append({
+                        "status": "success", 
+                        "config": config,
+                        "message": data.get('message', '')
+                    })
+                else:
+                    print(f"  ❌ {config['service']}:{config['model']} - {data.get('error', 'Unknown error')}")
+                    results["failed"] += 1
+                    results["details"].append({
+                        "status": "failed",
+                        "config": config, 
+                        "error": data.get('error', 'Unknown error')
+                    })
+            else:
+                print(f"  ❌ {config['service']}:{config['model']} - HTTP {response.status_code}")
+                results["failed"] += 1
+                results["details"].append({
+                    "status": "failed",
+                    "config": config,
+                    "error": f"HTTP {response.status_code}"
+                })
+                
+        except Exception as e:
+            print(f"  ❌ {config['service']}:{config['model']} - {str(e)}")
+            results["failed"] += 1
+            results["details"].append({
+                "status": "failed",
+                "config": config,
+                "error": str(e)
+            })
+    
+    if results["initialized"] > 0:
+        print(f"✓ Successfully pre-initialized {results['initialized']} model(s)")
+    if results["failed"] > 0:
+        print(f"⚠️  Failed to pre-initialize {results['failed']} model(s)")
+    
+    return results
+
+
 def get_diagram_stats(diagram: Dict[str, Any]) -> Dict[str, Any]:
     """Get statistics about a diagram."""
     nodes = diagram.get('nodes', [])
@@ -230,11 +345,16 @@ def main():
         print("AgentDiagram CLI Tool\n")
         print("Usage: python agentdiagram_tool.py <command> [options]\n")
         print("Commands:")
-        print("  run <file> [--no-browser]     - Run diagram (with browser visualization by default)")
-        print("  run-headless <file>           - Run diagram without browser visualization")
-        print("  monitor                       - Open browser monitoring page")
-        print("  run-and-monitor <file>        - Open browser then run diagram")
-        # ... other commands ...
+        print("  run-and-monitor <file>                    - 🚀 RECOMMENDED: Pre-load models, open browser, then run diagram")
+        print("  run <file> [--no-browser] [--no-preload]  - Run diagram (with browser visualization by default)")
+        print("  run-headless <file>                       - Run diagram without browser visualization")
+        print("  monitor                                   - Open browser monitoring page")
+        print("  preload <file>                            - Pre-initialize all models in diagram")
+        print("  convert <input> <output>                  - Convert between formats (JSON/YAML/UML)")
+        print("  stats <file>                              - Show diagram statistics")
+        print("  server-save <file> <name>                 - Save diagram to server")
+        print("  check-forget [log_dir]                    - Analyze forget rule compliance")
+        print("  run-and-check <file> [output]             - Run diagram and check forget rules")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -249,31 +369,55 @@ def main():
                 print("Error: Missing input file")
                 sys.exit(1)
 
-            # Open browser first
+            print(f"Loading diagram from {sys.argv[2]}...")
+            diagram = load_diagram(sys.argv[2])
+
+            # Pre-load models first
+            print("🔧 Pre-initializing models for faster execution...")
+            pre_initialize_models(diagram)
+
+            # Open browser
+            print("\n🌐 Opening browser monitor...")
             open_browser_monitor()
 
             # Wait a bit for browser to connect
             print("Waiting for browser to connect...")
             time.sleep(2)
 
-            # Then run the diagram
-            print(f"\nLoading diagram from {sys.argv[2]}...")
-            diagram = load_diagram(sys.argv[2])
+            # Then run the diagram (skip pre-initialization since we already did it)
+            print("🚀 Running diagram with browser visualization...")
+            result = run_diagram(diagram, show_in_browser=True, pre_initialize=False)
 
-            print("Running diagram with browser visualization...")
-            result = run_diagram(diagram, show_in_browser=True)
-
+            print(f"\n✓ Execution complete!")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
             if 'context' in result:
                 print(f"  Context keys: {list(result['context'].keys())}")
+
+        elif command == 'preload':
+            if len(sys.argv) < 3:
+                print("Error: Missing input file")
+                sys.exit(1)
+
+            print(f"Loading diagram from {sys.argv[2]}...")
+            diagram = load_diagram(sys.argv[2])
+
+            results = pre_initialize_models(diagram)
+            
+            if results["initialized"] == 0 and results["failed"] == 0:
+                print("ℹ️  No person nodes with complete model configuration found")
+            else:
+                print(f"\n📊 Pre-initialization Summary:")
+                print(f"  ✅ Successful: {results['initialized']}")
+                print(f"  ❌ Failed: {results['failed']}")
 
         elif command == 'run':
             if len(sys.argv) < 3:
                 print("Error: Missing input file")
                 sys.exit(1)
 
-            # Check for --no-browser flag
+            # Check for flags
             show_in_browser = '--no-browser' not in sys.argv
+            pre_initialize = '--no-preload' not in sys.argv
 
             print(f"Loading diagram from {sys.argv[2]}...")
             diagram = load_diagram(sys.argv[2])
@@ -284,7 +428,7 @@ def main():
             else:
                 print("Running diagram (browser visualization disabled)")
 
-            result = run_diagram(diagram, show_in_browser=show_in_browser)
+            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize)
 
             # Save results
             output_file = 'results.json'
@@ -416,7 +560,7 @@ def main():
             diagram = load_diagram(sys.argv[2])
 
             print("Running diagram...")
-            result = run_diagram(diagram)
+            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True)
 
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")

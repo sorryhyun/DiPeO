@@ -103,6 +103,33 @@ async def delete_api_key(
     return {"message": "API key deleted successfully"}
 
 
+@router.post("/initialize-model")
+@handle_api_errors
+async def initialize_model(
+    payload: dict,
+    llm_service: LLMService = Depends(get_llm_service)
+):
+    """Pre-initialize a model client for faster subsequent use."""
+    service = payload.get('service')
+    model = payload.get('model') 
+    api_key_id = payload.get('api_key_id')
+    
+    if not service or not model or not api_key_id:
+        raise ValidationError("Service, model, and api_key_id are required")
+    
+    try:
+        llm_service.pre_initialize_model(service, model, api_key_id)
+        return {
+            "success": True,
+            "message": f"Model {model} for service {service} has been pre-initialized"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 @router.post("/llm")
 @handle_api_errors
 async def test_llm(
@@ -110,13 +137,17 @@ async def test_llm(
     llm_service: LLMService = Depends(get_llm_service)
 ):
     """Test LLM endpoint with a simple query."""
+    service = payload.get('service', 'openai')
+    api_key_id = payload.get('api_key_id')
     model = payload.get('model', 'gpt-3.5-turbo')
-    messages = payload.get('messages', [{"role": "user", "content": "Say 'Hello, World!'"}])
+    messages = payload.get('messages', "Say 'Hello, World!'")
     
-    response = await llm_service.chat(messages, model=model)
+    if not api_key_id:
+        raise ValidationError("api_key_id is required")
+    
+    response = await llm_service.call_llm(service, api_key_id, model, messages)
     return {
         "success": True,
-        "response": response.content,
-        "model": response.model,
-        "usage": response.usage
+        "response": response["response"],
+        "cost": response["cost"]
     }

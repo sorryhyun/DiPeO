@@ -15,6 +15,7 @@ import {
   LabelPersonRow,
   VariableDetectionTextArea
 } from './FormComponents';
+import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
 
 interface GenericPropertyPanelProps<T extends Record<string, any>> {
   nodeId: string;
@@ -161,9 +162,26 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
     reloadDependentOptions();
   }, [formData.service, formData.apiKeyId]); // Only trigger when these specific dependencies change
   
-  // Type-safe update function
-  const updateField = (name: string, value: any) => {
+  // Type-safe update function with model pre-initialization
+  const updateField = async (name: string, value: any) => {
+    // Update the form data first
     handleChange(name as keyof T, value);
+    
+    // If this is a model selection and we have all required data, pre-initialize the model
+    if (name === 'modelName' && value && formData.service && formData.apiKeyId) {
+      try {
+        const success = await preInitializeModel(
+          formData.service as string,
+          value as string,
+          formData.apiKeyId as string
+        );
+        if (success) {
+          console.log(`Model ${value} pre-initialized successfully`);
+        }
+      } catch (error) {
+        console.warn('Failed to pre-initialize model:', error);
+      }
+    }
   };
   
   // Field renderer function
