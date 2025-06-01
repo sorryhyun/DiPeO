@@ -14,5 +14,5 @@ export type { ExecutionState } from './executionStore';
 export type { HistoryStore, HistoryState } from './historyStore';
 
 // Hooks from other directories
-export { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
-export { useHistoryActions } from '@/shared/hooks/useHistoryActions';
+// export { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions'; // Removed - use direct imports from serialization hooks
+export { useHistoryActions } from '@/core/hooks/useHistoryActions';

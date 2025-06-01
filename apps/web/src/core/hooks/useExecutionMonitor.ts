@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useExecutionStore, useConsolidatedDiagramStore } from '@/shared/stores';
+import { useExecutionStore, useConsolidatedDiagramStore } from '@/core/stores';
 import { toast } from 'sonner';
 import { getStreamingUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 

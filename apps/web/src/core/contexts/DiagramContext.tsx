@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useArrowDataUpdater, useNodeDataUpdater } from '@/shared/hooks/useStoreSelectors';
+import { useArrowDataUpdater, useNodeDataUpdater } from '@/core/hooks/useStoreSelectors';
 import { useUpdateNodeInternals } from '@xyflow/react';
-import { getUnifiedNodeConfigsByReactFlowType, UNIFIED_NODE_TYPES } from '../types';
+import { getUnifiedNodeConfigsByReactFlowType, UNIFIED_NODE_TYPES } from '@/shared/types';
 
 interface DiagramContextValue {
   // Arrow operations

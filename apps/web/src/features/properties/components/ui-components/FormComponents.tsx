@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Input, Spinner } from '@/shared/components';
 import { FileUploadButton } from '@/shared';
-import { usePersons } from '@/shared/hooks/useStoreSelectors';
+import { usePersons } from '@/core/hooks/useStoreSelectors';
 import {
   FormField,
   FormRow,

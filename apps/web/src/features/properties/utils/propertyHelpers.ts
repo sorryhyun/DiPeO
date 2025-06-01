@@ -2,7 +2,7 @@
  * Property panel utility functions
  */
 
-import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { useConsolidatedDiagramStore } from '@/core/stores';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 
 export const formatPropertyValue = (value: any, type: string): string => {

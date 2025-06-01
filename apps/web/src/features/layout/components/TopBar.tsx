@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components';
-import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { useUIState } from '@/shared/hooks/useStoreSelectors';
-import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
+import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useUIState } from '@/core/hooks/useStoreSelectors';
+import { useFileImport } from '@/features/serialization/hooks/useFileImport';
+import { useExport } from '@/features/serialization/hooks/useExport';
 import { useDiagramRunner } from '@/features/execution/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/features/canvas/hooks/useKeyboardShortcuts';
 import { LazyApiKeysModal } from '@/features/layout';
@@ -21,7 +22,8 @@ const TopBar = () => {
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
-  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onImportYAML } = useDiagramActions();
+  const { onImportYAML } = useFileImport();
+  const { onSaveToDirectory, onExportYAML, onExportLLMYAML } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   

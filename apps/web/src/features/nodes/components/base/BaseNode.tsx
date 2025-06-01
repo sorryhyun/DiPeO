@@ -5,8 +5,8 @@ import { Button } from '@/shared/components';
 import { BaseNodeProps, UnifiedNodeConfig } from '@/shared/types';
 import { createHandleId } from '@/shared/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
-import { useNodeExecutionState } from '@/shared/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/shared/contexts/DiagramContext';
+import { useNodeExecutionState } from '@/core/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/core/contexts/DiagramContext';
 import './BaseNode.css';
 
 function BaseNodeComponent({

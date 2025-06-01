@@ -6,7 +6,7 @@ import {
 } from 'immer';
 import { 
   PersonDefinition, DiagramNode, Arrow
-} from '../types';
+} from '@/shared/types';
 
 // Enable Immer patches feature
 enablePatches();

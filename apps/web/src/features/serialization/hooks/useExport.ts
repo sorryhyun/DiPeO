@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
-import { useConsolidatedDiagramStore } from '@/shared/stores';
+import { useConsolidatedDiagramStore } from '@/core/stores';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
-import { useDownload } from '@/shared/hooks/useDownload';
+import { useDownload } from './useDownload';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/shared/types';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useExecutionStore } from '@/shared/stores/executionStore';
+import { useExecutionStore } from '@/core/stores/executionStore';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 import type { Node } from '@/shared/types';
 

@@ -5,8 +5,8 @@ import { Toaster, toast } from 'sonner';
 import { TopBar, Sidebar } from '@/features/layout';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { DiagramCanvasSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
-import { useExecutionMonitor } from '@/shared/hooks/useExecutionMonitor';
-import { DiagramProvider } from '@/shared/contexts/DiagramContext';
+import { useExecutionMonitor } from '@/core/hooks/useExecutionMonitor';
+import { DiagramProvider } from '@/core/contexts/DiagramContext';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas/components/Canvas'));

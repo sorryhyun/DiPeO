@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { usePersons, useSelectedElement, useUIState } from '@/shared/hooks/useStoreSelectors';
+import { useConsolidatedDiagramStore } from '@/core/stores';
+import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
 import { UNIFIED_NODE_TYPES } from '@/shared/types';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';

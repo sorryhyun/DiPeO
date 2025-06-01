@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
-import { useHistoryStore } from '@/shared/stores';
+import { useHistoryStore } from '@/core/stores';
 import {
   useContextMenu,
   useKeyboardShortcuts,
@@ -32,7 +32,7 @@ import {
   useExecutionStatus,
   useUIState,
   usePersons
-} from '@/shared/hooks/useStoreSelectors';
+} from '@/core/hooks/useStoreSelectors';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {

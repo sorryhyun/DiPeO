@@ -1,7 +1,7 @@
 import React from 'react';
-import { useConsolidatedDiagramStore } from '@/shared/stores/consolidatedDiagramStore';
-import { useExecutionStore } from '@/shared/stores/executionStore';
-import { useConsolidatedUIStore } from '@/shared/stores/consolidatedUIStore';
+import { useConsolidatedDiagramStore } from '@/core/stores/consolidatedDiagramStore';
+import { useExecutionStore } from '@/core/stores/executionStore';
+import { useConsolidatedUIStore } from '@/core/stores/consolidatedUIStore';
 
 // ===== Key Optimized Selectors =====
 
