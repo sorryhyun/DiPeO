@@ -159,21 +159,42 @@ async def export_uml(
 async def save_diagram(
     payload: dict
 ):
-    """Save diagram to file - placeholder endpoint."""
-    # This endpoint would typically integrate with a file service
-    # For now, return a success response
+    """Save diagram to file."""
+    from ...services.unified_file_service import UnifiedFileService
+    from pathlib import Path
+    import yaml
+    
     diagram = payload.get('diagram', {})
     filename = payload.get('filename', 'diagram.json')
     file_format = payload.get('format', 'json')
     
     try:
+        # Initialize file service
+        file_service = UnifiedFileService()
         
-        # TODO: Implement actual file saving logic
-        # This would typically use UnifiedFileService
+        # Ensure filename has correct extension
+        file_path = Path(filename)
+        if file_format == 'yaml' and not file_path.suffix.lower() in ['.yaml', '.yml']:
+            file_path = file_path.with_suffix('.yaml')
+        elif file_format == 'json' and file_path.suffix.lower() not in ['.json']:
+            file_path = file_path.with_suffix('.json')
+        
+        # Prepare file path in diagrams directory
+        save_path = f"diagrams/{file_path.name}"
+        
+        # Save based on format
+        if file_format == 'yaml':
+            # Convert diagram to YAML format
+            yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
+            saved_path = await file_service.write(save_path, yaml_content, relative_to="base", format="text")
+        else:
+            # Save as JSON
+            saved_path = await file_service.write(save_path, diagram, relative_to="base", format="json")
         
         return {
             "success": True,
-            "message": f"Diagram save endpoint called for {filename} as {file_format.upper()}"
+            "message": f"Diagram saved successfully as {file_format.upper()}",
+            "path": saved_path
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

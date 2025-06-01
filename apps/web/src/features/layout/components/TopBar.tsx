@@ -21,7 +21,7 @@ const TopBar = () => {
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
-  const { handleSaveToDirectory, handleSaveYAMLToDirectory, handleImportYAML } = useDiagramActions();
+  const { handleSaveToDirectory, handleExportYAML, handleExportLLMYAML, handleImportYAML } = useDiagramActions();
   const { runStatus, handleRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
@@ -92,6 +92,7 @@ const TopBar = () => {
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
             onClick={() => handleSaveToDirectory()}
+            title="Save diagram to server (diagrams folder)"
           >
             💾 Save
           </Button>
@@ -101,17 +102,25 @@ const TopBar = () => {
           <Button
             variant="outline"
             className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={()=>handleSaveYAMLToDirectory()}
+            onClick={handleExportYAML}
             title="Export to YAML format (download)"
           >
             📤 Export YAML
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-white hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
+            onClick={handleExportLLMYAML}
+            title="Export to LLM-friendly YAML format (download)"
+          >
+            🤖 Export LLM YAML
           </Button>
           <FileUploadButton
             accept=".yaml,.yml"
             onChange={handleImportYAML}
             variant="outline"
             className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            title="Import from YAML format"
+            title="Import from YAML format (supports both standard and LLM-friendly formats)"
           >
             📥 Import YAML
           </FileUploadButton>

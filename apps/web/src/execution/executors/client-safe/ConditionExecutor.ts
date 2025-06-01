@@ -20,10 +20,19 @@ export class ConditionExecutor extends ClientSafeExecutor {
 
     const errors: string[] = [];
 
-    // Validate condition expression
-    const condition = this.getNodeProperty(node, 'condition', '');
-    if (!condition) {
-      errors.push('Condition expression is required');
+    // Check condition type
+    const conditionType = this.getNodeProperty(node, 'conditionType', 'expression');
+    
+    if (conditionType === 'expression') {
+      // Validate condition expression
+      const condition = this.getNodeProperty(node, 'expression', '');
+      if (!condition) {
+        errors.push('Condition expression is required');
+      }
+    } else if (conditionType === 'max_iterations') {
+      // No specific validation needed for max_iterations type
+    } else {
+      errors.push(`Invalid condition type: ${conditionType}`);
     }
 
     return {
@@ -33,15 +42,23 @@ export class ConditionExecutor extends ClientSafeExecutor {
   }
 
   async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
-    const condition = this.getNodeProperty(node, 'condition', '');
+    const conditionType = this.getNodeProperty(node, 'conditionType', 'expression') as string;
     const inputs = this.getInputValues(node, context);
     
     try {
-      // Evaluate the condition using available inputs and context
-      const result = this.evaluateCondition(condition, inputs, context);
+      let result: boolean;
+      
+      if (conditionType === 'max_iterations') {
+        // Check if any preceding nodes have reached max iterations
+        result = this.checkPrecedingNodesMaxIterations(node, context);
+      } else {
+        // Default to expression evaluation
+        const expression = this.getNodeProperty(node, 'expression', '');
+        result = this.evaluateCondition(expression, inputs, context);
+      }
       
       return this.createSuccessResult(result, 0, {
-        condition,
+        conditionType,
         inputs,
         evaluatedAt: new Date().toISOString()
       });
@@ -49,7 +66,7 @@ export class ConditionExecutor extends ClientSafeExecutor {
       throw this.createExecutionError(
         `Failed to evaluate condition: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { condition, inputs, error: error instanceof Error ? error.message : String(error) }
+        { conditionType, inputs, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -173,5 +190,34 @@ export class ConditionExecutor extends ClientSafeExecutor {
     if (trimmed === 'false') return false;
 
     return trimmed;
+  }
+
+  /**
+   * Check if any preceding nodes have reached their max iterations
+   */
+  private checkPrecedingNodesMaxIterations(node: Node, context: TypedExecutionContext): boolean {
+    // Get all incoming nodes
+    const incomingArrows = context.incomingArrows[node.id] || [];
+    
+    for (const arrow of incomingArrows) {
+      const sourceNodeId = arrow.source;
+      if (!sourceNodeId) continue;
+      
+      // Check if this source node has been skipped due to max iterations
+      // We look at execution count and the node's max iteration setting
+      const sourceNode = context.nodesById[sourceNodeId];
+      if (!sourceNode) continue;
+      
+      const executionCount = context.nodeExecutionCounts[sourceNodeId] || 0;
+      const maxIterations = sourceNode.data?.iterationCount || sourceNode.data?.maxIterations;
+      
+      if (maxIterations && executionCount >= maxIterations) {
+        // At least one preceding node has reached max iterations
+        return true;
+      }
+    }
+    
+    // No preceding nodes have reached max iterations
+    return false;
   }
 }

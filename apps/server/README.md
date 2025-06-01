@@ -1,229 +1,179 @@
 # AgentDiagram Server
 
-A FastAPI-based backend server for executing visual agent diagrams with LLM integrations, streaming capabilities, and conversation memory management.
-
-## Overview
-
-AgentDiagram Server executes flow-based diagrams where nodes represent different operations (LLM calls, conditions, data sources) connected by arrows defining execution flow. It supports real-time streaming updates, conversation memory, and multiple LLM providers.
-
-## Architecture
-
-```
-apps/server/
-├── src/
-│   ├── api/           # REST API endpoints
-│   ├── execution/     # V2 execution engine
-│   ├── llm/           # LLM adapters (OpenAI, Anthropic, etc.)
-│   ├── services/      # Business logic services
-│   ├── streaming/     # SSE streaming support
-│   └── utils/         # Shared utilities
-├── tests/             # Test suite
-├── config.py          # Configuration management
-└── main.py            # Application entry point
-```
+FastAPI backend for executing visual agent diagrams with LLM integrations and streaming support.
 
 ## Quick Start
-
-### Installation
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-### Running the Server
-
-```bash
-# Development mode with auto-reload
+# Run development server
 python -m apps.server.main
 
-# Production mode
-uvicorn apps.server.main:app --host 0.0.0.0 --port 8000
+# Or with auto-reload
+RELOAD=true python -m apps.server.main
 ```
 
-## Core Features
+Server runs at `http://localhost:8000`
 
-### Node Types
+## Architecture
 
-- **StartNode**: Entry point for diagram execution
-- **PersonJobNode**: LLM agent interactions with memory
-- **PersonBatchJobNode**: Batch processing with LLM agents
-- **ConditionNode**: Boolean branching logic
-- **DBNode**: Data source operations (files, code, fixed prompts)
-- **JobNode**: Stateless operations (API calls, code execution)
-- **EndpointNode**: Terminal nodes with optional file saving
-
-### Supported LLM Providers
-
-- OpenAI (GPT-4, GPT-3.5)
-- Anthropic (Claude 3.5, Claude 3)
-- Google (Gemini 2.0, Gemini 1.5)
-- xAI (Grok 2)
-
-### API Endpoints
-
-#### Diagram Execution
 ```
-POST /api/run-diagram         # Execute with SSE streaming
-POST /api/run-diagram-sync    # Synchronous execution
-POST /api/stream/run-diagram  # Alias for streaming
+src/
+├── api/          # REST endpoints & middleware
+├── llm/          # LLM adapters (OpenAI, Claude, Gemini, Grok)
+├── services/     # Business logic
+├── utils/        # Shared utilities
+├── constants.py  # Enums and configuration
+└── exceptions.py # Custom exception types
 ```
 
-#### Diagram Management
-```
-POST /api/import-uml          # Import UML format
-POST /api/import-yaml         # Import YAML format
-POST /api/export-uml          # Export to UML
-POST /api/save                # Save diagram
-```
+### Key Services
 
-#### API Keys
-```
-GET  /api/api-keys            # List stored keys
-POST /api/api-keys            # Add new key
-DELETE /api/api-keys/{id}     # Remove key
-GET  /api/models              # List available models
-```
+- **DiagramService**: Diagram validation and import/export
+- **LLMService**: Unified LLM interface with connection pooling
+- **MemoryService**: Conversation memory (Redis/in-memory)
+- **UnifiedFileService**: Secure file operations
+- **APIKeyService**: API key management
 
-#### Files
-```
-POST /api/upload-file         # Upload file
-```
+## Node Types
 
-#### Conversations
-```
-GET  /api/conversations       # Get conversation history
-POST /api/conversations/clear # Clear all conversations
-```
+| Node | Purpose | Key Features |
+|------|---------|--------------|
+| `startNode` | Entry point | Initial context/input |
+| `personJobNode` | LLM agent | Stateful conversations with memory |
+| `conditionNode` | Branching | Boolean expressions |
+| `dbNode` | Data source | Files, code execution, fixed prompts |
+| `endpointNode` | Output | Save results to files |
 
-#### Monitoring
-```
-GET  /api/monitor/stream      # SSE endpoint for all executions
-GET  /api/health              # Health check
-GET  /metrics                 # Prometheus metrics
-```
+## API Endpoints
+
+### Execution
+- `POST /api/run-diagram` - Execute with SSE streaming
+- `POST /api/stream/run-diagram` - Alias for streaming
+- `GET /api/monitor/stream` - Monitor all executions
+
+### Management
+- `GET/POST/DELETE /api/api-keys` - API key CRUD
+- `POST /api/upload-file` - File upload
+- `POST /api/import-uml` - Import PlantUML
+- `POST /api/export-uml` - Export to PlantUML
+
+### Conversations
+- `GET /api/conversations` - Query history with filtering
+- `POST /api/conversations/clear` - Clear memory
 
 ## Development
 
-### Project Structure
+### Adding a New LLM Provider
 
-**Execution Engine (V2)**
-- `execution/core/`: Core execution components
-- `execution/executors/`: Node-specific executors
-- `execution/flow/`: Dependency resolution and planning
-- `execution/memory/`: Conversation memory management
+1. Create adapter in `src/llm/adapters/`:
+```python
+class YourAdapter(BaseAdapter):
+    def chat(self, system_prompt: str, user_prompt: str, **kwargs) -> ChatResult:
+        # Implementation
+        pass
+```
 
-**Services**
-- `DiagramService`: Diagram operations and validation
-- `LLMService`: Unified LLM provider interface
-- `MemoryService`: Conversation persistence (Redis/in-memory)
-- `UnifiedFileService`: Secure file operations
-- `APIKeyService`: API key management
+2. Register in `src/llm/factory.py`:
+```python
+if provider == 'your_provider':
+    return YourAdapter(model_name, api_key)
+```
 
-### Adding New Features
+3. Add to `SUPPORTED_MODELS` in `src/llm/__init__.py`
 
-#### New Node Type
-1. Create executor in `src/execution/executors/`
-2. Register in `ExecutionEngine._create_executors()`
-3. Add to `NodeType` enum in `constants.py`
+### Adding a New Node Type
 
-#### New LLM Provider
-1. Create adapter in `src/llm/adapters/`
-2. Update factory in `src/llm/factory.py`
-3. Add to `SUPPORTED_MODELS` mapping
+1. Define in `src/constants.py`:
+```python
+class NodeType(Enum):
+    YOUR_NODE = "yourNode"
+```
+
+2. Create executor (if using V2 engine) or add logic to execution flow
 
 ### Error Handling
 
-Unified error system with custom exceptions:
-- `ValidationError`: Input validation failures
-- `DiagramExecutionError`: Execution failures
-- `NodeExecutionError`: Node-specific errors
-- `LLMServiceError`: LLM call failures
+```python
+from src.core import handle_api_errors
 
-### Testing
+@router.post("/endpoint")
+@handle_api_errors
+async def your_endpoint():
+    # Automatic error formatting
+    pass
+```
+
+Custom exceptions in `src/exceptions.py`:
+- `ValidationError` - Input validation
+- `DiagramExecutionError` - Execution failures
+- `LLMServiceError` - LLM call failures
+- `FileOperationError` - File access issues
+
+## Configuration
+
+Environment variables:
+```env
+PORT=8000                       # Server port
+RELOAD=false                    # Auto-reload
+BASE_DIR=/path/to/project       # Base for file ops
+REDIS_URL=redis://localhost     # Optional Redis
+API_KEY_STORE_FILE=apikeys.json # API key storage
+```
+
+## Testing
 
 ```bash
 # Run all tests
 pytest
 
-# Run with coverage
+# With coverage
 pytest --cov=apps.server
 
-# Run specific test file
-pytest apps/server/tests/test_diagram_service.py
+# Specific module
+pytest apps/server/tests/test_services.py -v
 ```
 
-## Configuration
+Test fixtures in `tests/fixtures/`:
+- `mocks.py` - Service mocks
+- `diagrams.py` - Sample diagram structures
 
-### Environment Variables
-```env
-BASE_DIR=/path/to/project      # Base directory for file operations
-REDIS_URL=redis://localhost    # Redis for distributed memory (optional)
-API_KEY_STORE_FILE=apikeys.json # API key storage location
-PORT=8000                      # Server port
-RELOAD=false                   # Auto-reload for development
+## Streaming Response Format
+
+SSE events during execution:
+```javascript
+{type: 'execution_started', execution_id: '...'}
+{type: 'node_start', nodeId: '...'}
+{type: 'node_complete', nodeId: '...', output_preview: '...'}
+{type: 'execution_complete', context: {...}, total_cost: 0.05}
+{type: 'execution_error', error: '...'}
 ```
 
-### File Storage
-- Uploads: `{BASE_DIR}/uploads/`
-- Results: `{BASE_DIR}/results/`
-- Logs: `{BASE_DIR}/conversation_logs/`
+## Common Issues
 
-## Streaming Architecture
+1. **No start nodes**: Diagram must have `startNode`
+2. **API key not found**: Check key exists in UI/storage
+3. **LLM timeout**: Retry logic handles transient failures
+4. **File not found**: Check `BASE_DIR` and relative paths
 
-The server supports Server-Sent Events (SSE) for real-time execution updates:
+## CLI Tool
 
-1. **Execution Updates**: Node status changes during execution
-2. **Monitor Stream**: Global stream for all diagram executions
-3. **Heartbeat**: Automatic keep-alive for long-running executions
+```bash
+# Run diagram
+python agentdiagram_tool.py run diagram.json
 
-## Memory Management
+# Monitor executions
+python agentdiagram_tool.py monitor
 
-Conversation memory supports:
-- Per-person conversation history
-- Execution-scoped memory isolation
-- Redis backend for distributed deployments
-- Automatic conversation log persistence
-
-## Security Considerations
-
-- Path traversal protection in file operations
-- API key encryption (stored as plain text - use environment variables in production)
-- Input validation on all endpoints
-- CORS configured for development (restrict in production)
-
-## Performance
-
-- Connection pooling for LLM adapters
-- Async/await throughout for concurrent operations
-- Redis caching for conversation history
-- Streaming responses to reduce memory usage
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"No start nodes found"**: Ensure diagram has at least one `startNode`
-2. **API key errors**: Verify keys are properly configured in UI
-3. **Memory errors**: Check Redis connection or fallback to in-memory
-4. **File permissions**: Ensure write access to BASE_DIR subdirectories
-
-### Debug Mode
-
-Enable detailed logging:
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
+# Convert formats
+python agentdiagram_tool.py convert input.puml output.json
 ```
 
-## Contributing
+## Security Notes
 
-1. Follow existing code structure and patterns
-2. Add tests for new features
-3. Update this README for significant changes
-4. Use type hints and docstrings
-5. Handle errors gracefully with proper exceptions
+- Path traversal protection via `validate_file_path()`
+- API keys stored plaintext (use env vars in production)
+- CORS enabled for development (restrict for production)
+- File uploads restricted to `UPLOAD_DIR`

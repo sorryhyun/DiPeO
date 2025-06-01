@@ -312,6 +312,9 @@ export class DependencyResolver {
       return false;
     }
 
+    // NOTE: First-only consumption is tracked in the execution engine's TypedExecutionContext
+    // The check happens there before marking the node for execution
+
     // Check if any first-only input has data
     for (const arrow of incomingArrows) {
       if (this.isHandleFirstOnly(arrow)) {

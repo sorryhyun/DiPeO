@@ -275,8 +275,36 @@ export class ExecutionEngine {
             continue;
           }
 
+          // Check if node has reached max iterations
+          const node = diagram.nodes.find(n => n.id === nodeId);
+          if (node) {
+            const executionCount = context.nodeExecutionCounts[nodeId] || 0;
+            const maxIterations = node.data.iterationCount || node.data.maxIterations;
+            
+            if (maxIterations && this.skipManager.shouldSkip(nodeId, executionCount, maxIterations)) {
+              console.log(`Skipping node ${nodeId}: max iterations (${maxIterations}) reached`);
+              
+              // For skipped nodes, we still need to process their outgoing connections
+              // This ensures the flow continues even when nodes are skipped
+              // IMPORTANT: During skipping, the forget rule does not apply - all inputs are counted
+              // regardless of whether they came from first-only or default handles
+              const nextNodes = this.dependencyResolver.getNextNodes(nodeId, context.conditionValues);
+              nextNodes.forEach(nextNodeId => {
+                if (!executedNodes.has(nextNodeId) && !pendingNodes.has(nextNodeId)) {
+                  pendingNodes.add(nextNodeId);
+                }
+              });
+              
+              // Mark the node as having been executed (for dependency checking)
+              // even though it was skipped
+              executedNodes.add(nodeId);
+              
+              continue;
+            }
+          }
+
           // Check dependencies
-          const [dependenciesMet] = this.dependencyResolver.checkDependenciesMet(
+          const [dependenciesMet, validArrows] = this.dependencyResolver.checkDependenciesMet(
             nodeId, 
             executedNodes, 
             context.conditionValues
@@ -286,6 +314,19 @@ export class ExecutionEngine {
             // Re-add to pending if dependencies not met
             pendingNodes.add(nodeId);
             continue;
+          }
+
+          // Check if this is a PersonJob node executing with first-only for the first time
+          const currentNode = diagram.nodes.find(n => n.id === nodeId);
+          if (currentNode && currentNode.type === 'person_job') {
+            const hasFirstOnlyInput = validArrows.some(arrow => 
+              arrow.targetHandle?.endsWith('-input-first') || arrow.data?.handleMode === 'first_only'
+            );
+            
+            if (hasFirstOnlyInput && !context.firstOnlyConsumed[nodeId]) {
+              // Mark first-only as consumed for this node
+              context.firstOnlyConsumed[nodeId] = true;
+            }
           }
 
           // Execute the node
