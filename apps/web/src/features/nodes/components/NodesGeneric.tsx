@@ -52,7 +52,7 @@ const UniversalNode: React.FC<NodeProps> = (props) => {
 };
 
 
-// Default export mapping for React Flow using UNIFIED_NODE_CONFIGS
+// Default export mapping for React Flow using UNIFIED_NODE_TYPES
 export default Object.fromEntries(
   Object.entries(UNIFIED_NODE_TYPES).map(([_, config]) => [
     config.reactFlowType,

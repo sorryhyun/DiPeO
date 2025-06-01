@@ -9,7 +9,7 @@ import { useExecutionMonitor } from '@/shared/hooks/useExecutionMonitor';
 import { DiagramProvider } from '@/shared/contexts/DiagramContext';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('@/features/diagram/components/Canvas'));
+const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas/components/Canvas'));
 const LazyIntegratedDashboard = React.lazy(() => import('@/features/layout/components/IntegratedDashboard'));
 
 function App() {

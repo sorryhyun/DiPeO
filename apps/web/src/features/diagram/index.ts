@@ -1,17 +1,19 @@
-// Components
-export { default as Canvas } from './components/Canvas';
-export { default as MemoryLayer } from './components/MemoryLayer';
+// Components - moved to features/canvas
+// export { default as Canvas } from './components/Canvas';
+// export { default as MemoryLayer } from './components/MemoryLayer';
 
-// Diagram UI wrappers (only the ones with store integration)
-export { CustomArrow, ContextMenu } from './wrappers';
+// Diagram UI wrappers - moved to features/canvas/wrappers
+// export { CustomArrow, ContextMenu } from './wrappers';
 
 // Hooks
-export * from './hooks/useDiagramRunner';
 export * from './hooks/useDiagramActions';
-export * from './hooks/useFileImport';
+// The following hooks have been moved:
+// useDiagramRunner -> features/execution/hooks
+// useFileImport -> features/serialization/hooks
 
 // Utils
-export * from './utils/diagramSanitizer';
-export * from './utils/yamlExporter';
-export * from './utils/canvasUtils';
 export * from './utils/diagramHelpers';
+// The following utils have been moved:
+// diagramSanitizer -> features/serialization/utils
+// yamlExporter -> features/serialization/converters
+// canvasUtils -> features/canvas/utils

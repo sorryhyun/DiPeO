@@ -86,3 +86,10 @@ export const getOptimalNodePosition = (existingNodes: Node[], preferredX = 100, 
 
   return { x, y };
 };
+
+export const roundPosition = (position: { x: number; y: number }) => {
+  return {
+    x: Math.round(position.x / 10) * 10,
+    y: Math.round(position.y / 10) * 10,
+  };
+};

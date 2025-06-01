@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useArrowDataUpdater, useNodeDataUpdater } from '@/shared/hooks/useStoreSelectors';
 import { useUpdateNodeInternals } from '@xyflow/react';
-import { getUnifiedNodeConfigsByReactFlowType, UNIFIED_NODE_CONFIGS } from '../types';
+import { getUnifiedNodeConfigsByReactFlowType, UNIFIED_NODE_TYPES } from '../types';
 
 interface DiagramContextValue {
   // Arrow operations
@@ -37,10 +37,10 @@ export const DiagramProvider: React.FC<DiagramProviderProps> = ({ children }) =>
   const updateNodeInternals = useUpdateNodeInternals();
   const nodeConfigs = getUnifiedNodeConfigsByReactFlowType();
   
-  // Extract node types and labels from UNIFIED_NODE_CONFIGS for context menu
-  const nodeTypes = Object.keys(UNIFIED_NODE_CONFIGS);
+  // Extract node types and labels from UNIFIED_NODE_TYPES for context menu
+  const nodeTypes = Object.keys(UNIFIED_NODE_TYPES);
   const nodeLabels = Object.fromEntries(
-    Object.entries(UNIFIED_NODE_CONFIGS).map(([key, config]) => [key, config.label])
+    Object.entries(UNIFIED_NODE_TYPES).map(([key, config]) => [key, config.label])
   );
 
   const value: DiagramContextValue = {

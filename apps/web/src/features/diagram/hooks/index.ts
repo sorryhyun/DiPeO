@@ -1,4 +1,5 @@
 export { useDiagramActions } from './useDiagramActions';
-export { useDiagramRunner } from './useDiagramRunner';
-export { useFileImport } from './useFileImport';
-export { useHybridExecution } from './useHybridExecution';
+// The following hooks have been moved:
+// useDiagramRunner -> @/features/execution/hooks/useDiagramRunner
+// useFileImport -> @/features/serialization/hooks/useFileImport
+// useHybridExecution -> @/features/execution/hooks/useHybridExecution

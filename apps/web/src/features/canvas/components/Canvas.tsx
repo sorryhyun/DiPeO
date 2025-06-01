@@ -19,7 +19,7 @@ import {
   CustomArrow as CustomArrowBase,
   ContextMenu
 } from '../wrappers';
-import { roundPosition } from '@/features/diagram';
+import { roundPosition } from '../utils/canvasUtils';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
 import { DiagramNode, Arrow } from '@/shared/types';
 import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';

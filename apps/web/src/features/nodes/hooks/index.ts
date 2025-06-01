@@ -1,2 +1,2 @@
 export { useNodeDrag } from './useNodeDrag';
-export { useNodeConfig } from './useNodeType';
+export { useNodeType } from './useNodeType';
