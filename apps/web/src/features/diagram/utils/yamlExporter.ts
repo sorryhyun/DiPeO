@@ -186,7 +186,7 @@ export class YamlExporter {
       case 'startNode':
         return baseStep;
 
-      case 'personjobNode': {
+      case 'personJobNode': {
         const pjData = data as PersonJobBlockData;
         return {
           ...baseStep,
@@ -342,10 +342,10 @@ export class YamlExporter {
           }
         };
 
-      case 'personjobNode':
+      case 'personJobNode':
         return {
           id: step.id,
-          type: 'personjobNode',
+          type: 'personJobNode',
           position,
           data: {
             ...baseData,
@@ -353,7 +353,7 @@ export class YamlExporter {
             personId: step.person,
             defaultPrompt: step.prompt || '',
             firstOnlyPrompt: step.first_prompt || '',
-            contextCleaningRule: step.forget as any || 'upon_request',
+            contextCleaningRule: step.forget as any || 'uponRequest',
             iterationCount: step.max_iterations || 1,
             mode: step.mode as any || 'sync',
             detectedVariables: this.detectVariables(step.prompt || '', step.first_prompt || '')
@@ -436,7 +436,7 @@ export class YamlExporter {
       if (prompt) {
         const matches = prompt.matchAll(varPattern);
         for (const match of matches) {
-          vars.add(match[1]);
+          vars.add(match[1] || '');
         }
       }
     });

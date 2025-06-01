@@ -65,6 +65,7 @@ pnpm-workspace.yaml
 example.yaml
 prompts/notion.yaml
 TODO.md
+MIGRATION_PLAN.md
 
 # Temporary files
 *.tmp

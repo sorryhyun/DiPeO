@@ -10,4 +10,5 @@ export * from './contexts/DiagramContext';
 export * from './utils/apiConfig';
 export * from './utils/constants';
 export * from './utils/downloadUtils';
+export * from './utils/promptUtils';
 export * from './utils/storeCrudUtils';

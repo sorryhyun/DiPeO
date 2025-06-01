@@ -9,7 +9,7 @@ interface MessageListProps {
   persons: PersonDefinition[];
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  loadingMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -18,12 +18,12 @@ export const MessageList: React.FC<MessageListProps> = ({
   persons,
   onScroll,
   messagesEndRef,
-  loadingMore = false
+  isLoadingMore = false
 }) => {
   // Render single message
   const renderMessage = (message: ConversationMessage) => {
-    const isFromSelectedPerson = message.sender_person_id === currentPersonId;
-    const senderPerson = persons.find(p => p.id === message.sender_person_id);
+    const isFromSelectedPerson = message.senderPersonId === currentPersonId;
+    const senderPerson = persons.find(p => p.id === message.senderPersonId);
 
     return (
       <div
@@ -42,15 +42,15 @@ export const MessageList: React.FC<MessageListProps> = ({
           <div className="flex items-center justify-between mb-1">
             <div className="text-xs opacity-75">
               {isFromSelectedPerson ? 'Wrote' : `Read from ${senderPerson?.label || 'Unknown'}`}
-              {message.node_label && (
-                <span className="ml-2">• {message.node_label}</span>
+              {message.nodeLabel && (
+                <span className="ml-2">• {message.nodeLabel}</span>
               )}
             </div>
             <div className="flex items-center space-x-2 text-xs opacity-60">
-              {message.token_count && (
+              {message.tokenCount && (
                 <span className="flex items-center">
                   <Hash className="h-3 w-3 mr-1" />
-                  {message.token_count}
+                  {message.tokenCount}
                 </span>
               )}
               {message.cost && (
@@ -76,7 +76,7 @@ export const MessageList: React.FC<MessageListProps> = ({
       onScroll={onScroll}
     >
       {messages.map((message) => renderMessage(message))}
-      {loadingMore && (
+      {isLoadingMore && (
         <div className="text-center py-4">
           <span className="text-sm text-gray-500">Loading more messages...</span>
         </div>

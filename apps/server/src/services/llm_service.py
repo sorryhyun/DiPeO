@@ -160,6 +160,14 @@ class LLMService(BaseService):
         except Exception as e:
             raise LLMServiceError(f"LLM call failed: {e}")
     
+    def pre_initialize_model(self, service: str, model: str, api_key_id: str) -> bool:
+        """Pre-initialize a model client for faster subsequent use."""
+        try:
+            self._get_client(service, model, api_key_id)
+            return True
+        except Exception as e:
+            raise LLMServiceError(f"Failed to pre-initialize model: {e}")
+
     async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
         """Get available models for a service."""
         raw_key = self._get_api_key(api_key_id)

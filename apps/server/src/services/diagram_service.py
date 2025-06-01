@@ -1,13 +1,11 @@
 import re
-from typing import Any, Dict, List, Tuple
 from fastapi import HTTPException
 
-from ..exceptions import DiagramExecutionError, ValidationError
+from ..exceptions import ValidationError
 from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
-from ..utils.arrow_utils import ArrowUtils
 
 
 def round_position(position: dict) -> dict:
@@ -27,48 +25,6 @@ class DiagramService(BaseService):
         self.api_key_service = api_key_service
         self.memory_service = memory_service
 
-    async def run_diagram(self, diagram: dict) -> Tuple[Dict[str, Any], float]:
-        """Execute a diagram and return results."""
-        try:
-            from ..execution import DiagramExecutor
-
-            self._validate_diagram(diagram)
-            executor = DiagramExecutor(diagram)
-            context, cost = await executor.run()
-            return context, cost
-        except Exception as e:
-            raise DiagramExecutionError(f"Diagram execution failed: {e}")
-
-    async def run_diagram_sync(self, diagram: dict, log_dir: str) -> Dict[str, Any]:
-        """Handle all business logic for synchronous diagram execution."""
-
-        # Validate and fix API keys
-        self._validate_and_fix_api_keys(diagram)
-        
-        # Validate required fields
-        if not diagram.get("nodes"):
-            raise HTTPException(status_code=400, detail="Diagram must contain nodes")
-
-        # Execute diagram
-        from ..execution import DiagramExecutor
-        executor = DiagramExecutor(diagram=diagram, memory_service=self.memory_service)
-        
-        context, total_cost = await executor.run()
-        
-        # Save logs and cleanup
-        log_path = await self.memory_service.save_conversation_log(
-            execution_id=executor.execution_id,
-            log_dir=log_dir
-        )
-        self.memory_service.clear_execution_memory(executor.execution_id)
-        
-        return {
-            "context": context,
-            "total_cost": total_cost,
-            "memory_stats": executor.get_memory_stats(),
-            "conversation_log": log_path,
-            "execution_id": executor.execution_id
-        }
 
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
         """Validate and fix API keys in diagram persons."""
@@ -156,8 +112,8 @@ class DiagramService(BaseService):
             lines = ['@startuml']
             
             for edge in arrows:
-                src = ArrowUtils.get_source(edge)
-                tgt = ArrowUtils.get_target(edge)
+                src = edge.get("source")
+                tgt = edge.get("target")
                 if src and tgt:
                     lines.append(f"{src} -> {tgt}")
             
@@ -174,3 +130,4 @@ class DiagramService(BaseService):
             "arrows": [],
             "apiKeys": []
         }
+    

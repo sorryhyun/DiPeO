@@ -2,10 +2,11 @@
 import { useCallback, ChangeEvent } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { YamlExporter } from '@/features/diagram';
+import { LLMYamlImporter } from '@/features/diagram/utils/llmYamlImporter';
 import { useDownload } from '@/shared/hooks/useDownload';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/shared/types';
 import { toast } from 'sonner';
-import { getApiUrl } from '@/shared/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
@@ -17,7 +18,7 @@ export const useDiagramActions = () => {
 
 
   // Export as clean YAML
-  const handleExportYAML = useCallback(() => {
+  const onExportYAML = useCallback(() => {
     const errorHandler = createErrorHandler('Export YAML');
     try {
       const diagramData = exportDiagram();
@@ -31,7 +32,7 @@ export const useDiagramActions = () => {
   }, [exportDiagram, downloadYaml]);
 
   // Import from YAML
-  const handleImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const onImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -46,9 +47,18 @@ export const useDiagramActions = () => {
             throw new Error('Failed to read file content');
           }
 
-          const diagramData = YamlExporter.fromYAML(result);
+          // Try to detect YAML format
+          let diagramData;
+          if (result.includes('flow:') && (result.includes('prompts:') || result.includes('agents:'))) {
+            // LLM-friendly format
+            diagramData = LLMYamlImporter.fromLLMYAML(result);
+            toast.success('Imported from LLM-friendly YAML format');
+          } else {
+            // Standard format
+            diagramData = YamlExporter.fromYAML(result);
+            toast.success('Imported from YAML format');
+          }
           loadDiagram(diagramData);
-          toast.success('Imported from YAML format');
         },
         undefined,
         errorHandler
@@ -64,19 +74,18 @@ export const useDiagramActions = () => {
 
 
   // Save YAML to backend directory
-  const handleSaveYAMLToDirectory = useCallback(async (filename?: string) => {
+  const onSaveYAMLToDirectory = useCallback(async (filename?: string) => {
     const errorHandler = createErrorHandler('Save YAML to Directory');
 
     await handleAsyncError(
       async () => {
         const diagramData = exportDiagram();
-        const yamlContent = YamlExporter.toYAML(diagramData);
 
-        const res = await fetch(getApiUrl('/api/save'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: yamlContent,
+            diagram: diagramData,
             filename: filename || 'agent-diagram.yaml',
             format: 'yaml'
           }),
@@ -98,18 +107,18 @@ export const useDiagramActions = () => {
   }, [exportDiagram]);
 
   // Save JSON to backend directory (for compatibility)
-  const handleSaveToDirectory = useCallback(async (filename?: string) => {
+  const onSaveToDirectory = useCallback(async (filename?: string) => {
     const errorHandler = createErrorHandler('Save to Directory');
 
     await handleAsyncError(
       async () => {
         const diagramData = exportDiagram();
 
-        const res = await fetch(getApiUrl('/api/save'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: diagramData,
+            diagram: diagramData,
             filename: filename || 'agent-diagram.json',
             format: 'json'
           }),
@@ -131,7 +140,7 @@ export const useDiagramActions = () => {
   }, [exportDiagram]);
 
   // Convert between formats
-  const handleConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const onConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -155,12 +164,27 @@ export const useDiagramActions = () => {
     reader.readAsText(file);
   }, []);
 
+  // Export as LLM-friendly YAML
+  const onExportLLMYAML = useCallback(() => {
+    const errorHandler = createErrorHandler('Export LLM YAML');
+    try {
+      const diagramData = exportDiagram();
+      const yamlContent = LLMYamlImporter.toLLMYAML(diagramData);
+      downloadYaml(yamlContent, 'agent-diagram-llm.yaml');
+      toast.success('Exported to LLM-friendly YAML format');
+    } catch (error) {
+      console.error('Export LLM YAML error:', error);
+      errorHandler(error instanceof Error ? error : new Error('Failed to export to LLM YAML format'));
+    }
+  }, [exportDiagram, downloadYaml]);
+
   return {
-    handleExportYAML,
-    handleImportYAML,
-    handleSaveToDirectory,
-    handleSaveYAMLToDirectory,
-    handleConvertJSONtoYAML,
-    handleExportCanonical: handleExportYAML, // Add this for TopBar compatibility
+    onExportYAML,
+    onExportLLMYAML,
+    onImportYAML,
+    onSaveToDirectory,
+    onSaveYAMLToDirectory,
+    onConvertJSONtoYAML,
+    onExportCanonical: onExportYAML, // Add this for TopBar compatibility
   };
 };

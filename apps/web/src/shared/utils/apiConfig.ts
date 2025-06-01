@@ -16,25 +16,33 @@ export const API_CONFIG = {
   STREAMING_BASE_URL: isDev ? `http://${apiHost}` : '',
 } as const;
 
-// API Endpoints
+// Export for backward compatibility
+export const API_BASE_URL = API_CONFIG.BASE_URL;
+
+// API Endpoints - Standardized with consistent kebab-case and logical grouping
 export const API_ENDPOINTS = {
   // Diagram execution
   RUN_DIAGRAM: '/api/run-diagram',
+  RUN_DIAGRAM_SYNC: '/api/run-diagram-sync',
   STREAMING_RUN: '/api/stream/run-diagram',
   
-  // API Keys
-  API_KEYS: '/api/api-keys',
-  API_KEY_BY_ID: (id: string) => `/api/api-keys/${id}`,
+  // Resource management  
+  API_KEYS: '/api/keys',
+  API_KEY_BY_ID: (id: string) => `/api/keys/${id}`,
+  MODELS: '/api/models',
+  INITIALIZE_MODEL: '/api/initialize-model',
+  CONVERSATIONS: '/api/conversations',
   
   // File operations
   UPLOAD_FILE: '/api/upload-file',
   
-  // Models
-  MODELS: '/api/models',
+  // Import/Export
+  IMPORT_UML: '/api/import-uml',
+  IMPORT_YAML: '/api/import-yaml', 
+  SAVE_DIAGRAM: '/api/save',
+  EXPORT_UML: '/api/export-uml',
   
-  // Conversations
-  CONVERSATIONS: '/api/conversations',
-
+  // Monitoring
   MONITOR_STREAM: '/api/monitor/stream',
 } as const;
 

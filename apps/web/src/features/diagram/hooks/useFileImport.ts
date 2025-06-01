@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import { useConsolidatedDiagramStore } from '@/shared/stores';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/shared/types';
 import { toast } from 'sonner';
-import { getApiUrl } from '@/shared/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
@@ -21,7 +21,7 @@ export const useFileImport = () => {
     await handleAsyncError(
       async () => {
         const text = await file.text();
-        const res = await fetch(getApiUrl('/api/import-uml'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.IMPORT_UML), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uml: text }),
@@ -48,7 +48,7 @@ export const useFileImport = () => {
     await handleAsyncError(
       async () => {
         const text = await file.text();
-        const res = await fetch(getApiUrl('/api/import-yaml'), {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.IMPORT_YAML), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ yaml: text }),
