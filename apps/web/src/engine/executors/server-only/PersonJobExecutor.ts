@@ -41,7 +41,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
     };
   }
 
-  async execute(node: Node, context: TypedExecutionContext, _options?: any): Promise<ExecutorResult> {
+  async execute(node: Node, context: TypedExecutionContext, _options?: Record<string, unknown>): Promise<ExecutorResult> {
     const personId = this.getNodeProperty(node, 'personId', '');
     const inputs = this.getInputValues(node, context);
     
@@ -75,21 +75,27 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
    */
   private async executeLLMCall(
     personId: string,
-    inputs: Record<string, any>,
+    inputs: Record<string, unknown>,
     node: Node,
     context: TypedExecutionContext
   ): Promise<ChatResult> {
     // Get the full person configuration from the store
     // Import at the top level would cause circular dependency, so we import here
     const { useConsolidatedDiagramStore } = await import('@/core/stores');
-    const getPersonById = useConsolidatedDiagramStore.getState().getPersonById;
+    const state = useConsolidatedDiagramStore.getState();
+    const getPersonById = state.getPersonById;
     const person = getPersonById(personId);
+    
+    // Get the correct persons array based on monitor mode
+    const allPersons = state.isMonitorMode ? state.monitorPersons : state.persons;
     
     console.log('[PersonJobExecutor] Retrieving person configuration:', {
       personId,
       personFound: !!person,
       personData: person,
-      allPersons: useConsolidatedDiagramStore.getState().persons
+      isMonitorMode: state.isMonitorMode,
+      allPersons,
+      personCount: allPersons.length
     });
     
     if (!person) {
@@ -112,7 +118,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
     // Call backend API for PersonJob execution
     const payload = {
       nodeId: node.id,
-      person: person, // Send full person configuration
+      person, // Send full person configuration
       prompt: promptToUse, // Use the appropriate prompt
       inputs,
       node_config: {
