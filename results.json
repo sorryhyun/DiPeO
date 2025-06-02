@@ -1,0 +1,558 @@
+{
+  "success": false,
+  "context": {
+    "executionId": "exec_1748858776168_bgpnvg7dh",
+    "nodeOutputs": {},
+    "nodeExecutionCounts": {},
+    "totalCost": 0,
+    "startTime": 1748858776168,
+    "errors": {},
+    "executionOrder": [],
+    "conditionValues": {},
+    "firstOnlyConsumed": {},
+    "diagram": null,
+    "nodesById": {
+      "startNode-HcA946": {
+        "id": "startNode-HcA946",
+        "type": "start",
+        "position": {
+          "x": -518.6,
+          "y": 112.2
+        },
+        "data": {
+          "id": "startNode-HcA946",
+          "type": "start",
+          "label": "Start",
+          "description": ""
+        },
+        "measured": {
+          "width": 80,
+          "height": 80
+        },
+        "selected": false,
+        "dragging": false
+      },
+      "dbNode-KpB26k": {
+        "id": "dbNode-KpB26k",
+        "type": "db",
+        "position": {
+          "x": -430,
+          "y": -70
+        },
+        "data": {
+          "id": "dbNode-KpB26k",
+          "type": "db",
+          "subType": "file",
+          "sourceDetails": "uploads/questions.txt",
+          "label": "DB",
+          "description": ""
+        },
+        "measured": {
+          "width": 256,
+          "height": 92
+        },
+        "selected": false
+      },
+      "endpointNode-hQlewn": {
+        "id": "endpointNode-hQlewn",
+        "type": "endpoint",
+        "position": {
+          "x": -700,
+          "y": 321.4
+        },
+        "data": {
+          "id": "endpointNode-hQlewn",
+          "type": "endpoint",
+          "label": "Endpoint",
+          "description": "",
+          "saveToFile": true,
+          "filePath": "output2.txt",
+          "fileFormat": "text",
+          "flipped": true
+        },
+        "measured": {
+          "width": 96,
+          "height": 96
+        },
+        "selected": false,
+        "dragging": false
+      },
+      "conditionNode-vg7vYZ": {
+        "id": "conditionNode-vg7vYZ",
+        "type": "condition",
+        "position": {
+          "x": -107.6,
+          "y": 340.8
+        },
+        "data": {
+          "id": "conditionNode-vg7vYZ",
+          "type": "condition",
+          "conditionType": "max_iterations",
+          "label": "Condition",
+          "expression": "",
+          "flipped": true
+        },
+        "measured": {
+          "width": 192,
+          "height": 72
+        },
+        "selected": false,
+        "dragging": false
+      },
+      "personJobNode-zmqerO": {
+        "id": "personJobNode-zmqerO",
+        "type": "person_job",
+        "position": {
+          "x": -469.2,
+          "y": 368.8
+        },
+        "data": {
+          "id": "personJobNode-zmqerO",
+          "type": "person_job",
+          "label": "Person Job",
+          "prompt": "",
+          "personId": "PERSON_H3KVZG",
+          "description": "",
+          "flipped": true,
+          "contextCleaningRule": "noForget",
+          "defaultPrompt": "Judge which panel is reasonable."
+        },
+        "measured": {
+          "width": 208,
+          "height": 100
+        },
+        "selected": false,
+        "dragging": false
+      },
+      "personJobNode-Xwxb7x": {
+        "id": "personJobNode-Xwxb7x",
+        "type": "person_job",
+        "position": {
+          "x": -301.6,
+          "y": 177.4
+        },
+        "data": {
+          "id": "personJobNode-Xwxb7x",
+          "type": "person_job",
+          "label": "Person Job",
+          "prompt": "",
+          "personId": "PERSON_Z0TRFM",
+          "description": "",
+          "flipped": false,
+          "contextCleaningRule": "onEveryTurn",
+          "iterationCount": 2,
+          "firstOnlyPrompt": "Suggest a reasonable argue on the topic: {{topic}}",
+          "defaultPrompt": "Argue against the conversation."
+        },
+        "measured": {
+          "width": 208,
+          "height": 122
+        },
+        "selected": false,
+        "dragging": false
+      },
+      "personJobNode-mBSk61": {
+        "id": "personJobNode-mBSk61",
+        "type": "person_job",
+        "position": {
+          "x": 54.6,
+          "y": 171.4
+        },
+        "data": {
+          "id": "personJobNode-mBSk61",
+          "type": "person_job",
+          "label": "Person Job",
+          "prompt": "",
+          "personId": "PERSON_2UUDE_",
+          "description": "",
+          "flipped": false,
+          "contextCleaningRule": "onEveryTurn",
+          "iterationCount": 2,
+          "firstOnlyPrompt": "Suggest a reasonable argue on the topic: {{topic}}",
+          "defaultPrompt": "Argue against the conversation."
+        },
+        "measured": {
+          "width": 208,
+          "height": 122
+        },
+        "selected": false,
+        "dragging": false
+      }
+    },
+    "outgoingArrows": {
+      "startNode-HcA946": [
+        {
+          "id": "arrow-G0PsQV",
+          "source": "startNode-HcA946",
+          "target": "dbNode-KpB26k",
+          "sourceHandle": "startNode-HcA946-output-default",
+          "targetHandle": "dbNode-KpB26k-input-trigger",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-G0PsQV",
+            "sourceBlockId": "startNode-HcA946",
+            "targetBlockId": "dbNode-KpB26k",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "New Arrow",
+            "controlPointOffsetX": 11.6,
+            "controlPointOffsetY": 4.6
+          },
+          "selected": false
+        }
+      ],
+      "dbNode-KpB26k": [
+        {
+          "id": "arrow-yyfTgw",
+          "source": "dbNode-KpB26k",
+          "target": "personJobNode-Xwxb7x",
+          "sourceHandle": "dbNode-KpB26k-output-data",
+          "targetHandle": "personJobNode-Xwxb7x-input-first",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-yyfTgw",
+            "sourceBlockId": "dbNode-KpB26k",
+            "targetBlockId": "personJobNode-Xwxb7x",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "topic",
+            "controlPointOffsetX": -18.4,
+            "controlPointOffsetY": -2.8,
+            "contentType": "raw_text"
+          },
+          "selected": false
+        },
+        {
+          "id": "arrow-XMgDia",
+          "source": "dbNode-KpB26k",
+          "target": "personJobNode-mBSk61",
+          "sourceHandle": "dbNode-KpB26k-output-data",
+          "targetHandle": "personJobNode-mBSk61-input-first",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-XMgDia",
+            "sourceBlockId": "dbNode-KpB26k",
+            "targetBlockId": "personJobNode-mBSk61",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "topic",
+            "controlPointOffsetX": -7.4,
+            "controlPointOffsetY": 11.6,
+            "contentType": "raw_text"
+          },
+          "selected": false
+        }
+      ],
+      "endpointNode-hQlewn": [],
+      "conditionNode-vg7vYZ": [
+        {
+          "id": "arrow-0tJeUD",
+          "source": "conditionNode-vg7vYZ",
+          "target": "personJobNode-zmqerO",
+          "sourceHandle": "conditionNode-vg7vYZ-output-true",
+          "targetHandle": "personJobNode-zmqerO-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-0tJeUD",
+            "sourceBlockId": "conditionNode-vg7vYZ",
+            "targetBlockId": "personJobNode-zmqerO",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        },
+        {
+          "id": "arrow-v0Og8m",
+          "source": "conditionNode-vg7vYZ",
+          "target": "personJobNode-Xwxb7x",
+          "sourceHandle": "conditionNode-vg7vYZ-output-false",
+          "targetHandle": "personJobNode-Xwxb7x-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-v0Og8m",
+            "sourceBlockId": "conditionNode-vg7vYZ",
+            "targetBlockId": "personJobNode-Xwxb7x",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "controlPointOffsetX": -267,
+            "controlPointOffsetY": -1.4,
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        }
+      ],
+      "personJobNode-zmqerO": [
+        {
+          "id": "arrow-QS6BO9",
+          "source": "personJobNode-zmqerO",
+          "target": "endpointNode-hQlewn",
+          "sourceHandle": "personJobNode-zmqerO-output-default",
+          "targetHandle": "endpointNode-hQlewn-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-QS6BO9",
+            "sourceBlockId": "personJobNode-zmqerO",
+            "targetBlockId": "endpointNode-hQlewn",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "New Arrow",
+            "contentType": "raw_text"
+          },
+          "selected": false
+        }
+      ],
+      "personJobNode-Xwxb7x": [
+        {
+          "id": "arrow-whqhTt",
+          "source": "personJobNode-Xwxb7x",
+          "target": "personJobNode-mBSk61",
+          "sourceHandle": "personJobNode-Xwxb7x-output-default",
+          "targetHandle": "personJobNode-mBSk61-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-whqhTt",
+            "sourceBlockId": "personJobNode-Xwxb7x",
+            "targetBlockId": "personJobNode-mBSk61",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        }
+      ],
+      "personJobNode-mBSk61": [
+        {
+          "id": "arrow-aT9WSV",
+          "source": "personJobNode-mBSk61",
+          "target": "conditionNode-vg7vYZ",
+          "sourceHandle": "personJobNode-mBSk61-output-default",
+          "targetHandle": "conditionNode-vg7vYZ-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-aT9WSV",
+            "sourceBlockId": "personJobNode-mBSk61",
+            "targetBlockId": "conditionNode-vg7vYZ",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "controlPointOffsetX": 100.6,
+            "controlPointOffsetY": 89.6,
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        }
+      ]
+    },
+    "incomingArrows": {
+      "startNode-HcA946": [],
+      "dbNode-KpB26k": [
+        {
+          "id": "arrow-G0PsQV",
+          "source": "startNode-HcA946",
+          "target": "dbNode-KpB26k",
+          "sourceHandle": "startNode-HcA946-output-default",
+          "targetHandle": "dbNode-KpB26k-input-trigger",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-G0PsQV",
+            "sourceBlockId": "startNode-HcA946",
+            "targetBlockId": "dbNode-KpB26k",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "New Arrow",
+            "controlPointOffsetX": 11.6,
+            "controlPointOffsetY": 4.6
+          },
+          "selected": false
+        }
+      ],
+      "endpointNode-hQlewn": [
+        {
+          "id": "arrow-QS6BO9",
+          "source": "personJobNode-zmqerO",
+          "target": "endpointNode-hQlewn",
+          "sourceHandle": "personJobNode-zmqerO-output-default",
+          "targetHandle": "endpointNode-hQlewn-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-QS6BO9",
+            "sourceBlockId": "personJobNode-zmqerO",
+            "targetBlockId": "endpointNode-hQlewn",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "New Arrow",
+            "contentType": "raw_text"
+          },
+          "selected": false
+        }
+      ],
+      "conditionNode-vg7vYZ": [
+        {
+          "id": "arrow-aT9WSV",
+          "source": "personJobNode-mBSk61",
+          "target": "conditionNode-vg7vYZ",
+          "sourceHandle": "personJobNode-mBSk61-output-default",
+          "targetHandle": "conditionNode-vg7vYZ-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-aT9WSV",
+            "sourceBlockId": "personJobNode-mBSk61",
+            "targetBlockId": "conditionNode-vg7vYZ",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "controlPointOffsetX": 100.6,
+            "controlPointOffsetY": 89.6,
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        }
+      ],
+      "personJobNode-zmqerO": [
+        {
+          "id": "arrow-0tJeUD",
+          "source": "conditionNode-vg7vYZ",
+          "target": "personJobNode-zmqerO",
+          "sourceHandle": "conditionNode-vg7vYZ-output-true",
+          "targetHandle": "personJobNode-zmqerO-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-0tJeUD",
+            "sourceBlockId": "conditionNode-vg7vYZ",
+            "targetBlockId": "personJobNode-zmqerO",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        }
+      ],
+      "personJobNode-Xwxb7x": [
+        {
+          "id": "arrow-yyfTgw",
+          "source": "dbNode-KpB26k",
+          "target": "personJobNode-Xwxb7x",
+          "sourceHandle": "dbNode-KpB26k-output-data",
+          "targetHandle": "personJobNode-Xwxb7x-input-first",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-yyfTgw",
+            "sourceBlockId": "dbNode-KpB26k",
+            "targetBlockId": "personJobNode-Xwxb7x",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "topic",
+            "controlPointOffsetX": -18.4,
+            "controlPointOffsetY": -2.8,
+            "contentType": "raw_text"
+          },
+          "selected": false
+        },
+        {
+          "id": "arrow-v0Og8m",
+          "source": "conditionNode-vg7vYZ",
+          "target": "personJobNode-Xwxb7x",
+          "sourceHandle": "conditionNode-vg7vYZ-output-false",
+          "targetHandle": "personJobNode-Xwxb7x-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-v0Og8m",
+            "sourceBlockId": "conditionNode-vg7vYZ",
+            "targetBlockId": "personJobNode-Xwxb7x",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "controlPointOffsetX": -267,
+            "controlPointOffsetY": -1.4,
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        }
+      ],
+      "personJobNode-mBSk61": [
+        {
+          "id": "arrow-whqhTt",
+          "source": "personJobNode-Xwxb7x",
+          "target": "personJobNode-mBSk61",
+          "sourceHandle": "personJobNode-Xwxb7x-output-default",
+          "targetHandle": "personJobNode-mBSk61-input-default",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-whqhTt",
+            "sourceBlockId": "personJobNode-Xwxb7x",
+            "targetBlockId": "personJobNode-mBSk61",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "conversation",
+            "contentType": "conversation_state"
+          },
+          "selected": false
+        },
+        {
+          "id": "arrow-XMgDia",
+          "source": "dbNode-KpB26k",
+          "target": "personJobNode-mBSk61",
+          "sourceHandle": "dbNode-KpB26k-output-data",
+          "targetHandle": "personJobNode-mBSk61-input-first",
+          "type": "customArrow",
+          "data": {
+            "id": "arrow-XMgDia",
+            "sourceBlockId": "dbNode-KpB26k",
+            "targetBlockId": "personJobNode-mBSk61",
+            "kind": "ALL",
+            "template": "",
+            "conversationState": false,
+            "label": "topic",
+            "controlPointOffsetX": -7.4,
+            "controlPointOffsetY": 11.6,
+            "contentType": "raw_text"
+          },
+          "selected": false
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "executionId": "exec_1748858776168_bgpnvg7dh",
+    "startTime": 1748858776168,
+    "totalCost": 0,
+    "nodeCount": 7,
+    "status": "failed",
+    "endTime": 1748858776194
+  },
+  "finalOutputs": {},
+  "errors": [
+    {
+      "nodeId": "dbNode-KpB26k",
+      "nodeType": "db",
+      "message": "Input validation failed: Database operation is required",
+      "details": {
+        "validationErrors": [
+          "Database operation is required"
+        ]
+      },
+      "timestamp": "2025-06-02T10:06:16.194Z",
+      "stack": "NodeExecutionError: Input validation failed: Database operation is required\n    at _ExecutionEngine.executeNode (/home/soryhyun/DiPeO/execution_runner.cjs:2512:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async _ExecutionEngine.executeNodes (/home/soryhyun/DiPeO/execution_runner.cjs:2445:11)\n    at async _ExecutionEngine.execute (/home/soryhyun/DiPeO/execution_runner.cjs:2291:28)\n    at async main (/home/soryhyun/DiPeO/execution_runner.cjs:2809:20)"
+    }
+  ]
+}

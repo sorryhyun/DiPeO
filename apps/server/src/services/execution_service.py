@@ -190,7 +190,7 @@ class ExecutionService(BaseService):
         if sub_type == 'file':
             try:
                 # Read file content
-                content = await self.file_service.read(source_details, format="text")
+                content = self.file_service.read(source_details)
                 return {
                     "output": content,
                     "cost": 0,
