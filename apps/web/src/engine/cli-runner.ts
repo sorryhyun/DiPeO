@@ -14,6 +14,94 @@ declare const process: NodeJS.Process;
 declare function require(id: string): any;
 declare const module: any;
 
+/**
+ * CLI Stream Manager for broadcasting execution events to monitor
+ */
+class CLIStreamManager {
+  private apiUrl: string;
+
+  constructor(apiUrl = 'http://localhost:8000') {
+    this.apiUrl = apiUrl;
+  }
+
+  async broadcastEvent(eventData: any) {
+    try {
+      const response = await fetch(`${this.apiUrl}/api/monitor/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData)
+      });
+      
+      if (!response.ok) {
+        console.warn(`Failed to broadcast event: ${response.status}`);
+      }
+    } catch (error) {
+      console.warn('Monitor broadcast failed:', error);
+    }
+  }
+
+  emit(update: any): void {
+    // Debug logging
+    console.log('🔄 CLI Stream Manager emit:', update.type, update.nodeId || update.executionId);
+    
+    // Map execution engine events to monitor events
+    const { type, executionId, nodeId, data } = update;
+    
+    switch (type) {
+      case 'execution_started':
+        console.log('📡 Broadcasting execution_started...');
+        this.broadcastEvent({
+          type: 'execution_started',
+          execution_id: executionId,
+          diagram: data?.diagram
+        });
+        break;
+        
+      case 'node_started':
+        console.log('📡 Broadcasting node_start for:', nodeId);
+        this.broadcastEvent({
+          type: 'node_start',
+          nodeId: nodeId
+        });
+        break;
+        
+      case 'node_completed':
+        console.log('📡 Broadcasting node_complete for:', nodeId);
+        this.broadcastEvent({
+          type: 'node_complete', 
+          nodeId: nodeId,
+          output_preview: data?.result?.output ? String(data.result.output).substring(0, 100) : undefined
+        });
+        break;
+        
+      case 'execution_completed':
+        console.log('📡 Broadcasting execution_complete...');
+        this.broadcastEvent({
+          type: 'execution_complete',
+          context: data?.context || {}
+        });
+        break;
+        
+      case 'execution_failed':
+        console.log('📡 Broadcasting execution_error...');
+        this.broadcastEvent({
+          type: 'execution_error',
+          error: data?.error?.message || 'Execution failed'
+        });
+        break;
+        
+      default:
+        console.log('⚠️  Unknown stream event type:', type);
+    }
+  }
+
+  isEnabled(): boolean {
+    return true;
+  }
+}
+
 // Polyfill fetch for Node.js environment
 if (typeof globalThis.fetch === 'undefined') {
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
@@ -38,12 +126,18 @@ async function main() {
     const diagramData = JSON.parse(fs.readFileSync(diagramPath, 'utf8')) as Diagram;
     console.log(`📂 Loaded diagram from ${diagramPath}`);
     
-    // Create orchestrator
-    const orchestrator = new StandardExecutionOrchestrator();
+    // Create stream manager for CLI execution monitoring
+    const streamManager = new CLIStreamManager();
+    console.log('📊 Created CLI stream manager');
+    
+    // Create orchestrator with stream manager
+    const orchestrator = new StandardExecutionOrchestrator(undefined, streamManager);
+    console.log('🎭 Created orchestrator with stream manager');
     
     // Execute diagram
     console.log('🚀 Starting execution...\n');
     const result = await orchestrator.execute(diagramData);
+    console.log('✅ Execution completed, result:', result.success);
     
     // Display summary
     console.log('\n📊 Execution Summary:');

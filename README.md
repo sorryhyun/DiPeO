@@ -26,114 +26,155 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 * 단순히 다이어그램을 만드는것만이 아니라 각 다이어그램의 입출력을 api로 받을 수 있게 하여 Claude Code와 같은 에이전트 기반 툴이 다이어그램을 활용할 수 있게 했습니다. Claude Code가 다이어그램을 대신 만들거나, 또 사람이 만든 다이어그램을 수정하는, 시각적인 협업도 시도하고자 했습니다.
 
-## ✨ Key Capabilities
+## Overview
 
-| Category                   | Highlights                                                                                    |
-| -------------------------- | --------------------------------------------------------------------------------------------- |
-| **Visual Workflow Design** | Drag‑and‑drop node editor with auto‑generated handles and right‑click context menus.          |
-| **Multi‑LLM Execution**    | First‑class adapters for OpenAI, Anthropic, Google Gemini, Grok, and pluggable providers.     |
-| **Streaming Runtime**      | Server‑sent events (SSE) stream node start/complete, cost, and memory updates live to the UI. |
-| **Persistent Memory**      | Person‑scoped conversational memory with 3‑D “layer” visualisation.                           |
-| **Cost & Usage Tracking**  | Fine‑grained token and dollar accounting per node and per run.                                |
-| **Modular Packages**       | Reusable UI kit, diagram components, property panels, and typed data models.                  |
-| **Secure File Ops**        | Sand‑boxed file I/O, path validation, size limits, and MIME checks.                           |
+DiPeO implements a **hybrid client-server execution model** that intelligently orchestrates diagram execution between frontend and backend environments based on security and capability requirements.
 
----
-
-## 📂 Repository Layout
+## Architecture Layers
 
 ```
-.
-├── apps/
-│   ├── web/        # React 19 + Vite frontend (AgentDiagram UI)
-│   └── server/     # FastAPI backend (diagram executor)
-│
-└── README.md       # ← you are here
+Frontend (React/Node.js) ←→ Backend (FastAPI/Python)
+    ↓                           ↓
+Client-Safe Executors      Server-Only Executors
+(Start, Condition, Job,    (PersonJob, DB blocks)
+ Endpoint)
 ```
 
----
+### Execution Orchestration
 
-## 🚀 Quick Start (Local Dev)
+- **`ExecutionOrchestrator`**: Auto-detects environment, routes execution
+- **`ExecutionEngine`**: Core execution logic with dependency resolution  
+- **`ExecutorFactory`**: Creates environment-appropriate executors
+- **Base Executors**: Abstract classes for client-safe vs server-only operations
+
+## Node Classification
+
+### Client-Safe Nodes (Local Execution)
+- **Start**: Initializes execution flow with static data
+- **Condition**: Boolean logic and branching  
+- **Job**: Stateless operations and safe code execution
+- **Endpoint**: Terminal nodes with optional file saving
+
+### Server-Only Nodes (Backend API Calls)
+- **PersonJob/PersonBatchJob**: LLM API calls with memory management
+- **DB**: File I/O, database operations, data sources
+
+## Execution Strategies
+
+1. **Client-Only**: All nodes execute locally
+2. **Server-Only**: All nodes require backend execution
+3. **Hybrid**: Mixed execution with selective API calls
+
+## Execution Flow Algorithm
+
+```typescript
+// 1. Dependency Analysis & Planning
+const plan = dependencyResolver.createExecutionPlan(diagram);
+
+// 2. Environment-Based Executor Selection  
+const executors = executorFactory.createExecutors(plan.strategy);
+
+// 3. Iterative Node Execution
+while (pendingNodes.size > 0) {
+  for (const node of readyNodes) {
+    if (isClientSafe(node)) {
+      result = executeLocally(node);
+    } else {
+      result = await callBackendAPI(node); // /api/nodes/{type}/execute
+    }
+    updateContext(result);
+  }
+}
+```
+
+## Loop Algorithm
+
+- There is no special mechanism dedicated to loops, but a loop can be implemented using the following two mechanisms:
+
+1. The person job block has an attribute called max_iteration. Once the block has been executed up to the number of times specified by max_iteration, it will be skipped for any subsequent requests. During this skipping, the forget rule does not apply, and all inputs are counted regardless of whether they were received via the first only handle or the default handle. For reference, the first only handle is used only for the initial execution of the block, after which it only accepts inputs through the default handle. If a first only handle is defined, the block will not accept input from the default handle on its first execution.
+
+2. The condition block decides whether to proceed with true or false using either the detect max iteration feature or an expression. When using detect max iteration, it proceeds with true if the preceding blocks have reached their max iteration and have been skipped; otherwise, it proceeds with false.
+
+- Therefore, if you place two person job blocks with max_iterations=2 and connect them to a condition block set to detect max iteration, you can implement a loop that runs twice.
+
+## Key Features
+
+### Dependency Management
+- Topological sorting for optimal execution order
+- Cycle detection with loop controller
+- First-only handle logic for PersonJob nodes
+- Condition branching with true/false paths
+
+### Execution Context
+```typescript
+interface ExecutionContext {
+  nodeOutputs: Record<string, any>;           // Results from each node
+  nodeExecutionCounts: Record<string, number>; // Iteration tracking
+  conditionValues: Record<string, boolean>;    // Branch decisions
+  firstOnlyConsumed: Record<string, boolean>;  // First-only tracking
+  executionOrder: string[];                    // Execution sequence
+  totalCost: number;                          // Aggregated costs
+}
+```
+
+### Advanced Controls
+- **Loop Management**: Max iteration enforcement per node
+- **Skip Management**: Centralized skip logic with reasons
+- **Streaming Updates**: Real-time execution via SSE
+- **Error Handling**: Continue-on-error in debug mode
+
+## Backend API Endpoints
+
+### Node Operations (Server-Only)
+- `POST /api/nodes/personjob/execute` - LLM calls with person config
+- `POST /api/nodes/db/execute` - File operations and data sources
+- `POST /api/nodes/endpoint/execute` - File saving operations
+
+### Diagram Execution
+- `POST /api/run-diagram` - Full backend execution with SSE streaming
+- `GET /api/monitor/stream` - SSE endpoint for execution monitoring
+
+## CLI Tool Integration
+
+The Python CLI tool leverages frontend execution logic via Node.js:
 
 ```bash
-# 1. Clone
-$ git clone https://github.com/sorryhyun/DiPeO.git
-$ cd DiPeO
+# Build the CLI runner (required after frontend changes)
+pnpm build:cli
 
-# 2. Install deps (pnpm & Python virtualenv recommended)
-$ pnpm install          # JS/TS workspace deps
-$ cd apps/server && python -m venv venv && source venv/bin/activate
-$ pip install -r requirements.txt
+# Hybrid execution (recommended)
+python tool.py run-and-monitor diagram.json
 
-# 3. Run all services
-# in one terminal
-$ pnpm dev:web            # React dev server on :3000
-# in another
-$ uvicorn apps.server.main:app --reload --port 8000
-
-# 5. Open http://localhost:3000 and start building diagrams!
+# Execution modes
+python tool.py run diagram.json           # Hybrid with fallback
+python tool.py run-headless diagram.json  # Pure backend execution
 ```
 
----
+**Execution Strategy:**
+- Client-safe nodes execute locally for performance
+- Server-only nodes make targeted API calls to backend
+- Automatic fallback to pure backend if Node.js unavailable
 
-## 🌐 Frontend (`apps/web`)
+## Benefits
 
-* React 19 with concurrent features and Suspense.
-* Tailwind CSS utility‑first styling, headless UI patterns.
-* Zustand stores split into **diagram**, **UI**, **execution**, and **history** domains.
-* React Flow canvas with smart snapping, bezier edges, and dynamic handle configs.
-* Integrated dashboard for **conversation** and **properties** tabs.
-* 3‑D memory layer tilt for conversation context exploration.
+- **Security**: Sensitive operations (LLM APIs, file system) stay server-side
+- **Performance**: Local execution where safe, reducing network overhead
+- **Flexibility**: Works across browser, CLI, and pure backend scenarios
+- **Resilience**: Graceful fallback strategies for different environments
 
-### Common NPM Scripts
+## File Locations
 
-```bash
-pnpm dev:web           # Start Vite dev server
-pnpm build:web         # Production build → dist/
-pnpm analyze           # Bundle visualiser
-```
+### Frontend Execution Engine
+- `apps/web/src/execution/execution-orchestrator.ts`
+- `apps/web/src/execution/core/execution-engine.ts`
+- `apps/web/src/execution/executors/`
 
----
+### CLI Integration
+- `tool.py` - Python CLI with hybrid execution
+- `execution_runner.cjs` - Generated Node.js bundle (run `pnpm build:cli`)
+- `apps/web/src/engine/cli-runner.ts` - CLI entry point source
+- `esbuild.config.cjs` - Build configuration
 
-## ⚙️ Backend (`apps/server`)
-
-* FastAPI 0.111 with async/await throughout.
-* Graph scheduler with topological sort, conditional branches, and loop detection.
-* SSE streaming wrapper emitting `node_start`, `node_complete`, `execution_complete`, and heartbeats.
-* Pluggable LLM adapters (`llm_service`) and person‑oriented memory service.
-* Secure file service for uploads/downloads with size & MIME guards.
-* Coverage‑enforced pytest suite, Locust load‑tests, and pre‑commit hooks.
-
-### CLI Utilities
-
-```bash
-uvicorn main:app --reload --port 8000   # Dev server
-pytest --cov=src                       # Run tests with coverage
-locust -f tests/performance/locustfile.py   # Load testing
-```
-
----
-
-## 🧑‍💻 Contributing
-
-1. **Fork & Branch** - `feature/<short-name>`.
-2. **Commit** – Conventional Commits (`feat:`, `fix:`, `docs:` …).
-3. **Test & Lint** – All packages and apps must pass `pnpm typecheck`, `pytest`, and ESLint.
-4. **PR** – Describe motivation, usage, screenshots/GIFs where helpful.
-5. **Review** – Address CI feedback, maintain ≥80% coverage.
-
-We love issues and ideas! Feel free to open a discussion if you’re unsure where to start.
-
----
-
-## 📜 License
-
-This project is open‑source under the **MIT License**. See `LICENSE` for details.
-
----
-
-## 🙏 Acknowledgements
-
-* [React Flow](https://reactflow.dev/)
-* [FastAPI](https://fastapi.tiangolo.com/)
-* The amazing OSS community making agent tooling possible.
+### Backend API
+- `apps/server/src/api/routers/` - API endpoint implementations
+- `apps/server/src/services/` - Core business logic services

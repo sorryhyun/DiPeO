@@ -184,8 +184,9 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
   job: {
     // Visual config
     handles: [
-      { type: 'input', position: Position.Left, name: 'job', offset: 50, color: '#2563eb' },
-      { type: 'output', position: Position.Right, name: 'job', offset: 50, color: '#059669' }
+      { type: 'input', position: Position.Left, name: 'first', offset: 30, color: '#9333ea' },
+      { type: 'input', position: Position.Left, name: 'default', offset: 70, color: '#0d9488' },
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#ea580c' }
     ],
     borderColor: 'blue',
     width: 'w-48',

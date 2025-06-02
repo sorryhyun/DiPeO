@@ -83,6 +83,8 @@ export interface JobBlockData extends BaseBlockData {
   type: 'job';
   subType: JobBlockSubType;
   sourceDetails: string;
+  iterationCount?: number;
+  firstOnlyPrompt?: string;
 }
 
 export type DBBlockSubType = 'fixed_prompt' | 'file';

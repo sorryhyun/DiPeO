@@ -20,19 +20,23 @@ export class JobExecutor extends ClientSafeExecutor {
 
     const errors: string[] = [];
 
-    // Validate either jobType or code is provided
+    // Validate either jobType, code, or sourceDetails is provided
     const jobType = this.getNodeProperty(node, 'jobType', '');
     const code = this.getNodeProperty(node, 'code', '');
+    const sourceDetails = this.getNodeProperty(node, 'sourceDetails', '');
     
-    if (!jobType && !code) {
-      errors.push('Either job type or code is required');
+    if (!jobType && !code && !sourceDetails) {
+      errors.push('Either job type, code, or source details is required');
     }
 
-    // Validate max iterations if provided
+    // Validate max iterations if provided  
     const maxIterations = this.getNodeProperty(node, 'maxIterations', null);
-    if (maxIterations !== null && maxIterations !== undefined) {
-      const maxIter = Number(maxIterations);
-      if (isNaN(maxIter) || maxIter < 1) {
+    const iterationCount = this.getNodeProperty(node, 'iterationCount', null);
+    const maxIter = maxIterations || iterationCount;
+    
+    if (maxIter !== null && maxIter !== undefined) {
+      const maxIterNum = Number(maxIter);
+      if (isNaN(maxIterNum) || maxIterNum < 1) {
         errors.push('Max iterations must be a positive number');
       }
     }
@@ -46,31 +50,44 @@ export class JobExecutor extends ClientSafeExecutor {
   async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
     const jobType = this.getNodeProperty(node, 'jobType', '');
     const code = this.getNodeProperty(node, 'code', '');
+    const sourceDetails = this.getNodeProperty(node, 'sourceDetails', '');
+    const firstOnlyPrompt = this.getNodeProperty(node, 'firstOnlyPrompt', '');
     const inputs = this.getInputValues(node, context);
+    
+    // Check if this execution is via first-only handle by examining input sources
+    const isFirstOnlyExecution = this.isExecutionViaFirstOnlyHandle(node, context);
+    const promptToUse = (firstOnlyPrompt && isFirstOnlyExecution) ? firstOnlyPrompt : sourceDetails;
     
     try {
       let result: any;
       
-      if (code) {
-        // Execute JavaScript code
-        result = await this.executeCode(code, inputs, context);
+      if (code || sourceDetails) {
+        // Execute JavaScript code or use details as code
+        const codeToExecute = code || promptToUse;
+        result = await this.executeCode(codeToExecute, inputs, context);
       } else if (jobType) {
         // Execute predefined job type
         result = await this.executeJob(jobType, inputs, node);
       } else {
-        throw new Error('Either jobType or code must be provided');
+        throw new Error('Either jobType, code, or sourceDetails must be provided');
       }
       
       return this.createSuccessResult(result, 0, {
         jobType: jobType || 'code',
         inputKeys: Object.keys(inputs),
-        executedAt: new Date().toISOString()
+        executedAt: new Date().toISOString(),
+        usedFirstOnlyPrompt: firstOnlyPrompt && isFirstOnlyExecution
       });
     } catch (error) {
       throw this.createExecutionError(
         `Failed to execute job: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { jobType: jobType || 'code', inputs, error: error instanceof Error ? error.message : String(error) }
+        { 
+          jobType: jobType || 'code', 
+          inputs, 
+          usedFirstOnlyPrompt: firstOnlyPrompt && isFirstOnlyExecution,
+          error: error instanceof Error ? error.message : String(error) 
+        }
       );
     }
   }
@@ -301,5 +318,16 @@ export class JobExecutor extends ClientSafeExecutor {
     if (trimmed === 'false') return false;
 
     return trimmed;
+  }
+
+  /**
+   * Check if this execution is via first-only handle by examining the input sources
+   */
+  private isExecutionViaFirstOnlyHandle(node: Node, context: TypedExecutionContext): boolean {
+    const inputs = this.getInputValues(node, context);
+    const inputKeys = Object.keys(inputs);
+    
+    // Check if any input came from a first-only handle
+    return inputKeys.some(key => key.includes('-input-first'));
   }
 }
