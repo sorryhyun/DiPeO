@@ -7,7 +7,7 @@ import uuid
 from typing import Dict, Any
 
 from ...services.diagram_service import DiagramService
-from ...utils.dependencies import get_diagram_service
+from ...utils.dependencies import get_diagram_service, get_llm_service, get_memory_service, get_unified_file_service
 
 router = APIRouter(prefix="/api", tags=["diagram"])
 
@@ -103,11 +103,17 @@ async def stream_run_diagram(diagram_data: dict):
 
 
 @router.post("/run-diagram")
-async def run_diagram(diagram_data: dict):
+async def run_diagram(
+    diagram_data: dict,
+    diagram_service: DiagramService = Depends(get_diagram_service),
+    llm_service = Depends(get_llm_service),
+    memory_service = Depends(get_memory_service),
+    file_service = Depends(get_unified_file_service)
+):
     """
     Execute diagram synchronously.
     
-    This is a simplified implementation for synchronous execution.
+    This endpoint actually executes the diagram using the execution service.
     """
     try:
         nodes = diagram_data.get('nodes', [])
@@ -116,16 +122,15 @@ async def run_diagram(diagram_data: dict):
         if not start_nodes:
             raise HTTPException(status_code=400, detail="No start nodes found")
         
-        execution_id = str(uuid.uuid4())
+        # Import and create execution service
+        from ...services.execution_service import ExecutionService
         
-        return {
-            "success": True,
-            "execution_id": execution_id,
-            "context": {
-                "execution_id": execution_id,
-                "nodes_processed": len(nodes)
-            }
-        }
+        execution_service = ExecutionService(llm_service, memory_service, file_service)
+        
+        # Execute the diagram
+        result = await execution_service.execute_diagram(diagram_data)
+        
+        return result
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
