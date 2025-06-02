@@ -10,6 +10,7 @@ import {
 } from '@/shared/types/core';
 
 import { ClientSafeExecutor } from '../base-executor';
+import { getApiUrl } from '@/shared/utils/apiConfig';
 
 export class EndpointExecutor extends ClientSafeExecutor {
   async validateInputs(node: Node, context: TypedExecutionContext): Promise<ExecutorValidation> {
@@ -142,10 +143,13 @@ export class EndpointExecutor extends ClientSafeExecutor {
       nodeId: node.id,
       filePath,
       fileFormat,
-      content: output
+      content: output,
+      save_to_file: true,
+      file_path: filePath,
+      file_format: fileFormat
     };
 
-    const response = await fetch('/api/nodes/endpoint/execute', {
+    const response = await fetch(getApiUrl('/api/nodes/endpoint/execute'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

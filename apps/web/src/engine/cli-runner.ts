@@ -126,6 +126,22 @@ async function main() {
     const diagramData = JSON.parse(fs.readFileSync(diagramPath, 'utf8')) as Diagram;
     console.log(`📂 Loaded diagram from ${diagramPath}`);
     
+    // Load diagram into stores for proper execution
+    // This is crucial for PersonJob nodes to find person configurations
+    const { useDiagramOperationsStore } = await import('@/core/stores/diagramOperationsStore');
+    console.log('🔄 Loading diagram into stores...');
+    
+    // Convert Diagram to DiagramState (add apiKeys field if missing)
+    const diagramState = {
+      ...diagramData,
+      nodes: diagramData.nodes as any[], // DiagramNode type
+      arrows: diagramData.arrows as any[], // Edge<ArrowData> type
+      apiKeys: (diagramData as any).apiKeys || [] // Add apiKeys if missing
+    };
+    
+    useDiagramOperationsStore.getState().loadDiagram(diagramState);
+    console.log('✅ Diagram loaded into stores');
+    
     // Create stream manager for CLI execution monitoring
     const streamManager = new CLIStreamManager();
     console.log('📊 Created CLI stream manager');

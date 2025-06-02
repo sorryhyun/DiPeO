@@ -7,11 +7,11 @@ import {
   ExecutorResult, 
   ExecutorValidation,
   ExecutionContext as TypedExecutionContext,
-  LLMService,
   ChatResult
 } from '@/shared/types/core';
 
 import { ServerOnlyExecutor } from '../base-executor';
+import { getApiUrl } from '@/shared/utils/apiConfig';
 
 export class PersonJobExecutor extends ServerOnlyExecutor {
   async validateInputs(node: Node, _context: TypedExecutionContext): Promise<ExecutorValidation> {
@@ -28,16 +28,11 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
       errors.push('Person ID is required');
     }
 
-    // Validate prompt
-    const prompt = this.getNodeProperty(node, 'prompt', '');
-    if (!prompt) {
-      errors.push('Prompt is required');
-    }
-
-    // Validate LLM service
-    const llmService = this.getNodeProperty(node, 'llmService', '');
-    if (!llmService) {
-      errors.push('LLM service is required');
+    // Validate prompt - must have either defaultPrompt or firstOnlyPrompt
+    const defaultPrompt = this.getNodeProperty(node, 'defaultPrompt', '');
+    const firstOnlyPrompt = this.getNodeProperty(node, 'firstOnlyPrompt', '');
+    if (!defaultPrompt && !firstOnlyPrompt) {
+      errors.push('Either defaultPrompt or firstOnlyPrompt is required');
     }
 
     return {
@@ -48,19 +43,17 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
 
   async execute(node: Node, context: TypedExecutionContext, _options?: any): Promise<ExecutorResult> {
     const personId = this.getNodeProperty(node, 'personId', '');
-    const llmService = this.getNodeProperty(node, 'llmService', '') as LLMService;
     const inputs = this.getInputValues(node, context);
     
     try {
       // This would be implemented by the server-side version
-      const result = await this.executeLLMCall(personId, llmService, inputs, node, context);
+      const result = await this.executeLLMCall(personId, inputs, node, context);
       
       // Calculate cost from the backend response
       const cost = result.usage?.cost || 0;
       
       return this.createSuccessResult(result.text, cost, {
         personId,
-        llmService,
         usage: result.usage,
         promptTokens: result.promptTokens,
         completionTokens: result.completionTokens,
@@ -72,7 +65,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
       throw this.createExecutionError(
         `Failed to execute PersonJob: ${errorMessage}`,
         node,
-        { personId, llmService, error: errorMessage }
+        { personId, error: errorMessage }
       );
     }
   }
@@ -82,7 +75,6 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
    */
   private async executeLLMCall(
     personId: string,
-    llmService: LLMService,
     inputs: Record<string, any>,
     node: Node,
     context: TypedExecutionContext
@@ -140,7 +132,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
       inputKeys: Object.keys(inputs)
     });
 
-    const response = await fetch('/api/nodes/personjob/execute', {
+    const response = await fetch(getApiUrl('/api/nodes/personjob/execute'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -154,8 +146,7 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
         `PersonJob API call failed: ${response.status} ${errorText}`,
         node,
         { 
-          personId, 
-          llmService,
+          personId,
           status: response.status,
           error: errorText
         }

@@ -12,6 +12,7 @@ import {
 } from '@/shared/types/core';
 
 import { ServerOnlyExecutor } from '../base-executor';
+import { getApiUrl } from '@/shared/utils/apiConfig';
 
 export class PersonBatchJobExecutor extends ServerOnlyExecutor {
   async validateInputs(node: Node, _context: TypedExecutionContext): Promise<ExecutorValidation> {
@@ -121,7 +122,7 @@ export class PersonBatchJobExecutor extends ServerOnlyExecutor {
 
     // Note: PersonBatchJob might use the same endpoint as PersonJob
     // or have its own endpoint - adjust as needed based on backend implementation
-    const response = await fetch('/api/nodes/personbatchjob/execute', {
+    const response = await fetch(getApiUrl('/api/nodes/personbatchjob/execute'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

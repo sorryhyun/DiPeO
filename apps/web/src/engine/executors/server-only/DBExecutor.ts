@@ -10,6 +10,7 @@ import {
 } from '@/shared/types/core';
 
 import { ServerOnlyExecutor } from '../base-executor';
+import { getApiUrl } from '@/shared/utils/apiConfig';
 
 export class DBExecutor extends ServerOnlyExecutor {
   async validateInputs(node: Node, context: TypedExecutionContext): Promise<ExecutorValidation> {
@@ -20,23 +21,21 @@ export class DBExecutor extends ServerOnlyExecutor {
 
     const errors: string[] = [];
 
-    // Validate operation type
-    const operation = this.getNodeProperty(node, 'operation', '') as string;
-    if (!operation) {
-      errors.push('Database operation is required');
+    // Validate sub type
+    const subType = this.getNodeProperty(node, 'subType', '') as string;
+    if (!subType) {
+      errors.push('Database sub type is required');
     }
 
-    const validOperations = ['read', 'write', 'append', 'delete', 'list', 'query'];
-    if (operation && !validOperations.includes(operation.toLowerCase())) {
-      errors.push(`Invalid operation. Must be one of: ${validOperations.join(', ')}`);
+    const validSubTypes = ['file', 'fixed_prompt', 'api_tool'];
+    if (subType && !validSubTypes.includes(subType)) {
+      errors.push(`Invalid sub type. Must be one of: ${validSubTypes.join(', ')}`);
     }
 
-    // Validate file path for file operations
-    if (['read', 'write', 'append', 'delete'].includes(operation.toLowerCase())) {
-      const filePath = this.getNodeProperty(node, 'filePath', '');
-      if (!filePath) {
-        errors.push('File path is required for file operations');
-      }
+    // Validate source details
+    const sourceDetails = this.getNodeProperty(node, 'sourceDetails', '');
+    if (!sourceDetails) {
+      errors.push('Source details are required');
     }
 
     return {
@@ -45,24 +44,24 @@ export class DBExecutor extends ServerOnlyExecutor {
     };
   }
 
-  async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
-    const operation = this.getNodeProperty(node, 'operation', '').toLowerCase();
-    const filePath = this.getNodeProperty(node, 'filePath', '');
+  async execute(node: Node, context: TypedExecutionContext, _options?: any): Promise<ExecutorResult> {
+    const subType = this.getNodeProperty(node, 'subType', '') as string;
+    const sourceDetails = this.getNodeProperty(node, 'sourceDetails', '');
     const inputs = this.getInputValues(node, context);
     
     try {
-      const result = await this.executeDBOperation(operation, filePath, inputs, node);
+      const result = await this.executeDBOperation(subType, sourceDetails, inputs, node);
       
       return this.createSuccessResult(result, 0, {
-        operation,
-        filePath,
+        subType,
+        sourceDetails,
         executedAt: new Date().toISOString()
       });
     } catch (error) {
       throw this.createExecutionError(
         `Failed to execute DB operation: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { operation, filePath, error: error instanceof Error ? error.message : String(error) }
+        { subType, sourceDetails, error: error instanceof Error ? error.message : String(error) }
       );
     }
   }
@@ -71,21 +70,20 @@ export class DBExecutor extends ServerOnlyExecutor {
    * Execute database operation via backend API
    */
   private async executeDBOperation(
-    operation: string,
-    filePath: string,
+    subType: string,
+    sourceDetails: string,
     inputs: Record<string, any>,
     node: Node
   ): Promise<any> {
     // Call backend API for DB operation execution
     const payload = {
       nodeId: node.id,
-      operation,
-      filePath,
-      inputs,
-      data: this.getNodeProperty(node, 'data', '')
+      sub_type: subType,
+      source_details: sourceDetails,
+      inputs
     };
 
-    const response = await fetch('/api/nodes/db/execute', {
+    const response = await fetch(getApiUrl('/api/nodes/db/execute'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -99,8 +97,8 @@ export class DBExecutor extends ServerOnlyExecutor {
         `DB operation API call failed: ${response.status} ${errorText}`,
         node,
         { 
-          operation,
-          filePath,
+          subType,
+          sourceDetails,
           status: response.status,
           error: errorText
         }
