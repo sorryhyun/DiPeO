@@ -48,13 +48,12 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
 
   async execute(node: Node, context: TypedExecutionContext, _options?: any): Promise<ExecutorResult> {
     const personId = this.getNodeProperty(node, 'personId', '');
-    const prompt = this.getNodeProperty(node, 'prompt', '');
     const llmService = this.getNodeProperty(node, 'llmService', '') as LLMService;
     const inputs = this.getInputValues(node, context);
     
     try {
       // This would be implemented by the server-side version
-      const result = await this.executeLLMCall(personId, prompt, llmService, inputs, node, context);
+      const result = await this.executeLLMCall(personId, llmService, inputs, node, context);
       
       // Calculate cost from the backend response
       const cost = result.usage?.cost || 0;
@@ -83,24 +82,43 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
    */
   private async executeLLMCall(
     personId: string,
-    prompt: string,
     llmService: LLMService,
     inputs: Record<string, any>,
     node: Node,
     context: TypedExecutionContext
   ): Promise<ChatResult> {
+    // Get the full person configuration from the store
+    // Import at the top level would cause circular dependency, so we import here
+    const { useConsolidatedDiagramStore } = await import('@/core/stores');
+    const getPersonById = useConsolidatedDiagramStore.getState().getPersonById;
+    const person = getPersonById(personId);
+    
+    if (!person) {
+      throw this.createExecutionError(
+        `Person with ID ${personId} not found`,
+        node,
+        { personId }
+      );
+    }
+
+    // Get the actual prompt to use based on execution count and available prompts
+    const executionCount = context.nodeExecutionCounts[node.id] || 0;
+    const isFirstExecution = executionCount === 0;
+    const firstOnlyPrompt = this.getNodeProperty(node, 'firstOnlyPrompt', '');
+    const defaultPrompt = this.getNodeProperty(node, 'defaultPrompt', '');
+    
+    // Use firstOnlyPrompt for first execution if available, otherwise use defaultPrompt
+    const promptToUse = isFirstExecution && firstOnlyPrompt ? firstOnlyPrompt : defaultPrompt;
+    
     // Call backend API for PersonJob execution
     const payload = {
       nodeId: node.id,
-      personId,
-      prompt,
-      llmService,
+      person: person, // Send full person configuration
+      prompt: promptToUse, // Use the appropriate prompt
       inputs,
-      context: {
-        nodeOutputs: context.nodeOutputs,
-        nodeExecutionCounts: context.nodeExecutionCounts,
-        conditionValues: context.conditionValues,
-        firstOnlyConsumed: context.firstOnlyConsumed
+      node_config: {
+        iterationCount: this.getNodeProperty(node, 'iterationCount', 1),
+        contextCleaningRule: this.getNodeProperty(node, 'contextCleaningRule', 'uponRequest')
       }
     };
 

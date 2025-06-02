@@ -195,15 +195,17 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
     // Update the form data - always allow updating fields (including new optional fields)
     handleChange(name as keyof T, value);
     
-    // If this is a model selection and we have all required data, pre-initialize the model
-    try {
-      const success = await preInitializeModel(
-        formData.service as string,
-        value as string,
-        formData.apiKeyId as string
-      );
+    // If this is a model selection for a person entity and we have all required data, pre-initialize the model
+    if (data.type === 'person' && name === 'modelName' && formData.service && value && formData.apiKeyId) {
+      try {
+        await preInitializeModel(
+          formData.service as string,
+          value as string,
+          formData.apiKeyId as string
+        );
       } catch (error) {
-      console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
+        console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
+      }
     }
   };
   
