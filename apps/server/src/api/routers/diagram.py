@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 
 from ...services.diagram_service import DiagramService
-from ...services.unified_execution_engine import UnifiedExecutionEngine
+from ...core.execution.engine import UnifiedExecutionEngine
 from ...services.llm_service import LLMService
 from ...services.unified_file_service import UnifiedFileService
 from ...services.api_key_service import APIKeyService

@@ -5,11 +5,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from ..exceptions import DiagramExecutionError
-from .dependency_resolver import DependencyResolver
-from .execution_planner import ExecutionPlanner, ExecutionPlan
-from .loop_controller import LoopController
-from .skip_manager import SkipManager
-from ..executors.base_executor import BaseExecutor, ExecutorFactory, ValidationResult, ExecutorResult
+from .resolver import DependencyResolver
+from .planner import ExecutionPlanner, ExecutionPlan
+from .controllers import LoopController, SkipManager
+from .executors.base_executor import BaseExecutor, ExecutorFactory, ValidationResult, ExecutorResult
 
 logger = logging.getLogger(__name__)
 

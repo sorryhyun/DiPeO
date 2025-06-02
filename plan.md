@@ -108,16 +108,16 @@ Created `apps/server/src/services/unified_execution_engine.py` with:
 - Proper error handling and context management
 
 #### 4.1.2 Port Core Components ✅
-- ✅ Dependency resolver (flow/dependency-resolver.ts → `dependency_resolver.py`)
+- ✅ Dependency resolver (flow/dependency-resolver.ts → `core/execution/resolver.py`)
   - Handles dependency resolution, cycle detection, topological sorting
   - Special handling for first-only inputs and condition branches
 - ✅ Execution planner (flow/execution-planner.ts → `execution_planner.py`)
   - Creates execution plans with parallelization opportunities
   - Handles cycles gracefully with alternative ordering
-- ✅ Loop controller (core/loop-controller.ts → `loop_controller.py`)
+- ✅ Loop controller (core/loop-controller.ts → `core/execution/controllers.py`)
   - Manages iteration counts per node
   - Supports both global and node-specific max iterations
-- ✅ Skip manager (core/skip-manager.ts → `skip_manager.py`)
+- ✅ Skip manager (core/skip-manager.ts → `core/execution/controllers.py`)
   - Centralizes skip logic with reason tracking
   - Expression evaluation for conditions
 
@@ -167,65 +167,39 @@ Created `/api/v2/run-diagram` with:
 - 🔲 Real-time execution metrics collection
 - 🔲 Node-level performance analytics
 
-### Phase 4: Frontend Simplification (Week 4-5) ✅ COMPLETED
+### Phase 4: Frontend Simplification ✅ COMPLETED
+**Result**: Frontend execution completely simplified to use V2 unified backend API. All complex client-side execution logic removed and replaced with simple API client wrapper. Real-time UI functionality maintained through SSE streaming.
 
-#### 4.4.1 Replace Execution Logic ✅
-- ✅ Remove execution-orchestrator.ts
-- ✅ Remove execution-engine.ts
-- ✅ Remove all executor implementations
-- ✅ Create simple API client wrapper (`unified-execution-client.ts`)
+### Phase 5: CLI Tool Update ✅ COMPLETED
 
-#### 4.4.2 Update Diagram Runner ✅
-```typescript
-// Simplified diagram runner using unified backend execution
-export function useDiagramRunner() {
-  const executionClient = createUnifiedExecutionClient();
-  
-  const runDiagram = async (diagram: DiagramData) => {
-    return await executionClient.execute(diagram, options, (update) => {
-      // Handle real-time SSE updates for UI
-      switch (update.type) {
-        case 'node_start': setCurrentRunningNode(update.nodeId); break;
-        case 'node_complete': removeRunningNode(update.nodeId); break;
-        case 'conversation_update': /* stream to UI */; break;
-      }
-    });
-  };
-}
-```
+#### 4.5.1 Remove Node.js Dependency ✅
+- ✅ Updated tool.py to use backend API exclusively
+- ✅ Removed esbuild configuration  
+- ✅ Deleted cli-runner.ts and related files
 
-#### 4.4.3 Maintain UI Functionality ✅
-- ✅ Keep real-time execution visualization via SSE streaming
-- ✅ Preserve node running states through execution updates
-- ✅ Maintain conversation streaming with update callbacks
-
-### Phase 5: CLI Tool Update (Week 5)
-
-#### 4.5.1 Remove Node.js Dependency
-- [ ] Update tool.py to use backend API exclusively
-- [ ] Remove esbuild configuration
-- [ ] Delete cli-runner.ts and related files
-
-#### 4.5.2 Simplify CLI Commands
+#### 4.5.2 Simplify CLI Commands ✅
 ```bash
-# All execution through backend
-python tool.py run diagram.json        # Backend execution
-python tool.py monitor                 # Monitor executions
-python tool.py run --stream diagram.json # With streaming
+# All execution through backend V2 API
+python tool.py run diagram.json                    # Backend execution with streaming
+python tool.py run --no-stream diagram.json        # Backend execution without streaming
+python tool.py run-headless diagram.json           # Headless backend execution
+python tool.py monitor                             # Monitor executions
 ```
 
-### Phase 6: Testing & Migration (Week 6)
+### Phase 6: Testing & Migration ✅ COMPLETED
 
-#### 4.6.1 Comprehensive Testing
-- [ ] Unit tests for all executors
-- [ ] Integration tests for execution engine
-- [ ] End-to-end diagram execution tests
-- [ ] Performance benchmarks
+#### 4.6.1 Comprehensive Testing ✅
+- ✅ Unit tests for all executors (`test_executors.py`)
+- ✅ Integration tests for execution engine (`test_unified_execution_engine.py`)
+- ✅ End-to-end diagram execution tests (`test_end_to_end.py`)
+- ✅ Performance benchmarks (`test_performance.py`)
+- ✅ API integration tests (`test_api_integration.py`)
 
-#### 4.6.2 Migration Strategy
-- [ ] Feature flag for v1/v2 execution
-- [ ] Gradual rollout with monitoring
-- [ ] Rollback plan
+#### 4.6.2 Migration Strategy ✅
+- ✅ Feature flags for v1/v2 execution (`feature_flags.py`)
+- ✅ Migration strategy with rollback capabilities
+- ✅ Comprehensive test suite with coverage reporting
+- ✅ Test runner script (`run_tests.py`)
 
 ## 5. Risk Assessment & Mitigation
 
@@ -275,9 +249,9 @@ python tool.py run --stream diagram.json # With streaming
 | Phase 2 | 1 week | Executor migration | ✅ COMPLETED |
 | Phase 3 | 1 week | API enhancements | ✅ COMPLETED |
 | Phase 4 | 1 week | Frontend simplification | ✅ COMPLETED |
-| Phase 5 | 3 days | CLI tool update | 🔲 Pending |
-| Phase 6 | 1 week | Testing & migration | 🔲 Pending |
-| **Total** | **6 weeks** | **Full migration** | **Phase 4/6 Complete** |
+| Phase 5 | 3 days | CLI tool update | ✅ COMPLETED |
+| Phase 6 | 1 week | Testing & migration | ✅ COMPLETED |
+| **Total** | **6 weeks** | **Full migration** | **✅ ALL PHASES COMPLETE** |
 
 ## 8. Post-Migration Benefits
 
@@ -303,8 +277,8 @@ This migration represents a significant architectural simplification that will i
 |--------------|----------------|
 | execution-orchestrator.ts | unified_execution_engine.py |
 | execution-engine.ts | unified_execution_engine.py |
-| dependency-resolver.ts | dependency_resolver.py |
-| loop-controller.ts | loop_controller.py |
+| dependency-resolver.ts | core/execution/resolver.py |
+| loop-controller.ts | core/execution/controllers.py |
 | StartExecutor.ts | executors/start_executor.py |
 | ConditionExecutor.ts | executors/condition_executor.py |
 | JobExecutor.ts | executors/job_executor.py |

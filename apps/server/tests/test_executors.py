@@ -4,13 +4,14 @@ import pytest
 from typing import Dict, Any
 from unittest.mock import AsyncMock, Mock, patch
 
-from ..src.executors.start_executor import StartExecutor
-from ..src.executors.condition_executor import ConditionExecutor
-from ..src.executors.job_executor import JobExecutor
-from ..src.executors.endpoint_executor import EndpointExecutor
-from ..src.executors.person_job_executor import PersonJobExecutor
-from ..src.executors.db_executor import DBExecutor
-from ..src.executors.base_executor import ExecutorFactory, ExecutionContext
+from ..src.core.execution.executors.start_executor import StartExecutor
+from ..src.core.execution.executors.condition_executor import ConditionExecutor
+from ..src.core.execution.executors.job_executor import JobExecutor
+from ..src.core.execution.executors.endpoint_executor import EndpointExecutor
+from ..src.core.execution.executors.person_job_executor import PersonJobExecutor
+from ..src.core.execution.executors.db_executor import DBExecutor
+from ..src.core.execution.executors.base_executor import ExecutorFactory
+from ..src.core.execution.engine import ExecutionContext
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
 

@@ -18,10 +18,7 @@ from .src.api.routers import (
     apikeys_router,
     files_router,
     conversations_router,
-    trpc_router,
-    monitor_router,
-    node_operations_router,
-    diagram_v2_router
+    monitor_router
 )
 from .src.api.middleware import setup_middleware
 
@@ -49,10 +46,7 @@ app.include_router(diagram_router)
 app.include_router(apikeys_router)
 app.include_router(files_router)
 app.include_router(conversations_router)
-app.include_router(trpc_router)
 app.include_router(monitor_router)
-app.include_router(node_operations_router)
-app.include_router(diagram_v2_router)
 
 
 # Health check endpoint

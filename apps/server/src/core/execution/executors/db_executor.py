@@ -6,10 +6,15 @@ from typing import Dict, Any
 import time
 import logging
 import json
+import asyncio
+import builtins
+import io
+import sys
 
 from .base_executor import ServerOnlyExecutor, ValidationResult, ExecutorResult
 from ..services.unified_file_service import UnifiedFileService
 from ..exceptions import ValidationError, FileOperationError
+from ..utils.output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +22,7 @@ logger = logging.getLogger(__name__)
 class DBExecutor(ServerOnlyExecutor):
     """
     DB node executor that handles file operations and data sources.
-    Supports file reading, fixed prompts, and API tool integrations.
+    Supports file reading, fixed prompts, code execution, and API tool integrations.
     """
     
     def __init__(self, file_service: UnifiedFileService):
@@ -46,6 +51,11 @@ class DBExecutor(ServerOnlyExecutor):
         elif sub_type == "fixed_prompt":
             # No additional validation needed for fixed prompts
             pass
+        
+        elif sub_type == "code":
+            # Validate code snippet
+            if not source_details:
+                errors.append("Code snippet is required for code subType")
         
         elif sub_type == "api_tool":
             # Validate API configuration
@@ -87,6 +97,11 @@ class DBExecutor(ServerOnlyExecutor):
             
             elif sub_type == "fixed_prompt":
                 result = await self._execute_fixed_prompt(source_details)
+            
+            elif sub_type == "code":
+                # Get inputs from previous nodes
+                inputs = self._get_node_inputs(node, context)
+                result = await self._execute_code(source_details, inputs)
             
             elif sub_type == "api_tool":
                 result = await self._execute_api_tool(source_details)
@@ -194,3 +209,56 @@ class DBExecutor(ServerOnlyExecutor):
             }
         else:
             raise ValidationError(f"Unsupported Notion action: {action}")
+    
+    async def _execute_code(self, code_snippet: str, inputs: list) -> Dict[str, Any]:
+        """Execute code in sandbox environment"""
+        def _run_code():
+            stdout_buffer = io.StringIO()
+            original_stdout = sys.stdout
+            
+            try:
+                sys.stdout = stdout_buffer
+                
+                safe_globals = {"__builtins__": builtins}
+                
+                # Process inputs to handle PersonJob outputs
+                processed_inputs = OutputProcessor.process_list(inputs)
+                
+                local_env = {"inputs": processed_inputs}
+                
+                exec(code_snippet, safe_globals, local_env)
+                
+            finally:
+                sys.stdout = original_stdout
+            
+            if "result" in local_env:
+                return local_env["result"]
+            return stdout_buffer.getvalue()
+        
+        loop = asyncio.get_event_loop()
+        output = await loop.run_in_executor(None, _run_code)
+        
+        return {
+            "output": output,
+            "metadata": {
+                "source_type": "code",
+                "inputs_count": len(inputs),
+                "code_length": len(code_snippet)
+            }
+        }
+    
+    def _get_node_inputs(self, node: Dict[str, Any], context: 'ExecutionContext') -> list:
+        """Get inputs from previous nodes"""
+        node_id = node.get("id")
+        inputs = []
+        
+        # Get incoming arrows to this node
+        incoming_arrows = context.incomingArrows.get(node_id, [])
+        
+        # Collect outputs from source nodes
+        for arrow in incoming_arrows:
+            source_node_id = arrow.get("sourceNodeId")
+            if source_node_id in context.nodeOutputs:
+                inputs.append(context.nodeOutputs[source_node_id])
+        
+        return inputs

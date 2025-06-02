@@ -6,7 +6,7 @@ import asyncio
 from typing import Dict, Any, List
 from unittest.mock import patch
 
-from ..src.services.unified_execution_engine import UnifiedExecutionEngine
+from ..src.core.execution.engine import UnifiedExecutionEngine
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict, deque
 import logging
 
-from .dependency_resolver import DependencyResolver
+from .resolver import DependencyResolver
 
 logger = logging.getLogger(__name__)
 

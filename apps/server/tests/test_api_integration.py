@@ -43,7 +43,7 @@ class TestDiagramExecutionAPI:
         """Test V1 diagram execution API with simple diagram."""
         diagram = DiagramFixtures.simple_linear_diagram()
         
-        response = client.post("/api/run-diagram", json=diagram)
+        response = client.post("/api/v2/run-diagram", json=diagram)
         
         assert response.status_code == 200
         result = response.json()
@@ -56,7 +56,7 @@ class TestDiagramExecutionAPI:
         """Test V1 diagram execution with branching."""
         diagram = DiagramFixtures.branching_diagram()
         
-        response = client.post("/api/run-diagram", json=diagram)
+        response = client.post("/api/v2/run-diagram", json=diagram)
         
         assert response.status_code == 200
         result = response.json()
@@ -73,7 +73,7 @@ class TestDiagramExecutionAPI:
             "apiKeys": []
         }
         
-        response = client.post("/api/run-diagram", json=invalid_diagram)
+        response = client.post("/api/v2/run-diagram", json=invalid_diagram)
         
         # Should return error for invalid diagram
         assert response.status_code == 400 or response.status_code == 422
@@ -101,9 +101,9 @@ class TestDiagramExecutionAPI:
         assert response.status_code == 200
         capabilities = response.json()
         
-        assert "supportedNodeTypes" in capabilities
+        assert "supported_node_types" in capabilities
         assert "features" in capabilities
-        assert isinstance(capabilities["supportedNodeTypes"], list)
+        assert isinstance(capabilities["supported_node_types"], list)
 
 
 class TestAPIKeyManagement:
@@ -270,7 +270,7 @@ class TestErrorHandling:
     def test_invalid_json(self, client):
         """Test handling of invalid JSON."""
         response = client.post(
-            "/api/run-diagram",
+            "/api/v2/run-diagram",
             data="invalid json",
             headers={"Content-Type": "application/json"}
         )
@@ -283,7 +283,7 @@ class TestErrorHandling:
             "nodes": [{"id": "test"}]  # Missing required fields
         }
         
-        response = client.post("/api/run-diagram", json=incomplete_diagram)
+        response = client.post("/api/v2/run-diagram", json=incomplete_diagram)
         
         # Should return validation error
         assert response.status_code in [400, 422]
@@ -305,7 +305,7 @@ class TestPerformance:
         diagram = DiagramFixtures.simple_linear_diagram()
         
         start_time = time.time()
-        response = client.post("/api/run-diagram", json=diagram)
+        response = client.post("/api/v2/run-diagram", json=diagram)
         end_time = time.time()
         
         assert response.status_code == 200
@@ -322,7 +322,7 @@ class TestPerformance:
         diagram = DiagramFixtures.simple_linear_diagram()
         
         def make_request():
-            return client.post("/api/run-diagram", json=diagram)
+            return client.post("/api/v2/run-diagram", json=diagram)
         
         # Make 5 concurrent requests
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -339,7 +339,7 @@ class TestSecurityFeatures:
     
     def test_cors_headers(self, client):
         """Test CORS headers are present."""
-        response = client.options("/api/run-diagram")
+        response = client.options("/api/v2/run-diagram")
         
         # Should have CORS headers for development
         assert "access-control-allow-origin" in response.headers

@@ -4,8 +4,8 @@ import pytest
 from typing import Dict, Any
 from unittest.mock import AsyncMock, Mock, patch
 
-from ..src.services.unified_execution_engine import UnifiedExecutionEngine
-from ..src.executors.base_executor import ExecutorFactory
+from ..src.core.execution.engine import UnifiedExecutionEngine
+from ..src.core.execution.executors.base_executor import ExecutorFactory
 from ..src.services.llm_service import LLMService
 from ..src.services.api_key_service import APIKeyService
 from ..src.services.memory_service import MemoryService

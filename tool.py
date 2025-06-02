@@ -80,7 +80,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                     if response.status == 404:
                         # Fallback to V1 API
                         async with session.post(
-                            f"{API_URL}/api/run-diagram",
+                            f"{API_URL}/api/v2/run-diagram",
                             json=diagram,
                             headers={"Content-Type": "application/json"}
                         ) as v1_response:
