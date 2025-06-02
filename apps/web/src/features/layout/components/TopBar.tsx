@@ -22,10 +22,11 @@ const TopBar = () => {
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
+  const clearDiagram = useConsolidatedDiagramStore(state => state.clearDiagram);
   const clearMonitorDiagram = useConsolidatedDiagramStore(state => state.clearMonitorDiagram);
   const storeIsMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
-  const { onImportYAML } = useFileImport();
-  const { onSaveToDirectory, onExportYAML, onExportLLMYAML } = useExport();
+  const { onImportYAML, onImportJSON } = useFileImport();
+  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onExportJSON } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
@@ -89,9 +90,25 @@ const TopBar = () => {
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            onClick={() => {
+              if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
+                clearDiagram();
+                toast.success('Created new diagram');
+              }
+            }}
+            title="Create a new diagram"
           >
             📄 New
           </Button>
+          <FileUploadButton
+            accept=".json"
+            onChange={onImportJSON}
+            variant="outline"
+            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            title="Open diagram from JSON file"
+          >
+            📂 Open
+          </FileUploadButton>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
@@ -118,6 +135,14 @@ const TopBar = () => {
             title="Export to LLM-friendly YAML format (download)"
           >
             🤖 Export LLM YAML
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-white hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
+            onClick={onExportJSON}
+            title="Export to JSON format (download)"
+          >
+            📋 Export JSON
           </Button>
           <FileUploadButton
             accept=".yaml,.yml"

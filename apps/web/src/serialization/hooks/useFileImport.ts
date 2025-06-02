@@ -136,10 +136,52 @@ export const useFileImport = () => {
     reader.readAsText(file);
   }, [downloadYaml]);
 
+  // Import from JSON
+  const onImportJSON = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const errorHandler = createErrorHandler('Import JSON');
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      await handleAsyncError(
+        async () => {
+          const result = e.target?.result as string;
+          if (!result) {
+            throw new Error('Failed to read file content');
+          }
+
+          const diagramData = JSON.parse(result);
+          
+          // Validate the JSON has the expected structure
+          if (!diagramData.nodes || !Array.isArray(diagramData.nodes)) {
+            throw new Error('Invalid diagram format: missing nodes array');
+          }
+          if (!diagramData.arrows || !Array.isArray(diagramData.arrows)) {
+            throw new Error('Invalid diagram format: missing arrows array');
+          }
+          
+          loadDiagram(diagramData);
+          toast.success('Imported from JSON format');
+        },
+        undefined,
+        errorHandler
+      );
+    };
+
+    reader.onerror = () => {
+      errorHandler(new Error('Failed to read file'));
+    };
+
+    reader.readAsText(file);
+  }, [loadDiagram]);
+
   return {
     handleImportUML,
     handleImportYAML,
     onImportYAML,
+    onImportJSON,
     onConvertJSONtoYAML,
   };
 };

@@ -12,7 +12,7 @@ const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useExport = () => {
   const { exportDiagram } = useConsolidatedDiagramStore();
-  const { downloadYaml } = useDownload();
+  const { downloadYaml, downloadJson } = useDownload();
 
   // Export as clean YAML
   const onExportYAML = useCallback(() => {
@@ -108,9 +108,23 @@ export const useExport = () => {
     );
   }, [exportDiagram]);
 
+  // Export as JSON
+  const onExportJSON = useCallback(() => {
+    const errorHandler = createErrorHandler('Export JSON');
+    try {
+      const diagramData = exportDiagram();
+      downloadJson(diagramData, 'agent-diagram.json');
+      toast.success('Exported to JSON format');
+    } catch (error) {
+      console.error('Export JSON error:', error);
+      errorHandler(error instanceof Error ? error : new Error('Failed to export to JSON format'));
+    }
+  }, [exportDiagram, downloadJson]);
+
   return {
     onExportYAML,
     onExportLLMYAML,
+    onExportJSON,
     onSaveToDirectory,
     onSaveYAMLToDirectory,
     onExportCanonical: onExportYAML, // For TopBar compatibility
