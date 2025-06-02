@@ -38,8 +38,18 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     if (!selectedArrowId) return null;
     const arrow = arrows.find(a => a.id === selectedArrowId);
     if (!arrow) return null;
-    return { ...arrow.data, type: 'arrow' as const };
-  }, [selectedArrowId, arrows]);
+    
+    // Find source node to determine if this is a special arrow
+    const sourceNode = nodes.find(n => n.id === arrow.source);
+    const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+    
+    return { 
+      ...arrow.data, 
+      type: 'arrow' as const,
+      _sourceNodeType: sourceNode?.data.type,
+      _isFromConditionBranch: isFromConditionBranch
+    };
+  }, [selectedArrowId, arrows, nodes]);
 
   const getPropertiesContent = (): PropertiesResult => {
     let content = <p className="p-4 text-sm text-gray-500">Select a block, arrow, or person to see its properties.</p>;

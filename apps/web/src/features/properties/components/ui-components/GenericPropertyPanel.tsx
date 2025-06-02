@@ -247,7 +247,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
-            disabled={isMonitorMode}
+            disabled={isMonitorMode || fieldConfig.disabled}
           />
         );
       }

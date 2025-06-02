@@ -92,6 +92,20 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
 
         onConnect: (connection: Connection) => {
           const arrowId = `arrow-${nanoid().slice(0, 6)}`;
+          const state = get();
+          const sourceNode = state.nodes.find(n => n.id === connection.source);
+          
+          // Determine content type based on source node
+          const isFromStartNode = sourceNode?.data.type === 'start';
+          const isFromConditionBranch = connection.sourceHandle === 'true' || connection.sourceHandle === 'false';
+          
+          let contentType: ArrowData['contentType'];
+          if (isFromStartNode) {
+            contentType = 'empty';
+          } else if (isFromConditionBranch) {
+            contentType = 'generic';
+          }
+          
           const newArrow: Arrow = {
             id: arrowId,
             source: connection.source!,
@@ -106,7 +120,8 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
               kind: 'ALL' as const,
               template: '',
               conversationState: false,
-              label: 'New Arrow'
+              label: 'New Arrow',
+              contentType,
             }
           };
           set({ arrows: addArrow(newArrow, get().arrows) });
@@ -288,9 +303,39 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
 
         loadDiagram: (state: DiagramState) => {
           const sanitized = sanitizeDiagram(state);
+          const nodes = (sanitized.nodes || []) as DiagramNode[];
+          
+          // Process arrows to set proper content type based on source node
+          const arrows = ((sanitized.arrows || []) as Arrow[]).map(arrow => {
+            const sourceNode = nodes.find(n => n.id === arrow.source);
+            const isFromStartNode = sourceNode?.data.type === 'start';
+            const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+            
+            if (arrow.data) {
+              if (isFromStartNode) {
+                return {
+                  ...arrow,
+                  data: {
+                    ...arrow.data,
+                    contentType: 'empty' as const
+                  }
+                };
+              } else if (isFromConditionBranch) {
+                return {
+                  ...arrow,
+                  data: {
+                    ...arrow.data,
+                    contentType: 'generic' as const
+                  }
+                };
+              }
+            }
+            return arrow;
+          });
+          
           set({
-            nodes: (sanitized.nodes || []) as DiagramNode[],
-            arrows: (sanitized.arrows || []) as Arrow[],
+            nodes,
+            arrows,
             persons: sanitized.persons || [],
             apiKeys: sanitized.apiKeys || []
           });
@@ -298,9 +343,39 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
         
         loadMonitorDiagram: (state: DiagramState) => {
           const sanitized = sanitizeDiagram(state);
+          const nodes = (sanitized.nodes || []) as DiagramNode[];
+          
+          // Process arrows to set proper content type based on source node
+          const arrows = ((sanitized.arrows || []) as Arrow[]).map(arrow => {
+            const sourceNode = nodes.find(n => n.id === arrow.source);
+            const isFromStartNode = sourceNode?.data.type === 'start';
+            const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+            
+            if (arrow.data) {
+              if (isFromStartNode) {
+                return {
+                  ...arrow,
+                  data: {
+                    ...arrow.data,
+                    contentType: 'empty' as const
+                  }
+                };
+              } else if (isFromConditionBranch) {
+                return {
+                  ...arrow,
+                  data: {
+                    ...arrow.data,
+                    contentType: 'generic' as const
+                  }
+                };
+              }
+            }
+            return arrow;
+          });
+          
           set({
-            monitorNodes: (sanitized.nodes || []) as DiagramNode[],
-            monitorArrows: (sanitized.arrows || []) as Arrow[],
+            monitorNodes: nodes,
+            monitorArrows: arrows,
             monitorPersons: sanitized.persons || [],
             monitorApiKeys: sanitized.apiKeys || [],
             isMonitorMode: true

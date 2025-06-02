@@ -151,7 +151,7 @@ export interface ArrowData extends Record<string, unknown> {
   sourceHandleId?: string;
   targetHandleId?: string;
   label?: string;
-  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state';
+  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'empty' | 'generic';
   arrowKind?: ArrowKind;
   variableName?: string;
   objectKeyPath?: string;

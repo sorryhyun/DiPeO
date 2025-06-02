@@ -29,6 +29,7 @@ export interface TextFieldConfig extends BaseFieldConfig {
   type: 'text';
   name: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export interface SelectFieldConfig extends BaseFieldConfig {
