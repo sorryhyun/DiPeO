@@ -6,6 +6,7 @@
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
+    "build:cli": "node esbuild.config.cjs",
     "preview:web": "pnpm --filter web serve",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
@@ -19,6 +20,7 @@
     "@types/js-yaml": "^4.0.9",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
+    "esbuild": "^0.25.5",
     "eslint": "^9.27.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",

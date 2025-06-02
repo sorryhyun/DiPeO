@@ -56,7 +56,10 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
       // This would be implemented by the server-side version
       const result = await this.executeLLMCall(personId, prompt, llmService, inputs, node, context);
       
-      return this.createSuccessResult(result.text, 0, {
+      // Calculate cost from the backend response
+      const cost = result.usage?.cost || 0;
+      
+      return this.createSuccessResult(result.text, cost, {
         personId,
         llmService,
         usage: result.usage,
@@ -128,11 +131,10 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
     // Return standardized ChatResult
     return {
       text: result.output || result.text || '',
-      usage: result.usage || {},
+      usage: result.usage || { cost: result.cost || 0 },
       promptTokens: result.promptTokens || result.prompt_tokens || 0,
       completionTokens: result.completionTokens || result.completion_tokens || 0,
-      totalTokens: result.totalTokens || result.total_tokens || 0,
-      cost: result.cost || 0
+      totalTokens: result.totalTokens || result.total_tokens || 0
     };
   }
 }

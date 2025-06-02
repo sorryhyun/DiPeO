@@ -1,19 +1,34 @@
 {
-  "success": true,
+  "success": false,
   "context": {
-    "nodeOutputs": {
-      "start1": "started",
-      "end1": ""
-    },
-    "errors": {
-      "job1": "[object Object]"
-    },
+    "executionId": "exec_1748835724417_fzwezv53r",
+    "nodeOutputs": {},
+    "nodeExecutionCounts": {},
     "totalCost": 0,
-    "executionOrder": [
-      "start1",
-      "end1"
-    ]
+    "startTime": 1748835724417,
+    "errors": {},
+    "executionOrder": [],
+    "conditionValues": {},
+    "firstOnlyConsumed": {},
+    "diagram": null,
+    "nodesById": {},
+    "outgoingArrows": {},
+    "incomingArrows": {}
   },
-  "total_cost": 0,
-  "messages": []
+  "metadata": {
+    "executionId": "exec_1748835724417_fzwezv53r",
+    "startTime": 1748835724417,
+    "totalCost": 0,
+    "nodeCount": 0,
+    "status": "failed",
+    "endTime": 1748835724418
+  },
+  "finalOutputs": {},
+  "errors": [
+    {
+      "message": "No start nodes found in diagram",
+      "timestamp": "2025-06-02T03:42:04.418Z",
+      "stack": "DiagramExecutionError: No start nodes found in diagram\n    at _ExecutionEngine.validateDiagram (/home/soryhyun/DiPeO/execution_runner.cjs:2279:13)\n    at _ExecutionEngine.execute (/home/soryhyun/DiPeO/execution_runner.cjs:2201:20)\n    at StandardExecutionOrchestrator.execute (/home/soryhyun/DiPeO/execution_runner.cjs:2569:50)\n    at main (/home/soryhyun/DiPeO/execution_runner.cjs:2642:39)\n    at Object.<anonymous> (/home/soryhyun/DiPeO/execution_runner.cjs:2660:3)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)"
+    }
+  ]
 }
