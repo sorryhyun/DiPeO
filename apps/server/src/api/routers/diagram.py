@@ -36,14 +36,17 @@ def safe_json_dumps(obj):
 
 
 async def execution_stream_generator(diagram_data: Dict[str, Any]):
-    """Generate SSE stream for diagram execution status updates."""
+    """
+    MOCK: Generate placeholder SSE stream for diagram execution status updates.
+    This is for development/testing only and does not actually execute the diagram.
+    """
     execution_id = str(uuid.uuid4())
     
     try:
-        # Send execution started event
-        yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id})}\n\n"
+        # Send execution started event (with mock flag)
+        yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id, 'mock': True})}\n\n"
         
-        # This is a placeholder that provides the streaming interface
+        # MOCK IMPLEMENTATION: This simulates execution for development purposes
         # The actual execution happens in the frontend via the hybrid execution model
         # Frontend executes client-safe nodes locally and calls backend APIs for server-only nodes
         
@@ -82,13 +85,17 @@ async def execution_stream_generator(diagram_data: Dict[str, Any]):
 @router.post("/stream/run-diagram")
 async def stream_run_diagram(diagram_data: dict):
     """
-    Execute diagram with SSE streaming updates.
+    DEVELOPMENT MOCK ENDPOINT - Execute diagram with SSE streaming updates.
     
-    This is a placeholder endpoint that provides the streaming interface
-    expected by the frontend. The actual execution happens in the frontend
-    using the hybrid execution model:
+    WARNING: This is a mock endpoint that simulates execution for development purposes.
+    It does NOT actually execute the diagram - it only sends placeholder SSE events.
+    
+    In production, the hybrid execution model is used:
     - Frontend executes client-safe nodes locally
-    - Frontend calls backend APIs for server-only nodes (PersonJob, DB, etc.)
+    - Frontend calls backend APIs for server-only nodes via /api/nodes/* endpoints
+    
+    TODO: Consider removing this endpoint or implementing actual server-side execution
+    if there's a need for pure server-side execution with streaming.
     """
     return StreamingResponse(
         execution_stream_generator(diagram_data),

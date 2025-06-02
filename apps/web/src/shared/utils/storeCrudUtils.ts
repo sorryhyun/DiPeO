@@ -39,7 +39,10 @@ export function createCrudActions<T extends CrudItem>(
       
       // Optimize updates by checking if the data actually changed
       const currentItem = getItems().find(item => item.id === id);
-      if (!currentItem) return;
+      if (!currentItem) {
+        console.warn(`[CRUD Store] Item ${idPrefix} ${id} not found for update`);
+        return;
+      }
       
       // Check if any values actually changed
       const hasChanges = Object.entries(data).some(([key, value]) => 
@@ -50,6 +53,12 @@ export function createCrudActions<T extends CrudItem>(
         console.log(`[CRUD Store] No actual changes detected for ${idPrefix} ${id}, skipping update`);
         return;
       }
+      
+      console.log(`[CRUD Store] Applying updates to ${idPrefix} ${id}:`, {
+        before: currentItem,
+        updates: data,
+        after: { ...currentItem, ...data }
+      });
       
       setItems(
         getItems().map(item => 

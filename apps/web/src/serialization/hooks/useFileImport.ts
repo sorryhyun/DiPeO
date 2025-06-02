@@ -141,6 +141,7 @@ export const useFileImport = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('Import JSON: File selected', file.name);
     const errorHandler = createErrorHandler('Import JSON');
     const reader = new FileReader();
 
@@ -152,7 +153,9 @@ export const useFileImport = () => {
             throw new Error('Failed to read file content');
           }
 
+          console.log('Import JSON: File content read', result.substring(0, 100) + '...');
           const diagramData = JSON.parse(result);
+          console.log('Import JSON: Parsed data', diagramData);
           
           // Validate the JSON has the expected structure
           if (!diagramData.nodes || !Array.isArray(diagramData.nodes)) {
@@ -162,7 +165,9 @@ export const useFileImport = () => {
             throw new Error('Invalid diagram format: missing arrows array');
           }
           
+          console.log('Import JSON: Loading diagram...');
           loadDiagram(diagramData);
+          console.log('Import JSON: Diagram loaded successfully');
           toast.success('Imported from JSON format');
         },
         undefined,
@@ -171,6 +176,7 @@ export const useFileImport = () => {
     };
 
     reader.onerror = () => {
+      console.error('Import JSON: FileReader error');
       errorHandler(new Error('Failed to read file'));
     };
 

@@ -196,15 +196,41 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
     handleChange(name as keyof T, value);
     
     // If this is a model selection for a person entity and we have all required data, pre-initialize the model
-    if (data.type === 'person' && name === 'modelName' && formData.service && value && formData.apiKeyId) {
-      try {
-        await preInitializeModel(
-          formData.service as string,
-          value as string,
-          formData.apiKeyId as string
-        );
-      } catch (error) {
-        console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
+    if (data.type === 'person' && name === 'modelName') {
+      console.log('[Person Property Panel] Model selection detected:', {
+        name,
+        value,
+        formDataService: formData.service,
+        formDataApiKeyId: formData.apiKeyId,
+        dataService: (data as any).service,
+        dataApiKeyId: (data as any).apiKeyId
+      });
+      
+      // Check both formData and data for required fields
+      const service = formData.service || (data as any).service;
+      const apiKeyId = formData.apiKeyId || (data as any).apiKeyId;
+      
+      if (service && value && apiKeyId) {
+        console.log('[Person Property Panel] Pre-initializing model with:', {
+          service,
+          model: value,
+          apiKeyId
+        });
+        try {
+          await preInitializeModel(
+            service as string,
+            value as string,
+            apiKeyId as string
+          );
+        } catch (error) {
+          console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
+        }
+      } else {
+        console.log('[Person Property Panel] Missing required fields for pre-initialization:', {
+          service,
+          value,
+          apiKeyId
+        });
       }
     }
   };

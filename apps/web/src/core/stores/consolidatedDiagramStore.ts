@@ -81,7 +81,14 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
           addPerson: (person) => usePersonStore.getState().addPerson(person),
           updatePerson: (personId, data) => usePersonStore.getState().updatePerson(personId, data),
           deletePerson: (personId) => usePersonStore.getState().deletePerson(personId),
-          getPersonById: (personId) => usePersonStore.getState().getPersonById(personId),
+          getPersonById: (personId) => {
+            // Check monitor mode directly from monitorStore to avoid circular reference
+            const monitorState = useMonitorStore.getState();
+            if (monitorState.isMonitorMode) {
+              return monitorState.monitorPersons.find(p => p.id === personId);
+            }
+            return usePersonStore.getState().getPersonById(personId);
+          },
           clearPersons: () => usePersonStore.getState().clearPersons(),
           
           // API Key state - subscribe to apiKeyStore

@@ -3,17 +3,17 @@
  * Provides consistent base URLs and endpoint definitions
  */
 
-// Determine environment
+// Determine environment - Vite provides import.meta.env
 const isDev = import.meta.env.DEV;
 const apiHost = import.meta.env.VITE_API_HOST || 'localhost:8000';
 
 // Base URLs
 export const API_CONFIG = {
   // HTTP API base URL
-  BASE_URL: isDev ? `http://${apiHost}` : '',
+  BASE_URL: isDev || typeof window === 'undefined' ? `http://${apiHost}` : '',
   
   // SSE streaming base URL
-  STREAMING_BASE_URL: isDev ? `http://${apiHost}` : '',
+  STREAMING_BASE_URL: isDev || typeof window === 'undefined' ? `http://${apiHost}` : '',
 } as const;
 
 // Export for backward compatibility

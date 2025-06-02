@@ -64,37 +64,118 @@ export class StandardBrowserOrchestrator implements BrowserExecutionOrchestrator
     options: ExecutionOptions,
     unsupportedNodes: string[]
   ): Promise<ExecutionResult> {
-    // For now, call the existing backend API for full execution
-    // In a future implementation, this could do true hybrid execution
-    const response = await fetch('/api/run-diagram', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Create custom stream manager for hybrid execution
+    const streamManager = createStoreIntegratedStreamManager();
+    
+    // Create a custom execution engine that can handle hybrid execution
+    const hybridEngine = new ExecutionEngine(
+      {
+        createExecutor: (nodeType: string) => {
+          if (this.executorFactory.canExecute(nodeType)) {
+            return this.executorFactory.createExecutor(nodeType);
+          }
+          // Return a proxy executor that makes server API calls
+          return this.createServerProxyExecutor(nodeType);
+        },
+        canExecute: () => true, // We handle all nodes via proxy
+        getSupportedNodeTypes: () => [...this.executorFactory.getSupportedNodeTypes(), ...unsupportedNodes]
       },
-      body: JSON.stringify(diagram)
-    });
+      streamManager
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Server execution failed: ${response.status} ${errorText}`);
+    // Execute the diagram with hybrid approach
+    this.currentExecution = hybridEngine.execute(diagram, options);
+    return this.currentExecution;
+  }
+
+  /**
+   * Create a proxy executor that delegates to server API for server-only nodes
+   */
+  private createServerProxyExecutor(nodeType: string): any {
+    return {
+      validateInputs: (_node: any, _inputs: any) => {
+        // Basic validation - server will do detailed validation
+        return { isValid: true, errors: [] };
+      },
+      
+      execute: async (node: any, inputs: any, context: any) => {
+        // Map node types to API endpoints
+        const nodeTypeToEndpoint: Record<string, string> = {
+          'person_job': '/api/nodes/personjob/execute',
+          'personJobNode': '/api/nodes/personjob/execute',
+          'person_batch_job': '/api/nodes/personbatchjob/execute',
+          'personBatchJobNode': '/api/nodes/personbatchjob/execute',
+          'db': '/api/nodes/db/execute',
+          'dbNode': '/api/nodes/db/execute'
+        };
+
+        const endpoint = nodeTypeToEndpoint[nodeType];
+        if (!endpoint) {
+          throw new Error(`No API endpoint defined for node type: ${nodeType}`);
+        }
+
+        // Prepare payload based on node type
+        const payload = this.prepareServerPayload(node, inputs, context);
+
+        // Make API call to server
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server execution failed for ${nodeType}: ${response.status} ${errorText}`);
+        }
+
+        const result = await response.json();
+        
+        // Return executor result format
+        return {
+          output: result.output,
+          cost: result.cost || 0,
+          metadata: result.metadata || {}
+        };
+      }
+    };
+  }
+
+  /**
+   * Prepare payload for server API call based on node type
+   */
+  private prepareServerPayload(node: any, inputs: any, context: any): any {
+    const basePayload = {
+      node_id: node.id,
+      inputs: inputs,
+      context: {
+        nodeOutputs: context.nodeOutputs || {},
+        nodeExecutionCounts: context.nodeExecutionCounts || {}
+      }
+    };
+
+    // Add node-specific data
+    if (node.type === 'personJobNode' || node.type === 'person_job') {
+      return {
+        ...basePayload,
+        person: node.data.person || {},
+        prompt: node.data.prompt || '',
+        node_config: {
+          max_iteration: node.data.max_iteration,
+          forget: node.data.forget
+        }
+      };
+    } else if (node.type === 'dbNode' || node.type === 'db') {
+      return {
+        ...basePayload,
+        sub_type: node.data.subType || 'file',
+        source_details: node.data.sourceDetails || ''
+      };
     }
 
-    const result = await response.json();
-    
-    // Convert server response to ExecutionResult format
-    return {
-      success: true,
-      context: result.context || result,
-      metadata: {
-        executionId: result.execution_id || '',
-        startTime: Date.now(),
-        totalCost: result.total_cost || 0,
-        nodeCount: diagram.nodes.length,
-        status: 'completed'
-      },
-      finalOutputs: result.context?.nodeOutputs || {},
-      errors: []
-    };
+    return basePayload;
   }
 
   /**

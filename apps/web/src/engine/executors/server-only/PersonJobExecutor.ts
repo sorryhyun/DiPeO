@@ -93,6 +93,13 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
     const getPersonById = useConsolidatedDiagramStore.getState().getPersonById;
     const person = getPersonById(personId);
     
+    console.log('[PersonJobExecutor] Retrieving person configuration:', {
+      personId,
+      personFound: !!person,
+      personData: person,
+      allPersons: useConsolidatedDiagramStore.getState().persons
+    });
+    
     if (!person) {
       throw this.createExecutionError(
         `Person with ID ${personId} not found`,
@@ -121,6 +128,17 @@ export class PersonJobExecutor extends ServerOnlyExecutor {
         contextCleaningRule: this.getNodeProperty(node, 'contextCleaningRule', 'uponRequest')
       }
     };
+
+    console.log('[PersonJobExecutor] Sending payload to backend:', {
+      nodeId: node.id,
+      personId: person.id,
+      personService: person.service,
+      personModel: person.modelName,
+      personApiKeyId: person.apiKeyId,
+      hasSystemPrompt: !!person.systemPrompt,
+      promptLength: promptToUse.length,
+      inputKeys: Object.keys(inputs)
+    });
 
     const response = await fetch('/api/nodes/personjob/execute', {
       method: 'POST',

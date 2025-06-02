@@ -90,7 +90,7 @@ export class ClientExecutorFactory extends BaseExecutorFactory {
   /**
    * Check if a node type requires server-side execution
    */
-  private isServerOnlyNodeType(nodeType: string): boolean {
+  isServerOnlyNodeType(nodeType: string): boolean {
     const serverOnlyTypes = [
       'person_job',
       'personJobNode',

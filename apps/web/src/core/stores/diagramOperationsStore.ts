@@ -23,13 +23,20 @@ export const useDiagramOperationsStore = create<DiagramOperationsState>()(
       },
       
       loadDiagram: (state: DiagramState) => {
+        console.log('loadDiagram: Input state', state);
         const sanitized = sanitizeDiagram(state);
+        console.log('loadDiagram: Sanitized state', sanitized);
         
         // Load data into respective stores
+        console.log('loadDiagram: Setting nodes', sanitized.nodes);
         useNodeArrowStore.getState().setNodes(sanitized.nodes || []);
+        console.log('loadDiagram: Setting arrows', sanitized.arrows);
         useNodeArrowStore.getState().setArrows(sanitized.arrows || []);
+        console.log('loadDiagram: Setting persons', sanitized.persons);
         usePersonStore.getState().setPersons(sanitized.persons || []);
+        console.log('loadDiagram: Setting apiKeys', sanitized.apiKeys);
         useApiKeyStore.getState().setApiKeys(sanitized.apiKeys || []);
+        console.log('loadDiagram: Complete');
       },
       
       exportDiagram: (): DiagramState => {
