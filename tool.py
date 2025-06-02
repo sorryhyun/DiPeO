@@ -53,7 +53,7 @@ async def run_diagram_node_execution(diagram: Dict[str, Any]) -> Dict[str, Any]:
             return await run_diagram_backend_fallback(diagram)
         
         # Parse results from the saved file
-        results_path = 'results.json'
+        results_path = 'results/results.json'
         if os.path.exists(results_path):
             with open(results_path, 'r') as f:
                 return json.load(f)
@@ -474,7 +474,8 @@ def main():
             result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize)
 
             # Save results
-            output_file = 'results.json'
+            Path('results').mkdir(exist_ok=True)
+            output_file = 'results/results.json'
             with open(output_file, 'w') as f:
                 json.dump(result, f, indent=2)
             print(f"  Results saved to: {output_file}")
@@ -495,7 +496,8 @@ def main():
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
             
             # Save results
-            output_file = 'results.json'
+            Path('results').mkdir(exist_ok=True)
+            output_file = 'results/results.json'
             with open(output_file, 'w') as f:
                 json.dump(result, f, indent=2)
             print(f"  Results saved to: {output_file}")
@@ -593,7 +595,8 @@ def main():
                     print(f"    ... and {len(analysis['forget_rule_violations']) - 5} more")
 
             # Save detailed analysis
-            analysis_file = 'apps/tools/forget_rule_analysis.json'
+            Path('results').mkdir(exist_ok=True)
+            analysis_file = 'results/forget_rule_analysis.json'
             with open(analysis_file, 'w') as f:
                 json.dump(analysis, f, indent=2)
             print(f"\n  Detailed analysis saved to: {analysis_file}")
@@ -616,7 +619,8 @@ def main():
                 print(f"  Context keys: {list(result['context'].keys())}")
 
             # Save results
-            output_file = sys.argv[3] if len(sys.argv) > 3 else 'results.json'
+            Path('results').mkdir(exist_ok=True)
+            output_file = sys.argv[3] if len(sys.argv) > 3 else 'results/results.json'
             with open(output_file, 'w') as f:
                 json.dump(result, f, indent=2)
             print(f"  Results saved to: {output_file}")
