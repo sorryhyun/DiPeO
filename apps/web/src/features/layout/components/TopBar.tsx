@@ -22,6 +22,8 @@ const TopBar = () => {
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
+  const clearMonitorDiagram = useConsolidatedDiagramStore(state => state.clearMonitorDiagram);
+  const storeIsMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
   const { onImportYAML } = useFileImport();
   const { onSaveToDirectory, onExportYAML, onExportLLMYAML } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
@@ -162,13 +164,19 @@ const TopBar = () => {
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
           </div>
         </div>
-        {isMonitorMode && (
-          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md animate-pulse">
+        {(isMonitorMode || storeIsMonitorMode) && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
             </span>
             <span className="text-sm font-medium">Monitor Mode Active</span>
+            <button
+              onClick={clearMonitorDiagram}
+              className="ml-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+            >
+              Exit
+            </button>
           </div>
         )}
         <div className="flex items-center space-x-4">

@@ -1,28 +1,30 @@
 // Application root component
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
 import { TopBar, Sidebar } from '@/features/layout';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { DiagramCanvasSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 import { useExecutionMonitor } from '@/core/hooks/useExecutionMonitor';
 import { DiagramProvider } from '@/core/contexts/DiagramContext';
+import { useConsolidatedDiagramStore } from '@/core/stores/consolidatedDiagramStore';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas/components/Canvas'));
 const LazyIntegratedDashboard = React.lazy(() => import('@/features/layout/components/IntegratedDashboard'));
 
 function App() {
-  const [isMonitorMode, setIsMonitorMode] = useState(false);
+  const { setMonitorMode } = useConsolidatedDiagramStore();
+  
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const monitorParam = params.get('monitor') === 'true';
-    setIsMonitorMode(monitorParam);
+    setMonitorMode(monitorParam);
 
     if (monitorParam) {
       document.title = 'AgentDiagram - Monitor Mode';
     }
-  }, []);
+  }, [setMonitorMode]);
 
   useExecutionMonitor();
   return (

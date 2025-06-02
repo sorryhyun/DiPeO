@@ -12,7 +12,7 @@ export const useExecutionMonitor = () => {
     setCurrentRunningNode,
     setRunContext
   } = useExecutionStore();
-  const { loadDiagram } = useConsolidatedDiagramStore();
+  const { loadMonitorDiagram } = useConsolidatedDiagramStore();
 
   useEffect(() => {
     let isComponentMounted = true;
@@ -53,7 +53,7 @@ export const useExecutionMonitor = () => {
               if (data.from_monitor) {
                 toast.info(`External execution started: ${data.execution_id}`);
                 if (data.diagram) {
-                  loadDiagram(data.diagram);
+                  loadMonitorDiagram(data.diagram);
                 }
               }
               break;
@@ -117,7 +117,7 @@ export const useExecutionMonitor = () => {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [addRunningNode, removeRunningNode, setCurrentRunningNode, setRunContext, loadDiagram]);
+  }, [addRunningNode, removeRunningNode, setCurrentRunningNode, setRunContext, loadMonitorDiagram]);
 
   return null;
 };

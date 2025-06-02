@@ -22,6 +22,13 @@ export interface ConsolidatedDiagramState {
   arrows: Arrow[];
   persons: PersonDefinition[];
   apiKeys: ApiKey[];
+  
+  // Monitor storage for external diagrams (not persisted)
+  monitorNodes: DiagramNode[];
+  monitorArrows: Arrow[];
+  monitorPersons: PersonDefinition[];
+  monitorApiKeys: ApiKey[];
+  isMonitorMode: boolean;
 
   onNodesChange: OnNodesChange;
   onArrowsChange: OnArrowsChange;
@@ -48,6 +55,12 @@ export interface ConsolidatedDiagramState {
   clearDiagram: () => void;
   loadDiagram: (state: DiagramState) => void;
   exportDiagram: () => DiagramState;
+  
+  // Monitor-specific methods
+  loadMonitorDiagram: (state: DiagramState) => void;
+  clearMonitorDiagram: () => void;
+  setMonitorMode: (enabled: boolean) => void;
+  exportMonitorDiagram: () => DiagramState;
 }
 
 const createErrorHandler = createErrorHandlerFactory(toast);
@@ -61,6 +74,13 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
         arrows: [],
         persons: [],
         apiKeys: [],
+        
+        // Monitor storage (not persisted)
+        monitorNodes: [],
+        monitorArrows: [],
+        monitorPersons: [],
+        monitorApiKeys: [],
+        isMonitorMode: false,
 
         onNodesChange: (changes) => {
           set({ nodes: applyNodeChanges(changes, get().nodes) as DiagramNode[] });
@@ -267,7 +287,43 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
             persons: sanitized.persons || [],
             apiKeys: sanitized.apiKeys || []
           });
-},
+        },
+        
+        loadMonitorDiagram: (state: DiagramState) => {
+          const sanitized = sanitizeDiagram(state);
+          set({
+            monitorNodes: (sanitized.nodes || []) as DiagramNode[],
+            monitorArrows: (sanitized.arrows || []) as Arrow[],
+            monitorPersons: sanitized.persons || [],
+            monitorApiKeys: sanitized.apiKeys || [],
+            isMonitorMode: true
+          });
+        },
+        
+        clearMonitorDiagram: () => {
+          set({
+            monitorNodes: [],
+            monitorArrows: [],
+            monitorPersons: [],
+            monitorApiKeys: [],
+            isMonitorMode: false
+          });
+        },
+        
+        setMonitorMode: (enabled: boolean) => {
+          set({ isMonitorMode: enabled });
+        },
+        
+        exportMonitorDiagram: (): DiagramState => {
+          const { monitorNodes, monitorArrows, monitorPersons, monitorApiKeys } = get();
+          const sanitized = sanitizeDiagram({
+            nodes: monitorNodes,
+            arrows: monitorArrows,
+            persons: monitorPersons,
+            apiKeys: monitorApiKeys
+          });
+          return sanitized;
+        },
 
         exportDiagram: (): DiagramState => {
           const { nodes, arrows, persons, apiKeys } = sanitizeDiagram(get());

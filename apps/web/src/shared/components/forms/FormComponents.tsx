@@ -44,15 +44,17 @@ interface TextFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   id?: string;
+  disabled?: boolean;
 }
 
-export const TextField: React.FC<TextFieldProps> = ({ label, value, onChange, placeholder, id }) => (
+export const TextField: React.FC<TextFieldProps> = ({ label, value, onChange, placeholder, id, disabled }) => (
   <FormField label={label} id={id}>
     <Input
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      disabled={disabled}
     />
   </FormField>
 );
@@ -106,10 +108,11 @@ interface TextAreaFieldProps {
   rows?: number;
   id?: string;
   hint?: string;
+  disabled?: boolean;
 }
 
 export const TextAreaField: React.FC<TextAreaFieldProps> = ({
-  label, value, onChange, placeholder, rows = 4, id, hint
+  label, value, onChange, placeholder, rows = 4, id, hint, disabled
 }) => (
   <FormField label={label} id={id}>
     <Textarea
@@ -118,13 +121,14 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
       onChange={(e) => onChange(e.target.value)}
       rows={rows}
       placeholder={placeholder}
+      disabled={disabled}
     />
     {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
   </FormField>
 );
 
 // Inline versions of field components
-export const InlineTextField: React.FC<TextFieldProps & { className?: string }> = ({ label, value, onChange, placeholder, id, className }) => (
+export const InlineTextField: React.FC<TextFieldProps & { className?: string }> = ({ label, value, onChange, placeholder, id, className, disabled }) => (
   <InlineFormField label={label} id={id} className={className}>
     <Input
       id={id}
@@ -132,6 +136,7 @@ export const InlineTextField: React.FC<TextFieldProps & { className?: string }> 
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="min-w-0"
+      disabled={disabled}
     />
   </InlineFormField>
 );
@@ -171,14 +176,16 @@ interface CheckboxFieldProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   id?: string;
+  disabled?: boolean;
 }
 
-export const CheckboxField: React.FC<CheckboxFieldProps> = ({ label, checked, onChange, id }) => (
+export const CheckboxField: React.FC<CheckboxFieldProps> = ({ label, checked, onChange, id, disabled }) => (
   <div className="flex items-center space-x-2">
     <Switch
       id={id}
       checked={checked}
       onChange={onChange}
+      disabled={disabled}
     />
     <Label htmlFor={id} className="text-sm font-medium cursor-pointer">{label}</Label>
   </div>

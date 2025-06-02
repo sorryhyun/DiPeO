@@ -28,10 +28,15 @@ export const useArrowDataUpdater = () => {
   return useConsolidatedDiagramStore(state => state.updateArrowData);
 };
 
-// Canvas state - combines multiple related selectors
+// Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
-  const nodes = useConsolidatedDiagramStore(state => state.nodes);
-  const arrows = useConsolidatedDiagramStore(state => state.arrows);
+  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  const nodes = useConsolidatedDiagramStore(state => 
+    state.isMonitorMode ? state.monitorNodes : state.nodes
+  );
+  const arrows = useConsolidatedDiagramStore(state => 
+    state.isMonitorMode ? state.monitorArrows : state.arrows
+  );
   const onNodesChange = useConsolidatedDiagramStore(state => state.onNodesChange);
   const onArrowsChange = useConsolidatedDiagramStore(state => state.onArrowsChange);
   const onConnect = useConsolidatedDiagramStore(state => state.onConnect);
@@ -43,18 +48,22 @@ export const useCanvasState = () => {
   return React.useMemo(() => ({
     nodes,
     arrows,
+    isMonitorMode,
     onNodesChange,
     onArrowsChange,
     onConnect,
     addNode,
     deleteNode,
     deleteArrow,
-  }), [nodes, arrows, onNodesChange, onArrowsChange, onConnect, addNode, deleteNode, deleteArrow]);
+  }), [nodes, arrows, isMonitorMode, onNodesChange, onArrowsChange, onConnect, addNode, deleteNode, deleteArrow]);
 };
 
-// Person operations
+// Person operations with monitor support
 export const usePersons = () => {
-  const persons = useConsolidatedDiagramStore(state => state.persons);
+  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  const persons = useConsolidatedDiagramStore(state => 
+    state.isMonitorMode ? state.monitorPersons : state.persons
+  );
   const addPerson = useConsolidatedDiagramStore(state => state.addPerson);
   const updatePerson = useConsolidatedDiagramStore(state => state.updatePerson);
   const deletePerson = useConsolidatedDiagramStore(state => state.deletePerson);
@@ -62,37 +71,46 @@ export const usePersons = () => {
   
   return React.useMemo(() => ({
     persons,
+    isMonitorMode,
     addPerson,
     updatePerson,
     deletePerson,
     getPersonById,
-  }), [persons, addPerson, updatePerson, deletePerson, getPersonById]);
+  }), [persons, isMonitorMode, addPerson, updatePerson, deletePerson, getPersonById]);
 };
 
-// Node operations
+// Node operations with monitor support
 export const useNodes = () => {
-  const nodes = useConsolidatedDiagramStore(state => state.nodes);
+  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  const nodes = useConsolidatedDiagramStore(state => 
+    state.isMonitorMode ? state.monitorNodes : state.nodes
+  );
   const onNodesChange = useConsolidatedDiagramStore(state => state.onNodesChange);
   const addNode = useConsolidatedDiagramStore(state => state.addNode);
   const deleteNode = useConsolidatedDiagramStore(state => state.deleteNode);
   
   return {
     nodes,
+    isMonitorMode,
     onNodesChange,
     addNode,
     deleteNode,
   };
 };
 
-// Arrow operations
+// Arrow operations with monitor support
 export const useArrows = () => {
-  const arrows = useConsolidatedDiagramStore(state => state.arrows);
+  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  const arrows = useConsolidatedDiagramStore(state => 
+    state.isMonitorMode ? state.monitorArrows : state.arrows
+  );
   const onArrowsChange = useConsolidatedDiagramStore(state => state.onArrowsChange);
   const onConnect = useConsolidatedDiagramStore(state => state.onConnect);
   const deleteArrow = useConsolidatedDiagramStore(state => state.deleteArrow);
   
   return {
     arrows,
+    isMonitorMode,
     onArrowsChange,
     onConnect,
     deleteArrow,

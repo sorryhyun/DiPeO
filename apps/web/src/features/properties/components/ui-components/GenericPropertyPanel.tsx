@@ -18,6 +18,7 @@ import {
   VariableDetectionTextArea
 } from './FormComponents';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
+import { useConsolidatedDiagramStore } from '@/core/stores';
 
 interface GenericPropertyPanelProps<T extends Record<string, any>> {
   nodeId: string;
@@ -32,6 +33,9 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
 }: GenericPropertyPanelProps<T>) => {
   // State for async options
   const [asyncOptions, setAsyncOptions] = useState<Record<string, Array<{ value: string; label: string }>>>({});
+  
+  // Check if we're in monitor mode (read-only)
+  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: string): 'node' | 'arrow' | 'person' => {
@@ -166,6 +170,11 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   
   // Type-safe update function with model pre-initialization
   const updateField = async (name: string, value: any) => {
+    // Skip updates if in monitor mode (read-only)
+    if (isMonitorMode) {
+      return;
+    }
+    
     // Update the form data first
     if (name in formData) {
       handleChange(name as keyof T, value);
@@ -224,6 +233,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -271,6 +281,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             options={options}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
+            isDisabled={isMonitorMode}
           />
         );
       }
@@ -284,6 +295,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             rows={fieldConfig.rows}
             placeholder={fieldConfig.placeholder}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -295,6 +307,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             label={fieldConfig.label || ''}
             checked={!!formData[fieldConfig.name]}
             onChange={(checked) => updateField(fieldConfig.name, checked)}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -309,6 +322,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             rows={fieldConfig.rows}
             placeholder={fieldConfig.placeholder}
             detectedVariables={data.detectedVariables}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -323,6 +337,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onPersonChange={(v) => updateField('personId', v)}
             labelPlaceholder={fieldConfig.labelPlaceholder}
             personPlaceholder={fieldConfig.personPlaceholder}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -337,6 +352,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             max={fieldConfig.max}
             label={fieldConfig.label}
             className={fieldConfig.className}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -349,6 +365,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -384,6 +401,21 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   if (config.layout === 'single') {
     return (
       <Form>
+        {isMonitorMode && (
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-blue-700 font-medium">
+                📊 Monitor Mode - Properties are read-only
+              </p>
+              <button
+                onClick={() => useConsolidatedDiagramStore.getState().clearMonitorDiagram()}
+                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+              >
+                Exit Monitor Mode
+              </button>
+            </div>
+          </div>
+        )}
         <SingleColumnPanelLayout>
           {config.fields?.map((field, index) => renderField(field, index))}
         </SingleColumnPanelLayout>
@@ -393,6 +425,21 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
 
   return (
     <Form>
+      {isMonitorMode && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-blue-700 font-medium">
+              📊 Monitor Mode - Properties are read-only
+            </p>
+            <button
+              onClick={() => useConsolidatedDiagramStore.getState().clearMonitorDiagram()}
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+            >
+              Exit Monitor Mode
+            </button>
+          </div>
+        </div>
+      )}
       <TwoColumnPanelLayout
         leftColumn={
           <>{config.leftColumn?.map((field, index) => renderField(field, index))}</>

@@ -72,8 +72,16 @@ export class DependencyResolver {
       return [true, firstOnlyArrows as DiagramArrow[]];
     }
 
-    const dependenciesMet = missingDeps.length === 0;
-    return [dependenciesMet, validArrows as DiagramArrow[]];
+    // For cycle handling: if we have any valid arrows, the node can execute
+    // This allows nodes in cycles to execute when at least one path is available
+    if (validArrows.length > 0) {
+      console.debug(`[Dependency Check] Node ${nodeId} can execute with ${validArrows.length} valid arrow(s) out of ${incomingArrows.length} total`);
+      return [true, validArrows as DiagramArrow[]];
+    }
+
+    // No valid arrows - dependencies not met
+    console.debug(`[Dependency Check] Node ${nodeId} cannot execute - no valid arrows (${missingDeps.length} missing deps)`);
+    return [false, validArrows as DiagramArrow[]];
   }
 
   /**

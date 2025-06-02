@@ -18,6 +18,7 @@ interface PersonSelectionFieldProps {
   className?: string;
   required?: boolean;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const PersonSelectionField: React.FC<PersonSelectionFieldProps> = ({
@@ -25,7 +26,8 @@ export const PersonSelectionField: React.FC<PersonSelectionFieldProps> = ({
   onChange,
   className,
   required = false,
-  placeholder
+  placeholder,
+  disabled
 }) => {
   const { persons } = usePersons();
   const personOptions = useMemo(
@@ -41,6 +43,7 @@ export const PersonSelectionField: React.FC<PersonSelectionFieldProps> = ({
       options={personOptions}
       placeholder={placeholder || (required ? "Select person" : "None")}
       className={className}
+      isDisabled={disabled}
     />
   );
 };
@@ -52,6 +55,7 @@ interface LabelPersonRowProps {
   onPersonChange: (personId: string) => void;
   labelPlaceholder?: string;
   personPlaceholder?: string;
+  disabled?: boolean;
 }
 
 export const LabelPersonRow: React.FC<LabelPersonRowProps> = ({
@@ -60,7 +64,8 @@ export const LabelPersonRow: React.FC<LabelPersonRowProps> = ({
   personValue,
   onPersonChange,
   labelPlaceholder = "Enter label",
-  personPlaceholder
+  personPlaceholder,
+  disabled
 }) => (
   <FormRow>
     <InlineTextField
@@ -69,12 +74,14 @@ export const LabelPersonRow: React.FC<LabelPersonRowProps> = ({
       onChange={onLabelChange}
       placeholder={labelPlaceholder}
       className="flex-1"
+      disabled={disabled}
     />
     <PersonSelectionField
       value={personValue}
       onChange={onPersonChange}
       placeholder={personPlaceholder}
       className="flex-1"
+      disabled={disabled}
     />
   </FormRow>
 );
@@ -86,6 +93,7 @@ interface IterationCountFieldProps {
   min?: number;
   max?: number;
   label?: string;
+  disabled?: boolean;
 }
 
 export const IterationCountField: React.FC<IterationCountFieldProps> = ({
@@ -94,7 +102,8 @@ export const IterationCountField: React.FC<IterationCountFieldProps> = ({
   className = "w-24",
   min = 1,
   max = 100,
-  label = "Max Iter"
+  label = "Max Iter",
+  disabled
 }) => (
   <InlineTextField
     label={label}
@@ -105,6 +114,7 @@ export const IterationCountField: React.FC<IterationCountFieldProps> = ({
     }}
     placeholder={String(min)}
     className={className}
+    disabled={disabled}
   />
 );
 
@@ -115,6 +125,7 @@ interface VariableDetectionTextAreaProps {
   detectedVariables?: string[];
   placeholder?: string;
   rows?: number;
+  disabled?: boolean;
 }
 
 export const VariableDetectionTextArea: React.FC<VariableDetectionTextAreaProps> = ({
@@ -123,7 +134,8 @@ export const VariableDetectionTextArea: React.FC<VariableDetectionTextAreaProps>
   onChange,
   detectedVariables,
   placeholder,
-  rows = 4
+  rows = 4,
+  disabled
 }) => {
   const hint = useMemo(() => {
     if (!detectedVariables?.length) return undefined;
@@ -138,6 +150,7 @@ export const VariableDetectionTextArea: React.FC<VariableDetectionTextAreaProps>
       rows={rows}
       placeholder={placeholder}
       hint={hint}
+      disabled={disabled}
     />
   );
 };

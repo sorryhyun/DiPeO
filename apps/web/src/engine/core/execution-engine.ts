@@ -312,8 +312,12 @@ export class ExecutionEngine {
             const executionCount = context.nodeExecutionCounts[nodeId] || 0;
             const maxIterations = currentNode.data.iterationCount || currentNode.data.maxIterations;
             
-            if (maxIterations && this.skipManager.shouldSkip(nodeId, executionCount, maxIterations)) {
-              console.log(`Skipping node ${nodeId}: max iterations (${maxIterations}) reached`);
+            // Check if this node should be skipped due to max iterations
+            // Skip if executionCount >= maxIterations (node has already executed the maximum number of times)
+            if (maxIterations && executionCount >= maxIterations) {
+              // Mark as skipped with the skip manager
+              this.skipManager.markSkipped(nodeId, 'max_iterations_reached');
+              console.log(`Skipping node ${nodeId}: max iterations (${maxIterations}) reached (executed ${executionCount} times)`);
               
               // For skipped nodes, we still need to process their outgoing connections
               // This ensures the flow continues even when nodes are skipped

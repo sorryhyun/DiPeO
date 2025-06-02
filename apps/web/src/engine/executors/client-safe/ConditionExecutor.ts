@@ -211,25 +211,52 @@ export class ConditionExecutor extends ClientSafeExecutor {
     // Get all incoming nodes
     const incomingArrows = context.incomingArrows[node.id] || [];
     
+    // Check all directly connected source nodes
     for (const arrow of incomingArrows) {
       const sourceNodeId = arrow.source;
       if (!sourceNodeId) continue;
       
-      // Check if this source node has been skipped due to max iterations
-      // We look at execution count and the node's max iteration setting
       const sourceNode = context.nodesById[sourceNodeId];
       if (!sourceNode) continue;
       
+      // Check if this node has max iterations defined and has reached them
       const executionCount = context.nodeExecutionCounts[sourceNodeId] || 0;
       const maxIterations = sourceNode.data?.iterationCount || sourceNode.data?.maxIterations;
       
       if (maxIterations && executionCount >= maxIterations) {
-        // At least one preceding node has reached max iterations
+        console.log(`[ConditionExecutor] Node ${sourceNodeId} has reached max iterations (${executionCount}/${maxIterations})`);
         return true;
       }
     }
     
-    // No preceding nodes have reached max iterations
+    // Also check for any nodes that might be in a cycle with this condition node
+    // Look for nodes that feed back to the same nodes this condition feeds to
+    const outgoingArrows = context.outgoingArrows[node.id] || [];
+    for (const outArrow of outgoingArrows) {
+      const targetNodeId = outArrow.target;
+      if (!targetNodeId) continue;
+      
+      // Find nodes that connect to this same target (potential loop participants)
+      for (const [nodeId, nodeArrows] of Object.entries(context.outgoingArrows)) {
+        if (nodeId === node.id) continue; // Skip self
+        
+        const nodeConnectsToSameTarget = nodeArrows.some(arrow => arrow.target === targetNodeId);
+        if (nodeConnectsToSameTarget) {
+          const loopNode = context.nodesById[nodeId];
+          if (!loopNode) continue;
+          
+          const executionCount = context.nodeExecutionCounts[nodeId] || 0;
+          const maxIterations = loopNode.data?.iterationCount || loopNode.data?.maxIterations;
+          
+          if (maxIterations && executionCount >= maxIterations) {
+            console.log(`[ConditionExecutor] Loop participant ${nodeId} has reached max iterations (${executionCount}/${maxIterations})`);
+            return true;
+          }
+        }
+      }
+    }
+    
+    // No nodes have reached max iterations
     return false;
   }
 }
