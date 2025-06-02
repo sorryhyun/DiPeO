@@ -68,6 +68,7 @@ prompts/notion.yaml
 TODO.md
 MIGRATION_PLAN.md
 diagram_monitor
+AGENTS.md
 
 # Temporary files
 *.tmp
