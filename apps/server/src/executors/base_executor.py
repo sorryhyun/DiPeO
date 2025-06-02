@@ -312,7 +312,7 @@ class ExecutorFactory:
         """
         return self._executors.get(node_type)
     
-    def create_executors(self, execution_strategy: str = "hybrid") -> Dict[str, BaseExecutor]:
+    def create_executors(self, execution_strategy: str = "server") -> Dict[str, BaseExecutor]:
         """
         Create executors based on execution strategy.
         
@@ -322,12 +322,40 @@ class ExecutorFactory:
         Returns:
             Dictionary mapping node types to executors
         """
-        executors = {}
+        # Return a copy of registered executors
+        return self._executors.copy()
+    
+    def register_all_executors(self, llm_service=None, file_service=None) -> None:
+        """
+        Register all available executors with their dependencies.
         
-        # Register all available executors
-        # This will be populated as concrete executors are implemented
+        Args:
+            llm_service: LLMService instance for server-only executors
+            file_service: UnifiedFileService instance for file operations
+        """
+        # Import executors here to avoid circular imports
+        from .start_executor import StartExecutor
+        from .condition_executor import ConditionExecutor
+        from .job_executor import JobExecutor
+        from .endpoint_executor import EndpointExecutor
         
-        return executors
+        # Register client-safe executors
+        self.register_executor("start", StartExecutor())
+        self.register_executor("condition", ConditionExecutor())
+        self.register_executor("job", JobExecutor())
+        self.register_executor("endpoint", EndpointExecutor(file_service))
+        
+        # Register server-only executors if services are available
+        if llm_service:
+            from .person_job_executor import PersonJobExecutor, PersonBatchJobExecutor
+            self.register_executor("personjob", PersonJobExecutor(llm_service))
+            self.register_executor("person_job", PersonJobExecutor(llm_service))
+            self.register_executor("personbatchjob", PersonBatchJobExecutor(llm_service))
+            self.register_executor("person_batch_job", PersonBatchJobExecutor(llm_service))
+        
+        if file_service:
+            from .db_executor import DBExecutor
+            self.register_executor("db", DBExecutor(file_service))
     
     def is_client_safe_node(self, node_type: str) -> bool:
         """Check if a node type can be executed client-side"""

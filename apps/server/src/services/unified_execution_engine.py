@@ -38,26 +38,24 @@ class UnifiedExecutionEngine:
     loop control, skip management, and node execution.
     """
     
-    def __init__(self):
+    def __init__(self, llm_service=None, file_service=None):
         self.dependency_resolver = DependencyResolver()
         self.execution_planner = ExecutionPlanner()
         self.loop_controller = LoopController()
         self.skip_manager = SkipManager()
         self.executor_factory = ExecutorFactory()
+        self.llm_service = llm_service
+        self.file_service = file_service
         self.executors = self._register_executors()
         self._execution_lock = asyncio.Lock()
         
     def _register_executors(self) -> Dict[str, 'BaseExecutor']:
         """Register all available executors by node type"""
-        executors = {}
-        # TODO: Register concrete executors as they are implemented
-        # executors['start'] = StartExecutor()
-        # executors['condition'] = ConditionExecutor()
-        # executors['job'] = JobExecutor()
-        # executors['personjob'] = PersonJobExecutor()
-        # executors['db'] = DBExecutor()
-        # executors['endpoint'] = EndpointExecutor()
-        return executors
+        self.executor_factory.register_all_executors(
+            llm_service=self.llm_service,
+            file_service=self.file_service
+        )
+        return self.executor_factory.create_executors()
     
     async def execute_diagram(
         self, 
