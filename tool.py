@@ -16,95 +16,113 @@ import time
 from typing import Optional
 
 
-async def run_diagram_node_execution(diagram: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute diagram using Node.js execution runner (same logic as frontend)."""
-    import subprocess
-    import tempfile
-    import os
-    
-    # Save diagram to temp file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(diagram, f, indent=2)
-        temp_diagram_path = f.name
-    
-    try:
-        # Run Node.js execution runner
-        runner_path = os.path.join(os.path.dirname(__file__), 'execution_runner.cjs')
-        
-        # Check if node-fetch is available, if not suggest installation
+async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = True) -> Dict[str, Any]:
+    """Execute diagram using unified backend V2 API with streaming support."""
+    async with aiohttp.ClientSession() as session:
         try:
-            subprocess.run(['node', '-e', 'require("node-fetch")'], 
-                         check=True, capture_output=True)
-        except subprocess.CalledProcessError:
-            print("⚠️  Missing node-fetch dependency. Install with: npm install node-fetch")
-            print("   Falling back to backend execution...")
-            return await run_diagram_backend_fallback(diagram)
-        
-        result = subprocess.run(
-            ['node', runner_path, temp_diagram_path],
-            capture_output=True,
-            text=True,
-            timeout=300  # 5 minute timeout
-        )
-        
-        if result.returncode != 0:
-            print(f"Node.js execution failed: {result.stderr}")
-            print("Falling back to backend execution...")
-            return await run_diagram_backend_fallback(diagram)
-        
-        # Parse results from the saved file
-        results_path = 'results/results.json'
-        if os.path.exists(results_path):
-            with open(results_path, 'r') as f:
-                return json.load(f)
-        else:
+            if stream:
+                # Use V2 streaming endpoint
+                async with session.post(
+                    f"{API_URL}/api/v2/run-diagram",
+                    json=diagram,
+                    headers={"Content-Type": "application/json", "Accept": "text/event-stream"}
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        return {
+                            "context": {},
+                            "total_cost": 0,
+                            "messages": [],
+                            "error": f"Backend execution failed: {response.status} - {error_text}"
+                        }
+                    
+                    # Process SSE stream
+                    final_result = {
+                        "context": {},
+                        "total_cost": 0,
+                        "messages": []
+                    }
+                    
+                    async for line in response.content:
+                        line = line.decode('utf-8').strip()
+                        if line.startswith('data: '):
+                            try:
+                                data = json.loads(line[6:])  # Remove 'data: ' prefix
+                                
+                                if data.get('type') == 'node_complete':
+                                    node_data = data.get('data', {})
+                                    print(f"✓ Node {node_data.get('nodeId', 'unknown')} ({node_data.get('nodeType', 'unknown')}) completed")
+                                    if 'cost' in node_data:
+                                        final_result['total_cost'] += node_data['cost']
+                                    
+                                elif data.get('type') == 'execution_complete':
+                                    execution_data = data.get('data', {})
+                                    final_result['context'] = execution_data.get('context', {})
+                                    final_result['total_cost'] = execution_data.get('totalCost', final_result['total_cost'])
+                                    print(f"🎉 Execution completed - Total cost: ${final_result['total_cost']:.4f}")
+                                    
+                                elif data.get('type') == 'error':
+                                    error_data = data.get('data', {})
+                                    print(f"❌ Execution error: {error_data.get('message', 'Unknown error')}")
+                                    final_result['error'] = error_data.get('message', 'Unknown error')
+                                    
+                            except json.JSONDecodeError:
+                                pass  # Skip malformed JSON
+                    
+                    return final_result
+            else:
+                # Use V2 non-streaming endpoint (fallback to V1 if V2 not available)
+                async with session.post(
+                    f"{API_URL}/api/v2/run-diagram",
+                    json=diagram,
+                    headers={"Content-Type": "application/json"}
+                ) as response:
+                    if response.status == 404:
+                        # Fallback to V1 API
+                        async with session.post(
+                            f"{API_URL}/api/run-diagram",
+                            json=diagram,
+                            headers={"Content-Type": "application/json"}
+                        ) as v1_response:
+                            if v1_response.status == 200:
+                                result = await v1_response.json()
+                                return {
+                                    "context": result.get("context", {}),
+                                    "total_cost": result.get("total_cost", 0),
+                                    "messages": []
+                                }
+                            else:
+                                error_text = await v1_response.text()
+                                return {
+                                    "context": {},
+                                    "total_cost": 0,
+                                    "messages": [],
+                                    "error": f"V1 API execution failed: {v1_response.status} - {error_text}"
+                                }
+                    elif response.status == 200:
+                        result = await response.json()
+                        return {
+                            "context": result.get("context", {}),
+                            "total_cost": result.get("total_cost", 0),
+                            "messages": []
+                        }
+                    else:
+                        error_text = await response.text()
+                        return {
+                            "context": {},
+                            "total_cost": 0,
+                            "messages": [],
+                            "error": f"V2 API execution failed: {response.status} - {error_text}"
+                        }
+        except Exception as e:
             return {
                 "context": {},
                 "total_cost": 0,
-                "messages": []
+                "messages": [],
+                "error": f"Execution error: {str(e)}"
             }
-            
-    except subprocess.TimeoutExpired:
-        print("Execution timeout exceeded")
-        return {
-            "context": {},
-            "total_cost": 0,
-            "messages": [],
-            "error": "Execution timeout"
-        }
-    except Exception as e:
-        print(f"Execution error: {e}")
-        return await run_diagram_backend_fallback(diagram)
-    finally:
-        # Clean up temp file
-        try:
-            os.unlink(temp_diagram_path)
-        except:
-            pass
 
 
-async def run_diagram_backend_fallback(diagram: Dict[str, Any]) -> Dict[str, Any]:
-    """Fallback to direct backend execution (simplified)."""
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-                f"{API_URL}/api/run-diagram",
-                json=diagram,
-                headers={"Content-Type": "application/json"}
-        ) as response:
-            if response.status == 200:
-                result = await response.json()
-                return {
-                    "context": result.get("context", {}),
-                    "total_cost": result.get("total_cost", 0),
-                    "messages": []
-                }
-            else:
-                return {
-                    "context": {},
-                    "total_cost": 0,
-                    "messages": [],
-                    "error": f"Backend execution failed: {response.status}"
-                }
 
 
 API_URL = "http://localhost:8000"
@@ -149,14 +167,17 @@ def export_uml(diagram: Dict[str, Any]) -> str:
     return response.text
 
 
-def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True) -> Dict[str, Any]:
-    """Synchronous wrapper for execution with optional pre-initialization."""
+def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True) -> Dict[str, Any]:
+    """Synchronous wrapper for backend execution with optional pre-initialization."""
     if pre_initialize:
         print("🔧 Pre-initializing models...")
         pre_initialize_models(diagram)
         print()
     
-    return asyncio.run(run_diagram_node_execution(diagram))
+    if show_in_browser:
+        print("🌐 Browser visualization enabled - open http://localhost:3000 to see execution")
+    
+    return asyncio.run(run_diagram_backend_execution(diagram, stream=stream))
 
 
 def open_browser_monitor():
@@ -389,7 +410,7 @@ def main():
         print("Usage: python tool.py <command> [options]\n")
         print("Commands:")
         print("  run-and-monitor <file>                    - 🚀 RECOMMENDED: Pre-load models, open browser, then run diagram")
-        print("  run <file> [--no-browser] [--no-preload]  - Run diagram (with browser visualization by default)")
+        print("  run <file> [--no-browser] [--no-preload] [--no-stream] - Run diagram (with browser visualization by default)")
         print("  run-headless <file>                       - Run diagram without browser visualization")
         print("  monitor                                   - Open browser monitoring page")
         print("  preload <file>                            - Pre-initialize all models in diagram")
@@ -461,6 +482,7 @@ def main():
             # Check for flags
             show_in_browser = '--no-browser' not in sys.argv
             pre_initialize = '--no-preload' not in sys.argv
+            stream = '--no-stream' not in sys.argv
 
             print(f"Loading diagram from {sys.argv[2]}...")
             diagram = load_diagram(sys.argv[2])
@@ -471,7 +493,7 @@ def main():
             else:
                 print("Running diagram (browser visualization disabled)")
 
-            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize)
+            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream)
 
             # Save results
             Path('results').mkdir(exist_ok=True)
@@ -490,7 +512,7 @@ def main():
             diagram = load_diagram(sys.argv[2])
 
             print("Running diagram (headless)...")
-            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True)
+            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True, stream=True)
 
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
@@ -610,7 +632,7 @@ def main():
             diagram = load_diagram(sys.argv[2])
 
             print("Running diagram...")
-            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True)
+            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True, stream=True)
 
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
