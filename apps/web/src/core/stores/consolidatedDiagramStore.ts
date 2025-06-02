@@ -1,426 +1,117 @@
 import { create } from 'zustand';
 import { persist, devtools, subscribeWithSelector } from 'zustand/middleware';
+import { OnNodesChange, OnConnect } from '@xyflow/react';
 import {
-  OnNodesChange, OnConnect,
-  applyNodeChanges, Connection
-} from '@xyflow/react';
-import { nanoid } from 'nanoid';
-import {
-  ArrowData, DiagramState, PersonDefinition, ApiKey, DiagramNode, DiagramNodeData,
-  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
-  StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
-  ConditionBlockData, EndpointBlockData, createErrorHandlerFactory
+  DiagramState, PersonDefinition, ApiKey, DiagramNode,
+  OnArrowsChange, Arrow, ArrowData
 } from '@/shared/types';
-import { sanitizeDiagram } from "@/serialization/utils/diagramSanitizer";
-import { createPersonCrudActions, createApiKeyCrudActions } from "@/shared/utils/storeCrudUtils";
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
-import { toast } from 'sonner';
-
+import { useNodeArrowStore } from '@/core/stores/nodeArrowStore';
+import { usePersonStore } from '@/core/stores/personStore';
+import { useApiKeyStore } from '@/core/stores/apiKeyStore';
+import { useMonitorStore } from '@/core/stores/monitorStore';
+import { useDiagramOperationsStore } from '@/core/stores/diagramOperationsStore';
 
 export interface ConsolidatedDiagramState {
+  // Node and Arrow state (from nodeArrowStore)
   nodes: DiagramNode[];
   arrows: Arrow[];
-  persons: PersonDefinition[];
-  apiKeys: ApiKey[];
-  
-  // Monitor storage for external diagrams (not persisted)
-  monitorNodes: DiagramNode[];
-  monitorArrows: Arrow[];
-  monitorPersons: PersonDefinition[];
-  monitorApiKeys: ApiKey[];
-  isMonitorMode: boolean;
-
   onNodesChange: OnNodesChange;
   onArrowsChange: OnArrowsChange;
   onConnect: OnConnect;
   addNode: (type: string, position: { x: number; y: number }) => void;
-  updateNodeData: (nodeId: string, data: Record<string, any>) => void;
+  updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
   deleteNode: (nodeId: string) => void;
   updateArrowData: (arrowId: string, data: Partial<ArrowData>) => void;
   deleteArrow: (arrowId: string) => void;
-
+  
+  // Person state (from personStore)
+  persons: PersonDefinition[];
   addPerson: (person: Omit<PersonDefinition, 'id'>) => void;
   updatePerson: (personId: string, data: Partial<PersonDefinition>) => void;
   deletePerson: (personId: string) => void;
   getPersonById: (personId: string) => PersonDefinition | undefined;
   clearPersons: () => void;
-
+  
+  // API Key state (from apiKeyStore)
+  apiKeys: ApiKey[];
   addApiKey: (apiKey: Omit<ApiKey, 'id'>) => void;
   updateApiKey: (apiKeyId: string, apiKeyData: Partial<ApiKey>) => void;
   deleteApiKey: (apiKeyId: string) => void;
   getApiKeyById: (apiKeyId: string) => ApiKey | undefined;
   clearApiKeys: () => void;
   loadApiKeys: () => Promise<void>;
-
-  clearDiagram: () => void;
-  loadDiagram: (state: DiagramState) => void;
-  exportDiagram: () => DiagramState;
   
-  // Monitor-specific methods
+  // Monitor state (from monitorStore)
+  monitorNodes: DiagramNode[];
+  monitorArrows: Arrow[];
+  monitorPersons: PersonDefinition[];
+  monitorApiKeys: ApiKey[];
+  isMonitorMode: boolean;
   loadMonitorDiagram: (state: DiagramState) => void;
   clearMonitorDiagram: () => void;
   setMonitorMode: (enabled: boolean) => void;
   exportMonitorDiagram: () => DiagramState;
+  
+  // Diagram operations (from diagramOperationsStore)
+  clearDiagram: () => void;
+  loadDiagram: (state: DiagramState) => void;
+  exportDiagram: () => DiagramState;
 }
 
-const createErrorHandler = createErrorHandlerFactory(toast);
-
+// Create a facade that delegates to individual stores
 export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
   devtools(
     subscribeWithSelector(
       persist(
-        (set, get) => ({
-        nodes: [],
-        arrows: [],
-        persons: [],
-        apiKeys: [],
-        
-        // Monitor storage (not persisted)
-        monitorNodes: [],
-        monitorArrows: [],
-        monitorPersons: [],
-        monitorApiKeys: [],
-        isMonitorMode: false,
-
-        onNodesChange: (changes) => {
-          set({ nodes: applyNodeChanges(changes, get().nodes) as DiagramNode[] });
-        },
-
-        onArrowsChange: (changes) => {
-          set({ arrows: applyArrowChanges(changes, get().arrows) as Arrow<ArrowData>[] });
-        },
-
-        onConnect: (connection: Connection) => {
-          const arrowId = `arrow-${nanoid().slice(0, 6)}`;
-          const state = get();
-          const sourceNode = state.nodes.find(n => n.id === connection.source);
+        (_set) => ({
+          // Node and Arrow state - subscribe to nodeArrowStore
+          nodes: [],
+          arrows: [],
+          onNodesChange: (changes) => useNodeArrowStore.getState().onNodesChange(changes),
+          onArrowsChange: (changes) => useNodeArrowStore.getState().onArrowsChange(changes),
+          onConnect: (connection) => useNodeArrowStore.getState().onConnect(connection),
+          addNode: (type, position) => useNodeArrowStore.getState().addNode(type, position),
+          updateNodeData: (nodeId, data) => useNodeArrowStore.getState().updateNodeData(nodeId, data),
+          deleteNode: (nodeId) => useNodeArrowStore.getState().deleteNode(nodeId),
+          updateArrowData: (arrowId, data) => useNodeArrowStore.getState().updateArrowData(arrowId, data),
+          deleteArrow: (arrowId) => useNodeArrowStore.getState().deleteArrow(arrowId),
           
-          // Determine content type based on source node
-          const isFromStartNode = sourceNode?.data.type === 'start';
-          const isFromConditionBranch = connection.sourceHandle === 'true' || connection.sourceHandle === 'false';
+          // Person state - subscribe to personStore
+          persons: [],
+          addPerson: (person) => usePersonStore.getState().addPerson(person),
+          updatePerson: (personId, data) => usePersonStore.getState().updatePerson(personId, data),
+          deletePerson: (personId) => usePersonStore.getState().deletePerson(personId),
+          getPersonById: (personId) => usePersonStore.getState().getPersonById(personId),
+          clearPersons: () => usePersonStore.getState().clearPersons(),
           
-          let contentType: ArrowData['contentType'];
-          if (isFromStartNode) {
-            contentType = 'empty';
-          } else if (isFromConditionBranch) {
-            contentType = 'generic';
-          }
+          // API Key state - subscribe to apiKeyStore
+          apiKeys: [],
+          addApiKey: (apiKey) => useApiKeyStore.getState().addApiKey(apiKey),
+          updateApiKey: (apiKeyId, apiKeyData) => useApiKeyStore.getState().updateApiKey(apiKeyId, apiKeyData),
+          deleteApiKey: (apiKeyId) => useApiKeyStore.getState().deleteApiKey(apiKeyId),
+          getApiKeyById: (apiKeyId) => useApiKeyStore.getState().getApiKeyById(apiKeyId),
+          clearApiKeys: () => useApiKeyStore.getState().clearApiKeys(),
+          loadApiKeys: () => useApiKeyStore.getState().loadApiKeys(),
           
-          const newArrow: Arrow = {
-            id: arrowId,
-            source: connection.source!,
-            target: connection.target!,
-            sourceHandle: connection.sourceHandle,
-            targetHandle: connection.targetHandle,
-            type: 'customArrow',
-            data: { 
-              id: arrowId,
-              sourceBlockId: connection.source!,
-              targetBlockId: connection.target!,
-              kind: 'ALL' as const,
-              template: '',
-              conversationState: false,
-              label: 'New Arrow',
-              contentType,
-            }
-          };
-          set({ arrows: addArrow(newArrow, get().arrows) });
-        },
-
-        addNode: (type: string, position: { x: number; y: number }) => {
-          const reactFlowType = getReactFlowType(type);
-          const nodeId = `${reactFlowType}-${nanoid().slice(0, 6)}`;
-          type BlockData = StartBlockData | PersonJobBlockData | DBBlockData | JobBlockData | ConditionBlockData | EndpointBlockData;
-          let nodeData: BlockData;
-
-          // Set default data based on node type with proper interfaces
-          switch (type) {
-            case 'start':
-              nodeData = { 
-                id: nodeId,
-                type: 'start',
-                label: 'Start', 
-                description: '' 
-              };
-              break;
-            case 'person_job':
-              nodeData = { 
-                id: nodeId,
-                type: 'person_job',
-                label: 'Person Job', 
-                personId: undefined,
-                llmApi: undefined,
-                apiKeyId: undefined,
-                modelName: undefined,
-                defaultPrompt: '',
-                firstOnlyPrompt: '',
-                detectedVariables: [],
-                contextCleaningRule: 'uponRequest',
-                contextCleaningTurns: undefined,
-                iterationCount: 1
-              };
-              break;
-            case 'job':
-              nodeData = { 
-                id: nodeId,
-                type: 'job',
-                subType: 'code',
-                sourceDetails: '',
-                label: 'Job', 
-                description: '' 
-              };
-              break;
-            case 'condition':
-              nodeData = { 
-                id: nodeId,
-                type: 'condition',
-                conditionType: 'expression',
-                label: 'Condition', 
-                expression: ''
-              };
-              break;
-            case 'db':
-              nodeData = { 
-                id: nodeId,
-                type: 'db',
-                subType: 'fixed_prompt',
-                sourceDetails: '',
-                label: 'DB', 
-                description: ''
-              };
-              break;
-            case 'endpoint':
-              nodeData = { 
-                id: nodeId,
-                type: 'endpoint',
-                label: 'Endpoint', 
-                description: '',
-                saveToFile: false,
-                filePath: '',
-                fileFormat: 'json'
-              };
-              break;
-            default:
-              // Default to start node for unknown types
-              nodeData = {
-                id: nodeId,
-                type: 'start',
-                label: 'Unknown'
-              };
-          }
-
-          const newNode: DiagramNode = {
-            id: nodeId,
-            type : reactFlowType,
-            position,
-            data: nodeData,
-          };
-
-          set({ nodes: [...get().nodes, newNode] });
-        },
-
-        updateNodeData: (nodeId: string, data: Record<string, unknown>) => {
-          set({
-            nodes: get().nodes.map(node =>
-              node.id === nodeId ? { ...node, data: { ...node.data, ...data } as DiagramNodeData } : node
-            )
-          });
-        },
-
-        deleteNode: (nodeId: string) => {
-          set({
-            nodes: get().nodes.filter(node => node.id !== nodeId),
-            arrows: get().arrows.filter(arrow => 
-              arrow.source !== nodeId && arrow.target !== nodeId
-            )
-          });
-        },
-
-        updateArrowData: (arrowId: string, data: Partial<ArrowData>) => {
-          set({
-            arrows: get().arrows.map(arrow =>
-              arrow.id === arrowId ? { 
-                ...arrow, 
-                data: { ...arrow.data, ...data } as ArrowData 
-              } : arrow
-            )
-          });
-        },
-
-        deleteArrow: (arrowId: string) => {
-          set({
-            arrows: get().arrows.filter(arrow => arrow.id !== arrowId)
-          });
-        },
-
-        // Person operations using generic CRUD
-        ...createPersonCrudActions<PersonDefinition>(
-          () => get().persons,
-          (persons) => set({ persons }),
-          'PERSON'
-        ),
-
-        // API key operations using generic CRUD
-        ...createApiKeyCrudActions<ApiKey>(
-          () => get().apiKeys,
-          (apiKeys) => set({ apiKeys }),
-          'APIKEY'
-        ),
-
-        loadApiKeys: async () => {
-          const errorHandler = createErrorHandler('Load API Keys');
-          try {
-            const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
-            if (!response.ok) {
-              throw new Error(`Failed to load API keys: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            const apiKeys = (Array.isArray(data) ? data : data.apiKeys || []).map((key: {id: string; name: string; service: string}) => ({
-              id: key.id,
-              name: key.name,
-              service: key.service,
-              keyReference: '***hidden***' // Don't store raw keys in frontend
-            }));
-            
-            set({ apiKeys });
-          } catch (error) {
-            console.error('Error loading API keys:', error);
-            errorHandler(error as Error);
-            throw error;
-          }
-        },
-
-        // Utility operations
-        clearDiagram: () => {
-          set({ 
-            nodes: [], 
-            arrows: [], 
-            persons: [], 
-            apiKeys: [] 
-          });
-        },
-
-        loadDiagram: (state: DiagramState) => {
-          const sanitized = sanitizeDiagram(state);
-          const nodes = (sanitized.nodes || []) as DiagramNode[];
+          // Monitor state - subscribe to monitorStore
+          monitorNodes: [],
+          monitorArrows: [],
+          monitorPersons: [],
+          monitorApiKeys: [],
+          isMonitorMode: false,
+          loadMonitorDiagram: (state) => useMonitorStore.getState().loadMonitorDiagram(state),
+          clearMonitorDiagram: () => useMonitorStore.getState().clearMonitorDiagram(),
+          setMonitorMode: (enabled) => useMonitorStore.getState().setMonitorMode(enabled),
+          exportMonitorDiagram: () => useMonitorStore.getState().exportMonitorDiagram(),
           
-          // Process arrows to set proper content type based on source node
-          const arrows = ((sanitized.arrows || []) as Arrow[]).map(arrow => {
-            const sourceNode = nodes.find(n => n.id === arrow.source);
-            const isFromStartNode = sourceNode?.data.type === 'start';
-            const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
-            
-            if (arrow.data) {
-              if (isFromStartNode) {
-                return {
-                  ...arrow,
-                  data: {
-                    ...arrow.data,
-                    contentType: 'empty' as const
-                  }
-                };
-              } else if (isFromConditionBranch) {
-                return {
-                  ...arrow,
-                  data: {
-                    ...arrow.data,
-                    contentType: 'generic' as const
-                  }
-                };
-              }
-            }
-            return arrow;
-          });
-          
-          set({
-            nodes,
-            arrows,
-            persons: sanitized.persons || [],
-            apiKeys: sanitized.apiKeys || []
-          });
-        },
-        
-        loadMonitorDiagram: (state: DiagramState) => {
-          const sanitized = sanitizeDiagram(state);
-          const nodes = (sanitized.nodes || []) as DiagramNode[];
-          
-          // Process arrows to set proper content type based on source node
-          const arrows = ((sanitized.arrows || []) as Arrow[]).map(arrow => {
-            const sourceNode = nodes.find(n => n.id === arrow.source);
-            const isFromStartNode = sourceNode?.data.type === 'start';
-            const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
-            
-            if (arrow.data) {
-              if (isFromStartNode) {
-                return {
-                  ...arrow,
-                  data: {
-                    ...arrow.data,
-                    contentType: 'empty' as const
-                  }
-                };
-              } else if (isFromConditionBranch) {
-                return {
-                  ...arrow,
-                  data: {
-                    ...arrow.data,
-                    contentType: 'generic' as const
-                  }
-                };
-              }
-            }
-            return arrow;
-          });
-          
-          set({
-            monitorNodes: nodes,
-            monitorArrows: arrows,
-            monitorPersons: sanitized.persons || [],
-            monitorApiKeys: sanitized.apiKeys || [],
-            isMonitorMode: true
-          });
-        },
-        
-        clearMonitorDiagram: () => {
-          set({
-            monitorNodes: [],
-            monitorArrows: [],
-            monitorPersons: [],
-            monitorApiKeys: [],
-            isMonitorMode: false
-          });
-        },
-        
-        setMonitorMode: (enabled: boolean) => {
-          set({ isMonitorMode: enabled });
-        },
-        
-        exportMonitorDiagram: (): DiagramState => {
-          const { monitorNodes, monitorArrows, monitorPersons, monitorApiKeys } = get();
-          const sanitized = sanitizeDiagram({
-            nodes: monitorNodes,
-            arrows: monitorArrows,
-            persons: monitorPersons,
-            apiKeys: monitorApiKeys
-          });
-          return sanitized;
-        },
-
-        exportDiagram: (): DiagramState => {
-          const { nodes, arrows, persons, apiKeys } = sanitizeDiagram(get());
-          return { nodes, arrows, persons, apiKeys };
-        },
-
+          // Diagram operations
+          clearDiagram: () => useDiagramOperationsStore.getState().clearDiagram(),
+          loadDiagram: (state) => useDiagramOperationsStore.getState().loadDiagram(state),
+          exportDiagram: () => useDiagramOperationsStore.getState().exportDiagram(),
         }),
         {
           name: 'consolidated-diagram-store',
-          partialize: (state) => ({
-            nodes: state.nodes,
-            arrows: state.arrows,
-            persons: state.persons,
-            apiKeys: state.apiKeys
-          }),
+          partialize: () => ({}), // Don't persist anything - individual stores handle their own persistence
         }
       )
     ),
@@ -428,4 +119,53 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
       name: 'consolidated-diagram-store',
     }
   )
+);
+
+// Subscribe to individual stores and update consolidated store
+// This ensures the facade stays in sync with the underlying stores
+useNodeArrowStore.subscribe(
+  (state) => ({ nodes: state.nodes, arrows: state.arrows }),
+  (newState) => {
+    useConsolidatedDiagramStore.setState({
+      nodes: newState.nodes,
+      arrows: newState.arrows,
+    });
+  }
+);
+
+usePersonStore.subscribe(
+  (state) => ({ persons: state.persons }),
+  (newState) => {
+    useConsolidatedDiagramStore.setState({
+      persons: newState.persons,
+    });
+  }
+);
+
+useApiKeyStore.subscribe(
+  (state) => ({ apiKeys: state.apiKeys }),
+  (newState) => {
+    useConsolidatedDiagramStore.setState({
+      apiKeys: newState.apiKeys,
+    });
+  }
+);
+
+useMonitorStore.subscribe(
+  (state) => ({
+    monitorNodes: state.monitorNodes,
+    monitorArrows: state.monitorArrows,
+    monitorPersons: state.monitorPersons,
+    monitorApiKeys: state.monitorApiKeys,
+    isMonitorMode: state.isMonitorMode,
+  }),
+  (newState) => {
+    useConsolidatedDiagramStore.setState({
+      monitorNodes: newState.monitorNodes,
+      monitorArrows: newState.monitorArrows,
+      monitorPersons: newState.monitorPersons,
+      monitorApiKeys: newState.monitorApiKeys,
+      isMonitorMode: newState.isMonitorMode,
+    });
+  }
 );
