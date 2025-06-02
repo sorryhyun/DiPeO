@@ -94,22 +94,23 @@ class LLMService(BaseService):
     
     def calculate_cost(self, client_name: str, usage: Any) -> float:
         """Calculate cost for LLM usage."""
-
-        # Use client to calculate cost
-
-        # if normalized_service not in COST_RATES or usage is None:
-        #     return 0.0
-        #
-        # rates = COST_RATES[normalized_service]
-        # input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
-        #
-        # cost = (
-        #     (input_tokens - cached_tokens) * (rates["input"] / 1_000_000) +
-        #     output_tokens * (rates["output"] / 1_000_000) +
-        #     cached_tokens * (rates.get("cached", rates["input"]) / 1_000_000)
-        # )
-        #
-        return 0
+        
+        # Normalize the client/service name
+        normalized_service = self.normalize_service_name(client_name)
+        
+        if normalized_service not in COST_RATES or usage is None:
+            return 0.0
+        
+        rates = COST_RATES[normalized_service]
+        input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
+        
+        cost = (
+            (input_tokens - cached_tokens) * (rates["input"] / 1_000_000) +
+            output_tokens * (rates["output"] / 1_000_000) +
+            cached_tokens * (rates.get("cached", rates["input"]) / 1_000_000)
+        )
+        
+        return cost
     
     def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
         """Extract text and usage from adapter result."""

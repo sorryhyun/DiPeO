@@ -36,6 +36,13 @@ async def execute_person_job(
     inputs = payload.get('inputs', {})
     node_config = payload.get('node_config', {})
     
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[execute_person_job] Received payload: {payload}")
+    logger.info(f"[execute_person_job] Extracted inputs: {inputs}")
+    logger.info(f"[execute_person_job] Original prompt: {prompt}")
+    
     if not person_config:
         raise ValidationError("Person configuration is required")
     
@@ -293,9 +300,22 @@ async def _execute_notion_api(api_config: Dict[str, Any]) -> Dict[str, Any]:
 
 def _substitute_variables(template: str, variables: Dict[str, Any]) -> str:
     """Substitute variables in template string."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[_substitute_variables] Starting substitution")
+    logger.info(f"[_substitute_variables] Template: {template}")
+    logger.info(f"[_substitute_variables] Variables: {variables}")
+    
     result = template
     for key, value in variables.items():
         # Handle both {{key}} and {key} patterns
+        old_result = result
         result = result.replace(f"{{{{{key}}}}}", str(value))
         result = result.replace(f"{{{key}}}", str(value))
+        
+        if old_result != result:
+            logger.info(f"[_substitute_variables] Replaced '{key}' with '{value}'")
+    
+    logger.info(f"[_substitute_variables] Final result: {result}")
     return result

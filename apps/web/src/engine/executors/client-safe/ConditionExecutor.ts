@@ -12,7 +12,7 @@ import {
 import { ClientSafeExecutor } from '../base-executor';
 
 export class ConditionExecutor extends ClientSafeExecutor {
-  async validateInputs(node: Node, context: TypedExecutionContext): Promise<ExecutorValidation> {
+  async validateInputs(node: Node, _context: TypedExecutionContext): Promise<ExecutorValidation> {
     const commonValidation = this.validateCommonInputs(node);
     if (!commonValidation.isValid) {
       return commonValidation;
@@ -41,7 +41,7 @@ export class ConditionExecutor extends ClientSafeExecutor {
     };
   }
 
-  async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
+  async execute(node: Node, context: TypedExecutionContext, _options?: Record<string, unknown>): Promise<ExecutorResult> {
     const conditionType = this.getNodeProperty(node, 'conditionType', 'expression') as string;
     const inputs = this.getInputValues(node, context);
     
@@ -76,11 +76,11 @@ export class ConditionExecutor extends ClientSafeExecutor {
    */
   private evaluateCondition(
     condition: string, 
-    inputs: Record<string, any>, 
+    inputs: Record<string, unknown>, 
     context: TypedExecutionContext
   ): boolean {
     // Create evaluation context with inputs and flattened node outputs
-    const evaluationContext: Record<string, any> = {
+    const evaluationContext: Record<string, unknown> = {
       ...inputs,
       executionCount: context.nodeExecutionCounts
     };
@@ -106,7 +106,7 @@ export class ConditionExecutor extends ClientSafeExecutor {
   /**
    * Simple expression evaluator for conditions
    */
-  private evaluateExpression(expression: string, context: Record<string, any>): boolean {
+  private evaluateExpression(expression: string, context: Record<string, unknown>): boolean {
     // Replace variables in the expression
     let evaluatedExpression = expression;
     
@@ -182,7 +182,7 @@ export class ConditionExecutor extends ClientSafeExecutor {
     }
   }
 
-  private parseValue(value: string): any {
+  private parseValue(value: string): string | number | boolean {
     const trimmed = value.trim();
     
     // Remove quotes for strings
@@ -211,6 +211,10 @@ export class ConditionExecutor extends ClientSafeExecutor {
     // Get all incoming nodes
     const incomingArrows = context.incomingArrows[node.id] || [];
     
+    // Track if all nodes that have max iterations defined have reached them
+    let hasNodesWithMaxIterations = false;
+    let allMaxIterationsReached = true;
+    
     // Check all directly connected source nodes
     for (const arrow of incomingArrows) {
       const sourceNodeId = arrow.source;
@@ -219,13 +223,18 @@ export class ConditionExecutor extends ClientSafeExecutor {
       const sourceNode = context.nodesById[sourceNodeId];
       if (!sourceNode) continue;
       
-      // Check if this node has max iterations defined and has reached them
+      // Check if this node has max iterations defined
       const executionCount = context.nodeExecutionCounts[sourceNodeId] || 0;
       const maxIterations = sourceNode.data?.iterationCount || sourceNode.data?.maxIterations;
       
-      if (maxIterations && executionCount >= maxIterations) {
-        console.log(`[ConditionExecutor] Node ${sourceNodeId} has reached max iterations (${executionCount}/${maxIterations})`);
-        return true;
+      if (maxIterations) {
+        hasNodesWithMaxIterations = true;
+        if (executionCount < maxIterations) {
+          allMaxIterationsReached = false;
+          console.log(`[ConditionExecutor] Node ${sourceNodeId} has NOT reached max iterations yet (${executionCount}/${maxIterations})`);
+        } else {
+          console.log(`[ConditionExecutor] Node ${sourceNodeId} has reached max iterations (${executionCount}/${maxIterations})`);
+        }
       }
     }
     
@@ -248,15 +257,20 @@ export class ConditionExecutor extends ClientSafeExecutor {
           const executionCount = context.nodeExecutionCounts[nodeId] || 0;
           const maxIterations = loopNode.data?.iterationCount || loopNode.data?.maxIterations;
           
-          if (maxIterations && executionCount >= maxIterations) {
-            console.log(`[ConditionExecutor] Loop participant ${nodeId} has reached max iterations (${executionCount}/${maxIterations})`);
-            return true;
+          if (maxIterations) {
+            hasNodesWithMaxIterations = true;
+            if (executionCount < maxIterations) {
+              allMaxIterationsReached = false;
+              console.log(`[ConditionExecutor] Loop participant ${nodeId} has NOT reached max iterations yet (${executionCount}/${maxIterations})`);
+            } else {
+              console.log(`[ConditionExecutor] Loop participant ${nodeId} has reached max iterations (${executionCount}/${maxIterations})`);
+            }
           }
         }
       }
     }
     
-    // No nodes have reached max iterations
-    return false;
+    // Return true only if we found nodes with max iterations AND all of them have reached their limit
+    return hasNodesWithMaxIterations && allMaxIterationsReached;
   }
 }

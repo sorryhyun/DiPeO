@@ -16,7 +16,7 @@ import {
  */
 export abstract class BaseExecutor implements BaseExecutorInterface {
   abstract validateInputs(node: Node, context: TypedExecutionContext): Promise<ExecutorValidation>;
-  abstract execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult>;
+  abstract execute(node: Node, context: TypedExecutionContext, options?: Record<string, unknown>): Promise<ExecutorResult>;
 
   /**
    * Validate common node properties
@@ -45,15 +45,20 @@ export abstract class BaseExecutor implements BaseExecutorInterface {
   /**
    * Get input values from connected arrows
    */
-  protected getInputValues(node: Node, context: TypedExecutionContext): Record<string, any> {
-    const inputs: Record<string, any> = {};
+  protected getInputValues(node: Node, context: TypedExecutionContext): Record<string, unknown> {
+    const inputs: Record<string, unknown> = {};
     const incomingArrows = context.incomingArrows[node.id] || [];
 
     for (const arrow of incomingArrows) {
       if (arrow.source && context.nodeOutputs[arrow.source] !== undefined) {
-        // Use target handle as input key, fallback to source handle or source node ID
-        const inputKey = arrow.targetHandle || arrow.sourceHandle || arrow.source;
+        // Use arrow label as input key if available, otherwise use target handle
+        const inputKey = arrow.data?.label || arrow.targetHandle || arrow.sourceHandle || arrow.source;
         inputs[inputKey] = context.nodeOutputs[arrow.source];
+        
+        // Also add the value with the target handle as key for backward compatibility
+        if (arrow.data?.label && arrow.targetHandle) {
+          inputs[arrow.targetHandle] = context.nodeOutputs[arrow.source];
+        }
       }
     }
 
@@ -63,7 +68,7 @@ export abstract class BaseExecutor implements BaseExecutorInterface {
   /**
    * Create a successful execution result
    */
-  protected createSuccessResult(output: any, cost: number = 0, metadata?: Record<string, any>): ExecutorResult {
+  protected createSuccessResult(output: unknown, cost: number = 0, metadata?: Record<string, unknown>): ExecutorResult {
     return {
       output,
       cost,
@@ -74,7 +79,7 @@ export abstract class BaseExecutor implements BaseExecutorInterface {
   /**
    * Create an execution error
    */
-  protected createExecutionError(message: string, node: Node, details?: Record<string, any>): NodeExecutionError {
+  protected createExecutionError(message: string, node: Node, details?: Record<string, unknown>): NodeExecutionError {
     return new NodeExecutionError(message, node.id, node.type, details);
   }
 

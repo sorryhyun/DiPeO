@@ -43,5 +43,6 @@ SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {".py", ".js", ".ts", ".json", ".ya
 COST_RATES: Final[dict[str, dict[str, float]]] = {
     "openai": {"input": 2.0, "output": 8.0, "cached": 0.5},
     "claude": {"input": 3.0, "output": 15.0},
-    "gemini": {"input": 3.0, "output": 15.0}
+    "gemini": {"input": 3.0, "output": 15.0},
+    "grok": {"input": 2.5, "output": 10.0}
 }

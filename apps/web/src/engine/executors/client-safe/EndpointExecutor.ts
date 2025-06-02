@@ -31,7 +31,7 @@ export class EndpointExecutor extends ClientSafeExecutor {
     return { isValid: true, errors: [] };
   }
 
-  async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
+  async execute(node: Node, context: TypedExecutionContext, _options?: Record<string, unknown>): Promise<ExecutorResult> {
     const inputs = this.getInputValues(node, context);
     const outputFormat = this.getNodeProperty(node, 'outputFormat', 'json');
     const saveToFile = this.getNodeProperty(node, 'saveToFile', false);
@@ -69,7 +69,7 @@ export class EndpointExecutor extends ClientSafeExecutor {
   /**
    * Format the output according to the specified format
    */
-  private formatOutput(inputs: Record<string, any>, format: string, node: Node): any {
+  private formatOutput(inputs: Record<string, unknown>, format: string, node: Node): string | Record<string, unknown> {
     switch (format.toLowerCase()) {
       case 'json':
         return this.formatAsJSON(inputs);
@@ -78,17 +78,17 @@ export class EndpointExecutor extends ClientSafeExecutor {
       case 'csv':
         return this.formatAsCSV(inputs);
       case 'raw':
-        return this.formatAsRaw(inputs);
+        return this.formatAsRaw(inputs) as string | Record<string, unknown>;
       default:
         return inputs; // Default to raw inputs
     }
   }
 
-  private formatAsJSON(inputs: Record<string, any>): string {
+  private formatAsJSON(inputs: Record<string, unknown>): string {
     return JSON.stringify(inputs, null, 2);
   }
 
-  private formatAsText(inputs: Record<string, any>, node: Node): string {
+  private formatAsText(inputs: Record<string, unknown>, node: Node): string {
     const template = this.getNodeProperty<string>(node, 'textTemplate', '');
     
     if (template) {
@@ -107,7 +107,7 @@ export class EndpointExecutor extends ClientSafeExecutor {
       .join('\n');
   }
 
-  private formatAsCSV(inputs: Record<string, any>): string {
+  private formatAsCSV(inputs: Record<string, unknown>): string {
     // Simple CSV format - assumes inputs contain arrays or objects
     const firstValue = Object.values(inputs)[0];
     
@@ -129,7 +129,7 @@ export class EndpointExecutor extends ClientSafeExecutor {
     return `${headers.join(',')}\n${values.map(v => JSON.stringify(v)).join(',')}`;
   }
 
-  private formatAsRaw(inputs: Record<string, any>): any {
+  private formatAsRaw(inputs: Record<string, unknown>): unknown {
     // Return the first input value if there's only one, otherwise return all inputs
     const values = Object.values(inputs);
     return values.length === 1 ? values[0] : inputs;
@@ -138,11 +138,8 @@ export class EndpointExecutor extends ClientSafeExecutor {
   /**
    * Save output to file via server API
    */
-  private async saveToFile(node: Node, output: any, filePath: string, fileFormat: string): Promise<void> {
+  private async saveToFile(node: Node, output: unknown, filePath: string, fileFormat: string): Promise<void> {
     const payload = {
-      nodeId: node.id,
-      filePath,
-      fileFormat,
       content: output,
       save_to_file: true,
       file_path: filePath,
