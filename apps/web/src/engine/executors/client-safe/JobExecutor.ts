@@ -20,10 +20,21 @@ export class JobExecutor extends ClientSafeExecutor {
 
     const errors: string[] = [];
 
-    // Validate job type
+    // Validate either jobType or code is provided
     const jobType = this.getNodeProperty(node, 'jobType', '');
-    if (!jobType) {
-      errors.push('Job type is required');
+    const code = this.getNodeProperty(node, 'code', '');
+    
+    if (!jobType && !code) {
+      errors.push('Either job type or code is required');
+    }
+
+    // Validate max iterations if provided
+    const maxIterations = this.getNodeProperty(node, 'maxIterations', null);
+    if (maxIterations !== null && maxIterations !== undefined) {
+      const maxIter = Number(maxIterations);
+      if (isNaN(maxIter) || maxIter < 1) {
+        errors.push('Max iterations must be a positive number');
+      }
     }
 
     return {
@@ -34,13 +45,24 @@ export class JobExecutor extends ClientSafeExecutor {
 
   async execute(node: Node, context: TypedExecutionContext, options?: any): Promise<ExecutorResult> {
     const jobType = this.getNodeProperty(node, 'jobType', '');
+    const code = this.getNodeProperty(node, 'code', '');
     const inputs = this.getInputValues(node, context);
     
     try {
-      const result = await this.executeJob(jobType, inputs, node);
+      let result: any;
+      
+      if (code) {
+        // Execute JavaScript code
+        result = await this.executeCode(code, inputs, context);
+      } else if (jobType) {
+        // Execute predefined job type
+        result = await this.executeJob(jobType, inputs, node);
+      } else {
+        throw new Error('Either jobType or code must be provided');
+      }
       
       return this.createSuccessResult(result, 0, {
-        jobType,
+        jobType: jobType || 'code',
         inputKeys: Object.keys(inputs),
         executedAt: new Date().toISOString()
       });
@@ -48,8 +70,37 @@ export class JobExecutor extends ClientSafeExecutor {
       throw this.createExecutionError(
         `Failed to execute job: ${error instanceof Error ? error.message : String(error)}`,
         node,
-        { jobType, inputs, error: error instanceof Error ? error.message : String(error) }
+        { jobType: jobType || 'code', inputs, error: error instanceof Error ? error.message : String(error) }
       );
+    }
+  }
+
+  /**
+   * Execute JavaScript code with inputs and context
+   */
+  private async executeCode(code: string, inputs: Record<string, any>, context: TypedExecutionContext): Promise<any> {
+    // Create execution context for the code
+    const codeContext = {
+      inputs,
+      context: {
+        nodeOutputs: context.nodeOutputs,
+        executionOrder: context.executionOrder,
+        // Add any other safe context properties needed
+      },
+      // Individual input values for convenience
+      ...inputs
+    };
+
+    try {
+      // Create a function from the code string
+      const func = new Function('context', 'inputs', code);
+      
+      // Execute the function with the context
+      const result = func(codeContext.context, codeContext.inputs);
+      
+      return result;
+    } catch (error) {
+      throw new Error(`Code execution failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

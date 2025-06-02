@@ -11,13 +11,9 @@ export class DependencyResolver {
     
     for (const [nodeId, node] of Object.entries(this.context.nodesById)) {
       if (!node) continue;
-      try {
-        const nodeType = node.type as NodeType;
-        if (nodeType === 'start') {
-          startNodes.push(nodeId);
-        }
-      } catch {
-        // Invalid node type, skip
+      // Check for both normalized and React Flow node types
+      if (node.type === 'start' || node.type === 'startNode') {
+        startNodes.push(nodeId);
       }
     }
 
@@ -126,6 +122,8 @@ export class DependencyResolver {
     const outgoing = this.context.outgoingArrows[nodeId] || [];
     const nextNodes: string[] = [];
 
+    console.log(`[DependencyResolver] Getting next nodes for ${nodeId}, outgoing arrows: ${outgoing.length}`);
+
     for (const arrow of outgoing) {
       const targetId = this.getArrowTarget(arrow);
       if (!targetId) continue;
@@ -134,17 +132,24 @@ export class DependencyResolver {
       const srcNode = this.context.nodesById[nodeId];
       if (srcNode && this.getNodeType(srcNode) === 'condition') {
         const branch = this.extractBranchFromArrow(arrow);
+        const condValue = conditionValues[nodeId] || false;
+        console.log(`[DependencyResolver] Condition ${nodeId}: branch=${branch}, condValue=${condValue}, target=${targetId}`);
+        
         if (branch) {
-          const condValue = conditionValues[nodeId] || false;
-          if ((branch === 'true' && !condValue) || (branch === 'false' && condValue)) {
+          const skipArrow = (branch === 'true' && !condValue) || (branch === 'false' && condValue);
+          console.log(`[DependencyResolver] Skip arrow check: (${branch} === 'true' && !${condValue}) || (${branch} === 'false' && ${condValue}) = ${skipArrow}`);
+          if (skipArrow) {
+            console.log(`[DependencyResolver] Skipping arrow to ${targetId} (wrong branch)`);
             continue;
           }
         }
       }
 
+      console.log(`[DependencyResolver] Adding ${targetId} to next nodes`);
       nextNodes.push(targetId);
     }
 
+    console.log(`[DependencyResolver] Next nodes for ${nodeId}: [${nextNodes.join(', ')}]`);
     return nextNodes;
   }
 
@@ -191,7 +196,7 @@ export class DependencyResolver {
   // Private helper methods
 
   private isStartNode(node: Record<string, any>): boolean {
-    return node.type === 'start';
+    return node.type === 'start' || node.type === 'startNode';
   }
 
   private getNodeType(node: Record<string, any>): NodeType | null {
@@ -308,7 +313,7 @@ export class DependencyResolver {
     executedNodes: Set<string>
   ): boolean {
     const nodeType = this.getNodeType(node);
-    if (nodeType !== 'person_job') {
+    if (nodeType !== 'person_job' && nodeType !== 'job') {
       return false;
     }
 

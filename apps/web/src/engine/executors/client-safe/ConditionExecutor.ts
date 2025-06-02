@@ -79,12 +79,24 @@ export class ConditionExecutor extends ClientSafeExecutor {
     inputs: Record<string, any>, 
     context: TypedExecutionContext
   ): boolean {
-    // Create evaluation context with inputs and node outputs
-    const evaluationContext = {
+    // Create evaluation context with inputs and flattened node outputs
+    const evaluationContext: Record<string, any> = {
       ...inputs,
-      ...context.nodeOutputs,
       executionCount: context.nodeExecutionCounts
     };
+
+    // Flatten node outputs to make their properties directly accessible
+    for (const [nodeId, nodeOutput] of Object.entries(context.nodeOutputs)) {
+      if (typeof nodeOutput === 'object' && nodeOutput !== null) {
+        // Spread object properties to make them accessible (e.g., {counter: 1} -> counter: 1)
+        Object.assign(evaluationContext, nodeOutput);
+      } else {
+        // For primitive values, use the node ID as key
+        evaluationContext[nodeId] = nodeOutput;
+      }
+    }
+
+    console.log(`[ConditionExecutor] Evaluating "${condition}" with context:`, evaluationContext);
 
     // Simple expression evaluation
     // In production, you'd want to use a more robust expression evaluator

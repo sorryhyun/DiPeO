@@ -293,10 +293,14 @@ export class ExecutionEngine {
       currentIteration++;
       const nodesToExecute = Array.from(pendingNodes);
       pendingNodes.clear();
+      let nodesExecutedThisIteration = 0;
 
       // Execute nodes in this iteration
       for (const nodeId of nodesToExecute) {
         try {
+          const currentNode = diagram.nodes.find(n => n.id === nodeId);
+          console.log(`[DEBUG] Attempting to execute node ${nodeId} (type: ${currentNode?.type})`);
+          
           // Check if node should be skipped
           if (this.skipManager.isSkipped(nodeId)) {
             console.log(`Skipping node ${nodeId}: ${this.skipManager.getSkipReason(nodeId)}`);
@@ -304,10 +308,9 @@ export class ExecutionEngine {
           }
 
           // Check if node has reached max iterations
-          const node = diagram.nodes.find(n => n.id === nodeId);
-          if (node) {
+          if (currentNode) {
             const executionCount = context.nodeExecutionCounts[nodeId] || 0;
-            const maxIterations = node.data.iterationCount || node.data.maxIterations;
+            const maxIterations = currentNode.data.iterationCount || currentNode.data.maxIterations;
             
             if (maxIterations && this.skipManager.shouldSkip(nodeId, executionCount, maxIterations)) {
               console.log(`Skipping node ${nodeId}: max iterations (${maxIterations}) reached`);
@@ -338,15 +341,17 @@ export class ExecutionEngine {
             context.conditionValues
           );
 
+          console.log(`[DEBUG] Dependencies met for ${nodeId}: ${dependenciesMet}, executed nodes: [${Array.from(executedNodes).join(', ')}]`);
+
           if (!dependenciesMet) {
             // Re-add to pending if dependencies not met
+            console.log(`[DEBUG] Re-adding ${nodeId} to pending due to unmet dependencies`);
             pendingNodes.add(nodeId);
             continue;
           }
 
-          // Check if this is a PersonJob node executing with first-only for the first time
-          const currentNode = diagram.nodes.find(n => n.id === nodeId);
-          if (currentNode && currentNode.type === 'person_job') {
+          // Check if this is a PersonJob or Job node executing with first-only for the first time
+          if (currentNode && (currentNode.type === 'person_job' || currentNode.type === 'job')) {
             const hasFirstOnlyInput = validArrows.some(arrow => 
               arrow.targetHandle?.endsWith('-input-first') || arrow.data?.handleMode === 'first_only'
             );
@@ -360,12 +365,16 @@ export class ExecutionEngine {
           // Execute the node
           await this.executeNode(nodeId, diagram, context, options);
           executedNodes.add(nodeId);
+          nodesExecutedThisIteration++;
+          console.log(`[DEBUG] Node ${nodeId} executed successfully`);
 
           // Get next nodes to execute
           const nextNodes = this.dependencyResolver.getNextNodes(nodeId, context.conditionValues);
+          console.log(`[DEBUG] Next nodes from ${nodeId}: [${nextNodes.join(', ')}]`);
           nextNodes.forEach(nextNodeId => {
             if (!executedNodes.has(nextNodeId) && !pendingNodes.has(nextNodeId)) {
               pendingNodes.add(nextNodeId);
+              console.log(`[DEBUG] Added ${nextNodeId} to pending nodes`);
             }
           });
 
@@ -394,7 +403,7 @@ export class ExecutionEngine {
       }
 
       // If no progress was made and we still have pending nodes, there might be a dependency issue
-      if (pendingNodes.size > 0 && nodesToExecute.length === pendingNodes.size) {
+      if (pendingNodes.size > 0 && nodesExecutedThisIteration === 0) {
         const pendingArray = Array.from(pendingNodes);
         throw new DiagramExecutionError(
           `Execution deadlock detected. Pending nodes: ${pendingArray.join(', ')}`,
