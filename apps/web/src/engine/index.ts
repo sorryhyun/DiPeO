@@ -1,59 +1,16 @@
-// Export execution core classes
-export { DependencyResolver } from './flow/dependency-resolver';
-export { ExecutionPlanner } from './flow/execution-planner';
-export { SkipManager } from './core/skip-manager';
-export { LoopController } from './core/loop-controller';
-export { ExecutionEngine } from './core/execution-engine';
+// Phase 4: Frontend Simplification - Unified Backend Execution
+// All execution logic has been moved to the backend unified engine.
+// Frontend now uses a simple API client for execution.
 
-// Export executor classes and factories
-export * from './executors';
+// Export unified execution client (replaces all legacy execution components)
+export * from './unified-execution-client';
 
-// Export execution orchestrator
-export * from './execution-orchestrator';
-
-// Export utility functions for creating execution contexts
-import { DiagramNode, DiagramArrow, ExecutionContext } from '@/shared/types/core';
-
-export function createExecutionContext(nodes: DiagramNode[], arrows: DiagramArrow[]): ExecutionContext {
-  const nodesById: Record<string, DiagramNode> = {};
-  const incomingArrows: Record<string, DiagramArrow[]> = {};
-  const outgoingArrows: Record<string, DiagramArrow[]> = {};
-
-  // Build nodes_by_id
-  for (const node of nodes) {
-    nodesById[node.id] = node;
-  }
-
-  // Initialize arrow maps
-  for (const node of nodes) {
-    incomingArrows[node.id] = [];
-    outgoingArrows[node.id] = [];
-  }
-
-  // Build arrow maps
-  for (const arrow of arrows) {
-    if (arrow.source && arrow.target) {
-      outgoingArrows[arrow.source] = outgoingArrows[arrow.source] || [];
-      incomingArrows[arrow.target] = incomingArrows[arrow.target] || [];
-      
-      outgoingArrows[arrow.source]?.push(arrow);
-      incomingArrows[arrow.target]?.push(arrow);
-    }
-  }
-
-  return {
-    executionId: '',
-    nodeOutputs: {},
-    nodeExecutionCounts: {},
-    totalCost: 0,
-    startTime: Date.now(),
-    errors: {},
-    executionOrder: [],
-    conditionValues: {},
-    firstOnlyConsumed: {},
-    diagram: null,
-    nodesById: nodesById as Record<string, Record<string, any>>,
-    incomingArrows: incomingArrows as Record<string, Record<string, any>[]>,
-    outgoingArrows: outgoingArrows as Record<string, Record<string, any>[]>
-  };
-}
+// Legacy execution components removed in Phase 4:
+// - DependencyResolver (moved to backend)
+// - ExecutionPlanner (moved to backend) 
+// - SkipManager (moved to backend)
+// - LoopController (moved to backend)
+// - ExecutionEngine (replaced by backend unified engine)
+// - All executors (moved to backend)
+// - execution-orchestrator (replaced by unified-execution-client)
+// - createExecutionContext (no longer needed on frontend)

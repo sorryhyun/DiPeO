@@ -32,6 +32,7 @@ build/
 out/
 *.log
 execution_runner.cjs
+notion.md
 CLAUDE.md
 apps/web/CLAUDE.md
 apps/server/CLAUDE.md

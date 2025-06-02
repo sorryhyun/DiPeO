@@ -1,285 +1,324 @@
-# DiPeO Web App Code Consolidation Plan
+# DiPeO Frontend to Backend Execution Engine Migration Plan
 
 ## Executive Summary
 
-The `apps/web` codebase contains significant redundancy and opportunities for consolidation. This plan identifies 19 specific areas for improvement that would reduce codebase size by approximately 25-30% while improving maintainability and developer experience.
+This document outlines a comprehensive plan to migrate DiPeO's diagram execution engine from the current hybrid client-server model to a fully backend-based architecture. The migration will consolidate all execution logic on the server side, simplifying the architecture while maintaining performance and functionality.
 
-## Key Findings
+## 1. Current State Analysis
 
-### Code Duplication Metrics
-- **12+ node components** following nearly identical patterns (80% code overlap)
-- **3 separate property form hooks** with overlapping functionality  
-- **2 duplicate nodeHelpers.js** files with different utilities
-- **7+ base executor classes** with similar validation patterns
-- **Extensive form components** that should be shared across features
+### 1.1 Hybrid Architecture Overview
+- **Client-Side Execution**: Start, Condition, Job, Endpoint nodes
+- **Server-Side Execution**: PersonJob, PersonBatchJob, DB nodes  
+- **Execution Orchestrator**: Automatically detects environment and routes execution
+- **CLI Integration**: Uses Node.js bundle to leverage frontend execution logic
 
-## Consolidation Roadmap
-
-### ✅ Phase 1: High-Impact, Low-Risk (COMPLETED)
-
-#### Summary of Completed Tasks:
-- **1.1 Merged duplicate nodeHelpers files** - Created unified `/shared/utils/nodeHelpers.ts`, removed 2 files
-- **1.2 Removed ContextMenu wrapper** - Integrated logic into base component, removed 1 file  
-- **1.3 Moved generic form components** - Created `/shared/components/forms/`, improved reusability
-- **Total savings**: ~290 lines consolidated, 3 files removed
-
-### Phase 2: Medium-Impact, Medium-Risk (3-5 days)
-
-#### 2.1 **Consolidate Property Form Hooks** ⭐️ PRIORITY 1
-**Current State:**
-```typescript
-// 3 separate hooks with overlapping functionality
-/features/diagram/hooks/ui-hooks/usePropertyForm.ts (base - 80 lines)
-/features/properties/hooks/usePropertyForm.ts (wrapper - 30 lines)  
-/features/properties/hooks/usePropertyFormState.ts (advanced - 150 lines)
+### 1.2 Key Components
 ```
-**Solution:**
-```typescript
-// New consolidated hook in /shared/hooks/usePropertyForm.ts
-export function usePropertyForm<T>(options: {
-  initialData: T;
-  nodeId?: string;
-  enableValidation?: boolean;
-  enableAutoSave?: boolean;
-  enableStoreIntegration?: boolean;
-  onUpdate?: (data: T) => void;
-}) {
-  // Unified implementation combining all three hooks
-}
-```
-**Estimated savings:** 80 lines, 2 files removed, simpler API
+Frontend (TypeScript/React)
+├── execution-orchestrator.ts    # Environment detection & routing
+├── execution-engine.ts          # Core execution logic
+├── executors/
+│   ├── client-safe/            # Local executors
+│   └── server-only/            # API call wrappers
+└── flow/                       # Dependency resolution
 
-#### 2.2 **Create ConfigurableNodeWrapper Component** ⭐️ PRIORITY 2
-**Current State:**
-```typescript
-// 7+ node components with 80% identical code
-StartNode.tsx (40 lines)
-JobNode.tsx (60 lines)  
-PersonJobNode.tsx (80 lines)
-ConditionNode.tsx (70 lines)
-DBNode.tsx (50 lines)
-EndpointNode.tsx (45 lines)
-PersonBatchJobNode.tsx (75 lines)
+Backend (Python/FastAPI)
+├── execution_service.py         # Server-only node execution
+├── node_operations.py          # Individual node endpoints
+└── diagram.py                  # Full diagram execution
 ```
-**Solution:**
+
+### 1.3 Current Benefits
+- Reduced network overhead for simple operations
+- Browser-based execution capability
+- Optimized performance for client-safe nodes
+
+### 1.4 Current Challenges
+- Complex codebase maintenance (TypeScript + Python)
+- Duplicate logic for variable substitution, dependency resolution
+- Difficult debugging across environments
+- Security concerns with client-side code execution
+
+## 2. Migration Goals
+
+### 2.1 Primary Objectives
+- **Unified Execution**: All nodes execute on the backend
+- **Simplified Architecture**: Single execution engine in Python
+- **Enhanced Security**: No code execution in browser
+- **Improved Maintainability**: One codebase for execution logic
+- **Better Debugging**: Centralized logging and monitoring
+
+### 2.2 Expected Benefits
+- Reduced frontend bundle size
+- Consistent execution behavior
+- Easier feature additions
+- Simplified testing
+- Better performance monitoring
+- Enhanced security posture
+
+## 3. Technical Approach
+
+### 3.1 Architecture Changes
+```
+Current:                          Target:
+Frontend → Orchestrator          Frontend → API Client
+    ↓           ↓                    ↓
+Client Exec   Server API         Backend API
+    ↓           ↓                    ↓
+ Results    Backend Exec         Unified Execution Engine
+```
+
+### 3.2 Key Migration Areas
+
+#### 3.2.1 Execution Engine Core
+- Port TypeScript execution-engine.ts to Python
+- Migrate dependency resolver logic
+- Implement loop controller in Python
+- Port skip manager functionality
+
+#### 3.2.2 Node Executors
+- Convert client-safe executors to Python:
+  - StartExecutor → start_executor.py
+  - ConditionExecutor → condition_executor.py  
+  - JobExecutor → job_executor.py
+  - EndpointExecutor (already has backend API)
+- Consolidate with existing server-only executors
+
+#### 3.2.3 Frontend Changes
+- Replace execution orchestrator with API client
+- Remove executor implementations
+- Simplify to diagram editor + API calls
+- Maintain SSE streaming for real-time updates
+
+#### 3.2.4 API Enhancements
+- Expand `/api/run-diagram` to handle all node types
+- Add execution state management endpoints
+- Enhance streaming capabilities
+- Add execution history endpoints
+
+## 4. Implementation Plan
+
+### Phase 1: Backend Infrastructure (Week 1-2) ✅ COMPLETED
+
+#### 4.1.1 Create Unified Execution Engine ✅
+Created `apps/server/src/services/unified_execution_engine.py` with:
+- Unified execution engine managing complete diagram execution lifecycle
+- Integration with all core components
+- Streaming execution updates via AsyncIterator
+- Proper error handling and context management
+
+#### 4.1.2 Port Core Components ✅
+- ✅ Dependency resolver (flow/dependency-resolver.ts → `dependency_resolver.py`)
+  - Handles dependency resolution, cycle detection, topological sorting
+  - Special handling for first-only inputs and condition branches
+- ✅ Execution planner (flow/execution-planner.ts → `execution_planner.py`)
+  - Creates execution plans with parallelization opportunities
+  - Handles cycles gracefully with alternative ordering
+- ✅ Loop controller (core/loop-controller.ts → `loop_controller.py`)
+  - Manages iteration counts per node
+  - Supports both global and node-specific max iterations
+- ✅ Skip manager (core/skip-manager.ts → `skip_manager.py`)
+  - Centralizes skip logic with reason tracking
+  - Expression evaluation for conditions
+
+#### 4.1.3 Create Base Executor Classes ✅
+Created `apps/server/src/executors/base_executor.py` with:
+- `BaseExecutor` abstract class with validation and execution methods
+- `ClientSafeExecutor` and `ServerOnlyExecutor` subclasses
+- `ExecutorFactory` for managing executor instances
+- Common utilities for variable substitution and input handling
+
+### Phase 2: Executor Migration (Week 2-3) ✅ COMPLETED
+
+#### 4.2.1 Port Client-Safe Executors ✅
+- ✅ StartExecutor: Static data initialization (`start_executor.py`)
+- ✅ ConditionExecutor: Expression evaluation, max_iterations logic (`condition_executor.py`)
+- ✅ JobExecutor: Safe code execution (sandboxed Python/JS/Bash) (`job_executor.py`)
+- ✅ EndpointExecutor: Terminal nodes with file saving (`endpoint_executor.py`)
+
+#### 4.2.2 Consolidate Server Executors ✅
+- ✅ PersonJobExecutor: LLM API calls with person configuration (`person_job_executor.py`)
+- ✅ PersonBatchJobExecutor: Batch processing variant (`person_job_executor.py`)
+- ✅ DBExecutor: File operations and data sources (`db_executor.py`)
+- ✅ ExecutorFactory: Unified registration and dependency injection
+
+#### 4.2.3 Variable Substitution ✅
+- ✅ Arrow label → variable mapping logic in base executor
+- ✅ Unified substitution patterns ({{var}} handling)
+- ✅ Input value processing from execution context
+
+### Phase 3: API Enhancement (Week 3-4) ✅ COMPLETED
+
+#### 4.3.1 Enhance Main Execution Endpoint ✅
+Created `/api/v2/run-diagram` with:
+- Unified backend execution using `UnifiedExecutionEngine`
+- SSE streaming for real-time updates
+- Comprehensive error handling and validation
+- API key integration for LLM services
+
+#### 4.3.2 Add State Management 🚧 PARTIAL
+- 🔲 Execution state persistence (placeholder endpoints created)
+- 🔲 Resume/pause capabilities (API structure ready)
+- 🔲 Execution history API (basic framework in place)
+
+#### 4.3.3 Enhanced Monitoring 🚧 PARTIAL
+- ✅ `/api/v2/execution-capabilities` endpoint for feature discovery
+- ✅ Cost tracking in executor results
+- 🔲 Real-time execution metrics collection
+- 🔲 Node-level performance analytics
+
+### Phase 4: Frontend Simplification (Week 4-5) ✅ COMPLETED
+
+#### 4.4.1 Replace Execution Logic ✅
+- ✅ Remove execution-orchestrator.ts
+- ✅ Remove execution-engine.ts
+- ✅ Remove all executor implementations
+- ✅ Create simple API client wrapper (`unified-execution-client.ts`)
+
+#### 4.4.2 Update Diagram Runner ✅
 ```typescript
-// New unified component
-const ConfigurableNodeWrapper: React.FC<{
-  id: string;
-  data: any;
-  selected: boolean;
-  config: NodeConfig;
-}> = ({ id, data, selected, config }) => {
-  const specificLogic = useNodeTypeLogic(config.type);
+// Simplified diagram runner using unified backend execution
+export function useDiagramRunner() {
+  const executionClient = createUnifiedExecutionClient();
   
-  return (
-    <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType}>
-      <NodeContent config={config} data={data} {...specificLogic} />
-    </GenericNode>
-  );
-};
-```
-**Estimated savings:** 300+ lines, 6+ files reduced to 1-2 components
-
-#### 2.3 **Merge Node Operation Hooks** ⭐️ PRIORITY 3
-**Current State:**
-```
-/features/nodes/hooks/useNodeOperations.ts (60 lines)
-/features/nodes/hooks/useNodeDrag.ts (40 lines)
-/features/nodes/hooks/useNodeType.ts (30 lines)
-```
-**Solution:**
-```typescript
-// Consolidated hook in /shared/hooks/useNode.ts
-export function useNode(nodeId: string) {
-  const operations = useNodeOperations(nodeId);
-  const drag = useNodeDrag(nodeId);
-  const config = useNodeConfig(nodeId);
-  
-  return {
-    ...operations,
-    ...drag,
-    ...config,
-    // Provide grouped access for selective usage
-    operations,
-    drag,
-    config
+  const runDiagram = async (diagram: DiagramData) => {
+    return await executionClient.execute(diagram, options, (update) => {
+      // Handle real-time SSE updates for UI
+      switch (update.type) {
+        case 'node_start': setCurrentRunningNode(update.nodeId); break;
+        case 'node_complete': removeRunningNode(update.nodeId); break;
+        case 'conversation_update': /* stream to UI */; break;
+      }
+    });
   };
 }
 ```
-**Estimated savings:** 50 lines, simpler import patterns
 
-### Phase 3: Advanced Consolidation (5-7 days)
+#### 4.4.3 Maintain UI Functionality ✅
+- ✅ Keep real-time execution visualization via SSE streaming
+- ✅ Preserve node running states through execution updates
+- ✅ Maintain conversation streaming with update callbacks
 
-#### 3.1 **Enhanced Executor Base Classes** ⭐️ PRIORITY 2
-**Current State:**
-```typescript
-// Similar patterns across 7+ executor classes
-ClientSafeExecutor, ServerOnlyExecutor (base classes)
-StartExecutor, JobExecutor, ConditionExecutor... (implementations)
-```
-**Solution:**
-```typescript
-// Enhanced base classes with common patterns
-export abstract class EnhancedClientSafeExecutor extends ClientSafeExecutor {
-  protected validateCommonInputs(inputs: any): ValidationResult {
-    // Common validation patterns extracted
-  }
-  
-  protected createStandardResult(data: any): ExecutionResult {
-    // Standard result creation patterns
-  }
-  
-  protected handleStandardErrors(error: Error): void {
-    // Common error handling
-  }
-}
-```
-**Estimated savings:** 100+ lines of duplicate validation/error handling
+### Phase 5: CLI Tool Update (Week 5)
 
-#### 3.2 **Generic Form Field Renderer** ⭐️ PRIORITY 3
-**Current State:**
-```typescript
-// Specialized form components for each field type
-PersonSelectionField, LabelPersonRow, IterationCountField
-```
-**Solution:**
-```typescript
-// Configuration-driven field renderer
-const FormFieldRenderer: React.FC<{
-  fieldConfig: FieldConfig;
-  value: any;
-  onChange: (value: any) => void;
-}> = ({ fieldConfig, value, onChange }) => {
-  switch (fieldConfig.type) {
-    case 'person-selection':
-      return <PersonSelectionRenderer {...fieldConfig} value={value} onChange={onChange} />;
-    // ... other field types
-  }
-};
-```
-**Estimated savings:** 150+ lines, more maintainable field system
+#### 4.5.1 Remove Node.js Dependency
+- [ ] Update tool.py to use backend API exclusively
+- [ ] Remove esbuild configuration
+- [ ] Delete cli-runner.ts and related files
 
-#### 3.3 **Store Consolidation Opportunities** ⭐️ PRIORITY 4
-**Current Assessment:**
-- **consolidatedDiagramStore**: Well-designed, no major issues (290 lines)
-- **consolidatedUIStore**: Good separation of concerns (95 lines)
-- **executionStore**: Simple and focused (63 lines)
-- **historyStore**: Complex but necessary for undo/redo (229 lines)
-
-**Minor Optimizations:**
-- Extract CRUD utilities from consolidatedDiagramStore to shared utilities
-- Consider splitting large `addNode` method into smaller functions
-- **Estimated savings:** 50+ lines via extraction
-
-### Phase 4: Advanced Optimizations (3-4 days)
-
-#### 4.1 **Type Definition Reorganization** ⭐️ PRIORITY 3
-**Current State:**
-```
-/shared/types/ (main type definitions)
-/features/conversation/types.ts (feature-specific)
-```
-**Solution:**
-- Move broadly useful types to shared
-- Create domain-specific type files (messaging.ts, execution.ts)
-- **Estimated impact:** Better type reusability, reduced imports
-
-#### 4.2 **Shared Component Library Enhancement** ⭐️ PRIORITY 4
-**Create New Shared Categories:**
-```
-/shared/components/
-├── forms/          # Generic form components
-├── feedback/       # Loading, error states  
-├── data/          # Data display components
-└── layout/        # Layout utilities
+#### 4.5.2 Simplify CLI Commands
+```bash
+# All execution through backend
+python tool.py run diagram.json        # Backend execution
+python tool.py monitor                 # Monitor executions
+python tool.py run --stream diagram.json # With streaming
 ```
 
-## Implementation Priority Matrix
+### Phase 6: Testing & Migration (Week 6)
 
-| Task | Impact | Risk | Effort | Priority |
-|------|--------|------|--------|----------|
-| Merge nodeHelpers files | High | Low | 1h | P1 |
-| Remove ContextMenu wrapper | High | Low | 2h | P1 |
-| Consolidate property hooks | High | Medium | 1d | P1 |
-| Move form components to shared | Medium | Low | 4h | P2 |
-| Create ConfigurableNodeWrapper | High | Medium | 2d | P2 |
-| Enhanced executor base classes | Medium | Medium | 1.5d | P2 |
-| Merge node operation hooks | Medium | Low | 4h | P3 |
-| Generic form field renderer | Medium | High | 2d | P3 |
-| Type reorganization | Low | Low | 1d | P3 |
-| Store optimizations | Low | Low | 4h | P4 |
+#### 4.6.1 Comprehensive Testing
+- [ ] Unit tests for all executors
+- [ ] Integration tests for execution engine
+- [ ] End-to-end diagram execution tests
+- [ ] Performance benchmarks
 
-## Expected Outcomes
+#### 4.6.2 Migration Strategy
+- [ ] Feature flag for v1/v2 execution
+- [ ] Gradual rollout with monitoring
+- [ ] Rollback plan
 
-### Quantitative Benefits
-- **Files Reduced:** ~12-15 files eliminated
-- **Lines of Code:** 25-30% reduction in component/hook files
-- **Bundle Size:** Estimated 10-15% reduction through better tree shaking
-- **Import Statements:** 40% reduction in component imports
+## 5. Risk Assessment & Mitigation
 
-### Qualitative Benefits
-- **Developer Experience:** Simpler API surface, fewer files to navigate
-- **Maintainability:** Single source of truth for common patterns
-- **Consistency:** Unified patterns across features
-- **Performance:** Reduced bundle duplication, better code splitting
+### 5.1 Performance Risks
+**Risk**: Increased latency for simple operations
+**Mitigation**: 
+- Implement caching for repeated operations
+- Optimize backend execution paths
+- Use connection pooling
 
-## Risk Mitigation
+### 5.2 Compatibility Risks
+**Risk**: Breaking changes for existing diagrams
+**Mitigation**:
+- Maintain backward compatibility layer
+- Automated diagram migration tool
+- Comprehensive testing suite
 
-### Phase 1 (Low Risk)
-- Simple file merges and moves
-- Full test coverage for moved utilities
-- Gradual migration with deprecation warnings
+### 5.3 Feature Parity Risks
+**Risk**: Missing functionality during migration
+**Mitigation**:
+- Detailed feature inventory
+- Side-by-side testing
+- Phased rollout
 
-### Phase 2 (Medium Risk)
-- Feature flags for new consolidated components
-- A/B testing between old and new hook implementations
-- Rollback plan for each major change
+## 6. Success Metrics
 
-### Phase 3 (Higher Risk)
-- Extensive testing of executor changes
-- Staged rollout of generic field renderer
-- Backup branches for complex refactors
+### 6.1 Performance Metrics
+- Execution latency (target: <100ms overhead)
+- Throughput (target: 100 concurrent executions)
+- Resource usage (target: <50MB per execution)
 
-## Implementation Guidelines
+### 6.2 Quality Metrics
+- Test coverage (target: >90%)
+- Bug reduction (target: 50% fewer execution bugs)
+- Code complexity (target: 30% reduction)
 
-### Code Quality Standards
-1. **Zero Breaking Changes:** All consolidations must maintain API compatibility
-2. **Test Coverage:** Maintain or improve test coverage for all changes
-3. **Performance:** Bundle analysis before/after each phase
-4. **Documentation:** Update component documentation and examples
+### 6.3 Developer Metrics
+- Time to add new node type (target: 50% reduction)
+- Debugging time (target: 40% reduction)
+- Onboarding time (target: 30% reduction)
 
-### Migration Strategy
-1. **Parallel Implementation:** Build new consolidated components alongside existing ones
-2. **Gradual Migration:** Migrate features one at a time
-3. **Deprecation Warnings:** Provide clear migration paths
-4. **Performance Monitoring:** Track bundle size and runtime performance
+## 7. Timeline Summary
 
-## Success Metrics
+| Phase | Duration | Key Deliverables | Status |
+|-------|----------|------------------|---------|
+| Phase 1 | 2 weeks | Backend infrastructure, core components | ✅ COMPLETED |
+| Phase 2 | 1 week | Executor migration | ✅ COMPLETED |
+| Phase 3 | 1 week | API enhancements | ✅ COMPLETED |
+| Phase 4 | 1 week | Frontend simplification | ✅ COMPLETED |
+| Phase 5 | 3 days | CLI tool update | 🔲 Pending |
+| Phase 6 | 1 week | Testing & migration | 🔲 Pending |
+| **Total** | **6 weeks** | **Full migration** | **Phase 4/6 Complete** |
 
-### Phase 1 Completion (Week 1)
-- [x] 2 duplicate utility files merged
-- [x] 1 unnecessary wrapper removed  
-- [x] Basic form components moved to shared
-- [x] Bundle size reduction: 5-8%
+## 8. Post-Migration Benefits
 
-### Phase 2 Completion (Week 3)
-- [ ] Property hooks consolidated
-- [ ] Node components reduced from 7+ to 2
-- [ ] Node operation hooks merged
-- [ ] Bundle size reduction: 15-20%
+### 8.1 Immediate Benefits
+- Simplified architecture
+- Reduced maintenance burden
+- Improved security
+- Better debugging capabilities
 
-### Phase 3 Completion (Week 5)
-- [ ] Enhanced executor base classes implemented
-- [ ] Generic form field renderer functional
-- [ ] Bundle size reduction: 25-30%
+### 8.2 Long-term Benefits
+- Easier feature development
+- Better performance optimization opportunities
+- Simplified deployment
+- Enhanced monitoring capabilities
 
-## Next Steps
+## 9. Conclusion
 
-1. **Phase 1 Complete:** Low-risk consolidation tasks completed successfully
-2. **Begin Phase 2:** Start with property form hooks consolidation
-3. **Monitor Performance:** Check bundle size impact of Phase 1 changes
-4. **Continuous Integration:** Ensure all changes pass existing tests
-5. **Progress Tracking:** Weekly reviews of consolidation progress
+This migration represents a significant architectural simplification that will improve maintainability, security, and developer experience. While there are short-term risks around performance and compatibility, the long-term benefits justify the investment. The phased approach ensures minimal disruption while providing opportunities for validation and course correction.
 
-This plan provides a systematic approach to reducing code redundancy while maintaining system stability and improving developer experience.
+## Appendix A: File Mapping
+
+| Frontend File | Backend Target |
+|--------------|----------------|
+| execution-orchestrator.ts | unified_execution_engine.py |
+| execution-engine.ts | unified_execution_engine.py |
+| dependency-resolver.ts | dependency_resolver.py |
+| loop-controller.ts | loop_controller.py |
+| StartExecutor.ts | executors/start_executor.py |
+| ConditionExecutor.ts | executors/condition_executor.py |
+| JobExecutor.ts | executors/job_executor.py |
+| PersonJobExecutor.ts | (existing) |
+| DBExecutor.ts | (existing) |
+
+## Appendix B: API Changes
+
+### Deprecated Endpoints
+- Individual node execution endpoints (will be internal)
+
+### New Endpoints
+- `POST /api/v2/run-diagram` - Unified execution
+- `GET /api/v2/executions/{id}` - Execution details
+- `GET /api/v2/executions/{id}/state` - Current state
+- `POST /api/v2/executions/{id}/pause` - Pause execution
+- `POST /api/v2/executions/{id}/resume` - Resume execution

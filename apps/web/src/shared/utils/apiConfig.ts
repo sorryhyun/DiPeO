@@ -27,10 +27,19 @@ export const API_BASE_URL = API_CONFIG.BASE_URL;
 
 // API Endpoints - Standardized with consistent kebab-case and logical grouping
 export const API_ENDPOINTS = {
-  // Diagram execution
+  // Diagram execution (V1 - Legacy)
   RUN_DIAGRAM: '/api/run-diagram',
   RUN_DIAGRAM_SYNC: '/api/run-diagram-sync',
   STREAMING_RUN: '/api/stream/run-diagram',
+  
+  // Diagram execution (V2 - Unified Backend)
+  V2_RUN_DIAGRAM: '/api/v2/run-diagram',
+  V2_EXECUTION_CAPABILITIES: '/api/v2/execution-capabilities',
+  V2_EXECUTION_DETAILS: (id: string) => `/api/v2/executions/${id}`,
+  V2_EXECUTION_STATE: (id: string) => `/api/v2/executions/${id}/state`,
+  V2_PAUSE_EXECUTION: (id: string) => `/api/v2/executions/${id}/pause`,
+  V2_RESUME_EXECUTION: (id: string) => `/api/v2/executions/${id}/resume`,
+  V2_HEALTH: '/api/v2/health',
   
   // Resource management  
   API_KEYS: '/api/keys',

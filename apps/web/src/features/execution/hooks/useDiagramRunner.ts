@@ -4,8 +4,11 @@ import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/shared/types';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
-import { useHybridExecution } from './useHybridExecution';
-import { createBrowserExecutionOrchestrator } from '@/engine/browser-execution-orchestrator';
+import { 
+  createUnifiedExecutionClient, 
+  type DiagramData, 
+  type ExecutionUpdate 
+} from '@/engine/unified-execution-client';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 
@@ -19,20 +22,22 @@ export const useDiagramRunner = () => {
     setRunContext,
     clearRunContext,
     clearRunningNodes,
-    setCurrentRunningNode
+    setCurrentRunningNode,
+    addRunningNode,
+    removeRunningNode
   } = useExecutionStore();
   const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [runError, setRunError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
-  // Hybrid execution hook
-  const { executeHybrid } = useHybridExecution();
-  
+  // Unified execution client
+  const executionClientRef = useRef(createUnifiedExecutionClient());
   const isComponentMountedRef = useRef(true);
   
   // Manual stop function
   const stopExecution = useCallback(() => {
     console.log('[useDiagramRunner] Manual stop requested');
+    executionClientRef.current.abort();
     clearRunningNodes();
     setCurrentRunningNode(null);
     setRunStatus('idle');
@@ -43,6 +48,7 @@ export const useDiagramRunner = () => {
     isComponentMountedRef.current = true;
     return () => {
       isComponentMountedRef.current = false;
+      executionClientRef.current.abort(); // Cleanup on unmount
     };
   }, []);
 
@@ -89,9 +95,53 @@ export const useDiagramRunner = () => {
         console.warn('API key validation failed:', keyError);
       }
 
-      // Use browser-safe execution orchestrator with automatic server fallback
-      const orchestrator = createBrowserExecutionOrchestrator();
-      const result = await orchestrator.execute(diagramData as any, {});
+      // Use unified execution client with SSE streaming
+      const result = await executionClientRef.current.execute(
+        diagramData as DiagramData, 
+        {
+          continueOnError: false,
+          allowPartial: false,
+          debugMode: false
+        },
+        (update: ExecutionUpdate) => {
+          // Handle real-time execution updates
+          if (!isComponentMountedRef.current) return;
+          
+          switch (update.type) {
+            case 'node_start':
+              if (update.nodeId) {
+                setCurrentRunningNode(update.nodeId);
+                addRunningNode(update.nodeId);
+              }
+              break;
+              
+            case 'node_complete':
+              if (update.nodeId) {
+                removeRunningNode(update.nodeId);
+              }
+              break;
+              
+            case 'conversation_update':
+              // Handle conversation streaming updates
+              console.log('Conversation update:', update);
+              break;
+              
+            case 'execution_started':
+              console.log('Execution started:', update.execution_id);
+              break;
+              
+            case 'execution_complete':
+              setCurrentRunningNode(null);
+              clearRunningNodes();
+              break;
+              
+            case 'execution_error':
+              setCurrentRunningNode(null);
+              clearRunningNodes();
+              break;
+          }
+        }
+      );
       
       if (result.context) {
         setRunContext(result.context);
@@ -122,93 +172,29 @@ export const useDiagramRunner = () => {
         setRunStatus('fail');
       }
     }
-  }, [exportDiagram, clearRunningNodes, clearRunContext, setCurrentRunningNode]);
+  }, [exportDiagram, clearRunningNodes, clearRunContext, setCurrentRunningNode, addRunningNode, removeRunningNode]);
 
+  // Legacy sync execution for backward compatibility
   const onRunDiagramSync = useCallback(async () => {
-    // Fallback to synchronous execution (for debugging or compatibility)
-    clearRunContext();
-    clearRunningNodes();
-    setRunStatus('running');
-    setRunError(null);
+    // Use the same unified execution but without real-time updates
+    console.warn('[useDiagramRunner] onRunDiagramSync is deprecated, falling back to unified execution');
+    return onRunDiagram();
+  }, [onRunDiagram]);
 
-    try {
-        const diagramData = exportDiagram();
-        const res = await fetch(getApiUrl(API_ENDPOINTS.RUN_DIAGRAM_SYNC), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(diagramData),
-        });
-
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Run Diagram failed: ${errText}`);
-        }
-
-        const result = await res.json();
-        
-        if (result.context) {
-          setRunContext(result.context);
-        }
-        setRunStatus('success');
-        return result;
-      } catch (error) {
-        clearRunningNodes();
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        setRunError(errorMessage);
-        console.error('[Run Diagram Sync] Error:', errorMessage);
-        setRunStatus('fail');
-      }
-  }, [exportDiagram, clearRunningNodes, clearRunContext]);
-
-  // Hybrid execution mode
+  // Legacy hybrid execution for backward compatibility
   const onRunDiagramHybrid = useCallback(async () => {
-    clearRunContext();
-    clearRunningNodes();
-    setCurrentRunningNode(null);
-    setRunStatus('running');
-    setRunError(null);
-    setRetryCount(0);
-
-    try {
-      const diagramData = exportDiagram();
-      
-      // Execute with hybrid approach
-      const result = await executeHybrid(diagramData as any);
-      
-      if (result.context) {
-        setRunContext(result.context);
-      }
-      
-      setRunStatus('success');
-      
-      // Show cost if available
-      if (result.total_cost) {
-        toast.success(`Execution completed. Total cost: $${result.total_cost.toFixed(4)}`);
-      }
-      
-      return result;
-    } catch (error) {
-      clearRunningNodes();
-      setCurrentRunningNode(null);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setRunError(errorMessage);
-      console.error('[Hybrid Execution] Error:', errorMessage);
-      
-      // Show error toast
-      const errorHandler = createErrorHandler('Hybrid Execution');
-      errorHandler(new Error(errorMessage));
-      
-      setRunStatus('fail');
-    }
-  }, [exportDiagram, executeHybrid, clearRunningNodes, clearRunContext, setCurrentRunningNode]);
+    // Use the same unified execution (all execution is now backend-unified)
+    console.warn('[useDiagramRunner] onRunDiagramHybrid is deprecated, falling back to unified execution');
+    return onRunDiagram();
+  }, [onRunDiagram]);
 
   return {
     runStatus,
     runError,
     retryCount,
-    onRunDiagram,
-    onRunDiagramSync, // For fallback/debugging
-    onRunDiagramHybrid, // Hybrid execution mode
+    onRunDiagram, // Primary unified execution
+    onRunDiagramSync, // Legacy compatibility (deprecated)
+    onRunDiagramHybrid, // Legacy compatibility (deprecated)
     stopExecution, // Manual stop function
   };
 };
