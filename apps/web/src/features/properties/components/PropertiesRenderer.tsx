@@ -32,6 +32,15 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     if (selectedPersonId) {
       const person = persons.find(p => p.id === selectedPersonId);
       if (person) {
+        // Log person data when rendering
+        console.log('[Person Property Panel] PropertiesRenderer - Rendering person:', {
+          id: person.id,
+          service: person.service,
+          apiKeyId: person.apiKeyId,
+          modelName: person.modelName,
+          label: person.label
+        });
+        
         title = `${person.label || 'Person'} Properties`;
         content = <UniversalPropertiesPanel nodeId={selectedPersonId} data={{...person, type: 'person'}} />;
       }

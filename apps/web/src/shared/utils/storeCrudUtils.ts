@@ -31,6 +31,11 @@ export function createCrudActions<T extends CrudItem>(
     },
 
     update: (id: string, data: Partial<T>) => {
+      console.log(`[CRUD Store] Updating ${idPrefix} item:`, {
+        id,
+        data,
+        currentItems: getItems().find(item => item.id === id)
+      });
       setItems(
         getItems().map(item => 
           item.id === id ? { ...item, ...data } : item
@@ -83,8 +88,18 @@ export function createPersonCrudActions<T extends CrudItem>(
   const baseCrud = createCrudActions(getItems, setItems, idPrefix);
   
   return {
-    addPerson: baseCrud.add,
-    updatePerson: baseCrud.update,
+    addPerson: (itemData: Omit<T, 'id'>) => {
+      console.log('[Person Property Panel] Creating new person:', itemData);
+      baseCrud.add(itemData);
+    },
+    updatePerson: (id: string, data: Partial<T>) => {
+      console.log('[Person Property Panel] updatePerson called:', {
+        id,
+        updates: data,
+        timestamp: Date.now()
+      });
+      baseCrud.update(id, data);
+    },
     deletePerson: baseCrud.delete,
     getPersonById: baseCrud.getById,
     clearPersons: baseCrud.clear

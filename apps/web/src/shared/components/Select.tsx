@@ -9,6 +9,15 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, children, onChange, onValueChange, ...props }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      // Log select change events for debugging person property panel
+      if (props.id && props.id.includes('service')) {
+        console.log('[Select Component] Service select changed:', {
+          id: props.id,
+          value: e.target.value,
+          hasOnChange: !!onChange,
+          hasOnValueChange: !!onValueChange
+        });
+      }
       onChange?.(e);
       onValueChange?.(e.target.value);
     };

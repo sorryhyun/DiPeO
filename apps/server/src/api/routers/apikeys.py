@@ -17,8 +17,11 @@ async def get_models(
     api_key_service: APIKeyService = Depends(get_api_key_service)
 ):
     """Get list of supported LLM models."""
+    print(f"[Models API] Request received - service: {service}, api_key_id: {api_key_id}")
+    
     # If no service or API key specified, return empty models
     if not service or not api_key_id:
+        print("[Models API] No service or API key provided, returning empty models")
         return {
             "models": [],
             "providers": {
@@ -33,22 +36,28 @@ async def get_models(
     try:
         api_key = api_key_service.get_api_key(api_key_id)
         if not api_key or api_key.get('service') != service:
+            print(f"[Models API] Invalid API key or service mismatch - key service: {api_key.get('service') if api_key else 'None'}, requested service: {service}")
             return {"models": [], "error": "Invalid API key or service mismatch"}
     except (KeyError, FileNotFoundError, ValueError) as e:
+        print(f"[Models API] API key not found: {str(e)}")
         return {"models": [], "error": "API key not found"}
     
     # Get actual API key value to make real API calls
     api_key_value = api_key.get('key')
     if not api_key_value:
+        print("[Models API] API key value not found")
         return {"models": [], "error": "API key value not found"}
     
     # Use factory to create adapter and fetch models
     try:
         from ...llm.factory import create_adapter
+        print(f"[Models API] Creating adapter for service: {service}")
         adapter = create_adapter(service, "dummy-model", api_key_value)
         models = adapter.list_models()
+        print(f"[Models API] Successfully fetched {len(models)} models: {models}")
         return {"models": models}
     except Exception as e:
+        print(f"[Models API] Failed to fetch models from provider, using fallback. Error: {str(e)}")
         # Return fallback models if adapter creation or API call fails
         service_models = {
             "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
@@ -57,6 +66,7 @@ async def get_models(
             "grok": ["grok-2-latest", "grok-2-vision-1212"]
         }
         models = service_models.get(service, [])
+        print(f"[Models API] Returning fallback models: {models}")
         return {"models": models}
 
 
@@ -114,16 +124,20 @@ async def initialize_model(
     model = payload.get('model') 
     api_key_id = payload.get('api_key_id')
     
+    print(f"[Initialize Model API] Request - service: {service}, model: {model}, api_key_id: {api_key_id}")
+    
     if not service or not model or not api_key_id:
         raise ValidationError("Service, model, and api_key_id are required")
     
     try:
         llm_service.pre_initialize_model(service, model, api_key_id)
+        print(f"[Initialize Model API] Successfully pre-initialized {model} for {service}")
         return {
             "success": True,
             "message": f"Model {model} for service {service} has been pre-initialized"
         }
     except Exception as e:
+        print(f"[Initialize Model API] Failed to pre-initialize: {str(e)}")
         return {
             "success": False,
             "error": str(e)

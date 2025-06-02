@@ -355,7 +355,7 @@ export class LLMYamlImporter {
       id: defaultPersonId,
       label: 'Default Assistant',
       modelName: 'gpt-4',
-      service: 'chatgpt'
+      service: 'openai'
     };
     let needDefault = false;
 
@@ -370,7 +370,7 @@ export class LLMYamlImporter {
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: 'gpt-4',
-          service: 'chatgpt',
+          service: 'openai',
           systemPrompt: agentConfig
         });
       } else {
@@ -379,7 +379,7 @@ export class LLMYamlImporter {
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: agentConfig.model || 'gpt-4',
-          service: (agentConfig.service || 'chatgpt') as any,
+          service: (agentConfig.service || 'openai') as any,
           systemPrompt: agentConfig.system
         });
       }
@@ -410,7 +410,7 @@ export class LLMYamlImporter {
     const apiKeys: Record<string, ApiKey> = {};
 
     persons.forEach(person => {
-      const service = person.service || 'chatgpt';
+      const service = person.service || 'openai';
       if (!apiKeys[service]) {
         const apiKeyId = `APIKEY_${nanoid(6)}`;
         apiKeys[service] = {
@@ -423,7 +423,7 @@ export class LLMYamlImporter {
 
     // Update persons with API key IDs
     persons.forEach(person => {
-      const service = person.service || 'chatgpt';
+      const service = person.service || 'openai';
       person.apiKeyId = apiKeys[service]?.id;
     });
 
@@ -627,13 +627,13 @@ export class LLMYamlImporter {
     diagram.persons.forEach(person => {
       const personName = personNameMap[person.id];
       
-      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'chatgpt')) {
+      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'openai')) {
         const agent: any = {};
         
         if (person.modelName && person.modelName !== 'gpt-4') {
           agent.model = person.modelName;
         }
-        if (person.service && person.service !== 'chatgpt') {
+        if (person.service && person.service !== 'openai') {
           agent.service = person.service;
         }
         if (person.systemPrompt) {

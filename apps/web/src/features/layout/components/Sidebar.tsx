@@ -4,7 +4,7 @@ import { Button } from '@/shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConsolidatedDiagramStore } from '@/core/stores';
 import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
-import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/shared/types';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
 import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
@@ -116,7 +116,14 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-base py-2 mb-2 flex-shrink-0 mx-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               onClick={() => {
-                addPerson({ label: 'New Person' });
+                // Create person with default values including service field
+                addPerson({ 
+                  label: 'New Person',
+                  service: 'openai', // Default service
+                  apiKeyId: undefined,
+                  modelName: undefined,
+                  systemPrompt: undefined
+                });
                 // Get the newly created person's ID and select it
                 const newPersonId = useConsolidatedDiagramStore.getState().persons[useConsolidatedDiagramStore.getState().persons.length - 1]?.id;
                 if (newPersonId) {
@@ -130,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               {persons.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4 italic">No persons created</p>
               ) : (
-                persons.map((person: any) => (
+                persons.map((person: PersonDefinition) => (
                   <div
                     key={person.id}
                     className={`p-3 text-base rounded-lg cursor-pointer transition-all duration-200 ${

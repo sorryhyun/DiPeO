@@ -47,6 +47,18 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   const entityType = getEntityType(data.type);
   const { formData, handleChange } = usePropertyPanel<T>(nodeId, entityType, data);
   
+  // Log formData state for person property panel
+  React.useEffect(() => {
+    if (data.type === 'person') {
+      console.log('[Person Property Panel] GenericPropertyPanel - formData state:', {
+        nodeId,
+        service: formData.service,
+        apiKeyId: formData.apiKeyId,
+        modelName: formData.modelName
+      });
+    }
+  }, [formData, data.type, nodeId]);
+  
   // Load async options when component mounts or when dependencies change
   useEffect(() => {
     const loadAsyncOptions = async () => {
@@ -137,6 +149,15 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
       const updatedOptions: Record<string, Array<{ value: string; label: string }>> = {};
       let hasUpdates = false;
       
+      // Log dependency change if this is person property panel
+      if (data.type === 'person' && fieldsToUpdate.length > 0) {
+        console.log(`[Person Property Panel] Reloading dependent field options due to change:`, {
+          service: formData.service,
+          apiKeyId: formData.apiKeyId,
+          fieldsToUpdate: fieldsToUpdate.map(f => f.name)
+        });
+      }
+      
       for (const field of fieldsToUpdate) {
         if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
           // Check if any dependency has changed (we'll reload all for simplicity)
@@ -152,8 +173,18 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             const options = result instanceof Promise ? await result : result;
             updatedOptions[field.name] = options;
             hasUpdates = true;
+            
+            // Log model options fetch if this is the model field
+            if (data.type === 'person' && field.name === 'modelName') {
+              console.log(`[Person Property Panel] Model options fetched:`, {
+                count: options.length,
+                models: options.map(opt => opt.value),
+                service: formData.service,
+                apiKeyId: formData.apiKeyId
+              });
+            }
           } catch (error) {
-            console.error(`Failed to reload options for dependent field ${field.name}:`, error);
+            console.error(`[Person Property Panel] Failed to reload options for dependent field ${field.name}:`, error);
             updatedOptions[field.name] = [];
             hasUpdates = true;
           }
@@ -175,13 +206,34 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
       return;
     }
     
-    // Update the form data first
-    if (name in formData) {
-      handleChange(name as keyof T, value);
+    // Log field updates for person property panel
+    if (data.type === 'person' && (name === 'service' || name === 'apiKeyId' || name === 'modelName')) {
+      console.log(`[Person Property Panel] updateField called:`, {
+        field: name,
+        value: value,
+        currentFormData: {
+          service: formData.service,
+          apiKeyId: formData.apiKeyId,
+          modelName: formData.modelName
+        },
+        nodeId: nodeId,
+        hasHandleChange: !!handleChange,
+        nameInFormData: name in formData
+      });
     }
+    
+    // Update the form data - always allow updating fields (including new optional fields)
+    console.log(`[Person Property Panel] Calling handleChange for field ${name} with value ${value}`);
+    handleChange(name as keyof T, value);
     
     // If this is a model selection and we have all required data, pre-initialize the model
     if (name === 'modelName' && value && formData.service && formData.apiKeyId) {
+      console.log(`[Person Property Panel] Pre-initializing model:`, {
+        service: formData.service,
+        model: value,
+        apiKeyId: formData.apiKeyId
+      });
+      
       try {
         const success = await preInitializeModel(
           formData.service as string,
@@ -189,16 +241,28 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
           formData.apiKeyId as string
         );
         if (success) {
-          console.log(`Model ${value} pre-initialized successfully`);
+          console.log(`[Person Property Panel] Model ${value} pre-initialized successfully`);
+        } else {
+          console.warn(`[Person Property Panel] Model ${value} pre-initialization returned false`);
         }
       } catch (error) {
-        console.warn('Failed to pre-initialize model:', error);
+        console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
       }
     }
   };
   
   // Field renderer function
   const renderField = (fieldConfig: FieldConfig, index: number): React.ReactNode => {
+    // Debug logging for person service field
+    if (data.type === 'person' && fieldConfig.type === 'select' && fieldConfig.name === 'service') {
+      console.log('[Person Property Panel] Rendering service field:', {
+        fieldConfig,
+        fieldName: fieldConfig.name,
+        fieldType: fieldConfig.type,
+        index
+      });
+    }
+    
     // Check conditional rendering
     if (fieldConfig.conditional) {
       const fieldValue = formData[fieldConfig.conditional.field];
@@ -272,12 +336,35 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
           }
         }
         
+        // Add logging for person service field
+        if (data.type === 'person' && fieldConfig.name === 'service') {
+          console.log(`[Person Property Panel] Rendering service select field:`, {
+            currentValue: formData[fieldConfig.name],
+            options: options,
+            fieldConfigName: fieldConfig.name,
+            nodeId: nodeId,
+            formDataService: formData.service
+          });
+        }
+        
+        // For person service field, add the value to the key to force re-render
+        const selectKey = data.type === 'person' && fieldConfig.name === 'service' 
+          ? `${key}-${formData[fieldConfig.name]}`
+          : key;
+        
         return (
           <InlineSelectField
-            key={key}
+            key={selectKey}
             label={fieldConfig.label || ''}
             value={formData[fieldConfig.name] || ''}
-            onChange={(v) => updateField(fieldConfig.name, v)}
+            onChange={(v) => {
+              console.log(`[Person Property Panel] Select onChange fired:`, {
+                fieldName: fieldConfig.name,
+                value: v,
+                isPersonService: data.type === 'person' && fieldConfig.name === 'service'
+              });
+              updateField(fieldConfig.name, v);
+            }}
             options={options}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}

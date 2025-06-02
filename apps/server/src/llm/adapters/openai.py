@@ -75,6 +75,7 @@ class ChatGPTAdapter(BaseAdapter):
 
     def list_models(self) -> list[str]:
         """List available OpenAI models."""
+        print("[OpenAI Adapter] Fetching available models from OpenAI API")
         try:
             models = self.client.models.list()
             # Filter for chat models and sort by name
@@ -82,7 +83,11 @@ class ChatGPTAdapter(BaseAdapter):
                 model.id for model in models.data 
                 if 'gpt' in model.id.lower() or 'text' in model.id.lower()
             ]
+            print(f"[OpenAI Adapter] Found {len(chat_models)} chat models: {chat_models}")
             return sorted(chat_models)
         except Exception as e:
+            print(f"[OpenAI Adapter] Failed to fetch models from API: {str(e)}")
             # Return fallback models if API call fails
-            return ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
+            fallback_models = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
+            print(f"[OpenAI Adapter] Returning fallback models: {fallback_models}")
+            return fallback_models

@@ -80,6 +80,11 @@ export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
   const store = useConsolidatedDiagramStore.getState();
   const apiKeys = store.apiKeys || [];
   
+  console.log('[Person Property Panel] Fetching API key options:', {
+    totalKeys: apiKeys.length,
+    keys: apiKeys.map(k => ({ id: k.id, name: k.name, service: k.service }))
+  });
+  
   return apiKeys.map(apiKey => ({
     value: apiKey.id,
     label: `${apiKey.name} (${apiKey.service})`
@@ -145,8 +150,14 @@ export const getDynamicModelOptions = async (
   service?: string, 
   apiKeyId?: string
 ): Promise<Array<{ value: string; label: string }>> => {
+  console.log('[Person Property Panel] getDynamicModelOptions called:', {
+    service,
+    apiKeyId
+  });
+  
   // If no service or API key provided, return empty array
   if (!service || !apiKeyId) {
+    console.log('[Person Property Panel] Missing service or apiKeyId, returning empty array');
     return [];
   }
 
@@ -157,6 +168,8 @@ export const getDynamicModelOptions = async (
     params.append('api_key_id', apiKeyId);
     
     const url = `${getApiUrl(API_ENDPOINTS.MODELS)}?${params.toString()}`;
+    console.log('[Person Property Panel] Fetching models from:', url);
+    
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -164,15 +177,21 @@ export const getDynamicModelOptions = async (
     }
     
     const data = await response.json();
+    console.log('[Person Property Panel] Model API response:', data);
     
     // Handle error response from backend
     if (data.error) {
-      console.warn(`API returned error: ${data.error}`);
+      console.warn(`[Person Property Panel] API returned error: ${data.error}`);
       return [];
     }
     
     // If specific models are returned, use those
     if (data.models && Array.isArray(data.models)) {
+      console.log('[Person Property Panel] Available models:', {
+        count: data.models.length,
+        models: data.models
+      });
+      
       return data.models.map((model: string) => ({
         value: model,
         label: model
@@ -180,10 +199,11 @@ export const getDynamicModelOptions = async (
     }
     
     // Return empty array if no models found
+    console.log('[Person Property Panel] No models found in response');
     return [];
     
   } catch (error) {
-    console.error('Failed to fetch dynamic models from API:', error);
+    console.error('[Person Property Panel] Failed to fetch dynamic models from API:', error);
     return [];
   }
 };
@@ -196,6 +216,12 @@ export const preInitializeModel = async (
   model: string,
   apiKeyId: string
 ): Promise<boolean> => {
+  console.log('[Person Property Panel] Pre-initializing model client:', {
+    service,
+    model,
+    apiKeyId
+  });
+  
   try {
     const response = await fetch(getApiUrl(API_ENDPOINTS.INITIALIZE_MODEL), {
       method: 'POST',
@@ -210,14 +236,15 @@ export const preInitializeModel = async (
     });
 
     if (!response.ok) {
-      console.warn(`Failed to pre-initialize model: ${response.status}`);
+      console.warn(`[Person Property Panel] Failed to pre-initialize model: ${response.status}`);
       return false;
     }
 
     const data = await response.json();
+    console.log('[Person Property Panel] Pre-initialization response:', data);
     return data.success || false;
   } catch (error) {
-    console.error('Error pre-initializing model:', error);
+    console.error('[Person Property Panel] Error pre-initializing model:', error);
     return false;
   }
 };

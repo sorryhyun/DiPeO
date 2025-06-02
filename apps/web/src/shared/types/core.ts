@@ -31,7 +31,7 @@ export interface Position {
 export interface ApiKey {
   id: string;
   name: string;
-  service: 'claude' | 'chatgpt' | 'grok' | 'gemini' | 'custom';
+  service: 'claude' | 'openai' | 'grok' | 'gemini' | 'custom';
   keyReference?: string;
 }
 

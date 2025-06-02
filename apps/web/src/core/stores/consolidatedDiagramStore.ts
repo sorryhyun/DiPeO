@@ -133,9 +133,16 @@ export const useConsolidatedDiagramStore = create<ConsolidatedDiagramState>()(
                 id: nodeId,
                 type: 'person_job',
                 label: 'Person Job', 
-                prompt: '', 
                 personId: undefined,
-                description: ''
+                llmApi: undefined,
+                apiKeyId: undefined,
+                modelName: undefined,
+                defaultPrompt: '',
+                firstOnlyPrompt: '',
+                detectedVariables: [],
+                contextCleaningRule: 'uponRequest',
+                contextCleaningTurns: undefined,
+                iterationCount: 1
               };
               break;
             case 'job':

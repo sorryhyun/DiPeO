@@ -1,5 +1,5 @@
 // apps/web/src/utils/diagramSanitizer.ts
-import { DiagramState } from '@/shared/types';
+import { DiagramState, PersonDefinition } from '@/shared/types';
 
 export function sanitizeDiagram(diagram: DiagramState): DiagramState {
   return {
@@ -29,7 +29,17 @@ export function sanitizeDiagram(diagram: DiagramState): DiagramState {
           loopRadius: Math.round(arrow.data.loopRadius * 5) / 5
         })
       } : undefined
-    }))
+    })),
+
+    // Sanitize persons - ensure all fields exist with default values
+    persons: (diagram.persons || []).map(person => ({
+      id: person.id,
+      label: person.label || 'Unnamed Person',
+      service: person.service || 'chatgpt', // Default service
+      apiKeyId: person.apiKeyId || undefined,
+      modelName: person.modelName || undefined,
+      systemPrompt: person.systemPrompt || undefined
+    } as PersonDefinition))
   };
 }
 
