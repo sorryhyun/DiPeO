@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
+import { GenericNode } from '../base/GenericNode';
 import { UNIFIED_NODE_CONFIGS, type ConditionBlockData } from '@/shared/types';
 
 const ConditionNode: React.FC<NodeProps> = ({ id, data, selected }) => {

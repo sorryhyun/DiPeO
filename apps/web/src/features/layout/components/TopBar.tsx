@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components';
-import { useConsolidatedDiagramStore } from '@/shared/stores';
-import { useUIState } from '@/shared/hooks/useStoreSelectors';
-import { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions';
-import { useDiagramRunner } from '@/features/diagram/hooks/useDiagramRunner';
-import { useKeyboardShortcuts } from '@/features/diagram/wrappers';
+import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useUIState } from '@/core/hooks/useStoreSelectors';
+import { useFileImport } from '@/serialization/hooks/useFileImport';
+import { useExport } from '@/serialization/hooks/useExport';
+import { useDiagramRunner } from '@/features/execution/hooks/useDiagramRunner';
+import { useKeyboardShortcuts } from '@/features/canvas/hooks/useKeyboardShortcuts';
 import { LazyApiKeysModal } from '@/features/layout';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
@@ -21,7 +22,11 @@ const TopBar = () => {
   const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
   const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
   const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
-  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onImportYAML } = useDiagramActions();
+  const clearDiagram = useConsolidatedDiagramStore(state => state.clearDiagram);
+  const clearMonitorDiagram = useConsolidatedDiagramStore(state => state.clearMonitorDiagram);
+  const storeIsMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  const { onImportYAML, onImportJSON } = useFileImport();
+  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onExportJSON } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
@@ -85,9 +90,25 @@ const TopBar = () => {
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            onClick={() => {
+              if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
+                clearDiagram();
+                toast.success('Created new diagram');
+              }
+            }}
+            title="Create a new diagram"
           >
             📄 New
           </Button>
+          <FileUploadButton
+            accept=".json"
+            onChange={onImportJSON}
+            variant="outline"
+            className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            title="Open diagram from JSON file"
+          >
+            📂 Open
+          </FileUploadButton>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
@@ -114,6 +135,14 @@ const TopBar = () => {
             title="Export to LLM-friendly YAML format (download)"
           >
             🤖 Export LLM YAML
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-white hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
+            onClick={onExportJSON}
+            title="Export to JSON format (download)"
+          >
+            📋 Export JSON
           </Button>
           <FileUploadButton
             accept=".yaml,.yml"
@@ -160,13 +189,19 @@ const TopBar = () => {
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
           </div>
         </div>
-        {isMonitorMode && (
-          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md animate-pulse">
+        {(isMonitorMode || storeIsMonitorMode) && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
             </span>
             <span className="text-sm font-medium">Monitor Mode Active</span>
+            <button
+              onClick={clearMonitorDiagram}
+              className="ml-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+            >
+              Exit
+            </button>
           </div>
         )}
         <div className="flex items-center space-x-4">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PanelConfig, FieldConfig } from '@/shared/types/panelConfig';
 import { usePropertyPanel } from '@/features/properties';
 import {
@@ -9,13 +9,16 @@ import {
   InlineTextField,
   InlineSelectField,
   TextAreaField,
-  CheckboxField,
+  CheckboxField
+} from '@/shared/components/forms';
+import {
   IterationCountField,
   PersonSelectionField,
   LabelPersonRow,
   VariableDetectionTextArea
 } from './FormComponents';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
+import { useConsolidatedDiagramStore } from '@/core/stores';
 
 interface GenericPropertyPanelProps<T extends Record<string, any>> {
   nodeId: string;
@@ -31,6 +34,12 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   // State for async options
   const [asyncOptions, setAsyncOptions] = useState<Record<string, Array<{ value: string; label: string }>>>({});
   
+  // Track previous dependencies to avoid unnecessary API calls
+  const prevDepsRef = useRef<{ service?: string; apiKeyId?: string }>({});
+  
+  // Check if we're in monitor mode (read-only)
+  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  
   // Determine entity type based on data.type
   const getEntityType = (dataType: string): 'node' | 'arrow' | 'person' => {
     if (dataType === 'arrow') return 'arrow';
@@ -41,15 +50,19 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   const entityType = getEntityType(data.type);
   const { formData, handleChange } = usePropertyPanel<T>(nodeId, entityType, data);
   
-  // Load async options when component mounts or when dependencies change
+  // Log formData state for person property panel
+  React.useEffect(() => {
+  }, [formData, data.type, nodeId]);
+  
+  // Load async options when component mounts - only for non-dependent fields
   useEffect(() => {
     const loadAsyncOptions = async () => {
       const fieldsToProcess: FieldConfig[] = [];
       
-      // Collect all fields that need async options
+      // Collect fields that need async options but are NOT dependent on formData
       const collectFields = (fields: FieldConfig[]) => {
         fields.forEach(field => {
-          if (field.type === 'select' && typeof field.options === 'function') {
+          if (field.type === 'select' && typeof field.options === 'function' && !field.dependsOn) {
             fieldsToProcess.push(field);
           } else if (field.type === 'row' && field.fields) {
             collectFields(field.fields);
@@ -67,23 +80,14 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
         collectFields(config.rightColumn);
       }
       
-      // Load options for all async fields
+      // Load options for non-dependent async fields
       const optionsMap: Record<string, Array<{ value: string; label: string }>> = {};
       
       for (const field of fieldsToProcess) {
         try {
           if (field.type === 'select' && typeof field.options === 'function' && field.name) {
-            let result;
-            
-            // Check if the options function expects formData (for dependent fields)
-            if (field.options.length > 0) {
-              // Function expects formData parameter
-              result = (field.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
-            } else {
-              // Function doesn't expect parameters
-              result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
-            }
-            
+            // Non-dependent fields should not expect formData parameter
+            const result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
             const options = result instanceof Promise ? await result : result;
             optionsMap[field.name] = options;
           }
@@ -99,93 +103,142 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
     };
     
     loadAsyncOptions();
-  }, [config, formData]); // Added formData as dependency
+  }, [config]);
+  
+  // Ref to track if dependent options reload is in progress
+  const reloadInProgressRef = useRef(false);
   
   // Reload options for dependent fields when their dependencies change
   useEffect(() => {
     const reloadDependentOptions = async () => {
-      const fieldsToUpdate: FieldConfig[] = [];
+      // Check if dependencies actually changed
+      const currentService = formData.service as string;
+      const currentApiKeyId = formData.apiKeyId as string;
       
-      // Collect fields that have dependencies
-      const collectDependentFields = (fields: FieldConfig[]) => {
-        fields.forEach(field => {
-          if (field.type === 'select' && field.dependsOn && typeof field.options === 'function') {
-            fieldsToUpdate.push(field);
-          } else if (field.type === 'row' && field.fields) {
-            collectDependentFields(field.fields);
-          }
-        });
-      };
-      
-      if (config.fields) {
-        collectDependentFields(config.fields);
-      }
-      if (config.leftColumn) {
-        collectDependentFields(config.leftColumn);
-      }
-      if (config.rightColumn) {
-        collectDependentFields(config.rightColumn);
+      if (prevDepsRef.current.service === currentService && 
+          prevDepsRef.current.apiKeyId === currentApiKeyId) {
+        return; // No change in dependencies
       }
       
-      // Check if any dependent fields need updating
-      const updatedOptions: Record<string, Array<{ value: string; label: string }>> = {};
-      let hasUpdates = false;
+      // Prevent multiple simultaneous calls
+      if (reloadInProgressRef.current) {
+        return;
+      }
       
-      for (const field of fieldsToUpdate) {
-        if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
-          // Check if any dependency has changed (we'll reload all for simplicity)
-          try {
-            let result;
-            
-            if (field.options.length > 0) {
-              result = (field.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
-            } else {
-              result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
+      reloadInProgressRef.current = true;
+      prevDepsRef.current = { service: currentService, apiKeyId: currentApiKeyId };
+      
+      try {
+        const fieldsToUpdate: FieldConfig[] = [];
+        
+        // Collect fields that have dependencies
+        const collectDependentFields = (fields: FieldConfig[]) => {
+          fields.forEach(field => {
+            if (field.type === 'select' && field.dependsOn && typeof field.options === 'function') {
+              fieldsToUpdate.push(field);
+            } else if (field.type === 'row' && field.fields) {
+              collectDependentFields(field.fields);
             }
-            
-            const options = result instanceof Promise ? await result : result;
-            updatedOptions[field.name] = options;
-            hasUpdates = true;
-          } catch (error) {
-            console.error(`Failed to reload options for dependent field ${field.name}:`, error);
-            updatedOptions[field.name] = [];
-            hasUpdates = true;
+          });
+        };
+        
+        collectDependentFields(config.fields || []);
+        collectDependentFields(config.leftColumn || []);
+        collectDependentFields(config.rightColumn || []);
+        
+        // Only proceed if we have dependent fields to update
+        if (fieldsToUpdate.length === 0) return;
+        
+        // Check if any dependent fields need updating
+        const updatedOptions: Record<string, Array<{ value: string; label: string }>> = {};
+        let hasUpdates = false;
+        
+        // Log dependency change if this is person property panel
+        
+        for (const field of fieldsToUpdate) {
+          if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
+            try {
+              // Dependent fields expect formData parameter
+              const result = (field.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
+              const options = result instanceof Promise ? await result : result;
+              updatedOptions[field.name] = options;
+              hasUpdates = true;
+              
+              // Log model options fetch if this is the model field
+            } catch (error) {
+              console.error(`[Person Property Panel] Failed to reload options for dependent field ${field.name}:`, error);
+              updatedOptions[field.name] = [];
+              hasUpdates = true;
+            }
           }
         }
-      }
-      
-      if (hasUpdates) {
-        setAsyncOptions(prev => ({ ...prev, ...updatedOptions }));
+        
+        if (hasUpdates) {
+          setAsyncOptions(prev => ({ ...prev, ...updatedOptions }));
+        }
+      } finally {
+        reloadInProgressRef.current = false;
       }
     };
     
     reloadDependentOptions();
-  }, [formData.service, formData.apiKeyId]); // Only trigger when these specific dependencies change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.service, formData.apiKeyId]); // Only trigger when service or API key changes - other deps are stable
   
   // Type-safe update function with model pre-initialization
   const updateField = async (name: string, value: any) => {
-    // Update the form data first
+    // Skip updates if in monitor mode (read-only)
+    if (isMonitorMode) {
+      return;
+    }
+
+    // Update the form data - always allow updating fields (including new optional fields)
     handleChange(name as keyof T, value);
     
-    // If this is a model selection and we have all required data, pre-initialize the model
-    if (name === 'modelName' && value && formData.service && formData.apiKeyId) {
-      try {
-        const success = await preInitializeModel(
-          formData.service as string,
-          value as string,
-          formData.apiKeyId as string
-        );
-        if (success) {
-          console.log(`Model ${value} pre-initialized successfully`);
+    // If this is a model selection for a person entity and we have all required data, pre-initialize the model
+    if (data.type === 'person' && name === 'modelName') {
+      console.log('[Person Property Panel] Model selection detected:', {
+        name,
+        value,
+        formDataService: formData.service,
+        formDataApiKeyId: formData.apiKeyId,
+        dataService: (data as any).service,
+        dataApiKeyId: (data as any).apiKeyId
+      });
+      
+      // Check both formData and data for required fields
+      const service = formData.service || (data as any).service;
+      const apiKeyId = formData.apiKeyId || (data as any).apiKeyId;
+      
+      if (service && value && apiKeyId) {
+        console.log('[Person Property Panel] Pre-initializing model with:', {
+          service,
+          model: value,
+          apiKeyId
+        });
+        try {
+          await preInitializeModel(
+            service as string,
+            value as string,
+            apiKeyId as string
+          );
+        } catch (error) {
+          console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
         }
-      } catch (error) {
-        console.warn('Failed to pre-initialize model:', error);
+      } else {
+        console.log('[Person Property Panel] Missing required fields for pre-initialization:', {
+          service,
+          value,
+          apiKeyId
+        });
       }
     }
   };
   
   // Field renderer function
   const renderField = (fieldConfig: FieldConfig, index: number): React.ReactNode => {
+
+    
     // Check conditional rendering
     if (fieldConfig.conditional) {
       const fieldValue = formData[fieldConfig.conditional.field];
@@ -220,6 +273,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
+            disabled={isMonitorMode || fieldConfig.disabled}
           />
         );
       }
@@ -257,16 +311,25 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             }
           }
         }
+
+        
+        // For person service field, add the value to the key to force re-render
+        const selectKey = data.type === 'person' && fieldConfig.name === 'service' 
+          ? `${key}-${formData[fieldConfig.name]}`
+          : key;
         
         return (
           <InlineSelectField
-            key={key}
+            key={selectKey}
             label={fieldConfig.label || ''}
             value={formData[fieldConfig.name] || ''}
-            onChange={(v) => updateField(fieldConfig.name, v)}
+            onChange={(v) => {
+              updateField(fieldConfig.name, v);
+            }}
             options={options}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
+            isDisabled={isMonitorMode}
           />
         );
       }
@@ -280,6 +343,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             rows={fieldConfig.rows}
             placeholder={fieldConfig.placeholder}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -291,6 +355,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             label={fieldConfig.label || ''}
             checked={!!formData[fieldConfig.name]}
             onChange={(checked) => updateField(fieldConfig.name, checked)}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -305,6 +370,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             rows={fieldConfig.rows}
             placeholder={fieldConfig.placeholder}
             detectedVariables={data.detectedVariables}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -319,6 +385,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onPersonChange={(v) => updateField('personId', v)}
             labelPlaceholder={fieldConfig.labelPlaceholder}
             personPlaceholder={fieldConfig.personPlaceholder}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -333,6 +400,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             max={fieldConfig.max}
             label={fieldConfig.label}
             className={fieldConfig.className}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -345,6 +413,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
+            disabled={isMonitorMode}
           />
         );
       }
@@ -380,6 +449,21 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   if (config.layout === 'single') {
     return (
       <Form>
+        {isMonitorMode && (
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-blue-700 font-medium">
+                📊 Monitor Mode - Properties are read-only
+              </p>
+              <button
+                onClick={() => useConsolidatedDiagramStore.getState().clearMonitorDiagram()}
+                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+              >
+                Exit Monitor Mode
+              </button>
+            </div>
+          </div>
+        )}
         <SingleColumnPanelLayout>
           {config.fields?.map((field, index) => renderField(field, index))}
         </SingleColumnPanelLayout>
@@ -389,6 +473,21 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
 
   return (
     <Form>
+      {isMonitorMode && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-blue-700 font-medium">
+              📊 Monitor Mode - Properties are read-only
+            </p>
+            <button
+              onClick={() => useConsolidatedDiagramStore.getState().clearMonitorDiagram()}
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+            >
+              Exit Monitor Mode
+            </button>
+          </div>
+        </div>
+      )}
       <TwoColumnPanelLayout
         leftColumn={
           <>{config.leftColumn?.map((field, index) => renderField(field, index))}</>

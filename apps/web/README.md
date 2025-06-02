@@ -34,26 +34,45 @@ pnpm analyze
 
 ```
 src/
-├── features/              # Feature-based modules
-│   ├── diagram/          # Canvas, execution, import/export
-│   ├── nodes/            # Node components & logic
-│   ├── properties/       # Property panels & forms
-│   ├── conversation/     # Chat dashboard & history
-│   └── layout/           # TopBar, Sidebar, modals
-├── shared/               # Cross-feature code
-│   ├── stores/          # Zustand stores
-│   ├── hooks/           # Custom React hooks
-│   ├── components/      # Reusable UI components
-│   ├── types/           # TypeScript definitions
-│   └── utils/           # Helper functions
-├── declarations/         # declaration for File system access API 
-└── App.tsx              # Root component
+├── core/                 # Core state management
+│   ├── contexts/        # React contexts (DiagramContext)
+│   ├── hooks/           # Store selectors & state hooks
+│   └── stores/          # Zustand stores (diagram, UI, execution, history)
+├── engine/              # Execution engine & orchestration
+│   ├── core/           # execution-engine.ts, loop-controller.ts, skip-manager.ts
+│   ├── executors/      # Node execution logic
+│   │   ├── client-safe/    # Start, Condition, Job, Endpoint
+│   │   ├── server-only/    # PersonJob, PersonBatchJob, DB
+│   │   └── *-factory.ts    # Environment-specific factories
+│   ├── flow/           # dependency-resolver.ts, execution-planner.ts
+│   └── execution-orchestrator.ts  # Main orchestration
+├── features/            # Feature-based modules
+│   ├── canvas/         # React Flow visual components
+│   ├── conversation/   # Chat dashboard & history
+│   ├── execution/      # Execution hooks & controls
+│   ├── layout/         # TopBar, Sidebar, modals
+│   ├── nodes/          # Node components & base classes
+│   └── properties/     # Property panels & forms
+├── serialization/       # Import/export (YAML, JSON)
+├── shared/             # Cross-feature utilities
+│   ├── components/     # Reusable UI components  
+│   ├── types/          # TypeScript definitions
+│   └── utils/          # Helper functions
+└── declarations/        # Global type declarations
 ```
+
+### Key Type Conventions
+
+- **Strict TypeScript**: `noImplicitAny`, `strictNullChecks`, `noUncheckedIndexedAccess`
+- **Discriminated Unions**: `DiagramNodeData` with `type` discriminator
+- **Interface Inheritance**: `BaseBlockData` extended by specific node types
+- **Enum vs Union Types**: Mix of both (`NodeType` union, `LLMService` enum)
+- **Error Hierarchy**: Custom error classes extending `AgentDiagramException`
 
 ### Key Stores
 
 - **`consolidatedDiagramStore`** - Nodes, arrows, persons, API keys
-- **`consolidatedUIStore`** - UI state, selections, dashboard tabs
+- **`consolidatedUIStore`** - UI state, selections, dashboard tabs  
 - **`executionStore`** - Runtime state, running nodes
 - **`historyStore`** - Undo/redo with Immer patches
 
@@ -86,6 +105,29 @@ const MyNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 ```
 
 3. **Add to lazy exports** in `features/nodes/components/nodes/index.ts`
+
+### Execution System
+
+The execution system is environment-aware with separate executors for client/server:
+
+```typescript
+// Client-safe executors (execution/executors/client-safe/)
+StartExecutor, ConditionExecutor, JobExecutor, EndpointExecutor
+
+// Server-only executors (execution/executors/server-only/)  
+PersonJobExecutor, PersonBatchJobExecutor, DBExecutor
+
+// Auto-detect environment and create appropriate factory
+import { createExecutorFactory } from '@/execution/executors';
+const factory = createExecutorFactory(); // 'client' | 'server'
+const executor = factory.createExecutor('person_job');
+```
+
+**Adding New Executors:**
+1. Extend `ClientSafeExecutor` or `ServerOnlyExecutor` 
+2. Implement `validateInputs()` and `execute()` methods
+3. Add to appropriate factory in `registerExecutors()`
+4. Export from directory index file
 
 ### Working with Stores
 
@@ -133,7 +175,8 @@ export const myNodeConfig: PanelConfig<MyNodeData> = {
 
 ### Node System
 - **Unified Config**: Single source of truth for node types
-- **Generic Components**: `BaseNode` → `GenericNode` → Specific nodes
+- **Base Components**: Located in `features/nodes/components/base/`
+  - `BaseNode` → `GenericNode` → Specific nodes
 - **Auto Handles**: Handle positions derived from config
 - **Flippable**: Nodes can flip handle positions
 
@@ -231,6 +274,12 @@ proxy: {
 - Consider dynamic imports for features
 - Check for duplicate dependencies
 
+**Executor environment errors**
+- Client-safe: Start, Condition, Job, Endpoint nodes
+- Server-only: PersonJob, PersonBatchJob, DB nodes require backend
+- Use `createExecutorFactory()` for environment detection
+- Check `getExecutionCapabilities()` for supported operations
+
 ### Performance Tips
 
 1. **Use memoized selectors** to prevent re-renders
@@ -242,10 +291,12 @@ proxy: {
 ## 📚 Key Hooks
 
 - `useDiagramRunner()` - Execute workflows with SSE
+- `useHybridExecution()` - Client/server execution coordination  
 - `usePropertyPanel()` - Form state for property panels
 - `useNodeExecutionState(id)` - Node-specific execution state
 - `useCanvasState()` - Optimized canvas operations
 - `useHistoryActions()` - Undo/redo functionality
+- `useExecutionMonitor()` - Real-time execution status tracking
 
 ## 🔗 Links
 

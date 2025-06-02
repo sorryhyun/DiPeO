@@ -36,7 +36,7 @@ class BaseService(ABC):
     
     def normalize_service_name(self, service: str) -> str:
         """Normalize service name to lowercase."""
-        return (service or "chatgpt").lower()
+        return (service or "openai").lower()
     
     def safe_get_nested(self, obj: Any, path: str, default: Any = None) -> Any:
         """Safely get nested value from object using dot notation."""

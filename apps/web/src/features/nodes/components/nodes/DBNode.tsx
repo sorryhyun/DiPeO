@@ -1,11 +1,15 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GenericNode } from '@/features/diagram/components/ui-components/GenericNode';
+import { GenericNode } from '../base/GenericNode';
 import { UNIFIED_NODE_CONFIGS, type DBBlockData } from '@/shared/types';
 
 const DBNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.db;
   const dbData = data as DBBlockData;
+  
+  if (!config) {
+    return null;
+  }
   
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType} showFlipButton={false}>

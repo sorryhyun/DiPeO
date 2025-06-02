@@ -81,10 +81,13 @@ class ClaudeAdapter(BaseAdapter):
     def list_models(self) -> list[str]:
         """List available Claude models."""
         # Anthropic doesn't provide a models.list() API, so return known models
-        return [
+        print("[Claude Adapter] Returning known Claude models (no API available)")
+        models = [
             "claude-3-5-sonnet-20241022",
             "claude-3-5-haiku-20241022", 
             "claude-3-opus-20240229",
             "claude-3-sonnet-20240229",
             "claude-3-haiku-20240307"
         ]
+        print(f"[Claude Adapter] Available models: {models}")
+        return models

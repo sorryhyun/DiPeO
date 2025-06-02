@@ -25,13 +25,6 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   title
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const isMountedRef = React.useRef(true);
-  
-  React.useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
   
   const handleClick = () => {
     // Safe ref access
@@ -39,11 +32,13 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   };
   
   const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isMountedRef.current) return;
+    console.log('FileUploadButton: handleChange called');
     
     // Process file upload
     const files = event.target.files;
+    console.log('FileUploadButton: Files selected', files);
     if (files && files.length > 0) {
+      console.log('FileUploadButton: Calling onChange with event');
       onChange(event);
     }
     

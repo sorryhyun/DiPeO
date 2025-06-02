@@ -31,6 +31,35 @@ export function createCrudActions<T extends CrudItem>(
     },
 
     update: (id: string, data: Partial<T>) => {
+      console.log(`[CRUD Store] Updating ${idPrefix} item:`, {
+        id,
+        data,
+        currentItems: getItems().find(item => item.id === id)
+      });
+      
+      // Optimize updates by checking if the data actually changed
+      const currentItem = getItems().find(item => item.id === id);
+      if (!currentItem) {
+        console.warn(`[CRUD Store] Item ${idPrefix} ${id} not found for update`);
+        return;
+      }
+      
+      // Check if any values actually changed
+      const hasChanges = Object.entries(data).some(([key, value]) => 
+        currentItem[key as keyof T] !== value
+      );
+      
+      if (!hasChanges) {
+        console.log(`[CRUD Store] No actual changes detected for ${idPrefix} ${id}, skipping update`);
+        return;
+      }
+      
+      console.log(`[CRUD Store] Applying updates to ${idPrefix} ${id}:`, {
+        before: currentItem,
+        updates: data,
+        after: { ...currentItem, ...data }
+      });
+      
       setItems(
         getItems().map(item => 
           item.id === id ? { ...item, ...data } : item
@@ -83,8 +112,12 @@ export function createPersonCrudActions<T extends CrudItem>(
   const baseCrud = createCrudActions(getItems, setItems, idPrefix);
   
   return {
-    addPerson: baseCrud.add,
-    updatePerson: baseCrud.update,
+    addPerson: (itemData: Omit<T, 'id'>) => {
+      baseCrud.add(itemData);
+    },
+    updatePerson: (id: string, data: Partial<T>) => {
+      baseCrud.update(id, data);
+    },
     deletePerson: baseCrud.delete,
     getPersonById: baseCrud.getById,
     clearPersons: baseCrud.clear

@@ -7,7 +7,7 @@ import uuid
 from typing import Dict, Any
 
 from ...services.diagram_service import DiagramService
-from ...utils.dependencies import get_diagram_service
+from ...utils.dependencies import get_diagram_service, get_llm_service, get_memory_service, get_unified_file_service
 
 router = APIRouter(prefix="/api", tags=["diagram"])
 
@@ -36,14 +36,20 @@ def safe_json_dumps(obj):
 
 
 async def execution_stream_generator(diagram_data: Dict[str, Any]):
-    """Generate SSE stream for diagram execution."""
+    """
+    MOCK: Generate placeholder SSE stream for diagram execution status updates.
+    This is for development/testing only and does not actually execute the diagram.
+    """
     execution_id = str(uuid.uuid4())
     
     try:
-        # Send execution started event
-        yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id})}\n\n"
+        # Send execution started event (with mock flag)
+        yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id, 'mock': True})}\n\n"
         
-        # Simulate execution process
+        # MOCK IMPLEMENTATION: This simulates execution for development purposes
+        # The actual execution happens in the frontend via the hybrid execution model
+        # Frontend executes client-safe nodes locally and calls backend APIs for server-only nodes
+        
         nodes = diagram_data.get('nodes', [])
         start_nodes = [n for n in nodes if n.get('type') == 'startNode']
         
@@ -51,7 +57,8 @@ async def execution_stream_generator(diagram_data: Dict[str, Any]):
             yield f"data: {json.dumps({'type': 'execution_error', 'error': 'No start nodes found'})}\n\n"
             return
         
-        # Process each node (simplified execution)
+        # Simple simulation for SSE interface
+        # Real execution happens in frontend with backend API calls for server-only nodes
         for node in nodes:
             node_id = node.get('id')
             node_type = node.get('type', 'unknown')
@@ -62,7 +69,7 @@ async def execution_stream_generator(diagram_data: Dict[str, Any]):
             # Start node
             yield f"data: {json.dumps({'type': 'node_start', 'nodeId': node_id})}\n\n"
             
-            # Simulate processing time
+            # Simulate processing
             await asyncio.sleep(0.5)
             
             # Complete node
@@ -78,11 +85,17 @@ async def execution_stream_generator(diagram_data: Dict[str, Any]):
 @router.post("/stream/run-diagram")
 async def stream_run_diagram(diagram_data: dict):
     """
-    Execute diagram with SSE streaming updates.
+    DEVELOPMENT MOCK ENDPOINT - Execute diagram with SSE streaming updates.
     
-    This is a simplified implementation that provides the streaming interface
-    expected by the frontend. A full implementation would integrate with
-    the execution engine.
+    WARNING: This is a mock endpoint that simulates execution for development purposes.
+    It does NOT actually execute the diagram - it only sends placeholder SSE events.
+    
+    In production, the hybrid execution model is used:
+    - Frontend executes client-safe nodes locally
+    - Frontend calls backend APIs for server-only nodes via /api/nodes/* endpoints
+    
+    TODO: Consider removing this endpoint or implementing actual server-side execution
+    if there's a need for pure server-side execution with streaming.
     """
     return StreamingResponse(
         execution_stream_generator(diagram_data),
@@ -97,11 +110,17 @@ async def stream_run_diagram(diagram_data: dict):
 
 
 @router.post("/run-diagram")
-async def run_diagram(diagram_data: dict):
+async def run_diagram(
+    diagram_data: dict,
+    diagram_service: DiagramService = Depends(get_diagram_service),
+    llm_service = Depends(get_llm_service),
+    memory_service = Depends(get_memory_service),
+    file_service = Depends(get_unified_file_service)
+):
     """
     Execute diagram synchronously.
     
-    This is a simplified implementation for synchronous execution.
+    This endpoint actually executes the diagram using the execution service.
     """
     try:
         nodes = diagram_data.get('nodes', [])
@@ -110,16 +129,15 @@ async def run_diagram(diagram_data: dict):
         if not start_nodes:
             raise HTTPException(status_code=400, detail="No start nodes found")
         
-        execution_id = str(uuid.uuid4())
+        # Import and create execution service
+        from ...services.execution_service import ExecutionService
         
-        return {
-            "success": True,
-            "execution_id": execution_id,
-            "context": {
-                "execution_id": execution_id,
-                "nodes_processed": len(nodes)
-            }
-        }
+        execution_service = ExecutionService(llm_service, memory_service, file_service)
+        
+        # Execute the diagram
+        result = await execution_service.execute_diagram(diagram_data)
+        
+        return result
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

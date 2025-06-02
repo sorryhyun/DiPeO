@@ -26,6 +26,17 @@ export const jobConfig: PanelConfig<JobBlockData> = {
           className: 'flex-1'
         }
       ]
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          type: 'iterationCount',
+          name: 'iterationCount',
+          label: 'Max Iter',
+          className: 'flex-1'
+        }
+      ]
     }
   ],
   rightColumn: [
@@ -33,8 +44,15 @@ export const jobConfig: PanelConfig<JobBlockData> = {
       type: 'textarea',
       name: 'sourceDetails',
       label: 'Details',
-      rows: 8,
+      rows: 6,
       placeholder: 'Enter job details...',
+    },
+    {
+      type: 'textarea',
+      name: 'firstOnlyPrompt',
+      label: 'First-Only Prompt',
+      rows: 4,
+      placeholder: 'Prompt to use only on first execution.'
     }
   ]
 };

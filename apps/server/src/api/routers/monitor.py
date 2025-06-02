@@ -109,5 +109,29 @@ async def monitor_status():
     }
 
 
+@router.post("/broadcast")
+async def broadcast_event(event_data: dict):
+    """
+    Broadcast an event to all monitor connections.
+    
+    Used by CLI and external executions to notify browser monitors.
+    """
+    try:
+        # Mark as external execution
+        event_data["is_external"] = True
+        await broadcast_to_monitors(event_data)
+        return {
+            "success": True,
+            "broadcasted_to": len(active_monitors),
+            "message": "Event broadcasted to all monitors"
+        }
+    except Exception as e:
+        logger.error(f"Failed to broadcast event: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 # Export broadcast function for use by execution engine
 __all__ = ["router", "broadcast_to_monitors"]

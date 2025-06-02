@@ -30,7 +30,36 @@ export const arrowConfig: PanelConfig<ArrowData> = {
         { value: 'raw_text', label: 'Raw Text' },
         { value: 'variable_in_object', label: 'Variable in Object' },
         { value: 'conversation_state', label: 'Conversation State' }
-      ]
+      ],
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['start', 'condition'],
+        operator: 'notEquals'
+      }
+    },
+    {
+      type: 'text',
+      name: 'contentTypeDisplay',
+      label: 'Content Type',
+      placeholder: 'Empty (Fixed)',
+      disabled: true,
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['start'],
+        operator: 'equals'
+      }
+    },
+    {
+      type: 'text',
+      name: 'contentTypeDisplay',
+      label: 'Content Type',
+      placeholder: 'Generic (Fixed)',
+      disabled: true,
+      conditional: {
+        field: '_isFromConditionBranch',
+        values: [true],
+        operator: 'equals'
+      }
     }
   ]
 };

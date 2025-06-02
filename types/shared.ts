@@ -22,9 +22,9 @@ export interface Diagram {
 }
 
 export interface ExecutionContext {
-  nodes_by_id: Record<string, DiagramNode>;
-  incoming_arrows: Record<string, DiagramArrow[]>;
-  outgoing_arrows: Record<string, DiagramArrow[]>;
+  nodesById: Record<string, DiagramNode>;
+  incomingArrows: Record<string, DiagramArrow[]>;
+  outgoingArrows: Record<string, DiagramArrow[]>;
 }
 
 export interface ValidationResult {

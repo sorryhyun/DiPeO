@@ -3,17 +3,23 @@
  * Provides consistent base URLs and endpoint definitions
  */
 
-// Determine environment
-const isDev = import.meta.env.DEV;
-const apiHost = import.meta.env.VITE_API_HOST || 'localhost:8000';
+// Type declaration for Node.js environment
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
+// Determine environment - Vite provides import.meta.env
+// In Node.js/CLI environment, import.meta is not available
+const isDev = typeof window === 'undefined' ? true : (import.meta?.env?.DEV ?? false);
+const apiHost = typeof window === 'undefined' 
+  ? (process?.env?.VITE_API_HOST || 'localhost:8000')
+  : (import.meta?.env?.VITE_API_HOST || 'localhost:8000');
 
 // Base URLs
 export const API_CONFIG = {
   // HTTP API base URL
-  BASE_URL: isDev ? `http://${apiHost}` : '',
+  BASE_URL: isDev || typeof window === 'undefined' ? `http://${apiHost}` : '',
   
   // SSE streaming base URL
-  STREAMING_BASE_URL: isDev ? `http://${apiHost}` : '',
+  STREAMING_BASE_URL: isDev || typeof window === 'undefined' ? `http://${apiHost}` : '',
 } as const;
 
 // Export for backward compatibility
@@ -48,10 +54,16 @@ export const API_ENDPOINTS = {
 
 // Helper functions
 export function getApiUrl(endpoint: string): string {
-  // For relative paths starting with /api, no base URL needed (uses proxy)
+  // In Node.js/CLI environment, always use full URL
+  if (typeof window === 'undefined') {
+    return `${API_CONFIG.BASE_URL}${endpoint}`;
+  }
+  
+  // In browser with dev server proxy, relative paths work
   if (endpoint.startsWith('/api')) {
     return endpoint;
   }
+  
   // For other paths, prepend base URL
   return `${API_CONFIG.BASE_URL}${endpoint}`;
 }

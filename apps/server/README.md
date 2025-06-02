@@ -162,13 +162,13 @@ SSE events during execution:
 
 ```bash
 # Run diagram
-python agentdiagram_tool.py run diagram.json
+python tool.py run diagram.json
 
 # Monitor executions
-python agentdiagram_tool.py monitor
+python tool.py monitor
 
 # Convert formats
-python agentdiagram_tool.py convert input.puml output.json
+python tool.py convert input.puml output.json
 ```
 
 ## Security Notes

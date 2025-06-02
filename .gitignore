@@ -31,6 +31,7 @@ dist/
 build/
 out/
 *.log
+execution_runner.cjs
 CLAUDE.md
 apps/web/CLAUDE.md
 apps/server/CLAUDE.md
@@ -66,7 +67,9 @@ example.yaml
 prompts/notion.yaml
 TODO.md
 MIGRATION_PLAN.md
-
+diagram_monitor
+AGENTS.md
+CLAUDE.local.md
 # Temporary files
 *.tmp
 *.temp
