@@ -1,5 +1,5 @@
 // Reusable component for rendering property panels based on selection
-import React from 'react';
+import React, { useMemo } from 'react';
 import { UniversalPropertiesPanel } from '@/features/properties';
 import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types/core';
 
@@ -25,37 +25,38 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
   arrows,
   persons
 }) => {
+  // Memoize person data to avoid creating new object references
+  const personData = useMemo(() => {
+    if (!selectedPersonId) return null;
+    const person = persons.find(p => p.id === selectedPersonId);
+    if (!person) return null;
+    return { ...person, type: 'person' as const };
+  }, [selectedPersonId, persons]);
+
+  // Memoize arrow data to avoid creating new object references
+  const arrowData = useMemo(() => {
+    if (!selectedArrowId) return null;
+    const arrow = arrows.find(a => a.id === selectedArrowId);
+    if (!arrow) return null;
+    return { ...arrow.data, type: 'arrow' as const };
+  }, [selectedArrowId, arrows]);
+
   const getPropertiesContent = (): PropertiesResult => {
     let content = <p className="p-4 text-sm text-gray-500">Select a block, arrow, or person to see its properties.</p>;
     let title = "Properties";
 
-    if (selectedPersonId) {
-      const person = persons.find(p => p.id === selectedPersonId);
-      if (person) {
-        // Log person data when rendering
-        console.log('[Person Property Panel] PropertiesRenderer - Rendering person:', {
-          id: person.id,
-          service: person.service,
-          apiKeyId: person.apiKeyId,
-          modelName: person.modelName,
-          label: person.label
-        });
-        
-        title = `${person.label || 'Person'} Properties`;
-        content = <UniversalPropertiesPanel nodeId={selectedPersonId} data={{...person, type: 'person'}} />;
-      }
+    if (selectedPersonId && personData) {
+      title = `${personData.label || 'Person'} Properties`;
+      content = <UniversalPropertiesPanel nodeId={selectedPersonId} data={personData} />;
     } else if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         title = `${node.data.label || 'Block'} Properties`;
         content = <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
       }
-    } else if (selectedArrowId) {
-      const arrow = arrows.find(a => a.id === selectedArrowId);
-      if (arrow) {
-        title = `Arrow Properties`;
-        content = <UniversalPropertiesPanel nodeId={selectedArrowId} data={{...arrow.data, type: 'arrow'}} />;
-      }
+    } else if (selectedArrowId && arrowData) {
+      title = `Arrow Properties`;
+      content = <UniversalPropertiesPanel nodeId={selectedArrowId} data={arrowData} />;
     }
 
     return { title, content };

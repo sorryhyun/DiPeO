@@ -4,6 +4,7 @@
 
 import { useConsolidatedDiagramStore } from '@/core/stores';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
+import { apiCache } from '@/shared/utils/apiCache';
 
 export const formatPropertyValue = (value: any, type: string): string => {
   if (value === null || value === undefined) {
@@ -161,6 +162,14 @@ export const getDynamicModelOptions = async (
     return [];
   }
 
+  // Check cache first
+  const cacheKey = `models:${service}:${apiKeyId}`;
+  const cachedModels = apiCache.get<Array<{ value: string; label: string }>>(cacheKey);
+  if (cachedModels) {
+    console.log('[Person Property Panel] Returning cached models:', cachedModels.length);
+    return cachedModels;
+  }
+
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -192,10 +201,15 @@ export const getDynamicModelOptions = async (
         models: data.models
       });
       
-      return data.models.map((model: string) => ({
+      const modelOptions = data.models.map((model: string) => ({
         value: model,
         label: model
       }));
+      
+      // Cache the results
+      apiCache.set(cacheKey, modelOptions);
+      
+      return modelOptions;
     }
     
     // Return empty array if no models found

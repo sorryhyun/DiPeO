@@ -36,6 +36,21 @@ export function createCrudActions<T extends CrudItem>(
         data,
         currentItems: getItems().find(item => item.id === id)
       });
+      
+      // Optimize updates by checking if the data actually changed
+      const currentItem = getItems().find(item => item.id === id);
+      if (!currentItem) return;
+      
+      // Check if any values actually changed
+      const hasChanges = Object.entries(data).some(([key, value]) => 
+        currentItem[key as keyof T] !== value
+      );
+      
+      if (!hasChanges) {
+        console.log(`[CRUD Store] No actual changes detected for ${idPrefix} ${id}, skipping update`);
+        return;
+      }
+      
       setItems(
         getItems().map(item => 
           item.id === id ? { ...item, ...data } : item
@@ -89,15 +104,9 @@ export function createPersonCrudActions<T extends CrudItem>(
   
   return {
     addPerson: (itemData: Omit<T, 'id'>) => {
-      console.log('[Person Property Panel] Creating new person:', itemData);
       baseCrud.add(itemData);
     },
     updatePerson: (id: string, data: Partial<T>) => {
-      console.log('[Person Property Panel] updatePerson called:', {
-        id,
-        updates: data,
-        timestamp: Date.now()
-      });
       baseCrud.update(id, data);
     },
     deletePerson: baseCrud.delete,
