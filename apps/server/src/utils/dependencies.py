@@ -1,38 +1,26 @@
 
-from functools import lru_cache
+"""
+Dependency injection functions for FastAPI.
 
-from ..services.api_key_service import APIKeyService
-from ..services.llm_service import LLMService
-from ..services.diagram_service import DiagramService
-from ..services.unified_file_service import UnifiedFileService
-from ..services.memory_service import MemoryService
+This module re-exports the dependency functions from app_context
+for backward compatibility. All service lifecycle management is
+handled by the AppContext class.
+"""
 
+from .app_context import (
+    get_api_key_service,
+    get_llm_service,
+    get_diagram_service,
+    get_file_service,
+    get_memory_service,
+    lifespan
+)
 
-@lru_cache()
-def get_api_key_service() -> APIKeyService:
-    """Get singleton APIKeyService instance."""
-    return APIKeyService()
-
-
-@lru_cache()
-def get_llm_service() -> LLMService:
-    """Get singleton LLMService instance."""
-    return LLMService(get_api_key_service())
-
-
-@lru_cache()
-def get_diagram_service() -> DiagramService:
-    """Get singleton DiagramService instance."""
-    return DiagramService(get_llm_service(), get_api_key_service(), get_memory_service())
-
-
-@lru_cache()
-def get_unified_file_service() -> UnifiedFileService:
-    """Get singleton UnifiedFileService instance."""
-    return UnifiedFileService()
-
-
-@lru_cache()
-def get_memory_service() -> MemoryService:
-    """Get singleton MemoryService instance."""
-    return MemoryService()
+__all__ = [
+    'get_api_key_service',
+    'get_llm_service', 
+    'get_diagram_service',
+    'get_file_service',
+    'get_memory_service',
+    'lifespan'
+]

@@ -7,7 +7,7 @@ import time
 import logging
 
 from .base_executor import ClientSafeExecutor, ValidationResult, ExecutorResult
-from ..services.unified_file_service import UnifiedFileService
+from ....services.file_service import FileService
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class EndpointExecutor(ClientSafeExecutor):
     Endpoint nodes mark the end of execution flows and can save results to files.
     """
     
-    def __init__(self, file_service: UnifiedFileService = None):
+    def __init__(self, file_service: FileService = None):
         super().__init__()
         self.file_service = file_service
     

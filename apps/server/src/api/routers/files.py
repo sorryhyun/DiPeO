@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from typing import Optional
 
-from ...services.unified_file_service import UnifiedFileService
-from ...utils.dependencies import get_unified_file_service
+from ...services.file_service import FileService
+from ...utils.dependencies import get_file_service
 
 router = APIRouter(prefix="/api", tags=["files"])
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api", tags=["files"])
 async def upload_file(
     file: UploadFile = File(...),
     target_path: Optional[str] = None,
-    file_service: UnifiedFileService = Depends(get_unified_file_service)
+    file_service: FileService = Depends(get_file_service)
 ):
     """Upload a file to the server."""
     try:

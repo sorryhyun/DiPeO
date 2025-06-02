@@ -52,10 +52,8 @@ export const API_ENDPOINTS = {
   UPLOAD_FILE: '/api/upload-file',
   
   // Import/Export
-  IMPORT_UML: '/api/import-uml',
   IMPORT_YAML: '/api/import-yaml', 
   SAVE_DIAGRAM: '/api/save',
-  EXPORT_UML: '/api/export-uml',
   
   // Monitoring
   MONITOR_STREAM: '/api/monitor/stream',

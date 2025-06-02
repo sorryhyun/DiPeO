@@ -12,9 +12,9 @@ import io
 import sys
 
 from .base_executor import ServerOnlyExecutor, ValidationResult, ExecutorResult
-from ..services.unified_file_service import UnifiedFileService
-from ..exceptions import ValidationError, FileOperationError
-from ..utils.output_processor import OutputProcessor
+from ....services.file_service import FileService
+from ....exceptions import ValidationError, FileOperationError
+from ....utils.output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class DBExecutor(ServerOnlyExecutor):
     Supports file reading, fixed prompts, code execution, and API tool integrations.
     """
     
-    def __init__(self, file_service: UnifiedFileService):
+    def __init__(self, file_service: FileService):
         super().__init__()
         self.file_service = file_service
     
@@ -180,35 +180,8 @@ class DBExecutor(ServerOnlyExecutor):
     
     async def _execute_notion_api(self, api_config: Dict[str, Any]) -> Dict[str, Any]:
         """Execute Notion API calls"""
-        action = api_config.get("action", "search")
-        
-        if action == "search":
-            query = api_config.get("query", "")
-            # Simulate Notion search for now
-            # In production, this would use the actual Notion API
-            return {
-                "output": {
-                    "results": [
-                        {
-                            "object": "page",
-                            "id": "mock-page-id",
-                            "properties": {
-                                "title": {
-                                    "type": "title",
-                                    "title": [{"text": {"content": f"Mock result for '{query}'"}}]
-                                }
-                            }
-                        }
-                    ]
-                },
-                "metadata": {
-                    "api_type": "notion",
-                    "action": "search",
-                    "query": query
-                }
-            }
-        else:
-            raise ValidationError(f"Unsupported Notion action: {action}")
+        # TODO: Implement actual Notion API integration
+        raise NotImplementedError("Notion API integration is not yet implemented")
     
     async def _execute_code(self, code_snippet: str, inputs: list) -> Dict[str, Any]:
         """Execute code in sandbox environment"""

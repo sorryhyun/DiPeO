@@ -1,4 +1,5 @@
-import re
+import yaml
+import logging
 from fastapi import HTTPException
 
 from ..exceptions import ValidationError
@@ -6,6 +7,8 @@ from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
+
+logger = logging.getLogger(__name__)
 
 
 def round_position(position: dict) -> dict:
@@ -40,7 +43,7 @@ class DiagramService(BaseService):
                     None
                 )
                 if fallback:
-                    print(f"Replaced invalid apiKeyId {person['apiKeyId']} with {fallback['id']}")
+                    logger.info(f"Replaced invalid apiKeyId {person['apiKeyId']} with {fallback['id']}")
                     person["apiKeyId"] = fallback["id"]
                 else:
                     raise HTTPException(
@@ -61,73 +64,31 @@ class DiagramService(BaseService):
         if not isinstance(diagram["arrows"], list):
             raise ValidationError("arrows must be a list")
     
-    def import_uml(self, uml_text: str) -> dict:
-        """Import UML text and convert to diagram state."""
-        try:
-            pairs = re.findall(r"(\w+)\s*->\s*(\w+)", uml_text)
-            
-            names = sorted({name for pair in pairs for name in pair})
-            
-            nodes = []
-            for idx, name in enumerate(names):
-                nodes.append({
-                    "id": name,
-                    "type": "agentNode",
-                    "position": round_position({"x": idx * 200, "y": 0}),
-                    "data": {"id": name, "label": name}
-                })
-            
-            arrows = []
-            for idx, (src, tgt) in enumerate(pairs):
-                arrows.append({
-                    "id": f"arrow-{idx}",
-                    "source": src,
-                    "target": tgt,
-                    "type": "customArrow",
-                    "data": {
-                        "id": f"arrow-data-{idx}",
-                        "sourceBlockId": src,
-                        "targetBlockId": tgt,
-                        "label": "",
-                        "contentType": "variable"
-                    }
-                })
-            
-            diagram = {
-                "nodes": nodes,
-                "arrows": arrows,
-                "apiKeys": []
-            }
-            return diagram
-            
-        except Exception as e:
-            raise ValidationError(f"Failed to parse UML: {e}")
-    
-    def export_uml(self, diagram: dict) -> str:
-        """Export diagram to UML text format."""
-        try:
-            self._validate_diagram(diagram)
-            
-            arrows = diagram.get('arrows', [])
-            lines = ['@startuml']
-            
-            for edge in arrows:
-                src = edge.get("source")
-                tgt = edge.get("target")
-                if src and tgt:
-                    lines.append(f"{src} -> {tgt}")
-            
-            lines.append('@enduml')
-            return '\n'.join(lines)
-            
-        except Exception as e:
-            raise ValidationError(f"Failed to export UML: {e}")
-    
     def import_yaml(self, yaml_text: str) -> dict:
         """Import YAML agent definitions and convert to diagram state."""
-        return {
-            "nodes": [],
-            "arrows": [],
-            "apiKeys": []
-        }
+        try:
+            # Parse YAML content
+            data = yaml.safe_load(yaml_text)
+            
+            # If the data is already in diagram format, validate and return it
+            if isinstance(data, dict) and "nodes" in data and "arrows" in data:
+                self._validate_diagram(data)
+                # Ensure all required fields are present
+                data.setdefault("persons", [])
+                data.setdefault("apiKeys", [])
+                return data
+            
+            # Otherwise, return an empty diagram structure
+            # The frontend handles more complex YAML formats (LLM-friendly format)
+            return {
+                "nodes": [],
+                "arrows": [],
+                "persons": [],
+                "apiKeys": []
+            }
+            
+        except yaml.YAMLError as e:
+            raise ValidationError(f"Failed to parse YAML: {e}")
+        except Exception as e:
+            raise ValidationError(f"Failed to import YAML: {e}")
     

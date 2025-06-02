@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const { setDashboardTab } = useUIState();
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
-  const { handleImportUML, handleImportYAML } = useFileImport();
+  const { handleImportYAML } = useFileImport();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [importExpanded, setImportExpanded] = useState(true);
@@ -175,24 +175,15 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
           {importExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
         </h3>
         {importExpanded && (
-          <div className="grid grid-cols-2 gap-2 px-2">
-            <FileUploadButton
-              accept=".puml,.mmd"
-              onChange={handleImportUML}
-              variant="outline"
-              className="text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
-              size="sm"
-            >
-              <span className="mr-1">📋</span> UML
-            </FileUploadButton>
+          <div className="px-2">
             <FileUploadButton
               accept=".yaml,.yml"
               onChange={handleImportYAML}
               variant="outline"
-              className="text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
+              className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
             >
-              <span className="mr-1">📄</span> YAML
+              <span className="mr-1">📄</span> Import YAML
             </FileUploadButton>
           </div>
         )}

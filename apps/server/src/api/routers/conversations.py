@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 from ...services.memory_service import MemoryService

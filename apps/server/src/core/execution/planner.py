@@ -1,6 +1,6 @@
 from typing import Dict, List, Set, Optional, Any
-from dataclasses import dataclass, field
-from collections import defaultdict, deque
+from dataclasses import dataclass
+from collections import deque
 import logging
 
 from .resolver import DependencyResolver
@@ -69,16 +69,10 @@ class ExecutionPlanner:
             execution_order, dependencies
         )
         
-        # Estimate costs and time (placeholder for now)
-        estimated_cost = self._estimate_execution_cost(nodes_by_id)
-        estimated_time = self._estimate_execution_time(nodes_by_id, parallel_groups)
-        
         return ExecutionPlan(
             execution_order=execution_order,
             parallel_groups=parallel_groups,
-            dependencies=dependencies,
-            estimated_cost=estimated_cost,
-            estimated_time=estimated_time
+            dependencies=dependencies
         )
     
     def get_start_nodes(self, nodes_by_id: Dict[str, Dict], incoming_arrows: Dict[str, List[Dict]]) -> List[str]:
@@ -292,63 +286,3 @@ class ExecutionPlanner:
         
         return execution_order
     
-    def _estimate_execution_cost(self, nodes_by_id: Dict[str, Dict]) -> float:
-        """
-        Estimate the total execution cost based on node types and properties.
-        This is a placeholder that can be enhanced with actual cost models.
-        """
-        total_cost = 0.0
-        
-        for node in nodes_by_id.values():
-            node_type = node["type"]
-            
-            # Estimate costs based on node type
-            if node_type in ["personjob", "personbatchjob"]:
-                # LLM calls have token-based costs
-                # This is a rough estimate - actual cost calculated during execution
-                total_cost += 0.01  # Placeholder cost
-            elif node_type == "db":
-                # Database operations have minimal cost
-                total_cost += 0.001
-            # Other node types have negligible cost
-        
-        return total_cost
-    
-    def _estimate_execution_time(
-        self,
-        nodes_by_id: Dict[str, Dict],
-        parallel_groups: List[List[str]]
-    ) -> float:
-        """
-        Estimate total execution time considering parallelization.
-        This is a placeholder that can be enhanced with actual timing models.
-        """
-        total_time = 0.0
-        
-        # Each parallel group takes as long as its slowest node
-        for group in parallel_groups:
-            group_time = 0.0
-            
-            for node_id in group:
-                node = nodes_by_id[node_id]
-                node_type = node["type"]
-                
-                # Estimate time based on node type
-                if node_type in ["personjob", "personbatchjob"]:
-                    # LLM calls typically take 1-5 seconds
-                    node_time = 3.0
-                elif node_type == "db":
-                    # File/DB operations typically fast
-                    node_time = 0.5
-                elif node_type == "endpoint":
-                    # Network calls can vary
-                    node_time = 1.0
-                else:
-                    # Other operations are fast
-                    node_time = 0.1
-                
-                group_time = max(group_time, node_time)
-            
-            total_time += group_time
-        
-        return total_time

@@ -216,38 +216,11 @@ class MemoryService:
         person_memory = self.get_or_create_person_memory(person_id)
         return person_memory.get_visible_messages(person_id)
 
-    def get_all_participants_in_conversation(self) -> List[str]:
-        """Get all person IDs that have participated in conversations."""
-        return list(self.person_memories.keys())
-
-    def clear_all_memory(self) -> None:
-        """Clear all memory."""
-        self.person_memories.clear()
-        self.all_messages.clear()
-
-    def get_memory_stats(self) -> Dict[str, Any]:
-        """Get statistics about memory usage."""
-        stats = {
-            "total_persons": len(self.person_memories),
-            "total_messages": len(self.all_messages),
-            "persons": {}
-        }
-
-        for person_id, memory in self.person_memories.items():
-            stats["persons"][person_id] = {
-                "total_messages": len(memory.messages),
-                "forgotten_messages": len(memory.forgotten_message_ids),
-                "visible_messages": len(memory.messages) - len(memory.forgotten_message_ids)
-            }
-
-        return stats
-
     async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str:
         """Save the current conversation state to a JSONL log file."""
-        from ..utils.dependencies import get_unified_file_service
-        import json
+        from ..utils.dependencies import get_file_service
         
-        file_service = get_unified_file_service()
+        file_service = get_file_service()
         
         log_lines = []
         
@@ -317,24 +290,3 @@ class MemoryService:
         )
         
         return relative_path
-    
-    def clear_execution_memory(self, execution_id: str) -> None:
-        """Clear all memory related to a specific execution."""
-        for person_memory in self.person_memories.values():
-            messages_to_remove = [
-                msg for msg in person_memory.messages 
-                if msg.execution_id == execution_id
-            ]
-            for msg in messages_to_remove:
-                person_memory.messages.remove(msg)
-                person_memory.forgotten_message_ids.discard(msg.id)
-                self.all_messages.pop(msg.id, None)
-        
-        empty_persons = [
-            person_id for person_id, memory in self.person_memories.items()
-            if len(memory.messages) == 0
-        ]
-        for person_id in empty_persons:
-            del self.person_memories[person_id]
-        
-        self.execution_metadata.pop(execution_id, None)

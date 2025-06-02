@@ -1,9 +1,7 @@
 import os
 import sys
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import Response
-import uvicorn
 from dotenv import load_dotenv
 
 # Add parent directory to path
@@ -22,13 +20,8 @@ from .src.api.routers import (
 )
 from .src.api.middleware import setup_middleware
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialize services on startup."""
-    # Startup logic here if needed
-    yield
-    # Cleanup logic here if needed
+# Import lifespan from dependencies
+from .src.utils.dependencies import lifespan
 
 
 # Create FastAPI app

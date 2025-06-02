@@ -16,32 +16,6 @@ export const useFileImport = () => {
   const { loadDiagram } = useConsolidatedDiagramStore();
   const { downloadYaml } = useDownload();
 
-  const handleImportUML = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    const errorHandler = createErrorHandler('Import UML');
-    
-    await handleAsyncError(
-      async () => {
-        const text = await file.text();
-        const res = await fetch(getApiUrl(API_ENDPOINTS.IMPORT_UML), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uml: text }),
-        });
-        
-        if (!res.ok) {
-          throw new Error('Import UML failed');
-        }
-        
-        const diagram = await res.json();
-        loadDiagram(diagram);
-      },
-      undefined,
-      errorHandler
-    );
-  }, [loadDiagram]);
 
   const handleImportYAML = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -184,7 +158,6 @@ export const useFileImport = () => {
   }, [loadDiagram]);
 
   return {
-    handleImportUML,
     handleImportYAML,
     onImportYAML,
     onImportJSON,

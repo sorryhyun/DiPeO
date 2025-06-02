@@ -29,8 +29,7 @@ def execution_engine(mock_services):
     """Create execution engine with mock services."""
     return UnifiedExecutionEngine(
         llm_service=mock_services['llm_service'],
-        api_key_service=mock_services['api_key_service'],
-        memory_service=mock_services['memory_service']
+        file_service=mock_services.get('file_service')
     )
 
 

@@ -1,4 +1,4 @@
-from typing import Any, Union, List, Dict
+from typing import Any, List, Dict
 
 
 class OutputProcessor:

@@ -2,7 +2,7 @@
 Condition node executor - handles boolean logic and branching
 """
 
-from typing import Dict, Any, Union
+from typing import Dict, Any
 import time
 import re
 import logging

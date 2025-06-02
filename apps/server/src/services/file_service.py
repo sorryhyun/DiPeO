@@ -4,8 +4,6 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from datetime import datetime
-import sqlite3
 from docx import Document
 import aiofiles
 
@@ -17,7 +15,7 @@ from ..exceptions import ValidationError, FileOperationError
 from ..utils.base_service import BaseService
 
 
-class UnifiedFileService(BaseService):
+class FileService(BaseService):
     """Unified file service for all file operations."""
     
     def __init__(self, base_dir: Optional[Path] = None):
@@ -76,87 +74,6 @@ class UnifiedFileService(BaseService):
         
         # Return relative path from base directory
         return str(file_path.relative_to(self.base_dir))
-    
-    def write_sqlite(self,
-                     db_path: str,
-                     table_name: str,
-                     data: Union[Dict[str, Any], List[Dict[str, Any]]],
-                     relative_to: str = "results") -> str:
-        """Write data to SQLite database."""
-        file_path = self._resolve_and_validate_path(db_path, relative_to, create_parents=True)
-        
-        if not file_path.suffix:
-            file_path = file_path.with_suffix('.db')
-        
-        # Normalize data to list
-        records = [data] if isinstance(data, dict) else data
-        if not records:
-            raise ValidationError("No data to insert")
-        
-        # Connect and create table if needed
-        conn = sqlite3.connect(str(file_path))
-        try:
-            columns = list(records[0].keys())
-            
-            # Create table if it doesn't exist
-            col_defs = ", ".join([f'"{col}" TEXT' for col in columns])
-            conn.execute(f'CREATE TABLE IF NOT EXISTS "{table_name}" ({col_defs})')
-            
-            # Insert data
-            placeholders = ", ".join(["?" for _ in columns])
-            col_names = ", ".join([f'"{col}"' for col in columns])
-            
-            for record in records:
-                values = [str(record.get(col, "")) for col in columns]
-                conn.execute(
-                    f'INSERT INTO "{table_name}" ({col_names}) VALUES ({placeholders})',
-                    values
-                )
-            
-            conn.commit()
-            
-        finally:
-            conn.close()
-        
-        return str(file_path.relative_to(self.base_dir))
-    
-    # Removed save_conversation_log - MemoryService handles conversation logging
-    
-    def list_files(self, 
-                   directory: str = ".",
-                   relative_to: str = "base",
-                   pattern: str = "*") -> List[Dict[str, Any]]:
-        """List files in a directory."""
-        dir_path = self._resolve_and_validate_path(directory, relative_to)
-        
-        if not dir_path.is_dir():
-            raise ValidationError(f"Not a directory: {directory}")
-        
-        files = []
-        for file_path in dir_path.glob(pattern):
-            if file_path.is_file():
-                stat = file_path.stat()
-                files.append({
-                    "name": file_path.name,
-                    "path": str(file_path.relative_to(self.base_dir)),
-                    "size": stat.st_size,
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
-                })
-        
-        return sorted(files, key=lambda x: x["modified"], reverse=True)
-    
-    def delete(self, path: str, relative_to: str = "base") -> bool:
-        """Delete a file safely."""
-        file_path = self._resolve_and_validate_path(path, relative_to)
-        
-        if file_path.exists():
-            if file_path.is_file():
-                file_path.unlink()
-                return True
-            else:
-                raise ValidationError("Cannot delete directories")
-        
-        return False
     
     def _resolve_and_validate_path(self, 
                                    path: str, 
@@ -239,3 +156,27 @@ class UnifiedFileService(BaseService):
         text_content = str(content) if not isinstance(content, str) else content
         async with aiofiles.open(file_path, 'w', encoding=encoding) as f:
             await f.write(text_content)
+    
+    async def save_file(self, content: bytes, filename: str, target_path: Optional[str] = None) -> Dict[str, Any]:
+        """Save uploaded file to the uploads directory."""
+        if target_path:
+            file_path = self._resolve_and_validate_path(
+                os.path.join(target_path, filename), 
+                "uploads", 
+                create_parents=True
+            )
+        else:
+            file_path = self._resolve_and_validate_path(
+                filename, 
+                "uploads", 
+                create_parents=True
+            )
+        
+        # Write file content
+        async with aiofiles.open(file_path, 'wb') as f:
+            await f.write(content)
+        
+        return {
+            "path": str(file_path.relative_to(self.base_dir)),
+            "size": len(content)
+        }

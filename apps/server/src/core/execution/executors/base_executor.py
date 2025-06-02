@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 import re
 import logging
@@ -331,7 +331,7 @@ class ExecutorFactory:
         
         Args:
             llm_service: LLMService instance for server-only executors
-            file_service: UnifiedFileService instance for file operations
+            file_service: FileService instance for file operations
         """
         # Import executors here to avoid circular imports
         from .start_executor import StartExecutor
