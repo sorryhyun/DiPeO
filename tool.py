@@ -78,8 +78,6 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                         print(f"✓ Node {node_id} ({node_type}) completed in {elapsed:.2f}s")
                                         if node_data.get('output'):
                                             print(f"  Output: {str(node_data['output'])[:100]}...")
-                                    else:
-                                        print(f"✓ Node {node_id} ({node_type}) completed")
                                     
                                     if 'cost' in node_data:
                                         final_result['total_cost'] += node_data['cost']
@@ -94,7 +92,6 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                     execution_data = data.get('data', {})
                                     final_result['context'] = execution_data.get('context', {})
                                     final_result['total_cost'] = execution_data.get('totalCost', final_result['total_cost'])
-                                    print(f"🎉 Execution completed - Total cost: ${final_result['total_cost']:.4f}")
                                     
                                 elif data.get('type') == 'error':
                                     error_data = data.get('data', {})
@@ -199,14 +196,8 @@ def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = N
         }
         
         response = requests.post(f"{API_URL}/api/monitor/broadcast", json=event_data)
-        if response.status_code == 200:
-            print("📡 Diagram broadcasted to browser monitors")
-            return True
-        else:
-            print(f"⚠️  Failed to broadcast: {response.status_code}")
-            return False
-    except Exception as e:
-        print(f"⚠️  Failed to broadcast to monitors: {e}")
+        return response.status_code == 200
+    except Exception:
         return False
 
 
@@ -218,12 +209,16 @@ def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initi
         print("🐛 Debug mode enabled - verbose output and timing information")
         
     if pre_initialize:
-        print("🔧 Pre-initializing models...")
-        pre_initialize_models(diagram)
-        print()
+        if debug:
+            print("🔧 Pre-initializing models...")
+        results = pre_initialize_models(diagram, verbose=debug)
+        if debug and (results["initialized"] > 0 or results["failed"] > 0):
+            print(f"  ✓ Initialized: {results['initialized']}, Failed: {results['failed']}")
+            print()
     
     if show_in_browser:
-        print("🌐 Browser visualization enabled - open http://localhost:3000 to see execution")
+        if debug:
+            print("🌐 Browser visualization enabled - open http://localhost:3000 to see execution")
         # Broadcast diagram structure to monitors
         broadcast_diagram_to_monitors(diagram)
     
@@ -243,7 +238,6 @@ def open_browser_monitor():
     """Open browser to monitoring page."""
     import webbrowser
     monitor_url = "http://localhost:3000/?monitor=true"
-    print(f"🌐 Opening browser monitor at {monitor_url}")
     webbrowser.open(monitor_url)
 
 
@@ -376,14 +370,15 @@ def extract_person_models(diagram: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     return person_models
 
 
-def pre_initialize_models(diagram: Dict[str, Any]) -> Dict[str, Any]:
+def pre_initialize_models(diagram: Dict[str, Any], verbose: bool = False) -> Dict[str, Any]:
     """Pre-initialize all models used in the diagram."""
     person_models = extract_person_models(diagram)
     
     if not person_models:
         return {"message": "No person nodes with complete model configuration found", "initialized": 0}
     
-    print(f"🔧 Pre-initializing {len(person_models)} unique model(s)...")
+    if verbose:
+        print(f"Pre-initializing {len(person_models)} unique model(s)...")
     
     results = {
         "initialized": 0,
@@ -402,7 +397,8 @@ def pre_initialize_models(diagram: Dict[str, Any]) -> Dict[str, Any]:
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success'):
-                    print(f"  ✅ {config['service']}:{config['model']} (person: {config['person_id']})")
+                    if verbose:
+                        print(f"  ✓ {config['service']}:{config['model']} (person: {config['person_id']})")
                     results["initialized"] += 1
                     results["details"].append({
                         "status": "success", 
@@ -410,7 +406,8 @@ def pre_initialize_models(diagram: Dict[str, Any]) -> Dict[str, Any]:
                         "message": data.get('message', '')
                     })
                 else:
-                    print(f"  ❌ {config['service']}:{config['model']} - {data.get('error', 'Unknown error')}")
+                    if verbose:
+                        print(f"  ❌ {config['service']}:{config['model']} - {data.get('error', 'Unknown error')}")
                     results["failed"] += 1
                     results["details"].append({
                         "status": "failed",
@@ -418,7 +415,8 @@ def pre_initialize_models(diagram: Dict[str, Any]) -> Dict[str, Any]:
                         "error": data.get('error', 'Unknown error')
                     })
             else:
-                print(f"  ❌ {config['service']}:{config['model']} - HTTP {response.status_code}")
+                if verbose:
+                    print(f"  ❌ {config['service']}:{config['model']} - HTTP {response.status_code}")
                 results["failed"] += 1
                 results["details"].append({
                     "status": "failed",
@@ -427,18 +425,14 @@ def pre_initialize_models(diagram: Dict[str, Any]) -> Dict[str, Any]:
                 })
                 
         except Exception as e:
-            print(f"  ❌ {config['service']}:{config['model']} - {str(e)}")
+            if verbose:
+                print(f"  ❌ {config['service']}:{config['model']} - {str(e)}")
             results["failed"] += 1
             results["details"].append({
                 "status": "failed",
                 "config": config,
                 "error": str(e)
             })
-    
-    if results["initialized"] > 0:
-        print(f"✓ Successfully pre-initialized {results['initialized']} model(s)")
-    if results["failed"] > 0:
-        print(f"⚠️  Failed to pre-initialize {results['failed']} model(s)")
     
     return results
 
@@ -490,24 +484,19 @@ def main():
     try:
         if command == 'monitor':
             open_browser_monitor()
-            print("Browser monitor opened. Run diagrams with 'run' command to see them visualized.")
 
         elif command == 'preload':
             if len(sys.argv) < 3:
                 print("Error: Missing input file")
                 sys.exit(1)
 
-            print(f"Loading diagram from {sys.argv[2]}...")
             diagram = load_diagram(sys.argv[2])
-
-            results = pre_initialize_models(diagram)
+            results = pre_initialize_models(diagram, verbose=True)
             
             if results["initialized"] == 0 and results["failed"] == 0:
-                print("ℹ️  No person nodes with complete model configuration found")
+                print("No person nodes with complete model configuration found")
             else:
-                print(f"\n📊 Pre-initialization Summary:")
-                print(f"  ✅ Successful: {results['initialized']}")
-                print(f"  ❌ Failed: {results['failed']}")
+                print(f"Pre-initialized: {results['initialized']} successful, {results['failed']} failed")
 
         elif command == 'run':
             if len(sys.argv) < 3:
@@ -544,25 +533,18 @@ def main():
             # Apply mode-specific settings
             if mode == 'monitor':
                 # run-and-monitor behavior
-                print(f"Loading diagram from {file_path}...")
                 diagram = load_diagram(file_path)
                 
-                print("🔧 Pre-initializing models for faster execution...")
-                pre_initialize_models(diagram)
+                # Pre-initialize models silently
+                pre_initialize_models(diagram, verbose=debug)
                 
-                print("\n🌐 Opening browser monitor...")
+                # Open browser monitor
                 open_browser_monitor()
-                
-                print("Waiting for browser to connect...")
                 time.sleep(2)
                 
-                print("🚀 Running diagram with browser visualization...")
                 result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)
                 
-                print(f"\n✓ Execution complete!")
-                print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
-                if 'context' in result:
-                    print(f"  Context keys: {list(result['context'].keys())}")
+                print(f"✓ Execution complete - Total cost: ${result.get('total_cost', 0):.4f}")
                 return
                 
             elif mode == 'headless':
@@ -577,30 +559,20 @@ def main():
                 show_in_browser = False
 
             # Standard run execution
-            print(f"Loading diagram from {file_path}...")
             diagram = load_diagram(file_path)
-
-            if show_in_browser:
-                print("🌐 Running diagram (browser visualization enabled)")
-                print("   Open http://localhost:3000 in your browser to see the execution")
-            else:
-                print("Running diagram (browser visualization disabled)")
 
             result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream, debug=debug)
             
-            print(f"\n✓ Execution complete")
-            print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
-            if 'context' in result:
-                print(f"  Context keys: {list(result['context'].keys())}")
+            print(f"✓ Execution complete - Total cost: ${result.get('total_cost', 0):.4f}")
 
             # Save results
             Path('files/results').mkdir(exist_ok=True)
             save_path = output_file if output_file else 'files/results/results.json'
             with open(save_path, 'w') as f:
                 json.dump(result, f, indent=2)
-            print(f"  Results saved to: {save_path}")
             
             if debug:
+                print(f"  Results saved to: {save_path}")
                 # Save detailed debug logs
                 debug_path = save_path.replace('.json', '_debug.json')
                 debug_data = {
@@ -611,7 +583,7 @@ def main():
                 }
                 with open(debug_path, 'w') as f:
                     json.dump(debug_data, f, indent=2)
-                print(f"🐛 Debug logs saved to: {debug_path}")
+                print(f"  Debug logs saved to: {debug_path}")
             
             # Check forget rules if requested
             if check_forget:
@@ -640,22 +612,16 @@ def main():
             # Handle UML conversion (legacy Python method)
             if input_path.suffix in ['.puml', '.uml'] or output_path.suffix in ['.puml', '.uml']:
                 if input_path.suffix in ['.puml', '.uml']:
-                    print(f"Importing UML from {input_path}...")
                     diagram = import_uml(str(input_path))
-                    print(f"Saving to {output_path}...")
                     save_diagram(diagram, str(output_path))
                 else:
-                    print(f"Loading diagram from {input_path}...")
                     diagram = load_diagram(str(input_path))
-                    print(f"Exporting to UML...")
                     uml_content = export_uml(diagram)
                     with open(output_path, 'w') as f:
                         f.write(uml_content)
                 print(f"✓ Converted: {input_path} → {output_path}")
             else:
                 # Use enhanced TypeScript conversion
-                print(f"Converting using enhanced serialization: {input_path} → {output_path}")
-                
                 import subprocess
                 cmd = ['pnpm', 'exec', 'tsx', 'scripts/convert-diagram.ts', str(input_path), str(output_path)]
                 if format_arg:
@@ -664,16 +630,14 @@ def main():
                 try:
                     result = subprocess.run(cmd, capture_output=True, text=True, cwd='.')
                     if result.returncode == 0:
-                        print(result.stdout)
+                        print(f"✓ Converted: {input_path} → {output_path}")
                     else:
-                        print(f"❌ Conversion failed: {result.stderr}")
                         # Fallback to basic Python conversion
-                        print("Falling back to basic conversion...")
                         diagram = load_diagram(str(input_path))
                         save_diagram(diagram, str(output_path))
                         print(f"✓ Converted: {input_path} → {output_path}")
                 except FileNotFoundError:
-                    print("⚠️  pnpm not found, using basic conversion...")
+                    # Fallback for pnpm not found
                     diagram = load_diagram(str(input_path))
                     save_diagram(diagram, str(output_path))
                     print(f"✓ Converted: {input_path} → {output_path}")
