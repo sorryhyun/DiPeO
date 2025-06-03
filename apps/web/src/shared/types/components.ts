@@ -17,10 +17,10 @@ export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   borderColor?: string;
   showFlipButton?: boolean;
   nodeType?: string;
-  data?: any;
+  data?: unknown;
   autoHandles?: boolean;
   isRunning?: boolean;
-  onUpdateData?: (nodeId: string, data: any) => void;
+  onUpdateData?: (nodeId: string, data: unknown) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
   nodeConfigs?: Record<string, UnifiedNodeConfig>;
   onDragOver?: React.DragEventHandler<HTMLDivElement>;
@@ -29,7 +29,7 @@ export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export interface GenericNodeProps {
   id: string;
-  data: any;
+  data: unknown;
   selected?: boolean;
   nodeType: string;
   children: React.ReactNode;
@@ -37,7 +37,7 @@ export interface GenericNodeProps {
   onDragOver?: React.DOMAttributes<HTMLDivElement>['onDragOver'];
   onDrop?: React.DOMAttributes<HTMLDivElement>['onDrop'];
   isRunning?: boolean;
-  onUpdateData?: (nodeId: string, data: any) => void;
+  onUpdateData?: (nodeId: string, data: unknown) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
   nodeConfigs?: Record<string, UnifiedNodeConfig>;
 }

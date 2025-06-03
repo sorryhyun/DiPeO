@@ -74,7 +74,7 @@ export const withErrorHandling = async <T>(
 /**
  * Higher-order function that wraps async functions with error handling
  */
-export const withAsyncErrorHandling = <TArgs extends any[], TReturn>(
+export const withAsyncErrorHandling = <TArgs extends unknown[], TReturn>(
   fn: (...args: TArgs) => Promise<TReturn>,
   context?: string
 ) => {

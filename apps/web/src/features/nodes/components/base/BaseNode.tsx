@@ -6,7 +6,7 @@ import { BaseNodeProps, HandleConfig } from '@/shared/types';
 import { createHandleId } from '@/shared/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import { useNodeExecutionState } from '@/global/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/global/contexts/DiagramContext';
+import { useDiagramContext } from '@/global/contexts/useDiagramContext';
 import './BaseNode.css';
 
 function BaseNodeComponent({

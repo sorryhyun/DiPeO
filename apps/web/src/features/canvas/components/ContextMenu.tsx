@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDiagramContext } from '@/global/contexts/DiagramContext';
+import { useDiagramContext } from '@/global/contexts/useDiagramContext';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };

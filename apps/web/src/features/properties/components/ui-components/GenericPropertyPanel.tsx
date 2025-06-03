@@ -20,13 +20,13 @@ import {
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
 import { useMonitorStore } from '@/global/stores';
 
-interface GenericPropertyPanelProps<T extends Record<string, any>> {
+interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
   data: T;
   config: PanelConfig<T>;
 }
 
-export const GenericPropertyPanel = <T extends Record<string, any>>({
+export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   nodeId,
   data,
   config
@@ -159,7 +159,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
           if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
             try {
               // Dependent fields expect formData parameter
-              const result = (field.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
+              const result = (field.options as (formData: T) => Promise<Array<{ value: string; label: string }>>)(formData);
               const options = result instanceof Promise ? await result : result;
               updatedOptions[field.name] = options;
               hasUpdates = true;
@@ -186,7 +186,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
   }, [formData.service, formData.apiKeyId]); // Only trigger when service or API key changes - other deps are stable
   
   // Type-safe update function with model pre-initialization
-  const updateField = async (name: string, value: any) => {
+  const updateField = async (name: string, value: unknown) => {
     // Skip updates if in monitor mode (read-only)
     if (isMonitorMode) {
       return;
@@ -202,13 +202,13 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
         value,
         formDataService: formData.service,
         formDataApiKeyId: formData.apiKeyId,
-        dataService: (data as any).service,
-        dataApiKeyId: (data as any).apiKeyId
+        dataService: data.service,
+        dataApiKeyId: data.apiKeyId
       });
       
       // Check both formData and data for required fields
-      const service = formData.service || (data as any).service;
-      const apiKeyId = formData.apiKeyId || (data as any).apiKeyId;
+      const service = formData.service || data.service;
+      const apiKeyId = formData.apiKeyId || data.apiKeyId;
       
       if (service && value && apiKeyId) {
         console.log('[Person Property Panel] Pre-initializing model with:', {
@@ -293,7 +293,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
               let result;
               if (fieldConfig.options.length > 0) {
                 // Function expects formData parameter
-                result = (fieldConfig.options as (formData: any) => Promise<Array<{ value: string; label: string }>>)(formData);
+                result = (fieldConfig.options as (formData: T) => Promise<Array<{ value: string; label: string }>>)(formData);
               } else {
                 // Function doesn't expect parameters
                 result = (fieldConfig.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
@@ -440,7 +440,7 @@ export const GenericPropertyPanel = <T extends Record<string, any>>({
       }
 
       default:
-        console.warn(`Unknown field type: ${(fieldConfig as any).type}`);
+        console.warn(`Unknown field type: ${(fieldConfig as FieldConfig & { type: string }).type}`);
         return null;
     }
   };

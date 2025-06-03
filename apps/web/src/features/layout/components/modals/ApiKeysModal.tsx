@@ -100,7 +100,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       });
       
       toast.success(`API key "${newKey.name}" added successfully`);
-    } catch (_error) {
+    } catch {
       setErrors({ keyReference: 'Network error: Failed to create API key' });
     }
   };

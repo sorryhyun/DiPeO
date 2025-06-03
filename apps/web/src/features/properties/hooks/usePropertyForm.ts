@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNodeArrowStore } from '@/global/stores';
 
 // Base property form hook
-export function usePropertyFormBase<T extends Record<string, any>>(
+export function usePropertyFormBase<T extends Record<string, unknown>>(
   initialData: T,
   onUpdate?: (updates: Partial<T>) => void
 ) {
@@ -33,7 +33,7 @@ export function usePropertyFormBase<T extends Record<string, any>>(
 }
 
 // Wrapper hook that integrates with app stores
-export function usePropertyForm<T extends Record<string, any>>(
+export function usePropertyForm<T extends Record<string, unknown>>(
   nodeId: string,
   initialData: T
 ) {

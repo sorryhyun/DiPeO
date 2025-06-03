@@ -34,9 +34,9 @@ export const useDownload = () => {
           await writable.write(blob);
           await writable.close();
           return;
-        } catch (err: any) {
+        } catch (err) {
           // User cancelled or API not supported, fall back to traditional method
-          if (err.name !== 'AbortError') {
+          if (err instanceof Error && err.name !== 'AbortError') {
             console.warn('File System Access API failed, falling back to traditional download:', err);
           }
         }

@@ -6,7 +6,7 @@ import { useApiKeyStore } from '@/global/stores';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { apiCache } from '@/shared/utils/apiCache';
 
-export const formatPropertyValue = (value: any, type: string): string => {
+export const formatPropertyValue = (value: unknown, type: string): string => {
   if (value === null || value === undefined) {
     return '';
   }
@@ -25,7 +25,7 @@ export const formatPropertyValue = (value: any, type: string): string => {
   }
 };
 
-export const parsePropertyValue = (value: string, type: string): any => {
+export const parsePropertyValue = (value: string, type: string): unknown => {
   if (!value) {
     return type === 'boolean' ? false : type === 'number' ? 0 : '';
   }
@@ -57,7 +57,7 @@ export const getPropertyDisplayName = (key: string): string => {
     .join(' ');
 };
 
-export const shouldShowProperty = (key: string, value: any): boolean => {
+export const shouldShowProperty = (key: string, value: unknown): boolean => {
   // Hide internal properties
   if (key.startsWith('_') || key.startsWith('__')) {
     return false;
@@ -148,7 +148,7 @@ export const getDynamicModelOptions = async (
     // Return empty array if no models found
     return [];
     
-  } catch (_error) {
+  } catch {
     return [];
   }
 };
@@ -186,7 +186,7 @@ export const preInitializeModel = async (
 
     const data = await response.json();
     return data.success || false;
-  } catch (_error) {
+  } catch {
     return false;
   }
 };

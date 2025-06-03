@@ -232,7 +232,7 @@ export class LLMYamlImporter {
         label: name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       };
 
-      let nodeData: any = baseData;
+      let nodeData: StartBlockData | PersonJobBlockData | ConditionBlockData | DBBlockData | EndpointBlockData = baseData as StartBlockData;
 
       switch (info.type) {
         case 'start':
@@ -381,7 +381,7 @@ export class LLMYamlImporter {
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: agentConfig.model || 'gpt-4',
-          service: (agentConfig.service || 'openai') as any,
+          service: (agentConfig.service || 'openai') as ApiKey['service'],
           systemPrompt: agentConfig.system
         });
       }
@@ -418,7 +418,7 @@ export class LLMYamlImporter {
         apiKeys[service] = {
           id: apiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
-          service: service as any
+          service: service as ApiKey['service']
         };
       }
     });
@@ -535,7 +535,7 @@ export class LLMYamlImporter {
   private exportYaml(diagram: DiagramState): string {
     const flow: string[] = [];
     const prompts: Record<string, string> = {};
-    const agents: Record<string, any> = {};
+    const agents: Record<string, unknown> = {};
     const data: Record<string, string> = {};
 
     // Create reverse mapping from node ID to simple name
@@ -630,7 +630,7 @@ export class LLMYamlImporter {
       const personName = personNameMap[person.id];
       
       if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'openai')) {
-        const agent: any = {};
+        const agent: Record<string, unknown> = {};
         
         if (person.modelName && person.modelName !== 'gpt-4') {
           agent.model = person.modelName;
@@ -652,7 +652,7 @@ export class LLMYamlImporter {
     });
 
     // Build final YAML structure
-    const yamlData: any = {
+    const yamlData: Record<string, unknown> = {
       flow
     };
 

@@ -9,6 +9,7 @@ import {
   ConditionBlockData,
   EndpointBlockData,
   Arrow,
+  ArrowData,
   ApiKey,
   DiagramNode
 } from '@/shared/types';
@@ -254,7 +255,7 @@ export class YamlExporter {
       apiKeys.push({
         id,
         name: key.name,
-        service: key.service as any
+        service: key.service as ApiKey['service']
       });
     });
 
@@ -264,7 +265,7 @@ export class YamlExporter {
         id: person.id || id,
         label: this.extractLabelFromId(person.id || id),
         modelName: person.model,
-        service: person.service as any,
+        service: person.service as ApiKey['service'],
         apiKeyId: person.apiKeyId,
         systemPrompt: person.system
       });
@@ -294,8 +295,8 @@ export class YamlExporter {
                 sourceHandleId: conn.source_handle,
                 targetHandleId: conn.target_handle,
                 label: conn.label || 'flow',
-                contentType: conn.content_type as any,
-                branch: conn.branch as any,
+                contentType: conn.content_type as ArrowData['contentType'],
+                branch: conn.branch as 'true' | 'false',
                 controlPointOffsetX: conn.control_offset?.x,
                 controlPointOffsetY: conn.control_offset?.y
               }
@@ -353,9 +354,9 @@ export class YamlExporter {
             personId: step.person,
             defaultPrompt: step.prompt || '',
             firstOnlyPrompt: step.first_prompt || '',
-            contextCleaningRule: step.forget as any || 'uponRequest',
+            contextCleaningRule: step.forget as PersonJobBlockData['contextCleaningRule'] || 'uponRequest',
             iterationCount: step.max_iterations || 1,
-            mode: step.mode as any || 'sync',
+            mode: step.mode || 'sync',
             detectedVariables: this.detectVariables(step.prompt || '', step.first_prompt || '')
           } as PersonJobBlockData
         };
@@ -368,7 +369,7 @@ export class YamlExporter {
           data: {
             ...baseData,
             type: 'condition',
-            conditionType: step.condition_type as any || 'expression',
+            conditionType: step.condition_type as ConditionBlockData['conditionType'] || 'expression',
             expression: step.expression || '',
             maxIterations: step.max_iterations
           } as ConditionBlockData
@@ -382,7 +383,7 @@ export class YamlExporter {
           data: {
             ...baseData,
             type: 'db',
-            subType: step.sub_type as any || 'fixed_prompt',
+            subType: step.sub_type as DBBlockData['subType'] || 'fixed_prompt',
             sourceDetails: step.source || ''
           } as DBBlockData
         };
@@ -395,7 +396,7 @@ export class YamlExporter {
           data: {
             ...baseData,
             type: 'job',
-            subType: step.sub_type as any || 'code',
+            subType: step.sub_type as JobBlockData['subType'] || 'code',
             sourceDetails: step.code || ''
           } as JobBlockData
         };
@@ -410,7 +411,7 @@ export class YamlExporter {
             type: 'endpoint',
             saveToFile: !!step.file,
             filePath: step.file || '',
-            fileFormat: step.file_format as any || 'text'
+            fileFormat: step.file_format as EndpointBlockData['fileFormat'] || 'text'
           } as EndpointBlockData
         };
 

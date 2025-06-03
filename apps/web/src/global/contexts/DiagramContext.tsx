@@ -1,31 +1,11 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, ReactNode } from 'react';
 import { useArrowDataUpdater, useNodeDataUpdater } from '@/global/hooks/useStoreSelectors';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { getUnifiedNodeConfigsByReactFlowType, UNIFIED_NODE_CONFIGS } from '@/shared/types';
-
-interface DiagramContextValue {
-  // Arrow operations
-  updateArrowData: ReturnType<typeof useArrowDataUpdater>;
-  
-  // Node operations  
-  updateNodeData: ReturnType<typeof useNodeDataUpdater>;
-  updateNodeInternals: ReturnType<typeof useUpdateNodeInternals>;
-  nodeConfigs: ReturnType<typeof getUnifiedNodeConfigsByReactFlowType>;
-  
-  // Context menu data
-  nodeTypes: string[];
-  nodeLabels: Record<string, string>;
-}
+import { DiagramContextValue } from './types';
 
 const DiagramContext = createContext<DiagramContextValue | null>(null);
-
-export const useDiagramContext = () => {
-  const context = useContext(DiagramContext);
-  if (!context) {
-    throw new Error('useDiagramContext must be used within a DiagramProvider');
-  }
-  return context;
-};
+export { DiagramContext };
 
 interface DiagramProviderProps {
   children: ReactNode;

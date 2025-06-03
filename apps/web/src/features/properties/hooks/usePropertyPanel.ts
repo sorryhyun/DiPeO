@@ -1,7 +1,7 @@
 import { useNodeArrowStore, usePersonStore } from '@/global/stores';
 import { usePropertyFormBase } from './usePropertyForm';
 
-export function usePropertyPanel<T extends Record<string, any>>(
+export function usePropertyPanel<T extends Record<string, unknown>>(
   entityId: string,
   entityType: 'node' | 'arrow' | 'person',
   initialData: T
@@ -12,11 +12,11 @@ export function usePropertyPanel<T extends Record<string, any>>(
   
   return usePropertyFormBase<T>(initialData, (updates: Partial<T>) => {
     if (entityType === 'node') {
-      nodeArrowStore.updateNodeData(entityId, updates as Record<string, any>);
+      nodeArrowStore.updateNodeData(entityId, updates as Record<string, unknown>);
     } else if (entityType === 'arrow') {
-      nodeArrowStore.updateArrowData(entityId, updates as any);
+      nodeArrowStore.updateArrowData(entityId, updates);
     } else {
-      personStore.updatePerson(entityId, updates as any);
+      personStore.updatePerson(entityId, updates);
     }
   });
 }
