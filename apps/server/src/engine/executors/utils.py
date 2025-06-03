@@ -26,6 +26,9 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[
     node_id = node["id"]
     incoming = context.incoming_arrows.get(node_id, [])
     
+    # Import OutputProcessor here to avoid circular imports
+    from ...utils.output_processor import OutputProcessor
+    
     for arrow in incoming:
         source_id = arrow["source"]
         # Handle both direct label and nested data.label structure
@@ -35,7 +38,20 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[
         
         # Get the output from the source node
         if source_id in context.node_outputs and label:
-            inputs[label] = context.node_outputs[source_id]
+            output = context.node_outputs[source_id]
+            
+            # Check arrow content type
+            content_type = arrow.get("contentType")
+            if not content_type and "data" in arrow:
+                content_type = arrow["data"].get("contentType")
+            
+            # Handle content type
+            if content_type == "conversation_state":
+                # Pass the full structured output with conversation history
+                inputs[label] = output
+            else:
+                # Default to raw text extraction
+                inputs[label] = OutputProcessor.extract_value(output)
     
     return inputs
 
@@ -54,26 +70,38 @@ def substitute_variables(text: str, variables: Dict[str, Any]) -> str:
     if not text:
         return text
     
+    # Import OutputProcessor and json here to avoid circular imports
+    from ...utils.output_processor import OutputProcessor
+    import json
+    
     def replace_var(match):
         var_name = match.group(1)
         value = variables.get(var_name, match.group(0))
         
-        # Import OutputProcessor here to avoid circular imports
-        from ...utils.output_processor import OutputProcessor
-        
-        # Extract text content from PersonJob outputs
-        processed_value = OutputProcessor.extract_value(value)
+        # Check if this is a structured PersonJob output with conversation history
+        if OutputProcessor.is_personjob_output(value):
+            # Check if the variable name suggests we want conversation history
+            if 'conversation' in var_name.lower() or 'history' in var_name.lower():
+                # Return the full conversation history as JSON
+                history = OutputProcessor.extract_conversation_history(value)
+                return json.dumps(history, ensure_ascii=False)
+            else:
+                # Default to extracting just the text
+                value = OutputProcessor.extract_value(value)
         
         # Convert to string, handling special cases
-        if processed_value is None:
+        if value is None:
             return ""
-        elif isinstance(processed_value, bool):
-            return str(processed_value).lower()
+        elif isinstance(value, bool):
+            return str(value).lower()
+        elif isinstance(value, (list, dict)):
+            # For complex objects, serialize to JSON
+            return json.dumps(value, ensure_ascii=False)
         else:
-            return str(processed_value)
+            return str(value)
     
     # Replace {{variable}} patterns
-    return re.sub(r'\{\{(\w+)\}\}', replace_var, text)
+    return re.sub(r'{{(\w+)}}', replace_var, text)
 
 
 def has_incoming_connection(node: Dict[str, Any], context: 'ExecutionContext') -> bool:

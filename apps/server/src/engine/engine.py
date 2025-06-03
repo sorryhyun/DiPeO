@@ -341,7 +341,10 @@ class UnifiedExecutionEngine:
     ) -> Dict[str, Any]:
         """Execute a single node and update context"""
         node = context.nodes_by_id[node_id]
-        node_type = normalize_node_type_to_backend(node["type"])
+        # Get type from node properties (data) which contains the actual node type
+        # Frontend sends: {type: "startNode", data: {type: "start", ...}}
+        properties = node.get("properties", {})
+        node_type = normalize_node_type_to_backend(properties.get("type", node["type"]))
         
         # Check if should skip
         if self.skip_manager.should_skip(node, context):

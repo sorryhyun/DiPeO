@@ -25,7 +25,9 @@ class DependencyResolver:
         start_nodes = []
         
         for node_id, node in nodes_by_id.items():
-            node_type = normalize_node_type_to_backend(node["type"])
+            # Get type from properties if available (ExecutionContext), otherwise from top-level
+            properties = node.get("properties", {})
+            node_type = normalize_node_type_to_backend(properties.get("type", node["type"]))
             if node_type == "start" or node_id not in incoming_arrows or not incoming_arrows[node_id]:
                 start_nodes.append(node_id)
                 
@@ -54,7 +56,8 @@ class DependencyResolver:
             return False, []
         
         # Start nodes have no dependencies
-        node_type = normalize_node_type_to_backend(node["type"])
+        properties = node.get("properties", {})
+        node_type = normalize_node_type_to_backend(properties.get("type", node["type"]))
         if node_type == "start":
             self.logger.debug(f"Node {node_id} is start node - can execute")
             return True, []
@@ -134,7 +137,8 @@ class DependencyResolver:
     def _is_first_only_arrow(self, arrow: Dict, target_node: Dict) -> bool:
         """Check if an arrow represents a first-only input"""
         # PersonJob nodes can have first-only inputs
-        node_type = normalize_node_type_to_backend(target_node["type"])
+        properties = target_node.get("properties", {})
+        node_type = normalize_node_type_to_backend(properties.get("type", target_node["type"]))
         if node_type in ["person_job", "person_batch_job"]:
             # Check if the arrow's targetHandle ends with "-first"
             target_handle = arrow.get("targetHandle", "")
@@ -154,7 +158,8 @@ class DependencyResolver:
             return False
         
         # Special handling for condition nodes
-        source_type = normalize_node_type_to_backend(source_node["type"])
+        source_properties = source_node.get("properties", {})
+        source_type = normalize_node_type_to_backend(source_properties.get("type", source_node["type"]))
         if source_type == "condition":
             return self._validate_condition_arrow(arrow, source_id, context)
         
@@ -270,7 +275,8 @@ class DependencyResolver:
                 continue
             
             # If this is a condition node and we should consider conditions
-            node_type = normalize_node_type_to_backend(node["type"])
+            properties = node.get("properties", {})
+            node_type = normalize_node_type_to_backend(properties.get("type", node["type"]))
             if consider_conditions and node_type == "condition":
                 if self._validate_condition_arrow(arrow, node_id, context):
                     next_nodes.append(target_id)

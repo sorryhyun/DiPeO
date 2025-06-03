@@ -193,8 +193,29 @@ class PersonJobExecutor(BaseExecutor):
             
             execution_time = time.time() - start_time
             
+            # Import OutputProcessor here to avoid circular imports
+            from ...utils.output_processor import OutputProcessor
+            
+            # Get memory service from context
+            from ...utils.dependencies import get_memory_service
+            memory_service = get_memory_service()
+            
+            # Get conversation history for the person
+            conversation_history = memory_service.get_conversation_history(person_id)
+            
+            # Create structured output with conversation history
+            structured_output = OutputProcessor.create_personjob_output(
+                text=response["response"],
+                conversation_history=conversation_history,
+                token_count=int(response.get("total_tokens", 0)),
+                input_tokens=int(response.get("input_tokens", 0)),
+                output_tokens=int(response.get("output_tokens", 0)),
+                cached_tokens=int(response.get("cached_tokens", 0)),
+                model=model
+            )
+            
             result = ExecutorResult(
-                output=response["response"],
+                output=structured_output,
                 metadata={
                     "person_id": person_id,
                     "service": service,

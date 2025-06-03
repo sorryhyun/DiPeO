@@ -77,7 +77,12 @@ async def run_diagram_v2(
         raise ValidationError("Diagram must contain at least one node")
     
     # Check for start nodes using normalized type checking
-    start_nodes = [node for node in nodes if is_start_node(node.get("type", ""))]
+    # Check both top-level type (React Flow) and data.type (logical type)
+    start_nodes = [
+        node for node in nodes 
+        if is_start_node(node.get("type", "")) or 
+           is_start_node(node.get("data", {}).get("type", ""))
+    ]
     if not start_nodes:
         raise ValidationError("Diagram must contain at least one start node")
     

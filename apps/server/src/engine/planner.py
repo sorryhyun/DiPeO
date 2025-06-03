@@ -115,7 +115,9 @@ class ExecutionPlanner:
                 continue
             
             # Handle condition nodes
-            if node["type"] == "condition" and condition_values:
+            properties = node.get("properties", {})
+            node_type = properties.get("type", node["type"])
+            if node_type == "condition" and condition_values:
                 condition_value = condition_values.get(node_id)
                 if condition_value is not None:
                     arrow_label = arrow.get("label", "").lower()

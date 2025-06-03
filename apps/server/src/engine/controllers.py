@@ -350,8 +350,8 @@ class SkipManager:
     def _should_skip_due_to_iterations(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
         """Check if node should skip due to max iterations"""
         node_id = node["id"]
-        node_type = node.get("type", "").lower()
         node_properties = node.get("properties", {})
+        node_type = node_properties.get("type", node.get("type", "")).lower()
         
         # Only check iteration count for person job nodes
         if node_type in ["personjob", "person_job", "personbatchjob", "person_batch_job", "personjobnode", "personbatchjobnode"]:
@@ -397,7 +397,9 @@ class SkipManager:
     
     def _should_skip_due_to_first_only(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
         """Check if PersonJob should skip because first-only was already consumed"""
-        if node["type"] not in ["personjob", "personbatchjob"]:
+        properties = node.get("properties", {})
+        node_type = properties.get("type", node["type"])
+        if node_type not in ["person_job", "personjob", "person_batch_job", "personbatchjob"]:
             return False
         
         node_id = node["id"]
@@ -413,8 +415,9 @@ class SkipManager:
     
     def _is_optional_dependency(self, arrow: Dict[str, Any], target_node: Dict[str, Any]) -> bool:
         """Check if an arrow represents an optional (first-only) dependency"""
-        if target_node["type"] in ["personjob", "personbatchjob"]:
-            properties = target_node.get("properties", {})
+        properties = target_node.get("properties", {})
+        node_type = properties.get("type", target_node["type"])
+        if node_type in ["person_job", "personjob", "person_batch_job", "personbatchjob"]:
             first_only_inputs = properties.get("firstOnlyInputs", [])
             arrow_label = arrow.get("label", "")
             return arrow_label in first_only_inputs
