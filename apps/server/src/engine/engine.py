@@ -52,7 +52,74 @@ class UnifiedExecutionEngine:
             file_service=self.file_service
         )
         self._execution_lock = asyncio.Lock()
-    
+
+    def _find_loop_nodes(self, condition_node_id: str, context: ExecutionContext) -> Set[str]:
+        """
+        Find all nodes that are part of a loop cycle containing the condition node.
+        Uses bidirectional graph traversal to identify loop participants.
+        """
+        loop_nodes = set()
+
+        # Method 1: Find nodes that can reach back to themselves through the condition
+        visited_forward = set()
+        visited_backward = set()
+
+        # Forward pass: Find all nodes reachable from condition
+        def traverse_forward(node_id: str, visited: Set[str]):
+            if node_id in visited:
+                return
+            visited.add(node_id)
+
+            for arrow in context.outgoing_arrows.get(node_id, []):
+                target_id = arrow["target"]
+                if target_id in context.nodes_by_id:
+                    traverse_forward(target_id, visited)
+
+        # Backward pass: Find all nodes that can reach the condition
+        def traverse_backward(node_id: str, visited: Set[str]):
+            if node_id in visited:
+                return
+            visited.add(node_id)
+
+            for arrow in context.incoming_arrows.get(node_id, []):
+                source_id = arrow["source"]
+                if source_id in context.nodes_by_id:
+                    traverse_backward(source_id, visited)
+
+        traverse_forward(condition_node_id, visited_forward)
+        traverse_backward(condition_node_id, visited_backward)
+
+        # Nodes in a loop with the condition are in both sets
+        loop_candidates = visited_forward.intersection(visited_backward)
+
+        # Verify these nodes can actually form a cycle
+        for node_id in loop_candidates:
+            if self._can_reach_from_node(node_id, condition_node_id, context):
+                loop_nodes.add(node_id)
+
+        return loop_nodes
+
+    def _can_reach_from_node(self, start_node: str, target_node: str, context: ExecutionContext) -> bool:
+        """Check if we can reach target_node from start_node following arrows."""
+        visited = set()
+        queue = [start_node]
+
+        while queue:
+            current = queue.pop(0)
+            if current == target_node:
+                return True
+
+            if current in visited:
+                continue
+            visited.add(current)
+
+            for arrow in context.outgoing_arrows.get(current, []):
+                next_node = arrow["target"]
+                if next_node not in visited and next_node in context.nodes_by_id:
+                    queue.append(next_node)
+
+        return False
+
     async def execute_diagram(
         self, 
         diagram: Dict[str, Any], 
@@ -320,7 +387,8 @@ class UnifiedExecutionEngine:
         except Exception as e:
             logger.error(f"Node execution failed: {node_id} - {str(e)}")
             raise
-    
+
+
     def _handle_condition_requeuing(
         self,
         condition_node_id: str,
@@ -328,47 +396,44 @@ class UnifiedExecutionEngine:
         context: ExecutionContext,
         current_pending: Set[str]
     ) -> Set[str]:
-        """
-        Handle conditional re-queuing of nodes for loop execution.
-        When a condition returns false, nodes connected to the false branch
-        should be re-queued for execution if they have max_iterations remaining.
-        """
+        """Handle conditional re-queuing of nodes for loop execution."""
         requeued_nodes = set()
-        
-        # Get outgoing arrows from the condition node
-        outgoing_arrows = context.outgoing_arrows.get(condition_node_id, [])
-        
-        for arrow in outgoing_arrows:
-            target_node_id = arrow["target"]
-            target_node = context.nodes_by_id.get(target_node_id)
-            
-            if not target_node:
-                continue
-            
-            # Check if this arrow should be followed based on condition result
-            source_handle = arrow.get("sourceHandle", "").lower()
-            should_follow = False
-            
-            if "output-false" in source_handle and not condition_result:
-                should_follow = True
-            elif "output-true" in source_handle and condition_result:
-                should_follow = True
-            elif "output-false" not in source_handle and "output-true" not in source_handle:
-                # Unlabeled arrows are always followed
-                should_follow = True
-            
-            if should_follow:
-                # Check if target node can be re-executed (has remaining iterations)
-                target_properties = target_node.get("properties", {})
-                max_iterations = target_properties.get("iterationCount")
-                
+
+        # Only re-queue if condition says to continue (false = continue loop)
+        if not condition_result:
+            # Find all nodes in the loop
+            loop_nodes = self._find_loop_nodes(condition_node_id, context)
+            logger.debug(f"Found {len(loop_nodes)} nodes in loop with condition {condition_node_id}")
+
+            for node_id in loop_nodes:
+                # Skip the condition node itself
+                if node_id == condition_node_id:
+                    continue
+
+                node = context.nodes_by_id.get(node_id)
+                if not node:
+                    continue
+
+                # Check if node can be re-executed
+                properties = node.get("properties", {})
+                max_iterations = properties.get("iterationCount")
+
                 if max_iterations:
-                    current_count = context.node_execution_counts.get(target_node_id, 0)
+                    current_count = context.node_execution_counts.get(node_id, 0)
                     if current_count < max_iterations:
-                        # Node can be re-executed
-                        requeued_nodes.add(target_node_id)
-                        logger.debug(f"Re-queuing node {target_node_id} for loop iteration {current_count + 1}/{max_iterations}")
-                
+                        requeued_nodes.add(node_id)
+                        logger.debug(
+                            f"Re-queuing {node_id} for iteration {current_count + 1}/{max_iterations}"
+                        )
+                    else:
+                        logger.debug(
+                            f"Not re-queuing {node_id}: reached max iterations {max_iterations}"
+                        )
+                else:
+                    # Nodes without iterationCount can also be re-queued if part of loop
+                    node_type = node.get("type", "").lower()
+                    if node_type not in ["condition", "conditionnode"]:
+                        requeued_nodes.add(node_id)
+                        logger.debug(f"Re-queuing {node_id} (no iteration limit)")
+
         return requeued_nodes
-
-

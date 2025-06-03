@@ -126,7 +126,8 @@ class BaseAdapter(ABC):
             # Make the API call (pass system_prompt in kwargs for adapters that need it)
             api_kwargs = {**kwargs, 'system_prompt': system_prompt}
             response = self._make_api_call(messages, **api_kwargs)
-            
+            print(f"input\n\n{messages}")
+            print(f"output\n\n{response}")
             # Extract results
             text = self._extract_text_from_response(response, **kwargs)
             usage_dict = self._extract_usage_from_response(response)
