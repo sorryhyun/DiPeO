@@ -3,13 +3,13 @@ from typing import Final
 
 
 class NodeType(Enum):
-    START = "startNode"
-    PERSON_JOB = "personJobNode"
-    PERSON_BATCH_JOB = "personBatchJobNode"
-    CONDITION = "conditionNode" 
-    DB = "dbNode"
-    JOB = "jobNode"
-    ENDPOINT = "endpointNode"
+    START = "start"
+    PERSON_JOB = "person_job"
+    PERSON_BATCH_JOB = "person_batch_job"
+    CONDITION = "condition" 
+    DB = "db"
+    JOB = "job"
+    ENDPOINT = "endpoint"
     
 
 class DBBlockSubType(Enum):

@@ -183,10 +183,10 @@ export class YamlExporter {
 
     // Add type-specific fields
     switch (node.type) {
-      case 'startNode':
+      case 'start':
         return baseStep;
 
-      case 'personJobNode': {
+      case 'person_job': {
         const pjData = data as PersonJobBlockData;
         return {
           ...baseStep,
@@ -198,7 +198,7 @@ export class YamlExporter {
         };
       }
 
-      case 'conditionNode': {
+      case 'condition': {
         const cData = data as ConditionBlockData;
         return {
           ...baseStep,
@@ -208,7 +208,7 @@ export class YamlExporter {
         };
       }
 
-      case 'dbNode': {
+      case 'db': {
         const dbData = data as DBBlockData;
         return {
           ...baseStep,
@@ -217,7 +217,7 @@ export class YamlExporter {
         };
       }
 
-      case 'jobNode': {
+      case 'job': {
         const jobData = data as JobBlockData;
         return {
           ...baseStep,
@@ -226,7 +226,7 @@ export class YamlExporter {
         };
       }
 
-      case 'endpointNode': {
+      case 'endpoint': {
         const epData = data as EndpointBlockData;
         return {
           ...baseStep,
@@ -331,10 +331,10 @@ export class YamlExporter {
     };
 
     switch (step.type) {
-      case 'startNode':
+      case 'start':
         return {
           id: step.id,
-          type: 'startNode',
+          type: 'start',
           position,
           data: {
             ...baseData,
@@ -345,7 +345,7 @@ export class YamlExporter {
       case 'personJobNode':
         return {
           id: step.id,
-          type: 'personJobNode',
+          type: 'person_job',
           position,
           data: {
             ...baseData,
@@ -363,7 +363,7 @@ export class YamlExporter {
       case 'conditionNode':
         return {
           id: step.id,
-          type: 'conditionNode',
+          type: 'condition',
           position,
           data: {
             ...baseData,
@@ -377,7 +377,7 @@ export class YamlExporter {
       case 'dbNode':
         return {
           id: step.id,
-          type: 'dbNode',
+          type: 'db',
           position,
           data: {
             ...baseData,
@@ -390,7 +390,7 @@ export class YamlExporter {
       case 'jobNode':
         return {
           id: step.id,
-          type: 'jobNode',
+          type: 'job',
           position,
           data: {
             ...baseData,
@@ -403,7 +403,7 @@ export class YamlExporter {
       case 'endpointNode':
         return {
           id: step.id,
-          type: 'endpointNode',
+          type: 'endpoint',
           position,
           data: {
             ...baseData,

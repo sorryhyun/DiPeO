@@ -67,7 +67,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Start',
     
     // React Flow mapping
-    reactFlowType: 'startNode',
+    reactFlowType: 'start',
     blockType: 'start',
     
     // Properties config
@@ -94,7 +94,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Person Job',
     
     // React Flow mapping
-    reactFlowType: 'personJobNode',
+    reactFlowType: 'person_job',
     blockType: 'person_job',
     
     // Properties config
@@ -130,7 +130,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Condition',
     
     // React Flow mapping
-    reactFlowType: 'conditionNode',
+    reactFlowType: 'condition',
     blockType: 'condition',
     
     // Properties config
@@ -162,7 +162,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'DB Source',
     
     // React Flow mapping
-    reactFlowType: 'dbNode',
+    reactFlowType: 'db',
     blockType: 'db',
     
     // Properties config
@@ -194,7 +194,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Job',
     
     // React Flow mapping
-    reactFlowType: 'jobNode',
+    reactFlowType: 'job',
     blockType: 'job',
     
     // Properties config
@@ -226,7 +226,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Person Batch Job',
     
     // React Flow mapping
-    reactFlowType: 'personBatchJobNode',
+    reactFlowType: 'person_batch_job',
     blockType: 'person_batch_job',
     
     // Properties config
@@ -263,7 +263,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     label: 'Endpoint',
     
     // React Flow mapping
-    reactFlowType: 'endpointNode',
+    reactFlowType: 'endpoint',
     blockType: 'endpoint',
     
     // Properties config

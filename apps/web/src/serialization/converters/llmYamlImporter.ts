@@ -92,7 +92,7 @@ export class LLMYamlImporter {
       return {
         nodes: [{
           id: 'error-node',
-          type: 'startNode',
+          type: 'start',
           position: { x: 0, y: 0 },
           data: {
             id: 'error-node',
@@ -307,7 +307,7 @@ export class LLMYamlImporter {
 
       nodes.push({
         id: nodeId,
-        type: `${this.nodeTypeToId(info.type)}Node`,
+        type: this.nodeTypeToId(info.type),
         position: positions[name] || { x: 0, y: 0 },
         data: nodeData
       });
@@ -506,15 +506,15 @@ export class LLMYamlImporter {
 
   private nodeTypeToId(nodeType: string): string {
     const mapping: Record<string, string> = {
-      start: 'startNode',
-      endpoint: 'endpointNode',
-      personjob: 'personJobNode',
-      condition: 'conditionNode',
-      db: 'dbNode',
-      job: 'jobNode',
-      generic: 'personJobNode'
+      start: 'start',
+      endpoint: 'endpoint',
+      personjob: 'person_job',
+      condition: 'condition',
+      db: 'db',
+      job: 'job',
+      generic: 'person_job'
     };
-    return mapping[nodeType] || 'personJobNode';
+    return mapping[nodeType] || 'person_job';
   }
 
   private detectVariables(prompt: string): string[] {
@@ -545,9 +545,9 @@ export class LLMYamlImporter {
     // Map nodes to simple names
     diagram.nodes.forEach((node, index) => {
       let nodeName = '';
-      if (node.type === 'startNode') {
+      if (node.type === 'start') {
         nodeName = 'START';
-      } else if (node.type === 'endpointNode') {
+      } else if (node.type === 'endpoint') {
         nodeName = 'END';
       } else if (node.data.label) {
         nodeName = node.data.label.replace(/\s+/g, '_').toLowerCase();
@@ -612,12 +612,12 @@ export class LLMYamlImporter {
     diagram.nodes.forEach(node => {
       const nodeName = nodeNameMap[node.id];
       
-      if (nodeName && node.type === 'personJobNode' && node.data.type === 'person_job') {
+      if (nodeName && node.type === 'person_job' && node.data.type === 'person_job') {
         const nodeData = node.data as PersonJobBlockData;
         if (nodeData.defaultPrompt) {
           prompts[nodeName] = nodeData.defaultPrompt;
         }
-      } else if (nodeName && node.type === 'dbNode' && node.data.type === 'db') {
+      } else if (nodeName && node.type === 'db' && node.data.type === 'db') {
         const dbData = node.data as DBBlockData;
         if (dbData.sourceDetails) {
           data[nodeName] = dbData.sourceDetails;

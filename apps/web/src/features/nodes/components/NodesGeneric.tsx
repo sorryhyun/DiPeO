@@ -10,7 +10,7 @@ import { StartNode, ConditionNode, JobNode, DBNode, EndpointNode, PersonJobNode,
 const NodeLoadingFallback: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeType = (data as { type: string }).type;
   const config = UNIFIED_NODE_CONFIGS[nodeType];
-  const reactFlowType = config?.reactFlowType || "startNode";
+  const reactFlowType = config?.reactFlowType || "start";
   
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={reactFlowType}>
@@ -38,7 +38,7 @@ const UniversalNode: React.FC<NodeProps> = (props) => {
   if (!NodeComponent) {
     const config = UNIFIED_NODE_CONFIGS[nodeType];
     return (
-      <GenericNode {...props} nodeType={config?.reactFlowType || "startNode"}>
+      <GenericNode {...props} nodeType={config?.reactFlowType || "start"}>
         <span className="text-red-500">Unknown node type: {nodeType}</span>
       </GenericNode>
     );

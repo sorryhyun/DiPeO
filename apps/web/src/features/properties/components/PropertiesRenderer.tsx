@@ -1,6 +1,6 @@
 // Reusable component for rendering property panels based on selection
 import React, { useMemo, Suspense } from 'react';
-import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types/core';
+import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types';
 
 // Lazy load UniversalPropertiesPanel as it's a heavy component
 const UniversalPropertiesPanel = React.lazy(() => 

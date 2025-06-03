@@ -1,6 +1,6 @@
 import { 
   ApiKey
-} from '@/shared/types/core';
+} from '@/shared/types';
 
 // API key type guard
 export function isApiKey(value: unknown): value is ApiKey {
