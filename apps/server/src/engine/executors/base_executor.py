@@ -1,9 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 import logging
 
-from .validator import ValidationResult
+if TYPE_CHECKING:
+    from ..engine import ExecutionContext
+
+from .validator import (
+    ValidationResult,
+    validate_required_properties,
+    validate_property_types,
+    validate_required_fields,
+    validate_enum_field,
+    validate_positive_integer,
+    validate_file_path,
+    validate_either_required,
+    validate_json_field,
+    validate_dangerous_code,
+    merge_validation_results,
+    check_api_keys
+)
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@
 Job node executor - handles safe code execution and stateless operations
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 import time
 import logging
 import json
@@ -10,11 +10,20 @@ import subprocess
 import tempfile
 import os
 
+if TYPE_CHECKING:
+    from ..engine import ExecutionContext
+
 from .base_executor import BaseExecutor, ExecutorResult
 from .utils import (
-    ValidationResult,
     get_input_values,
     substitute_variables
+)
+from .validator import (
+    ValidationResult,
+    validate_required_fields,
+    validate_enum_field,
+    validate_dangerous_code,
+    merge_validation_results
 )
 
 logger = logging.getLogger(__name__)
@@ -30,38 +39,40 @@ class JobExecutor(BaseExecutor):
     
     async def validate(self, node: Dict[str, Any], context: 'ExecutionContext') -> ValidationResult:
         """Validate job node configuration"""
-        errors = []
-        warnings = []
-        
         properties = node.get("properties", {})
         
         # Validate required fields
+        field_errors = validate_required_fields(
+            properties, 
+            ["code"],
+            {"code": "Code"}
+        )
+        
+        # Validate language enum
+        language_error = validate_enum_field(
+            properties,
+            "language",
+            self.SUPPORTED_LANGUAGES,
+            case_sensitive=True
+        )
+        
+        # Check for dangerous code patterns
         code = properties.get("code", "")
         language = properties.get("language", "python")
+        code_errors, code_warnings = [], []
         
-        if not code:
-            errors.append("Code is required for job execution")
+        if code and language in self.SUPPORTED_LANGUAGES:
+            # Use strict=True for bash (errors), strict=False for others (warnings)
+            strict = language == "bash"
+            code_errors, code_warnings = validate_dangerous_code(code, language, strict=strict)
         
-        if language not in self.SUPPORTED_LANGUAGES:
-            errors.append(f"Unsupported language: {language}. Supported: {', '.join(self.SUPPORTED_LANGUAGES)}")
-        
-        # Check for potentially dangerous operations
-        if language == "python":
-            dangerous_patterns = ["import os", "import subprocess", "__import__", "exec(", "eval(", "open(", "file("]
-            for pattern in dangerous_patterns:
-                if pattern in code:
-                    warnings.append(f"Code contains potentially dangerous operation: {pattern}")
-        
-        elif language == "bash":
-            dangerous_patterns = ["rm -rf", "sudo", "> /dev/", "dd if="]
-            for pattern in dangerous_patterns:
-                if pattern in code:
-                    errors.append(f"Code contains dangerous operation: {pattern}")
+        # Combine all errors and warnings
+        all_errors = field_errors + ([language_error] if language_error else []) + code_errors
         
         return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
+            is_valid=len(all_errors) == 0,
+            errors=all_errors,
+            warnings=code_warnings
         )
     
     async def execute(self, node: Dict[str, Any], context: 'ExecutionContext') -> ExecutorResult:
@@ -254,12 +265,6 @@ else:
     
     async def _execute_bash(self, code: str, inputs: Dict[str, Any], timeout: int) -> Any:
         """Execute Bash code with restrictions"""
-        # Validate code doesn't contain dangerous commands
-        dangerous_commands = ["rm -rf", "sudo", "mkfs", "dd if=", "> /dev/", ":(){ :|:& };:"]
-        for cmd in dangerous_commands:
-            if cmd in code:
-                raise ValueError(f"Dangerous command detected: {cmd}")
-        
         try:
             # Export inputs as environment variables
             env = os.environ.copy()

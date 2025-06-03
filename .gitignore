@@ -15,6 +15,7 @@ htmlcov/
 dmypy.json
 .ruff_cache/
 apikey.json
+output.txt
 
 # Node.js
 node_modules/

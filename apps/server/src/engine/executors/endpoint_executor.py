@@ -2,17 +2,20 @@
 Endpoint node executor - handles output and optional file saving
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 import time
 import logging
 
+if TYPE_CHECKING:
+    from ..engine import ExecutionContext
+
 from .base_executor import BaseExecutor, ExecutorResult
 from .utils import (
-    ValidationResult,
     get_input_values,
     substitute_variables,
     has_incoming_connection
 )
+from .validator import ValidationResult, validate_file_path
 from ...services.file_service import FileService
 
 logger = logging.getLogger(__name__)
@@ -38,12 +41,14 @@ class EndpointExecutor(BaseExecutor):
         
         if save_to_file:
             file_path = properties.get("filePath", "")
-            if not file_path:
-                errors.append("File path is required when saveToFile is enabled")
             
-            # Validate file path doesn't contain dangerous characters
-            if file_path and any(char in file_path for char in ["../", "..\\"]):
-                errors.append("File path cannot contain directory traversal sequences")
+            # Use centralized file path validation
+            path_errors = validate_file_path(
+                file_path,
+                field_name="File path",
+                allow_empty=False
+            )
+            errors.extend(path_errors)
         
         # Check if endpoint has incoming connections
         if not has_incoming_connection(node, context):

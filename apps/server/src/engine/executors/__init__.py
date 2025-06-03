@@ -13,12 +13,14 @@ from .db_executor import DBExecutor
 from .utils import (
     get_input_values,
     substitute_variables,
-    validate_required_properties,
-    validate_property_types,
     has_incoming_connection,
     has_outgoing_connection,
     get_upstream_nodes,
     get_downstream_nodes,
+)
+from .validator import (
+    validate_required_properties,
+    validate_property_types,
     check_api_keys,
     validate_required_fields,
     validate_enum_field,

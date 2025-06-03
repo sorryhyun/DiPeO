@@ -5,21 +5,7 @@ Extracted from BaseExecutor to simplify the executor pattern.
 from typing import Dict, Any, List, TYPE_CHECKING
 import re
 
-# Import validation functions from validator module
-from .validator import (
-    ValidationResult,
-    validate_required_properties,
-    validate_property_types,
-    check_api_keys,
-    validate_required_fields,
-    validate_enum_field,
-    validate_positive_integer,
-    validate_file_path,
-    validate_either_required,
-    validate_json_field,
-    validate_dangerous_code,
-    merge_validation_results
-)
+# Validation functions have been moved to validator.py
 
 if TYPE_CHECKING:
     from ..engine import ExecutionContext
