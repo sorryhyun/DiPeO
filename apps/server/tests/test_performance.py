@@ -3,10 +3,8 @@
 import pytest
 import time
 import asyncio
-from typing import Dict, Any, List
-from unittest.mock import patch
 
-from ..src.core.execution.engine import UnifiedExecutionEngine
+from apps.server.src.engine.engine import UnifiedExecutionEngine
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 

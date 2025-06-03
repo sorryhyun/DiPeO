@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from ...exceptions import DiagramExecutionError
+from apps.server.src.exceptions import DiagramExecutionError
 from .resolver import DependencyResolver
 from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager

@@ -7,7 +7,7 @@ import time
 import logging
 
 from .base_executor import ClientSafeExecutor, ValidationResult, ExecutorResult
-from ....services.file_service import FileService
+from apps.server.src.services.file_service import FileService
 
 logger = logging.getLogger(__name__)
 

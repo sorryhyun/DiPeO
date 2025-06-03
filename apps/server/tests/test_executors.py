@@ -1,17 +1,16 @@
 """Tests for individual node executors."""
 
 import pytest
-from typing import Dict, Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import patch
 
-from ..src.core.execution.executors.start_executor import StartExecutor
-from ..src.core.execution.executors.condition_executor import ConditionExecutor
-from ..src.core.execution.executors.job_executor import JobExecutor
-from ..src.core.execution.executors.endpoint_executor import EndpointExecutor
-from ..src.core.execution.executors.person_job_executor import PersonJobExecutor
-from ..src.core.execution.executors.db_executor import DBExecutor
-from ..src.core.execution.executors.base_executor import ExecutorFactory
-from ..src.core.execution.engine import ExecutionContext
+from apps.server.src.engine.executors import StartExecutor
+from apps.server.src.engine.executors import ConditionExecutor
+from apps.server.src.engine.executors import JobExecutor
+from apps.server.src.engine.executors import EndpointExecutor
+from apps.server.src.engine.executors import PersonJobExecutor
+from apps.server.src.engine.executors import DBExecutor
+from apps.server.src.engine.executors import ExecutorFactory
+from apps.server.src.engine.engine import ExecutionContext
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
 

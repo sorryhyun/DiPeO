@@ -1,21 +1,21 @@
-import { useCallback } from 'react';
+import { useCallback, type DragEvent } from 'react';
 
 export const useNodeDrag = () => {
   // Handle drag start for node types from sidebar
-  const onDragStart = useCallback((event: React.DragEvent, nodeType: string) => {
+  const onDragStart = useCallback((event: DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   }, []);
 
   // Handle drag over for canvas drop zone
-  const onDragOver = useCallback((event: React.DragEvent) => {
+  const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
   // Handle drop for adding nodes to canvas
   const onDrop = useCallback((
-    event: React.DragEvent, 
+    event: DragEvent, 
     addNode: (type: string, position: { x: number; y: number }) => void,
     projectPosition: (x: number, y: number) => { x: number; y: number }
   ) => {
@@ -28,13 +28,13 @@ export const useNodeDrag = () => {
   }, []);
 
   // Handle drag over for person drop on nodes
-  const onPersonDragOver = useCallback((event: React.DragEvent) => {
+  const onPersonDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
   }, []);
 
   // Handle person drop on nodes (for PersonJob nodes)
   const onPersonDrop = useCallback((
-    event: React.DragEvent,
+    event: DragEvent,
     nodeId: string,
     updateNodeData: (nodeId: string, data: any) => void
   ) => {

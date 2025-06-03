@@ -1,8 +1,8 @@
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components';
-import { BaseNodeProps, UnifiedNodeConfig } from '@/shared/types';
+import { BaseNodeProps } from '@/shared/types';
 import { createHandleId } from '@/shared/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import { useNodeExecutionState } from '@/core/hooks/useStoreSelectors';
@@ -28,22 +28,9 @@ function BaseNodeComponent({
   ...divProps
 }: BaseNodeProps) {
   
-  // Optional store integration - use store values if available, fallback to props
-  let storeState = null;
-  let storeContext = null;
-  
-  // Always call hooks - React requires this
-  try {
-    storeState = useNodeExecutionState(id);
-  } catch {
-    storeState = null;
-  }
-  
-  try {
-    storeContext = useDiagramContext();
-  } catch {
-    storeContext = null;
-  }
+  // Always call hooks at the top level - React requires this
+  const storeState = useNodeExecutionState(id);
+  const storeContext = useDiagramContext();
   
   // Use store values or fallback to props
   const isRunning = storeState?.isRunning ?? isRunningProp ?? false;
@@ -127,7 +114,7 @@ function BaseNodeComponent({
       )}
       
       {/* Flip button */}
-      {showFlipButton && selected && (onFlip || (autoHandles && onUpdateData && onUpdateNodeInternals)) && !isRunning && (
+      {showFlipButton && selected && (onFlip || autoHandles) && !isRunning && (
         <Button
           onClick={handleFlip}
           variant="outline"

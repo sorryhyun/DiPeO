@@ -255,7 +255,7 @@ export class LLMYamlImporter {
           } as PersonJobBlockData;
           break;
 
-        case 'condition':
+        case 'condition': {
           // Extract condition expression
           const conditions = info.outgoing
             .map(e => e.condition)
@@ -268,8 +268,9 @@ export class LLMYamlImporter {
             expression: conditions.length > 0 ? `${name}_check` : ''
           } as ConditionBlockData;
           break;
+        }
 
-        case 'db':
+        case 'db': {
           const dataSource = data.data?.[name];
           nodeData = {
             ...baseData,
@@ -278,6 +279,7 @@ export class LLMYamlImporter {
             sourceDetails: dataSource || ''
           } as DBBlockData;
           break;
+        }
 
         case 'endpoint':
           nodeData = {

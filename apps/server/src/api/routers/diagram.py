@@ -7,12 +7,12 @@ import logging
 from datetime import datetime
 
 from ...services.diagram_service import DiagramService
-from ...core.execution.engine import UnifiedExecutionEngine
+from apps.server.src.engine.engine import UnifiedExecutionEngine
 from ...services.llm_service import LLMService
 from ...services.file_service import FileService
 from ...services.api_key_service import APIKeyService
 from ...utils.dependencies import get_diagram_service, get_llm_service, get_file_service, get_api_key_service
-from ...core import handle_api_errors
+from ...engine import handle_api_errors
 from ...exceptions import ValidationError
 
 logger = logging.getLogger(__name__)

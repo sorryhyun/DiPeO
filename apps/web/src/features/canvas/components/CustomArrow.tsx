@@ -10,9 +10,9 @@ export type { CustomArrowProps } from './ui-components/Arrow';
 export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>[0]) => {
   const updateArrowData = useArrowDataUpdater();
   
-  // Create a type-safe wrapper that converts diagram-ui ArrowData to core-model ArrowData
+  // Create a type-safe wrapper that converts diagram-ui ArrowData to engine-model ArrowData
   const handleUpdateData = React.useCallback((edgeId: string, data: Partial<ArrowData>) => {
-    // Filter and convert data to match core-model ArrowData type
+    // Filter and convert data to match engine-model ArrowData type
     const coreModelData: Partial<ArrowData> = {};
     
     // Copy compatible fields

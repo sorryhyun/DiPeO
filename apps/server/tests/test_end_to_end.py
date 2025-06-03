@@ -1,17 +1,11 @@
 """End-to-end tests for the complete DiPeO system."""
 
 import pytest
-import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Dict, Any
-from unittest.mock import patch
 
-from ..src.core.execution.engine import UnifiedExecutionEngine
-from ..src.services.llm_service import LLMService
-from ..src.services.api_key_service import APIKeyService
-from ..src.services.memory_service import MemoryService
+from apps.server.src.engine.engine import UnifiedExecutionEngine
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 

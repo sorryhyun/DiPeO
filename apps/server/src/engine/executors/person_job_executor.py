@@ -7,7 +7,7 @@ import time
 import logging
 
 from .base_executor import ServerOnlyExecutor, ValidationResult, ExecutorResult
-from ....services.llm_service import LLMService
+from apps.server.src.services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 

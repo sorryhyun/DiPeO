@@ -5,7 +5,7 @@ import logging
 from ...services.api_key_service import APIKeyService
 from ...services.llm_service import LLMService
 from ...utils.dependencies import get_api_key_service, get_llm_service
-from ...core import handle_api_errors
+from ...engine import handle_api_errors
 from ...exceptions import ValidationError
 
 logger = logging.getLogger(__name__)

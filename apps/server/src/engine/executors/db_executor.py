@@ -12,9 +12,9 @@ import io
 import sys
 
 from .base_executor import ServerOnlyExecutor, ValidationResult, ExecutorResult
-from ....services.file_service import FileService
-from ....exceptions import ValidationError, FileOperationError
-from ....utils.output_processor import OutputProcessor
+from apps.server.src.services.file_service import FileService
+from apps.server.src.exceptions import ValidationError, FileOperationError
+from apps.server.src.utils.output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)
 
