@@ -2,16 +2,26 @@
 PersonJob node executor - handles LLM API calls with person configuration
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 import time
 import logging
+
+if TYPE_CHECKING:
+    from ..engine import ExecutionContext
 
 from .base_executor import BaseExecutor, ExecutorResult
 from .utils import (
     get_input_values,
     substitute_variables
 )
-from .validator import ValidationResult
+from .token_utils import TokenUsage
+from .validator import (
+    ValidationResult,
+    validate_required_fields,
+    validate_positive_integer,
+    validate_either_required,
+    validate_enum_field
+)
 from ...services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
@@ -46,35 +56,54 @@ class PersonJobExecutor(BaseExecutor):
             else:
                 errors.append(f"Person with ID '{person_id}' not found in diagram")
         
-        if not person_config and not person_id:
-            errors.append("Either person configuration or personId is required")
-        elif person_config:
-            # Check required person fields
-            service = person_config.get("service", "openai")
-            model = person_config.get("modelName") or person_config.get("model")
-            api_key_id = person_config.get("apiKeyId")
+        # Validate either person or personId is provided
+        either_errors = validate_either_required(
+            properties,
+            [["person", "personId"]],
+            ["Either person configuration or personId is required"]
+        )
+        errors.extend(either_errors)
+        
+        if person_config:
+            # Validate required person fields
+            person_field_errors = validate_required_fields(
+                person_config,
+                ["apiKeyId"],
+                {"apiKeyId": "API key ID"}
+            )
+            errors.extend(person_field_errors)
             
-            if not api_key_id:
-                errors.append("API key ID is required in person configuration")
-            
-            if not model:
+            # Validate model field (could be modelName or model)
+            if not person_config.get("modelName") and not person_config.get("model"):
                 errors.append("Model name is required in person configuration")
             
-            if service not in ["openai", "claude", "gemini", "grok"]:
-                warnings.append(f"Unsupported service: {service}")
+            # Validate service enum
+            service_error = validate_enum_field(
+                person_config,
+                "service",
+                ["openai", "claude", "gemini", "grok"],
+                case_sensitive=True
+            )
+            if service_error:
+                warnings.append(service_error.replace("Invalid", "Unsupported"))
         
-        # Validate prompt
-        prompt = properties.get("prompt", "")
-        default_prompt = properties.get("defaultPrompt", "")
+        # Validate prompts - either prompt or defaultPrompt required
+        prompt_errors = validate_either_required(
+            properties,
+            [["prompt", "defaultPrompt"]],
+            ["Either prompt or defaultPrompt is required"]
+        )
+        errors.extend(prompt_errors)
         
-        if not prompt and not default_prompt:
-            errors.append("Either prompt or defaultPrompt is required")
-        
-        # Check max iterations
-        max_iterations = properties.get("iterationCount")
-        if max_iterations is not None:
-            if not isinstance(max_iterations, int) or max_iterations < 1:
-                errors.append("iterationCount must be a positive integer")
+        # Validate iterationCount using centralized validation
+        iteration_error = validate_positive_integer(
+            properties,
+            "iterationCount",
+            min_value=1,
+            required=False
+        )
+        if iteration_error:
+            errors.append(iteration_error)
         
         return ValidationResult(
             is_valid=len(errors) == 0,
@@ -115,10 +144,7 @@ class PersonJobExecutor(BaseExecutor):
                     "execution_count": execution_count,
                     "passthrough": True
                 },
-                token_count=0,
-                input_tokens=0,
-                output_tokens=0,
-                cached_tokens=0,
+                tokens=TokenUsage.from_response(response),
                 execution_time=time.time() - start_time
             )
         
@@ -140,10 +166,7 @@ class PersonJobExecutor(BaseExecutor):
                 output=None,
                 error="No prompt available for execution",
                 metadata={"execution_count": execution_count},
-                token_count=0,
-                input_tokens=0,
-                output_tokens=0,
-                cached_tokens=0,
+                tokens=TokenUsage.from_response(None),
                 execution_time=time.time() - start_time
             )
         
@@ -182,10 +205,7 @@ class PersonJobExecutor(BaseExecutor):
                     "used_first_only": execution_count == 0 and bool(first_only_prompt),
                     "executionTime": execution_time
                 },
-                token_count=response.get("token_count", 0),
-                input_tokens=response.get("input_tokens", 0),
-                output_tokens=response.get("output_tokens", 0),
-                cached_tokens=response.get("cached_tokens", 0),
+                tokens=TokenUsage.from_response(response),
                 execution_time=execution_time
             )
         
@@ -200,10 +220,7 @@ class PersonJobExecutor(BaseExecutor):
                     "execution_count": execution_count,
                     "error": str(e)
                 },
-                token_count=0,
-                input_tokens=0,
-                output_tokens=0,
-                cached_tokens=0,
+                tokens=TokenUsage.from_response(None),
                 execution_time=time.time() - start_time
             )
 
@@ -224,13 +241,18 @@ class PersonBatchJobExecutor(BaseExecutor):
         person_job_executor = PersonJobExecutor(self.llm_service)
         base_validation = await person_job_executor.validate(node, context)
         
-        # Add batch-specific validation
+        # Add batch-specific validation using centralized validator
         properties = node.get("properties", {})
-        batch_size = properties.get("batchSize", 1)
+        batch_error = validate_positive_integer(
+            properties,
+            "batchSize",
+            min_value=1,
+            required=False  # Optional field with default value
+        )
         
-        if not isinstance(batch_size, int) or batch_size < 1:
-            base_validation.errors.append("batchSize must be a positive integer")
-            base_validation.is_valid = False
+        if batch_error:
+            base_validation.errors.append(batch_error)
+            base_validation.is_valid = len(base_validation.errors) == 0
         
         return base_validation
     

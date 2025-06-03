@@ -2,7 +2,7 @@
 DB node executor - handles file operations and data sources
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 import time
 import logging
 import json
@@ -11,7 +11,11 @@ import builtins
 import io
 import sys
 
+if TYPE_CHECKING:
+    from ..engine import ExecutionContext
+
 from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .validator import validate_file_path, validate_json_field, validate_required_fields
 from ...services.file_service import FileService
 from ...exceptions import ValidationError, FileOperationError
 from ...utils.output_processor import OutputProcessor
@@ -48,37 +52,43 @@ class DBExecutor(BaseExecutor):
                 errors.append(f"Source details are required for DB node (subType: {sub_type}). Please provide content for your fixed prompt.")
         
         elif sub_type == "file":
-            # Additional validation for file paths
-            if not source_details or source_details.strip() == "":
-                errors.append("File path is required for file subType. Please specify a valid file path.")
-            elif any(char in source_details for char in ["../", "..\\"]):
-                errors.append("File path cannot contain directory traversal sequences")
+            # Use centralized file path validation
+            path_errors = validate_file_path(
+                source_details,
+                field_name="File path",
+                allow_empty=False
+            )
+            errors.extend(path_errors)
         
         elif sub_type == "fixed_prompt":
             # No additional validation needed for fixed prompts
             pass
         
         elif sub_type == "code":
-            # Validate code snippet
-            if not source_details:
-                errors.append("Code snippet is required for code subType")
+            # Validate code snippet using centralized validation
+            code_errors = validate_required_fields(
+                properties,
+                ["sourceDetails"],
+                {"sourceDetails": "Code snippet"}
+            )
+            errors.extend(code_errors)
         
         elif sub_type == "api_tool":
-            # Validate API configuration
-            try:
-                if isinstance(source_details, str):
-                    api_config = json.loads(source_details)
-                else:
-                    api_config = source_details
-                
+            # Validate API configuration using centralized JSON validation
+            api_config, json_error = validate_json_field(
+                properties,
+                "sourceDetails",
+                required=True
+            )
+            
+            if json_error:
+                errors.append(json_error)
+            elif api_config:
                 api_type = api_config.get("apiType", "").lower()
                 if not api_type:
                     errors.append("API type is required for api_tool subType")
                 elif api_type not in ["notion"]:
                     warnings.append(f"API type '{api_type}' may not be fully supported")
-                
-            except json.JSONDecodeError:
-                errors.append("Invalid JSON in source details for api_tool subType")
         
         else:
             errors.append(f"Unsupported DB node subType: {sub_type}")
@@ -124,7 +134,6 @@ class DBExecutor(BaseExecutor):
                     "subType": sub_type,
                     "executionTime": execution_time
                 },
-                cost=0.0,
                 execution_time=execution_time
             )
         
@@ -136,7 +145,6 @@ class DBExecutor(BaseExecutor):
                     "subType": sub_type,
                     "error": str(e)
                 },
-                cost=0.0,
                 execution_time=time.time() - start_time
             )
     

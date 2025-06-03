@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 import logging
+from .token_utils import TokenUsage
 
 if TYPE_CHECKING:
     from ..engine import ExecutionContext
@@ -29,10 +30,7 @@ class ExecutorResult:
     """Result from executor execution"""
     output: Any
     metadata: Dict[str, Any] = field(default_factory=dict)
-    token_count: int = 0
-    input_tokens: int = 0
-    output_tokens: int = 0
-    cached_tokens: int = 0
+    tokens: TokenUsage = field(default_factory=TokenUsage)
     error: Optional[str] = None
     execution_time: float = 0.0
 

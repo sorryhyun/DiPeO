@@ -112,7 +112,6 @@ class EndpointExecutor(BaseExecutor):
                     output=content,
                     error=f"Failed to save file {file_path}: {str(e)}",
                     metadata=metadata,
-                    cost=0.0,
                     execution_time=time.time() - start_time
                 )
         
@@ -122,7 +121,6 @@ class EndpointExecutor(BaseExecutor):
         return ExecutorResult(
             output=result_data,
             metadata=metadata,
-            cost=0.0,
             execution_time=execution_time
         )
     

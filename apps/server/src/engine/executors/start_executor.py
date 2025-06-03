@@ -2,10 +2,15 @@
 Start node executor - initializes execution flow
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 import time
+import json
+
+if TYPE_CHECKING:
+    from ..engine import ExecutionContext
 
 from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .validator import validate_json_field
 from .utils import has_incoming_connection
 
 
@@ -26,14 +31,16 @@ class StartExecutor(BaseExecutor):
         
         # Check if initial data is valid JSON if provided
         properties = node.get("properties", {})
-        initial_data = properties.get("initialData")
         
-        if initial_data is not None and isinstance(initial_data, str):
-            # If initial data is a string, try to parse it as JSON
-            try:
-                import json
-                json.loads(initial_data)
-            except json.JSONDecodeError:
+        # Use centralized JSON validation
+        if "initialData" in properties and isinstance(properties.get("initialData"), str):
+            _, json_error = validate_json_field(
+                properties,
+                "initialData",
+                required=False
+            )
+            if json_error:
+                # Convert error to warning since invalid JSON is allowed (treated as string)
                 warnings.append("Initial data is not valid JSON, will be treated as string")
         
         return ValidationResult(
@@ -53,7 +60,6 @@ class StartExecutor(BaseExecutor):
         # If initial data is a string, try to parse it as JSON
         if isinstance(initial_data, str):
             try:
-                import json
                 initial_data = json.loads(initial_data)
             except json.JSONDecodeError:
                 # Keep as string if not valid JSON
@@ -69,6 +75,5 @@ class StartExecutor(BaseExecutor):
                 "nodeId": node.get("id"),
                 "nodeType": "start"
             },
-            cost=0.0,
             execution_time=execution_time
         )

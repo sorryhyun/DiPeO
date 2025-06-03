@@ -110,7 +110,6 @@ class JobExecutor(BaseExecutor):
                     "inputKeys": list(inputs.keys()),
                     "codeLength": len(code)
                 },
-                cost=0.0,
                 execution_time=execution_time
             )
         
@@ -122,7 +121,6 @@ class JobExecutor(BaseExecutor):
                     "language": language,
                     "error": str(e)
                 },
-                cost=0.0,
                 execution_time=time.time() - start_time
             )
     
