@@ -90,6 +90,60 @@ async def run_diagram_v2(
         **options
     }
     
+    # Pre-initialize LLM models before execution
+    pre_initialized = set()
+    persons = diagram.get("persons", [])
+    
+    # Extract unique LLM configurations from person definitions
+    for person in persons:
+        model = person.get("model", "")
+        service = person.get("service", "")
+        api_key_id = person.get("apiKeyId", "")
+        
+        if model and service and api_key_id:
+            # Create unique key for this configuration
+            config_key = f"{service}:{model}:{api_key_id}"
+            if config_key not in pre_initialized:
+                logger.info(f"Pre-initializing LLM: {service} {model}")
+                try:
+                    # Pre-initialize the model
+                    llm_service.pre_initialize_model(
+                        service=service,
+                        model=model,
+                        api_key_id=api_key_id
+                    )
+                    pre_initialized.add(config_key)
+                except Exception as e:
+                    logger.warning(f"Failed to pre-initialize {config_key}: {e}")
+                    # Continue even if pre-initialization fails
+    
+    # Also check PersonJob and PersonBatchJob nodes for embedded person configs
+    for node in nodes:
+        node_type = node.get("type", "").lower().replace("node", "")
+        if node_type in ["personjob", "personbatchjob", "person_job", "person_batch_job"]:
+            person_config = node.get("data", {}).get("person", {})
+            if person_config:
+                model = person_config.get("model", "")
+                service = person_config.get("service", "")
+                api_key_id = person_config.get("apiKeyId", "")
+                
+                if model and service and api_key_id:
+                    config_key = f"{service}:{model}:{api_key_id}"
+                    if config_key not in pre_initialized:
+                        logger.info(f"Pre-initializing LLM from node: {service} {model}")
+                        try:
+                            llm_service.pre_initialize_model(
+                                service=service,
+                                model=model,
+                                api_key_id=api_key_id
+                            )
+                            pre_initialized.add(config_key)
+                        except Exception as e:
+                            logger.warning(f"Failed to pre-initialize {config_key}: {e}")
+    
+    if pre_initialized:
+        logger.info(f"Pre-initialized {len(pre_initialized)} unique LLM configurations")
+    
     # Create execution engine with services
     execution_engine = UnifiedExecutionEngine(
         llm_service=llm_service,

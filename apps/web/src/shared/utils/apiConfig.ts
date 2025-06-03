@@ -37,9 +37,9 @@ export const API_ENDPOINTS = {
   HEALTH: '/api/health',
   
   // Resource management  
-  API_KEYS: '/api/keys',
-  API_KEY_BY_ID: (id: string) => `/api/keys/${id}`,
-  MODELS: '/api/models',
+  API_KEYS: '/api/api-keys/',
+  API_KEY_BY_ID: (id: string) => `/api/api-keys/${id}`,
+  MODELS: (id: string) => `/api/api-keys/${id}/models`,
   INITIALIZE_MODEL: '/api/initialize-model',
   CONVERSATIONS: '/api/conversations',
   

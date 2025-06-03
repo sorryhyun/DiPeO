@@ -192,3 +192,9 @@ Custom exceptions hierarchy:
 - `FileOperationError`: File access issues
 - `APIKeyNotFoundError`: Missing API keys
 - `NodeExecutionError`: Node-specific failures
+- 
+## API Documentation
+
+- **OpenAPI Specification**: See [`openapi.yaml`](./openapi.yaml)
+- **Interactive Docs**: Run server and visit `http://localhost:8000/docs`
+- **ReDoc**: Run server and visit `http://localhost:8000/redoc`

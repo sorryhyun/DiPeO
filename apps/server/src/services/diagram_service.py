@@ -92,3 +92,69 @@ class DiagramService(BaseService):
         except Exception as e:
             raise ValidationError(f"Failed to import YAML: {e}")
     
+    def export_llm_yaml(self, diagram: dict) -> str:
+        """Export diagram to LLM-friendly YAML format.
+        
+        Note: This is a basic implementation. For sophisticated LLM YAML export,
+        use the CLI tool which leverages the frontend TypeScript converters:
+        `python tool.py convert diagram.json output.llm-yaml`
+        """
+        try:
+            # Basic LLM-friendly format export
+            nodes = diagram.get("nodes", [])
+            arrows = diagram.get("arrows", [])
+            persons = diagram.get("persons", [])
+            
+            # Create simple flow representation
+            flow = []
+            for arrow in arrows:
+                source_node = next((n for n in nodes if n["id"] == arrow["source"]), None)
+                target_node = next((n for n in nodes if n["id"] == arrow["target"]), None)
+                
+                if source_node and target_node:
+                    source_label = source_node.get("data", {}).get("label", arrow["source"])
+                    target_label = target_node.get("data", {}).get("label", arrow["target"])
+                    variable = arrow.get("data", {}).get("label", "")
+                    
+                    if variable and variable != "flow":
+                        flow.append(f'{source_label} -> {target_label}: "{variable}"')
+                    else:
+                        flow.append(f'{source_label} -> {target_label}')
+            
+            # Extract prompts from PersonJob nodes
+            prompts = {}
+            for node in nodes:
+                if node.get("type") == "personJobNode":
+                    data = node.get("data", {})
+                    label = data.get("label", node["id"])
+                    default_prompt = data.get("defaultPrompt", "")
+                    if default_prompt:
+                        prompts[label] = default_prompt
+            
+            # Extract agent configurations
+            agents = {}
+            for person in persons:
+                label = person.get("label", person["id"])
+                config = {}
+                if person.get("modelName") and person["modelName"] != "gpt-4":
+                    config["model"] = person["modelName"]
+                if person.get("service") and person["service"] != "openai":
+                    config["service"] = person["service"]
+                if person.get("systemPrompt"):
+                    config["system"] = person["systemPrompt"]
+                
+                if config:
+                    agents[label] = config
+            
+            # Build LLM YAML structure
+            llm_yaml = {"flow": flow}
+            if prompts:
+                llm_yaml["prompts"] = prompts
+            if agents:
+                llm_yaml["agents"] = agents
+            
+            return yaml.dump(llm_yaml, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            
+        except Exception as e:
+            raise ValidationError(f"Failed to export LLM YAML: {e}")
+    

@@ -173,12 +173,14 @@ def import_uml(file_path: str) -> Dict[str, Any]:
         uml_content = f.read()
 
     response = requests.post(f"{API_URL}/api/diagrams/convert", json={
-        "source": uml_content,
+        "content": uml_content,
         "from_format": "uml",
         "to_format": "json"
     })
     response.raise_for_status()
-    return response.json()
+    result = response.json()
+    # The convert endpoint returns {"success": true, "output": "..."} 
+    return json.loads(result.get('output', '{}'))
 
 
 def export_uml(diagram: Dict[str, Any]) -> str:
@@ -188,12 +190,14 @@ def export_uml(diagram: Dict[str, Any]) -> str:
     This uses the convert endpoint instead.
     """
     response = requests.post(f"{API_URL}/api/diagrams/convert", json={
-        "source": diagram,
+        "content": json.dumps(diagram),
         "from_format": "json",
         "to_format": "uml"
     })
     response.raise_for_status()
-    return response.json().get('result', '')
+    result = response.json()
+    # The convert endpoint returns {"success": true, "output": "..."}
+    return result.get('output', '')
 
 
 def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = None):
