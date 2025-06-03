@@ -6,7 +6,5 @@ export * from './components/skeletons/SkeletonComponents';
 
 export * from './utils/apiConfig';
 export * from './utils/constants';
-export * from './utils/diagramUtils';
 export * from './utils/downloadUtils';
-export * from './utils/promptUtils';
 export * from './utils/storeCrudUtils';

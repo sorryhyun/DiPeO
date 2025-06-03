@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useConsolidatedDiagramStore, useExecutionStore } from '@/core/stores';
+import { useDiagramOperationsStore, useExecutionStore } from '@/core/stores';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/shared/types';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
@@ -17,7 +17,7 @@ type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
 
 export const useDiagramRunner = () => {
-  const { exportDiagram } = useConsolidatedDiagramStore();
+  const { exportDiagram } = useDiagramOperationsStore();
   const {
     setRunContext,
     clearRunContext,
@@ -174,27 +174,11 @@ export const useDiagramRunner = () => {
     }
   }, [exportDiagram, clearRunningNodes, clearRunContext, setCurrentRunningNode, addRunningNode, removeRunningNode]);
 
-  // Legacy sync execution for backward compatibility
-  const onRunDiagramSync = useCallback(async () => {
-    // Use the same unified execution but without real-time updates
-    console.warn('[useDiagramRunner] onRunDiagramSync is deprecated, falling back to unified execution');
-    return onRunDiagram();
-  }, [onRunDiagram]);
-
-  // Legacy hybrid execution for backward compatibility
-  const onRunDiagramHybrid = useCallback(async () => {
-    // Use the same unified execution (all execution is now backend-unified)
-    console.warn('[useDiagramRunner] onRunDiagramHybrid is deprecated, falling back to unified execution');
-    return onRunDiagram();
-  }, [onRunDiagram]);
-
   return {
     runStatus,
     runError,
     retryCount,
     onRunDiagram, // Primary unified execution
-    onRunDiagramSync, // Legacy compatibility (deprecated)
-    onRunDiagramHybrid, // Legacy compatibility (deprecated)
     stopExecution, // Manual stop function
   };
 };

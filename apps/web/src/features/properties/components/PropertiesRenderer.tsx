@@ -1,7 +1,13 @@
 // Reusable component for rendering property panels based on selection
-import React, { useMemo } from 'react';
-import { UniversalPropertiesPanel } from '@/features/properties';
+import React, { useMemo, Suspense } from 'react';
 import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types/core';
+
+// Lazy load UniversalPropertiesPanel as it's a heavy component
+const UniversalPropertiesPanel = React.lazy(() => 
+  import('./UniversalPropertiesPanel').then(module => ({ 
+    default: module.UniversalPropertiesPanel 
+  }))
+);
 
 interface PropertiesRendererProps {
   selectedNodeId?: string | null;
@@ -57,16 +63,28 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
 
     if (selectedPersonId && personData) {
       title = `${personData.label || 'Person'} Properties`;
-      content = <UniversalPropertiesPanel nodeId={selectedPersonId} data={personData} />;
+      content = (
+        <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+          <UniversalPropertiesPanel nodeId={selectedPersonId} data={personData} />
+        </Suspense>
+      );
     } else if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         title = `${node.data.label || 'Block'} Properties`;
-        content = <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
+        content = (
+          <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />
+          </Suspense>
+        );
       }
     } else if (selectedArrowId && arrowData) {
       title = `Arrow Properties`;
-      content = <UniversalPropertiesPanel nodeId={selectedArrowId} data={arrowData} />;
+      content = (
+        <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+          <UniversalPropertiesPanel nodeId={selectedArrowId} data={arrowData} />
+        </Suspense>
+      );
     }
 
     return { title, content };

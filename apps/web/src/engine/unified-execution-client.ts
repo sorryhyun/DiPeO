@@ -65,7 +65,7 @@ export class UnifiedExecutionClient {
     this.abortController = new AbortController();
     
     try {
-      const response = await fetch(getApiUrl(API_ENDPOINTS.V2_RUN_DIAGRAM), {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.RUN_DIAGRAM), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ export class UnifiedExecutionClient {
    * Get execution capabilities from the backend
    */
   async getCapabilities(): Promise<any> {
-    const response = await fetch(getApiUrl(API_ENDPOINTS.V2_EXECUTION_CAPABILITIES));
+    const response = await fetch(getApiUrl(API_ENDPOINTS.EXECUTION_CAPABILITIES));
     if (!response.ok) {
       throw new Error(`Failed to get capabilities: ${response.status}`);
     }
@@ -206,7 +206,7 @@ export class UnifiedExecutionClient {
    * Health check for the V2 API
    */
   async healthCheck(): Promise<any> {
-    const response = await fetch(getApiUrl(API_ENDPOINTS.V2_HEALTH));
+    const response = await fetch(getApiUrl(API_ENDPOINTS.HEALTH));
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status}`);
     }

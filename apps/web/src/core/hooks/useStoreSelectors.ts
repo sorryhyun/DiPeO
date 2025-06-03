@@ -1,5 +1,5 @@
 import React from 'react';
-import { useConsolidatedDiagramStore } from '@/core/stores/consolidatedDiagramStore';
+import { useNodeArrowStore, usePersonStore, useMonitorStore } from '@/core/stores';
 import { useExecutionStore } from '@/core/stores/executionStore';
 import { useConsolidatedUIStore } from '@/core/stores/consolidatedUIStore';
 
@@ -21,28 +21,28 @@ export const useNodeExecutionState = (nodeId: string) => {
 
 // Single function selectors for common operations to avoid re-renders
 export const useNodeDataUpdater = () => {
-  return useConsolidatedDiagramStore(state => state.updateNodeData);
+  return useNodeArrowStore(state => state.updateNodeData);
 };
 
 export const useArrowDataUpdater = () => {
-  return useConsolidatedDiagramStore(state => state.updateArrowData);
+  return useNodeArrowStore(state => state.updateArrowData);
 };
 
 // Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
-  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
-  const nodes = useConsolidatedDiagramStore(state => 
-    state.isMonitorMode ? state.monitorNodes : state.nodes
-  );
-  const arrows = useConsolidatedDiagramStore(state => 
-    state.isMonitorMode ? state.monitorArrows : state.arrows
-  );
-  const onNodesChange = useConsolidatedDiagramStore(state => state.onNodesChange);
-  const onArrowsChange = useConsolidatedDiagramStore(state => state.onArrowsChange);
-  const onConnect = useConsolidatedDiagramStore(state => state.onConnect);
-  const addNode = useConsolidatedDiagramStore(state => state.addNode);
-  const deleteNode = useConsolidatedDiagramStore(state => state.deleteNode);
-  const deleteArrow = useConsolidatedDiagramStore(state => state.deleteArrow);
+  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
+  const monitorNodes = useMonitorStore(state => state.monitorNodes);
+  const monitorArrows = useMonitorStore(state => state.monitorArrows);
+  const regularNodes = useNodeArrowStore(state => state.nodes);
+  const regularArrows = useNodeArrowStore(state => state.arrows);
+  const nodes = isMonitorMode ? monitorNodes : regularNodes;
+  const arrows = isMonitorMode ? monitorArrows : regularArrows;
+  const onNodesChange = useNodeArrowStore(state => state.onNodesChange);
+  const onArrowsChange = useNodeArrowStore(state => state.onArrowsChange);
+  const onConnect = useNodeArrowStore(state => state.onConnect);
+  const addNode = useNodeArrowStore(state => state.addNode);
+  const deleteNode = useNodeArrowStore(state => state.deleteNode);
+  const deleteArrow = useNodeArrowStore(state => state.deleteArrow);
   
   // Memoize functions and object to prevent unnecessary re-renders
   return React.useMemo(() => ({
@@ -60,14 +60,14 @@ export const useCanvasState = () => {
 
 // Person operations with monitor support
 export const usePersons = () => {
-  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
-  const persons = useConsolidatedDiagramStore(state => 
-    state.isMonitorMode ? state.monitorPersons : state.persons
-  );
-  const addPerson = useConsolidatedDiagramStore(state => state.addPerson);
-  const updatePerson = useConsolidatedDiagramStore(state => state.updatePerson);
-  const deletePerson = useConsolidatedDiagramStore(state => state.deletePerson);
-  const getPersonById = useConsolidatedDiagramStore(state => state.getPersonById);
+  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
+  const monitorPersons = useMonitorStore(state => state.monitorPersons);
+  const regularPersons = usePersonStore(state => state.persons);
+  const persons = isMonitorMode ? monitorPersons : regularPersons;
+  const addPerson = usePersonStore(state => state.addPerson);
+  const updatePerson = usePersonStore(state => state.updatePerson);
+  const deletePerson = usePersonStore(state => state.deletePerson);
+  const getPersonById = usePersonStore(state => state.getPersonById);
   
   return React.useMemo(() => ({
     persons,
@@ -81,13 +81,13 @@ export const usePersons = () => {
 
 // Node operations with monitor support
 export const useNodes = () => {
-  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
-  const nodes = useConsolidatedDiagramStore(state => 
-    state.isMonitorMode ? state.monitorNodes : state.nodes
-  );
-  const onNodesChange = useConsolidatedDiagramStore(state => state.onNodesChange);
-  const addNode = useConsolidatedDiagramStore(state => state.addNode);
-  const deleteNode = useConsolidatedDiagramStore(state => state.deleteNode);
+  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
+  const monitorNodes = useMonitorStore(state => state.monitorNodes);
+  const regularNodes = useNodeArrowStore(state => state.nodes);
+  const nodes = isMonitorMode ? monitorNodes : regularNodes;
+  const onNodesChange = useNodeArrowStore(state => state.onNodesChange);
+  const addNode = useNodeArrowStore(state => state.addNode);
+  const deleteNode = useNodeArrowStore(state => state.deleteNode);
   
   return {
     nodes,
@@ -100,13 +100,13 @@ export const useNodes = () => {
 
 // Arrow operations with monitor support
 export const useArrows = () => {
-  const isMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
-  const arrows = useConsolidatedDiagramStore(state => 
-    state.isMonitorMode ? state.monitorArrows : state.arrows
-  );
-  const onArrowsChange = useConsolidatedDiagramStore(state => state.onArrowsChange);
-  const onConnect = useConsolidatedDiagramStore(state => state.onConnect);
-  const deleteArrow = useConsolidatedDiagramStore(state => state.deleteArrow);
+  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
+  const monitorArrows = useMonitorStore(state => state.monitorArrows);
+  const regularArrows = useNodeArrowStore(state => state.arrows);
+  const arrows = isMonitorMode ? monitorArrows : regularArrows;
+  const onArrowsChange = useNodeArrowStore(state => state.onArrowsChange);
+  const onConnect = useNodeArrowStore(state => state.onConnect);
+  const deleteArrow = useNodeArrowStore(state => state.deleteArrow);
   
   return {
     arrows,

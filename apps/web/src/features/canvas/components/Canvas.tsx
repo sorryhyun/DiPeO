@@ -216,19 +216,21 @@ const DiagramCanvas: React.FC = () => {
         </Suspense>
       </div>
       {isOpen && contextMenu.position && (
-        <ContextMenu
-          position={contextMenu.position}
-          target={contextMenu.target}
-          selectedNodeId={selectedNodeId}
-          selectedArrowId={selectedArrowId}
-          containerRef={reactFlowWrapper as React.RefObject<HTMLDivElement>}
-          onAddNode={addNode}
-          onAddPerson={handleAddPerson}
-          onDeleteNode={deleteNode}
-          onDeleteArrow={deleteArrow}
-          onClose={closeContextMenu}
-          projectPosition={projectPosition}
-        />
+        <Suspense fallback={null}>
+          <ContextMenu
+            position={contextMenu.position}
+            target={contextMenu.target}
+            selectedNodeId={selectedNodeId}
+            selectedArrowId={selectedArrowId}
+            containerRef={reactFlowWrapper as React.RefObject<HTMLDivElement>}
+            onAddNode={addNode}
+            onAddPerson={handleAddPerson}
+            onDeleteNode={deleteNode}
+            onDeleteArrow={deleteArrow}
+            onClose={closeContextMenu}
+            projectPosition={projectPosition}
+          />
+        </Suspense>
       )}
     </div>
   </div>

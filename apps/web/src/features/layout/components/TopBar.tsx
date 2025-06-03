@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components';
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useApiKeyStore, useDiagramOperationsStore, useMonitorStore } from '@/core/stores';
 import { useUIState } from '@/core/hooks/useStoreSelectors';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
 import { useExport } from '@/serialization/hooks/useExport';
@@ -19,12 +19,12 @@ const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
-  const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
-  const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
-  const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
-  const clearDiagram = useConsolidatedDiagramStore(state => state.clearDiagram);
-  const clearMonitorDiagram = useConsolidatedDiagramStore(state => state.clearMonitorDiagram);
-  const storeIsMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
+  const apiKeys = useApiKeyStore(state => state.apiKeys);
+  const addApiKey = useApiKeyStore(state => state.addApiKey);
+  const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
+  const clearDiagram = useDiagramOperationsStore(state => state.clearDiagram);
+  const clearMonitorDiagram = useMonitorStore(state => state.clearMonitorDiagram);
+  const storeIsMonitorMode = useMonitorStore(state => state.isMonitorMode);
   const { onImportYAML, onImportJSON } = useFileImport();
   const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onExportJSON } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();

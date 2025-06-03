@@ -1,5 +1,5 @@
 import React from 'react';
-import { useConsolidatedDiagramStore } from '@/core/stores/consolidatedDiagramStore';
+import { useNodeArrowStore } from '@/core/stores';
 import { useExecutionStore } from '@/core/stores/executionStore';
 
 // ===== Node-Specific Hooks =====
@@ -20,15 +20,15 @@ export const useNodeExecutionState = (nodeId: string) => {
 
 // Single function selectors for common operations to avoid re-renders
 export const useNodeDataUpdater = () => {
-  return useConsolidatedDiagramStore(state => state.updateNodeData);
+  return useNodeArrowStore(state => state.updateNodeData);
 };
 
 // Node operations
 export const useNodes = () => {
-  const nodes = useConsolidatedDiagramStore(state => state.nodes);
-  const onNodesChange = useConsolidatedDiagramStore(state => state.onNodesChange);
-  const addNode = useConsolidatedDiagramStore(state => state.addNode);
-  const deleteNode = useConsolidatedDiagramStore(state => state.deleteNode);
+  const nodes = useNodeArrowStore(state => state.nodes);
+  const onNodesChange = useNodeArrowStore(state => state.onNodesChange);
+  const addNode = useNodeArrowStore(state => state.addNode);
+  const deleteNode = useNodeArrowStore(state => state.deleteNode);
   
   return {
     nodes,

@@ -1,10 +1,11 @@
 // apps/web/src/components/diagram/MemoryLayer.tsx
 import React from 'react';
-import { useConsolidatedDiagramStore, useExecutionStore } from '@/core/stores';
+import { usePersonStore, useNodeArrowStore, useExecutionStore } from '@/core/stores';
 import { Users, MessageSquare, Database } from 'lucide-react';
 
 const MemoryLayer: React.FC = () => {
-  const { persons, nodes } = useConsolidatedDiagramStore();
+  const { persons } = usePersonStore();
+  const { nodes } = useNodeArrowStore();
   const { runContext } = useExecutionStore();
 
   // Get person job nodes to position memory beneath them

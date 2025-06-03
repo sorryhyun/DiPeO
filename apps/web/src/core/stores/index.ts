@@ -1,8 +1,7 @@
 // apps/web/src/stores/index.ts
 // Centralized store exports
 
-// Main consolidated stores (backward compatibility)
-export { useConsolidatedDiagramStore } from './consolidatedDiagramStore';
+// Main stores
 export { useConsolidatedUIStore } from './consolidatedUIStore';
 export { useExecutionStore } from './executionStore';
 export { useHistoryStore } from './historyStore';
@@ -14,8 +13,7 @@ export { useApiKeyStore } from './apiKeyStore';
 export { useMonitorStore } from './monitorStore';
 export { useDiagramOperationsStore } from './diagramOperationsStore';
 
-// Export consolidated types
-export type { ConsolidatedDiagramState } from './consolidatedDiagramStore';
+// Export types
 export type { ConsolidatedUIState } from './consolidatedUIStore';
 export type { ExecutionState } from './executionStore';
 export type { HistoryStore, HistoryState } from './historyStore';

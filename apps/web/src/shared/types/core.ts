@@ -17,7 +17,6 @@ export type NodeType =
   | 'job'
   | 'endpoint';
 
-export type BlockType = NodeType; // Alias for compatibility
 
 export interface Position {
   x: number;
@@ -38,15 +37,17 @@ export interface ApiKey {
 export type ArrowKind = 'normal' | 'fixed';
 
 // Base for all canvas blocks (nodes) with discriminating `type`
-export interface BaseBlockData extends Record<string, unknown> {
+export interface BaseBlockData {
   id: string;
-  type: BlockType;
+  type: NodeType;
   label: string;
   flipped?: boolean;
+  [key: string]: unknown; // For React Flow compatibility
 }
 
 export interface StartBlockData extends BaseBlockData {
   type: 'start';
+  description?: string;
 }
 
 export interface PersonJobBlockData extends BaseBlockData {
@@ -85,6 +86,7 @@ export interface JobBlockData extends BaseBlockData {
   sourceDetails: string;
   iterationCount?: number;
   firstOnlyPrompt?: string;
+  description?: string;
 }
 
 export type DBBlockSubType = 'fixed_prompt' | 'file';
@@ -92,6 +94,7 @@ export interface DBBlockData extends BaseBlockData {
   type: 'db';
   subType: DBBlockSubType;
   sourceDetails: string;
+  description?: string;
 }
 
 export type ConditionType = 'expression' | 'max_iterations';
@@ -104,6 +107,7 @@ export interface ConditionBlockData extends BaseBlockData {
 
 export interface EndpointBlockData extends BaseBlockData {
   type: 'endpoint';
+  description?: string;
   // Optional file save properties
   saveToFile?: boolean;
   filePath?: string;
@@ -118,7 +122,7 @@ export interface NodeData {
   id: string;
   type: NodeType;
   label: string;
-  [key: string]: any;
+  // Additional properties handled by specific node data types
 }
 
 export interface Node {
@@ -144,7 +148,7 @@ export interface PersonDefinition {
   systemPrompt?: string;
 }
 
-export interface ArrowData extends Record<string, unknown> {
+export interface ArrowData {
   id: string;
   sourceBlockId: string;
   targetBlockId: string;
@@ -159,14 +163,16 @@ export interface ArrowData extends Record<string, unknown> {
   branch?: 'true' | 'false';
   controlPointOffsetX?: number;
   controlPointOffsetY?: number;
+  kind?: 'ALL' | 'SINGLE';
+  template?: string;
+  conversationState?: boolean;
+  [key: string]: unknown; // For React Flow compatibility
 }
 
 export type Arrow<T extends Record<string, unknown> = ArrowData> = Edge<T>;
 export type ArrowChange = EdgeChange;
 export type OnArrowsChange = OnEdgesChange;
 
-// Backward compatibility aliases
-export type DiagramArrow = Arrow;
 
 // ============================================================================
 // Diagram and State Types
@@ -191,7 +197,7 @@ export interface DiagramMetadata {
 export interface DiagramState {
   persons: PersonDefinition[];
   nodes: DiagramNode[];
-  arrows: Edge<ArrowData>[];
+  arrows: Arrow[];
   apiKeys: ApiKey[];
 }
 
@@ -201,7 +207,7 @@ export interface DiagramState {
 
 export interface ExecutionContext {
   executionId: string;
-  nodeOutputs: Record<string, any>;
+  nodeOutputs: Record<string, unknown>;
   nodeExecutionCounts: Record<string, number>;
   totalCost: number;
   startTime: number;
@@ -209,11 +215,11 @@ export interface ExecutionContext {
   executionOrder: string[];
   conditionValues: Record<string, boolean>;
   firstOnlyConsumed: Record<string, boolean>;
-  diagram?: Record<string, any> | null;
+  diagram?: Diagram | null;
   // Frontend aliases (camelCase) 
-  nodesById: Record<string, Record<string, any>>;
-  outgoingArrows: Record<string, Record<string, any>[]>;
-  incomingArrows: Record<string, Record<string, any>[]>;
+  nodesById: Record<string, Node>;
+  outgoingArrows: Record<string, Arrow[]>;
+  incomingArrows: Record<string, Arrow[]>;
 }
 
 export interface ExecutionMetadata {
@@ -257,13 +263,13 @@ export interface ConversationMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface PersonMemory {
   personId: string;
   messages: ConversationMessage[];
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   lastUpdated: Date;
 }
 
@@ -428,15 +434,6 @@ export interface ValidationResult {
   warnings: string[];
 }
 
-export interface ExecutionPlan {
-  // Frontend properties (camelCase)
-  executionOrder: string[];
-  parallelGroups: string[][];
-  dependencies: Record<string, string[]>;
-  estimatedCost: number;
-  estimatedTime: number;
-}
-
 // ============================================================================
 // Streaming Types
 // ============================================================================
@@ -467,42 +464,6 @@ export type StreamUpdateType =
   | 'message_chunk';
 
 // ============================================================================
-// Executor Types
-// ============================================================================
-
-export interface ExecutorResult {
-  output: any;
-  cost: number;
-  metadata?: Record<string, any>;
-}
-
-export interface ExecutorValidation {
-  isValid: boolean;
-  errors: string[];
-}
-
-export interface BaseExecutorInterface {
-  validateInputs(node: Node, context: ExecutionContext): Promise<ExecutorValidation>;
-  execute(node: Node, context: ExecutionContext, options?: any): Promise<ExecutorResult>;
-}
-
-// ============================================================================
-// Skip and Loop Control Types
-// ============================================================================
-
-export interface SkipManagerState {
-  skipReasons: Record<string, string>;
-  skippedNodes: Set<string>;
-}
-
-export interface LoopControllerState {
-  maxIterations: number;
-  loopNodes: string[];
-  currentIteration: number;
-  iterationCounts: Map<string, number>;
-}
-
-// ============================================================================
 // Constants
 // ============================================================================
 
@@ -518,13 +479,6 @@ export const SUPPORTED_DOC_EXTENSIONS = new Set([
 export const SUPPORTED_CODE_EXTENSIONS = new Set([
   '.py', '.js', '.ts', '.json', '.yaml', '.yml', '.jsx', '.tsx'
 ]);
-
-export const COST_RATES: Record<string, { input: number; output: number }> = {
-  openai: { input: 2.0, output: 8.0 },
-  claude: { input: 3.0, output: 15.0 },
-  gemini: { input: 1.0, output: 3.0 },
-  grok: { input: 2.5, output: 10.0 }
-};
 
 // ============================================================================
 // React Flow Helper Functions (from domain.ts)

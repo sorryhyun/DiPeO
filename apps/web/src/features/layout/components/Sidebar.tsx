@@ -1,14 +1,16 @@
 // Unified sidebar component that can render as left or right sidebar
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Button } from '@/shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useNodeArrowStore, usePersonStore } from '@/core/stores';
 import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/shared/types';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
-import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
+
+// Lazy load PropertiesRenderer as it's only used in right sidebar
+const PropertiesRenderer = React.lazy(() => import('@/features/properties/components/PropertiesRenderer'));
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onDragStart } = useNodeDrag();
@@ -34,8 +36,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const nodes = useConsolidatedDiagramStore(state => state.nodes);
-  const arrows = useConsolidatedDiagramStore(state => state.arrows);
+  const nodes = useNodeArrowStore(state => state.nodes);
+  const arrows = useNodeArrowStore(state => state.arrows);
   const { setDashboardTab } = useUIState();
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
@@ -52,14 +54,16 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   if (position === 'right') {
     return (
       <aside className="h-full border-l bg-gray-50 overflow-y-auto">
-        <PropertiesRenderer
-          selectedNodeId={selectedNodeId}
-          selectedArrowId={selectedArrowId}
-          selectedPersonId={selectedPersonId}
-          nodes={nodes}
-          arrows={arrows}
-          persons={persons}
-        />
+        <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+          <PropertiesRenderer
+            selectedNodeId={selectedNodeId}
+            selectedArrowId={selectedArrowId}
+            selectedPersonId={selectedPersonId}
+            nodes={nodes}
+            arrows={arrows}
+            persons={persons}
+          />
+        </Suspense>
       </aside>
     );
   }
@@ -125,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                   systemPrompt: undefined
                 });
                 // Get the newly created person's ID and select it
-                const newPersonId = useConsolidatedDiagramStore.getState().persons[useConsolidatedDiagramStore.getState().persons.length - 1]?.id;
+                const newPersonId = usePersonStore.getState().persons[usePersonStore.getState().persons.length - 1]?.id;
                 if (newPersonId) {
                   handlePersonClick(newPersonId);
                 }

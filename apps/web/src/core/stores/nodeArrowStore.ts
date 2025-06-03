@@ -7,10 +7,86 @@ import {
 import { nanoid } from 'nanoid';
 import {
   ArrowData, DiagramNode, DiagramNodeData,
-  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
-  StartBlockData, PersonJobBlockData, DBBlockData, JobBlockData,
-  ConditionBlockData, EndpointBlockData
+  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow
 } from '@/shared/types';
+import { getNodeConfig } from '@/shared/types/nodeConfig';
+
+// Factory function to create default node data based on node config
+function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
+  const config = getNodeConfig(type);
+  
+  if (!config) {
+    // Fallback for unknown types
+    return {
+      id: nodeId,
+      type: 'start' as const,
+      label: 'Unknown'
+    };
+  }
+  
+  // Base properties common to all nodes
+  const baseData: Record<string, unknown> = {
+    id: nodeId,
+    type,
+    label: config.label
+  };
+  
+  // Add type-specific properties based on config and defaults
+  switch (type) {
+    case 'start':
+      baseData.description = '';
+      break;
+      
+    case 'person_job':
+      baseData.personId = undefined;
+      baseData.llmApi = undefined;
+      baseData.apiKeyId = undefined;
+      baseData.modelName = undefined;
+      baseData.defaultPrompt = '';
+      baseData.firstOnlyPrompt = '';
+      baseData.detectedVariables = [];
+      baseData.contextCleaningRule = 'uponRequest';
+      baseData.contextCleaningTurns = undefined;
+      baseData.iterationCount = 1;
+      break;
+      
+    case 'job':
+      baseData.subType = 'code';
+      baseData.sourceDetails = '';
+      baseData.description = '';
+      break;
+      
+    case 'condition':
+      baseData.conditionType = 'expression';
+      baseData.expression = '';
+      break;
+      
+    case 'db':
+      baseData.subType = 'fixed_prompt';
+      baseData.sourceDetails = '';
+      baseData.description = '';
+      break;
+      
+    case 'endpoint':
+      baseData.description = '';
+      baseData.saveToFile = false;
+      baseData.filePath = '';
+      baseData.fileFormat = 'json';
+      break;
+      
+    case 'person_batch_job':
+      baseData.personId = undefined;
+      baseData.batchPrompt = '';
+      baseData.batchSize = 10;
+      baseData.parallelProcessing = false;
+      baseData.aggregationMethod = 'concatenate';
+      baseData.customAggregationPrompt = '';
+      baseData.iterationCount = 1;
+      break;
+  }
+  
+  return baseData as DiagramNodeData;
+}
 
 export interface NodeArrowState {
   nodes: DiagramNode[];
@@ -20,7 +96,7 @@ export interface NodeArrowState {
   onArrowsChange: OnArrowsChange;
   onConnect: OnConnect;
   addNode: (type: string, position: { x: number; y: number }) => void;
-  updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
+  updateNodeData: (nodeId: string, data: Partial<DiagramNodeData>) => void;
   deleteNode: (nodeId: string) => void;
   updateArrowData: (arrowId: string, data: Partial<ArrowData>) => void;
   deleteArrow: (arrowId: string) => void;
@@ -86,84 +162,8 @@ export const useNodeArrowStore = create<NodeArrowState>()(
         addNode: (type: string, position: { x: number; y: number }) => {
           const reactFlowType = getReactFlowType(type);
           const nodeId = `${reactFlowType}-${nanoid().slice(0, 6)}`;
-          type BlockData = StartBlockData | PersonJobBlockData | DBBlockData | JobBlockData | ConditionBlockData | EndpointBlockData;
-          let nodeData: BlockData;
-
-          // Set default data based on node type with proper interfaces
-          switch (type) {
-            case 'start':
-              nodeData = { 
-                id: nodeId,
-                type: 'start',
-                label: 'Start', 
-                description: '' 
-              };
-              break;
-            case 'person_job':
-              nodeData = { 
-                id: nodeId,
-                type: 'person_job',
-                label: 'Person Job', 
-                personId: undefined,
-                llmApi: undefined,
-                apiKeyId: undefined,
-                modelName: undefined,
-                defaultPrompt: '',
-                firstOnlyPrompt: '',
-                detectedVariables: [],
-                contextCleaningRule: 'uponRequest',
-                contextCleaningTurns: undefined,
-                iterationCount: 1
-              };
-              break;
-            case 'job':
-              nodeData = { 
-                id: nodeId,
-                type: 'job',
-                subType: 'code',
-                sourceDetails: '',
-                label: 'Job', 
-                description: '' 
-              };
-              break;
-            case 'condition':
-              nodeData = { 
-                id: nodeId,
-                type: 'condition',
-                conditionType: 'expression',
-                label: 'Condition', 
-                expression: ''
-              };
-              break;
-            case 'db':
-              nodeData = { 
-                id: nodeId,
-                type: 'db',
-                subType: 'fixed_prompt',
-                sourceDetails: '',
-                label: 'DB', 
-                description: ''
-              };
-              break;
-            case 'endpoint':
-              nodeData = { 
-                id: nodeId,
-                type: 'endpoint',
-                label: 'Endpoint', 
-                description: '',
-                saveToFile: false,
-                filePath: '',
-                fileFormat: 'json'
-              };
-              break;
-            default:
-              // Default to start node for unknown types
-              nodeData = {
-                id: nodeId,
-                type: 'start',
-                label: 'Unknown'
-              };
-          }
+          
+          const nodeData = createDefaultNodeData(type, nodeId);
 
           const newNode: DiagramNode = {
             id: nodeId,
@@ -175,7 +175,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
           set({ nodes: [...get().nodes, newNode] });
         },
 
-        updateNodeData: (nodeId: string, data: Record<string, unknown>) => {
+        updateNodeData: (nodeId: string, data: Partial<DiagramNodeData>) => {
           set({
             nodes: get().nodes.map(node =>
               node.id === nodeId ? { ...node, data: { ...node.data, ...data } as DiagramNodeData } : node

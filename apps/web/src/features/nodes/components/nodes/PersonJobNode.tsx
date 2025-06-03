@@ -1,15 +1,15 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { usePersonStore, useNodeArrowStore } from '@/core/stores';
 import { UNIFIED_NODE_CONFIGS, type PersonJobBlockData } from '@/shared/types';
 
 const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => {
   const cfg = UNIFIED_NODE_CONFIGS.person_job;
   const jobData = data as PersonJobBlockData;
   // Use shallow selectors to minimize re-renders
-  const persons = useConsolidatedDiagramStore(state => state.persons);
-  const updateNodeData = useConsolidatedDiagramStore(state => state.updateNodeData);
+  const persons = usePersonStore(state => state.persons);
+  const updateNodeData = useNodeArrowStore(state => state.updateNodeData);
   const isFlipped = jobData.flipped === true;
 
   // Memoize event handlers

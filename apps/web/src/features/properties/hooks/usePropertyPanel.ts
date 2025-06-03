@@ -1,4 +1,4 @@
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useNodeArrowStore, usePersonStore } from '@/core/stores';
 import { usePropertyFormBase } from './usePropertyForm';
 
 export function usePropertyPanel<T extends Record<string, any>>(
@@ -6,7 +6,8 @@ export function usePropertyPanel<T extends Record<string, any>>(
   entityType: 'node' | 'arrow' | 'person',
   initialData: T
 ) {
-  const store = useConsolidatedDiagramStore();
+  const nodeArrowStore = useNodeArrowStore();
+  const personStore = usePersonStore();
 
   
   return usePropertyFormBase<T>(initialData, (updates: Partial<T>) => {
@@ -18,12 +19,12 @@ export function usePropertyPanel<T extends Record<string, any>>(
     });
     
     if (entityType === 'node') {
-      store.updateNodeData(entityId, updates as Record<string, any>);
+      nodeArrowStore.updateNodeData(entityId, updates as Record<string, any>);
     } else if (entityType === 'arrow') {
-      store.updateArrowData(entityId, updates as any);
+      nodeArrowStore.updateArrowData(entityId, updates as any);
     } else {
       console.log('[usePropertyPanel] Updating person via store.updatePerson');
-      store.updatePerson(entityId, updates as any);
+      personStore.updatePerson(entityId, updates as any);
     }
   });
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select, SelectItem } from '@/shared/components';
 import { ApiKey, createErrorHandlerFactory } from '@/shared/types';
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useApiKeyStore } from '@/core/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { toast } from 'sonner';
@@ -20,7 +20,7 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useConsolidatedDiagramStore();
+  const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useApiKeyStore();
   const [newKeyForm, setNewKeyForm] = useState<Partial<ApiKey>>({
     name: '',
     service: 'claude',

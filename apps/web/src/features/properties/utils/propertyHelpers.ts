@@ -2,7 +2,7 @@
  * Property panel utility functions
  */
 
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useApiKeyStore } from '@/core/stores';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { apiCache } from '@/shared/utils/apiCache';
 
@@ -78,7 +78,7 @@ export const shouldShowProperty = (key: string, value: any): boolean => {
 export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
   // We need to access the store directly since this is called from config
   // Use the store's getState method to access current state
-  const store = useConsolidatedDiagramStore.getState();
+  const store = useApiKeyStore.getState();
   const apiKeys = store.apiKeys || [];
   
   console.log('[Person Property Panel] Fetching API key options:', {

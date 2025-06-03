@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useExecutionStore, useConsolidatedDiagramStore } from '@/core/stores';
+import { useExecutionStore, useMonitorStore } from '@/core/stores';
 import { toast } from 'sonner';
 import { getStreamingUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 
@@ -12,7 +12,7 @@ export const useExecutionMonitor = () => {
     setCurrentRunningNode,
     setRunContext
   } = useExecutionStore();
-  const { loadMonitorDiagram } = useConsolidatedDiagramStore();
+  const { loadMonitorDiagram } = useMonitorStore();
 
   useEffect(() => {
     let isComponentMounted = true;

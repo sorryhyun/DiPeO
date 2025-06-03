@@ -1,20 +1,20 @@
 // Application root component
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { Toaster } from 'sonner';
 import { TopBar, Sidebar } from '@/features/layout';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { DiagramCanvasSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 import { useExecutionMonitor } from '@/core/hooks/useExecutionMonitor';
 import { DiagramProvider } from '@/core/contexts/DiagramContext';
-import { useConsolidatedDiagramStore } from '@/core/stores/consolidatedDiagramStore';
+import { useMonitorStore } from '@/core/stores';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas/components/Canvas'));
 const LazyIntegratedDashboard = React.lazy(() => import('@/features/layout/components/IntegratedDashboard'));
+const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 
 function App() {
-  const { setMonitorMode } = useConsolidatedDiagramStore();
+  const { setMonitorMode } = useMonitorStore();
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -65,7 +65,9 @@ function App() {
           </div>
         </div>
 
-        <Toaster richColors position="top-center" />
+        <Suspense fallback={null}>
+          <LazyToaster richColors position="top-center" />
+        </Suspense>
       </DiagramProvider>
     </ReactFlowProvider>
   );
