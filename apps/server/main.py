@@ -49,11 +49,7 @@ app.include_router(conversations_router)
 app.include_router(monitor_router)
 
 
-# Health check endpoint
-@app.get("/api/health")
-async def health_check():
-    """Basic health check endpoint."""
-    return {"status": "ok"}
+# Health check endpoint moved to diagram router at /api/diagrams/health
 
 
 # Metrics endpoint

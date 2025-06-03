@@ -36,7 +36,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                         error_text = await response.text()
                         return {
                             "context": {},
-                            "total_cost": 0,
+                            "total_token_count": 0,
                             "messages": [],
                             "error": f"Backend execution failed: {response.status} - {error_text}"
                         }
@@ -80,9 +80,9 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                             print(f"  Output: {str(node_data['output'])[:100]}...")
                                     
                                     if 'cost' in node_data:
-                                        final_result['total_cost'] += node_data['cost']
+                                        final_result['total_token_count'] += node_data['cost']
                                         if debug:
-                                            print(f"  Cost: ${node_data['cost']:.4f}")
+                                            print(f"  Token count: {node_data['cost']}")
                                     
                                 elif data.get('type') == 'node_skipped' and debug:
                                     node_data = data.get('data', {})
@@ -91,7 +91,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                 elif data.get('type') == 'execution_complete':
                                     execution_data = data.get('data', {})
                                     final_result['context'] = execution_data.get('context', {})
-                                    final_result['total_cost'] = execution_data.get('totalCost', final_result['total_cost'])
+                                    final_result['total_token_count'] = execution_data.get('totalCost', final_result['total_token_count'])
                                     
                                 elif data.get('type') == 'error':
                                     error_data = data.get('data', {})
@@ -117,14 +117,14 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                         result = await response.json()
                         return {
                             "context": result.get("context", {}),
-                            "total_cost": result.get("total_cost", 0),
+                            "total_token_count": result.get("total_token_count", 0),
                             "messages": []
                         }
                     else:
                         error_text = await response.text()
                         return {
                             "context": {},
-                            "total_cost": 0,
+                            "total_token_count": 0,
                             "messages": [],
                             "error": f"API execution failed: {response.status} - {error_text}"
                         }
@@ -240,92 +240,6 @@ def open_browser_monitor():
     monitor_url = "http://localhost:3000/?monitor=true"
     webbrowser.open(monitor_url)
 
-
-def analyze_conversation_logs(log_dir: str = "conversation_logs") -> Dict[str, Any]:
-    """Analyze conversation logs to check if forget rules are properly followed."""
-    log_path = Path(log_dir)
-    if not log_path.exists():
-        return {"error": f"Log directory {log_dir} does not exist"}
-    
-    analysis = {
-        "total_conversations": 0,
-        "forget_rule_violations": [],
-        "forget_rule_compliance": [],
-        "summary": {}
-    }
-    
-    # Find all conversation log files (both .json and .jsonl formats)
-    log_files = list(log_path.glob("*.json")) + list(log_path.glob("*.jsonl"))
-    analysis["total_conversations"] = len(log_files)
-    
-    for log_file in log_files:
-        try:
-            messages = []
-            
-            # Handle both JSON and JSONL formats
-            if log_file.suffix == '.jsonl':
-                with open(log_file, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line:
-                            data = json.loads(line)
-                            if data.get("type") == "message":
-                                messages.append(data)
-            else:
-                with open(log_file, 'r') as f:
-                    conversation = json.load(f)
-                    messages = conversation.get("messages", [])
-            
-            # Check if conversation follows the forget rule:
-            # "person only remembers what the previous person said and the prompt given to them"
-            
-            for i, message in enumerate(messages):
-                person_id = message.get("sender_person_id")
-                if not person_id:
-                    continue
-                
-                # Check if this person's message references anything beyond:
-                # 1. The previous person's message
-                # 2. The prompt given to them
-                if i > 1:  # Skip first message
-                    current_content = message.get("content", "").lower()
-                    
-                    # Look for references to messages from more than 1 turn ago
-                    # This is a simple heuristic - could be made more sophisticated
-                    violation_indicators = [
-                        "as i mentioned earlier",
-                        "as we discussed before",
-                        "going back to what",
-                        "earlier you said",
-                        "previously mentioned"
-                    ]
-                    
-                    has_violation = any(indicator in current_content for indicator in violation_indicators)
-                    
-                    if has_violation:
-                        analysis["forget_rule_violations"].append({
-                            "file": str(log_file),
-                            "message_index": i,
-                            "person_id": person_id,
-                            "content_preview": current_content[:100] + "..."
-                        })
-                    else:
-                        analysis["forget_rule_compliance"].append({
-                            "file": str(log_file),
-                            "message_index": i,
-                            "person_id": person_id
-                        })
-        
-        except Exception as e:
-            print(f"Error analyzing {log_file}: {e}")
-    
-    analysis["summary"] = {
-        "compliance_rate": len(analysis["forget_rule_compliance"]) / max(1, len(analysis["forget_rule_compliance"]) + len(analysis["forget_rule_violations"])),
-        "total_violations": len(analysis["forget_rule_violations"]),
-        "total_compliant": len(analysis["forget_rule_compliance"])
-    }
-    
-    return analysis
 
 def extract_person_models(diagram: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     """Extract all unique model configurations from person nodes in the diagram."""
@@ -544,7 +458,7 @@ def main():
                 
                 result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)
                 
-                print(f"✓ Execution complete - Total cost: ${result.get('total_cost', 0):.4f}")
+                print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
                 return
                 
             elif mode == 'headless':
@@ -563,7 +477,7 @@ def main():
 
             result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream, debug=debug)
             
-            print(f"✓ Execution complete - Total cost: ${result.get('total_cost', 0):.4f}")
+            print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
 
             # Save results
             Path('files/results').mkdir(exist_ok=True)
@@ -584,20 +498,6 @@ def main():
                 with open(debug_path, 'w') as f:
                     json.dump(debug_data, f, indent=2)
                 print(f"  Debug logs saved to: {debug_path}")
-            
-            # Check forget rules if requested
-            if check_forget:
-                print(f"\n🔍 Checking forget rule compliance...")
-                analysis = analyze_conversation_logs("files/conversation_logs")
-                
-                if "error" not in analysis:
-                    print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")
-                    print(f"  Violations found: {analysis['summary']['total_violations']}")
-                    
-                    if analysis['summary']['total_violations'] > 0:
-                        print(f"  ⚠️  Run 'check-forget' for detailed violation analysis")
-                    else:
-                        print(f"  ✅ All conversations follow forget rules properly")
 
         elif command == 'convert':
             if len(sys.argv) < 4:
@@ -681,37 +581,6 @@ def main():
 
             result = response.json()
             print(f"✓ {result.get('message', 'Saved to server')}")
-
-        elif command == 'check-forget':
-            log_dir = sys.argv[2] if len(sys.argv) > 2 else "conversation_logs"
-
-            print(f"Analyzing forget rule compliance in {log_dir}...")
-            analysis = analyze_conversation_logs(log_dir)
-
-            if "error" in analysis:
-                print(f"Error: {analysis['error']}")
-                sys.exit(1)
-
-            print(f"\n🔍 Forget Rule Analysis Report")
-            print(f"  Total conversations: {analysis['total_conversations']}")
-            print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")
-            print(f"  Total violations: {analysis['summary']['total_violations']}")
-            print(f"  Total compliant: {analysis['summary']['total_compliant']}")
-
-            if analysis['forget_rule_violations']:
-                print(f"\n⚠️  Forget Rule Violations:")
-                for violation in analysis['forget_rule_violations'][:5]:  # Show first 5
-                    print(f"    {Path(violation['file']).name} (msg {violation['message_index']}): {violation['content_preview']}")
-
-                if len(analysis['forget_rule_violations']) > 5:
-                    print(f"    ... and {len(analysis['forget_rule_violations']) - 5} more")
-
-            # Save detailed analysis
-            Path('files/results').mkdir(exist_ok=True)
-            analysis_file = 'files/results/forget_rule_analysis.json'
-            with open(analysis_file, 'w') as f:
-                json.dump(analysis, f, indent=2)
-            print(f"\n  Detailed analysis saved to: {analysis_file}")
 
         else:
             print(f"Unknown command: {command}")

@@ -98,7 +98,7 @@ export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
  */
 export const getModelOptions = async (): Promise<Array<{ value: string; label: string }>> => {
   try {
-    const response = await fetch(API_ENDPOINTS.MODELS);
+    const response = await fetch(getApiUrl(API_ENDPOINTS.MODELS));
     
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.status}`);

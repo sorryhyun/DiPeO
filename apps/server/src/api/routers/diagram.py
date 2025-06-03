@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 import json
+import yaml
 import inspect
 from typing import Dict, Any, Optional
 import logging
@@ -10,14 +12,15 @@ from apps.server.src.engine.engine import UnifiedExecutionEngine
 from ...services.llm_service import LLMService
 from ...services.file_service import FileService
 from ...services.api_key_service import APIKeyService
-from ...utils.dependencies import get_llm_service, get_file_service, get_api_key_service
+from ...services.diagram_service import DiagramService
+from ...utils.dependencies import get_llm_service, get_file_service, get_api_key_service, get_diagram_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
 from ...utils.node_type_utils import is_start_node, get_supported_backend_types
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api", tags=["diagram"])
+router = APIRouter(prefix="/api/diagrams", tags=["diagram"])
 
 
 class SafeJSONEncoder(json.JSONEncoder):
@@ -47,7 +50,7 @@ def safe_json_dumps(obj):
 
 # V2 Unified Execution Endpoints
 
-@router.post("/run-diagram")
+@router.post("/execute")
 @handle_api_errors
 async def run_diagram_v2(
     diagram: Dict[str, Any],
@@ -171,6 +174,98 @@ async def get_execution_capabilities():
     }
 
 
+# Moved from files.py
+
+class SaveDiagramRequest(BaseModel):
+    diagram: Dict[str, Any]
+    filename: str
+    format: str  # "json" or "yaml"
+
+
+class ConvertDiagramRequest(BaseModel):
+    content: str
+    from_format: str  # "yaml", "json", "llm-yaml", "uml"
+    to_format: str    # "yaml", "json", "llm-yaml", "uml"
+
+
+@router.post("/save")
+@handle_api_errors
+async def save_diagram(
+    request: SaveDiagramRequest,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Save diagram to the diagrams directory."""
+    try:
+        # Determine file path in diagrams directory
+        filename = request.filename
+        if not filename.endswith(('.json', '.yaml', '.yml')):
+            if request.format == "yaml":
+                filename += ".yaml"
+            else:
+                filename += ".json"
+        
+        # Save to diagrams directory (which is now under files/)
+        saved_path = await file_service.write(
+            path=f"files/diagrams/{filename}",
+            content=request.diagram,
+            format=request.format
+        )
+        
+        return {
+            "success": True,
+            "message": f"Diagram saved to {saved_path}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/convert")
+@handle_api_errors
+async def convert_diagram(
+    request: ConvertDiagramRequest,
+    diagram_service: DiagramService = Depends(get_diagram_service)
+):
+    """Convert diagram between different formats (JSON, YAML, LLM-YAML, UML)."""
+    try:
+        # Parse input based on format
+        if request.from_format == "yaml":
+            diagram = yaml.safe_load(request.content)
+        elif request.from_format == "json":
+            diagram = json.loads(request.content)
+        elif request.from_format == "llm-yaml":
+            # Use diagram service to import LLM-friendly YAML
+            diagram = diagram_service.import_yaml(request.content)
+        else:
+            raise ValidationError(f"Unsupported from_format: {request.from_format}")
+        
+        # Convert to target format
+        if request.to_format == "yaml":
+            output = yaml.dump(
+                diagram,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+                indent=2
+            )
+        elif request.to_format == "json":
+            output = json.dumps(diagram, indent=2)
+        elif request.to_format == "llm-yaml":
+            # Convert to LLM-friendly YAML format
+            output = diagram_service.export_llm_yaml(diagram)
+        else:
+            raise ValidationError(f"Unsupported to_format: {request.to_format}")
+        
+        return {
+            "success": True,
+            "output": output,
+            "message": f"Converted from {request.from_format} to {request.to_format}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/health")
 @handle_api_errors
 async def health_check():
@@ -180,9 +275,6 @@ async def health_check():
         "version": "2.0",
         "timestamp": datetime.now().isoformat()
     }
-
-
-# Legacy Endpoints (for backward compatibility)
 
 
 

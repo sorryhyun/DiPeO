@@ -7,7 +7,11 @@ import time
 import re
 import logging
 
-from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ExecutorResult
+from .utils import (
+    ValidationResult,
+    get_input_values
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +60,7 @@ class ConditionExecutor(BaseExecutor):
         
         properties = node.get("properties", {})
         condition_type = properties.get("conditionType", "expression")
-        inputs = self.get_input_values(node, context)
+        inputs = get_input_values(node, context)
         
         try:
             if condition_type in ["detect_max_iterations"]:

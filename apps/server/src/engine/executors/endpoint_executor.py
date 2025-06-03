@@ -6,7 +6,13 @@ from typing import Dict, Any
 import time
 import logging
 
-from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ExecutorResult
+from .utils import (
+    ValidationResult,
+    get_input_values,
+    substitute_variables,
+    has_incoming_connection
+)
 from ...services.file_service import FileService
 
 logger = logging.getLogger(__name__)
@@ -40,7 +46,7 @@ class EndpointExecutor(BaseExecutor):
                 errors.append("File path cannot contain directory traversal sequences")
         
         # Check if endpoint has incoming connections
-        if not self.has_incoming_connection(node, context):
+        if not has_incoming_connection(node, context):
             warnings.append("Endpoint node has no incoming connections")
         
         return ValidationResult(
@@ -59,7 +65,7 @@ class EndpointExecutor(BaseExecutor):
         file_format = properties.get("fileFormat", "text")
         
         # Get input values (content to output/save)
-        inputs = self.get_input_values(node, context)
+        inputs = get_input_values(node, context)
         
         # Combine all inputs into content
         content = self._prepare_content(inputs, properties)
@@ -122,7 +128,7 @@ class EndpointExecutor(BaseExecutor):
         
         if content_format:
             # Use custom format with variable substitution
-            content = self.substitute_variables(content_format, inputs)
+            content = substitute_variables(content_format, inputs)
         else:
             # Default: combine all inputs
             if len(inputs) == 1:

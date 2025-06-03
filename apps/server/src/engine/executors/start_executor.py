@@ -6,6 +6,7 @@ from typing import Dict, Any
 import time
 
 from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .utils import has_incoming_connection
 
 
 class StartExecutor(BaseExecutor):
@@ -20,7 +21,7 @@ class StartExecutor(BaseExecutor):
         warnings = []
         
         # Start nodes should not have incoming connections
-        if self.has_incoming_connection(node, context):
+        if has_incoming_connection(node, context):
             errors.append("Start nodes should not have incoming connections")
         
         # Check if initial data is valid JSON if provided

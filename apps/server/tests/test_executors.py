@@ -9,7 +9,7 @@ from ..src.engine.executors import JobExecutor
 from ..src.engine.executors import EndpointExecutor
 from ..src.engine.executors import PersonJobExecutor
 from ..src.engine.executors import DBExecutor
-from ..src.engine.executors import ExecutorFactory
+from ..src.engine.executors import create_executors
 from ..src.engine.engine import ExecutionContext
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
@@ -330,44 +330,49 @@ class TestDBExecutor:
         assert result.output == "This is a fixed response."
 
 
-class TestExecutorFactory:
-    """Test cases for ExecutorFactory."""
+class TestCreateExecutors:
+    """Test cases for create_executors function."""
     
-    def test_executor_factory_creation(self, mock_services):
-        """Test executor factory creates correct executors."""
-        factory = ExecutorFactory()
-        
-        # Register services
-        factory.register_services(
-            mock_services['llm_service'],
-            mock_services['api_key_service'],
-            mock_services['memory_service']
+    def test_create_executors_basic(self, mock_services):
+        """Test create_executors creates correct executors."""
+        executors = create_executors(
+            llm_service=mock_services['llm_service'],
+            file_service=None
         )
         
-        # Test creating different executor types
-        start_executor = factory.get_executor("start")
-        assert isinstance(start_executor, StartExecutor)
+        # Test basic executor types
+        assert "start" in executors
+        assert isinstance(executors["start"], StartExecutor)
         
-        condition_executor = factory.get_executor("condition")
-        assert isinstance(condition_executor, ConditionExecutor)
+        assert "condition" in executors
+        assert isinstance(executors["condition"], ConditionExecutor)
         
-        job_executor = factory.get_executor("job")
-        assert isinstance(job_executor, JobExecutor)
+        assert "job" in executors
+        assert isinstance(executors["job"], JobExecutor)
         
-        person_executor = factory.get_executor("person_job")
-        assert isinstance(person_executor, PersonJobExecutor)
+        assert "endpoint" in executors
+        assert isinstance(executors["endpoint"], EndpointExecutor)
+        
+        # Test LLM-based executors
+        assert "person_job" in executors
+        assert isinstance(executors["person_job"], PersonJobExecutor)
+        
+        assert "personjob" in executors
+        assert isinstance(executors["personjob"], PersonJobExecutor)
     
-    def test_executor_factory_invalid_type(self, mock_services):
-        """Test executor factory with invalid type."""
-        factory = ExecutorFactory()
-        factory.register_services(
-            mock_services['llm_service'],
-            mock_services['api_key_service'],
-            mock_services['memory_service']
-        )
+    def test_create_executors_without_services(self):
+        """Test create_executors without services."""
+        executors = create_executors()
         
-        with pytest.raises(ValueError):
-            factory.get_executor("invalid_type")
+        # Basic executors should still be available
+        assert "start" in executors
+        assert "condition" in executors
+        assert "job" in executors
+        assert "endpoint" in executors
+        
+        # LLM and DB executors should not be available
+        assert "person_job" not in executors
+        assert "db" not in executors
 
 
 class TestExecutionContext:

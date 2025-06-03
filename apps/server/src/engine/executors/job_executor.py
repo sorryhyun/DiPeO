@@ -10,7 +10,12 @@ import subprocess
 import tempfile
 import os
 
-from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ExecutorResult
+from .utils import (
+    ValidationResult,
+    get_input_values,
+    substitute_variables
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +74,10 @@ class JobExecutor(BaseExecutor):
         timeout = properties.get("timeout", 30)  # Default 30 seconds timeout
         
         # Get input values
-        inputs = self.get_input_values(node, context)
+        inputs = get_input_values(node, context)
         
         # Substitute variables in code
-        code = self.substitute_variables(code, inputs)
+        code = substitute_variables(code, inputs)
         
         try:
             if language == "python":

@@ -3,7 +3,6 @@
 import pytest
 
 from ..src.engine.engine import UnifiedExecutionEngine
-from ..src.engine.executors import ExecutorFactory
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
@@ -14,8 +13,7 @@ def mock_services():
     return {
         'llm_service': MockLLMService(),
         'api_key_service': MockAPIKeyService(),
-        'memory_service': MockMemoryService(),
-        'executor_factory': ExecutorFactory()
+        'memory_service': MockMemoryService()
     }
 
 

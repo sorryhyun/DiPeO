@@ -8,7 +8,8 @@ from ..exceptions import DiagramExecutionError
 from .resolver import DependencyResolver
 from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager
-from .executors.base_executor import BaseExecutor, ExecutorFactory
+from .executors.base_executor import BaseExecutor
+from .executors import create_executors
 from ..utils.node_type_utils import normalize_node_type_to_backend
 
 logger = logging.getLogger(__name__)
@@ -44,19 +45,13 @@ class UnifiedExecutionEngine:
         self.execution_planner = ExecutionPlanner()
         self.loop_controller = LoopController()
         self.skip_manager = SkipManager()
-        self.executor_factory = ExecutorFactory()
         self.llm_service = llm_service
         self.file_service = file_service
-        self.executors = self._register_executors()
-        self._execution_lock = asyncio.Lock()
-        
-    def _register_executors(self) -> Dict[str, 'BaseExecutor']:
-        """Register all available executors by node type"""
-        self.executor_factory.register_all_executors(
+        self.executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service
         )
-        return self.executor_factory.create_executors()
+        self._execution_lock = asyncio.Lock()
     
     async def execute_diagram(
         self, 

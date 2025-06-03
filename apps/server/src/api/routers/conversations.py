@@ -8,7 +8,7 @@ from ...utils.dependencies import get_memory_service
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
 
-@router.get("")
+@router.get("/")
 async def get_conversations(
     personId: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=1000),
@@ -96,7 +96,7 @@ async def get_conversations(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/clear")
+@router.delete("/")
 async def clear_conversations(
     memory_service: MemoryService = Depends(get_memory_service)
 ):

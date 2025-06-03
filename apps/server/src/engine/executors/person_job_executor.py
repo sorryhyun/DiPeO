@@ -6,7 +6,12 @@ from typing import Dict, Any
 import time
 import logging
 
-from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ExecutorResult
+from .utils import (
+    ValidationResult,
+    get_input_values,
+    substitute_variables
+)
 from ...services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
@@ -91,7 +96,7 @@ class PersonJobExecutor(BaseExecutor):
             person_config = context.persons.get(person_id, {})
         
         # Get input values for variable substitution
-        inputs = self.get_input_values(node, context)
+        inputs = get_input_values(node, context)
         
         # Check iteration count and handle first-only logic
         execution_count = context.node_execution_counts.get(node_id, 0)
@@ -137,7 +142,7 @@ class PersonJobExecutor(BaseExecutor):
             )
         
         # Substitute variables in prompt
-        final_prompt = self.substitute_variables(prompt, inputs)
+        final_prompt = substitute_variables(prompt, inputs)
         
         # Get person details
         service = person_config.get("service", "openai")
@@ -226,7 +231,7 @@ class PersonBatchJobExecutor(BaseExecutor):
         batch_size = properties.get("batchSize", 1)
         
         # Get input data
-        inputs = self.get_input_values(node, context)
+        inputs = get_input_values(node, context)
         
         # For now, treat batch job similar to regular person job
         # In future, this could handle actual batching logic
