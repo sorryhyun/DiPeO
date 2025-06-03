@@ -10,7 +10,7 @@ from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager
 from .executors.base_executor import BaseExecutor
 from .executors import create_executors
-from ..utils.node_type_utils import normalize_node_type_to_backend
+# node_type_utils no longer needed - all types are already snake_case
 from ..api.routers.monitor import broadcast_to_monitors
 
 logger = logging.getLogger(__name__)
@@ -170,7 +170,7 @@ class UnifiedExecutionEngine:
                     ready_nodes = []
                     for node_id in pending_nodes:
                         can_exec = self._can_execute_node(node_id, context, pending_nodes)
-                        node_type = normalize_node_type_to_backend(context.nodes_by_id[node_id]["type"])
+                        node_type = context.nodes_by_id[node_id]["type"]
                         
                         # Additional debug for condition nodes
                         if node_type == "condition":
@@ -344,7 +344,7 @@ class UnifiedExecutionEngine:
         # Get type from node properties (data) which contains the actual node type
         # Frontend sends: {type: "startNode", data: {type: "start", ...}}
         properties = node.get("properties", {})
-        node_type = normalize_node_type_to_backend(properties.get("type", node["type"]))
+        node_type = properties.get("type", node["type"])
         
         # Check if should skip
         if self.skip_manager.should_skip(node, context):

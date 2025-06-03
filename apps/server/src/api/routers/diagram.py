@@ -16,7 +16,7 @@ from ...services.diagram_service import DiagramService
 from ...utils.dependencies import get_llm_service, get_file_service, get_api_key_service, get_diagram_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
-from ...utils.node_type_utils import is_start_node, get_supported_backend_types
+# node_type_utils no longer needed - all types are already snake_case
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +80,8 @@ async def run_diagram_v2(
     # Check both top-level type (React Flow) and data.type (logical type)
     start_nodes = [
         node for node in nodes 
-        if is_start_node(node.get("type", "")) or 
-           is_start_node(node.get("data", {}).get("type", ""))
+        if node.get("type", "") == "start" or 
+           node.get("data", {}).get("type", "") == "start"
     ]
     if not start_nodes:
         raise ValidationError("Diagram must contain at least one start node")
@@ -216,7 +216,7 @@ async def get_execution_capabilities():
     return {
         "version": "2.0",
         "execution_model": "unified_backend",
-        "supported_node_types": get_supported_backend_types(),
+        "supported_node_types": ["start", "person_job", "person_batch_job", "condition", "db", "job", "endpoint"],
         "features": {
             "streaming_execution": True,
             "parallel_execution": True,

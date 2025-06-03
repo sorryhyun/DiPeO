@@ -78,10 +78,10 @@ DiPeO Server implements a **unified backend execution model** where all diagram 
 - `resolver.py`: Topological sorting and cycle detection
 - `controllers.py`: Loop iteration and skip management
 
-**Node Type Normalization**
-- Frontend uses camelCase with "Node" suffix: `startNode`, `personJobNode`
-- Backend uses snake_case without suffix: `start`, `person_job`
-- `src/utils/node_type_utils.py` handles automatic conversion
+**Node Type System**
+- All node types use unified snake_case format: `start`, `person_job`, `condition`, etc.
+- No conversion needed between frontend and backend
+- Type extraction: Check `properties.type` or fallback to `node.type`
 
 **Service Layer** (`src/services/`)
 - Uses AppContext dependency injection pattern
