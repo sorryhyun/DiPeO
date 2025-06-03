@@ -1,12 +1,13 @@
 // apps/web/src/components/diagram/MemoryLayer.tsx
 import React from 'react';
-import { usePersonStore, useNodeArrowStore, useExecutionStore } from '@/global/stores';
-import { Users, MessageSquare, Database } from 'lucide-react';
+import { usePersonStore, useNodeArrowStore } from '@/global/stores';
+import { MessageSquare, Database } from 'lucide-react';
 
 const MemoryLayer: React.FC = () => {
   const { persons } = usePersonStore();
   const { nodes } = useNodeArrowStore();
-  const { runContext } = useExecutionStore();
+  // Execution store available if needed
+  // const { runContext } = useExecutionStore();
 
   // Get person job nodes to position memory beneath them
   const personJobNodes = nodes.filter(n => n.type === 'personjobNode');

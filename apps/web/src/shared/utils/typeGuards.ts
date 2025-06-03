@@ -10,9 +10,9 @@ export function isApiKey(value: unknown): value is ApiKey {
     'id' in value &&
     'name' in value &&
     'service' in value &&
-    typeof (value as any).id === 'string' &&
-    typeof (value as any).name === 'string' &&
-    ['claude', 'openai', 'grok', 'gemini', 'custom'].includes((value as any).service)
+    typeof (value as { id: unknown }).id === 'string' &&
+    typeof (value as { name: unknown }).name === 'string' &&
+    ['claude', 'openai', 'grok', 'gemini', 'custom'].includes((value as { service: unknown }).service as string)
   );
 }
 

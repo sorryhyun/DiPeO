@@ -36,7 +36,7 @@ export const useNodeDrag = () => {
   const onPersonDrop = useCallback((
     event: DragEvent,
     nodeId: string,
-    updateNodeData: (nodeId: string, data: any) => void
+    updateNodeData: (nodeId: string, data: Record<string, unknown>) => void
   ) => {
     const personId = event.dataTransfer.getData('application/person');
     if (personId) {

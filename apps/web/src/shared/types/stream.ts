@@ -10,7 +10,7 @@ export interface StreamUpdate {
   type: StreamUpdateType;
   executionId: string;
   nodeId?: string;
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 

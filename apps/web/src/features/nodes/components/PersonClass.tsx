@@ -4,10 +4,10 @@ import { Position, NodeProps } from '@xyflow/react';
 import { PersonDefinition } from '@/shared/types';
 import { User } from 'lucide-react';
 import { FlowHandle } from './base/FlowHandle';
-import { createHandleId } from '@/shared/utils/nodeHelpers';
+// import { createHandleId } from '@/shared/utils/nodeHelpers';
 
 const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
-  const baseHandleStyle = 'w-3 h-3';
+  // const baseHandleStyle = 'w-3 h-3';
   return (
     <div className={`p-2 border-2 rounded-md shadow-md bg-white w-52 ${selected ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300'}`}>
       {/* Output handle for providing context or conversation stream */}

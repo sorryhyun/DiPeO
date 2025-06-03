@@ -3,14 +3,14 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 export interface ExecutionState {
-  runContext: Record<string, any>;
+  runContext: Record<string, unknown>;
   runningNodes: string[];
   currentRunningNode: string | null;
   nodeRunningStates: Record<string, boolean>; // Add this to track running states
   lastUpdate?: number; // Force re-renders with timestamp
 
   // Actions
-  setRunContext: (context: Record<string, any>) => void;
+  setRunContext: (context: Record<string, unknown>) => void;
   clearRunContext: () => void;
   setRunningNodes: (nodeIds: string[]) => void;
   addRunningNode: (nodeId: string) => void;

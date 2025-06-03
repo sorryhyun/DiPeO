@@ -28,7 +28,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   // Create error handler for API key operations
   const createErrorHandler = createErrorHandlerFactory(toast);
@@ -100,7 +100,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       });
       
       toast.success(`API key "${newKey.name}" added successfully`);
-    } catch (error) {
+    } catch (_error) {
       setErrors({ keyReference: 'Network error: Failed to create API key' });
     }
   };

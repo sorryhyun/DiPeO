@@ -2,7 +2,6 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { Panel } from '../wrappers';
 import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
-import { PanelConfig } from '@/shared/types/panelConfig';
 import { GenericPropertyPanel } from './ui-components/GenericPropertyPanel';
 import {
   endpointConfig,
@@ -17,7 +16,8 @@ import {
 } from '../configs';
 
 // Mapping from node types to their configurations
-const PANEL_CONFIGS: Record<string, PanelConfig<any>> = {
+// Using type assertion as these configs are properly typed individually
+const PANEL_CONFIGS = {
   'endpoint': endpointConfig,
   'person_job': personJobConfig,
   'condition': conditionConfig,
@@ -27,11 +27,11 @@ const PANEL_CONFIGS: Record<string, PanelConfig<any>> = {
   'arrow': arrowConfig,
   'person': personConfig,
   'start': startConfig,
-};
+} as const;
 
-export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: any }> = ({ nodeId, data }) => {
+export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: { type: string } }> = ({ nodeId, data }) => {
   const nodeType = data.type;
-  const panelConfig = PANEL_CONFIGS[nodeType];
+  const panelConfig = PANEL_CONFIGS[nodeType as keyof typeof PANEL_CONFIGS];
   const nodeConfig = UNIFIED_NODE_CONFIGS[nodeType];
   
   if (!panelConfig) {

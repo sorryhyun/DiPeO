@@ -104,6 +104,16 @@ export default [
     },
   },
 
+  // Node.js scripts configuration
+  {
+    files: ['scripts/**/*.{js,ts}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,  // Add Node.js globals for scripts
+      },
+    },
+  },
+
   // General rules for all files
   {
     files: ['**/*.{js,jsx,ts,tsx}'],

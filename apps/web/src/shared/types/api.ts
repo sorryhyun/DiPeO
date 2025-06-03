@@ -16,11 +16,11 @@ export enum LLMService {
 
 export interface ChatResult {
   text: string;
-  usage?: any;
+  usage?: LLMUsage;
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;
-  rawResponse?: any;
+  rawResponse?: unknown;
 }
 
 export interface LLMUsage {

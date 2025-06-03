@@ -5,7 +5,7 @@ interface CacheEntry<T> {
 }
 
 class ApiCache {
-  private cache: Map<string, CacheEntry<any>> = new Map();
+  private cache: Map<string, CacheEntry<unknown>> = new Map();
   private defaultTTL = 5 * 60 * 1000; // 5 minutes default TTL
 
   set<T>(key: string, data: T, ttl?: number): void {
@@ -25,7 +25,7 @@ class ApiCache {
       return null;
     }
 
-    return entry.data;
+    return entry.data as T;
   }
 
   invalidate(key: string): void {

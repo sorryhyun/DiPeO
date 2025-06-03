@@ -2,7 +2,7 @@
 export interface DiagramNode {
   id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   position?: { x: number; y: number };
 }
 
@@ -12,7 +12,7 @@ export interface DiagramArrow {
   target: string;
   sourceHandle?: string;
   targetHandle?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   label?: string;
 }
 

@@ -7,13 +7,13 @@
 
 import { produce } from 'immer';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
-import type { Node, Arrow } from '@/shared/types';
+import type { Node, Arrow, PersonDefinition, ApiKey } from '@/shared/types';
 
 export interface DiagramData {
   nodes: Node[];
   arrows: Arrow[];
-  persons?: any[];
-  apiKeys?: any[];
+  persons?: PersonDefinition[];
+  apiKeys?: ApiKey[];
 }
 
 export interface ExecutionOptions {
@@ -27,16 +27,16 @@ export interface ExecutionUpdate {
   execution_id?: string;
   nodeId?: string;
   output_preview?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   total_cost?: number;
   error?: string;
   timestamp?: string;
   conversationId?: string;
-  message?: any;
+  message?: unknown;
 }
 
 export interface ExecutionResult {
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   total_cost?: number;
   execution_id?: string;
   metadata?: {
@@ -109,7 +109,7 @@ export class UnifiedExecutionClient {
         throw new Error('Response body is not readable');
       }
       
-      let context: Record<string, any> = {};
+      let context: Record<string, unknown> = {};
       let totalCost = 0;
       let executionId: string | undefined;
       
@@ -213,7 +213,7 @@ export class UnifiedExecutionClient {
   /**
    * Get execution capabilities from the backend
    */
-  async getCapabilities(): Promise<any> {
+  async getCapabilities(): Promise<unknown> {
     const response = await fetch(getApiUrl(API_ENDPOINTS.EXECUTION_CAPABILITIES));
     if (!response.ok) {
       throw new Error(`Failed to get capabilities: ${response.status}`);
@@ -224,7 +224,7 @@ export class UnifiedExecutionClient {
   /**
    * Health check for the V2 API
    */
-  async healthCheck(): Promise<any> {
+  async healthCheck(): Promise<unknown> {
     const response = await fetch(getApiUrl(API_ENDPOINTS.HEALTH));
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status}`);

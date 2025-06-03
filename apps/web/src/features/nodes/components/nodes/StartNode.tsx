@@ -13,7 +13,7 @@ const StartNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType}>
       <span className="text-2xl mb-0.5">{config.emoji}</span>
-      <strong className="text-sm">{(data as any).label || config.label}</strong>
+      <strong className="text-sm">{(data as { label?: string }).label || config.label}</strong>
     </GenericNode>
   );
 };

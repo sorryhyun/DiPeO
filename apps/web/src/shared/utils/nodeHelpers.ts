@@ -9,7 +9,7 @@ export const createNodeId = (): string => {
 };
 
 export const getNodeDisplayName = (node: Node): string => {
-  const data = node.data as any;
+  const data = node.data as { label?: string; name?: string };
   return data?.label || data?.name || node.type || 'Unnamed Node';
 };
 

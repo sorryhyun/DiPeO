@@ -2,7 +2,7 @@ import React from 'react';
 import { Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components';
-import { BaseNodeProps } from '@/shared/types';
+import { BaseNodeProps, HandleConfig } from '@/shared/types';
 import { createHandleId } from '@/shared/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import { useNodeExecutionState } from '@/global/hooks/useStoreSelectors';
@@ -47,7 +47,7 @@ function BaseNodeComponent({
   // Use auto-generated handles if autoHandles is true and config exists
   const effectiveHandles = React.useMemo(() => {
     if (autoHandles && config) {
-      return config.handles.map((handle: any) => {
+      return config.handles.map((handle: HandleConfig) => {
         const isVertical = handle.position === Position.Top || handle.position === Position.Bottom;
         const position = isFlipped && !isVertical
           ? (handle.position === Position.Left ? Position.Right : Position.Left)
@@ -135,7 +135,7 @@ function BaseNodeComponent({
       </div>
 
       {/* Handles */}
-      {effectiveHandles.map((handle: any, index: any) => (
+      {effectiveHandles.map((handle, index) => (
         <FlowHandle
           key={handle.id || index}
           nodeId={id}

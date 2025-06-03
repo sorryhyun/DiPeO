@@ -148,7 +148,7 @@ export const getDynamicModelOptions = async (
     // Return empty array if no models found
     return [];
     
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 };
@@ -186,7 +186,7 @@ export const preInitializeModel = async (
 
     const data = await response.json();
     return data.success || false;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 };

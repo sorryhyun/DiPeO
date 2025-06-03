@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+/* eslint-env node */
 /**
  * Diagram conversion script using TypeScript serialization logic
  * Bridges Python CLI tool with sophisticated TypeScript converters

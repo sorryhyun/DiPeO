@@ -41,7 +41,7 @@ export interface ExecutionResult {
   success: boolean;
   context: ExecutionContext;
   metadata: ExecutionMetadata;
-  finalOutputs: Record<string, any>;
+  finalOutputs: Record<string, unknown>;
   errors: ExecutionError[];
 }
 
@@ -57,7 +57,7 @@ export interface ExecutionError {
   nodeId?: string;
   nodeType?: NodeType;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   timestamp: Date;
   stack?: string;
 }

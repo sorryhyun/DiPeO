@@ -127,7 +127,7 @@ export const useFileImport = () => {
             throw new Error('Failed to read file content');
           }
 
-          console.log('Import JSON: File content read', result.substring(0, 100) + '...');
+          console.log('Import JSON: File content read', `${result.substring(0, 100)  }...`);
           const diagramData = JSON.parse(result);
           console.log('Import JSON: Parsed data', diagramData);
           

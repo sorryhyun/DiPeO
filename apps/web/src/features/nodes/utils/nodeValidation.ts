@@ -55,7 +55,7 @@ export const validateNode = (node: Node): ValidationResult => {
   };
 };
 
-export const validateNodeData = (nodeType: string, data: any): ValidationResult => {
+export const validateNodeData = (nodeType: string, data: unknown): ValidationResult => {
   const errors: string[] = [];
   const warnings: string[] = [];
 

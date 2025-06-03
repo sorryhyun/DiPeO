@@ -20,7 +20,7 @@ export interface BaseFieldConfig {
   className?: string;
   conditional?: {
     field: string;
-    values: any[];
+    values: unknown[];
     operator?: 'equals' | 'notEquals' | 'includes';
   };
 }
@@ -35,7 +35,7 @@ export interface TextFieldConfig extends BaseFieldConfig {
 export interface SelectFieldConfig extends BaseFieldConfig {
   type: 'select';
   name: string;
-  options: Array<{ value: string; label: string }> | (() => Array<{ value: string; label: string }>) | (() => Promise<Array<{ value: string; label: string }>>) | ((formData: any) => Promise<Array<{ value: string; label: string }>>);
+  options: Array<{ value: string; label: string }> | (() => Array<{ value: string; label: string }>) | (() => Promise<Array<{ value: string; label: string }>>) | ((formData: unknown) => Promise<Array<{ value: string; label: string }>>);
   placeholder?: string;
   dependsOn?: string[]; // Fields that this select depends on - will reload when they change
 }
@@ -85,8 +85,8 @@ export interface RowFieldConfig extends BaseFieldConfig {
 
 export interface CustomFieldConfig extends BaseFieldConfig {
   type: 'custom';
-  component: React.ComponentType<any>;
-  props?: Record<string, any>;
+  component: React.ComponentType<unknown>;
+  props?: Record<string, unknown>;
 }
 
 export type FieldConfig = 
@@ -107,12 +107,12 @@ export interface ValidationRule<T> {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: any, formData: T) => string | null;
+  custom?: (value: unknown, formData: T) => string | null;
 }
 
 export type ValidationRules<T> = ValidationRule<T>[];
 
-export interface PanelConfig<T extends Record<string, any>> {
+export interface PanelConfig<T extends Record<string, unknown>> {
   layout: 'single' | 'twoColumn';
   fields?: FieldConfig[];        // For single column
   leftColumn?: FieldConfig[];    // For two column
@@ -121,7 +121,7 @@ export interface PanelConfig<T extends Record<string, any>> {
 }
 
 // Helper type to ensure config matches data type
-export type TypedPanelConfig<T extends Record<string, any>> = PanelConfig<T> & {
+export type TypedPanelConfig<T extends Record<string, unknown>> = PanelConfig<T> & {
   // This ensures the field names in the config match the data type
   _phantom?: T;
 };
