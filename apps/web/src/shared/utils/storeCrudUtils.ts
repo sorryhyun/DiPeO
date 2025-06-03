@@ -81,25 +81,6 @@ export function createCrudActions<T extends CrudItem>(
   };
 }
 
-/**
- * Creates named CRUD actions for a specific entity type
- */
-export function createNamedCrudActions<T extends CrudItem>(
-  getItems: () => T[],
-  setItems: (items: T[]) => void,
-  entityName: string,
-  idPrefix: string
-): Record<string, any> {
-  const baseCrud = createCrudActions(getItems, setItems, idPrefix);
-  
-  return {
-    [`add${entityName}`]: baseCrud.add,
-    [`update${entityName}`]: baseCrud.update,
-    [`delete${entityName}`]: baseCrud.delete,
-    [`get${entityName}ById`]: baseCrud.getById,
-    [`clear${entityName}s`]: baseCrud.clear
-  };
-}
 
 /**
  * Creates CRUD actions with exact method names for store interfaces
