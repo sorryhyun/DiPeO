@@ -28,7 +28,7 @@ export const API_BASE_URL = API_CONFIG.BASE_URL;
 // API Endpoints - Standardized with consistent kebab-case and logical grouping
 export const API_ENDPOINTS = {
   // Diagram execution (Unified Backend)
-  RUN_DIAGRAM: '/api/run-diagram',
+  RUN_DIAGRAM: '/api/diagrams/execute',
   EXECUTION_CAPABILITIES: '/api/execution-capabilities',
   EXECUTION_DETAILS: (id: string) => `/api/executions/${id}`,
   EXECUTION_STATE: (id: string) => `/api/executions/${id}/state`,
@@ -48,7 +48,7 @@ export const API_ENDPOINTS = {
   
   // Import/Export
   IMPORT_YAML: '/api/import-yaml', 
-  SAVE_DIAGRAM: '/api/save',
+  SAVE_DIAGRAM: '/api/diagrams/save',
   
   // Monitoring
   MONITOR_STREAM: '/api/monitor/stream',

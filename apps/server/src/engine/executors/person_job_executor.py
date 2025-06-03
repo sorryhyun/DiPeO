@@ -144,7 +144,7 @@ class PersonJobExecutor(BaseExecutor):
                     "execution_count": execution_count,
                     "passthrough": True
                 },
-                tokens=TokenUsage.from_response(response),
+                tokens=TokenUsage(),
                 execution_time=time.time() - start_time
             )
         
@@ -166,7 +166,7 @@ class PersonJobExecutor(BaseExecutor):
                 output=None,
                 error="No prompt available for execution",
                 metadata={"execution_count": execution_count},
-                tokens=TokenUsage.from_response(None),
+                tokens=TokenUsage(),
                 execution_time=time.time() - start_time
             )
         
@@ -220,7 +220,7 @@ class PersonJobExecutor(BaseExecutor):
                     "execution_count": execution_count,
                     "error": str(e)
                 },
-                tokens=TokenUsage.from_response(None),
+                tokens=TokenUsage(),
                 execution_time=time.time() - start_time
             )
 

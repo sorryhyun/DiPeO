@@ -92,56 +92,6 @@ export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
   }));
 };
 
-/**
- * Get model options for select fields
- * Fetches available models from the backend API
- */
-export const getModelOptions = async (): Promise<Array<{ value: string; label: string }>> => {
-  try {
-    const response = await fetch(getApiUrl(API_ENDPOINTS.MODELS));
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch models: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // If providers data is available, use that to create options
-    if (data.providers) {
-      const options: Array<{ value: string; label: string }> = [];
-      
-      Object.entries(data.providers).forEach(([provider, models]) => {
-        if (Array.isArray(models)) {
-          models.forEach((model: string) => {
-            options.push({
-              value: model,
-              label: `${model} (${provider})`
-            });
-          });
-        }
-      });
-      
-      return options;
-    }
-    
-    // If specific models are returned, use those
-    if (data.models && Array.isArray(data.models)) {
-      return data.models.map((model: string) => ({
-        value: model,
-        label: model
-      }));
-    }
-    
-    // Fallback to empty array if no models found
-    return [];
-    
-  } catch (error) {
-    console.error('Failed to fetch models from API:', error);
-    
-    // Return empty array on error - no confusing fallback models
-    return [];
-  }
-};
 
 /**
  * Get model options dynamically based on selected service and API key
@@ -176,7 +126,7 @@ export const getDynamicModelOptions = async (
     params.append('service', service);
     params.append('api_key_id', apiKeyId);
     
-    const url = `${getApiUrl(API_ENDPOINTS.MODELS)}?${params.toString()}`;
+    const url = `${getApiUrl(API_ENDPOINTS.MODELS(apiKeyId))}?${params.toString()}`;
     console.log('[Person Property Panel] Fetching models from:', url);
     
     const response = await fetch(url);

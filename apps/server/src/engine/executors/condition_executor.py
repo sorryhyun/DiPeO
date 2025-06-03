@@ -89,7 +89,6 @@ class ConditionExecutor(BaseExecutor):
                     "evaluatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "executionTime": execution_time
                 },
-                cost=0.0,
                 execution_time=execution_time
             )
         
@@ -111,7 +110,6 @@ class ConditionExecutor(BaseExecutor):
                     "inputs": inputs,
                     "error": str(e)
                 },
-                cost=0.0,
                 execution_time=time.time() - start_time
             )
     
