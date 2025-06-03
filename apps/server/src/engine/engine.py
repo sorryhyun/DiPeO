@@ -9,6 +9,7 @@ from .resolver import DependencyResolver
 from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager
 from .executors.base_executor import BaseExecutor, ExecutorFactory
+from ..utils.node_type_utils import normalize_node_type_to_backend
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +204,7 @@ class UnifiedExecutionEngine:
     ) -> Dict[str, Any]:
         """Execute a single node and update context"""
         node = context.nodes_by_id[node_id]
-        node_type = node["type"]
+        node_type = normalize_node_type_to_backend(node["type"])
         
         # Check if should skip
         if self.skip_manager.should_skip(node, context):

@@ -14,6 +14,7 @@ from ...services.api_key_service import APIKeyService
 from ...utils.dependencies import get_diagram_service, get_llm_service, get_file_service, get_api_key_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
+from ...utils.node_type_utils import is_start_node, normalize_node_type_to_backend, get_supported_backend_types
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +74,8 @@ async def run_diagram_v2(
     if not nodes:
         raise ValidationError("Diagram must contain at least one node")
     
-    # Check for start nodes
-    start_nodes = [node for node in nodes if node.get("type") == "start"]
+    # Check for start nodes using normalized type checking
+    start_nodes = [node for node in nodes if is_start_node(node.get("type", ""))]
     if not start_nodes:
         raise ValidationError("Diagram must contain at least one start node")
     
@@ -94,12 +95,18 @@ async def run_diagram_v2(
     )
     
     # Load API keys for LLM calls
-    api_keys = await api_key_service.get_all_api_keys()
+    api_keys_list = api_key_service.list_api_keys()
+    
+    # Get actual key values for each API key
+    api_keys_dict = {}
+    for key_info in api_keys_list:
+        full_key_data = api_key_service.get_api_key(key_info["id"])
+        api_keys_dict[key_info["id"]] = full_key_data["key"]
     
     # Create diagram with API keys context
     enhanced_diagram = {
         **diagram,
-        "api_keys": {key["name"]: key["key"] for key in api_keys}
+        "api_keys": api_keys_dict
     }
     
     # Stream execution updates
@@ -148,17 +155,7 @@ async def get_execution_capabilities():
     return {
         "version": "2.0",
         "execution_model": "unified_backend",
-        "supported_node_types": [
-            "start",
-            "condition", 
-            "job",
-            "endpoint",
-            "personjob",
-            "person_job",
-            "personbatchjob", 
-            "person_batch_job",
-            "db"
-        ],
+        "supported_node_types": get_supported_backend_types(),
         "features": {
             "streaming_execution": True,
             "parallel_execution": True,

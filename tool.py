@@ -24,7 +24,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                 # Use V2 streaming endpoint
                 async with session.post(
                     f"{API_URL}/api/v2/run-diagram",
-                    json=diagram,
+                    json={"diagram": diagram},
                     headers={"Content-Type": "application/json", "Accept": "text/event-stream"}
                 ) as response:
                     if response.status != 200:
@@ -74,7 +74,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                 # Use V2 non-streaming endpoint (fallback to V1 if V2 not available)
                 async with session.post(
                     f"{API_URL}/api/v2/run-diagram",
-                    json=diagram,
+                    json={"diagram": diagram},
                     headers={"Content-Type": "application/json"}
                 ) as response:
                     if response.status == 404:

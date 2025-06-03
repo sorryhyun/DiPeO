@@ -6,6 +6,7 @@ import { useNodeArrowStore, usePersonStore } from '@/core/stores';
 import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/shared/types';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
+import { useExport } from '@/serialization/hooks/useExport';
 import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
 import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
 
@@ -42,9 +43,10 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
   const { handleImportYAML } = useFileImport();
+  const { onExportYAML, onExportLLMYAML } = useExport();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
-  const [importExpanded, setImportExpanded] = useState(true);
+  const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId);
@@ -166,20 +168,20 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         )}
       </div>
       
-      {/* Import Section */}
+      {/* File Operations Section */}
       <div>
         <h3 
           className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg mb-2 transition-colors duration-200"
-          onClick={() => setImportExpanded(!importExpanded)}
+          onClick={() => setFileOperationsExpanded(!fileOperationsExpanded)}
         >
           <span className="flex items-center gap-2">
             <span className="text-base">📁</span>
-            <span className="text-base font-medium">Import</span>
+            <span className="text-base font-medium">File Operations</span>
           </span>
-          {importExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
+          {fileOperationsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
         </h3>
-        {importExpanded && (
-          <div className="px-2">
+        {fileOperationsExpanded && (
+          <div className="px-2 space-y-2">
             <FileUploadButton
               accept=".yaml,.yml"
               onChange={handleImportYAML}
@@ -187,8 +189,26 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
             >
-              <span className="mr-1">📄</span> Import YAML
+              <span className="mr-1">📥</span> Import YAML
             </FileUploadButton>
+            <Button
+              variant="outline"
+              className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
+              size="sm"
+              onClick={onExportYAML}
+              title="Export to YAML format (download)"
+            >
+              <span className="mr-1">📤</span> Export YAML
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
+              size="sm"
+              onClick={onExportLLMYAML}
+              title="Export to LLM-friendly YAML format (download)"
+            >
+              <span className="mr-1">🤖</span> Export LLM YAML
+            </Button>
           </div>
         )}
       </div>

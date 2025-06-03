@@ -152,8 +152,12 @@ export const useNodeArrowStore = create<NodeArrowState>()(
               kind: 'ALL' as const,
               template: '',
               conversationState: false,
-              label: 'New Arrow',
+              label: isFromConditionBranch ? connection.sourceHandle! : 'New Arrow',
               contentType,
+              // Set branch property for condition node arrows
+              ...(isFromConditionBranch && {
+                branch: connection.sourceHandle as 'true' | 'false'
+              })
             }
           };
           set({ arrows: addArrow(newArrow, get().arrows) });
@@ -236,7 +240,9 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                   ...arrow,
                   data: {
                     ...arrow.data,
-                    contentType: 'generic' as const
+                    contentType: 'generic' as const,
+                    // Set branch property for condition node arrows
+                    branch: arrow.sourceHandle as 'true' | 'false'
                   }
                 };
               }

@@ -25,8 +25,8 @@ const TopBar = () => {
   const clearDiagram = useDiagramOperationsStore(state => state.clearDiagram);
   const clearMonitorDiagram = useMonitorStore(state => state.clearMonitorDiagram);
   const storeIsMonitorMode = useMonitorStore(state => state.isMonitorMode);
-  const { onImportYAML, onImportJSON } = useFileImport();
-  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onExportJSON } = useExport();
+  const { onImportJSON } = useFileImport();
+  const { onSaveToDirectory } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
   const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
   
@@ -118,42 +118,6 @@ const TopBar = () => {
             💾 Save
           </Button>
           
-          <div className="border-l border-gray-300 h-6 mx-2" />
-          
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={onExportYAML}
-            title="Export to YAML format (download)"
-          >
-            📤 Export YAML
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
-            onClick={onExportLLMYAML}
-            title="Export to LLM-friendly YAML format (download)"
-          >
-            🤖 Export LLM YAML
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
-            onClick={onExportJSON}
-            title="Export to JSON format (download)"
-          >
-            📋 Export JSON
-          </Button>
-          <FileUploadButton
-            accept=".yaml,.yml"
-            onChange={onImportYAML}
-            variant="outline"
-            className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            title="Import from YAML format (supports both standard and LLM-friendly formats)"
-          >
-            📥 Import YAML
-          </FileUploadButton>
-
           <div className="border-l border-gray-300 h-6 mx-2" />
           
           <Button 

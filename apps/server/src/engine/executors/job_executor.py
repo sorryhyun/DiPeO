@@ -207,17 +207,17 @@ else:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
                 # Write execution script
                 f.write(f"""
-const inputs = {json.dumps(inputs)};
-
-{code}
-
-// Output result as JSON
-if (typeof result !== 'undefined') {{
-    console.log(JSON.stringify(result));
-}} else {{
-    console.log(JSON.stringify(null));
-}}
-""")
+                    const inputs = {json.dumps(inputs)};
+                    
+                    {code}
+                    
+                    // Output result as JSON
+                    if (typeof result !== 'undefined') {{
+                        console.log(JSON.stringify(result));
+                    }} else {{
+                        console.log(JSON.stringify(null));
+                    }}
+                    """)
                 f.flush()
                 
                 # Execute in subprocess with timeout
