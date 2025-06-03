@@ -41,7 +41,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
   
   // Determine entity type based on data.type
-  const getEntityType = (dataType: string): 'node' | 'arrow' | 'person' => {
+  const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
     if (dataType === 'arrow') return 'arrow';
     if (dataType === 'person') return 'person';
     return 'node';
@@ -193,7 +193,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     }
 
     // Update the form data - always allow updating fields (including new optional fields)
-    handleChange(name as keyof T, value);
+    handleChange(name as keyof T, value as T[keyof T]);
     
     // If this is a model selection for a person entity and we have all required data, pre-initialize the model
     if (data.type === 'person' && name === 'modelName') {
@@ -269,7 +269,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
           <InlineTextField
             key={key}
             label={fieldConfig.label || ''}
-            value={formData[fieldConfig.name] || ''}
+            value={String(formData[fieldConfig.name] || '')}
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
@@ -322,7 +322,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
           <InlineSelectField
             key={selectKey}
             label={fieldConfig.label || ''}
-            value={formData[fieldConfig.name] || ''}
+            value={String(formData[fieldConfig.name] || '')}
             onChange={(v) => {
               updateField(fieldConfig.name, v);
             }}
@@ -339,7 +339,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
           <TextAreaField
             key={key}
             label={fieldConfig.label || ''}
-            value={formData[fieldConfig.name] || ''}
+            value={String(formData[fieldConfig.name] || '')}
             onChange={(v) => updateField(fieldConfig.name, v)}
             rows={fieldConfig.rows}
             placeholder={fieldConfig.placeholder}
@@ -365,11 +365,11 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
           <VariableDetectionTextArea
             key={key}
             label={fieldConfig.label || ''}
-            value={formData[fieldConfig.name] || ''}
+            value={String(formData[fieldConfig.name] || '')}
             onChange={(v) => updateField(fieldConfig.name, v)}
             rows={fieldConfig.rows}
             placeholder={fieldConfig.placeholder}
-            detectedVariables={data.detectedVariables}
+            detectedVariables={data.detectedVariables as string[] | undefined}
             disabled={isMonitorMode}
           />
         );
@@ -379,9 +379,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         return (
           <LabelPersonRow
             key={key}
-            labelValue={formData.label || ''}
+            labelValue={String(formData.label || '')}
             onLabelChange={(v) => updateField('label', v)}
-            personValue={formData.personId || ''}
+            personValue={String(formData.personId || '')}
             onPersonChange={(v) => updateField('personId', v)}
             labelPlaceholder={fieldConfig.labelPlaceholder}
             personPlaceholder={fieldConfig.personPlaceholder}
@@ -394,7 +394,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         return (
           <IterationCountField
             key={key}
-            value={formData[fieldConfig.name] || 1}
+            value={Number(formData[fieldConfig.name]) || 1}
             onChange={(v) => updateField(fieldConfig.name, v)}
             min={fieldConfig.min}
             max={fieldConfig.max}
@@ -409,7 +409,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         return (
           <PersonSelectionField
             key={key}
-            value={formData[fieldConfig.name] || ''}
+            value={String(formData[fieldConfig.name] || '')}
             onChange={(v) => updateField(fieldConfig.name, v)}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
@@ -428,13 +428,17 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
 
       case 'custom': {
         // For complex custom components
-        const CustomComponent = fieldConfig.component;
+        const CustomComponent = fieldConfig.component as React.ComponentType<{
+          formData: T;
+          handleChange: (name: string, value: unknown) => Promise<void>;
+          [key: string]: unknown;
+        }>;
         return (
           <CustomComponent
             key={key}
             formData={formData}
             handleChange={updateField}
-            {...fieldConfig.props}
+            {...(fieldConfig.props || {})}
           />
         );
       }
