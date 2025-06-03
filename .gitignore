@@ -24,8 +24,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 .pnpm-store/
-diagrams/
-prompts/
 # Build outputs
 dist/
 build/
@@ -57,18 +55,15 @@ apps/server/__pycache__/
 apps/server/src/__pycache__/
 apps/server/src/*/__pycache__/
 apps/web/dist/
-uploads/
-results/
-conversation_logs/
+# Project file storage - consolidated under files/
+files/
 apikeys.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
 .claude
 example.yaml
-prompts/notion.yaml
 TODO.md
 MIGRATION_PLAN.md
-diagram_monitor
 AGENTS.md
 CLAUDE.local.md
 # Temporary files

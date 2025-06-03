@@ -1,6 +1,6 @@
 // apps/web/src/components/diagram/MemoryLayer.tsx
 import React from 'react';
-import { usePersonStore, useNodeArrowStore, useExecutionStore } from '@/core/stores';
+import { usePersonStore, useNodeArrowStore, useExecutionStore } from '@/global/stores';
 import { Users, MessageSquare, Database } from 'lucide-react';
 
 const MemoryLayer: React.FC = () => {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useDiagramOperationsStore } from '@/core/stores';
+import { useDiagramOperationsStore } from '@/global/stores';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';

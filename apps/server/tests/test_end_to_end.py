@@ -5,7 +5,7 @@ import time
 import asyncio
 from pathlib import Path
 
-from apps.server.src.engine.engine import UnifiedExecutionEngine
+from ..src.engine.engine import UnifiedExecutionEngine
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
@@ -390,7 +390,7 @@ class TestCompleteExecutionFlows:
         
         # Verify condition was evaluated
         context = result['context']
-        assert 'condition1' in context['conditionValues']
+        assert 'condition1' in context['condition_values']
     
     @pytest.mark.asyncio
     async def test_iterative_improvement_workflow(self, e2e_engine):

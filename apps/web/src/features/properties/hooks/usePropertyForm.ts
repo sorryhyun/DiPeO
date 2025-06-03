@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNodeArrowStore } from '@/core/stores';
+import { useNodeArrowStore } from '@/global/stores';
 
 // Base property form hook
 export function usePropertyFormBase<T extends Record<string, any>>(

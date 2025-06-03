@@ -27,4 +27,4 @@ export type { DiagramOperationsState } from './diagramOperationsStore';
 
 // Hooks from other directories
 // export { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions'; // Removed - use direct imports from serialization hooks
-export { useHistoryActions } from '@/core/hooks/useHistoryActions';
+export { useHistoryActions } from '@/global/hooks/useHistoryActions';

@@ -2,8 +2,8 @@
 import React, { useState, Suspense } from 'react';
 import { Button } from '@/shared/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useNodeArrowStore, usePersonStore } from '@/core/stores';
-import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
+import { useNodeArrowStore, usePersonStore } from '@/global/stores';
+import { usePersons, useSelectedElement, useUIState } from '@/global/hooks/useStoreSelectors';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/shared/types';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
 import { useExport } from '@/serialization/hooks/useExport';

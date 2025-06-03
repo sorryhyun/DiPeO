@@ -496,8 +496,8 @@ def main():
             result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream)
 
             # Save results
-            Path('results').mkdir(exist_ok=True)
-            output_file = 'results/results.json'
+            Path('files/results').mkdir(exist_ok=True)
+            output_file = 'files/results/results.json'
             with open(output_file, 'w') as f:
                 json.dump(result, f, indent=2)
             print(f"  Results saved to: {output_file}")
@@ -518,8 +518,8 @@ def main():
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
             
             # Save results
-            Path('results').mkdir(exist_ok=True)
-            output_file = 'results/results.json'
+            Path('files/results').mkdir(exist_ok=True)
+            output_file = 'files/results/results.json'
             with open(output_file, 'w') as f:
                 json.dump(result, f, indent=2)
             print(f"  Results saved to: {output_file}")
@@ -617,8 +617,8 @@ def main():
                     print(f"    ... and {len(analysis['forget_rule_violations']) - 5} more")
 
             # Save detailed analysis
-            Path('results').mkdir(exist_ok=True)
-            analysis_file = 'results/forget_rule_analysis.json'
+            Path('files/results').mkdir(exist_ok=True)
+            analysis_file = 'files/results/forget_rule_analysis.json'
             with open(analysis_file, 'w') as f:
                 json.dump(analysis, f, indent=2)
             print(f"\n  Detailed analysis saved to: {analysis_file}")
@@ -641,7 +641,7 @@ def main():
                 print(f"  Context keys: {list(result['context'].keys())}")
 
             # Save results
-            Path('results').mkdir(exist_ok=True)
+            Path('files/results').mkdir(exist_ok=True)
             output_file = sys.argv[3] if len(sys.argv) > 3 else 'results/results.json'
             with open(output_file, 'w') as f:
                 json.dump(result, f, indent=2)
@@ -649,7 +649,7 @@ def main():
 
             # Now check forget rules in conversation logs
             print(f"\n🔍 Checking forget rule compliance...")
-            analysis = analyze_conversation_logs("conversation_logs")
+            analysis = analyze_conversation_logs("files/conversation_logs")
 
             if "error" not in analysis:
                 print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")

@@ -39,8 +39,8 @@ def mock_services_patch():
 class TestDiagramExecutionAPI:
     """Test diagram execution API endpoints."""
     
-    def test_v1_run_diagram_simple(self, client, mock_services_patch):
-        """Test V1 diagram execution API with simple diagram."""
+    def test_run_diagram_simple(self, client, mock_services_patch):
+        """Test diagram execution API with simple diagram."""
         diagram = DiagramFixtures.simple_linear_diagram()
         
         response = client.post("/api/v2/run-diagram", json=diagram)
@@ -52,8 +52,8 @@ class TestDiagramExecutionAPI:
         assert "total_cost" in result
         assert result["total_cost"] >= 0
     
-    def test_v1_run_diagram_branching(self, client, mock_services_patch):
-        """Test V1 diagram execution with branching."""
+    def test_run_diagram_branching(self, client, mock_services_patch):
+        """Test diagram execution with branching."""
         diagram = DiagramFixtures.branching_diagram()
         
         response = client.post("/api/v2/run-diagram", json=diagram)
@@ -64,8 +64,8 @@ class TestDiagramExecutionAPI:
         assert "context" in result
         assert result["total_cost"] >= 0
     
-    def test_v1_run_diagram_invalid(self, client, mock_services_patch):
-        """Test V1 diagram execution with invalid diagram."""
+    def test_run_diagram_invalid(self, client, mock_services_patch):
+        """Test diagram execution with invalid diagram."""
         invalid_diagram = {
             "nodes": [],  # Empty nodes
             "arrows": [],

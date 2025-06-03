@@ -3,14 +3,14 @@
 import pytest
 from unittest.mock import patch
 
-from apps.server.src.engine.executors import StartExecutor
-from apps.server.src.engine.executors import ConditionExecutor
-from apps.server.src.engine.executors import JobExecutor
-from apps.server.src.engine.executors import EndpointExecutor
-from apps.server.src.engine.executors import PersonJobExecutor
-from apps.server.src.engine.executors import DBExecutor
-from apps.server.src.engine.executors import ExecutorFactory
-from apps.server.src.engine.engine import ExecutionContext
+from ..src.engine.executors import StartExecutor
+from ..src.engine.executors import ConditionExecutor
+from ..src.engine.executors import JobExecutor
+from ..src.engine.executors import EndpointExecutor
+from ..src.engine.executors import PersonJobExecutor
+from ..src.engine.executors import DBExecutor
+from ..src.engine.executors import ExecutorFactory
+from ..src.engine.engine import ExecutionContext
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
 
@@ -28,15 +28,15 @@ def mock_services():
 def execution_context():
     """Create basic execution context for testing."""
     return ExecutionContext(
-        nodeOutputs={},
-        nodeExecutionCounts={},
-        conditionValues={},
-        firstOnlyConsumed={},
-        executionOrder=[],
-        totalCost=0.0,
-        nodesById={},
-        incomingArrows={},
-        outgoingArrows={}
+        node_outputs={},
+        node_execution_counts={},
+        condition_values={},
+        first_only_consumed={},
+        execution_order=[],
+        total_cost=0.0,
+        nodes_by_id={},
+        incoming_arrows={},
+        outgoing_arrows={}
     )
 
 
@@ -144,8 +144,8 @@ class TestConditionExecutor:
         }
         
         # Set up context with iteration counts
-        execution_context.nodeExecutionCounts = {"person1": 2, "person2": 3}
-        execution_context.nodesById = {
+        execution_context.node_execution_counts = {"person1": 2, "person2": 3}
+        execution_context.nodes_by_id = {
             "person1": {"data": {"maxIterations": 3}},
             "person2": {"data": {"maxIterations": 3}}
         }
@@ -376,43 +376,43 @@ class TestExecutionContext:
     def test_execution_context_initialization(self):
         """Test proper initialization of execution context."""
         context = ExecutionContext(
-            nodeOutputs={},
-            nodeExecutionCounts={},
-            conditionValues={},
-            firstOnlyConsumed={},
-            executionOrder=[],
-            totalCost=0.0,
-            nodesById={},
-            incomingArrows={},
-            outgoingArrows={}
+            node_outputs={},
+            node_execution_counts={},
+            condition_values={},
+            first_only_consumed={},
+            execution_order=[],
+            total_cost=0.0,
+            nodes_by_id={},
+            incoming_arrows={},
+            outgoing_arrows={}
         )
         
-        assert isinstance(context.nodeOutputs, dict)
-        assert isinstance(context.nodeExecutionCounts, dict)
-        assert isinstance(context.conditionValues, dict)
-        assert isinstance(context.firstOnlyConsumed, dict)
-        assert isinstance(context.executionOrder, list)
-        assert context.totalCost == 0.0
-        assert isinstance(context.nodesById, dict)
-        assert isinstance(context.incomingArrows, dict)
-        assert isinstance(context.outgoingArrows, dict)
+        assert isinstance(context.node_outputs, dict)
+        assert isinstance(context.node_execution_counts, dict)
+        assert isinstance(context.condition_values, dict)
+        assert isinstance(context.first_only_consumed, dict)
+        assert isinstance(context.execution_order, list)
+        assert context.total_cost == 0.0
+        assert isinstance(context.nodes_by_id, dict)
+        assert isinstance(context.incoming_arrows, dict)
+        assert isinstance(context.outgoing_arrows, dict)
     
     def test_execution_context_cost_tracking(self):
         """Test cost tracking in execution context."""
         context = ExecutionContext(
-            nodeOutputs={},
-            nodeExecutionCounts={},
-            conditionValues={},
-            firstOnlyConsumed={},
-            executionOrder=[],
-            totalCost=0.0,
-            nodesById={},
-            incomingArrows={},
-            outgoingArrows={}
+            node_outputs={},
+            node_execution_counts={},
+            condition_values={},
+            first_only_consumed={},
+            execution_order=[],
+            total_cost=0.0,
+            nodes_by_id={},
+            incoming_arrows={},
+            outgoing_arrows={}
         )
         
         # Simulate adding costs
-        context.totalCost += 0.01
-        context.totalCost += 0.02
+        context.total_cost += 0.01
+        context.total_cost += 0.02
         
-        assert context.totalCost == 0.03
+        assert context.total_cost == 0.03

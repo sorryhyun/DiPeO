@@ -28,13 +28,13 @@ export const API_BASE_URL = API_CONFIG.BASE_URL;
 // API Endpoints - Standardized with consistent kebab-case and logical grouping
 export const API_ENDPOINTS = {
   // Diagram execution (Unified Backend)
-  RUN_DIAGRAM: '/api/v2/run-diagram',
-  EXECUTION_CAPABILITIES: '/api/v2/execution-capabilities',
-  EXECUTION_DETAILS: (id: string) => `/api/v2/executions/${id}`,
-  EXECUTION_STATE: (id: string) => `/api/v2/executions/${id}/state`,
-  PAUSE_EXECUTION: (id: string) => `/api/v2/executions/${id}/pause`,
-  RESUME_EXECUTION: (id: string) => `/api/v2/executions/${id}/resume`,
-  HEALTH: '/api/v2/health',
+  RUN_DIAGRAM: '/api/run-diagram',
+  EXECUTION_CAPABILITIES: '/api/execution-capabilities',
+  EXECUTION_DETAILS: (id: string) => `/api/executions/${id}`,
+  EXECUTION_STATE: (id: string) => `/api/executions/${id}/state`,
+  PAUSE_EXECUTION: (id: string) => `/api/executions/${id}/pause`,
+  RESUME_EXECUTION: (id: string) => `/api/executions/${id}/resume`,
+  HEALTH: '/api/health',
   
   // Resource management  
   API_KEYS: '/api/keys',

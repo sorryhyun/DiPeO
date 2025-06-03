@@ -2,19 +2,19 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from '@/features/layout';
-import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import { DiagramCanvasSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
-import { useExecutionMonitor } from '@/core/hooks/useExecutionMonitor';
-import { DiagramProvider } from '@/core/contexts/DiagramContext';
-import { useMonitorStore } from '@/core/stores';
+import { useExecutionMonitor } from '@/global/hooks/useExecutionMonitor';
+import { DiagramProvider } from '@/global/contexts/DiagramContext';
+import { useMonitorStore } from '@/global/stores';
+import { useUIState } from '@/global/hooks/useStoreSelectors';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas/components/Canvas'));
-const LazyIntegratedDashboard = React.lazy(() => import('@/features/layout/components/IntegratedDashboard'));
+const LazyDiagramCanvas = React.lazy(() => import('@/diagramCanvas').then(module => ({ default: module.DiagramCanvas })));
+const LazyMemoryCanvas = React.lazy(() => import('@/memoryCanvas').then(module => ({ default: module.MemoryCanvas })));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 
 function App() {
   const { setMonitorMode } = useMonitorStore();
+  const { activeCanvas } = useUIState();
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,26 +41,25 @@ function App() {
               <Sidebar position="left" />
             </div>
 
-            {/* Right Content - Canvas + Dashboard */}
+            {/* Right Content - Canvas switching based on activeCanvas */}
             <div className="flex-1 flex flex-col">
-              <PanelGroup direction="vertical">
-                {/* Canvas Panel */}
-                <Panel defaultSize={65} minSize={30}>
-                  <Suspense fallback={<DiagramCanvasSkeleton />}>
-                    <LazyDiagramCanvas />
-                  </Suspense>
-                </Panel>
-
-                {/* Resizable Handle */}
-                <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
-
-                {/* Dashboard Panel */}
-                <Panel defaultSize={35} minSize={20}>
-                  <Suspense fallback={<div className="h-full bg-white flex items-center justify-center animate-pulse"><div className="text-gray-500">Loading dashboard...</div></div>}>
-                    <LazyIntegratedDashboard />
-                  </Suspense>
-                </Panel>
-              </PanelGroup>
+              {activeCanvas === 'diagram' ? (
+                <Suspense fallback={
+                  <div className="h-full bg-gradient-to-br from-slate-50 to-sky-100 flex items-center justify-center">
+                    <div className="text-gray-500 animate-pulse">Loading diagram canvas...</div>
+                  </div>
+                }>
+                  <LazyDiagramCanvas />
+                </Suspense>
+              ) : (
+                <Suspense fallback={
+                  <div className="h-full bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center">
+                    <div className="text-gray-400 animate-pulse">Loading memory canvas...</div>
+                  </div>
+                }>
+                  <LazyMemoryCanvas />
+                </Suspense>
+              )}
             </div>
           </div>
         </div>

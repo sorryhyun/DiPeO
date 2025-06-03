@@ -1,4 +1,4 @@
-// Core app infrastructure exports
+// Global app infrastructure exports
 
 // Stores
 export * from './stores';
@@ -6,5 +6,5 @@ export * from './stores';
 // Contexts  
 export * from './contexts/DiagramContext';
 
-// Core hooks
+// Global hooks
 export * from './hooks';

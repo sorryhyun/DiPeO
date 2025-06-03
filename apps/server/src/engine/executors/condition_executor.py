@@ -7,12 +7,12 @@ import time
 import re
 import logging
 
-from .base_executor import ClientSafeExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
 
 logger = logging.getLogger(__name__)
 
 
-class ConditionExecutor(ClientSafeExecutor):
+class ConditionExecutor(BaseExecutor):
     """
     Condition node executor that evaluates boolean expressions or checks max iterations.
     Supports two modes:

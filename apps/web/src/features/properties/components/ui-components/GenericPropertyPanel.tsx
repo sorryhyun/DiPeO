@@ -18,7 +18,7 @@ import {
   VariableDetectionTextArea
 } from './FormComponents';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
-import { useMonitorStore } from '@/core/stores';
+import { useMonitorStore } from '@/global/stores';
 
 interface GenericPropertyPanelProps<T extends Record<string, any>> {
   nodeId: string;

@@ -1,8 +1,7 @@
 // Integrated dashboard combining conversation view and properties panel with tabs
 import React, { Suspense } from 'react';
 import { MessageSquare, Settings } from 'lucide-react';
-import { useNodes, useArrows, usePersons, useUIState, useSelectedElement } from '@/core/hooks/useStoreSelectors';
-import { ConversationSkeleton, PropertiesSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
+import { useNodes, useArrows, usePersons, useUIState, useSelectedElement } from '@/global/hooks/useStoreSelectors';
 
 // Lazy load heavy components
 const ConversationDashboard = React.lazy(() => import('../../conversation/components/ConversationDashboard'));
@@ -62,14 +61,34 @@ const IntegratedDashboard: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         {dashboardTab === 'conversation' && (
           <div className="h-full">
-            <Suspense fallback={<ConversationSkeleton />}>
+            <Suspense fallback={
+              <div className="h-full bg-white p-4">
+                <div className="space-y-4">
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-32 bg-gray-100 rounded animate-pulse"></div>
+                  <div className="h-32 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+              </div>
+            }>
               <ConversationDashboard />
             </Suspense>
           </div>
         )}
         {dashboardTab === 'properties' && (
           <div className="flex-1 overflow-y-auto">
-            <Suspense fallback={<PropertiesSkeleton />}>
+            <Suspense fallback={
+              <div className="p-4 space-y-4">
+                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+                  <div className="h-10 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+                  <div className="h-10 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+              </div>
+            }>
               <PropertiesRenderer
                 selectedNodeId={selectedNodeId}
                 selectedArrowId={selectedArrowId}

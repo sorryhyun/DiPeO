@@ -1,6 +1,6 @@
 import React from 'react';
 import { CustomArrow as CustomArrowBase } from './ui-components/Arrow';
-import { useArrowDataUpdater } from '@/core/hooks/useStoreSelectors';
+import { useArrowDataUpdater } from '@/global/hooks/useStoreSelectors';
 import { ArrowData } from '@/shared/types';
 
 // Re-export types from local ui-components

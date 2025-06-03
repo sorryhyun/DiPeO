@@ -1,20 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 import json
 import inspect
 from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
 
-from ...services.diagram_service import DiagramService
 from apps.server.src.engine.engine import UnifiedExecutionEngine
 from ...services.llm_service import LLMService
 from ...services.file_service import FileService
 from ...services.api_key_service import APIKeyService
-from ...utils.dependencies import get_diagram_service, get_llm_service, get_file_service, get_api_key_service
+from ...utils.dependencies import get_llm_service, get_file_service, get_api_key_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
-from ...utils.node_type_utils import is_start_node, normalize_node_type_to_backend, get_supported_backend_types
+from ...utils.node_type_utils import is_start_node, get_supported_backend_types
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ def safe_json_dumps(obj):
 
 # V2 Unified Execution Endpoints
 
-@router.post("/v2/run-diagram")
+@router.post("/run-diagram")
 @handle_api_errors
 async def run_diagram_v2(
     diagram: Dict[str, Any],
@@ -148,7 +147,7 @@ async def run_diagram_v2(
 
 
 
-@router.get("/v2/execution-capabilities")
+@router.get("/execution-capabilities")
 @handle_api_errors
 async def get_execution_capabilities():
     """Get information about execution capabilities and supported node types"""
@@ -172,7 +171,7 @@ async def get_execution_capabilities():
     }
 
 
-@router.get("/v2/health")
+@router.get("/health")
 @handle_api_errors
 async def health_check():
     """Health check endpoint for V2 API"""
@@ -188,99 +187,3 @@ async def health_check():
 
 
 
-@router.post("/import-yaml") 
-async def import_yaml(
-    payload: dict,
-    diagram_service: DiagramService = Depends(get_diagram_service)
-):
-    """Import YAML agent definitions and return a diagram state."""
-    yaml_text = payload.get('yaml', '')
-    return diagram_service.import_yaml(yaml_text)
-
-
-
-
-@router.post("/save")
-async def save_diagram(
-    payload: dict
-):
-    """Save diagram to file."""
-    from pathlib import Path
-    import yaml
-    
-    diagram = payload.get('diagram', {})
-    filename = payload.get('filename', 'diagram.json')
-    file_format = payload.get('format', 'json')
-    
-    try:
-        # Initialize file service
-        file_service = FileService()
-        
-        # Ensure filename has correct extension
-        file_path = Path(filename)
-        if file_format == 'yaml' and not file_path.suffix.lower() in ['.yaml', '.yml']:
-            file_path = file_path.with_suffix('.yaml')
-        elif file_format == 'json' and file_path.suffix.lower() not in ['.json']:
-            file_path = file_path.with_suffix('.json')
-        
-        # Prepare file path in diagrams directory
-        save_path = f"diagrams/{file_path.name}"
-        
-        # Save based on format
-        if file_format == 'yaml':
-            # Convert diagram to YAML format
-            yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
-            saved_path = await file_service.write(save_path, yaml_content, relative_to="base", format="text")
-        else:
-            # Save as JSON
-            saved_path = await file_service.write(save_path, diagram, relative_to="base", format="json")
-        
-        return {
-            "success": True,
-            "message": f"Diagram saved successfully as {file_format.upper()}",
-            "path": saved_path
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
-@router.post("/diagram-stats")
-async def get_diagram_stats(
-    payload: dict
-):
-    """Analyze diagram and return statistics."""
-    diagram = payload.get('diagram', {})
-    
-    try:
-        # Basic stats calculation
-        nodes = diagram.get('nodes', [])
-        arrows = diagram.get('arrows', [])
-        
-        node_types = {}
-        for node in nodes:
-            node_type = node.get('type', 'unknown')
-            node_types[node_type] = node_types.get(node_type, 0) + 1
-        
-        stats = {
-            "node_count": len(nodes),
-            "arrow_count": len(arrows),
-            "node_types": node_types,
-            "persons": len([n for n in nodes if n.get('type') == 'personNode']),
-            "jobs": len([n for n in nodes if n.get('type') == 'jobNode']),
-            "databases": len([n for n in nodes if n.get('type') == 'dbNode']),
-            "conditions": len([n for n in nodes if n.get('type') == 'conditionNode'])
-        }
-        
-        return {
-            "success": True,
-            "stats": stats
-        }
-    except Exception as e:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "error": str(e)
-            }
-        )

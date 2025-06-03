@@ -6,13 +6,13 @@ from typing import Dict, Any
 import time
 import logging
 
-from .base_executor import ClientSafeExecutor, ValidationResult, ExecutorResult
-from apps.server.src.services.file_service import FileService
+from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from ...services.file_service import FileService
 
 logger = logging.getLogger(__name__)
 
 
-class EndpointExecutor(ClientSafeExecutor):
+class EndpointExecutor(BaseExecutor):
     """
     Endpoint node executor that handles terminal nodes with optional file saving.
     Endpoint nodes mark the end of execution flows and can save results to files.

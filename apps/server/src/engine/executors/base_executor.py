@@ -231,28 +231,6 @@ class BaseExecutor(ABC):
                 downstream.append(target_id)
         
         return downstream
-
-
-class ClientSafeExecutor(BaseExecutor):
-    """
-    Base class for executors that can run safely on the client side.
-    These executors should not access external resources or sensitive operations.
-    """
-    
-    def is_client_safe(self) -> bool:
-        """Indicates this executor is safe for client-side execution"""
-        return True
-
-
-class ServerOnlyExecutor(BaseExecutor):
-    """
-    Base class for executors that must run on the server.
-    These executors may access external APIs, databases, or file systems.
-    """
-    
-    def is_client_safe(self) -> bool:
-        """Indicates this executor requires server-side execution"""
-        return False
     
     async def check_api_keys(self, required_keys: List[str], context: 'ExecutionContext') -> ValidationResult:
         """
@@ -278,6 +256,8 @@ class ServerOnlyExecutor(BaseExecutor):
             is_valid=len(errors) == 0,
             errors=errors
         )
+
+
 
 
 class ExecutorFactory:
@@ -357,9 +337,3 @@ class ExecutorFactory:
             from .db_executor import DBExecutor
             self.register_executor("db", DBExecutor(file_service))
     
-    def is_client_safe_node(self, node_type: str) -> bool:
-        """Check if a node type can be executed client-side"""
-        executor = self._executors.get(node_type)
-        if executor and hasattr(executor, 'is_client_safe'):
-            return executor.is_client_safe()
-        return False

@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
-import { useHistoryStore } from '@/core/stores';
+import { useHistoryStore } from '@/global/stores';
 import {
   useContextMenu,
   useKeyboardShortcuts,
@@ -22,7 +22,6 @@ import {
 import { roundPosition } from '../utils/canvasUtils';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
 import { DiagramNode, Arrow } from '@/shared/types';
-import { MemoryLayerSkeleton } from '@/shared/components/skeletons/SkeletonComponents';
 
 // Lazy load memory layer  
 const MemoryLayer = React.lazy(() => import('./MemoryLayer'));
@@ -32,7 +31,7 @@ import {
   useExecutionStatus,
   useUIState,
   usePersons
-} from '@/core/hooks/useStoreSelectors';
+} from '@/global/hooks/useStoreSelectors';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
@@ -211,7 +210,11 @@ const DiagramCanvas: React.FC = () => {
           transform: 'translateZ(-200px)',
         }}
       >
-        <Suspense fallback={<MemoryLayerSkeleton />}>
+        <Suspense fallback={
+          <div className="h-full bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center">
+            <div className="text-gray-400 animate-pulse">Loading memory layer...</div>
+          </div>
+        }>
           <MemoryLayer />
         </Suspense>
       </div>

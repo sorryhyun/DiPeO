@@ -1,4 +1,4 @@
-import { useConsolidatedUIStore } from '@/core/stores/consolidatedUIStore';
+import { useConsolidatedUIStore } from '@/global/stores/consolidatedUIStore';
 
 // Layout and UI state management
 export const useUIState = () => {

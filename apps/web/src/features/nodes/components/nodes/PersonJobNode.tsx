@@ -1,7 +1,7 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
-import { usePersonStore, useNodeArrowStore } from '@/core/stores';
+import { usePersonStore, useNodeArrowStore } from '@/global/stores';
 import { UNIFIED_NODE_CONFIGS, type PersonJobBlockData } from '@/shared/types';
 
 const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => {

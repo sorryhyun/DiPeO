@@ -2,8 +2,8 @@
 
 import pytest
 
-from apps.server.src.engine.engine import UnifiedExecutionEngine
-from apps.server.src.engine.executors import ExecutorFactory
+from ..src.engine.engine import UnifiedExecutionEngine
+from ..src.engine.executors import ExecutorFactory
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
@@ -50,8 +50,8 @@ class TestUnifiedExecutionEngine:
         
         # Verify all nodes were processed
         context = result['context']
-        assert 'nodeOutputs' in context
-        assert len(context['nodeOutputs']) == 3  # start, person, endpoint
+        assert 'node_outputs' in context
+        assert len(context['node_outputs']) == 3  # start, person, endpoint
     
     @pytest.mark.asyncio
     async def test_branching_execution(self, execution_engine):
@@ -70,10 +70,10 @@ class TestUnifiedExecutionEngine:
         context = result['context']
         
         # Should have executed start, condition, one person node, and endpoint
-        assert len(context['nodeOutputs']) >= 4
+        assert len(context['node_outputs']) >= 4
         
         # Verify condition node executed
-        assert any(node_id.startswith('condition') for node_id in context['nodeOutputs'])
+        assert any(node_id.startswith('condition') for node_id in context['node_outputs'])
     
     @pytest.mark.asyncio
     async def test_iterating_execution(self, execution_engine):
@@ -139,14 +139,14 @@ class TestUnifiedExecutionEngine:
         # Verify context structure
         context = result['context']
         
-        assert 'nodeOutputs' in context
-        assert 'nodeExecutionCounts' in context
-        assert 'conditionValues' in context
-        assert 'executionOrder' in context
-        assert 'totalCost' in context
+        assert 'node_outputs' in context
+        assert 'node_execution_counts' in context
+        assert 'condition_values' in context
+        assert 'execution_order' in context
+        assert 'total_cost' in context
         
         # Verify execution order is valid
-        execution_order = context['executionOrder']
+        execution_order = context['execution_order']
         assert len(execution_order) >= 3  # At least start, person, endpoint
         assert execution_order[0] == 'start1'  # Start node should be first
     
@@ -183,12 +183,12 @@ class TestUnifiedExecutionEngine:
                 break
         
         # Verify cost tracking
-        assert 'totalCost' in result
-        assert result['totalCost'] >= 0
+        assert 'total_cost' in result
+        assert result['total_cost'] >= 0
         
         # Should have some cost from LLM calls
         if 'person' in str(diagram):  # If diagram contains person nodes
-            assert result['totalCost'] > 0
+            assert result['total_cost'] > 0
     
     @pytest.mark.asyncio
     async def test_memory_integration(self, execution_engine):

@@ -1,8 +1,9 @@
 // Direct exports from local ui-components (no store integration needed)
 export { Panel } from '../components/ui-components/Panel';
+
 // Re-export generic form components from shared
 export { 
-  Form, FormField, FormGrid, FormRow, TextAreaField, TextField, SelectField, 
+  Form, FormField, FormRow, TextAreaField, 
   InlineTextField, InlineSelectField, CheckboxField,
   TwoColumnPanelLayout, SingleColumnPanelLayout
 } from '@/shared/components/forms';

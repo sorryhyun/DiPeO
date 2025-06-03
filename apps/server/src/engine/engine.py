@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from apps.server.src.exceptions import DiagramExecutionError
+from ..exceptions import DiagramExecutionError
 from .resolver import DependencyResolver
 from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager
@@ -147,11 +147,15 @@ class UnifiedExecutionEngine:
                 
                 # Yield completion
                 yield {
-                    "type": "execution_completed",
-                    "summary": {
-                        "total_nodes": len(context.nodes_by_id),
-                        "executed_nodes": len(context.execution_order),
-                        "skipped_nodes": len(context.skipped_nodes),
+                    "type": "execution_complete",
+                    "data": {
+                        "context": {
+                            "node_outputs": context.node_outputs,
+                            "node_execution_counts": context.node_execution_counts,
+                            "condition_values": context.condition_values,
+                            "execution_order": context.execution_order,
+                            "total_cost": context.total_cost
+                        },
                         "total_cost": context.total_cost
                     }
                 }

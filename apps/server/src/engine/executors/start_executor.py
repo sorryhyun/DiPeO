@@ -5,10 +5,10 @@ Start node executor - initializes execution flow
 from typing import Dict, Any
 import time
 
-from .base_executor import ClientSafeExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
 
 
-class StartExecutor(ClientSafeExecutor):
+class StartExecutor(BaseExecutor):
     """
     Start node executor that initializes the execution flow.
     Start nodes should not have incoming connections and provide initial data.

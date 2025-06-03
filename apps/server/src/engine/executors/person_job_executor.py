@@ -6,13 +6,13 @@ from typing import Dict, Any
 import time
 import logging
 
-from .base_executor import ServerOnlyExecutor, ValidationResult, ExecutorResult
-from apps.server.src.services.llm_service import LLMService
+from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from ...services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
 
-class PersonJobExecutor(ServerOnlyExecutor):
+class PersonJobExecutor(BaseExecutor):
     """
     PersonJob node executor that makes LLM calls with person configuration.
     This executor handles stateful conversations with memory management.
@@ -187,7 +187,7 @@ class PersonJobExecutor(ServerOnlyExecutor):
             )
 
 
-class PersonBatchJobExecutor(ServerOnlyExecutor):
+class PersonBatchJobExecutor(BaseExecutor):
     """
     PersonBatchJob executor for handling batch processing of multiple items.
     Similar to PersonJob but designed for processing lists or batches.

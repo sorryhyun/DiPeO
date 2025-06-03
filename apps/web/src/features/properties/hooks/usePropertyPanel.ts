@@ -1,4 +1,4 @@
-import { useNodeArrowStore, usePersonStore } from '@/core/stores';
+import { useNodeArrowStore, usePersonStore } from '@/global/stores';
 import { usePropertyFormBase } from './usePropertyForm';
 
 export function usePropertyPanel<T extends Record<string, any>>(

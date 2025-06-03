@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components';
-import { useApiKeyStore, useDiagramOperationsStore, useMonitorStore } from '@/core/stores';
-import { useUIState } from '@/core/hooks/useStoreSelectors';
+import { useApiKeyStore, useDiagramOperationsStore, useMonitorStore } from '@/global/stores';
+import { useUIState } from '@/global/hooks/useStoreSelectors';
 import { useFileImport } from '@/serialization/hooks/useFileImport';
 import { useExport } from '@/serialization/hooks/useExport';
 import { useDiagramRunner } from '@/features/execution/hooks/useDiagramRunner';
@@ -28,7 +28,7 @@ const TopBar = () => {
   const { onImportJSON } = useFileImport();
   const { onSaveToDirectory } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
-  const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
+  const { activeCanvas, toggleCanvas } = useUIState();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
   
@@ -172,17 +172,17 @@ const TopBar = () => {
           <Button
             variant="outline"
             className={`bg-white transition-all duration-300 ${
-              isMemoryLayerTilted 
+              activeCanvas === 'memory'
                 ? 'bg-purple-100 border-purple-400 hover:bg-purple-200' 
                 : 'hover:bg-gray-50 hover:border-gray-300'
             }`}
-            onClick={toggleMemoryLayer}
-            title={isMemoryLayerTilted ? 'Hide Memory Layer' : 'Show Memory Layer'}
+            onClick={toggleCanvas}
+            title={activeCanvas === 'memory' ? 'Show Diagram Canvas' : 'Show Memory Canvas'}
           >
             <Layers className={`h-4 w-4 mr-1 transition-transform duration-300 ${
-              isMemoryLayerTilted ? 'rotate-12' : ''
+              activeCanvas === 'memory' ? 'rotate-12' : ''
             }`} />
-            Memory
+            {activeCanvas === 'memory' ? 'Diagram' : 'Memory'}
           </Button>
         </div>
 

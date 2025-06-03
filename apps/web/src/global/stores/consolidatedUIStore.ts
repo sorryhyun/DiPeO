@@ -7,7 +7,10 @@ export interface ConsolidatedUIState {
   selectedNodeId: string | null;
   selectedArrowId: string | null;
   selectedPersonId: string | null;
-  isMemoryLayerTilted: boolean;
+  
+  // Canvas state - new approach to replace memory layer tilting
+  activeCanvas: 'diagram' | 'memory';
+  
   // Dashboard state (moved from diagram store)
   dashboardTab: 'persons' | 'conversation' | 'properties';
 
@@ -23,8 +26,15 @@ export interface ConsolidatedUIState {
   // Dashboard actions
   setDashboardTab: (tab: 'persons' | 'conversation' | 'properties') => void;
 
+  // Canvas actions - new approach
+  setActiveCanvas: (canvas: 'diagram' | 'memory') => void;
+  toggleCanvas: () => void;
+  
+  // Backward compatibility - deprecated but kept for transition
+  isMemoryLayerTilted: boolean;
   setMemoryLayerTilted: (tilted: boolean) => void;
   toggleMemoryLayer: () => void;
+  
   // Computed state
   hasSelection: () => boolean;
 }
@@ -37,6 +47,9 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
       selectedArrowId: null,
       selectedPersonId: null,
       dashboardTab: 'properties',
+      activeCanvas: 'diagram',
+      
+      // Backward compatibility
       isMemoryLayerTilted: false,
 
       // Selection actions - each selection clears others
@@ -80,8 +93,25 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
       // Dashboard actions
       setDashboardTab: (tab) => set({ dashboardTab: tab }),
 
-      setMemoryLayerTilted: (tilted) => set({ isMemoryLayerTilted: tilted }),
-      toggleMemoryLayer: () => set((state) => ({ isMemoryLayerTilted: !state.isMemoryLayerTilted })),
+      // Canvas actions - new approach
+      setActiveCanvas: (canvas) => set({ activeCanvas: canvas }),
+      toggleCanvas: () => set((state) => ({ 
+        activeCanvas: state.activeCanvas === 'diagram' ? 'memory' : 'diagram' 
+      })),
+
+      // Backward compatibility - deprecated
+      setMemoryLayerTilted: (tilted) => set({ 
+        isMemoryLayerTilted: tilted,
+        activeCanvas: tilted ? 'memory' : 'diagram'
+      }),
+      toggleMemoryLayer: () => {
+        const state = get();
+        set({ 
+          isMemoryLayerTilted: !state.isMemoryLayerTilted,
+          activeCanvas: !state.isMemoryLayerTilted ? 'memory' : 'diagram'
+        });
+      },
+      
       // Computed state
       hasSelection: () => {
         const state = get();

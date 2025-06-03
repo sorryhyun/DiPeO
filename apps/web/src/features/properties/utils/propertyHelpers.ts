@@ -2,7 +2,7 @@
  * Property panel utility functions
  */
 
-import { useApiKeyStore } from '@/core/stores';
+import { useApiKeyStore } from '@/global/stores';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
 import { apiCache } from '@/shared/utils/apiCache';
 

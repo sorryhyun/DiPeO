@@ -1,7 +1,7 @@
 import React from 'react';
-import { useNodeArrowStore, usePersonStore, useMonitorStore } from '@/core/stores';
-import { useExecutionStore } from '@/core/stores/executionStore';
-import { useConsolidatedUIStore } from '@/core/stores/consolidatedUIStore';
+import { useNodeArrowStore, usePersonStore, useMonitorStore } from '@/global/stores';
+import { useExecutionStore } from '@/global/stores/executionStore';
+import { useConsolidatedUIStore } from '@/global/stores/consolidatedUIStore';
 
 // ===== Key Optimized Selectors =====
 
@@ -141,17 +141,33 @@ export const useSelectedElement = () => {
 export const useUIState = () => {
   const dashboardTab = useConsolidatedUIStore(state => state.dashboardTab);
   const setDashboardTab = useConsolidatedUIStore(state => state.setDashboardTab);
+  
+  // Canvas state - new approach
+  const activeCanvas = useConsolidatedUIStore(state => state.activeCanvas);
+  const setActiveCanvas = useConsolidatedUIStore(state => state.setActiveCanvas);
+  const toggleCanvas = useConsolidatedUIStore(state => state.toggleCanvas);
+  
+  // Backward compatibility - deprecated but kept for transition
   const isMemoryLayerTilted = useConsolidatedUIStore(state => state.isMemoryLayerTilted);
   const setMemoryLayerTilted = useConsolidatedUIStore(state => state.setMemoryLayerTilted);
   const toggleMemoryLayer = useConsolidatedUIStore(state => state.toggleMemoryLayer);
+  
   const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
   
   return {
     dashboardTab,
     setDashboardTab,
+    
+    // New canvas state
+    activeCanvas,
+    setActiveCanvas,
+    toggleCanvas,
+    
+    // Backward compatibility
     isMemoryLayerTilted,
     setMemoryLayerTilted,
     toggleMemoryLayer,
+    
     hasSelection,
   };
 };

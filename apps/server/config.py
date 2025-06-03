@@ -9,11 +9,21 @@ BASE_DIR = Path(
               Path(__file__).resolve().parents[2].as_posix())
 ).resolve()
 
-UPLOAD_DIR = BASE_DIR / "uploads"
+# Unified file storage under files/ directory
+FILES_DIR = BASE_DIR / "files"
+FILES_DIR.mkdir(exist_ok=True)
+
+UPLOAD_DIR = FILES_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-RESULT_DIR = BASE_DIR / "results"
+RESULT_DIR = FILES_DIR / "results"
 RESULT_DIR.mkdir(exist_ok=True)
 
-CONVERSATION_LOG_DIR = BASE_DIR / "conversation_logs"
+CONVERSATION_LOG_DIR = FILES_DIR / "conversation_logs"
 CONVERSATION_LOG_DIR.mkdir(exist_ok=True)
+
+PROMPT_DIR = FILES_DIR / "prompts"
+PROMPT_DIR.mkdir(exist_ok=True)
+
+YAML_DIAGRAM_DIR = FILES_DIR / "yaml_diagrams"
+YAML_DIAGRAM_DIR.mkdir(exist_ok=True)

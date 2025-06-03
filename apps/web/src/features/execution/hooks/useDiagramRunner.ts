@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useDiagramOperationsStore, useExecutionStore } from '@/core/stores';
+import { useDiagramOperationsStore, useExecutionStore } from '@/global/stores';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/shared/types';
 import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';

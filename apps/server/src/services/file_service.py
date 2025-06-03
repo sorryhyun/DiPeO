@@ -1,16 +1,13 @@
 import json
 import csv
 import os
-import sys
+import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from docx import Document
 import aiofiles
 
-# Add server root to path for config import
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from ...config import UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
-
 from ..exceptions import ValidationError, FileOperationError
 from ..utils.base_service import BaseService
 
@@ -41,6 +38,9 @@ class FileService(BaseService):
         elif file_path.suffix.lower() == '.json':
             with open(file_path, 'r', encoding=encoding) as f:
                 return json.load(f)
+        elif file_path.suffix.lower() in ('.yaml', '.yml'):
+            with open(file_path, 'r', encoding=encoding) as f:
+                return yaml.safe_load(f)
         elif file_path.suffix.lower() == '.csv':
             return self._read_csv(file_path, encoding)
         else:
@@ -59,6 +59,8 @@ class FileService(BaseService):
             suffix = file_path.suffix.lower()
             if suffix == '.json':
                 format = 'json'
+            elif suffix in ('.yaml', '.yml'):
+                format = 'yaml'
             elif suffix == '.csv':
                 format = 'csv'
             else:
@@ -67,6 +69,8 @@ class FileService(BaseService):
         # Write based on format
         if format == 'json':
             await self._write_json(file_path, content, encoding)
+        elif format == 'yaml':
+            await self._write_yaml(file_path, content, encoding)
         elif format == 'csv':
             await self._write_csv(file_path, content, encoding)
         else:
@@ -122,6 +126,18 @@ class FileService(BaseService):
         """Write content as formatted JSON."""
         async with aiofiles.open(file_path, 'w', encoding=encoding) as f:
             await f.write(json.dumps(content, indent=2, ensure_ascii=False))
+    
+    async def _write_yaml(self, file_path: Path, content: Any, encoding: str):
+        """Write content as YAML."""
+        yaml_content = yaml.dump(
+            content,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
+            indent=2
+        )
+        async with aiofiles.open(file_path, 'w', encoding=encoding) as f:
+            await f.write(yaml_content)
     
     async def _write_csv(self, file_path: Path, content: Any, encoding: str):
         """Write content as CSV."""

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useArrowDataUpdater, useNodeDataUpdater } from '@/core/hooks/useStoreSelectors';
+import { useArrowDataUpdater, useNodeDataUpdater } from '@/global/hooks/useStoreSelectors';
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { getUnifiedNodeConfigsByReactFlowType, UNIFIED_NODE_CONFIGS } from '@/shared/types';
 

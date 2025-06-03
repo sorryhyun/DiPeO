@@ -10,12 +10,12 @@ import subprocess
 import tempfile
 import os
 
-from .base_executor import ClientSafeExecutor, ValidationResult, ExecutorResult
+from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
 
 logger = logging.getLogger(__name__)
 
 
-class JobExecutor(ClientSafeExecutor):
+class JobExecutor(BaseExecutor):
     """
     Job node executor that runs safe code execution in a sandboxed environment.
     Supports multiple languages with appropriate sandboxing.

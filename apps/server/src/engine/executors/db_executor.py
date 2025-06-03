@@ -11,15 +11,15 @@ import builtins
 import io
 import sys
 
-from .base_executor import ServerOnlyExecutor, ValidationResult, ExecutorResult
-from apps.server.src.services.file_service import FileService
-from apps.server.src.exceptions import ValidationError, FileOperationError
-from apps.server.src.utils.output_processor import OutputProcessor
+from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from ...services.file_service import FileService
+from ...exceptions import ValidationError, FileOperationError
+from ...utils.output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)
 
 
-class DBExecutor(ServerOnlyExecutor):
+class DBExecutor(BaseExecutor):
     """
     DB node executor that handles file operations and data sources.
     Supports file reading, fixed prompts, code execution, and API tool integrations.
@@ -185,9 +185,18 @@ class DBExecutor(ServerOnlyExecutor):
             raise ValidationError("Invalid API configuration JSON")
     
     async def _execute_notion_api(self, api_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute Notion API calls"""
-        # TODO: Implement actual Notion API integration
-        raise NotImplementedError("Notion API integration is not yet implemented")
+        """Execute Notion API calls
+        
+        This is a placeholder for future Notion API integration.
+        When implemented, it will support:
+        - Database queries and updates
+        - Page creation and modification
+        - Block manipulation
+        """
+        raise NotImplementedError(
+            "Notion API integration is planned for a future release. "
+            "Please use file-based operations or other supported API types for now."
+        )
     
     async def _execute_code(self, code_snippet: str, inputs: list) -> Dict[str, Any]:
         """Execute code in sandbox environment"""
@@ -232,12 +241,12 @@ class DBExecutor(ServerOnlyExecutor):
         inputs = []
         
         # Get incoming arrows to this node
-        incoming_arrows = context.incomingArrows.get(node_id, [])
+        incoming_arrows = context.incoming_arrows.get(node_id, [])
         
         # Collect outputs from source nodes
         for arrow in incoming_arrows:
             source_node_id = arrow.get("sourceNodeId")
-            if source_node_id in context.nodeOutputs:
-                inputs.append(context.nodeOutputs[source_node_id])
+            if source_node_id in context.node_outputs:
+                inputs.append(context.node_outputs[source_node_id])
         
         return inputs

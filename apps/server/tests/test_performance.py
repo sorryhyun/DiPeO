@@ -4,7 +4,7 @@ import pytest
 import time
 import asyncio
 
-from apps.server.src.engine.engine import UnifiedExecutionEngine
+from ..src.engine.engine import UnifiedExecutionEngine
 from .fixtures.diagrams import DiagramFixtures
 from .fixtures.mocks import MockLLMService, MockAPIKeyService, MockMemoryService
 
