@@ -245,7 +245,7 @@ class DBExecutor(BaseExecutor):
         
         # Collect outputs from source nodes
         for arrow in incoming_arrows:
-            source_node_id = arrow.get("sourceNodeId")
+            source_node_id = arrow.get("source")
             if source_node_id in context.node_outputs:
                 inputs.append(context.node_outputs[source_node_id])
         

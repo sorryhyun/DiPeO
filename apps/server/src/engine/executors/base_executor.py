@@ -90,7 +90,10 @@ class BaseExecutor(ABC):
         
         for arrow in incoming:
             source_id = arrow["source"]
+            # Handle both direct label and nested data.label structure
             label = arrow.get("label", "")
+            if not label and "data" in arrow:
+                label = arrow["data"].get("label", "")
             
             # Get the output from the source node
             if source_id in context.node_outputs and label:
@@ -115,13 +118,20 @@ class BaseExecutor(ABC):
         def replace_var(match):
             var_name = match.group(1)
             value = variables.get(var_name, match.group(0))
+            
+            # Import OutputProcessor here to avoid circular imports
+            from ...utils.output_processor import OutputProcessor
+            
+            # Extract text content from PersonJob outputs
+            processed_value = OutputProcessor.extract_value(value)
+            
             # Convert to string, handling special cases
-            if value is None:
+            if processed_value is None:
                 return ""
-            elif isinstance(value, bool):
-                return str(value).lower()
+            elif isinstance(processed_value, bool):
+                return str(processed_value).lower()
             else:
-                return str(value)
+                return str(processed_value)
         
         # Replace {{variable}} patterns
         return re.sub(r'\{\{(\w+)\}\}', replace_var, text)

@@ -10,6 +10,7 @@ from ..services.llm_service import LLMService
 from ..services.diagram_service import DiagramService
 from ..services.file_service import FileService
 from ..services.memory_service import MemoryService
+from ...config import BASE_DIR
 
 
 class AppContext:
@@ -28,7 +29,7 @@ class AppContext:
         self.api_key_service = APIKeyService()
         self.memory_service = MemoryService()
         self.llm_service = LLMService(self.api_key_service)
-        self.file_service = FileService()
+        self.file_service = FileService(base_dir=BASE_DIR)
         self.diagram_service = DiagramService(
             self.llm_service, 
             self.api_key_service, 

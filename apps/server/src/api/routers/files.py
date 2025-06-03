@@ -66,7 +66,7 @@ async def save_diagram(
         
         # Save to diagrams directory (which is now under files/)
         saved_path = await file_service.write(
-            path=f"../diagrams/{filename}",
+            path=f"files/diagrams/{filename}",
             content=request.diagram,
             format=request.format
         )
