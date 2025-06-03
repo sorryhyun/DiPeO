@@ -20,7 +20,9 @@ class Message:
     node_id: Optional[str] = None
     node_label: Optional[str] = None
     token_count: Optional[int] = None
-    cost: Optional[float] = None
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    cached_tokens: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -33,7 +35,9 @@ class Message:
             "node_id": self.node_id,
             "node_label": self.node_label,
             "token_count": self.token_count,
-            "cost": self.cost
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cached_tokens": self.cached_tokens
         }
     
     def to_json(self) -> str:
@@ -54,7 +58,9 @@ class Message:
             node_id=data.get("node_id"),
             node_label=data.get("node_label"),
             token_count=data.get("token_count"),
-            cost=data.get("cost")
+            input_tokens=data.get("input_tokens"),
+            output_tokens=data.get("output_tokens"),
+            cached_tokens=data.get("cached_tokens")
         )
 
 
@@ -164,7 +170,9 @@ class MemoryService:
         node_id: Optional[str] = None,
         node_label: Optional[str] = None,
         token_count: Optional[int] = None,
-        cost: Optional[float] = None) -> Message:
+        input_tokens: Optional[int] = None,
+        output_tokens: Optional[int] = None,
+        cached_tokens: Optional[int] = None) -> Message:
         """Create and add message to conversation."""
         message = Message(
             id=str(uuid.uuid4()),
@@ -176,7 +184,9 @@ class MemoryService:
             node_id=node_id,
             node_label=node_label,
             token_count=token_count,
-            cost=cost
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cached_tokens=cached_tokens
         )
 
         self._store_message_redis(message)
@@ -189,15 +199,21 @@ class MemoryService:
             self.execution_metadata[execution_id] = {
                 "start_time": datetime.now(),
                 "message_count": 0,
-                "total_cost": 0,
-                "total_tokens": 0
+                "total_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cached_tokens": 0
             }
 
         self.execution_metadata[execution_id]["message_count"] += 1
-        if cost:
-            self.execution_metadata[execution_id]["total_cost"] += cost
         if token_count:
             self.execution_metadata[execution_id]["total_tokens"] += token_count
+        if input_tokens:
+            self.execution_metadata[execution_id]["input_tokens"] += input_tokens
+        if output_tokens:
+            self.execution_metadata[execution_id]["output_tokens"] += output_tokens
+        if cached_tokens:
+            self.execution_metadata[execution_id]["cached_tokens"] += cached_tokens
 
         return message
 
@@ -231,8 +247,10 @@ class MemoryService:
             "timestamp": datetime.now().isoformat(),
             "start_time": metadata.get('start_time').isoformat() if metadata.get('start_time') else None,
             "message_count": metadata.get('message_count', 0),
-            "total_cost": metadata.get('total_cost', 0),
-            "total_tokens": metadata.get('total_tokens', 0)
+            "total_tokens": metadata.get('total_tokens', 0),
+            "input_tokens": metadata.get('input_tokens', 0),
+            "output_tokens": metadata.get('output_tokens', 0),
+            "cached_tokens": metadata.get('cached_tokens', 0)
         }
         log_lines.append(json.dumps(metadata_record, ensure_ascii=False))
             
@@ -272,7 +290,9 @@ class MemoryService:
                 "node_id": msg.node_id,
                 "node_label": msg.node_label,
                 "token_count": msg.token_count,
-                "cost": msg.cost,
+                "input_tokens": msg.input_tokens,
+                "output_tokens": msg.output_tokens,
+                "cached_tokens": msg.cached_tokens,
                 "is_forgotten": is_forgotten
             }
             log_lines.append(json.dumps(message_record, ensure_ascii=False))

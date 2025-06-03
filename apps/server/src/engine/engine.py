@@ -26,7 +26,10 @@ class ExecutionContext:
     condition_values: Dict[str, bool] = field(default_factory=dict)
     first_only_consumed: Dict[str, bool] = field(default_factory=dict)
     execution_order: List[str] = field(default_factory=list)
-    total_cost: float = 0.0
+    total_token_count: int = 0
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_cached_tokens: int = 0
     skipped_nodes: Set[str] = field(default_factory=set)
     skip_reasons: Dict[str, str] = field(default_factory=dict)
     api_keys: Dict[str, str] = field(default_factory=dict)
@@ -168,9 +171,12 @@ class UnifiedExecutionEngine:
                             "node_execution_counts": context.node_execution_counts,
                             "condition_values": context.condition_values,
                             "execution_order": context.execution_order,
-                            "total_cost": context.total_cost
+                            "total_token_count": context.total_token_count,
+                            "total_input_tokens": context.total_input_tokens,
+                            "total_output_tokens": context.total_output_tokens,
+                            "total_cached_tokens": context.total_cached_tokens
                         },
-                        "total_cost": context.total_cost
+                        "total_token_count": context.total_token_count
                     }
                 }
                 
@@ -292,7 +298,10 @@ class UnifiedExecutionEngine:
             context.node_outputs[node_id] = result.output
             context.node_execution_counts[node_id] += 1
             context.execution_order.append(node_id)
-            context.total_cost += result.cost
+            context.total_token_count += result.token_count
+            context.total_input_tokens += result.input_tokens
+            context.total_output_tokens += result.output_tokens
+            context.total_cached_tokens += result.cached_tokens
             
             # Handle condition nodes
             if node_type == "condition":
@@ -312,7 +321,10 @@ class UnifiedExecutionEngine:
                 "node_id": node_id,
                 "output": result.output,
                 "metadata": result.metadata,
-                "cost": result.cost
+                "token_count": result.token_count,
+                "input_tokens": result.input_tokens,
+                "output_tokens": result.output_tokens,
+                "cached_tokens": result.cached_tokens
             }
             
         except Exception as e:

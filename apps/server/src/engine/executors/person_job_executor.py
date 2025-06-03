@@ -8,10 +8,10 @@ import logging
 
 from .base_executor import BaseExecutor, ExecutorResult
 from .utils import (
-    ValidationResult,
     get_input_values,
     substitute_variables
 )
+from .validator import ValidationResult
 from ...services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,10 @@ class PersonJobExecutor(BaseExecutor):
                     "execution_count": execution_count,
                     "passthrough": True
                 },
-                cost=0.0,
+                token_count=0,
+                input_tokens=0,
+                output_tokens=0,
+                cached_tokens=0,
                 execution_time=time.time() - start_time
             )
         
@@ -137,7 +140,10 @@ class PersonJobExecutor(BaseExecutor):
                 output=None,
                 error="No prompt available for execution",
                 metadata={"execution_count": execution_count},
-                cost=0.0,
+                token_count=0,
+                input_tokens=0,
+                output_tokens=0,
+                cached_tokens=0,
                 execution_time=time.time() - start_time
             )
         
@@ -176,8 +182,10 @@ class PersonJobExecutor(BaseExecutor):
                     "used_first_only": execution_count == 0 and bool(first_only_prompt),
                     "executionTime": execution_time
                 },
-                cost=response.get("cost", 0.0),
-                tokens_used=response.get("tokens_used"),
+                token_count=response.get("token_count", 0),
+                input_tokens=response.get("input_tokens", 0),
+                output_tokens=response.get("output_tokens", 0),
+                cached_tokens=response.get("cached_tokens", 0),
                 execution_time=execution_time
             )
         
@@ -192,7 +200,10 @@ class PersonJobExecutor(BaseExecutor):
                     "execution_count": execution_count,
                     "error": str(e)
                 },
-                cost=0.0,
+                token_count=0,
+                input_tokens=0,
+                output_tokens=0,
+                cached_tokens=0,
                 execution_time=time.time() - start_time
             )
 

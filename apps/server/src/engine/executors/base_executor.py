@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 import logging
 
-from .utils import ValidationResult
+from .validator import ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +13,10 @@ class ExecutorResult:
     """Result from executor execution"""
     output: Any
     metadata: Dict[str, Any] = field(default_factory=dict)
-    cost: float = 0.0
-    tokens_used: Optional[Dict[str, int]] = None
+    token_count: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_tokens: int = 0
     error: Optional[str] = None
     execution_time: float = 0.0
 

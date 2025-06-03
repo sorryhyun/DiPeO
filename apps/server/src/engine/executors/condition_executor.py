@@ -8,10 +8,8 @@ import re
 import logging
 
 from .base_executor import BaseExecutor, ExecutorResult
-from .utils import (
-    ValidationResult,
-    get_input_values
-)
+from .utils import get_input_values
+from .validator import ValidationResult
 
 logger = logging.getLogger(__name__)
 

@@ -75,8 +75,12 @@ async def get_conversations(
 
                 if hasattr(msg, 'token_count'):
                     formatted_msg['token_count'] = msg.token_count
-                if hasattr(msg, 'cost'):
-                    formatted_msg['cost'] = msg.cost
+                if hasattr(msg, 'input_tokens'):
+                    formatted_msg['input_tokens'] = msg.input_tokens
+                if hasattr(msg, 'output_tokens'):
+                    formatted_msg['output_tokens'] = msg.output_tokens
+                if hasattr(msg, 'cached_tokens'):
+                    formatted_msg['cached_tokens'] = msg.cached_tokens
 
                 formatted_messages.append(formatted_msg)
 

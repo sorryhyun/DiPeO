@@ -51,12 +51,16 @@ class OutputProcessor:
         if isinstance(value, dict) and value.get('_type') == 'personjob_output':
             metadata = {}
             # Extract known metadata fields
-            if 'cost' in value:
-                metadata['cost'] = value['cost']
-            if 'model' in value:
-                metadata['model'] = value['model']
             if 'token_count' in value:
                 metadata['token_count'] = value['token_count']
+            if 'input_tokens' in value:
+                metadata['input_tokens'] = value['input_tokens']
+            if 'output_tokens' in value:
+                metadata['output_tokens'] = value['output_tokens']
+            if 'cached_tokens' in value:
+                metadata['cached_tokens'] = value['cached_tokens']
+            if 'model' in value:
+                metadata['model'] = value['model']
             if 'execution_time' in value:
                 metadata['execution_time'] = value['execution_time']
             return metadata
@@ -92,9 +96,11 @@ class OutputProcessor:
     def create_personjob_output(
         text: str,
         conversation_history: List[Dict[str, str]] = None,
-        cost: float = 0.0,
-        model: str = None,
-        token_count: int = 0
+        token_count: int = 0,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        cached_tokens: int = 0,
+        model: str = None
     ) -> Dict[str, Any]:
         """
         Create a PersonJob output format.
@@ -102,9 +108,11 @@ class OutputProcessor:
         Args:
             text: The output text
             conversation_history: List of conversation messages
-            cost: The cost of the operation
+            token_count: Total number of tokens used
+            input_tokens: Number of input tokens
+            output_tokens: Number of output tokens
+            cached_tokens: Number of cached tokens
             model: The model used
-            token_count: Number of tokens used
             
         Returns:
             Dictionary in PersonJob output format
@@ -116,11 +124,15 @@ class OutputProcessor:
         
         if conversation_history is not None:
             output['conversation_history'] = conversation_history
-        if cost > 0:
-            output['cost'] = cost
-        if model:
-            output['model'] = model
         if token_count > 0:
             output['token_count'] = token_count
+        if input_tokens > 0:
+            output['input_tokens'] = input_tokens
+        if output_tokens > 0:
+            output['output_tokens'] = output_tokens
+        if cached_tokens > 0:
+            output['cached_tokens'] = cached_tokens
+        if model:
+            output['model'] = model
             
         return output
