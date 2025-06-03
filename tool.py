@@ -23,7 +23,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
             if stream:
                 # Use V2 streaming endpoint
                 async with session.post(
-                    f"{API_URL}/api/v2/run-diagram",
+                    f"{API_URL}/api/run-diagram",
                     json={"diagram": diagram},
                     headers={"Content-Type": "application/json", "Accept": "text/event-stream"}
                 ) as response:
@@ -71,35 +71,13 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                     
                     return final_result
             else:
-                # Use V2 non-streaming endpoint (fallback to V1 if V2 not available)
+                # Use V2 non-streaming endpoint
                 async with session.post(
-                    f"{API_URL}/api/v2/run-diagram",
+                    f"{API_URL}/api/run-diagram",
                     json={"diagram": diagram},
                     headers={"Content-Type": "application/json"}
                 ) as response:
-                    if response.status == 404:
-                        # Fallback to V1 API
-                        async with session.post(
-                            f"{API_URL}/api/v2/run-diagram",
-                            json=diagram,
-                            headers={"Content-Type": "application/json"}
-                        ) as v1_response:
-                            if v1_response.status == 200:
-                                result = await v1_response.json()
-                                return {
-                                    "context": result.get("context", {}),
-                                    "total_cost": result.get("total_cost", 0),
-                                    "messages": []
-                                }
-                            else:
-                                error_text = await v1_response.text()
-                                return {
-                                    "context": {},
-                                    "total_cost": 0,
-                                    "messages": [],
-                                    "error": f"V1 API execution failed: {v1_response.status} - {error_text}"
-                                }
-                    elif response.status == 200:
+                    if response.status == 200:
                         result = await response.json()
                         return {
                             "context": result.get("context", {}),
@@ -112,7 +90,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                             "context": {},
                             "total_cost": 0,
                             "messages": [],
-                            "error": f"V2 API execution failed: {response.status} - {error_text}"
+                            "error": f"API execution failed: {response.status} - {error_text}"
                         }
         except Exception as e:
             return {
@@ -167,6 +145,32 @@ def export_uml(diagram: Dict[str, Any]) -> str:
     return response.text
 
 
+def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = None):
+    """Broadcast diagram structure to browser monitors."""
+    try:
+        import uuid
+        from datetime import datetime
+        
+        event_data = {
+            "type": "execution_started",
+            "execution_id": execution_id or f"cli_{uuid.uuid4().hex[:8]}",
+            "diagram": diagram,
+            "timestamp": datetime.now().isoformat(),
+            "from_cli": True
+        }
+        
+        response = requests.post(f"{API_URL}/api/monitor/broadcast", json=event_data)
+        if response.status_code == 200:
+            print("📡 Diagram broadcasted to browser monitors")
+            return True
+        else:
+            print(f"⚠️  Failed to broadcast: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"⚠️  Failed to broadcast to monitors: {e}")
+        return False
+
+
 def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True) -> Dict[str, Any]:
     """Synchronous wrapper for backend execution with optional pre-initialization."""
     if pre_initialize:
@@ -176,6 +180,8 @@ def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initi
     
     if show_in_browser:
         print("🌐 Browser visualization enabled - open http://localhost:3000 to see execution")
+        # Broadcast diagram structure to monitors
+        broadcast_diagram_to_monitors(diagram)
     
     return asyncio.run(run_diagram_backend_execution(diagram, stream=stream))
 
@@ -409,16 +415,20 @@ def main():
         print("AgentDiagram CLI Tool\n")
         print("Usage: python tool.py <command> [options]\n")
         print("Commands:")
-        print("  run-and-monitor <file>                    - 🚀 RECOMMENDED: Pre-load models, open browser, then run diagram")
-        print("  run <file> [--no-browser] [--no-preload] [--no-stream] - Run diagram (with browser visualization by default)")
-        print("  run-headless <file>                       - Run diagram without browser visualization")
+        print("  run <file> [options]                      - 🚀 Run diagram with execution options")
+        print("    Options:")
+        print("      --mode=monitor                        - Pre-load models, open browser, then run (RECOMMENDED)")
+        print("      --mode=headless                       - Pure backend execution without browser")
+        print("      --mode=check                          - Run and analyze conversation logs")
+        print("      --no-browser                          - Disable browser visualization")
+        print("      --no-preload                          - Skip model pre-initialization")  
+        print("      --no-stream                           - Disable streaming output")
         print("  monitor                                   - Open browser monitoring page")
         print("  preload <file>                            - Pre-initialize all models in diagram")
-        print("  convert <input> <output>                  - Convert between formats (JSON/YAML/UML)")
+        print("  convert <input> <output> [format]         - Convert between formats (JSON/YAML/LLM-YAML/UML)")
         print("  stats <file>                              - Show diagram statistics")
         print("  server-save <file> <name>                 - Save diagram to server")
         print("  check-forget [log_dir]                    - Analyze forget rule compliance")
-        print("  run-and-check <file> [output]             - Run diagram and check forget rules")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -427,35 +437,6 @@ def main():
         if command == 'monitor':
             open_browser_monitor()
             print("Browser monitor opened. Run diagrams with 'run' command to see them visualized.")
-
-        elif command == 'run-and-monitor':
-            if len(sys.argv) < 3:
-                print("Error: Missing input file")
-                sys.exit(1)
-
-            print(f"Loading diagram from {sys.argv[2]}...")
-            diagram = load_diagram(sys.argv[2])
-
-            # Pre-load models first
-            print("🔧 Pre-initializing models for faster execution...")
-            pre_initialize_models(diagram)
-
-            # Open browser
-            print("\n🌐 Opening browser monitor...")
-            open_browser_monitor()
-
-            # Wait a bit for browser to connect
-            print("Waiting for browser to connect...")
-            time.sleep(2)
-
-            # Then run the diagram (skip pre-initialization since we already did it)
-            print("🚀 Running diagram with browser visualization...")
-            result = run_diagram(diagram, show_in_browser=True, pre_initialize=False)
-
-            print(f"\n✓ Execution complete!")
-            print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
-            if 'context' in result:
-                print(f"  Context keys: {list(result['context'].keys())}")
 
         elif command == 'preload':
             if len(sys.argv) < 3:
@@ -479,13 +460,68 @@ def main():
                 print("Error: Missing input file")
                 sys.exit(1)
 
-            # Check for flags
-            show_in_browser = '--no-browser' not in sys.argv
-            pre_initialize = '--no-preload' not in sys.argv
-            stream = '--no-stream' not in sys.argv
+            # Parse options
+            args = sys.argv[2:]
+            file_path = args[0]
+            
+            # Extract mode and flags
+            mode = None
+            show_in_browser = True
+            pre_initialize = True
+            stream = True
+            check_forget = False
+            output_file = None
+            
+            for arg in args[1:]:
+                if arg.startswith('--mode='):
+                    mode = arg.split('=')[1]
+                elif arg == '--no-browser':
+                    show_in_browser = False
+                elif arg == '--no-preload':
+                    pre_initialize = False
+                elif arg == '--no-stream':
+                    stream = False
+                elif not arg.startswith('--'):
+                    output_file = arg  # Additional output file for check mode
 
-            print(f"Loading diagram from {sys.argv[2]}...")
-            diagram = load_diagram(sys.argv[2])
+            # Apply mode-specific settings
+            if mode == 'monitor':
+                # run-and-monitor behavior
+                print(f"Loading diagram from {file_path}...")
+                diagram = load_diagram(file_path)
+                
+                print("🔧 Pre-initializing models for faster execution...")
+                pre_initialize_models(diagram)
+                
+                print("\n🌐 Opening browser monitor...")
+                open_browser_monitor()
+                
+                print("Waiting for browser to connect...")
+                time.sleep(2)
+                
+                print("🚀 Running diagram with browser visualization...")
+                result = run_diagram(diagram, show_in_browser=True, pre_initialize=False)
+                
+                print(f"\n✓ Execution complete!")
+                print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
+                if 'context' in result:
+                    print(f"  Context keys: {list(result['context'].keys())}")
+                return
+                
+            elif mode == 'headless':
+                # run-headless behavior
+                show_in_browser = False
+                pre_initialize = True
+                stream = True
+                
+            elif mode == 'check':
+                # run-and-check behavior
+                check_forget = True
+                show_in_browser = False
+
+            # Standard run execution
+            print(f"Loading diagram from {file_path}...")
+            diagram = load_diagram(file_path)
 
             if show_in_browser:
                 print("🌐 Running diagram (browser visualization enabled)")
@@ -494,63 +530,83 @@ def main():
                 print("Running diagram (browser visualization disabled)")
 
             result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream)
-
-            # Save results
-            Path('files/results').mkdir(exist_ok=True)
-            output_file = 'files/results/results.json'
-            with open(output_file, 'w') as f:
-                json.dump(result, f, indent=2)
-            print(f"  Results saved to: {output_file}")
-
-        elif command == 'run-headless':
-            # Use the streaming endpoint but without browser visualization
-            if len(sys.argv) < 3:
-                print("Error: Missing input file")
-                sys.exit(1)
-
-            print(f"Loading diagram from {sys.argv[2]}...")
-            diagram = load_diagram(sys.argv[2])
-
-            print("Running diagram (headless)...")
-            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True, stream=True)
-
+            
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
-            
+            if 'context' in result:
+                print(f"  Context keys: {list(result['context'].keys())}")
+
             # Save results
             Path('files/results').mkdir(exist_ok=True)
-            output_file = 'files/results/results.json'
-            with open(output_file, 'w') as f:
+            save_path = output_file if output_file else 'files/results/results.json'
+            with open(save_path, 'w') as f:
                 json.dump(result, f, indent=2)
-            print(f"  Results saved to: {output_file}")
+            print(f"  Results saved to: {save_path}")
+            
+            # Check forget rules if requested
+            if check_forget:
+                print(f"\n🔍 Checking forget rule compliance...")
+                analysis = analyze_conversation_logs("files/conversation_logs")
+                
+                if "error" not in analysis:
+                    print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")
+                    print(f"  Violations found: {analysis['summary']['total_violations']}")
+                    
+                    if analysis['summary']['total_violations'] > 0:
+                        print(f"  ⚠️  Run 'check-forget' for detailed violation analysis")
+                    else:
+                        print(f"  ✅ All conversations follow forget rules properly")
 
         elif command == 'convert':
             if len(sys.argv) < 4:
-                print("Error: Usage: convert <input> <output>")
+                print("Error: Usage: convert <input> <output> [format]")
+                print("  Formats: json, yaml, llm-yaml, uml")
                 sys.exit(1)
 
             input_path = Path(sys.argv[2])
             output_path = Path(sys.argv[3])
+            format_arg = sys.argv[4] if len(sys.argv) > 4 else None
 
-            # Load input
-            if input_path.suffix in ['.puml', '.uml']:
-                print(f"Importing UML from {input_path}...")
-                diagram = import_uml(str(input_path))
+            # Handle UML conversion (legacy Python method)
+            if input_path.suffix in ['.puml', '.uml'] or output_path.suffix in ['.puml', '.uml']:
+                if input_path.suffix in ['.puml', '.uml']:
+                    print(f"Importing UML from {input_path}...")
+                    diagram = import_uml(str(input_path))
+                    print(f"Saving to {output_path}...")
+                    save_diagram(diagram, str(output_path))
+                else:
+                    print(f"Loading diagram from {input_path}...")
+                    diagram = load_diagram(str(input_path))
+                    print(f"Exporting to UML...")
+                    uml_content = export_uml(diagram)
+                    with open(output_path, 'w') as f:
+                        f.write(uml_content)
+                print(f"✓ Converted: {input_path} → {output_path}")
             else:
-                print(f"Loading diagram from {input_path}...")
-                diagram = load_diagram(str(input_path))
-
-            # Save output
-            if output_path.suffix in ['.puml', '.uml']:
-                print(f"Exporting to UML...")
-                uml_content = export_uml(diagram)
-                with open(output_path, 'w') as f:
-                    f.write(uml_content)
-            else:
-                print(f"Saving to {output_path}...")
-                save_diagram(diagram, str(output_path))
-
-            print(f"✓ Converted: {input_path} → {output_path}")
+                # Use enhanced TypeScript conversion
+                print(f"Converting using enhanced serialization: {input_path} → {output_path}")
+                
+                import subprocess
+                cmd = ['pnpm', 'exec', 'tsx', 'scripts/convert-diagram.ts', str(input_path), str(output_path)]
+                if format_arg:
+                    cmd.append(format_arg)
+                
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True, cwd='.')
+                    if result.returncode == 0:
+                        print(result.stdout)
+                    else:
+                        print(f"❌ Conversion failed: {result.stderr}")
+                        # Fallback to basic Python conversion
+                        print("Falling back to basic conversion...")
+                        diagram = load_diagram(str(input_path))
+                        save_diagram(diagram, str(output_path))
+                        print(f"✓ Converted: {input_path} → {output_path}")
+                except FileNotFoundError:
+                    print("⚠️  pnpm not found, using basic conversion...")
+                    diagram = load_diagram(str(input_path))
+                    save_diagram(diagram, str(output_path))
+                    print(f"✓ Converted: {input_path} → {output_path}")
 
         elif command == 'stats':
             if len(sys.argv) < 3:
@@ -622,43 +678,6 @@ def main():
             with open(analysis_file, 'w') as f:
                 json.dump(analysis, f, indent=2)
             print(f"\n  Detailed analysis saved to: {analysis_file}")
-
-        elif command == 'run-and-check':
-            if len(sys.argv) < 3:
-                print("Error: Missing input file")
-                sys.exit(1)
-
-            print(f"Loading diagram from {sys.argv[2]}...")
-            diagram = load_diagram(sys.argv[2])
-
-            print("Running diagram...")
-            result = run_diagram(diagram, show_in_browser=False, pre_initialize=True, stream=True)
-
-            print(f"\n✓ Execution complete")
-            print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
-
-            if 'context' in result:
-                print(f"  Context keys: {list(result['context'].keys())}")
-
-            # Save results
-            Path('files/results').mkdir(exist_ok=True)
-            output_file = sys.argv[3] if len(sys.argv) > 3 else 'results/results.json'
-            with open(output_file, 'w') as f:
-                json.dump(result, f, indent=2)
-            print(f"  Results saved to: {output_file}")
-
-            # Now check forget rules in conversation logs
-            print(f"\n🔍 Checking forget rule compliance...")
-            analysis = analyze_conversation_logs("files/conversation_logs")
-
-            if "error" not in analysis:
-                print(f"  Compliance rate: {analysis['summary']['compliance_rate']:.1%}")
-                print(f"  Violations found: {analysis['summary']['total_violations']}")
-
-                if analysis['summary']['total_violations'] > 0:
-                    print(f"  ⚠️  Run 'check-forget' for detailed violation analysis")
-                else:
-                    print(f"  ✅ All conversations follow forget rules properly")
 
         else:
             print(f"Unknown command: {command}")
