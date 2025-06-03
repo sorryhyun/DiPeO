@@ -77,7 +77,7 @@ export interface DBBlockData extends BaseBlockData {
   description?: string;
 }
 
-export type ConditionType = 'expression' | 'max_iterations';
+export type ConditionType = 'expression' | 'detect_max_iterations';
 export interface ConditionBlockData extends BaseBlockData {
   type: 'condition';
   conditionType: ConditionType;

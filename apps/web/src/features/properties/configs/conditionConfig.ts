@@ -16,7 +16,7 @@ export const conditionConfig: PanelConfig<ConditionBlockData> = {
       label: 'Condition Type',
       options: [
         { value: 'expression', label: 'Python Expression' },
-        { value: 'max_iterations', label: 'Detect Max Iterations' }
+        { value: 'detect_max_iterations', label: 'Detect Max Iterations' }
       ]
     },
     {

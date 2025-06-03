@@ -139,7 +139,7 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { name: 'label', label: 'Label', type: 'text', placeholder: 'Enter condition name', isRequired: true },
       { name: 'conditionType', label: 'Condition Type', type: 'select', options: [
         { value: 'expression', label: 'Expression' },
-        { value: 'max_iterations', label: 'Detect Max Iterations' }
+        { value: 'detect_max_iterations', label: 'Detect Max Iterations' }
       ]},
       { name: 'expression', label: 'Expression', type: 'textarea', placeholder: 'Enter condition expression', rows: 3 },
       { name: 'maxIterations', label: 'Detect Max Iterations', type: 'number', placeholder: '10' }

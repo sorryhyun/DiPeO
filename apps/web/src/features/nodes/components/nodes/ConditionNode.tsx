@@ -7,7 +7,7 @@ const ConditionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.condition!;
   const conditionData = data as ConditionBlockData;
   const isFlipped = conditionData.flipped === true;
-  const isMaxIterationMode = conditionData.detectMaxIteration || conditionData.conditionType === 'max_iterations';
+  const isMaxIterationMode = conditionData.detectMaxIteration || conditionData.conditionType === 'detect_max_iterations';
   
   return (
     <GenericNode id={id} data={data} selected={selected} nodeType={config.reactFlowType}>

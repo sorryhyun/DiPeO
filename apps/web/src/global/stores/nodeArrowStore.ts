@@ -124,7 +124,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
           },
 
           onConnect: (connection: Connection) => {
-            const arrowId = `arrow-${nanoid().slice(0, 6)}`;
+            const arrowId = `arrow-${nanoid().slice(0, 6).replace(/-/g, '_')}`;
             const state = get();
             const sourceNode = state.nodes.find(n => n.id === connection.source);
             
@@ -166,7 +166,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
 
           addNode: (type: string, position: { x: number; y: number }) => {
             const reactFlowType = getReactFlowType(type);
-            const nodeId = `${reactFlowType}-${nanoid().slice(0, 6)}`;
+            const nodeId = `${reactFlowType}-${nanoid().slice(0, 6).replace(/-/g, '_')}`;
             
             const nodeData = createDefaultNodeData(type, nodeId);
 

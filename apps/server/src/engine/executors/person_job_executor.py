@@ -66,10 +66,10 @@ class PersonJobExecutor(BaseExecutor):
             errors.append("Either prompt or defaultPrompt is required")
         
         # Check max iterations
-        max_iterations = properties.get("maxIterations") or properties.get("iterationCount")
+        max_iterations = properties.get("iterationCount")
         if max_iterations is not None:
             if not isinstance(max_iterations, int) or max_iterations < 1:
-                errors.append("maxIterations must be a positive integer")
+                errors.append("iterationCount must be a positive integer")
         
         return ValidationResult(
             is_valid=len(errors) == 0,
@@ -95,16 +95,20 @@ class PersonJobExecutor(BaseExecutor):
         
         # Check iteration count and handle first-only logic
         execution_count = context.node_execution_counts.get(node_id, 0)
-        max_iterations = properties.get("maxIterations") or properties.get("iterationCount")
+        max_iterations = properties.get("iterationCount")
         
         # Skip if max iterations reached
         if max_iterations and execution_count >= max_iterations:
+            logger.debug(f"PersonJob {node_id} skipping: execution_count={execution_count} >= max_iterations={max_iterations}")
+            # Get the last output from context to pass through
+            last_output = context.node_outputs.get(node_id, "No previous output")
             return ExecutorResult(
-                output="SKIPPED: Max iterations reached",
+                output=last_output,  # Pass through last output so downstream nodes can use it
                 metadata={
                     "skipped": True,
                     "reason": f"Max iterations ({max_iterations}) reached",
-                    "execution_count": execution_count
+                    "execution_count": execution_count,
+                    "passthrough": True
                 },
                 cost=0.0,
                 execution_time=time.time() - start_time
@@ -144,6 +148,7 @@ class PersonJobExecutor(BaseExecutor):
         
         try:
             # Make LLM call
+            logger.debug(f"PersonJob {node_id} executing: count={execution_count}, max_iterations={max_iterations}, prompt={final_prompt[:50]}...")
             response = await self.llm_service.call_llm(
                 service=service,
                 api_key_id=api_key_id,

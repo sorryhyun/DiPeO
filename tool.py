@@ -16,15 +16,20 @@ import time
 from typing import Optional
 
 
-async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = True) -> Dict[str, Any]:
+async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = True, debug: bool = False) -> Dict[str, Any]:
     """Execute diagram using unified backend V2 API with streaming support."""
     async with aiohttp.ClientSession() as session:
         try:
+            # Prepare request payload
+            payload = {"diagram": diagram}
+            if debug:
+                payload["options"] = {"debugMode": True}
+                
             if stream:
                 # Use V2 streaming endpoint
                 async with session.post(
                     f"{API_URL}/api/run-diagram",
-                    json={"diagram": diagram},
+                    json=payload,
                     headers={"Content-Type": "application/json", "Accept": "text/event-stream"}
                 ) as response:
                     if response.status != 200:
@@ -43,17 +48,47 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                         "messages": []
                     }
                     
+                    node_timings = {} if debug else None
+                    
                     async for line in response.content:
                         line = line.decode('utf-8').strip()
                         if line.startswith('data: '):
                             try:
                                 data = json.loads(line[6:])  # Remove 'data: ' prefix
                                 
-                                if data.get('type') == 'node_complete':
+                                if debug:
+                                    # Show all events in debug mode
+                                    event_type = data.get('type', 'unknown')
+                                    if event_type not in ['execution_started', 'execution_complete', 'node_complete', 'error']:
+                                        print(f"🐛 Debug: Event '{event_type}' - {json.dumps(data.get('data', {}), indent=2)}")
+                                
+                                if data.get('type') == 'node_start' and debug:
                                     node_data = data.get('data', {})
-                                    print(f"✓ Node {node_data.get('nodeId', 'unknown')} ({node_data.get('nodeType', 'unknown')}) completed")
+                                    node_id = node_data.get('nodeId', 'unknown')
+                                    node_timings[node_id] = time.time()
+                                    print(f"🐛 Starting node {node_id} ({node_data.get('nodeType', 'unknown')})")
+                                
+                                elif data.get('type') == 'node_complete':
+                                    node_data = data.get('data', {})
+                                    node_id = node_data.get('nodeId', 'unknown')
+                                    node_type = node_data.get('nodeType', 'unknown')
+                                    
+                                    if debug and node_id in node_timings:
+                                        elapsed = time.time() - node_timings[node_id]
+                                        print(f"✓ Node {node_id} ({node_type}) completed in {elapsed:.2f}s")
+                                        if node_data.get('output'):
+                                            print(f"  Output: {str(node_data['output'])[:100]}...")
+                                    else:
+                                        print(f"✓ Node {node_id} ({node_type}) completed")
+                                    
                                     if 'cost' in node_data:
                                         final_result['total_cost'] += node_data['cost']
+                                        if debug:
+                                            print(f"  Cost: ${node_data['cost']:.4f}")
+                                    
+                                elif data.get('type') == 'node_skipped' and debug:
+                                    node_data = data.get('data', {})
+                                    print(f"⏭️  Node {node_data.get('nodeId', 'unknown')} skipped: {node_data.get('reason', 'unknown')}")
                                     
                                 elif data.get('type') == 'execution_complete':
                                     execution_data = data.get('data', {})
@@ -64,9 +99,13 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                 elif data.get('type') == 'error':
                                     error_data = data.get('data', {})
                                     print(f"❌ Execution error: {error_data.get('message', 'Unknown error')}")
+                                    if debug and error_data.get('details'):
+                                        print(f"  Details: {json.dumps(error_data['details'], indent=2)}")
                                     final_result['error'] = error_data.get('message', 'Unknown error')
                                     
                             except json.JSONDecodeError:
+                                if debug:
+                                    print(f"🐛 Debug: Malformed JSON line: {line}")
                                 pass  # Skip malformed JSON
                     
                     return final_result
@@ -74,7 +113,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                 # Use V2 non-streaming endpoint
                 async with session.post(
                     f"{API_URL}/api/run-diagram",
-                    json={"diagram": diagram},
+                    json=payload,
                     headers={"Content-Type": "application/json"}
                 ) as response:
                     if response.status == 200:
@@ -171,8 +210,13 @@ def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = N
         return False
 
 
-def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True) -> Dict[str, Any]:
+def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True, debug: bool = False) -> Dict[str, Any]:
     """Synchronous wrapper for backend execution with optional pre-initialization."""
+    start_time = time.time() if debug else None
+    
+    if debug:
+        print("🐛 Debug mode enabled - verbose output and timing information")
+        
     if pre_initialize:
         print("🔧 Pre-initializing models...")
         pre_initialize_models(diagram)
@@ -183,7 +227,16 @@ def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initi
         # Broadcast diagram structure to monitors
         broadcast_diagram_to_monitors(diagram)
     
-    return asyncio.run(run_diagram_backend_execution(diagram, stream=stream))
+    result = asyncio.run(run_diagram_backend_execution(diagram, stream=stream, debug=debug))
+    
+    if debug and start_time:
+        elapsed = time.time() - start_time
+        print(f"\n🐛 Debug: Total execution time: {elapsed:.2f}s")
+        if result.get('context'):
+            print(f"🐛 Debug: Final context size: {len(str(result['context']))} chars")
+            print(f"🐛 Debug: Context keys: {sorted(result['context'].keys())}")
+    
+    return result
 
 
 def open_browser_monitor():
@@ -423,6 +476,7 @@ def main():
         print("      --no-browser                          - Disable browser visualization")
         print("      --no-preload                          - Skip model pre-initialization")  
         print("      --no-stream                           - Disable streaming output")
+        print("      --debug                               - Enable debug mode with verbose output")
         print("  monitor                                   - Open browser monitoring page")
         print("  preload <file>                            - Pre-initialize all models in diagram")
         print("  convert <input> <output> [format]         - Convert between formats (JSON/YAML/LLM-YAML/UML)")
@@ -470,6 +524,7 @@ def main():
             pre_initialize = True
             stream = True
             check_forget = False
+            debug = False
             output_file = None
             
             for arg in args[1:]:
@@ -481,6 +536,8 @@ def main():
                     pre_initialize = False
                 elif arg == '--no-stream':
                     stream = False
+                elif arg == '--debug':
+                    debug = True
                 elif not arg.startswith('--'):
                     output_file = arg  # Additional output file for check mode
 
@@ -500,7 +557,7 @@ def main():
                 time.sleep(2)
                 
                 print("🚀 Running diagram with browser visualization...")
-                result = run_diagram(diagram, show_in_browser=True, pre_initialize=False)
+                result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)
                 
                 print(f"\n✓ Execution complete!")
                 print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
@@ -529,7 +586,7 @@ def main():
             else:
                 print("Running diagram (browser visualization disabled)")
 
-            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream)
+            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream, debug=debug)
             
             print(f"\n✓ Execution complete")
             print(f"  Total cost: ${result.get('total_cost', 0):.4f}")
@@ -542,6 +599,19 @@ def main():
             with open(save_path, 'w') as f:
                 json.dump(result, f, indent=2)
             print(f"  Results saved to: {save_path}")
+            
+            if debug:
+                # Save detailed debug logs
+                debug_path = save_path.replace('.json', '_debug.json')
+                debug_data = {
+                    'result': result,
+                    'diagram_stats': get_diagram_stats(diagram),
+                    'execution_time': result.get('execution_time', 'N/A'),
+                    'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+                }
+                with open(debug_path, 'w') as f:
+                    json.dump(debug_data, f, indent=2)
+                print(f"🐛 Debug logs saved to: {debug_path}")
             
             # Check forget rules if requested
             if check_forget:

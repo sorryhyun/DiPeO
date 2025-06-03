@@ -38,7 +38,7 @@ class ConditionExecutor(BaseExecutor):
                 if not any(op in expression for op in ["==", "!=", "<", ">", "<=", ">=", "and", "or", "true", "false"]):
                     warnings.append("Expression may not contain valid comparison operators")
         
-        elif condition_type == "max_iterations":
+        elif condition_type in ["detect_max_iterations"]:
             # No specific validation needed for max_iterations type
             pass
         else:
@@ -59,7 +59,7 @@ class ConditionExecutor(BaseExecutor):
         inputs = self.get_input_values(node, context)
         
         try:
-            if condition_type == "max_iterations":
+            if condition_type in ["detect_max_iterations"]:
                 result = self._check_preceding_nodes_max_iterations(node, context)
             else:
                 # Default to expression evaluation
@@ -68,10 +68,21 @@ class ConditionExecutor(BaseExecutor):
             
             execution_time = time.time() - start_time
             
+            # Pass through input data while storing condition result in metadata
+            # If there's only one input, pass it directly; otherwise pass the full inputs dict
+            if len(inputs) == 1:
+                output_data = next(iter(inputs.values()))
+            elif len(inputs) > 1:
+                output_data = inputs
+            else:
+                # No inputs, just pass through empty dict
+                output_data = {}
+            
             return ExecutorResult(
-                output=result,
+                output=output_data,
                 metadata={
                     "conditionType": condition_type,
+                    "conditionResult": result,  # Store the boolean result for flow control
                     "inputs": inputs,
                     "evaluatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "executionTime": execution_time
@@ -81,11 +92,20 @@ class ConditionExecutor(BaseExecutor):
             )
         
         except Exception as e:
+            # Pass through input data even on error, but set condition result to False
+            if len(inputs) == 1:
+                output_data = next(iter(inputs.values()))
+            elif len(inputs) > 1:
+                output_data = inputs
+            else:
+                output_data = {}
+            
             return ExecutorResult(
-                output=False,
+                output=output_data,
                 error=f"Failed to evaluate condition: {str(e)}",
                 metadata={
                     "conditionType": condition_type,
+                    "conditionResult": False,  # Default to False on error
                     "inputs": inputs,
                     "error": str(e)
                 },
@@ -110,7 +130,7 @@ class ConditionExecutor(BaseExecutor):
                 # For primitive values, use the node ID as key
                 evaluation_context[node_id] = node_output
         
-        logger.info(f"[ConditionExecutor] Evaluating '{expression}' with context: {evaluation_context}")
+        logger.debug(f"[ConditionExecutor] Evaluating '{expression}' with context: {evaluation_context}")
         
         # Simple expression evaluation
         return self._evaluate_expression(expression, evaluation_context)
@@ -143,7 +163,7 @@ class ConditionExecutor(BaseExecutor):
         
         evaluated_expression = re.sub(r'\{\{(\w+)\}\}', replace_template, evaluated_expression)
         
-        logger.info(f"[ConditionExecutor] Evaluated expression: {evaluated_expression}")
+        logger.debug(f"[ConditionExecutor] Evaluated expression: {evaluated_expression}")
         
         try:
             # Convert to Python boolean operators
@@ -184,16 +204,19 @@ class ConditionExecutor(BaseExecutor):
             
             # Check if this node has max iterations defined
             execution_count = context.node_execution_counts.get(source_node_id, 0)
-            node_data = source_node.get("data", {})
-            max_iterations = node_data.get("iterationCount") or node_data.get("maxIterations")
+            node_properties = source_node.get("properties", {})
+            max_iterations = node_properties.get("iterationCount")
             
             if max_iterations:
                 has_nodes_with_max_iterations = True
-                if execution_count < max_iterations:
+                # Check if node was skipped due to max iterations
+                if source_node_id in context.skipped_nodes and context.skip_reasons.get(source_node_id) == "max_iterations_reached":
+                    logger.debug(f"[ConditionExecutor] Node {source_node_id} was skipped due to max iterations ({execution_count}/{max_iterations})")
+                elif execution_count < max_iterations:
                     all_max_iterations_reached = False
-                    logger.info(f"[ConditionExecutor] Node {source_node_id} has NOT reached max iterations yet ({execution_count}/{max_iterations})")
+                    logger.debug(f"[ConditionExecutor] Node {source_node_id} has NOT reached max iterations yet ({execution_count}/{max_iterations})")
                 else:
-                    logger.info(f"[ConditionExecutor] Node {source_node_id} has reached max iterations ({execution_count}/{max_iterations})")
+                    logger.debug(f"[ConditionExecutor] Node {source_node_id} has reached max iterations ({execution_count}/{max_iterations})")
         
         # Also check for any nodes that might be in a cycle with this condition node
         outgoing_arrows = context.outgoing_arrows.get(node_id, [])
@@ -217,16 +240,19 @@ class ConditionExecutor(BaseExecutor):
                         continue
                     
                     execution_count = context.node_execution_counts.get(check_node_id, 0)
-                    node_data = loop_node.get("data", {})
-                    max_iterations = node_data.get("iterationCount") or node_data.get("maxIterations")
+                    node_properties = loop_node.get("properties", {})
+                    max_iterations = node_properties.get("iterationCount")
                     
                     if max_iterations:
                         has_nodes_with_max_iterations = True
-                        if execution_count < max_iterations:
+                        # Check if node was skipped due to max iterations
+                        if check_node_id in context.skipped_nodes and context.skip_reasons.get(check_node_id) == "max_iterations_reached":
+                            logger.debug(f"[ConditionExecutor] Loop participant {check_node_id} was skipped due to max iterations ({execution_count}/{max_iterations})")
+                        elif execution_count < max_iterations:
                             all_max_iterations_reached = False
-                            logger.info(f"[ConditionExecutor] Loop participant {check_node_id} has NOT reached max iterations yet ({execution_count}/{max_iterations})")
+                            logger.debug(f"[ConditionExecutor] Loop participant {check_node_id} has NOT reached max iterations yet ({execution_count}/{max_iterations})")
                         else:
-                            logger.info(f"[ConditionExecutor] Loop participant {check_node_id} has reached max iterations ({execution_count}/{max_iterations})")
+                            logger.debug(f"[ConditionExecutor] Loop participant {check_node_id} has reached max iterations ({execution_count}/{max_iterations})")
         
         # Return true only if we found nodes with max iterations AND all of them have reached their limit
         return has_nodes_with_max_iterations and all_max_iterations_reached

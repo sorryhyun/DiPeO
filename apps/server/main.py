@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from fastapi import FastAPI
 from fastapi.responses import Response
 from dotenv import load_dotenv
@@ -9,6 +10,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 # Import routers and middleware
 from .src.api.routers import (

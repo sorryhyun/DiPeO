@@ -130,7 +130,6 @@ class BaseAdapter(ABC):
             # Extract results
             text = self._extract_text_from_response(response, **kwargs)
             usage_dict = self._extract_usage_from_response(response)
-            print(text)
             return ChatResult(
                 text=text,
                 usage=response if hasattr(response, 'usage') else None,

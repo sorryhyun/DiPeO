@@ -25,7 +25,7 @@ export function createCrudActions<T extends CrudItem>(
     add: (itemData: Omit<T, 'id'>) => {
       const newItem = {
         ...itemData,
-        id: `${idPrefix}_${nanoid().slice(0, 6).toUpperCase()}`
+        id: `${idPrefix}_${nanoid().slice(0, 6).replace(/-/g, '_').toUpperCase()}`
       } as T;
       setItems([...getItems(), newItem]);
     },

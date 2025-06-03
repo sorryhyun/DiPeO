@@ -66,6 +66,8 @@ class DependencyResolver:
             self.logger.debug(f"Node {node_id} has no incoming arrows - can execute")
             return True, []
         
+        self.logger.debug(f"Checking dependencies for {node_id}: {len(incoming)} incoming arrows")
+        
         valid_arrows = []
         required_arrows = []
         first_only_arrows = []
@@ -144,8 +146,12 @@ class DependencyResolver:
         if source_type == "condition":
             return self._validate_condition_arrow(arrow, source_id, context)
         
-        # Check if source was skipped
+        # Check if source was skipped without output
         if source_id in context.skipped_nodes:
+            # Allow dependency if skipped node has output (passthrough case)
+            if source_id in context.node_outputs:
+                self.logger.debug(f"Skipped node {source_id} has output, allowing dependency")
+                return True
             return False
         
         return True
@@ -157,18 +163,31 @@ class DependencyResolver:
         """
         condition_value = context.condition_values.get(condition_id)
         if condition_value is None:
+            self.logger.debug(f"Condition {condition_id} has no value yet")
             return False
         
+        # Check sourceHandle for true/false branch information
+        source_handle = arrow.get("sourceHandle", "").lower()
         arrow_label = arrow.get("label", "").lower()
         
-        # Handle true/false branch labels
-        if arrow_label in ["true", "yes", "1"]:
-            return condition_value is True
+        self.logger.debug(f"Validating condition arrow: condition_id={condition_id}, value={condition_value}, sourceHandle={source_handle}, label={arrow_label}")
+        
+        # Handle true/false branch detection from sourceHandle
+        if "output-true" in source_handle or "true" in source_handle:
+            result = condition_value is True
+        elif "output-false" in source_handle or "false" in source_handle:
+            result = condition_value is False
+        # Handle true/false branch labels (fallback)
+        elif arrow_label in ["true", "yes", "1"]:
+            result = condition_value is True
         elif arrow_label in ["false", "no", "0"]:
-            return condition_value is False
+            result = condition_value is False
         else:
             # Unlabeled arrows from conditions are always valid
-            return True
+            result = True
+        
+        self.logger.debug(f"Condition arrow validation result: {result}")
+        return result
     
     def detect_cycles(self, nodes_by_id: Dict[str, Dict], outgoing_arrows: Dict[str, List[Dict]]) -> List[List[str]]:
         """
