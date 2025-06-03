@@ -167,6 +167,19 @@ class UnifiedExecutionEngine:
                     for node_id in pending_nodes:
                         can_exec = self._can_execute_node(node_id, context, pending_nodes)
                         node_type = normalize_node_type_to_backend(context.nodes_by_id[node_id]["type"])
+                        
+                        # Additional debug for condition nodes
+                        if node_type == "condition":
+                            node = context.nodes_by_id[node_id]
+                            properties = node.get("properties", {})
+                            condition_type = properties.get("conditionType", "expression")
+                            incoming = context.incoming_arrows.get(node_id, [])
+                            logger.debug(f"Condition node {node_id} (type: {condition_type}) has {len(incoming)} incoming arrows")
+                            for arrow in incoming:
+                                source_id = arrow["source"]
+                                source_executed = source_id in context.node_outputs
+                                logger.debug(f"  - Source {source_id}: executed={source_executed}")
+                        
                         logger.debug(f"Checking node {node_id} (type: {node_type}): can_execute={can_exec}")
                         if can_exec:
                             ready_nodes.append(node_id)
@@ -286,10 +299,16 @@ class UnifiedExecutionEngine:
         pending_nodes: Set[str]
     ) -> bool:
         """Check if a node can be executed given current context"""
-        # Skip if already executed
-        if node_id in context.execution_order:
-            logger.debug(f"Node {node_id} already executed")
-            return False
+        # For nodes with iteration count, allow re-execution up to the limit
+        node = context.nodes_by_id.get(node_id)
+        if node:
+            properties = node.get("properties", {})
+            max_iterations = properties.get("iterationCount")
+            if max_iterations:
+                current_count = context.node_execution_counts.get(node_id, 0)
+                if current_count >= max_iterations:
+                    logger.debug(f"Node {node_id} reached max iterations: {current_count}/{max_iterations}")
+                    return False
         
         # Check if dependencies are met
         can_execute, valid_arrows = self.dependency_resolver.check_dependencies_met(
@@ -435,5 +454,10 @@ class UnifiedExecutionEngine:
                     if node_type not in ["condition", "conditionnode"]:
                         requeued_nodes.add(node_id)
                         logger.debug(f"Re-queuing {node_id} (no iteration limit)")
+        
+        # Also re-queue the condition node itself so it can check again after nodes execute
+        if not condition_result:
+            requeued_nodes.add(condition_node_id)
+            logger.debug(f"Re-queuing condition node {condition_node_id} for next iteration check")
 
         return requeued_nodes

@@ -193,7 +193,7 @@ class PersonJobExecutor(BaseExecutor):
             
             execution_time = time.time() - start_time
             
-            return ExecutorResult(
+            result = ExecutorResult(
                 output=response["response"],
                 metadata={
                     "person_id": person_id,
@@ -208,6 +208,12 @@ class PersonJobExecutor(BaseExecutor):
                 tokens=TokenUsage.from_response(response),
                 execution_time=execution_time
             )
+            
+            # Record first-only consumption after successful execution
+            if execution_count == 0 and first_only_prompt:
+                context.first_only_consumed[node_id] = True
+            
+            return result
         
         except Exception as e:
             return ExecutorResult(

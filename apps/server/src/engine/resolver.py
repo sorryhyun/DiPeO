@@ -66,7 +66,11 @@ class DependencyResolver:
             self.logger.debug(f"Node {node_id} has no incoming arrows - can execute")
             return True, []
         
-        self.logger.debug(f"Checking dependencies for {node_id}: {len(incoming)} incoming arrows")
+        # Check if this is a loop re-execution
+        execution_count = context.node_execution_counts.get(node_id, 0)
+        is_loop_reexecution = execution_count > 0
+        
+        self.logger.debug(f"Checking dependencies for {node_id}: {len(incoming)} incoming arrows, execution_count={execution_count}")
         
         valid_arrows = []
         required_arrows = []
@@ -104,6 +108,14 @@ class DependencyResolver:
                     valid_arrows.append(arrow)
                     first_only_satisfied = True
                     break
+        
+        # Special case: If this is a loop re-execution (execution_count > 0),
+        # and all we have are first-only arrows that were already consumed,
+        # we should still allow execution if there are other valid dependencies
+        if is_loop_reexecution and first_only_arrows and not required_arrows:
+            # For loop iterations after the first, first-only inputs are optional
+            self.logger.debug(f"Loop re-execution for {node_id}: allowing execution without first-only inputs")
+            return True, valid_arrows
         
         # Check if dependencies are met
         if allow_partial and (valid_arrows or first_only_satisfied):
