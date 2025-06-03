@@ -43,18 +43,22 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
   const arrowData = useMemo(() => {
     if (!selectedArrowId) return null;
     const arrow = arrows.find(a => a.id === selectedArrowId);
-    if (!arrow) return null;
+    if (!arrow || !arrow.data) return null;
     
     // Find source node to determine if this is a special arrow
     const sourceNode = nodes.find(n => n.id === arrow.source);
     const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
     
-    return { 
-      ...arrow.data, 
+    // Ensure we have a valid id from arrow data
+    const arrowDataWithType = { 
+      ...arrow.data,
+      id: arrow.data.id || arrow.id, // Ensure id is always present
       type: 'arrow' as const,
       _sourceNodeType: sourceNode?.data.type,
       _isFromConditionBranch: isFromConditionBranch
     };
+    
+    return arrowDataWithType;
   }, [selectedArrowId, arrows, nodes]);
 
   const getPropertiesContent = (): PropertiesResult => {

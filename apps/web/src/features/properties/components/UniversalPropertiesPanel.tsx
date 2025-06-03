@@ -1,7 +1,8 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
 import { Panel } from '../wrappers';
-import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS, DiagramNodeData, ArrowData, PersonDefinition } from '@/shared/types';
+import { PanelConfig } from '@/shared/types/panelConfig';
 import { GenericPropertyPanel } from './ui-components/GenericPropertyPanel';
 import {
   endpointConfig,
@@ -15,24 +16,52 @@ import {
   startConfig
 } from '../configs';
 
-// Mapping from node types to their configurations
-// Using type assertion as these configs are properly typed individually
-const PANEL_CONFIGS = {
-  'endpoint': endpointConfig,
-  'person_job': personJobConfig,
-  'condition': conditionConfig,
-  'db': dbConfig,
-  'job': jobConfig,
-  'person_batch_job': personBatchJobConfig,
-  'arrow': arrowConfig,
-  'person': personConfig,
-  'start': startConfig,
-} as const;
+// Union type for all possible data types
+type UniversalData = DiagramNodeData | (ArrowData & { type: 'arrow' }) | (PersonDefinition & { type: 'person' });
 
-export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: { type: string } }> = ({ nodeId, data }) => {
+interface UniversalPropertiesPanelProps {
+  nodeId: string;
+  data: UniversalData;
+}
+
+export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = ({ nodeId, data }) => {
   const nodeType = data.type;
-  const panelConfig = PANEL_CONFIGS[nodeType as keyof typeof PANEL_CONFIGS];
   const nodeConfig = UNIFIED_NODE_CONFIGS[nodeType];
+  
+  // Cast to a more permissive type that accepts the union
+  const GenericPanel = GenericPropertyPanel as React.FC<{
+    nodeId: string;
+    data: Record<string, unknown>;
+    config: PanelConfig<Record<string, unknown>>;
+  }>;
+  
+  // Get the appropriate config based on node type
+  const getPanelConfig = (): PanelConfig<Record<string, unknown>> | null => {
+    switch (nodeType) {
+      case 'endpoint':
+        return endpointConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'person_job':
+        return personJobConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'condition':
+        return conditionConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'db':
+        return dbConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'job':
+        return jobConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'person_batch_job':
+        return personBatchJobConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'arrow':
+        return arrowConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'person':
+        return personConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'start':
+        return startConfig as unknown as PanelConfig<Record<string, unknown>>;
+      default:
+        return null;
+    }
+  };
+  
+  const panelConfig = getPanelConfig();
   
   if (!panelConfig) {
     return (
@@ -47,9 +76,9 @@ export const UniversalPropertiesPanel: React.FC<{ nodeId: string; data: { type: 
       icon={<span>{nodeConfig?.emoji || '⚙️'}</span>} 
       title={nodeConfig?.propertyTitle || `${nodeType} Properties`}
     >
-      <GenericPropertyPanel
+      <GenericPanel
         nodeId={nodeId}
-        data={data}
+        data={data as Record<string, unknown>}
         config={panelConfig}
       />
     </Panel>
