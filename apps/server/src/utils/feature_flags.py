@@ -9,7 +9,6 @@ class FeatureFlag(Enum):
     """Available feature flags."""
     
     # Execution Engine Flags
-    USE_V2_EXECUTION = "use_v2_execution"
     ENABLE_STREAMING = "enable_streaming"
     ENABLE_COST_TRACKING = "enable_cost_tracking"
     ENABLE_MEMORY_PERSISTENCE = "enable_memory_persistence"
@@ -52,8 +51,7 @@ class FeatureFlagManager:
     def _set_defaults(self):
         """Set default values for feature flags."""
         defaults = {
-            # V2 execution is enabled by default (migration complete)
-            FeatureFlag.USE_V2_EXECUTION.value: True,
+            # Core execution features
             FeatureFlag.ENABLE_STREAMING.value: True,
             FeatureFlag.ENABLE_COST_TRACKING.value: True,
             FeatureFlag.ENABLE_MEMORY_PERSISTENCE.value: True,
@@ -139,58 +137,14 @@ def get_feature_flags() -> Dict[str, bool]:
     return _feature_flags.get_all_flags()
 
 
-class MigrationStrategy:
-    """Handles migration strategy and rollback plans."""
-    
-    def __init__(self, feature_flags: FeatureFlagManager):
-        self.feature_flags = feature_flags
-    
-    def enable_v2_execution(self) -> None:
-        """Enable V2 execution engine."""
-        self.feature_flags.enable(FeatureFlag.USE_V2_EXECUTION)
-        self.feature_flags.enable(FeatureFlag.ENABLE_STREAMING)
-        self.feature_flags.enable(FeatureFlag.ENABLE_COST_TRACKING)
-    
-    def rollback_to_v1(self) -> None:
-        """Rollback to V1 execution (emergency rollback)."""
-        self.feature_flags.disable(FeatureFlag.USE_V2_EXECUTION)
-        # Keep other features that work with V1
-    
-    def enable_gradual_rollout(self, percentage: float = 50.0) -> None:
-        """Enable gradual rollout of V2 features."""
-        import random
-        
-        # Simple percentage-based rollout
-        if random.random() * 100 < percentage:
-            self.enable_v2_execution()
-        else:
-            self.rollback_to_v1()
-    
-    def get_migration_status(self) -> Dict[str, Any]:
-        """Get current migration status."""
-        return {
-            "v2_execution_enabled": self.feature_flags.is_enabled(FeatureFlag.USE_V2_EXECUTION),
-            "streaming_enabled": self.feature_flags.is_enabled(FeatureFlag.ENABLE_STREAMING),
-            "cost_tracking_enabled": self.feature_flags.is_enabled(FeatureFlag.ENABLE_COST_TRACKING),
-            "memory_persistence_enabled": self.feature_flags.is_enabled(FeatureFlag.ENABLE_MEMORY_PERSISTENCE),
-            "migration_phase": "complete" if self.feature_flags.is_enabled(FeatureFlag.USE_V2_EXECUTION) else "v1_fallback"
-        }
-
-
-# Global migration strategy instance
-migration_strategy = MigrationStrategy(_feature_flags)
-
-
-def get_migration_status() -> Dict[str, Any]:
-    """Get current migration status."""
-    return migration_strategy.get_migration_status()
-
-
-def emergency_rollback() -> None:
-    """Emergency rollback to V1 execution."""
-    migration_strategy.rollback_to_v1()
-
-
-def enable_v2_migration() -> None:
-    """Enable V2 migration."""
-    migration_strategy.enable_v2_execution()
+# Feature status reporting
+def get_feature_status() -> Dict[str, Any]:
+    """Get current feature status."""
+    return {
+        "streaming_enabled": is_feature_enabled(FeatureFlag.ENABLE_STREAMING),
+        "cost_tracking_enabled": is_feature_enabled(FeatureFlag.ENABLE_COST_TRACKING),
+        "memory_persistence_enabled": is_feature_enabled(FeatureFlag.ENABLE_MEMORY_PERSISTENCE),
+        "executor_caching_enabled": is_feature_enabled(FeatureFlag.ENABLE_EXECUTOR_CACHING),
+        "monitoring_enabled": is_feature_enabled(FeatureFlag.ENABLE_EXECUTION_MONITORING),
+        "sandbox_mode_enabled": is_feature_enabled(FeatureFlag.ENABLE_SANDBOX_MODE),
+    }

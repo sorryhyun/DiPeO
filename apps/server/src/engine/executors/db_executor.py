@@ -38,13 +38,19 @@ class DBExecutor(ServerOnlyExecutor):
         sub_type = properties.get("subType", "file")
         source_details = properties.get("sourceDetails", "")
         
-        if not source_details:
-            errors.append("Source details are required")
+        # Check if source details is empty or just contains placeholder text
+        is_placeholder = source_details.strip() in ["", "Enter your fixed prompt or content here"]
         
-        if sub_type == "file":
-            # Validate file path
-            if not source_details:
-                errors.append("File path is required for file subType")
+        if not source_details or is_placeholder:
+            if sub_type == "file":
+                errors.append("File path is required for file subType. Please specify a valid file path (e.g., 'data/input.txt').")
+            else:
+                errors.append(f"Source details are required for DB node (subType: {sub_type}). Please provide content for your fixed prompt.")
+        
+        elif sub_type == "file":
+            # Additional validation for file paths
+            if not source_details or source_details.strip() == "":
+                errors.append("File path is required for file subType. Please specify a valid file path.")
             elif any(char in source_details for char in ["../", "..\\"]):
                 errors.append("File path cannot contain directory traversal sequences")
         

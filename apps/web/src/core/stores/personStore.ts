@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools, subscribeWithSelector } from 'zustand/middleware';
+import { devtools, subscribeWithSelector, persist } from 'zustand/middleware';
 import { PersonDefinition } from '@/shared/types';
 import { createPersonCrudActions } from "@/shared/utils/storeCrudUtils";
 
@@ -16,21 +16,30 @@ export interface PersonState {
 
 export const usePersonStore = create<PersonState>()(
   devtools(
-    subscribeWithSelector(
-      (set, get) => ({
-        persons: [],
-        
-        // Person operations using generic CRUD
-        ...createPersonCrudActions<PersonDefinition>(
-          () => get().persons,
-          (persons) => set({ persons }),
-          'PERSON'
-        ),
-        
-        setPersons: (persons: PersonDefinition[]) => {
-          set({ persons });
-        },
-      })
+    persist(
+      subscribeWithSelector(
+        (set, get) => ({
+          persons: [],
+          
+          // Person operations using generic CRUD
+          ...createPersonCrudActions<PersonDefinition>(
+            () => get().persons,
+            (persons) => set({ persons }),
+            'PERSON'
+          ),
+          
+          setPersons: (persons: PersonDefinition[]) => {
+            set({ persons });
+          },
+        })
+      ),
+      {
+        name: 'dipeo-person-store',
+        // Only persist persons data, not functions
+        partialize: (state) => ({ 
+          persons: state.persons 
+        }),
+      }
     )
   )
 );

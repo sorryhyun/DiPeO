@@ -29,6 +29,7 @@ class ExecutionContext:
     skipped_nodes: Set[str] = field(default_factory=set)
     skip_reasons: Dict[str, str] = field(default_factory=dict)
     api_keys: Dict[str, str] = field(default_factory=dict)
+    persons: Dict[str, Dict] = field(default_factory=dict)
 
 
 class UnifiedExecutionEngine:
@@ -102,7 +103,9 @@ class UnifiedExecutionEngine:
                     # Find nodes ready to execute
                     ready_nodes = []
                     for node_id in pending_nodes:
-                        if self._can_execute_node(node_id, context, pending_nodes):
+                        can_exec = self._can_execute_node(node_id, context, pending_nodes)
+                        logger.info(f"Checking node {node_id}: can_execute={can_exec}")
+                        if can_exec:
                             ready_nodes.append(node_id)
                     
                     if not ready_nodes:
@@ -165,9 +168,14 @@ class UnifiedExecutionEngine:
         """Build execution context from diagram definition"""
         context = ExecutionContext()
         
-        # Index nodes by ID
+        # Index nodes by ID, transforming frontend format to backend format
         for node in diagram.get("nodes", []):
-            context.nodes_by_id[node["id"]] = node
+            # Transform node: map 'data' field to 'properties' for backend executors
+            transformed_node = {
+                **node,
+                "properties": node.get("data", {})  # Map frontend 'data' to backend 'properties'
+            }
+            context.nodes_by_id[node["id"]] = transformed_node
         
         # Index arrows by source and target
         for arrow in diagram.get("arrows", []):
@@ -175,6 +183,14 @@ class UnifiedExecutionEngine:
             target = arrow["target"]
             context.outgoing_arrows[source].append(arrow)
             context.incoming_arrows[target].append(arrow)
+        
+        # Add persons to context
+        for person in diagram.get("persons", []):
+            context.persons[person["id"]] = person
+        
+        # Add API keys to context
+        for api_key in diagram.get("apiKeys", []):
+            context.api_keys[api_key["id"]] = api_key
         
         return context
     
@@ -187,13 +203,15 @@ class UnifiedExecutionEngine:
         """Check if a node can be executed given current context"""
         # Skip if already executed
         if node_id in context.execution_order:
+            logger.info(f"Node {node_id} already executed")
             return False
         
         # Check if dependencies are met
-        can_execute, _ = self.dependency_resolver.check_dependencies_met(
+        can_execute, valid_arrows = self.dependency_resolver.check_dependencies_met(
             node_id, context
         )
         
+        logger.info(f"Node {node_id} dependencies check: can_execute={can_execute}, valid_arrows={len(valid_arrows)}")
         return can_execute
     
     async def _execute_node(

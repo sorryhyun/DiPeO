@@ -33,7 +33,7 @@ export const dbConfig: PanelConfig<DBBlockData> = {
       name: 'sourceDetails',
       label: 'Source Details',
       rows: 5,
-      placeholder: 'Enter source details or file path',
+      placeholder: 'For Fixed Prompt: Enter your text content\nFor File: Enter the file path (e.g., data/input.txt)',
     }
   ]
 };

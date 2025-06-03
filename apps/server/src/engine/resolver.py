@@ -2,6 +2,8 @@ from typing import Dict, List, Set, Tuple
 from collections import deque, defaultdict
 import logging
 
+from ..utils.node_type_utils import normalize_node_type_to_backend
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +25,8 @@ class DependencyResolver:
         start_nodes = []
         
         for node_id, node in nodes_by_id.items():
-            if node["type"] == "start" or node_id not in incoming_arrows or not incoming_arrows[node_id]:
+            node_type = normalize_node_type_to_backend(node["type"])
+            if node_type == "start" or node_id not in incoming_arrows or not incoming_arrows[node_id]:
                 start_nodes.append(node_id)
                 
         return start_nodes
@@ -47,16 +50,20 @@ class DependencyResolver:
         """
         node = context.nodes_by_id.get(node_id)
         if not node:
+            self.logger.debug(f"Node {node_id} not found in context")
             return False, []
         
         # Start nodes have no dependencies
-        if node["type"] == "start":
+        node_type = normalize_node_type_to_backend(node["type"])
+        if node_type == "start":
+            self.logger.debug(f"Node {node_id} is start node - can execute")
             return True, []
         
         # Get incoming arrows
         incoming = context.incoming_arrows.get(node_id, [])
         if not incoming:
             # No dependencies means can execute
+            self.logger.debug(f"Node {node_id} has no incoming arrows - can execute")
             return True, []
         
         valid_arrows = []
@@ -69,10 +76,14 @@ class DependencyResolver:
             source_node = context.nodes_by_id.get(source_id)
             
             if not source_node:
+                self.logger.debug(f"Source node {source_id} not found for arrow to {node_id}")
                 continue
                 
             # Check if this is a first-only input
-            if self._is_first_only_arrow(arrow, node):
+            is_first = self._is_first_only_arrow(arrow, node)
+            self.logger.debug(f"Arrow from {source_id} to {node_id}: is_first_only={is_first}, targetHandle={arrow.get('targetHandle', '')}")
+            
+            if is_first:
                 first_only_arrows.append(arrow)
             else:
                 required_arrows.append(arrow)
@@ -109,12 +120,11 @@ class DependencyResolver:
     def _is_first_only_arrow(self, arrow: Dict, target_node: Dict) -> bool:
         """Check if an arrow represents a first-only input"""
         # PersonJob nodes can have first-only inputs
-        if target_node["type"] in ["personjob", "personbatchjob"]:
-            # Check if arrow is marked as first-only in node properties
-            node_props = target_node.get("properties", {})
-            first_only_inputs = node_props.get("firstOnlyInputs", [])
-            arrow_label = arrow.get("label", "")
-            return arrow_label in first_only_inputs
+        node_type = normalize_node_type_to_backend(target_node["type"])
+        if node_type in ["person_job", "person_batch_job"]:
+            # Check if the arrow's targetHandle ends with "-first"
+            target_handle = arrow.get("targetHandle", "")
+            return target_handle.endswith("-first")
         return False
     
     def _is_arrow_dependency_met(self, arrow: Dict, context: 'ExecutionContext') -> bool:
@@ -130,7 +140,8 @@ class DependencyResolver:
             return False
         
         # Special handling for condition nodes
-        if source_node["type"] == "condition":
+        source_type = normalize_node_type_to_backend(source_node["type"])
+        if source_type == "condition":
             return self._validate_condition_arrow(arrow, source_id, context)
         
         # Check if source was skipped
@@ -228,7 +239,8 @@ class DependencyResolver:
                 continue
             
             # If this is a condition node and we should consider conditions
-            if consider_conditions and node["type"] == "condition":
+            node_type = normalize_node_type_to_backend(node["type"])
+            if consider_conditions and node_type == "condition":
                 if self._validate_condition_arrow(arrow, node_id, context):
                     next_nodes.append(target_id)
             else:

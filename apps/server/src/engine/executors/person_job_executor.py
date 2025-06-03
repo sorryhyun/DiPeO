@@ -29,11 +29,21 @@ class PersonJobExecutor(ServerOnlyExecutor):
         
         properties = node.get("properties", {})
         
-        # Validate person configuration
+        # Check for person configuration - either embedded or via personId
         person_config = properties.get("person", {})
-        if not person_config:
-            errors.append("Person configuration is required")
-        else:
+        person_id = properties.get("personId")
+        
+        if not person_config and person_id:
+            # Look up person from context
+            person = context.persons.get(person_id)
+            if person:
+                person_config = person
+            else:
+                errors.append(f"Person with ID '{person_id}' not found in diagram")
+        
+        if not person_config and not person_id:
+            errors.append("Either person configuration or personId is required")
+        elif person_config:
             # Check required person fields
             service = person_config.get("service", "openai")
             model = person_config.get("modelName") or person_config.get("model")
@@ -73,7 +83,12 @@ class PersonJobExecutor(ServerOnlyExecutor):
         
         properties = node.get("properties", {})
         person_config = properties.get("person", {})
+        person_id = properties.get("personId")
         node_id = node.get("id", "")
+        
+        # Get person configuration - either embedded or via personId
+        if not person_config and person_id:
+            person_config = context.persons.get(person_id, {})
         
         # Get input values for variable substitution
         inputs = self.get_input_values(node, context)

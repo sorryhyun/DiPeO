@@ -5,6 +5,7 @@
  * client that delegates all execution to the backend unified engine.
  */
 
+import { produce } from 'immer';
 import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
 import type { Node, Arrow } from '@/shared/types';
 
@@ -65,15 +66,33 @@ export class UnifiedExecutionClient {
     this.abortController = new AbortController();
     
     try {
+      // Define request payload type
+      interface RequestPayload {
+        diagram: DiagramData;
+        options: ExecutionOptions;
+      }
+      
+      // Prepare request payload using immer for clean immutable structure
+      const requestPayload = produce({} as RequestPayload, draft => {
+        draft.diagram = {
+          nodes: diagram.nodes || [],
+          arrows: diagram.arrows || [],
+          persons: diagram.persons || [],
+          apiKeys: diagram.apiKeys || []
+        };
+        draft.options = {
+          continueOnError: options.continueOnError ?? false,
+          allowPartial: options.allowPartial ?? false,
+          debugMode: options.debugMode ?? false
+        };
+      });
+      
       const response = await fetch(getApiUrl(API_ENDPOINTS.RUN_DIAGRAM), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...diagram,
-          options
-        }),
+        body: JSON.stringify(requestPayload),
         signal: this.abortController.signal
       });
       
