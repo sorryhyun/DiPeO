@@ -21,6 +21,11 @@ class APIKeyError(AgentDiagramException):
     pass
 
 
+class APIKeyNotFoundError(APIKeyError):
+    """Raised when an API key is not found."""
+    pass
+
+
 class LLMServiceError(AgentDiagramException):
     """Raised when LLM service calls fail."""
     pass

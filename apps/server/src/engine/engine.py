@@ -292,7 +292,9 @@ class UnifiedExecutionEngine:
             context.node_outputs[node_id] = result.output
             context.node_execution_counts[node_id] += 1
             context.execution_order.append(node_id)
-            context.total_tokens += result.tokens
+            context.total_tokens.input += result.tokens.input
+            context.total_tokens.output += result.tokens.output
+            context.total_tokens.cached += result.tokens.cached
             
             # Handle condition nodes
             if node_type == "condition":
@@ -312,7 +314,7 @@ class UnifiedExecutionEngine:
                 "node_id": node_id,
                 "output": result.output,
                 "metadata": result.metadata,
-                "token_count": result.tokens
+                "token_count": result.tokens.input + result.tokens.output
             }
             
         except Exception as e:

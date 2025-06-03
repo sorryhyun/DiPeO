@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, asdict
+from typing import Any, Dict
 
 
 @dataclass
@@ -8,6 +8,15 @@ class TokenUsage:
     input: int = 0
     output: int = 0
     cached: int = 0
+    
+    @property
+    def total(self) -> int:
+        """Total tokens used (input + output)"""
+        return self.input + self.output
+    
+    def to_dict(self) -> Dict[str, int]:
+        """Convert to dictionary format"""
+        return asdict(self)
 
     @classmethod
     def from_response(cls, response: dict) -> 'TokenUsage':
