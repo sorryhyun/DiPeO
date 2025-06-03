@@ -75,14 +75,14 @@ class LLMService(BaseService):
             return 0, 0, 0
         
         input_tokens = (
-            self.safe_get_nested(usage, 'input_tokens') or 
-            self.safe_get_nested(usage, 'prompt_tokens') or 
+            self.safe_get_nested(usage, 'input_tokens') or
+            self.safe_get_nested(usage.usage, 'prompt_tokens') or
             self.safe_get_nested(usage, 'prompt_token_count') or 0
         )
         
         output_tokens = (
             self.safe_get_nested(usage, 'output_tokens') or 
-            self.safe_get_nested(usage, 'completion_tokens') or 
+            self.safe_get_nested(usage.usage, 'completion_tokens') or
             self.safe_get_nested(usage, 'candidates_token_count') or 0
         )
         

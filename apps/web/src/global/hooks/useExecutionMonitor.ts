@@ -20,7 +20,11 @@ export const useExecutionMonitor = () => {
     const connectSSE = () => {
       if (!isComponentMounted) return;
 
-      const eventSource = new EventSource(getStreamingUrl(API_ENDPOINTS.MONITOR_STREAM));
+      // For SSE, connect directly to backend to avoid proxy issues
+      const sseUrl = import.meta.env.DEV 
+        ? `http://localhost:8000${API_ENDPOINTS.MONITOR_STREAM}`
+        : getStreamingUrl(API_ENDPOINTS.MONITOR_STREAM);
+      const eventSource = new EventSource(sseUrl);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {

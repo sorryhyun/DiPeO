@@ -44,7 +44,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                     # Process SSE stream
                     final_result = {
                         "context": {},
-                        "total_cost": 0,
+                        "total_token_count": 0,
                         "messages": []
                     }
                     
@@ -79,7 +79,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                             print(f"  Output: {str(data['output'])[:100]}...")
                                     
                                     if 'token_count' in data:
-                                        final_result['total_cost'] += data['token_count']
+                                        final_result['total_token_count'] += data['token_count']
                                         if debug:
                                             print(f"  Token count: {data['token_count']}")
                                     
@@ -90,7 +90,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                                 elif data.get('type') == 'execution_complete':
                                     execution_data = data.get('data', {})
                                     final_result['context'] = execution_data.get('context', {})
-                                    final_result['total_cost'] = execution_data.get('total_token_count', final_result['total_cost'])
+                                    final_result['total_token_count'] = execution_data.get('total_token_count', final_result['total_token_count'])
                                     
                                 elif data.get('type') == 'error':
                                     error_data = data.get('data', {})
@@ -130,7 +130,7 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
         except Exception as e:
             return {
                 "context": {},
-                "total_cost": 0,
+                "total_token_count": 0,
                 "messages": [],
                 "error": f"Execution error: {str(e)}"
             }
@@ -258,6 +258,26 @@ def open_browser_monitor():
     import webbrowser
     monitor_url = "http://localhost:3000/?monitor=true"
     webbrowser.open(monitor_url)
+
+
+def wait_for_monitor_connection(timeout: int = 10, check_interval: float = 0.5) -> bool:
+    """Wait for at least one monitor to connect to the SSE endpoint."""
+    import time
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        try:
+            response = requests.get(f"{API_URL}/api/monitor/status")
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("active_monitors", 0) > 0:
+                    return True
+        except Exception:
+            pass
+        
+        time.sleep(check_interval)
+    
+    return False
 
 
 def extract_person_models(diagram: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
@@ -439,14 +459,22 @@ def main():
                 # Pre-initialize models silently
                 pre_initialize_models(diagram, verbose=debug)
                 
-                # Broadcast diagram structure to monitors BEFORE opening browser
+                # Open browser monitor first
+                open_browser_monitor()
+                
+                # Wait for monitor connection
+                if wait_for_monitor_connection():
+                    print("✓ Monitor connected")
+                else:
+                    print("⚠️  No monitor connected within timeout, continuing anyway")
+                
+                # Now broadcast diagram structure to connected monitors
                 import uuid
                 execution_id = f"cli_{uuid.uuid4().hex[:8]}"
                 broadcast_diagram_to_monitors(diagram, execution_id)
                 
-                # Open browser monitor
-                open_browser_monitor()
-                time.sleep(2)
+                # Small delay to ensure broadcast is processed
+                time.sleep(0.5)
                 
                 # Run diagram - note that run_diagram will broadcast again, but that's OK
                 result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)

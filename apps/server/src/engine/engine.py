@@ -11,6 +11,7 @@ from .controllers import LoopController, SkipManager
 from .executors.base_executor import BaseExecutor
 from .executors import create_executors
 from ..utils.node_type_utils import normalize_node_type_to_backend
+from ..api.routers.monitor import broadcast_to_monitors
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ class UnifiedExecutionEngine:
                 )
                 
                 # Yield initial plan
-                yield {
+                event = {
                     "type": "execution_started",
                     "plan": {
                         "execution_order": plan.execution_order,
@@ -157,6 +158,9 @@ class UnifiedExecutionEngine:
                         "estimated_cost": plan.estimated_cost
                     }
                 }
+                yield event
+                # Broadcast to monitors
+                await broadcast_to_monitors(event)
                 
                 # Execute nodes according to plan
                 pending_nodes = set(plan.execution_order)
@@ -217,16 +221,21 @@ class UnifiedExecutionEngine:
                         
                         if isinstance(result, Exception):
                             error_msg = str(result)
-                            yield {
+                            event = {
                                 "type": "node_error",
                                 "node_id": node_id,
                                 "error": error_msg
                             }
+                            yield event
+                            # Broadcast to monitors
+                            await broadcast_to_monitors(event)
                             
                             if not options.get("continue_on_error", False):
                                 raise result
                         else:
                             yield result
+                            # Broadcast to monitors
+                            await broadcast_to_monitors(result)
                             
                             # Handle conditional re-queuing for loops
                             if node_id in context.condition_values:
@@ -240,7 +249,7 @@ class UnifiedExecutionEngine:
                                 pending_nodes.update(requeued_nodes)
                 
                 # Yield completion
-                yield {
+                event = {
                     "type": "execution_complete",
                     "data": {
                         "context": {
@@ -253,13 +262,19 @@ class UnifiedExecutionEngine:
                         "total_token_count": context.total_tokens.total
                     }
                 }
+                yield event
+                # Broadcast to monitors
+                await broadcast_to_monitors(event)
                 
             except Exception as e:
                 logger.error(f"Diagram execution failed: {str(e)}")
-                yield {
+                event = {
                     "type": "execution_failed",
                     "error": str(e)
                 }
+                yield event
+                # Broadcast to monitors
+                await broadcast_to_monitors(event)
                 raise
     
     def _build_execution_context(self, diagram: Dict[str, Any]) -> ExecutionContext:
@@ -334,11 +349,14 @@ class UnifiedExecutionEngine:
             context.skipped_nodes.add(node_id)
             context.skip_reasons[node_id] = reason
             
-            return {
+            event = {
                 "type": "node_skipped",
                 "node_id": node_id,
                 "reason": reason
             }
+            # Broadcast to monitors
+            await broadcast_to_monitors(event)
+            return event
         
         # Get executor for node type
         executor = self.executors.get(node_type)
@@ -366,13 +384,16 @@ class UnifiedExecutionEngine:
                     logger.debug(f"Node {node_id} skipped but passed through output: {str(result.output)[:50]}...")
                 
                 # Don't increment execution count or add to execution order for skipped nodes
-                return {
+                event = {
                     "type": "node_skipped",
                     "node_id": node_id,
                     "reason": result.metadata.get("reason", "executor_skipped"),
                     "metadata": result.metadata,
                     "output": result.output
                 }
+                # Broadcast to monitors
+                await broadcast_to_monitors(event)
+                return event
             
             # Update context for successful execution
             context.node_outputs[node_id] = result.output
@@ -395,13 +416,16 @@ class UnifiedExecutionEngine:
             # Mark iteration complete for loop control
             self.loop_controller.mark_iteration_complete(node_id)
             
-            return {
+            event = {
                 "type": "node_completed",
                 "node_id": node_id,
                 "output": result.output,
                 "metadata": result.metadata,
                 "token_count": result.tokens.input + result.tokens.output
             }
+            # Broadcast to monitors
+            await broadcast_to_monitors(event)
+            return event
             
         except Exception as e:
             logger.error(f"Node execution failed: {node_id} - {str(e)}")
