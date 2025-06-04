@@ -13,7 +13,8 @@ from ...services.llm_service import LLMService
 from ...services.file_service import FileService
 from ...services.api_key_service import APIKeyService
 from ...services.diagram_service import DiagramService
-from ...utils.dependencies import get_llm_service, get_file_service, get_api_key_service, get_diagram_service
+from ...services.memory_service import MemoryService
+from ...utils.dependencies import get_llm_service, get_file_service, get_api_key_service, get_diagram_service, get_memory_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
 # node_type_utils no longer needed - all types are already snake_case
@@ -57,7 +58,8 @@ async def run_diagram_v2(
     options: Optional[Dict[str, Any]] = None,
     llm_service: LLMService = Depends(get_llm_service),
     file_service: FileService = Depends(get_file_service),
-    api_key_service: APIKeyService = Depends(get_api_key_service)
+    api_key_service: APIKeyService = Depends(get_api_key_service),
+    memory_service: MemoryService = Depends(get_memory_service)
 ):
     """
     Execute diagram using unified backend execution engine with SSE streaming.
@@ -152,7 +154,8 @@ async def run_diagram_v2(
     # Create execution engine with services
     execution_engine = UnifiedExecutionEngine(
         llm_service=llm_service,
-        file_service=file_service
+        file_service=file_service,
+        memory_service=memory_service
     )
     
     # Load API keys for LLM calls
@@ -177,6 +180,9 @@ async def run_diagram_v2(
             
             # Send initial response
             yield f"data: {json.dumps({'type': 'execution_started', 'execution_id': execution_id})}\n\n"
+            
+            # Add execution_id to options so engine can use it
+            execution_options["execution_id"] = execution_id
             
             # Execute diagram and stream updates
             async for update in execution_engine.execute_diagram(enhanced_diagram, execution_options):

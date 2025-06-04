@@ -10,7 +10,7 @@ const MemoryLayer: React.FC = () => {
   // const { runContext } = useExecutionStore();
 
   // Get person job nodes to position memory beneath them
-  const personJobNodes = nodes.filter(n => n.type === 'personjobNode');
+  const personJobNodes = nodes.filter(n => n.type === 'person_job');
 
   return (
     <div className="absolute inset-0 pointer-events-none">

@@ -145,6 +145,7 @@ const DiagramCanvas: React.FC = () => {
             style={{
               minHeight: '400px',
             }}
+
           >
             {/* Main diagram layer */}
             <div className="absolute inset-0">

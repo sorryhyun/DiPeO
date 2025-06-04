@@ -1,6 +1,7 @@
 from typing import Dict, List, Set, Optional, Any, AsyncIterator
 import asyncio
 import logging
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from .executors.token_utils import TokenUsage
@@ -32,6 +33,7 @@ class ExecutionContext:
     skip_reasons: Dict[str, str] = field(default_factory=dict)
     api_keys: Dict[str, str] = field(default_factory=dict)
     persons: Dict[str, Dict] = field(default_factory=dict)
+    execution_id: Optional[str] = None
 
 
 class UnifiedExecutionEngine:
@@ -41,13 +43,14 @@ class UnifiedExecutionEngine:
     loop control, skip management, and node execution.
     """
     
-    def __init__(self, llm_service=None, file_service=None):
+    def __init__(self, llm_service=None, file_service=None, memory_service=None):
         self.dependency_resolver = DependencyResolver()
         self.execution_planner = ExecutionPlanner()
         self.loop_controller = LoopController()
         self.skip_manager = SkipManager()
         self.llm_service = llm_service
         self.file_service = file_service
+        self.memory_service = memory_service
         self.executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service
@@ -141,6 +144,9 @@ class UnifiedExecutionEngine:
             try:
                 # Initialize execution context
                 context = self._build_execution_context(diagram)
+                
+                # Set execution_id from options if provided
+                context.execution_id = options.get("execution_id", f"exec_{int(time.time() * 1000)}")
                 
                 # Create execution plan
                 plan = self.execution_planner.create_execution_plan(
@@ -262,6 +268,19 @@ class UnifiedExecutionEngine:
                                 if requeued_nodes:
                                     logger.debug(f"Re-queuing nodes after condition: {requeued_nodes}")
                                 pending_nodes.update(requeued_nodes)
+                
+                # Save conversation logs if we have an execution_id and memory service
+                if context.execution_id and self.memory_service:
+                    try:
+                        from pathlib import Path
+                        log_dir = Path("files/conversation_logs")
+                        log_path = await self.memory_service.save_conversation_log(
+                            execution_id=context.execution_id,
+                            log_dir=log_dir
+                        )
+                        logger.info(f"Conversation log saved to: {log_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to save conversation log: {e}")
                 
                 # Yield completion
                 event = {

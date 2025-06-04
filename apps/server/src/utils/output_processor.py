@@ -1,4 +1,7 @@
-from typing import Any, List, Dict
+from typing import Any, List, Dict, TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from ..engine.executors.token_utils import TokenUsage
 
 
 class OutputProcessor:
@@ -136,3 +139,69 @@ class OutputProcessor:
             output['model'] = model
             
         return output
+    
+    @staticmethod
+    def create_personjob_output_from_tokens(
+        text: str,
+        token_usage: 'TokenUsage',
+        conversation_history: List[Dict[str, str]] = None,
+        model: str = None,
+        execution_time: float = None
+    ) -> Dict[str, Any]:
+        """
+        Create a PersonJob output format using TokenUsage object.
+        
+        Args:
+            text: The output text
+            token_usage: TokenUsage object with token metrics
+            conversation_history: List of conversation messages
+            model: The model used
+            execution_time: Time taken for execution
+            
+        Returns:
+            Dictionary in PersonJob output format
+        """
+        output = {
+            '_type': 'personjob_output',
+            'text': text
+        }
+        
+        if conversation_history is not None:
+            output['conversation_history'] = conversation_history
+        if token_usage:
+            if token_usage.total > 0:
+                output['token_count'] = token_usage.total
+            if token_usage.input > 0:
+                output['input_tokens'] = token_usage.input
+            if token_usage.output > 0:
+                output['output_tokens'] = token_usage.output
+            if token_usage.cached > 0:
+                output['cached_tokens'] = token_usage.cached
+        if model:
+            output['model'] = model
+        if execution_time is not None:
+            output['execution_time'] = execution_time
+            
+        return output
+    
+    @staticmethod
+    def extract_token_usage(value: Any) -> Optional['TokenUsage']:
+        """
+        Extract TokenUsage from PersonJob output.
+        
+        Args:
+            value: The value to process, which may contain token information
+            
+        Returns:
+            TokenUsage object, or None if not a PersonJob output
+        """
+        if isinstance(value, dict) and value.get('_type') == 'personjob_output':
+            # Import here to avoid circular dependency
+            from ..engine.executors.token_utils import TokenUsage
+            
+            return TokenUsage(
+                input=value.get('input_tokens', 0),
+                output=value.get('output_tokens', 0),
+                cached=value.get('cached_tokens', 0)
+            )
+        return None

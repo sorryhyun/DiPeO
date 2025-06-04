@@ -146,6 +146,7 @@ const DiagramCanvas: React.FC = () => {
         perspective: '2000px',
         perspectiveOrigin: '50% 50%',
       }}
+
     >
       <div
         className={`relative h-full w-full transition-all duration-700 ease-out`}

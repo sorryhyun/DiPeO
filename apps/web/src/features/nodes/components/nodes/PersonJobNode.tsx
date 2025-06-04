@@ -30,7 +30,7 @@ const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => 
       id={id}
       data={data}
       selected={selected}
-      nodeType="personJobNode"
+      nodeType="person_job"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >

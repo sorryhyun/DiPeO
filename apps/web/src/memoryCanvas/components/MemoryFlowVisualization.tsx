@@ -8,7 +8,7 @@ const MemoryFlowVisualization: React.FC = () => {
   const { runContext } = useExecutionStore();
 
   // Get person job nodes to position memory beneath them
-  const personJobNodes = nodes.filter(n => n.type === 'personJobNode');
+  const personJobNodes = nodes.filter(n => n.type === 'person_job');
 
   // Create memory connections between persons based on arrows
   const createMemoryConnections = () => {
@@ -22,7 +22,7 @@ const MemoryFlowVisualization: React.FC = () => {
       const sourceNode = nodes.find(n => n.id === arrow.source);
       const targetNode = nodes.find(n => n.id === arrow.target);
       
-      if (sourceNode?.type === 'personJobNode' && targetNode?.type === 'personJobNode') {
+      if (sourceNode?.type === 'person_job' && targetNode?.type === 'person_job') {
         const sourcePerson = persons.find(p => p.id === sourceNode.data.personId);
         const targetPerson = persons.find(p => p.id === targetNode.data.personId);
         

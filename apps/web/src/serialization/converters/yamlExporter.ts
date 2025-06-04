@@ -343,7 +343,7 @@ export class YamlExporter {
           }
         };
 
-      case 'personJobNode':
+      case 'person_job':
         return {
           id: step.id,
           type: 'person_job',
@@ -361,7 +361,7 @@ export class YamlExporter {
           } as PersonJobBlockData
         };
 
-      case 'conditionNode':
+      case 'condition':
         return {
           id: step.id,
           type: 'condition',
@@ -375,7 +375,7 @@ export class YamlExporter {
           } as ConditionBlockData
         };
 
-      case 'dbNode':
+      case 'db':
         return {
           id: step.id,
           type: 'db',
@@ -388,7 +388,7 @@ export class YamlExporter {
           } as DBBlockData
         };
 
-      case 'jobNode':
+      case 'job':
         return {
           id: step.id,
           type: 'job',
@@ -401,7 +401,7 @@ export class YamlExporter {
           } as JobBlockData
         };
 
-      case 'endpointNode':
+      case 'endpoint':
         return {
           id: step.id,
           type: 'endpoint',

@@ -200,18 +200,48 @@ class PersonJobExecutor(BaseExecutor):
             from ...utils.dependencies import get_memory_service
             memory_service = get_memory_service()
             
+            # Add messages to conversation memory if we have an execution_id
+            if context.execution_id and memory_service:
+                # Add user message (the prompt)
+                memory_service.add_message_to_conversation(
+                    content=final_prompt,
+                    sender_person_id="user",  # System/user prompt
+                    execution_id=context.execution_id,
+                    participant_person_ids=[person_id],
+                    role="user",
+                    node_id=node_id,
+                    node_label=properties.get("label", "PersonJob")
+                )
+                
+                # Add assistant message (the response)
+                # Extract token usage properly
+                token_usage = TokenUsage.from_response(response)
+                memory_service.add_message_to_conversation(
+                    content=response["response"],
+                    sender_person_id=person_id,
+                    execution_id=context.execution_id,
+                    participant_person_ids=[person_id],
+                    role="assistant",
+                    node_id=node_id,
+                    node_label=properties.get("label", "PersonJob"),
+                    token_count=token_usage.total,
+                    input_tokens=token_usage.input,
+                    output_tokens=token_usage.output,
+                    cached_tokens=token_usage.cached
+                )
+            
             # Get conversation history for the person
             conversation_history = memory_service.get_conversation_history(person_id)
             
             # Create structured output with conversation history
-            structured_output = OutputProcessor.create_personjob_output(
+            # Use TokenUsage for consistency
+            token_usage = TokenUsage.from_response(response)
+            structured_output = OutputProcessor.create_personjob_output_from_tokens(
                 text=response["response"],
+                token_usage=token_usage,
                 conversation_history=conversation_history,
-                token_count=int(response.get("total_tokens", 0)),
-                input_tokens=int(response.get("input_tokens", 0)),
-                output_tokens=int(response.get("output_tokens", 0)),
-                cached_tokens=int(response.get("cached_tokens", 0)),
-                model=model
+                model=model,
+                execution_time=execution_time
             )
             
             result = ExecutorResult(
