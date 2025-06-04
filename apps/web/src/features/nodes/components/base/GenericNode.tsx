@@ -14,8 +14,9 @@ function GenericNodeComponent({
   isRunning = false,
   onUpdateData,
   onUpdateNodeInternals,
-  nodeConfigs = {}
-}: GenericNodeProps) {
+  nodeConfigs = {},
+  ...restProps
+}: GenericNodeProps & React.HTMLAttributes<HTMLDivElement>) {
   // Try to get config from provided nodeConfigs first, then fallback to UNIFIED_NODE_CONFIGS
   let config = nodeConfigs[nodeType];
   if (!config) {
@@ -43,6 +44,7 @@ function GenericNodeComponent({
       onUpdateData={onUpdateData}
       onUpdateNodeInternals={onUpdateNodeInternals}
       nodeConfigs={nodeConfigs}
+      {...restProps}
     >
       {children}
     </BaseNode>

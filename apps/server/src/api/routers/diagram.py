@@ -259,19 +259,33 @@ async def save_diagram(
     request: SaveDiagramRequest,
     file_service: FileService = Depends(get_file_service)
 ):
-    """Save diagram to the diagrams directory."""
+    """Save diagram to the appropriate directory based on format."""
     try:
-        # Determine file path in diagrams directory
+        # Determine file path based on format
         filename = request.filename
-        if not filename.endswith(('.json', '.yaml', '.yml')):
-            if request.format == "yaml":
+        
+        # Determine the directory based on format and filename
+        if "llm-yaml" in filename or "llm.yaml" in filename:
+            directory = "files/llm-yaml_diagrams"
+            if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
-            else:
+        elif request.format == "yaml":
+            directory = "files/yaml_diagrams"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
+        else:
+            directory = "files/diagrams"
+            if not filename.endswith('.json'):
                 filename += ".json"
         
-        # Save to diagrams directory (which is now under files/)
+        # Create directory if it doesn't exist
+        import os
+        dir_path = os.path.join(os.environ.get('BASE_DIR', '.'), directory)
+        os.makedirs(dir_path, exist_ok=True)
+        
+        # Save to appropriate directory
         saved_path = await file_service.write(
-            path=f"files/diagrams/{filename}",
+            path=f"{directory}/{filename}",
             content=request.diagram,
             format=request.format
         )

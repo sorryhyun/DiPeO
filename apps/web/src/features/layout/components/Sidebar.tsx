@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
   const { handleImportYAML } = useFileImport();
-  const { onExportYAML, onExportLLMYAML } = useExport();
+  const { onSaveYAMLToDirectory, onSaveLLMYAMLToDirectory } = useExport();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
@@ -146,15 +146,26 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                 persons.map((person: PersonDefinition) => (
                   <div
                     key={person.id}
-                    className={`p-3 text-base rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 text-base rounded-lg cursor-move transition-all duration-200 ${
                       selectedPersonId === person.id 
                         ? 'bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-400 shadow-sm' 
                         : 'bg-white hover:bg-gray-50 hover:shadow-sm'
                     }`}
                     onClick={() => handlePersonClick(person.id)}
                     title={person.label || 'Unnamed Person'}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'copy';
+                      e.dataTransfer.setData('application/person', person.id);
+                      // Add visual feedback
+                      e.currentTarget.style.opacity = '0.5';
+                    }}
+                    onDragEnd={(e) => {
+                      // Remove visual feedback
+                      e.currentTarget.style.opacity = '1';
+                    }}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pointer-events-none">
                       <span className="text-base">🤖</span>
                       <div className="truncate font-medium">
                         {person.label || 'Unnamed Person'}
@@ -195,8 +206,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
-              onClick={onExportYAML}
-              title="Export to YAML format (download)"
+              onClick={() => onSaveYAMLToDirectory()}
+              title="Export to YAML format (saves to /files/yaml_diagrams/)"
             >
               <span className="mr-1">📤</span> Export YAML
             </Button>
@@ -204,8 +215,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={onExportLLMYAML}
-              title="Export to LLM-friendly YAML format (download)"
+              onClick={() => onSaveLLMYAMLToDirectory()}
+              title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
             >
               <span className="mr-1">🤖</span> Export LLM YAML
             </Button>

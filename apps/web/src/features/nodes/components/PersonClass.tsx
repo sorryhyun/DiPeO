@@ -7,9 +7,28 @@ import { FlowHandle } from './base/FlowHandle';
 // import { createHandleId } from '@/common/utils/nodeHelpers';
 
 const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
-  // const baseHandleStyle = 'w-3 h-3';
+  const [isDragging, setIsDragging] = React.useState(false);
+  
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'copy';
+    const personData = data as unknown as PersonDefinition;
+    e.dataTransfer.setData('application/person', personData.id || nodeId);
+    setIsDragging(true);
+  };
+  
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+  
   return (
-    <div className={`p-2 border-2 rounded-md shadow-md bg-white w-52 ${selected ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300'}`}>
+    <div 
+      className={`p-2 border-2 rounded-md shadow-md bg-white w-52 cursor-move transition-all ${
+        selected ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300'
+      } ${isDragging ? 'opacity-50 scale-95' : 'hover:shadow-lg'}`}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       {/* Output handle for providing context or conversation stream */}
       <FlowHandle
         type="output"

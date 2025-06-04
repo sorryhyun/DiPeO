@@ -19,6 +19,7 @@ const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
+  const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const apiKeys = useApiKeyStore(state => state.apiKeys);
   const addApiKey = useApiKeyStore(state => state.addApiKey);
   const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
@@ -161,10 +162,20 @@ const TopBar = () => {
             </span>
             <span className="text-sm font-medium">Monitor Mode Active</span>
             <button
-              onClick={clearMonitorDiagram}
-              className="ml-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+              onClick={() => {
+                setIsExitingMonitor(true);
+                clearMonitorDiagram();
+                toast.success('Exited monitor mode');
+                setTimeout(() => setIsExitingMonitor(false), 300);
+              }}
+              disabled={isExitingMonitor}
+              className={`ml-2 text-xs px-2 py-1 rounded transition-all ${
+                isExitingMonitor 
+                  ? 'bg-red-600 text-white cursor-not-allowed opacity-75' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              Exit
+              {isExitingMonitor ? 'Exiting...' : 'Exit'}
             </button>
           </div>
         )}

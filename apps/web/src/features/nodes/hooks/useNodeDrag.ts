@@ -1,10 +1,20 @@
-import { useCallback, type DragEvent } from 'react';
+import { useCallback, useRef, type DragEvent } from 'react';
 
 export const useNodeDrag = () => {
+  // Store drag offset to align node properly with cursor
+  const dragOffset = useRef({ x: 0, y: 0 });
+
   // Handle drag start for node types from sidebar
   const onDragStart = useCallback((event: DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
+    
+    // Calculate offset from element center
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    dragOffset.current = {
+      x: event.clientX - (rect.left + rect.width / 2),
+      y: event.clientY - (rect.top + rect.height / 2)
+    };
   }, []);
 
   // Handle drag over for canvas drop zone
@@ -23,8 +33,12 @@ export const useNodeDrag = () => {
     const type = event.dataTransfer.getData('application/reactflow');
     if (!type) return;
     
-    const position = projectPosition(event.clientX, event.clientY);
-    addNode(type, position);
+    // Get the drop position - this should be where the cursor is
+    const dropPosition = projectPosition(event.clientX, event.clientY);
+    
+    // Add the node at the drop position
+    // React Flow will use this as the top-left corner of the node
+    addNode(type, dropPosition);
   }, []);
 
   // Handle drag over for person drop on nodes

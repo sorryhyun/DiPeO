@@ -49,13 +49,17 @@ export const useExport = () => {
     await handleAsyncError(
       async () => {
         const diagramData = exportDiagram();
+        
+        // Generate timestamp-based filename if not provided
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const defaultFilename = `diagram-${timestamp}.yaml`;
 
         const res = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             diagram: diagramData,
-            filename: filename || 'agent-diagram.yaml',
+            filename: filename || defaultFilename,
             format: 'yaml'
           }),
         });
@@ -67,7 +71,44 @@ export const useExport = () => {
 
         const result = await res.json();
         if (result.success) {
-          toast.success('Saved YAML to project root');
+          toast.success(result.message || 'Saved YAML to yaml_diagrams directory');
+        }
+      },
+      undefined,
+      errorHandler
+    );
+  }, [exportDiagram]);
+
+  // Save LLM-YAML to backend directory
+  const onSaveLLMYAMLToDirectory = useCallback(async (filename?: string) => {
+    const errorHandler = createErrorHandler('Save LLM-YAML to Directory');
+
+    await handleAsyncError(
+      async () => {
+        const diagramData = exportDiagram();
+        
+        // Generate timestamp-based filename with llm-yaml pattern
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const defaultFilename = `diagram-llm-yaml-${timestamp}.yaml`;
+
+        const res = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            diagram: diagramData,
+            filename: filename || defaultFilename,
+            format: 'yaml'
+          }),
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Save LLM-YAML to directory failed: ${errorText}`);
+        }
+
+        const result = await res.json();
+        if (result.success) {
+          toast.success(result.message || 'Saved LLM-YAML to llm-yaml_diagrams directory');
         }
       },
       undefined,
@@ -127,6 +168,7 @@ export const useExport = () => {
     onExportJSON,
     onSaveToDirectory,
     onSaveYAMLToDirectory,
+    onSaveLLMYAMLToDirectory,
     onExportCanonical: onExportYAML, // For TopBar compatibility
   };
 };

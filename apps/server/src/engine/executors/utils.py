@@ -45,6 +45,22 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[
             if not content_type and "data" in arrow:
                 content_type = arrow["data"].get("contentType")
             
+            # Special handling for condition nodes - inherit content type from their inputs
+            source_node = context.nodes_by_id.get(source_id)
+            if source_node and source_node.get("properties", {}).get("type") == "condition":
+                # If source is a condition node and no explicit content type, 
+                # inherit from the condition's incoming arrow
+                if not content_type or content_type == "raw_text":
+                    condition_incoming = context.incoming_arrows.get(source_id, [])
+                    if condition_incoming:
+                        # Get the first incoming arrow's content type
+                        first_arrow = condition_incoming[0]
+                        inherited_type = first_arrow.get("contentType")
+                        if not inherited_type and "data" in first_arrow:
+                            inherited_type = first_arrow["data"].get("contentType")
+                        if inherited_type:
+                            content_type = inherited_type
+            
             # Handle content type
             if content_type == "conversation_state":
                 # Pass the full structured output with conversation history

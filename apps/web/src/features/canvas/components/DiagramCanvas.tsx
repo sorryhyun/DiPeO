@@ -101,8 +101,20 @@ const DiagramCanvas: React.FC = () => {
   // Helper to project screen coords to RF coords
   const projectPosition = useCallback((x: number, y: number) => {
     if (!reactFlowWrapper.current || !rfInstance) return { x: 0, y: 0 };
+    
+    // Get the ReactFlow container bounds
     const bounds = reactFlowWrapper.current.getBoundingClientRect();
-    const position = rfInstance.screenToFlowPosition({ x: x - bounds.left, y: y - bounds.top });
+    
+    // Calculate position relative to the ReactFlow container
+    const relativeX = x - bounds.left;
+    const relativeY = y - bounds.top;
+    
+    // Convert to flow coordinates
+    const position = rfInstance.screenToFlowPosition({ 
+      x: relativeX, 
+      y: relativeY 
+    });
+    
     return roundPosition(position);
   }, [rfInstance]);
 
@@ -116,9 +128,14 @@ const DiagramCanvas: React.FC = () => {
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
+      // Ensure we have a ReactFlow instance before dropping
+      if (!rfInstance) {
+        console.warn('ReactFlow instance not ready');
+        return;
+      }
       onNodeDrop(event, addNode, projectPosition);
     },
-    [onNodeDrop, addNode, projectPosition]
+    [onNodeDrop, addNode, projectPosition, rfInstance]
   );
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {

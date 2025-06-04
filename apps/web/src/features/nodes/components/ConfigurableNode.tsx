@@ -229,20 +229,34 @@ const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeType = getNodeType(data);
   const config = UNIFIED_NODE_CONFIGS[nodeType];
   const updateNodeData = useNodeArrowStore(state => state.updateNodeData);
+  const [isDragOver, setIsDragOver] = React.useState(false);
 
   // Event handlers for person_job drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (nodeType === 'person_job') {
       e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
   }, [nodeType]);
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    if (nodeType === 'person_job' && e.dataTransfer.types.includes('application/person')) {
+      setIsDragOver(true);
+    }
+  }, [nodeType]);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     if (nodeType === 'person_job') {
+      e.preventDefault();
       const personId = e.dataTransfer.getData('application/person');
       if (personId) {
         updateNodeData(id, { personId });
       }
+      setIsDragOver(false);
     }
   }, [nodeType, id, updateNodeData]);
 
@@ -268,7 +282,10 @@ const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   // Add drag handlers for person_job nodes
   if (nodeType === 'person_job') {
     genericNodeProps.onDragOver = handleDragOver;
+    genericNodeProps.onDragEnter = handleDragEnter;
+    genericNodeProps.onDragLeave = handleDragLeave;
     genericNodeProps.onDrop = handleDrop;
+    genericNodeProps.className = isDragOver ? 'ring-2 ring-blue-400 ring-offset-2' : '';
   }
 
   return (
