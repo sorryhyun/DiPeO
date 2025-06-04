@@ -133,6 +133,19 @@ class LLMService(BaseService):
             system_prompt=system_prompt,
             user_prompt=user_prompt
         )
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError))
+    )
+    async def _call_llm_with_messages_retry(
+        self, 
+        client: Any,
+        messages: List[dict]
+    ) -> Any:
+        """Internal method for LLM calls with messages array and retry logic."""
+        return client.chat_with_messages(messages=messages)
 
     async def call_llm(
         self,
@@ -146,11 +159,17 @@ class LLMService(BaseService):
         try:
             adapter = self._get_client(service or "chatgpt", model, api_key_id)
             
-            user_prompt = str(messages) if isinstance(messages, list) else messages
-            
-            result = await self._call_llm_with_retry(
-                adapter, system_prompt, user_prompt
-            )
+            # Support both string prompts and message arrays
+            if isinstance(messages, list):
+                # Pass messages array directly for conversation history support
+                result = await self._call_llm_with_messages_retry(
+                    adapter, messages
+                )
+            else:
+                # Single prompt case
+                result = await self._call_llm_with_retry(
+                    adapter, system_prompt, messages
+                )
             
             text, usage = self._extract_result_and_usage(result)
             token_counts = self.get_token_counts(service or "chatgpt", usage)

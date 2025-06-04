@@ -58,7 +58,7 @@ export const useExecutionMonitor = () => {
               break;
 
             case 'execution_started':
-              if (data.from_monitor) {
+              if (data.from_monitor || data.from_cli) {
                 toast.info(`External execution started: ${data.execution_id}`);
                 if (data.diagram) {
                   loadMonitorDiagram(data.diagram);
@@ -67,8 +67,8 @@ export const useExecutionMonitor = () => {
               break;
 
             case 'node_start': {
-              // Handle both direct node_id and nested data structure
-              const startNodeId = data.node_id || data.data?.nodeId;
+              // Backend sends node_id directly
+              const startNodeId = data.node_id;
               if (startNodeId) {
                 addRunningNode(startNodeId);
                 setCurrentRunningNode(startNodeId);
@@ -77,8 +77,8 @@ export const useExecutionMonitor = () => {
             }
 
             case 'node_complete': {
-              // Handle both direct node_id and nested data structure
-              const completeNodeId = data.node_id || data.data?.nodeId;
+              // Backend sends node_id directly
+              const completeNodeId = data.node_id;
               if (completeNodeId) {
                 removeRunningNode(completeNodeId);
               }
@@ -86,8 +86,8 @@ export const useExecutionMonitor = () => {
             }
               
             case 'node_skipped': {
-              // Handle skipped nodes as well
-              const skippedNodeId = data.node_id || data.data?.nodeId;
+              // Backend sends node_id directly
+              const skippedNodeId = data.node_id;
               if (skippedNodeId) {
                 removeRunningNode(skippedNodeId);
               }
@@ -98,13 +98,13 @@ export const useExecutionMonitor = () => {
               if (data.context) {
                 setRunContext(data.context);
               }
-              if (data.from_monitor) {
+              if (data.from_monitor || data.from_cli) {
                 toast.success('External execution completed');
               }
               break;
 
             case 'execution_error':
-              if (data.from_monitor) {
+              if (data.from_monitor || data.from_cli) {
                 toast.error(`External execution failed: ${data.error}`);
               }
               break;

@@ -45,7 +45,7 @@ function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
       baseData.defaultPrompt = '';
       baseData.firstOnlyPrompt = '';
       baseData.detectedVariables = [];
-      baseData.contextCleaningRule = 'uponRequest';
+      baseData.contextCleaningRule = 'upon_request';
       baseData.contextCleaningTurns = undefined;
       baseData.iterationCount = 1;
       break;

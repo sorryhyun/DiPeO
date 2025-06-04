@@ -199,9 +199,9 @@ const PersonJobContent: React.FC<{ config: any; data: PersonJobBlockData }> = ({
         {data.contextCleaningRule ? (
           <p className="text-sm text-gray-600">
             Forget: <span className="font-medium">
-              {data.contextCleaningRule === 'noForget'
+              {data.contextCleaningRule === 'no_forget'
                 ? 'Never'
-                : data.contextCleaningRule === 'onEveryTurn'
+                : data.contextCleaningRule === 'on_every_turn'
                 ? 'Every turn'
                 : 'Upon request'}
             </span>

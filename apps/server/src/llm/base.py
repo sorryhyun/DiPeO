@@ -123,6 +123,30 @@ class BaseAdapter(ABC):
             logger.error(f"LLM call failed for {self.__class__.__name__}: {str(e)}")
             return ChatResult(text='', usage=None)
     
+    def chat_with_messages(self, messages: List[Dict[str, str]], **kwargs) -> ChatResult:
+        """
+        Make a chat completion call with pre-built messages array for conversation history.
+        """
+        try:
+            # Make the API call directly with messages
+            response = self._make_api_call(messages, **kwargs)
+            
+            # Extract results
+            text = self._extract_text_from_response(response, **kwargs)
+            usage_dict = self._extract_usage_from_response(response)
+            return ChatResult(
+                text=text,
+                usage=response if hasattr(response, 'usage') else None,
+                prompt_tokens=usage_dict.get('prompt_tokens') if usage_dict else None,
+                completion_tokens=usage_dict.get('completion_tokens') if usage_dict else None,
+                total_tokens=usage_dict.get('total_tokens') if usage_dict else None,
+                raw_response=response
+            )
+            
+        except Exception as e:
+            logger.error(f"LLM call with messages failed for {self.__class__.__name__}: {str(e)}")
+            return ChatResult(text='', usage=None)
+    
     def list_models(self) -> List[str]:
         """
         List available models for this provider.

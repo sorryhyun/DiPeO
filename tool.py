@@ -473,8 +473,8 @@ def main():
                 execution_id = f"cli_{uuid.uuid4().hex[:8]}"
                 broadcast_diagram_to_monitors(diagram, execution_id)
                 
-                # Small delay to ensure broadcast is processed
-                time.sleep(0.5)
+                # Delay to ensure diagram is loaded and rendered in browser
+                time.sleep(1.5)
                 
                 # Run diagram - note that run_diagram will broadcast again, but that's OK
                 result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)

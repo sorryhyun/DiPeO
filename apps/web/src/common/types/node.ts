@@ -39,7 +39,7 @@ export interface PersonJobBlockData extends BaseBlockData {
   defaultPrompt?: string;
   firstOnlyPrompt?: string;
   detectedVariables?: string[];
-  contextCleaningRule?: 'uponRequest' | 'noForget' | 'onEveryTurn';
+  contextCleaningRule?: 'upon_request' | 'no_forget' | 'on_every_turn';
   contextCleaningTurns?: number;
   iterationCount?: number;
 }

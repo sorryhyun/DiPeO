@@ -108,10 +108,16 @@ class PersonMemory:
                 continue
 
             role = "assistant" if message.sender_person_id == current_person_id else "user"
+            
+            # Add speaker label for user messages to clarify who is speaking
+            if role == "user" and message.node_label:
+                content = f"[{message.node_label}]: {message.content}"
+            else:
+                content = message.content
 
             visible_messages.append({
                 "role": role,
-                "content": message.content
+                "content": content
             })
 
         return visible_messages
