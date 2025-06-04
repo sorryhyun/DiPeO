@@ -189,7 +189,11 @@ export const useDiagramStore = create<DiagramStore>()(
                 sourceBlockId: connection.source!,
                 targetBlockId: connection.target!,
                 template: '',
-                label: isFromConditionBranch ? connection.sourceHandle! : 'New Arrow',
+                label: isFromConditionBranch ? 
+                  (connection.sourceHandle?.endsWith('-true') ? 'true' : 
+                   connection.sourceHandle?.endsWith('-false') ? 'false' : 
+                   connection.sourceHandle!) : 
+                  'New Arrow',
                 contentType,
                 // Set branch property for condition node arrows
                 ...(isFromConditionBranch && {

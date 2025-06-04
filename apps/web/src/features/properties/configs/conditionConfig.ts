@@ -5,18 +5,24 @@ export const conditionConfig: PanelConfig<ConditionBlockData> = {
   layout: 'single',
   fields: [
     {
-      type: 'text',
-      name: 'label',
-      label: 'Block Label',
-      placeholder: 'Condition'
-    },
-    {
-      type: 'select',
-      name: 'conditionType',
-      label: 'Condition Type',
-      options: [
-        { value: 'expression', label: 'Python Expression' },
-        { value: 'detect_max_iterations', label: 'Detect Max Iterations' }
+      type: 'row',
+      className: 'grid grid-cols-2 gap-2',
+      fields: [
+        {
+          type: 'text',
+          name: 'label',
+          label: 'Block Label',
+          placeholder: 'Condition'
+        },
+        {
+          type: 'select',
+          name: 'conditionType',
+          label: 'Condition Type',
+          options: [
+            { value: 'expression', label: 'Expression' },
+            { value: 'detect_max_iterations', label: 'Max Iterations' }
+          ]
+        }
       ]
     },
     {

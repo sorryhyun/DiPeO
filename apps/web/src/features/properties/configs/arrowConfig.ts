@@ -18,9 +18,8 @@ export const arrowConfig: PanelConfig<ArrowData> = {
     {
       type: 'text',
       name: 'label',
-      label: 'Arrow Label (Inherited from input)',
-      placeholder: 'Inherited from condition input',
-      disabled: true,
+      label: 'Arrow Label',
+      placeholder: 'e.g., true, false, or custom label',
       conditional: {
         field: '_sourceNodeType',
         values: ['condition'],
@@ -82,24 +81,6 @@ export const arrowConfig: PanelConfig<ArrowData> = {
       conditional: {
         field: '_sourceNodeType',
         values: ['start'],
-        operator: 'equals'
-      }
-    },
-    {
-      type: 'select',
-      name: 'contentType',
-      label: 'Content Type (Inherited)',
-      options: [
-        { value: 'raw_text', label: 'Raw Text' },
-        { value: 'variable_in_object', label: 'Variable in Object' },
-        { value: 'conversation_state', label: 'Conversation State' },
-        { value: 'generic', label: 'Generic' },
-        { value: 'empty', label: 'Empty' }
-      ],
-      disabled: true,
-      conditional: {
-        field: 'inheritedContentType',
-        values: [true],
         operator: 'equals'
       }
     }
