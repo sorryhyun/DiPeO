@@ -14,12 +14,12 @@ export const useExport = () => {
   const { downloadYaml, downloadJson } = useDownload();
 
   // Export as clean YAML
-  const onExportYAML = useCallback(() => {
+  const onExportYAML = useCallback(async () => {
     const errorHandler = createErrorHandler('Export YAML');
     try {
       const diagramData = exportDiagram();
       const yamlContent = YamlExporter.toYAML(diagramData);
-      downloadYaml(yamlContent, 'agent-diagram.yaml');
+      await downloadYaml(yamlContent, 'agent-diagram.yaml');
       toast.success('Exported to YAML format');
     } catch (error) {
       console.error('Export YAML error:', error);
@@ -28,12 +28,12 @@ export const useExport = () => {
   }, [exportDiagram, downloadYaml]);
 
   // Export as LLM-friendly YAML
-  const onExportLLMYAML = useCallback(() => {
+  const onExportLLMYAML = useCallback(async () => {
     const errorHandler = createErrorHandler('Export LLM YAML');
     try {
       const diagramData = exportDiagram();
       const yamlContent = LLMYamlImporter.toLLMYAML(diagramData);
-      downloadYaml(yamlContent, 'agent-diagram-llm.yaml');
+      await downloadYaml(yamlContent, 'agent-diagram-llm.yaml');
       toast.success('Exported to LLM-friendly YAML format');
     } catch (error) {
       console.error('Export LLM YAML error:', error);
@@ -149,11 +149,11 @@ export const useExport = () => {
   }, [exportDiagram]);
 
   // Export as JSON
-  const onExportJSON = useCallback(() => {
+  const onExportJSON = useCallback(async () => {
     const errorHandler = createErrorHandler('Export JSON');
     try {
       const diagramData = exportDiagram();
-      downloadJson(diagramData, 'agent-diagram.json');
+      await downloadJson(diagramData, 'agent-diagram.json');
       toast.success('Exported to JSON format');
     } catch (error) {
       console.error('Export JSON error:', error);
@@ -168,6 +168,5 @@ export const useExport = () => {
     onSaveToDirectory,
     onSaveYAMLToDirectory,
     onSaveLLMYAMLToDirectory,
-    onExportCanonical: onExportYAML, // For TopBar compatibility
   };
 };

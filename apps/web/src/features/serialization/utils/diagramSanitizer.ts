@@ -17,16 +17,16 @@ export function sanitizeDiagram(diagram: DiagramState): DiagramState {
       ...arrow,
       data: arrow.data ? {
         ...arrow.data,
-        // Round control point offsets to 2 decimal places
+        // Round control point offsets to 1 decimal place
         ...(arrow.data.controlPointOffsetX !== undefined && {
-          controlPointOffsetX: Math.round(arrow.data.controlPointOffsetX * 5) / 5
+          controlPointOffsetX: Math.round(arrow.data.controlPointOffsetX * 10) / 10
         }),
         ...(arrow.data.controlPointOffsetY !== undefined && {
-          controlPointOffsetY: Math.round(arrow.data.controlPointOffsetY * 5) / 5
+          controlPointOffsetY: Math.round(arrow.data.controlPointOffsetY * 10) / 10
         }),
-        // Round loop radius to 2 decimal places
+        // Round loop radius to 1 decimal place
         ...(arrow.data.loopRadius !== undefined && {
-          loopRadius: Math.round(arrow.data.loopRadius * 5) / 5
+          loopRadius: Math.round(arrow.data.loopRadius * 10) / 10
         })
       } : undefined
     })),
@@ -44,7 +44,7 @@ export function sanitizeDiagram(diagram: DiagramState): DiagramState {
 }
 
 export const roundPosition = (pos: { x: number; y: number }, decimals: number = 1) => ({
-  x: Math.round(pos.x * Math.pow(5, decimals)) / Math.pow(5, decimals),
-  y: Math.round(pos.y * Math.pow(5, decimals)) / Math.pow(5, decimals)
+  x: Math.round(pos.x * Math.pow(10, decimals)) / Math.pow(10, decimals),
+  y: Math.round(pos.y * Math.pow(10, decimals)) / Math.pow(10, decimals)
 });
 

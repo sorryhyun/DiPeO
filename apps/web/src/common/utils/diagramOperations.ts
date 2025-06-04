@@ -3,13 +3,7 @@ import { useDiagramStore } from '@/state/stores/diagramStore';
 
 // Utility functions for diagram operations
 export const exportDiagram = (): DiagramState => {
-  const state = useDiagramStore.getState();
-  return {
-    nodes: state.nodes,
-    arrows: state.arrows,
-    persons: state.persons,
-    apiKeys: state.apiKeys
-  };
+  return useDiagramStore.getState().exportDiagram();
 };
 
 export const loadDiagram = (diagram: DiagramState, source: 'local' | 'external' = 'local') => {
@@ -25,12 +19,7 @@ export const useDiagramOperations = () => {
   const store = useDiagramStore();
   
   return {
-    exportDiagram: () => ({
-      nodes: store.nodes,
-      arrows: store.arrows,
-      persons: store.persons,
-      apiKeys: store.apiKeys
-    }),
+    exportDiagram: () => store.exportDiagram(),
     loadDiagram: (diagram: DiagramState, source: 'local' | 'external' = 'local') => {
       store.loadDiagram(diagram, source);
     },
