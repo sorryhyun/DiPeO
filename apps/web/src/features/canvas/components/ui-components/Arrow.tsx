@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 
-import { ArrowData } from '@/shared/types';
+import { ArrowData } from '@/common/types';
 
 export interface CustomArrowProps extends EdgeProps {
   onUpdateData?: (edgeId: string, data: Partial<ArrowData>) => void;
@@ -15,8 +15,8 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
+  sourcePosition: _sourcePosition,
+  targetPosition: _targetPosition,
   style = {},
   data,
   markerEnd,
@@ -163,8 +163,11 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
               ) : arrowData?.contentType && (
                 <span>
                   {arrowData.contentType === 'conversation_state' ? '💬' :
-                   arrowData.contentType === 'variable_in_object' ? '📦' : 
-                   '📝'}
+                   arrowData.contentType === 'variable_in_object' ? '📦' :
+                   arrowData.contentType === 'raw_text' ? '📝' :
+                   arrowData.contentType === 'empty' ? '⚪' :
+                   arrowData.contentType === 'generic' ? '🔄' :
+                   '📋'}
                 </span>
               )}
               {arrowData?.label && (

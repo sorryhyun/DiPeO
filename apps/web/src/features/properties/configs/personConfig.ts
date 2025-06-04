@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { PersonDefinition } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { PersonDefinition } from '@/common/types';
 import { getApiKeyOptions, getDynamicModelOptions } from '../utils/propertyHelpers';
 
 export const personConfig: PanelConfig<PersonDefinition> = {
@@ -41,7 +41,10 @@ export const personConfig: PanelConfig<PersonDefinition> = {
       type: 'select',
       name: 'modelName',
       label: 'Model',
-      options: (formData: Partial<PersonDefinition>) => getDynamicModelOptions(formData.service, formData.apiKeyId),
+      options: (formData: unknown) => {
+        const data = formData as Partial<PersonDefinition>;
+        return getDynamicModelOptions(data.service, data.apiKeyId);
+      },
       placeholder: 'Select Model',
       dependsOn: ['service', 'apiKeyId']  // Reload when service or API key changes
     }

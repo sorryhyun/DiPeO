@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface ValidationRule<T> {
   field: keyof T;
-  validator: (value: any, formData: T) => string | null;
+  validator: (value: unknown, formData: T) => string | null;
 }
 
 interface UsePropertyFormStateOptions<T> {
@@ -13,7 +13,7 @@ interface UsePropertyFormStateOptions<T> {
   onError?: (error: string) => void;
 }
 
-export const usePropertyFormState = <T extends Record<string, any>>(
+export const usePropertyFormState = <T extends Record<string, unknown>>(
   initialData: T,
   entityId: string,
   entityType: 'node' | 'arrow' | 'person',
@@ -47,7 +47,7 @@ export const usePropertyFormState = <T extends Record<string, any>>(
   }, [initialData]);
 
   // Validation function
-  const validateField = useCallback((field: keyof T, value: any, currentFormData: T): string | null => {
+  const validateField = useCallback((field: keyof T, value: unknown, currentFormData: T): string | null => {
     const rule = validationRules.find(r => r.field === field);
     if (!rule) return null;
     return rule.validator(value, currentFormData);

@@ -1,0 +1,1 @@
+export { default as MemoryCanvas } from './components/MemoryCanvas';

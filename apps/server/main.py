@@ -1,9 +1,8 @@
 import os
 import sys
-from contextlib import asynccontextmanager
+import logging
 from fastapi import FastAPI
 from fastapi.responses import Response
-import uvicorn
 from dotenv import load_dotenv
 
 # Add parent directory to path
@@ -12,31 +11,33 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
 # Import routers and middleware
 from .src.api.routers import (
     diagram_router,
     apikeys_router,
     files_router,
     conversations_router,
-    trpc_router,
     monitor_router,
-    node_operations_router
+    websocket_router
 )
 from .src.api.middleware import setup_middleware
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialize services on startup."""
-    # Startup logic here if needed
-    yield
-    # Cleanup logic here if needed
+# Import lifespan from dependencies
+from .src.utils.dependencies import lifespan
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="AgentDiagram Backend",
-    description="API server for AgentDiagram frontend",
+    title="DiPeO Backend API",
+    description="API server for DiPeO visual programming environment",
     lifespan=lifespan
 )
 
@@ -48,16 +49,11 @@ app.include_router(diagram_router)
 app.include_router(apikeys_router)
 app.include_router(files_router)
 app.include_router(conversations_router)
-app.include_router(trpc_router)
 app.include_router(monitor_router)
-app.include_router(node_operations_router)
+app.include_router(websocket_router)
 
 
-# Health check endpoint
-@app.get("/api/health")
-async def health_check():
-    """Basic health check endpoint."""
-    return {"status": "ok"}
+# Health check endpoint moved to diagram router at /api/diagrams/health
 
 
 # Metrics endpoint
@@ -76,13 +72,35 @@ async def metrics():
         return {"message": "Prometheus client not installed. Install with: pip install prometheus-client"}
 
 def start():
-    import uvicorn
-    uvicorn.run(
-        "apps.server.main:app",
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8000)),
-        reload=os.environ.get("RELOAD", "false").lower() == "true"
-    )
+    import asyncio
+    from hypercorn.config import Config
+    from hypercorn.asyncio import serve
+    
+    config = Config()
+    config.bind = [f"0.0.0.0:{int(os.environ.get('PORT', 8000))}"]
+    
+    # Multi-worker support for better parallel execution
+    config.workers = int(os.environ.get("WORKERS", 4))
+    
+    # Graceful timeout for SSE connections
+    config.graceful_timeout = 30.0
+    
+    # Access and error logging
+    config.accesslog = "-"
+    config.errorlog = "-"
+    
+    # Keep alive for long-running SSE connections
+    config.keep_alive_timeout = 75.0
+    
+    # Enable HTTP/2 for better SSE multiplexing
+    config.h2_max_concurrent_streams = 100
+    
+    # Note: Hypercorn doesn't support hot reload like uvicorn
+    # For development, you'll need to restart the server manually
+    if os.environ.get("RELOAD", "false").lower() == "true":
+        logger.warning("Hot reload is not supported with Hypercorn. Please restart the server manually for changes.")
+    
+    asyncio.run(serve(app, config))
 
 if __name__ == "__main__":
     start()

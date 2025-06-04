@@ -1,34 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
-import { Button } from '@/shared/components';
-import { useConsolidatedDiagramStore } from '@/core/stores';
-import { useUIState } from '@/core/hooks/useStoreSelectors';
-import { useFileImport } from '@/serialization/hooks/useFileImport';
-import { useExport } from '@/serialization/hooks/useExport';
-import { useDiagramRunner } from '@/features/execution/hooks/useDiagramRunner';
+import { Button } from '@/common/components';
+import { useApiKeyStore, useDiagramStore } from '@/state/stores';
+import { useUIState } from '@/state/hooks/useStoreSelectors';
+import { useFileImport } from '@/features/serialization/hooks/useFileImport';
+import { useExport } from '@/features/serialization/hooks/useExport';
+import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/features/canvas/hooks/useKeyboardShortcuts';
 import { LazyApiKeysModal } from '@/features/layout';
-import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
+import { FileUploadButton } from '@/common/components/common/FileUploadButton';
+import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory } from '@/shared/types';
-import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
+import { createErrorHandlerFactory } from '@/common/types';
+import { isApiKey, parseApiArrayResponse } from '@/common/utils/typeGuards';
 
 
 const TopBar = () => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
-  const apiKeys = useConsolidatedDiagramStore(state => state.apiKeys);
-  const addApiKey = useConsolidatedDiagramStore(state => state.addApiKey);
-  const loadApiKeys = useConsolidatedDiagramStore(state => state.loadApiKeys);
-  const clearDiagram = useConsolidatedDiagramStore(state => state.clearDiagram);
-  const clearMonitorDiagram = useConsolidatedDiagramStore(state => state.clearMonitorDiagram);
-  const storeIsMonitorMode = useConsolidatedDiagramStore(state => state.isMonitorMode);
-  const { onImportYAML, onImportJSON } = useFileImport();
-  const { onSaveToDirectory, onExportYAML, onExportLLMYAML, onExportJSON } = useExport();
+  const [isExitingMonitor, setIsExitingMonitor] = useState(false);
+  const apiKeys = useApiKeyStore(state => state.apiKeys);
+  const addApiKey = useApiKeyStore(state => state.addApiKey);
+  const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
+  const clearDiagramAction = useDiagramStore(state => state.clearDiagram);
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const setReadOnly = useDiagramStore(state => state.setReadOnly);
+  const { onImportJSON } = useFileImport();
+  const { onSaveToDirectory } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
-  const { isMemoryLayerTilted, toggleMemoryLayer } = useUIState();
+  const { activeCanvas, toggleCanvas } = useUIState();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
   
@@ -92,7 +93,7 @@ const TopBar = () => {
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
             onClick={() => {
               if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
-                clearDiagram();
+                clearDiagramAction();
                 toast.success('Created new diagram');
               }
             }}
@@ -118,42 +119,6 @@ const TopBar = () => {
             💾 Save
           </Button>
           
-          <div className="border-l border-gray-300 h-6 mx-2" />
-          
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={onExportYAML}
-            title="Export to YAML format (download)"
-          >
-            📤 Export YAML
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
-            onClick={onExportLLMYAML}
-            title="Export to LLM-friendly YAML format (download)"
-          >
-            🤖 Export LLM YAML
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-white hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
-            onClick={onExportJSON}
-            title="Export to JSON format (download)"
-          >
-            📋 Export JSON
-          </Button>
-          <FileUploadButton
-            accept=".yaml,.yml"
-            onChange={onImportYAML}
-            variant="outline"
-            className="bg-white hover:bg-green-50 hover:border-green-300 transition-colors"
-            title="Import from YAML format (supports both standard and LLM-friendly formats)"
-          >
-            📥 Import YAML
-          </FileUploadButton>
-
           <div className="border-l border-gray-300 h-6 mx-2" />
           
           <Button 
@@ -189,7 +154,7 @@ const TopBar = () => {
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
           </div>
         </div>
-        {(isMonitorMode || storeIsMonitorMode) && (
+        {(isMonitorMode || isReadOnly) && (
           <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -197,10 +162,25 @@ const TopBar = () => {
             </span>
             <span className="text-sm font-medium">Monitor Mode Active</span>
             <button
-              onClick={clearMonitorDiagram}
-              className="ml-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+              onClick={() => {
+                setIsExitingMonitor(true);
+                clearDiagramAction();
+                setReadOnly(false);
+                // Remove monitor param from URL
+                const url = new URL(window.location.href);
+                url.searchParams.delete('monitor');
+                window.history.replaceState({}, '', url.toString());
+                toast.success('Exited monitor mode');
+                setTimeout(() => setIsExitingMonitor(false), 300);
+              }}
+              disabled={isExitingMonitor}
+              className={`ml-2 text-xs px-2 py-1 rounded transition-all ${
+                isExitingMonitor 
+                  ? 'bg-red-600 text-white cursor-not-allowed opacity-75' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              Exit
+              {isExitingMonitor ? 'Exiting...' : 'Exit'}
             </button>
           </div>
         )}
@@ -208,17 +188,17 @@ const TopBar = () => {
           <Button
             variant="outline"
             className={`bg-white transition-all duration-300 ${
-              isMemoryLayerTilted 
+              activeCanvas === 'memory'
                 ? 'bg-purple-100 border-purple-400 hover:bg-purple-200' 
                 : 'hover:bg-gray-50 hover:border-gray-300'
             }`}
-            onClick={toggleMemoryLayer}
-            title={isMemoryLayerTilted ? 'Hide Memory Layer' : 'Show Memory Layer'}
+            onClick={toggleCanvas}
+            title={activeCanvas === 'memory' ? 'Show Diagram Canvas' : 'Show Memory Canvas'}
           >
             <Layers className={`h-4 w-4 mr-1 transition-transform duration-300 ${
-              isMemoryLayerTilted ? 'rotate-12' : ''
+              activeCanvas === 'memory' ? 'rotate-12' : ''
             }`} />
-            Memory
+            {activeCanvas === 'memory' ? 'Diagram' : 'Memory'}
           </Button>
         </div>
 

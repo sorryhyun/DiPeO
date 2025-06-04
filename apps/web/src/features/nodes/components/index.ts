@@ -1,5 +1,5 @@
 // Consolidated node exports
-import nodeTypes from './NodesGeneric';
+import nodeTypes from './nodeTypes';
 export { nodeTypes };
 
 

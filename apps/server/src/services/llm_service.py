@@ -1,8 +1,8 @@
 import time
-from typing import Any, List, Optional, Tuple, Union, Coroutine
+from typing import Any, List, Optional, Tuple, Union
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from ..constants import LLMService as LLMServiceEnum, COST_RATES
+from ..constants import LLMService as LLMServiceEnum
 from ..exceptions import LLMServiceError, APIKeyError
 from ..llm import ChatResult, create_adapter
 from .api_key_service import APIKeyService
@@ -75,14 +75,14 @@ class LLMService(BaseService):
             return 0, 0, 0
         
         input_tokens = (
-            self.safe_get_nested(usage, 'input_tokens') or 
-            self.safe_get_nested(usage, 'prompt_tokens') or 
+            self.safe_get_nested(usage, 'input_tokens') or
+            self.safe_get_nested(usage.usage, 'prompt_tokens') or
             self.safe_get_nested(usage, 'prompt_token_count') or 0
         )
         
         output_tokens = (
             self.safe_get_nested(usage, 'output_tokens') or 
-            self.safe_get_nested(usage, 'completion_tokens') or 
+            self.safe_get_nested(usage.usage, 'completion_tokens') or
             self.safe_get_nested(usage, 'candidates_token_count') or 0
         )
         
@@ -92,24 +92,23 @@ class LLMService(BaseService):
         
         return input_tokens, output_tokens, cached_tokens
     
-    def calculate_cost(self, client_name: str, usage: Any) -> float:
-        """Calculate cost for LLM usage."""
-
-        # Use client to calculate cost
-
-        # if normalized_service not in COST_RATES or usage is None:
-        #     return 0.0
-        #
-        # rates = COST_RATES[normalized_service]
-        # input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
-        #
-        # cost = (
-        #     (input_tokens - cached_tokens) * (rates["input"] / 1_000_000) +
-        #     output_tokens * (rates["output"] / 1_000_000) +
-        #     cached_tokens * (rates.get("cached", rates["input"]) / 1_000_000)
-        # )
-        #
-        return 0
+    def get_token_counts(self, client_name: str, usage: Any) -> dict[str, int]:
+        """Get token counts from LLM usage."""
+        
+        # Normalize the client/service name
+        normalized_service = self.normalize_service_name(client_name)
+        
+        if usage is None:
+            return {"total": 0, "input": 0, "output": 0, "cached": 0}
+        
+        input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
+        
+        return {
+            "total": input_tokens + output_tokens,
+            "input": input_tokens,
+            "output": output_tokens,
+            "cached": cached_tokens
+        }
     
     def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
         """Extract text and usage from adapter result."""
@@ -134,6 +133,19 @@ class LLMService(BaseService):
             system_prompt=system_prompt,
             user_prompt=user_prompt
         )
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError))
+    )
+    async def _call_llm_with_messages_retry(
+        self, 
+        client: Any,
+        messages: List[dict]
+    ) -> Any:
+        """Internal method for LLM calls with messages array and retry logic."""
+        return client.chat_with_messages(messages=messages)
 
     async def call_llm(
         self,
@@ -147,15 +159,27 @@ class LLMService(BaseService):
         try:
             adapter = self._get_client(service or "chatgpt", model, api_key_id)
             
-            user_prompt = str(messages) if isinstance(messages, list) else messages
-            
-            result = await self._call_llm_with_retry(
-                adapter, system_prompt, user_prompt
-            )
+            # Support both string prompts and message arrays
+            if isinstance(messages, list):
+                # Pass messages array directly for conversation history support
+                result = await self._call_llm_with_messages_retry(
+                    adapter, messages
+                )
+            else:
+                # Single prompt case
+                result = await self._call_llm_with_retry(
+                    adapter, system_prompt, messages
+                )
             
             text, usage = self._extract_result_and_usage(result)
-            cost = self.calculate_cost(service or "chatgpt", usage)
-            return {"response":text, "cost":cost}
+            token_counts = self.get_token_counts(service or "chatgpt", usage)
+            return {
+                "response": text,
+                "token_count": token_counts["total"],
+                "input_tokens": token_counts["input"],
+                "output_tokens": token_counts["output"],
+                "cached_tokens": token_counts["cached"]
+            }
             
         except Exception as e:
             raise LLMServiceError(f"LLM call failed: {e}")

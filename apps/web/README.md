@@ -133,7 +133,7 @@ const executor = factory.createExecutor('person_job');
 
 ```typescript
 // Component usage (optimized selectors)
-import { useNodes, useSelectedElement } from '@/shared/hooks/useStoreSelectors';
+import { useNodes, useSelectedElement } from '@/common/hooks/useStoreSelectors';
 
 const MyComponent = () => {
   const { nodes, addNode } = useNodes();

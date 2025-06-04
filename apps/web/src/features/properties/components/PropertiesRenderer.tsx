@@ -1,7 +1,13 @@
 // Reusable component for rendering property panels based on selection
-import React, { useMemo } from 'react';
-import { UniversalPropertiesPanel } from '@/features/properties';
-import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/shared/types/core';
+import React, { useMemo, Suspense } from 'react';
+import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '@/common/types';
+
+// Lazy load UniversalPropertiesPanel as it's a heavy component
+const UniversalPropertiesPanel = React.lazy(() => 
+  import('./UniversalPropertiesPanel').then(module => ({ 
+    default: module.UniversalPropertiesPanel 
+  }))
+);
 
 interface PropertiesRendererProps {
   selectedNodeId?: string | null;
@@ -37,18 +43,22 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
   const arrowData = useMemo(() => {
     if (!selectedArrowId) return null;
     const arrow = arrows.find(a => a.id === selectedArrowId);
-    if (!arrow) return null;
+    if (!arrow || !arrow.data) return null;
     
     // Find source node to determine if this is a special arrow
     const sourceNode = nodes.find(n => n.id === arrow.source);
     const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
     
-    return { 
-      ...arrow.data, 
+    // Ensure we have a valid id from arrow data
+    const arrowDataWithType = { 
+      ...arrow.data,
+      id: arrow.data.id || arrow.id, // Ensure id is always present
       type: 'arrow' as const,
       _sourceNodeType: sourceNode?.data.type,
       _isFromConditionBranch: isFromConditionBranch
     };
+    
+    return arrowDataWithType;
   }, [selectedArrowId, arrows, nodes]);
 
   const getPropertiesContent = (): PropertiesResult => {
@@ -57,16 +67,28 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
 
     if (selectedPersonId && personData) {
       title = `${personData.label || 'Person'} Properties`;
-      content = <UniversalPropertiesPanel nodeId={selectedPersonId} data={personData} />;
+      content = (
+        <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+          <UniversalPropertiesPanel nodeId={selectedPersonId} data={personData} />
+        </Suspense>
+      );
     } else if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         title = `${node.data.label || 'Block'} Properties`;
-        content = <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />;
+        content = (
+          <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />
+          </Suspense>
+        );
       }
     } else if (selectedArrowId && arrowData) {
       title = `Arrow Properties`;
-      content = <UniversalPropertiesPanel nodeId={selectedArrowId} data={arrowData} />;
+      content = (
+        <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+          <UniversalPropertiesPanel nodeId={selectedArrowId} data={arrowData} />
+        </Suspense>
+      );
     }
 
     return { title, content };

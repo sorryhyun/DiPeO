@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { useDiagramStore } from '@/state/stores';
 
 // Base property form hook
-export function usePropertyFormBase<T extends Record<string, any>>(
+export function usePropertyFormBase<T extends Record<string, unknown>>(
   initialData: T,
   onUpdate?: (updates: Partial<T>) => void
 ) {
@@ -33,11 +33,11 @@ export function usePropertyFormBase<T extends Record<string, any>>(
 }
 
 // Wrapper hook that integrates with app stores
-export function usePropertyForm<T extends Record<string, any>>(
+export function usePropertyForm<T extends Record<string, unknown>>(
   nodeId: string,
   initialData: T
 ) {
-  const updateNodeData = useConsolidatedDiagramStore(state => state.updateNodeData);
+  const updateNodeData = useDiagramStore(state => state.updateNodeData);
   return usePropertyFormBase(initialData, (updates) => {
     updateNodeData(nodeId, updates);
   });

@@ -1,13 +1,14 @@
 import anthropic
-from ..base import BaseAdapter, ChatResult
+from typing import Any, Dict, Optional
+from ..base import BaseAdapter
 
 
 class ClaudeAdapter(BaseAdapter):
     """Adapter for Anthropic Claude models."""
 
-    def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
-        super().__init__(model_name)
-        self.client = anthropic.Anthropic(api_key=api_key, base_url=base_url)
+    def _initialize_client(self) -> anthropic.Anthropic:
+        """Initialize the Anthropic client."""
+        return anthropic.Anthropic(api_key=self.api_key, base_url=self.base_url)
 
     def _anthropic_text_blocks(self,
                                cacheable_prompt: str = '',
@@ -33,61 +34,66 @@ class ClaudeAdapter(BaseAdapter):
             })
         return blocks
 
-    def _build_former(self, cacheable_prompt: str = '', user_prompt: str = '', citation_target: str = '', **kwargs):
+    def _build_messages(self, system_prompt: str, cacheable_prompt: str = '', 
+                       user_prompt: str = '', citation_target: str = '', 
+                       **kwargs) -> Dict[str, Any]:
+        """Build provider-specific message format."""
         blocks = self._anthropic_text_blocks(
             cacheable_prompt=cacheable_prompt,
             user_prompt=user_prompt,
             citation_target=citation_target
         )
-        input_target = [{'role': 'user', 'content': blocks}]
+        messages = [{'role': 'user', 'content': blocks}]
+        
+        # Handle prefill
         if kwargs.get('prefill'):
-            input_target.append({
-                'role': 'assistant',
-                'content': kwargs['prefill'].rstrip().rstrip('\n')
-            })
-        return input_target
-
-    def chat(self, system_prompt: str, cacheable_prompt: str = '',
-             user_prompt: str = '', citation_target: str = '', **kwargs) -> ChatResult:  # noqa: E501
-        try:
-            message = self.client.messages.create(
-                model=self.model_name,
-                system=[{'type': 'text', 'text': system_prompt, 'cache_control': {'type': 'ephemeral'}}],
-                messages= self._build_former(
-                    cacheable_prompt=cacheable_prompt, user_prompt=user_prompt,
-                    citation_target=citation_target, **kwargs),
-                max_tokens=kwargs.get('max_tokens'),
-                # tool_choice=kwargs.get('tool_choice'),
-                temperature=kwargs.get('temperature'),
-                tools=kwargs.get('tools'),
-            )
-            if kwargs.get('on_one', False): idx = 1
-            else:idx = 0
-            
-            text = ''
-            if kwargs.get('tools') and hasattr(message.content[idx], 'input'):
-                text = message.content[idx].input
-            elif hasattr(message.content[idx], 'text'):
-                text = message.content[idx].text
-            
-            return ChatResult(
-                text=text,
-                usage=message.usage,
-                raw_response=message
-            )
-        except Exception as e:
-            return ChatResult(text='', usage=None)
-
-    def list_models(self) -> list[str]:
-        """List available Claude models."""
-        # Anthropic doesn't provide a models.list() API, so return known models
-        print("[Claude Adapter] Returning known Claude models (no API available)")
-        models = [
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022", 
-            "claude-3-opus-20240229",
-            "claude-3-sonnet-20240229",
-            "claude-3-haiku-20240307"
-        ]
-        print(f"[Claude Adapter] Available models: {models}")
-        return models
+            messages.append(self._build_prefill_message(kwargs['prefill']))
+        
+        # Return both system and messages for Claude API
+        return {
+            'system': [{'type': 'text', 'text': system_prompt, 
+                       'cache_control': {'type': 'ephemeral'}}],
+            'messages': messages
+        }
+    
+    def _extract_text_from_response(self, response: Any, **kwargs) -> str:
+        """Extract text content from provider-specific response."""
+        idx = 1 if kwargs.get('on_one', False) else 0
+        
+        if kwargs.get('tools') and hasattr(response.content[idx], 'input'):
+            return response.content[idx].input
+        elif hasattr(response.content[idx], 'text'):
+            return response.content[idx].text
+        
+        return ''
+    
+    def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
+        """Extract token usage from provider-specific response."""
+        if hasattr(response, 'usage'):
+            usage = response.usage
+            return {
+                'prompt_tokens': getattr(usage, 'input_tokens', None),
+                'completion_tokens': getattr(usage, 'output_tokens', None),
+                'total_tokens': (getattr(usage, 'input_tokens', 0) + 
+                               getattr(usage, 'output_tokens', 0))
+            }
+        return None
+    
+    def _make_api_call(self, messages: Any, **kwargs) -> Any:
+        """Make the actual API call to the provider."""
+        return self.client.messages.create(
+            model=self.model_name,
+            system=messages['system'],
+            messages=messages['messages'],
+            max_tokens=kwargs.get('max_tokens'),
+            temperature=kwargs.get('temperature'),
+            tools=kwargs.get('tools'),
+        )
+    
+    def supports_tools(self) -> bool:
+        """Check if this adapter supports tool/function calling."""
+        return True
+    
+    def supports_citations(self) -> bool:
+        """Check if this adapter supports citations."""
+        return True

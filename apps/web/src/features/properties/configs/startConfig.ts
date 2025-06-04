@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { StartBlockData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { StartBlockData } from '@/common/types';
 
 export const startConfig: PanelConfig<StartBlockData> = {
   layout: 'single',

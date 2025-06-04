@@ -1,179 +1,200 @@
-# AgentDiagram Server
+# DiPeO Backend Server
 
-FastAPI backend for executing visual agent diagrams with LLM integrations and streaming support.
+FastAPI-based backend server implementing the unified execution engine for the DiPeO (Diagrammed People & Organizations) visual programming environment.
 
-## Quick Start
+## Commands
 
+### Development
 ```bash
+# Run server with auto-reload
+RELOAD=true python -m apps.server.main
+
+# Run server without reload
+python -m apps.server.main
+
+# Run server on custom port
+PORT=8001 python -m apps.server.main
+
 # Install dependencies
 pip install -r requirements.txt
 
-# Run development server
-python -m apps.server.main
-
-# Or with auto-reload
-RELOAD=true python -m apps.server.main
+# Validate installation
+python run_tests.py validate
 ```
 
-Server runs at `http://localhost:8000`
-
-## Architecture
-
-```
-src/
-├── api/          # REST endpoints & middleware
-├── llm/          # LLM adapters (OpenAI, Claude, Gemini, Grok)
-├── services/     # Business logic
-├── utils/        # Shared utilities
-├── constants.py  # Enums and configuration
-└── exceptions.py # Custom exception types
-```
-
-### Key Services
-
-- **DiagramService**: Diagram validation and import/export
-- **LLMService**: Unified LLM interface with connection pooling
-- **MemoryService**: Conversation memory (Redis/in-memory)
-- **UnifiedFileService**: Secure file operations
-- **APIKeyService**: API key management
-
-## Node Types
-
-| Node | Purpose | Key Features |
-|------|---------|--------------|
-| `startNode` | Entry point | Initial context/input |
-| `personJobNode` | LLM agent | Stateful conversations with memory |
-| `conditionNode` | Branching | Boolean expressions |
-| `dbNode` | Data source | Files, code execution, fixed prompts |
-| `endpointNode` | Output | Save results to files |
-
-## API Endpoints
-
-### Execution
-- `POST /api/run-diagram` - Execute with SSE streaming
-- `POST /api/stream/run-diagram` - Alias for streaming
-- `GET /api/monitor/stream` - Monitor all executions
-
-### Management
-- `GET/POST/DELETE /api/api-keys` - API key CRUD
-- `POST /api/upload-file` - File upload
-- `POST /api/import-uml` - Import PlantUML
-- `POST /api/export-uml` - Export to PlantUML
-
-### Conversations
-- `GET /api/conversations` - Query history with filtering
-- `POST /api/conversations/clear` - Clear memory
-
-## Development
-
-### Adding a New LLM Provider
-
-1. Create adapter in `src/llm/adapters/`:
-```python
-class YourAdapter(BaseAdapter):
-    def chat(self, system_prompt: str, user_prompt: str, **kwargs) -> ChatResult:
-        # Implementation
-        pass
-```
-
-2. Register in `src/llm/factory.py`:
-```python
-if provider == 'your_provider':
-    return YourAdapter(model_name, api_key)
-```
-
-3. Add to `SUPPORTED_MODELS` in `src/llm/__init__.py`
-
-### Adding a New Node Type
-
-1. Define in `src/constants.py`:
-```python
-class NodeType(Enum):
-    YOUR_NODE = "yourNode"
-```
-
-2. Create executor (if using V2 engine) or add logic to execution flow
-
-### Error Handling
-
-```python
-from src.core import handle_api_errors
-
-@router.post("/endpoint")
-@handle_api_errors
-async def your_endpoint():
-    # Automatic error formatting
-    pass
-```
-
-Custom exceptions in `src/exceptions.py`:
-- `ValidationError` - Input validation
-- `DiagramExecutionError` - Execution failures
-- `LLMServiceError` - LLM call failures
-- `FileOperationError` - File access issues
-
-## Configuration
-
-Environment variables:
-```env
-PORT=8000                       # Server port
-RELOAD=false                    # Auto-reload
-BASE_DIR=/path/to/project       # Base for file ops
-REDIS_URL=redis://localhost     # Optional Redis
-API_KEY_STORE_FILE=apikeys.json # API key storage
-```
-
-## Testing
-
+### Testing
 ```bash
 # Run all tests
 pytest
 
-# With coverage
-pytest --cov=apps.server
+# Run with coverage
+pytest --cov=src --cov-report=term-missing
 
-# Specific module
-pytest apps/server/tests/test_services.py -v
+# Run specific test file
+pytest tests/test_api_integration.py -v
+
+# Run specific test marker
+pytest -m "not slow"  # Skip slow tests
+pytest -m integration  # Run only integration tests
+pytest -m unit        # Run only unit tests
+pytest -m performance # Run performance tests
+pytest -m e2e        # Run end-to-end tests
+
+# Run a single test
+pytest tests/test_api_integration.py::test_api_key_management -v
+
+# Using the test runner script
+python run_tests.py unit         # Run unit tests only
+python run_tests.py integration  # Run integration tests
+python run_tests.py performance  # Run performance benchmarks
+python run_tests.py e2e         # Run end-to-end tests
+python run_tests.py all         # Run all test suites
+python run_tests.py coverage    # Generate coverage report
+python run_tests.py benchmark   # Run execution benchmarks
 ```
 
-Test fixtures in `tests/fixtures/`:
-- `mocks.py` - Service mocks
-- `diagrams.py` - Sample diagram structures
+### Diagram Execution (CLI)
+```bash
+# Primary execution method - pre-loads models, opens browser, then runs
+python ../../tool.py run-and-monitor diagram.json
 
-## Streaming Response Format
-
-SSE events during execution:
-```javascript
-{type: 'execution_started', execution_id: '...'}
-{type: 'node_start', nodeId: '...'}
-{type: 'node_complete', nodeId: '...', output_preview: '...'}
-{type: 'execution_complete', context: {...}, total_cost: 0.05}
-{type: 'execution_error', error: '...'}
+# Other execution modes
+python ../../tool.py run diagram.json                    # Backend execution with streaming
+python ../../tool.py run --no-stream diagram.json        # Backend execution without streaming
+python ../../tool.py run-headless diagram.json           # Pure backend execution
+python ../../tool.py monitor                             # Open browser monitoring
 ```
 
-## Common Issues
+## Architecture
 
-1. **No start nodes**: Diagram must have `startNode`
-2. **API key not found**: Check key exists in UI/storage
-3. **LLM timeout**: Retry logic handles transient failures
-4. **File not found**: Check `BASE_DIR` and relative paths
+DiPeO Server implements a **unified backend execution model** where all diagram nodes execute server-side through the V2 API (`/api/v2/run-diagram`). This provides consistent execution, centralized security, and SSE streaming for real-time updates.
 
-## CLI Tool
+### Core Components
+
+**Execution Engine** (`src/engine/`)
+- `engine.py`: UnifiedExecutionEngine orchestrates all diagram execution
+- `executors/`: Node-specific executors (StartExecutor, JobExecutor, PersonJobExecutor, etc.)
+- `planner.py`: Creates execution plans with dependency analysis
+- `resolver.py`: Topological sorting and cycle detection
+- `controllers.py`: Loop iteration and skip management
+
+**Node Type System**
+- All node types use unified snake_case format: `start`, `person_job`, `condition`, etc.
+- No conversion needed between frontend and backend
+- Type extraction: Check `properties.type` or fallback to `node.type`
+
+**Service Layer** (`src/services/`)
+- Uses AppContext dependency injection pattern
+- No @lru_cache() singletons - proper lifecycle management
+- Services initialized at startup via FastAPI lifespan context
+
+### Loop Implementation
+
+Loops use PersonJob nodes with `iterationCount` and Condition nodes:
+- PersonJob executes **at most** N times based on `iterationCount` (can be fewer due to errors or other skip conditions)
+- Execution count starts at 0; node skips when count >= max_iterations
+- Condition node with `conditionType: "detect_max_iterations"` controls loop exit:
+  - Returns `false` while ANY node with max_iterations hasn't reached its limit
+  - Returns `true` when ALL nodes with max_iterations have reached their limits
+  - Only checks nodes that have max_iterations defined (ignores others)
+
+**Example**: Two PersonJob nodes with max_iterations=2:
+- Iteration 1: Both execute (count 0→1), Condition returns `false` 
+- Iteration 2: Both execute (count 1→2), Condition returns `false`
+- Iteration 3: Both skip (count=2), Condition returns `true` → loop exits
+
+### Variable Substitution
+- Arrow labels become variable names (arrow labeled "topic" → `{{topic}}`)
+- Backend `_substitute_variables()` replaces `{{var}}` patterns in prompts
+
+
+Use pytest markers to run specific test categories during development.
+
+## Common Development Tasks
+
+### Adding a New Node Type
+1. Define in `src/constants.py` NodeType enum
+2. Create executor in `src/engine/executors/` inheriting from BaseExecutor
+3. Implement `validate()` and `execute()` methods
+4. Register in ExecutorFactory in `engine.py`
+
+### Adding a New LLM Provider
+1. Create adapter in `src/llm/adapters/` inheriting from BaseAdapter
+2. Implement `chat()` method following the interface
+3. Register in `src/llm/factory.py`
+4. Add to SUPPORTED_MODELS in `src/llm/__init__.py`
+
+### Debugging Execution Issues
+1. Check node type normalization if frontend/backend mismatch
+2. Verify arrow labels match variable names in prompts
+3. Use debug mode for continue-on-error behavior
+4. Monitor SSE stream events for execution flow
+
+## API Documentation
+
+Access interactive API documentation when server is running:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Environment Variables
 
 ```bash
-# Run diagram
-python tool.py run diagram.json
+# Server configuration
+PORT=8000                           # Server port (default: 8000)
+RELOAD=false                        # Auto-reload for development
+BASE_DIR=/path/to/project          # Base directory for file operations
 
-# Monitor executions
-python tool.py monitor
+# Storage configuration
+REDIS_URL=redis://localhost:6379    # Optional Redis for memory service
+API_KEY_STORE_FILE=apikeys.json    # API key storage location
 
-# Convert formats
-python tool.py convert input.puml output.json
+# LLM configuration (if not using API key service)
+OPENAI_API_KEY=sk-...              # OpenAI API key
+ANTHROPIC_API_KEY=sk-ant-...       # Claude API key
+GOOGLE_API_KEY=...                 # Gemini API key
+XAI_API_KEY=...                    # Grok API key
 ```
 
-## Security Notes
+## SSE Streaming Events
 
-- Path traversal protection via `validate_file_path()`
-- API keys stored plaintext (use env vars in production)
-- CORS enabled for development (restrict for production)
-- File uploads restricted to `UPLOAD_DIR`
+The V2 API streams execution progress via Server-Sent Events:
+
+```javascript
+// Execution lifecycle events
+{type: 'execution_started', execution_id: '...', total_nodes: 5}
+{type: 'node_start', nodeId: '...', nodeType: 'person_job'}
+{type: 'node_progress', nodeId: '...', message: 'Processing...'}
+{type: 'node_complete', nodeId: '...', output: {...}, cost: 0.02}
+{type: 'node_skipped', nodeId: '...', reason: 'max_iterations_reached'}
+{type: 'node_error', nodeId: '...', error: 'Connection timeout'}
+{type: 'execution_complete', total_cost: 0.05, duration: 3.2}
+{type: 'execution_error', error: 'No start nodes found'}
+```
+
+## Error Handling Patterns
+
+Use the centralized error handling decorator for API endpoints:
+
+```python
+from src.api.middleware import handle_api_errors
+
+@router.post("/your-endpoint")
+@handle_api_errors
+async def your_endpoint(request: Request):
+    # Automatic error formatting and logging
+    pass
+```
+
+Custom exceptions hierarchy:
+- `DiagramExecutionError`: Base for all execution errors
+- `ValidationError`: Input validation failures
+- `LLMServiceError`: LLM provider errors
+- `FileOperationError`: File access issues
+- `APIKeyNotFoundError`: Missing API keys
+- `NodeExecutionError`: Node-specific failures
+- 
+## API Documentation
+
+- **OpenAPI Specification**: See [`openapi.yaml`](./openapi.yaml)
+- **Interactive Docs**: Run server and visit `http://localhost:8000/docs`
+- **ReDoc**: Run server and visit `http://localhost:8000/redoc`

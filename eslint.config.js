@@ -45,6 +45,7 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: [
+          './tsconfig.json',
           './apps/web/tsconfig.json',
           './packages/*/tsconfig.json',
         ],
@@ -100,6 +101,16 @@ export default [
       'react-refresh/only-export-components': ['warn', {
         allowConstantExport: true
       }],
+    },
+  },
+
+  // Node.js scripts configuration
+  {
+    files: ['scripts/**/*.{js,ts}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,  // Add Node.js globals for scripts
+      },
     },
   },
 

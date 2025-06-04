@@ -1,12 +1,11 @@
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
-import { Button } from '@/shared/components';
-import { BaseNodeProps, UnifiedNodeConfig } from '@/shared/types';
-import { createHandleId } from '@/shared/utils/nodeHelpers';
+import { Button } from '@/common/components';
+import { BaseNodeProps, HandleConfig, getUnifiedNodeConfigsByReactFlowType } from '@/common/types';
+import { createHandleId } from '@/common/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
-import { useNodeExecutionState } from '@/core/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/core/contexts/DiagramContext';
+import { useNodeExecutionState, useNodeDataUpdater } from '@/state/hooks/useStoreSelectors';
 import './BaseNode.css';
 
 function BaseNodeComponent({
@@ -28,31 +27,20 @@ function BaseNodeComponent({
   ...divProps
 }: BaseNodeProps) {
   
-  // Optional store integration - use store values if available, fallback to props
-  let storeState = null;
-  let storeContext = null;
-  
-  // Always call hooks - React requires this
-  try {
-    storeState = useNodeExecutionState(id);
-  } catch {
-    storeState = null;
-  }
-  
-  try {
-    storeContext = useDiagramContext();
-  } catch {
-    storeContext = null;
-  }
+  // Always call hooks at the top level - React requires this
+  const storeState = useNodeExecutionState(id);
+  const updateNodeDataFromStore = useNodeDataUpdater();
+  const updateNodeInternalsFromStore = useUpdateNodeInternals();
+  const nodeConfigsFromStore = React.useMemo(() => getUnifiedNodeConfigsByReactFlowType(), []);
   
   // Use store values or fallback to props
   const isRunning = storeState?.isRunning ?? isRunningProp ?? false;
-  const onUpdateData = storeContext?.updateNodeData ?? onUpdateDataProp;
-  const onUpdateNodeInternals = storeContext?.updateNodeInternals ?? onUpdateNodeInternalsProp;
-  const nodeConfigs = storeContext?.nodeConfigs ?? nodeConfigsProp;
+  const onUpdateData = updateNodeDataFromStore ?? onUpdateDataProp;
+  const onUpdateNodeInternals = updateNodeInternalsFromStore ?? onUpdateNodeInternalsProp;
+  const nodeConfigs = nodeConfigsFromStore ?? nodeConfigsProp;
   
   // Check if node is flipped
-  const isFlipped = data?.flipped === true;
+  const isFlipped = data && typeof data === 'object' && 'flipped' in data && data.flipped === true;
   
   // Get configuration if nodeType is provided
   const config = nodeType ? nodeConfigs[nodeType] : null;
@@ -60,7 +48,7 @@ function BaseNodeComponent({
   // Use auto-generated handles if autoHandles is true and config exists
   const effectiveHandles = React.useMemo(() => {
     if (autoHandles && config) {
-      return config.handles.map((handle: any) => {
+      return config.handles.map((handle: HandleConfig) => {
         const isVertical = handle.position === Position.Top || handle.position === Position.Bottom;
         const position = isFlipped && !isVertical
           ? (handle.position === Position.Left ? Position.Right : Position.Left)
@@ -127,7 +115,7 @@ function BaseNodeComponent({
       )}
       
       {/* Flip button */}
-      {showFlipButton && selected && (onFlip || (autoHandles && onUpdateData && onUpdateNodeInternals)) && !isRunning && (
+      {showFlipButton && selected && (onFlip || autoHandles) && !isRunning && (
         <Button
           onClick={handleFlip}
           variant="outline"
@@ -148,7 +136,7 @@ function BaseNodeComponent({
       </div>
 
       {/* Handles */}
-      {effectiveHandles.map((handle: any, index: any) => (
+      {effectiveHandles.map((handle, index) => (
         <FlowHandle
           key={handle.id || index}
           nodeId={id}
@@ -165,23 +153,6 @@ function BaseNodeComponent({
   );
 }
 
-// Memoized BaseNode with custom comparison
-export const BaseNode = React.memo(BaseNodeComponent, (prevProps, nextProps) => {
-  // Only re-render if these specific props change
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.isRunning === nextProps.isRunning &&
-    prevProps.data?.flipped === nextProps.data?.flipped &&
-    prevProps.borderColor === nextProps.borderColor &&
-    prevProps.showFlipButton === nextProps.showFlipButton &&
-    prevProps.nodeType === nextProps.nodeType &&
-    prevProps.autoHandles === nextProps.autoHandles &&
-    // Deep compare handles array
-    JSON.stringify(prevProps.handles) === JSON.stringify(nextProps.handles) &&
-    // Compare children (if they're simple types)
-    prevProps.children === nextProps.children
-  );
-});
-
-BaseNode.displayName = 'BaseNode';
+// Remove memo to allow execution state updates to propagate through
+// The component handles its own execution state via useNodeExecutionState hook
+export const BaseNode = BaseNodeComponent;

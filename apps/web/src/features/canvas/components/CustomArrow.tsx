@@ -1,7 +1,7 @@
 import React from 'react';
 import { CustomArrow as CustomArrowBase } from './ui-components/Arrow';
-import { useArrowDataUpdater } from '@/core/hooks/useStoreSelectors';
-import { ArrowData } from '@/shared/types';
+import { useArrowDataUpdater } from '@/state/hooks/useStoreSelectors';
+import { ArrowData } from '@/common/types';
 
 // Re-export types from local ui-components
 export type { CustomArrowProps } from './ui-components/Arrow';
@@ -10,9 +10,9 @@ export type { CustomArrowProps } from './ui-components/Arrow';
 export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>[0]) => {
   const updateArrowData = useArrowDataUpdater();
   
-  // Create a type-safe wrapper that converts diagram-ui ArrowData to core-model ArrowData
+  // Create a type-safe wrapper that converts diagram-ui ArrowData to engine-model ArrowData
   const handleUpdateData = React.useCallback((edgeId: string, data: Partial<ArrowData>) => {
-    // Filter and convert data to match core-model ArrowData type
+    // Filter and convert data to match engine-model ArrowData type
     const coreModelData: Partial<ArrowData> = {};
     
     // Copy compatible fields
@@ -30,7 +30,11 @@ export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>
     
     // Handle contentType conversion - only accept valid values
     if (data.contentType !== undefined) {
-      if (data.contentType === 'raw_text' || data.contentType === 'variable_in_object' || data.contentType === 'conversation_state') {
+      if (data.contentType === 'raw_text' || 
+          data.contentType === 'variable_in_object' || 
+          data.contentType === 'conversation_state' ||
+          data.contentType === 'empty' ||
+          data.contentType === 'generic') {
         coreModelData.contentType = data.contentType;
       }
     }

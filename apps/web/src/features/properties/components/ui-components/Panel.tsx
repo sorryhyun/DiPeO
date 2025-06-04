@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanelProps } from '@/shared/types';
+import { PanelProps } from '@/common/types';
 
 export function Panel({ icon, title, children }: PanelProps) {
   return (

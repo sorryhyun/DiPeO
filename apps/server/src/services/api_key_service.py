@@ -1,11 +1,8 @@
 import json
 import os
-import sys
 import uuid
 from typing import Dict, List, Optional
 
-# Add server root to path for config import
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from ...config import BASE_DIR
 from ..exceptions import APIKeyError, ValidationError
 from ..utils.base_service import BaseService

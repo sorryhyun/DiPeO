@@ -1,0 +1,182 @@
+import React from 'react';
+import { useDiagramStore } from '@/state/stores';
+import { useExecutionStore } from '@/state/stores/executionStore';
+import { useConsolidatedUIStore } from '@/state/stores/consolidatedUIStore';
+
+// ===== Key Optimized Selectors =====
+
+// Execution state for specific node - avoids subscribing to entire execution store
+export const useNodeExecutionState = (nodeId: string) => {
+  // Subscribe to lastUpdate to force re-renders when execution state changes
+  const lastUpdate = useExecutionStore(state => state.lastUpdate);
+  const runningNodes = useExecutionStore(state => state.runningNodes);
+  const isRunning = runningNodes.includes(nodeId);
+  const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
+  const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
+  
+  // Debug logging for node execution state
+  React.useEffect(() => {
+    if (isRunning || nodeRunningState) {
+      console.log(`[useNodeExecutionState] Node ${nodeId} state:`, {
+        nodeId,
+        isRunning,
+        isCurrentRunning,
+        nodeRunningState,
+        runningNodes,
+        lastUpdate
+      });
+    }
+  }, [nodeId, isRunning, isCurrentRunning, nodeRunningState, runningNodes, lastUpdate]);
+  
+  // Memoize the return object to prevent unnecessary re-renders
+  return React.useMemo(() => ({
+    isRunning,
+    isCurrentRunning,
+    nodeRunningState,
+  }), [isRunning, isCurrentRunning, nodeRunningState, lastUpdate]);
+};
+
+// Single function selectors for common operations to avoid re-renders
+export const useNodeDataUpdater = () => {
+  return useDiagramStore(state => state.updateNodeData);
+};
+
+export const useArrowDataUpdater = () => {
+  return useDiagramStore(state => state.updateArrowData);
+};
+
+// Canvas state - combines multiple related selectors with monitor support
+export const useCanvasState = () => {
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const nodes = useDiagramStore(state => state.nodes);
+  const arrows = useDiagramStore(state => state.arrows);
+  const onNodesChange = useDiagramStore(state => state.onNodesChange);
+  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
+  const onConnect = useDiagramStore(state => state.onConnect);
+  const addNode = useDiagramStore(state => state.addNode);
+  const deleteNode = useDiagramStore(state => state.deleteNode);
+  const deleteArrow = useDiagramStore(state => state.deleteArrow);
+  
+  // Memoize functions and object to prevent unnecessary re-renders
+  return React.useMemo(() => ({
+    nodes,
+    arrows,
+    isMonitorMode: isReadOnly,
+    onNodesChange,
+    onArrowsChange,
+    onConnect,
+    addNode,
+    deleteNode,
+    deleteArrow,
+  }), [nodes, arrows, isReadOnly, onNodesChange, onArrowsChange, onConnect, addNode, deleteNode, deleteArrow]);
+};
+
+// Person operations with monitor support
+export const usePersons = () => {
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const persons = useDiagramStore(state => state.persons);
+  const addPerson = useDiagramStore(state => state.addPerson);
+  const updatePerson = useDiagramStore(state => state.updatePerson);
+  const deletePerson = useDiagramStore(state => state.deletePerson);
+  const getPersonById = useDiagramStore(state => state.getPersonById);
+  
+  return React.useMemo(() => ({
+    persons,
+    isMonitorMode: isReadOnly,
+    addPerson,
+    updatePerson,
+    deletePerson,
+    getPersonById,
+  }), [persons, isReadOnly, addPerson, updatePerson, deletePerson, getPersonById]);
+};
+
+// Node operations with monitor support
+export const useNodes = () => {
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const nodes = useDiagramStore(state => state.nodes);
+  const onNodesChange = useDiagramStore(state => state.onNodesChange);
+  const addNode = useDiagramStore(state => state.addNode);
+  const deleteNode = useDiagramStore(state => state.deleteNode);
+  
+  return {
+    nodes,
+    isMonitorMode: isReadOnly,
+    onNodesChange,
+    addNode,
+    deleteNode,
+  };
+};
+
+// Arrow operations with monitor support
+export const useArrows = () => {
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const arrows = useDiagramStore(state => state.arrows);
+  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
+  const onConnect = useDiagramStore(state => state.onConnect);
+  const deleteArrow = useDiagramStore(state => state.deleteArrow);
+  
+  return {
+    arrows,
+    isMonitorMode: isReadOnly,
+    onArrowsChange,
+    onConnect,
+    deleteArrow,
+  };
+};
+
+// UI state selectors
+export const useSelectedElement = () => {
+  const selectedNodeId = useConsolidatedUIStore(state => state.selectedNodeId);
+  const selectedArrowId = useConsolidatedUIStore(state => state.selectedArrowId);
+  const selectedPersonId = useConsolidatedUIStore(state => state.selectedPersonId);
+  const setSelectedNodeId = useConsolidatedUIStore(state => state.setSelectedNodeId);
+  const setSelectedArrowId = useConsolidatedUIStore(state => state.setSelectedArrowId);
+  const setSelectedPersonId = useConsolidatedUIStore(state => state.setSelectedPersonId);
+  const clearSelection = useConsolidatedUIStore(state => state.clearSelection);
+  
+  return {
+    selectedNodeId,
+    selectedArrowId,
+    selectedPersonId,
+    setSelectedNodeId,
+    setSelectedArrowId,
+    setSelectedPersonId,
+    clearSelection,
+  };
+};
+
+export const useUIState = () => {
+  const dashboardTab = useConsolidatedUIStore(state => state.dashboardTab);
+  const setDashboardTab = useConsolidatedUIStore(state => state.setDashboardTab);
+  
+  // Canvas state
+  const activeCanvas = useConsolidatedUIStore(state => state.activeCanvas);
+  const setActiveCanvas = useConsolidatedUIStore(state => state.setActiveCanvas);
+  const toggleCanvas = useConsolidatedUIStore(state => state.toggleCanvas);
+  
+  const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
+  
+  return {
+    dashboardTab,
+    setDashboardTab,
+    activeCanvas,
+    setActiveCanvas,
+    toggleCanvas,
+    hasSelection,
+  };
+};
+
+// Execution status
+export const useExecutionStatus = () => {
+  const runContext = useExecutionStore(state => state.runContext);
+  const runningNodes = useExecutionStore(state => state.runningNodes);
+  const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
+  const nodeRunningStates = useExecutionStore(state => state.nodeRunningStates);
+  
+  return {
+    runContext,
+    runningNodes,
+    currentRunningNode,
+    nodeRunningStates,
+  };
+};

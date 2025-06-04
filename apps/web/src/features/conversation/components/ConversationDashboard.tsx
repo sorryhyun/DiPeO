@@ -3,10 +3,10 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
-import { Button, Input, Select, SelectItem } from '@/shared/components';
-import { downloadJson } from '@/shared/utils/downloadUtils';
+import { Button, Input, Select, SelectItem } from '@/common/components';
+import { useDownload } from '@/features/serialization/hooks/useDownload';
 import { toast } from 'sonner';
-import { usePersons, useSelectedElement, useExecutionStatus } from '@/core/hooks/useStoreSelectors';
+import { usePersons, useSelectedElement, useExecutionStatus } from '@/state/hooks/useStoreSelectors';
 import { useConversationData, useMessagePolling } from '../hooks';
 import { MessageList } from './MessageList';
 import { ConversationMessage, ConversationFilters } from '../types';
@@ -82,7 +82,9 @@ const ConversationDashboard: React.FC = () => {
   }, [dashboardSelectedPerson, conversationData, isLoadingMore, fetchMore]);
 
   // Export conversations
-  const exportConversations = () => {
+  const { downloadJson } = useDownload();
+  
+  const exportConversations = async () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
 
     const data = conversationData[dashboardSelectedPerson];

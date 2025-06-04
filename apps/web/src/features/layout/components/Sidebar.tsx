@@ -1,14 +1,17 @@
 // Unified sidebar component that can render as left or right sidebar
-import React, { useState } from 'react';
-import { Button } from '@/shared/components';
+import React, { useState, Suspense } from 'react';
+import { Button } from '@/common/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useConsolidatedDiagramStore } from '@/core/stores';
-import { usePersons, useSelectedElement, useUIState } from '@/core/hooks/useStoreSelectors';
-import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/shared/types';
-import { useFileImport } from '@/serialization/hooks/useFileImport';
-import PropertiesRenderer from '@/features/properties/components/PropertiesRenderer';
-import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
+import { useDiagramStore } from '@/state/stores';
+import { usePersons, useSelectedElement, useUIState } from '@/state/hooks/useStoreSelectors';
+import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
+import { useFileImport } from '@/features/serialization/hooks/useFileImport';
+import { useExport } from '@/features/serialization/hooks/useExport';
+import { FileUploadButton } from '@/common/components/common/FileUploadButton';
 import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
+
+// Lazy load PropertiesRenderer as it's only used in right sidebar
+const PropertiesRenderer = React.lazy(() => import('@/features/properties/components/PropertiesRenderer'));
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onDragStart } = useNodeDrag();
@@ -34,15 +37,16 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const nodes = useConsolidatedDiagramStore(state => state.nodes);
-  const arrows = useConsolidatedDiagramStore(state => state.arrows);
+  const nodes = useDiagramStore(state => state.nodes);
+  const arrows = useDiagramStore(state => state.arrows);
   const { setDashboardTab } = useUIState();
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
-  const { handleImportUML, handleImportYAML } = useFileImport();
+  const { handleImportYAML } = useFileImport();
+  const { onSaveYAMLToDirectory, onSaveLLMYAMLToDirectory } = useExport();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
-  const [importExpanded, setImportExpanded] = useState(true);
+  const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId);
@@ -52,14 +56,16 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   if (position === 'right') {
     return (
       <aside className="h-full border-l bg-gray-50 overflow-y-auto">
-        <PropertiesRenderer
-          selectedNodeId={selectedNodeId}
-          selectedArrowId={selectedArrowId}
-          selectedPersonId={selectedPersonId}
-          nodes={nodes}
-          arrows={arrows}
-          persons={persons}
-        />
+        <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
+          <PropertiesRenderer
+            selectedNodeId={selectedNodeId}
+            selectedArrowId={selectedArrowId}
+            selectedPersonId={selectedPersonId}
+            nodes={nodes}
+            arrows={arrows}
+            persons={persons}
+          />
+        </Suspense>
       </aside>
     );
   }
@@ -125,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                   systemPrompt: undefined
                 });
                 // Get the newly created person's ID and select it
-                const newPersonId = useConsolidatedDiagramStore.getState().persons[useConsolidatedDiagramStore.getState().persons.length - 1]?.id;
+                const newPersonId = useDiagramStore.getState().persons[useDiagramStore.getState().persons.length - 1]?.id;
                 if (newPersonId) {
                   handlePersonClick(newPersonId);
                 }
@@ -140,15 +146,26 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                 persons.map((person: PersonDefinition) => (
                   <div
                     key={person.id}
-                    className={`p-3 text-base rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 text-base rounded-lg cursor-move transition-all duration-200 ${
                       selectedPersonId === person.id 
                         ? 'bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-400 shadow-sm' 
                         : 'bg-white hover:bg-gray-50 hover:shadow-sm'
                     }`}
                     onClick={() => handlePersonClick(person.id)}
                     title={person.label || 'Unnamed Person'}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'copy';
+                      e.dataTransfer.setData('application/person', person.id);
+                      // Add visual feedback
+                      e.currentTarget.style.opacity = '0.5';
+                    }}
+                    onDragEnd={(e) => {
+                      // Remove visual feedback
+                      e.currentTarget.style.opacity = '1';
+                    }}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pointer-events-none">
                       <span className="text-base">🤖</span>
                       <div className="truncate font-medium">
                         {person.label || 'Unnamed Person'}
@@ -162,38 +179,47 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         )}
       </div>
       
-      {/* Import Section */}
+      {/* File Operations Section */}
       <div>
         <h3 
           className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg mb-2 transition-colors duration-200"
-          onClick={() => setImportExpanded(!importExpanded)}
+          onClick={() => setFileOperationsExpanded(!fileOperationsExpanded)}
         >
           <span className="flex items-center gap-2">
             <span className="text-base">📁</span>
-            <span className="text-base font-medium">Import</span>
+            <span className="text-base font-medium">File Operations</span>
           </span>
-          {importExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
+          {fileOperationsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
         </h3>
-        {importExpanded && (
-          <div className="grid grid-cols-2 gap-2 px-2">
-            <FileUploadButton
-              accept=".puml,.mmd"
-              onChange={handleImportUML}
-              variant="outline"
-              className="text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
-              size="sm"
-            >
-              <span className="mr-1">📋</span> UML
-            </FileUploadButton>
+        {fileOperationsExpanded && (
+          <div className="px-2 space-y-2">
             <FileUploadButton
               accept=".yaml,.yml"
               onChange={handleImportYAML}
               variant="outline"
-              className="text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
+              className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
             >
-              <span className="mr-1">📄</span> YAML
+              <span className="mr-1">📥</span> Import YAML
             </FileUploadButton>
+            <Button
+              variant="outline"
+              className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
+              size="sm"
+              onClick={() => onSaveYAMLToDirectory()}
+              title="Export to YAML format (saves to /files/yaml_diagrams/)"
+            >
+              <span className="mr-1">📤</span> Export YAML
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
+              size="sm"
+              onClick={() => onSaveLLMYAMLToDirectory()}
+              title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
+            >
+              <span className="mr-1">🤖</span> Export LLM YAML
+            </Button>
           </div>
         )}
       </div>

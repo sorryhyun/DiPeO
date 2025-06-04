@@ -1,0 +1,945 @@
+openapi: 3.0.3
+info:
+  title: DiPeO Backend API
+  description: |
+    DiPeO (Diagrammed People & Organizations) is a visual programming environment
+    that executes agent diagrams through a unified backend execution engine.
+    
+    This API provides endpoints for:
+    - Diagram execution with real-time SSE streaming
+    - API key management for LLM providers
+    - File operations and uploads
+    - Conversation memory management
+    - Real-time execution monitoring
+    
+    All diagram nodes execute server-side through the V2 API with consistent
+    execution, centralized security, and SSE streaming for real-time updates.
+  version: 2.0.1
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.dipeo.io
+    description: Production server (planned)
+
+tags:
+  - name: diagram
+    description: Diagram execution and management operations
+  - name: api-keys
+    description: LLM API key management
+  - name: files
+    description: File upload and management
+  - name: conversations
+    description: Conversation memory and history
+  - name: monitor
+    description: Real-time execution monitoring
+
+paths:
+  /api/diagrams/execute:
+    post:
+      tags:
+        - diagram
+      summary: Execute a diagram
+      description: |
+        Execute a diagram using the unified backend execution engine with SSE streaming.
+        This endpoint consolidates all node execution on the backend, providing real-time
+        updates via Server-Sent Events for each node's execution status.
+        
+        The execution engine pre-initializes LLM models based on the diagram's person 
+        configurations for improved performance before starting the actual execution.
+      operationId: executeDiagram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nodes
+                - arrows
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DiagramNode'
+                  description: List of nodes in the diagram
+                arrows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DiagramArrow'
+                  description: List of arrows connecting nodes
+                persons:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Person'
+                  description: Person configurations for PersonJob nodes
+                apiKeys:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      key:
+                        type: string
+                  description: API keys used in the diagram
+                options:
+                  type: object
+                  properties:
+                    continueOnError:
+                      type: boolean
+                      default: false
+                      description: Continue execution even if a node fails
+                    allowPartial:
+                      type: boolean
+                      default: false
+                      description: Allow partial execution with unmet dependencies
+                    debugMode:
+                      type: boolean
+                      default: false
+                      description: Enable debug mode with detailed logging
+      responses:
+        '200':
+          description: Execution stream started
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Server-Sent Events stream with execution updates.
+                  Event types include:
+                  - execution_started
+                  - node_start
+                  - node_progress
+                  - node_complete
+                  - node_skipped
+                  - node_error
+                  - execution_complete
+                  - execution_error
+              examples:
+                executionStarted:
+                  value: |
+                    data: {"type": "execution_started", "execution_id": "exec_1234567890", "total_nodes": 5}
+                nodeStart:
+                  value: |
+                    data: {"type": "node_start", "nodeId": "node_123", "nodeType": "person_job", "iteration_count": 0}
+                nodeProgress:
+                  value: |
+                    data: {"type": "node_progress", "nodeId": "node_123", "message": "Calling LLM API..."}
+                nodeComplete:
+                  value: |
+                    data: {"type": "node_complete", "nodeId": "node_123", "output": {"result": "Hello, World!"}, "cost": 0.0002, "iteration_count": 0}
+                nodeSkipped:
+                  value: |
+                    data: {"type": "node_skipped", "nodeId": "node_456", "reason": "max_iterations_reached"}
+                executionComplete:
+                  value: |
+                    data: {"type": "execution_complete", "execution_id": "exec_1234567890", "total_cost": 0.0005, "duration": 2.34, "nodes_executed": 5, "nodes_skipped": 1}
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/diagrams/execution-capabilities:
+    get:
+      tags:
+        - diagram
+      summary: Get execution capabilities
+      description: Get information about execution capabilities and supported node types
+      operationId: getExecutionCapabilities
+      responses:
+        '200':
+          description: Execution capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "2.0"
+                  execution_model:
+                    type: string
+                    example: "unified_backend"
+                  supported_node_types:
+                    type: array
+                    items:
+                      type: string
+                    example: ["start", "person_job", "person_batch_job", "condition", "db", "job", "endpoint"]
+                  features:
+                    type: object
+                    properties:
+                      streaming_execution:
+                        type: boolean
+                      parallel_execution:
+                        type: boolean
+                      loop_control:
+                        type: boolean
+                      skip_management:
+                        type: boolean
+                      error_handling:
+                        type: boolean
+                      cost_tracking:
+                        type: boolean
+                      variable_substitution:
+                        type: boolean
+                  supported_languages:
+                    type: object
+                    properties:
+                      job_executor:
+                        type: array
+                        items:
+                          type: string
+                        example: ["python", "javascript", "bash"]
+                  supported_llm_services:
+                    type: array
+                    items:
+                      type: string
+                    example: ["openai", "claude", "gemini", "grok"]
+
+  /api/diagrams/save:
+    post:
+      tags:
+        - diagram
+      summary: Save a diagram
+      description: Save diagram to the diagrams directory
+      operationId: saveDiagram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - diagram
+                - filename
+                - format
+              properties:
+                diagram:
+                  type: object
+                  description: The diagram object to save
+                filename:
+                  type: string
+                  description: Filename for the saved diagram
+                  example: "my-workflow.json"
+                format:
+                  type: string
+                  enum: ["json", "yaml"]
+                  description: Format to save the diagram in
+      responses:
+        '200':
+          description: Diagram saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Diagram saved to files/diagrams/my-workflow.json"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/diagrams/convert:
+    post:
+      tags:
+        - diagram
+      summary: Convert diagram format
+      description: Convert diagram between different formats (JSON, YAML, LLM-YAML, UML)
+      operationId: convertDiagram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - from_format
+                - to_format
+              properties:
+                content:
+                  type: string
+                  description: The diagram content to convert
+                from_format:
+                  type: string
+                  enum: ["yaml", "json", "llm-yaml", "uml"]
+                  description: Source format
+                to_format:
+                  type: string
+                  enum: ["yaml", "json", "llm-yaml", "uml"]
+                  description: Target format
+      responses:
+        '200':
+          description: Conversion successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  output:
+                    type: string
+                    description: Converted diagram content
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/diagrams/health:
+    get:
+      tags:
+        - diagram
+      summary: Health check
+      description: Health check endpoint for V2 API
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "2.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/api-keys:
+    get:
+      tags:
+        - api-keys
+      summary: List API keys
+      description: Get all stored API keys (masked)
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiKeyInfo'
+
+    post:
+      tags:
+        - api-keys
+      summary: Create API key
+      description: Create a new API key
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - service
+                - key
+              properties:
+                name:
+                  type: string
+                  description: Display name for the API key
+                  example: "My OpenAI Key"
+                service:
+                  type: string
+                  enum: ["openai", "claude", "gemini", "grok"]
+                  description: LLM service provider
+                key:
+                  type: string
+                  description: The actual API key value
+                  example: "sk-..."
+      responses:
+        '200':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyInfo'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/api-keys/{id}:
+    delete:
+      tags:
+        - api-keys
+      summary: Delete API key
+      description: Delete an API key
+      operationId: deleteApiKey
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '200':
+          description: API key deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "API key deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/api-keys/{id}/models:
+    get:
+      tags:
+        - api-keys
+      summary: Get models for API key
+      description: Get available models for a specific API key
+      operationId: getModelsForKey
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '200':
+          description: Available models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: "openai"
+                  models:
+                    type: array
+                    items:
+                      type: string
+                    example: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/api-keys/{id}/test:
+    post:
+      tags:
+        - api-keys
+      summary: Test API key
+      description: Test an API key with a simple LLM call
+      operationId: testApiKey
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - model
+              properties:
+                model:
+                  type: string
+                  description: Model to test with
+                  example: "gpt-4o-mini"
+                messages:
+                  type: string
+                  description: Test message to send
+                  default: "Say 'Hello, World!'"
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  service:
+                    type: string
+                  model:
+                    type: string
+                  response:
+                    type: string
+                  cost:
+                    type: number
+                  error:
+                    type: string
+                    description: Present only if success is false
+
+  /api/api-keys/providers:
+    get:
+      tags:
+        - api-keys
+      summary: Get supported providers
+      description: Get list of supported LLM providers and their models
+      operationId: getSupportedProviders
+      responses:
+        '200':
+          description: Supported providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        service:
+                          type: string
+                        models:
+                          type: array
+                          items:
+                            type: string
+
+  /api/files/upload:
+    post:
+      tags:
+        - files
+      summary: Upload file
+      description: Upload a file to the server
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+                target_path:
+                  type: string
+                  description: Optional target directory path
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  path:
+                    type: string
+                    description: Relative path where file was saved
+                  size:
+                    type: integer
+                    description: File size in bytes
+                  message:
+                    type: string
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/conversations:
+    get:
+      tags:
+        - conversations
+      summary: Get conversations
+      description: Get conversation data with pagination and filtering
+      operationId: getConversations
+      parameters:
+        - name: personId
+          in: query
+          description: Filter by person ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+        - name: offset
+          in: query
+          description: Number of messages to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          description: Search term to filter messages
+          schema:
+            type: string
+        - name: executionId
+          in: query
+          description: Filter by execution ID
+          schema:
+            type: string
+        - name: showForgotten
+          in: query
+          description: Include forgotten messages
+          schema:
+            type: boolean
+            default: false
+        - name: startTime
+          in: query
+          description: Filter messages after this time
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          description: Filter messages before this time
+          schema:
+            type: string
+            format: date-time
+        - name: since
+          in: query
+          description: Get messages since this time (exclusive)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Conversation data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  persons:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        person_id:
+                          type: string
+                        messages:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/ConversationMessage'
+                        total_messages:
+                          type: integer
+                        visible_messages:
+                          type: integer
+                        forgotten_messages:
+                          type: integer
+                        has_more:
+                          type: boolean
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - conversations
+      summary: Clear conversations
+      description: Clear all conversation memory
+      operationId: clearConversations
+      responses:
+        '200':
+          description: Conversations cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/monitor/stream:
+    get:
+      tags:
+        - monitor
+      summary: Monitor execution stream
+      description: |
+        SSE endpoint for monitoring all diagram executions.
+        This endpoint allows multiple clients to monitor execution status
+        across all running diagrams in real-time.
+      operationId: monitorStream
+      responses:
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream
+              examples:
+                monitorConnected:
+                  value: |
+                    data: {"type": "monitor_connected", "monitor_id": "uuid-1234"}
+                heartbeat:
+                  value: |
+                    data: {"type": "heartbeat", "timestamp": 1234567890.123}
+                executionBroadcast:
+                  value: |
+                    data: {"type": "node_complete", "nodeId": "node_123", "execution_id": "exec_cli_1234", "source": "cli"}
+
+  /api/monitor/status:
+    get:
+      tags:
+        - monitor
+      summary: Get monitor status
+      description: Get current monitoring status
+      operationId: getMonitorStatus
+      responses:
+        '200':
+          description: Monitor status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_monitors:
+                    type: integer
+                    description: Number of active monitor connections
+                  monitor_ids:
+                    type: array
+                    items:
+                      type: string
+                    description: List of active monitor IDs
+
+  /api/monitor/broadcast:
+    post:
+      tags:
+        - monitor
+      summary: Broadcast event
+      description: |
+        Broadcast an event to all monitor connections.
+        Used by CLI and external executions to notify browser monitors.
+      operationId: broadcastEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Event data to broadcast
+              additionalProperties: true
+      responses:
+        '200':
+          description: Event broadcasted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  broadcasted_to:
+                    type: integer
+                    description: Number of monitors that received the event
+                  message:
+                    type: string
+                  error:
+                    type: string
+                    description: Present only if success is false
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      description: Expose Prometheus metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus formatted metrics
+
+components:
+  schemas:
+    DiagramNode:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Unique node identifier
+          example: "node_123"
+        type:
+          type: string
+          description: Node type (snake_case format, unified across frontend and backend)
+          enum: ["start", "person_job", "person_batch_job", "condition", "db", "job", "endpoint"]
+        data:
+          type: object
+          description: Node properties/configuration
+          additionalProperties: true
+        position:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+
+    DiagramArrow:
+      type: object
+      required:
+        - id
+        - source
+        - target
+      properties:
+        id:
+          type: string
+          description: Unique arrow identifier
+        source:
+          type: string
+          description: Source node ID
+        target:
+          type: string
+          description: Target node ID
+        sourceHandle:
+          type: string
+          description: Source connection point identifier
+        targetHandle:
+          type: string
+          description: Target connection point identifier
+        label:
+          type: string
+          description: Arrow label (becomes variable name)
+        data:
+          type: object
+          additionalProperties: true
+
+    Person:
+      type: object
+      required:
+        - id
+        - apiKeyId
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        service:
+          type: string
+          enum: ["openai", "claude", "gemini", "grok"]
+        apiKeyId:
+          type: string
+        modelName:
+          type: string
+        systemPrompt:
+          type: string
+
+    ApiKeyInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "APIKEY_abc123"
+        name:
+          type: string
+          example: "My OpenAI Key"
+        service:
+          type: string
+          enum: ["openai", "claude", "gemini", "grok"]
+
+    ConversationMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum: ["user", "assistant", "system"]
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        execution_id:
+          type: string
+        node_id:
+          type: string
+        node_label:
+          type: string
+        token_count:
+          type: integer
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        cached_tokens:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+
+  parameters:
+    ApiKeyId:
+      name: id
+      in: path
+      required: true
+      description: API key identifier
+      schema:
+        type: string
+        example: "APIKEY_abc123"
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Validation failed"
+            details:
+              field: "service"
+              reason: "Invalid service name"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "API key not found"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Internal server error"
+            details:
+              message: "An unexpected error occurred"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT authentication (planned for future release)

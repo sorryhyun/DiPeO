@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
-import { GenericNodeProps, UNIFIED_NODE_CONFIGS, getBlockType } from '@/shared/types';
+import { GenericNodeProps, UNIFIED_NODE_CONFIGS, getBlockType } from '@/common/types';
 
 function GenericNodeComponent({ 
   id: nodeId,
@@ -10,12 +10,15 @@ function GenericNodeComponent({
   children,
   showFlipButton = true,
   onDragOver,
+  onDragEnter,
+  onDragLeave,
   onDrop,
   isRunning = false,
   onUpdateData,
   onUpdateNodeInternals,
-  nodeConfigs = {}
-}: GenericNodeProps) {
+  nodeConfigs = {},
+  ...restProps
+}: GenericNodeProps & React.HTMLAttributes<HTMLDivElement>) {
   // Try to get config from provided nodeConfigs first, then fallback to UNIFIED_NODE_CONFIGS
   let config = nodeConfigs[nodeType];
   if (!config) {
@@ -38,31 +41,20 @@ function GenericNodeComponent({
       autoHandles={true}
       showFlipButton={showFlipButton}
       onDragOver={onDragOver}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
       onDrop={onDrop}
       isRunning={isRunning}
       onUpdateData={onUpdateData}
       onUpdateNodeInternals={onUpdateNodeInternals}
       nodeConfigs={nodeConfigs}
+      {...restProps}
     >
       {children}
     </BaseNode>
   );
 }
 
-// Memoized GenericNode with custom comparison
-export const GenericNode = React.memo(GenericNodeComponent, (prevProps, nextProps) => {
-  // Only re-render if these specific props change
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.isRunning === nextProps.isRunning &&
-    prevProps.nodeType === nextProps.nodeType &&
-    prevProps.showFlipButton === nextProps.showFlipButton &&
-    // Deep compare data object (be careful with large objects)
-    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
-    // Compare children
-    prevProps.children === nextProps.children
-  );
-});
-
-GenericNode.displayName = 'GenericNode';
+// Remove memo to allow execution state updates to propagate through
+// The BaseNode component handles its own execution state via useNodeExecutionState hook
+export const GenericNode = GenericNodeComponent;

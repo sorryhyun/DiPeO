@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 from ...services.memory_service import MemoryService
@@ -8,7 +8,7 @@ from ...utils.dependencies import get_memory_service
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
 
-@router.get("")
+@router.get("/")
 async def get_conversations(
     personId: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=1000),
@@ -75,8 +75,12 @@ async def get_conversations(
 
                 if hasattr(msg, 'token_count'):
                     formatted_msg['token_count'] = msg.token_count
-                if hasattr(msg, 'cost'):
-                    formatted_msg['cost'] = msg.cost
+                if hasattr(msg, 'input_tokens'):
+                    formatted_msg['input_tokens'] = msg.input_tokens
+                if hasattr(msg, 'output_tokens'):
+                    formatted_msg['output_tokens'] = msg.output_tokens
+                if hasattr(msg, 'cached_tokens'):
+                    formatted_msg['cached_tokens'] = msg.cached_tokens
 
                 formatted_messages.append(formatted_msg)
 
@@ -96,7 +100,7 @@ async def get_conversations(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/clear")
+@router.delete("/")
 async def clear_conversations(
     memory_service: MemoryService = Depends(get_memory_service)
 ):

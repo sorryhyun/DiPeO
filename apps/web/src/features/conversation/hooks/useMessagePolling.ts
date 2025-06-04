@@ -3,7 +3,7 @@ import { ConversationMessage } from '../types';
 
 interface UseMessagePollingProps {
   personId: string | null;
-  runContext: Record<string, any>;
+  runContext: Record<string, unknown>;
   lastUpdateTime: string | null;
   onNewMessage: (personId: string, message: ConversationMessage) => void;
   fetchConversationData: (personId?: string, append?: boolean, since?: string) => Promise<void>;

@@ -1,6 +1,8 @@
-// Canvas feature exports
-export { default as Canvas } from './components/Canvas';
-export { default as MemoryLayer } from './components/MemoryLayer';
+// Main components
+export { default as DiagramCanvas } from './components/DiagramCanvas';
+export { default as PropertyDashboard } from './components/PropertyDashboard';
+
+// Canvas components
 export { CustomArrow } from './components/CustomArrow';
 export { default as ContextMenu } from './components/ContextMenu';
 

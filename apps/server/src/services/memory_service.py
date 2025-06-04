@@ -20,7 +20,9 @@ class Message:
     node_id: Optional[str] = None
     node_label: Optional[str] = None
     token_count: Optional[int] = None
-    cost: Optional[float] = None
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    cached_tokens: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -33,7 +35,9 @@ class Message:
             "node_id": self.node_id,
             "node_label": self.node_label,
             "token_count": self.token_count,
-            "cost": self.cost
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cached_tokens": self.cached_tokens
         }
     
     def to_json(self) -> str:
@@ -54,7 +58,9 @@ class Message:
             node_id=data.get("node_id"),
             node_label=data.get("node_label"),
             token_count=data.get("token_count"),
-            cost=data.get("cost")
+            input_tokens=data.get("input_tokens"),
+            output_tokens=data.get("output_tokens"),
+            cached_tokens=data.get("cached_tokens")
         )
 
 
@@ -81,6 +87,18 @@ class PersonMemory:
             if message.execution_id == execution_id:
                 self.forgotten_message_ids.add(message.id)
 
+    def forget_own_messages(self) -> None:
+        """Mark all messages sent BY this person as forgotten (but keep messages TO this person)."""
+        for message in self.messages:
+            if message.sender_person_id == self.person_id:
+                self.forgotten_message_ids.add(message.id)
+
+    def forget_own_messages_from_execution(self, execution_id: str) -> None:
+        """Mark messages sent BY this person from a specific execution as forgotten."""
+        for message in self.messages:
+            if message.execution_id == execution_id and message.sender_person_id == self.person_id:
+                self.forgotten_message_ids.add(message.id)
+
     def get_visible_messages(self, current_person_id: str) -> List[Dict[str, Any]]:
         """Get messages visible to this person, with roles adjusted based on perspective."""
         visible_messages = []
@@ -90,10 +108,16 @@ class PersonMemory:
                 continue
 
             role = "assistant" if message.sender_person_id == current_person_id else "user"
+            
+            # Add speaker label for user messages to clarify who is speaking
+            if role == "user" and message.node_label:
+                content = f"[{message.node_label}]: {message.content}"
+            else:
+                content = message.content
 
             visible_messages.append({
                 "role": role,
-                "content": message.content
+                "content": content
             })
 
         return visible_messages
@@ -164,7 +188,9 @@ class MemoryService:
         node_id: Optional[str] = None,
         node_label: Optional[str] = None,
         token_count: Optional[int] = None,
-        cost: Optional[float] = None) -> Message:
+        input_tokens: Optional[int] = None,
+        output_tokens: Optional[int] = None,
+        cached_tokens: Optional[int] = None) -> Message:
         """Create and add message to conversation."""
         message = Message(
             id=str(uuid.uuid4()),
@@ -176,7 +202,9 @@ class MemoryService:
             node_id=node_id,
             node_label=node_label,
             token_count=token_count,
-            cost=cost
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cached_tokens=cached_tokens
         )
 
         self._store_message_redis(message)
@@ -189,15 +217,21 @@ class MemoryService:
             self.execution_metadata[execution_id] = {
                 "start_time": datetime.now(),
                 "message_count": 0,
-                "total_cost": 0,
-                "total_tokens": 0
+                "total_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cached_tokens": 0
             }
 
         self.execution_metadata[execution_id]["message_count"] += 1
-        if cost:
-            self.execution_metadata[execution_id]["total_cost"] += cost
         if token_count:
             self.execution_metadata[execution_id]["total_tokens"] += token_count
+        if input_tokens:
+            self.execution_metadata[execution_id]["input_tokens"] += input_tokens
+        if output_tokens:
+            self.execution_metadata[execution_id]["output_tokens"] += output_tokens
+        if cached_tokens:
+            self.execution_metadata[execution_id]["cached_tokens"] += cached_tokens
 
         return message
 
@@ -211,43 +245,25 @@ class MemoryService:
             for message in person_memory.messages:
                 person_memory.forgotten_message_ids.add(message.id)
 
+    def forget_own_messages_for_person(self, person_id: str, execution_id: Optional[str] = None) -> None:
+        """Make a person forget only their own messages (selective forgetting)."""
+        person_memory = self.get_or_create_person_memory(person_id)
+
+        if execution_id:
+            person_memory.forget_own_messages_from_execution(execution_id)
+        else:
+            person_memory.forget_own_messages()
+
     def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
         """Get the conversation history as visible to a specific person."""
         person_memory = self.get_or_create_person_memory(person_id)
         return person_memory.get_visible_messages(person_id)
 
-    def get_all_participants_in_conversation(self) -> List[str]:
-        """Get all person IDs that have participated in conversations."""
-        return list(self.person_memories.keys())
-
-    def clear_all_memory(self) -> None:
-        """Clear all memory."""
-        self.person_memories.clear()
-        self.all_messages.clear()
-
-    def get_memory_stats(self) -> Dict[str, Any]:
-        """Get statistics about memory usage."""
-        stats = {
-            "total_persons": len(self.person_memories),
-            "total_messages": len(self.all_messages),
-            "persons": {}
-        }
-
-        for person_id, memory in self.person_memories.items():
-            stats["persons"][person_id] = {
-                "total_messages": len(memory.messages),
-                "forgotten_messages": len(memory.forgotten_message_ids),
-                "visible_messages": len(memory.messages) - len(memory.forgotten_message_ids)
-            }
-
-        return stats
-
     async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str:
         """Save the current conversation state to a JSONL log file."""
-        from ..utils.dependencies import get_unified_file_service
-        import json
+        from ..utils.dependencies import get_file_service
         
-        file_service = get_unified_file_service()
+        file_service = get_file_service()
         
         log_lines = []
         
@@ -258,8 +274,10 @@ class MemoryService:
             "timestamp": datetime.now().isoformat(),
             "start_time": metadata.get('start_time').isoformat() if metadata.get('start_time') else None,
             "message_count": metadata.get('message_count', 0),
-            "total_cost": metadata.get('total_cost', 0),
-            "total_tokens": metadata.get('total_tokens', 0)
+            "total_tokens": metadata.get('total_tokens', 0),
+            "input_tokens": metadata.get('input_tokens', 0),
+            "output_tokens": metadata.get('output_tokens', 0),
+            "cached_tokens": metadata.get('cached_tokens', 0)
         }
         log_lines.append(json.dumps(metadata_record, ensure_ascii=False))
             
@@ -299,7 +317,9 @@ class MemoryService:
                 "node_id": msg.node_id,
                 "node_label": msg.node_label,
                 "token_count": msg.token_count,
-                "cost": msg.cost,
+                "input_tokens": msg.input_tokens,
+                "output_tokens": msg.output_tokens,
+                "cached_tokens": msg.cached_tokens,
                 "is_forgotten": is_forgotten
             }
             log_lines.append(json.dumps(message_record, ensure_ascii=False))
@@ -317,24 +337,3 @@ class MemoryService:
         )
         
         return relative_path
-    
-    def clear_execution_memory(self, execution_id: str) -> None:
-        """Clear all memory related to a specific execution."""
-        for person_memory in self.person_memories.values():
-            messages_to_remove = [
-                msg for msg in person_memory.messages 
-                if msg.execution_id == execution_id
-            ]
-            for msg in messages_to_remove:
-                person_memory.messages.remove(msg)
-                person_memory.forgotten_message_ids.discard(msg.id)
-                self.all_messages.pop(msg.id, None)
-        
-        empty_persons = [
-            person_id for person_id, memory in self.person_memories.items()
-            if len(memory.messages) == 0
-        ]
-        for person_id in empty_persons:
-            del self.person_memories[person_id]
-        
-        self.execution_metadata.pop(execution_id, None)

@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { JobBlockData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { JobBlockData } from '@/common/types';
 
 export const jobConfig: PanelConfig<JobBlockData> = {
   layout: 'twoColumn',

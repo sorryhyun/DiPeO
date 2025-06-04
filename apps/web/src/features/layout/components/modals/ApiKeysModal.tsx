@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Modal, Select, SelectItem } from '@/shared/components';
-import { ApiKey, createErrorHandlerFactory } from '@/shared/types';
-import { useConsolidatedDiagramStore } from '@/core/stores';
+import { Button, Input, Modal, Select, SelectItem } from '@/common/components';
+import { ApiKey, createErrorHandlerFactory } from '@/common/types';
+import { useApiKeyStore } from '@/state/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
 import { toast } from 'sonner';
 
 interface ApiKeysModalProps {
@@ -20,7 +20,7 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useConsolidatedDiagramStore();
+  const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useApiKeyStore();
   const [newKeyForm, setNewKeyForm] = useState<Partial<ApiKey>>({
     name: '',
     service: 'claude',
@@ -28,7 +28,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   // Create error handler for API key operations
   const createErrorHandler = createErrorHandlerFactory(toast);
@@ -100,7 +100,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       });
       
       toast.success(`API key "${newKey.name}" added successfully`);
-    } catch (error) {
+    } catch {
       setErrors({ keyReference: 'Network error: Failed to create API key' });
     }
   };

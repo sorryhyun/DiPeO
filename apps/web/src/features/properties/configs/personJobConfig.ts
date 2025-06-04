@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { PersonJobBlockData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { PersonJobBlockData } from '@/common/types';
 
 export const personJobConfig: PanelConfig<PersonJobBlockData> = {
   layout: 'twoColumn',
@@ -16,9 +16,9 @@ export const personJobConfig: PanelConfig<PersonJobBlockData> = {
           name: 'contextCleaningRule',
           label: 'Forget',
           options: [
-            { value: 'uponRequest', label: 'Upon This Request' },
-            { value: 'noForget', label: 'Do Not Forget' },
-            { value: 'onEveryTurn', label: 'On Every Turn' }
+            { value: 'upon_request', label: 'Upon This Request' },
+            { value: 'no_forget', label: 'Do Not Forget' },
+            { value: 'on_every_turn', label: 'On Every Turn' }
           ],
           className: 'flex-1'
         },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDiagramContext } from '@/core/contexts/DiagramContext';
+import { UNIFIED_NODE_CONFIGS } from '@/common/types';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -32,12 +32,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   nodeTypes: nodeTypesProp,
   nodeLabels: nodeLabelsProp,
 }) => {
-  const diagramContext = useDiagramContext();
-  
-  // Use props if provided, otherwise use context
-  const nodeTypes = nodeTypesProp || 
-    (diagramContext.nodeTypes ? Object.fromEntries(diagramContext.nodeTypes.map(type => [type, type])) : {});
-  const nodeLabels = nodeLabelsProp || diagramContext.nodeLabels || {};
+  // Use props if provided, otherwise derive from UNIFIED_NODE_CONFIGS
+  const nodeTypes = nodeTypesProp || Object.keys(UNIFIED_NODE_CONFIGS);
+  const nodeLabels = nodeLabelsProp || Object.fromEntries(
+    Object.entries(UNIFIED_NODE_CONFIGS).map(([key, config]) => [key, config.label])
+  );
   const handleAddNode = (nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
     onAddNode(nodeType, pos);

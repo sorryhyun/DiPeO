@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { ArrowData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { ArrowData } from '@/common/types';
 
 export const arrowConfig: PanelConfig<ArrowData> = {
   layout: 'twoColumn',
@@ -8,7 +8,23 @@ export const arrowConfig: PanelConfig<ArrowData> = {
       type: 'text',
       name: 'label',
       label: 'Arrow Label',
-      placeholder: 'e.g., user_query'
+      placeholder: 'e.g., user_query',
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['condition'],
+        operator: 'notEquals'
+      }
+    },
+    {
+      type: 'text',
+      name: 'label',
+      label: 'Arrow Label',
+      placeholder: 'e.g., true, false, or custom label',
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['condition'],
+        operator: 'equals'
+      }
     },
     {
       type: 'text',
@@ -33,31 +49,38 @@ export const arrowConfig: PanelConfig<ArrowData> = {
       ],
       conditional: {
         field: '_sourceNodeType',
-        values: ['start', 'condition'],
+        values: ['condition', 'start'],
         operator: 'notEquals'
       }
     },
     {
-      type: 'text',
-      name: 'contentTypeDisplay',
-      label: 'Content Type',
-      placeholder: 'Empty (Fixed)',
+      type: 'select',
+      name: 'contentType',
+      label: 'Content Type (Inherited from condition input)',
+      options: [
+        { value: 'raw_text', label: 'Raw Text' },
+        { value: 'variable_in_object', label: 'Variable in Object' },
+        { value: 'conversation_state', label: 'Conversation State' },
+        { value: 'generic', label: 'Generic' }
+      ],
       disabled: true,
       conditional: {
         field: '_sourceNodeType',
-        values: ['start'],
+        values: ['condition'],
         operator: 'equals'
       }
     },
     {
-      type: 'text',
-      name: 'contentTypeDisplay',
+      type: 'select',
+      name: 'contentType',
       label: 'Content Type',
-      placeholder: 'Generic (Fixed)',
+      options: [
+        { value: 'empty', label: 'Empty (Fixed)' }
+      ],
       disabled: true,
       conditional: {
-        field: '_isFromConditionBranch',
-        values: [true],
+        field: '_sourceNodeType',
+        values: ['start'],
         operator: 'equals'
       }
     }

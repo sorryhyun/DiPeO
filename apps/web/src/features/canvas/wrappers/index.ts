@@ -1,6 +1,10 @@
 // Canvas UI wrappers with store integration
+import { lazy } from 'react';
+
 export { CustomArrow } from '../components/CustomArrow';
-export { default as ContextMenu } from '../components/ContextMenu';
+
+// Lazy load ContextMenu as it's only shown on right-click
+export const ContextMenu = lazy(() => import('../components/ContextMenu'));
 
 // Direct exports from hooks
 export { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
