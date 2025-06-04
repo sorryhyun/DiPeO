@@ -2,9 +2,9 @@
  * Property panel utility functions
  */
 
-import { useApiKeyStore } from '@/global/stores';
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
-import { apiCache } from '@/shared/utils/apiCache';
+import { useApiKeyStore } from '@/state/stores';
+import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
+import { apiCache } from '@/common/utils/apiCache';
 
 export const formatPropertyValue = (value: unknown, type: string): string => {
   if (value === null || value === undefined) {

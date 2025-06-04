@@ -1,14 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Input, Spinner } from '@/shared/components';
-import { FileUploadButton } from '@/shared';
-import { usePersons } from '@/global/hooks/useStoreSelectors';
+import { Input, Spinner } from '@/common/components';
+import { FileUploadButton } from '@/common';
+import { usePersons } from '@/state/hooks/useStoreSelectors';
 import {
   FormField,
   FormRow,
   InlineSelectField,
   InlineTextField,
   TextAreaField
-} from '@/shared/components/forms';
+} from '@/common/components/forms';
 
 // Specialized Field Components
 
@@ -237,4 +237,4 @@ export {
   CheckboxField,
   TwoColumnPanelLayout,
   SingleColumnPanelLayout
-} from '@/shared/components/forms';
+} from '@/common/components/forms';

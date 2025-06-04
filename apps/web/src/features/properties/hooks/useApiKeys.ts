@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
-import { type ApiKey } from '@/shared/types';
+import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
+import { type ApiKey } from '@/common/types';
 
 export const useApiKeys = () => {
   const [apiKeysList, setApiKeysList] = useState<ApiKey[]>([]);

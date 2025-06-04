@@ -1,12 +1,12 @@
 import React from 'react';
 import { Position } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
-import { Button } from '@/shared/components';
-import { BaseNodeProps, HandleConfig } from '@/shared/types';
-import { createHandleId } from '@/shared/utils/nodeHelpers';
+import { Button } from '@/common/components';
+import { BaseNodeProps, HandleConfig } from '@/common/types';
+import { createHandleId } from '@/common/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
-import { useNodeExecutionState } from '@/global/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/global/contexts/useDiagramContext';
+import { useNodeExecutionState } from '@/state/hooks/useStoreSelectors';
+import { useDiagramContext } from '@/state/contexts/useDiagramContext';
 import './BaseNode.css';
 
 function BaseNodeComponent({

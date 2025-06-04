@@ -14,7 +14,7 @@ from ...config import BASE_DIR
 
 
 class AppContext:
-    """Application-wide shared context for services."""
+    """Application-wide common context for services."""
     
     def __init__(self):
         self.api_key_service: Optional[APIKeyService] = None
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await app_context.shutdown()
 
 
-# Dependency functions that use the global context
+# Dependency functions that use the state context
 def get_api_key_service() -> APIKeyService:
     """Get APIKeyService instance from app context."""
     if app_context.api_key_service is None:

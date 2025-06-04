@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { EndpointBlockData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { EndpointBlockData } from '@/common/types';
 
 export const endpointConfig: PanelConfig<EndpointBlockData> = {
   layout: 'twoColumn',

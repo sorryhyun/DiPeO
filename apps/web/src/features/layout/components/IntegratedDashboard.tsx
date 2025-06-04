@@ -1,7 +1,7 @@
 // Integrated dashboard combining conversation view and properties panel with tabs
 import React, { Suspense } from 'react';
 import { MessageSquare, Settings } from 'lucide-react';
-import { useNodes, useArrows, usePersons, useUIState, useSelectedElement } from '@/global/hooks/useStoreSelectors';
+import { useNodes, useArrows, usePersons, useUIState, useSelectedElement } from '@/state/hooks/useStoreSelectors';
 
 // Lazy load heavy components
 const ConversationDashboard = React.lazy(() => import('../../conversation/components/ConversationDashboard'));

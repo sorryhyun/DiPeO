@@ -2,7 +2,7 @@
 import React, { Suspense } from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from './base/GenericNode';
-import { UNIFIED_NODE_CONFIGS } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS } from '@/common/types';
 import { StartNode, ConditionNode, JobNode, DBNode, EndpointNode, PersonJobNode, PersonBatchJobNode } from './nodes';
 
 // Loading component for lazy-loaded nodes

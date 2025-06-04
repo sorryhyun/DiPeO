@@ -17,7 +17,7 @@ class GeminiAdapter(BaseAdapter):
         """Initialize the Gemini client."""
         # Configure the API key globally for google-generativeai
         genai.configure(api_key=self.api_key)
-        # Return None as genai uses global configuration
+        # Return None as genai uses state configuration
         return None
 
     def _build_messages(self, system_prompt: str, cacheable_prompt: str = '', 
@@ -81,7 +81,7 @@ class GeminiAdapter(BaseAdapter):
         """List available Gemini models."""
         logger.info("[Gemini] Fetching available models from Gemini API")
         try:
-            # List models using the global genai module
+            # List models using the state genai module
             models = genai.list_models()
             # Filter for generateContent models
             gemini_models = [

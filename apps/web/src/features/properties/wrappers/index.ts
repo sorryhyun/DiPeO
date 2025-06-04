@@ -1,12 +1,12 @@
 // Direct exports from local ui-components (no store integration needed)
 export { Panel } from '../components/ui-components/Panel';
 
-// Re-export generic form components from shared
+// Re-export generic form components from common
 export { 
   Form, FormField, FormRow, TextAreaField, 
   InlineTextField, InlineSelectField, CheckboxField,
   TwoColumnPanelLayout, SingleColumnPanelLayout
-} from '@/shared/components/forms';
+} from '@/common/components/forms';
 
 // Export specialized property components
 export { 
@@ -22,4 +22,4 @@ export { usePropertyPanel } from '../hooks/usePropertyPanel';
 export type {
   PanelProps,
   FormFieldProps
-} from '../../../shared/types';
+} from '@/common/types';

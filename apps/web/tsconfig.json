@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@/features/*": ["src/features/*"],
-      "@/shared/*": ["src/shared/*"],
+      "@/common/*": ["src/common/*"],
+      "@/state/*": ["src/state/*"],
       "@/types/*": ["../../types/*"]
     }
   },

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Modal, Select, SelectItem } from '@/shared/components';
-import { ApiKey, createErrorHandlerFactory } from '@/shared/types';
-import { useApiKeyStore } from '@/global/stores';
+import { Button, Input, Modal, Select, SelectItem } from '@/common/components';
+import { ApiKey, createErrorHandlerFactory } from '@/common/types';
+import { useApiKeyStore } from '@/state/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
 import { toast } from 'sonner';
 
 interface ApiKeysModalProps {

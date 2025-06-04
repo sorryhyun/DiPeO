@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PanelConfig, FieldConfig } from '@/shared/types/panelConfig';
+import { PanelConfig, FieldConfig } from '@/common/types/panelConfig';
 import { usePropertyPanel } from '@/features/properties';
 import {
   Form,
@@ -10,7 +10,7 @@ import {
   InlineSelectField,
   TextAreaField,
   CheckboxField
-} from '@/shared/components/forms';
+} from '@/common/components/forms';
 import {
   IterationCountField,
   PersonSelectionField,
@@ -18,7 +18,7 @@ import {
   VariableDetectionTextArea
 } from './FormComponents';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
-import { useMonitorStore } from '@/global/stores';
+import { useMonitorStore } from '@/state/stores';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;

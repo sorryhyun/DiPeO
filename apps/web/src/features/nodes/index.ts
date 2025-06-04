@@ -14,7 +14,7 @@ export * from './hooks/useNodeDrag';
 export * from './hooks/useNodeType';
 
 // Utils
-export * from '@/shared/utils/nodeHelpers';
+export * from '@/common/utils/nodeHelpers';
 export * from './utils/nodeValidation';
 
 // Export nodeTypes for React Flow

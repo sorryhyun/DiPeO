@@ -2,14 +2,14 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from '@/features/layout';
-import { useExecutionMonitor } from '@/global/hooks/useExecutionMonitor';
-import { DiagramProvider } from '@/global/contexts/DiagramContext';
-import { useMonitorStore } from '@/global/stores';
-import { useUIState } from '@/global/hooks/useStoreSelectors';
+import { useExecutionMonitor } from '@/state/hooks/useExecutionMonitor';
+import { DiagramProvider } from '@/state/contexts/DiagramContext';
+import { useMonitorStore } from '@/state/stores';
+import { useUIState } from '@/state/hooks/useStoreSelectors';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('@/features/diagram').then(module => ({ default: module.DiagramCanvas })));
-const LazyMemoryCanvas = React.lazy(() => import('@/features/memory-canvas').then(module => ({ default: module.MemoryCanvas })));
+const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas').then(module => ({ default: module.DiagramCanvas })));
+const LazyMemoryCanvas = React.lazy(() => import('@/features/memory').then(module => ({ default: module.MemoryCanvas })));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 
 function App() {

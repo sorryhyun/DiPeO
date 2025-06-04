@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import { useDiagramOperationsStore } from '@/global/stores';
+import { useDiagramOperationsStore } from '@/state/stores';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';
-import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/shared/types';
+import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
-import { getApiUrl, API_ENDPOINTS } from '@/shared/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);

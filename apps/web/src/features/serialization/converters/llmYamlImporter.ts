@@ -11,7 +11,7 @@ import {
   DBBlockData,
   StartBlockData,
   EndpointBlockData
-} from '@/shared/types';
+} from '@/common/types';
 
 interface Edge {
   source: string;

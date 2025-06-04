@@ -51,7 +51,7 @@ class LoopController:
         
         Args:
             node_id: The node ID to register
-            max_iterations: Node-specific max iterations (overrides global)
+            max_iterations: Node-specific max iterations (overrides state)
         """
         self.loop_nodes.add(node_id)
         if max_iterations is not None:
@@ -84,9 +84,9 @@ class LoopController:
                 self.logger.debug(f"Node {node_id} reached max iterations: {max_iter}")
                 return False
         
-        # Check global limit
+        # Check state limit
         if current_count >= self.max_iterations:
-            self.logger.warning(f"Node {node_id} reached global max iterations: {self.max_iterations}")
+            self.logger.warning(f"Node {node_id} reached state max iterations: {self.max_iterations}")
             return False
         
         return True
@@ -146,7 +146,7 @@ class LoopController:
             max_iter = self.node_max_iterations[node_id]
             return max(0, max_iter - current)
         
-        # Check if approaching global limit
+        # Check if approaching state limit
         if current < self.max_iterations:
             return self.max_iterations - current
         
@@ -167,7 +167,7 @@ class LoopController:
                 if current >= self.node_max_iterations[node_id]:
                     return True
             
-            # Check global limit
+            # Check state limit
             if current >= self.max_iterations:
                 return True
         
@@ -192,7 +192,7 @@ class LoopController:
                 if current < self.node_max_iterations[node_id]:
                     return False
             else:
-                # If no specific limit, use global limit
+                # If no specific limit, use state limit
                 if current < self.max_iterations:
                     return False
         

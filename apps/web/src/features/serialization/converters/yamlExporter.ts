@@ -12,7 +12,7 @@ import {
   ArrowData,
   ApiKey,
   DiagramNode
-} from '@/shared/types';
+} from '@/common/types';
 import { nanoid } from 'nanoid';
 
 interface YamlDiagram {

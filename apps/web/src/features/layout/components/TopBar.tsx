@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
-import { Button } from '@/shared/components';
-import { useApiKeyStore, useDiagramOperationsStore, useMonitorStore } from '@/global/stores';
-import { useUIState } from '@/global/hooks/useStoreSelectors';
+import { Button } from '@/common/components';
+import { useApiKeyStore, useDiagramOperationsStore, useMonitorStore } from '@/state/stores';
+import { useUIState } from '@/state/hooks/useStoreSelectors';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
-import { useDiagramRunner } from '@/features/execution/hooks/useDiagramRunner';
-import { useKeyboardShortcuts } from '@/features/diagram/hooks/useKeyboardShortcuts';
+import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
+import { useKeyboardShortcuts } from '@/features/canvas/hooks/useKeyboardShortcuts';
 import { LazyApiKeysModal } from '@/features/layout';
-import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
-import { API_ENDPOINTS, getApiUrl } from '@/shared/utils/apiConfig';
+import { FileUploadButton } from '@/common/components/common/FileUploadButton';
+import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory } from '@/shared/types';
-import { isApiKey, parseApiArrayResponse } from '@/shared/utils/typeGuards';
+import { createErrorHandlerFactory } from '@/common/types';
+import { isApiKey, parseApiArrayResponse } from '@/common/utils/typeGuards';
 
 
 const TopBar = () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
-import { GenericNodeProps, UNIFIED_NODE_CONFIGS, getBlockType } from '@/shared/types';
+import { GenericNodeProps, UNIFIED_NODE_CONFIGS, getBlockType } from '@/common/types';
 
 function GenericNodeComponent({ 
   id: nodeId,

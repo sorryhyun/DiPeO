@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNodeArrowStore } from '@/global/stores';
-import { useExecutionStore } from '@/global/stores/executionStore';
+import { useNodeArrowStore } from '@/state/stores';
+import { useExecutionStore } from '@/state/stores/executionStore';
 
 // ===== Node-Specific Hooks =====
 

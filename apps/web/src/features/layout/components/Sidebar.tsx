@@ -1,13 +1,13 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState, Suspense } from 'react';
-import { Button } from '@/shared/components';
+import { Button } from '@/common/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useNodeArrowStore, usePersonStore } from '@/global/stores';
-import { usePersons, useSelectedElement, useUIState } from '@/global/hooks/useStoreSelectors';
-import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/shared/types';
+import { useNodeArrowStore, usePersonStore } from '@/state/stores';
+import { usePersons, useSelectedElement, useUIState } from '@/state/hooks/useStoreSelectors';
+import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
-import { FileUploadButton } from '@/shared/components/common/FileUploadButton';
+import { FileUploadButton } from '@/common/components/common/FileUploadButton';
 import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
 
 // Lazy load PropertiesRenderer as it's only used in right sidebar

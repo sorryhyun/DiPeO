@@ -2,7 +2,7 @@ import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
 import { Code, Zap, Link as LinkIcon } from 'lucide-react';
-import { UNIFIED_NODE_CONFIGS, type JobBlockData } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS, type JobBlockData } from '@/common/types';
 
 const JobNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.job;

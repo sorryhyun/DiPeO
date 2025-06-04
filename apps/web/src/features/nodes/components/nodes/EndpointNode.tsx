@@ -2,7 +2,7 @@ import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from '../base/GenericNode';
 import { Save } from 'lucide-react';
-import { UNIFIED_NODE_CONFIGS, type EndpointBlockData } from '@/shared/types';
+import { UNIFIED_NODE_CONFIGS, type EndpointBlockData } from '@/common/types';
 
 const EndpointNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const config = UNIFIED_NODE_CONFIGS.endpoint;

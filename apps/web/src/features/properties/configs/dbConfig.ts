@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { DBBlockData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { DBBlockData } from '@/common/types';
 
 export const dbConfig: PanelConfig<DBBlockData> = {
   layout: 'twoColumn',

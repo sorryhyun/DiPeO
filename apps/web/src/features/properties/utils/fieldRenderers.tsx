@@ -1,5 +1,5 @@
 import React from 'react';
-import { Switch } from '@/shared/components';
+import { Switch } from '@/common/components';
 import {
   FormField, TextAreaField,
   InlineTextField, InlineSelectField

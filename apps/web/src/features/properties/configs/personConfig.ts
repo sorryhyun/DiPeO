@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { PersonDefinition } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { PersonDefinition } from '@/common/types';
 import { getApiKeyOptions, getDynamicModelOptions } from '../utils/propertyHelpers';
 
 export const personConfig: PanelConfig<PersonDefinition> = {

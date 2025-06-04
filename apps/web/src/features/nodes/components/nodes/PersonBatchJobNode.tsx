@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { PersonBatchJobBlockData } from '@/shared/types';
+import { PersonBatchJobBlockData } from '@/common/types';
 import { GenericNode } from '../base/GenericNode';
 
 const PersonBatchJobNode: React.FC<NodeProps> = ({ id, data, selected }) => {

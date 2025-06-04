@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { ArrowData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { ArrowData } from '@/common/types';
 
 export const arrowConfig: PanelConfig<ArrowData> = {
   layout: 'twoColumn',

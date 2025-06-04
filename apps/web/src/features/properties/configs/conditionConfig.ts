@@ -1,5 +1,5 @@
-import { PanelConfig } from '@/shared/types/panelConfig';
-import { ConditionBlockData } from '@/shared/types';
+import { PanelConfig } from '@/common/types/panelConfig';
+import { ConditionBlockData } from '@/common/types';
 
 export const conditionConfig: PanelConfig<ConditionBlockData> = {
   layout: 'single',
