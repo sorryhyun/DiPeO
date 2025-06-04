@@ -1,1 +1,0 @@
-export { default as DiagramCanvas } from './components/DiagramCanvas';

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { DiagramNode, Arrow, PersonDefinition, ApiKey, DiagramState } from '@/shared/types';
-import { sanitizeDiagram } from "@/serialization/utils/diagramSanitizer";
+import { sanitizeDiagram } from "@/features/serialization/utils/diagramSanitizer";
 
 export interface MonitorState {
   // Monitor storage for external diagrams (not persisted)

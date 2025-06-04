@@ -11,7 +11,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "typecheck": "cd apps/web && tsc --noEmit",
-    "convert": "cd apps/web && tsx src/serialization/converters/convert-cli.ts"
+    "convert": "cd apps/web && tsx src/features/serialization/converters/convert-cli.ts"
   },
   "workspaces": [
     "apps/*"

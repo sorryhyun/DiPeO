@@ -8,8 +8,8 @@ import { useMonitorStore } from '@/global/stores';
 import { useUIState } from '@/global/hooks/useStoreSelectors';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('@/diagramCanvas').then(module => ({ default: module.DiagramCanvas })));
-const LazyMemoryCanvas = React.lazy(() => import('@/memoryCanvas').then(module => ({ default: module.MemoryCanvas })));
+const LazyDiagramCanvas = React.lazy(() => import('@/features/diagram').then(module => ({ default: module.DiagramCanvas })));
+const LazyMemoryCanvas = React.lazy(() => import('@/features/memory-canvas').then(module => ({ default: module.MemoryCanvas })));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 
 function App() {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { DiagramState } from '@/shared/types';
-import { sanitizeDiagram } from "@/serialization/utils/diagramSanitizer";
+import { sanitizeDiagram } from "@/features/serialization/utils/diagramSanitizer";
 import { useNodeArrowStore } from './nodeArrowStore';
 import { usePersonStore } from './personStore';
 import { useApiKeyStore } from './apiKeyStore';

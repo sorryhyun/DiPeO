@@ -8,7 +8,7 @@ import {
   createUnifiedExecutionClient, 
   type DiagramData, 
   type ExecutionUpdate 
-} from '@/engine/unified-execution-client';
+} from '@/features/engine/unified-execution-client';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 

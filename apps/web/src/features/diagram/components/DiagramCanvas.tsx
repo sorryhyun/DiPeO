@@ -19,8 +19,8 @@ import {
   useKeyboardShortcuts,
   CustomArrow as CustomArrowBase,
   ContextMenu
-} from '@/features/canvas/wrappers';
-import { roundPosition } from '@/features/canvas/utils/canvasUtils';
+} from '../wrappers';
+import { roundPosition } from '../utils/canvasUtils';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
 import { DiagramNode, Arrow } from '@/shared/types';
 import PropertyDashboard from './PropertyDashboard';
