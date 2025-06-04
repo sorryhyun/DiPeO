@@ -23,8 +23,7 @@
       "@/*": ["src/*"],
       "@/features/*": ["src/features/*"],
       "@/common/*": ["src/common/*"],
-      "@/state/*": ["src/state/*"],
-      "@/types/*": ["../../types/*"]
+      "@/state/*": ["src/state/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

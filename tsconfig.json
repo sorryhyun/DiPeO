@@ -12,6 +12,5 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["types/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist", "build"]
 }

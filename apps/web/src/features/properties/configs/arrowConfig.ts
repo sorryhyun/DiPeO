@@ -8,7 +8,24 @@ export const arrowConfig: PanelConfig<ArrowData> = {
       type: 'text',
       name: 'label',
       label: 'Arrow Label',
-      placeholder: 'e.g., user_query'
+      placeholder: 'e.g., user_query',
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['condition'],
+        operator: 'notEquals'
+      }
+    },
+    {
+      type: 'text',
+      name: 'label',
+      label: 'Arrow Label (Inherited from input)',
+      placeholder: 'Inherited from condition input',
+      disabled: true,
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['condition'],
+        operator: 'equals'
+      }
     },
     {
       type: 'text',
@@ -18,15 +35,6 @@ export const arrowConfig: PanelConfig<ArrowData> = {
       conditional: {
         field: 'contentType',
         values: ['variable_in_object']
-      }
-    },
-    {
-      type: 'checkbox',
-      name: 'conversationState',
-      label: 'Include Conversation State',
-      conditional: {
-        field: 'contentType',
-        values: ['conversation_state']
       }
     }
   ],
@@ -41,16 +49,35 @@ export const arrowConfig: PanelConfig<ArrowData> = {
         { value: 'conversation_state', label: 'Conversation State' }
       ],
       conditional: {
-        field: 'inheritedContentType',
-        values: [true],
+        field: '_sourceNodeType',
+        values: ['condition', 'start'],
         operator: 'notEquals'
       }
     },
     {
-      type: 'text',
-      name: 'contentTypeDisplay',
+      type: 'select',
+      name: 'contentType',
+      label: 'Content Type (Inherited from condition input)',
+      options: [
+        { value: 'raw_text', label: 'Raw Text' },
+        { value: 'variable_in_object', label: 'Variable in Object' },
+        { value: 'conversation_state', label: 'Conversation State' },
+        { value: 'generic', label: 'Generic' }
+      ],
+      disabled: true,
+      conditional: {
+        field: '_sourceNodeType',
+        values: ['condition'],
+        operator: 'equals'
+      }
+    },
+    {
+      type: 'select',
+      name: 'contentType',
       label: 'Content Type',
-      placeholder: 'Empty (Fixed)',
+      options: [
+        { value: 'empty', label: 'Empty (Fixed)' }
+      ],
       disabled: true,
       conditional: {
         field: '_sourceNodeType',

@@ -133,7 +133,6 @@ export const useNodeArrowStore = create<NodeArrowState>()(
             const isFromConditionBranch = connection.sourceHandle === 'true' || connection.sourceHandle === 'false';
             
             let contentType: ArrowData['contentType'];
-            let conversationState = false;
             
             if (isFromStartNode) {
               contentType = 'empty';
@@ -146,7 +145,6 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                 const primaryInputArrow = inputArrows[0];
                 if (primaryInputArrow?.data) {
                   contentType = primaryInputArrow.data.contentType || 'generic';
-                  conversationState = primaryInputArrow.data.conversationState || false;
                 } else {
                   contentType = 'generic';
                 }
@@ -154,6 +152,9 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                 // No input arrows yet, default to generic
                 contentType = 'generic';
               }
+            } else {
+              // Default content type for regular arrows
+              contentType = 'raw_text';
             }
             
             const newArrow: Arrow = {
@@ -167,9 +168,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                 id: arrowId,
                 sourceBlockId: connection.source!,
                 targetBlockId: connection.target!,
-                kind: 'ALL' as const,
                 template: '',
-                conversationState,
                 label: isFromConditionBranch ? connection.sourceHandle! : 'New Arrow',
                 contentType,
                 // Set branch property for condition node arrows
@@ -237,8 +236,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                       ...arrow,
                       data: {
                         ...arrow.data,
-                        contentType: updatedArrow.data?.contentType || 'generic',
-                        conversationState: updatedArrow.data?.conversationState || false
+                        contentType: updatedArrow.data?.contentType || 'generic'
                       } as ArrowData
                     };
                   }
@@ -274,8 +272,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                           ...arrow,
                           data: {
                             ...arrow.data,
-                            contentType: primaryInputArrow.data.contentType || 'generic',
-                            conversationState: primaryInputArrow.data.conversationState || false
+                            contentType: primaryInputArrow.data.contentType || 'generic'
                           } as ArrowData
                         };
                       }
@@ -285,8 +282,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                       ...arrow,
                       data: {
                         ...arrow.data,
-                        contentType: 'generic' as const,
-                        conversationState: false
+                        contentType: 'generic' as const
                       } as ArrowData
                     };
                   }
@@ -326,13 +322,11 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                   // For condition nodes, inherit content type from input arrows
                   const inputArrows = arrows.filter(a => a.target === arrow.source);
                   let contentType: ArrowData['contentType'] = 'generic';
-                  let conversationState = arrow.data.conversationState || false;
                   
                   if (inputArrows.length > 0) {
                     const primaryInputArrow = inputArrows[0];
                     if (primaryInputArrow?.data) {
                       contentType = primaryInputArrow.data.contentType || 'generic';
-                      conversationState = primaryInputArrow.data.conversationState || false;
                     }
                   }
                   
@@ -341,7 +335,6 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                     data: {
                       ...arrow.data,
                       contentType,
-                      conversationState,
                       // Set branch property for condition node arrows
                       branch: arrow.sourceHandle as 'true' | 'false',
                       inheritedContentType: true
