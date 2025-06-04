@@ -49,20 +49,6 @@ function GenericNodeComponent({
   );
 }
 
-// Memoized GenericNode with custom comparison
-export const GenericNode = React.memo(GenericNodeComponent, (prevProps, nextProps) => {
-  // Only re-render if these specific props change
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.isRunning === nextProps.isRunning &&
-    prevProps.nodeType === nextProps.nodeType &&
-    prevProps.showFlipButton === nextProps.showFlipButton &&
-    // Deep compare data object (be careful with large objects)
-    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
-    // Compare children
-    prevProps.children === nextProps.children
-  );
-});
-
-GenericNode.displayName = 'GenericNode';
+// Remove memo to allow execution state updates to propagate through
+// The BaseNode component handles its own execution state via useNodeExecutionState hook
+export const GenericNode = GenericNodeComponent;

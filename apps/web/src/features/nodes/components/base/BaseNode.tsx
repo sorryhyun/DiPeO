@@ -152,24 +152,6 @@ function BaseNodeComponent({
   );
 }
 
-// Memoized BaseNode with custom comparison
-export const BaseNode = React.memo(BaseNodeComponent, (prevProps, nextProps) => {
-  // Only re-render if these specific props change
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.isRunning === nextProps.isRunning &&
-    (prevProps.data && typeof prevProps.data === 'object' && 'flipped' in prevProps.data ? prevProps.data.flipped : false) === 
-    (nextProps.data && typeof nextProps.data === 'object' && 'flipped' in nextProps.data ? nextProps.data.flipped : false) &&
-    prevProps.borderColor === nextProps.borderColor &&
-    prevProps.showFlipButton === nextProps.showFlipButton &&
-    prevProps.nodeType === nextProps.nodeType &&
-    prevProps.autoHandles === nextProps.autoHandles &&
-    // Deep compare handles array
-    JSON.stringify(prevProps.handles) === JSON.stringify(nextProps.handles) &&
-    // Compare children (if they're simple types)
-    prevProps.children === nextProps.children
-  );
-});
-
-BaseNode.displayName = 'BaseNode';
+// Remove memo to allow execution state updates to propagate through
+// The component handles its own execution state via useNodeExecutionState hook
+export const BaseNode = BaseNodeComponent;

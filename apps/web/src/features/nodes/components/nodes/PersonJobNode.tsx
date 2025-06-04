@@ -77,20 +77,9 @@ const PersonJobNodeComponent: React.FC<NodeProps> = ({ id, data, selected }) => 
   );
 };
 
-const PersonJobNode = React.memo(PersonJobNodeComponent, (prevProps, nextProps) => {
-  const prevData = prevProps.data as PersonJobBlockData;
-  const nextData = nextProps.data as PersonJobBlockData;
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.selected === nextProps.selected &&
-    prevData.label === nextData.label &&
-    prevData.personId === nextData.personId &&
-    prevData.flipped === nextData.flipped &&
-    prevData.mode === nextData.mode &&
-    prevData.contextCleaningRule === nextData.contextCleaningRule &&
-    prevData.iterationCount === nextData.iterationCount
-  );
-});
+// Remove memo to allow execution state updates to propagate through
+// The BaseNode component handles its own execution state via hooks
+const PersonJobNode = PersonJobNodeComponent;
 
 PersonJobNode.displayName = 'PersonJobNode';
 

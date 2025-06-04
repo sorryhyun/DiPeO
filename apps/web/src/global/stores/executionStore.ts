@@ -32,6 +32,7 @@ export const useExecutionStore = create<ExecutionState>()(
 
       setRunningNodes: (nodeIds) => set({ runningNodes: nodeIds }),
       addRunningNode: (nodeId) => {
+        console.log('[ExecutionStore] Adding running node:', nodeId);
         set((state) => ({
           runningNodes: state.runningNodes.includes(nodeId) 
             ? state.runningNodes 

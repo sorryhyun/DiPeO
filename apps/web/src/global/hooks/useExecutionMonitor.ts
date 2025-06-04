@@ -42,10 +42,14 @@ export const useExecutionMonitor = () => {
         try {
           const data = JSON.parse(event.data);
 
-          // Skip if this is from our own execution (not external)
-          if (data.from_monitor && !data.is_external) {
-            // You might want to check execution_id against current execution
-            return;
+          // Process all events that come through the monitor SSE connection
+          // These could be from CLI executions or other browser instances
+          // The 'from_monitor' flag indicates it came through broadcast_to_monitors
+          // We want to process these to show execution progress
+
+          // Debug log for monitor events
+          if (data.type && data.type.startsWith('node_')) {
+            console.log('[Monitor] Received event:', data.type, data);
           }
 
           switch (data.type) {
@@ -62,18 +66,33 @@ export const useExecutionMonitor = () => {
               }
               break;
 
-            case 'node_start':
-              if (data.node_id) {
-                addRunningNode(data.node_id);
-                setCurrentRunningNode(data.node_id);
+            case 'node_start': {
+              // Handle both direct node_id and nested data structure
+              const startNodeId = data.node_id || data.data?.nodeId;
+              if (startNodeId) {
+                addRunningNode(startNodeId);
+                setCurrentRunningNode(startNodeId);
               }
               break;
+            }
 
-            case 'node_complete':
-              if (data.node_id) {
-                removeRunningNode(data.node_id);
+            case 'node_complete': {
+              // Handle both direct node_id and nested data structure
+              const completeNodeId = data.node_id || data.data?.nodeId;
+              if (completeNodeId) {
+                removeRunningNode(completeNodeId);
               }
               break;
+            }
+              
+            case 'node_skipped': {
+              // Handle skipped nodes as well
+              const skippedNodeId = data.node_id || data.data?.nodeId;
+              if (skippedNodeId) {
+                removeRunningNode(skippedNodeId);
+              }
+              break;
+            }
 
             case 'execution_complete':
               if (data.context) {

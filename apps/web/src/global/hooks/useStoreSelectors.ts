@@ -7,16 +7,25 @@ import { useConsolidatedUIStore } from '@/global/stores/consolidatedUIStore';
 
 // Execution state for specific node - avoids subscribing to entire execution store
 export const useNodeExecutionState = (nodeId: string) => {
+  // Subscribe to lastUpdate to force re-renders when execution state changes
+  const lastUpdate = useExecutionStore(state => state.lastUpdate);
   const isRunning = useExecutionStore(state => state.runningNodes.includes(nodeId));
   const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
   const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
+  
+  // Debug log when state changes
+  React.useEffect(() => {
+    if (isRunning) {
+      console.log(`[useNodeExecutionState] Node ${nodeId} is running`);
+    }
+  }, [isRunning, nodeId]);
   
   // Memoize the return object to prevent unnecessary re-renders
   return React.useMemo(() => ({
     isRunning,
     isCurrentRunning,
     nodeRunningState,
-  }), [isRunning, isCurrentRunning, nodeRunningState]);
+  }), [isRunning, isCurrentRunning, nodeRunningState, lastUpdate]);
 };
 
 // Single function selectors for common operations to avoid re-renders
