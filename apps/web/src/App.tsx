@@ -10,6 +10,7 @@ import { useUIState } from '@/state/hooks/useStoreSelectors';
 const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas').then(module => ({ default: module.DiagramCanvas })));
 const LazyMemoryCanvas = React.lazy(() => import('@/features/memory').then(module => ({ default: module.MemoryCanvas })));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
+const LazyWebSocketTest = React.lazy(() => import('@/features/runtime/components/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
 
 function App() {
   const { setReadOnly } = useDiagramStore();
@@ -79,6 +80,13 @@ function App() {
         <Suspense fallback={null}>
           <LazyToaster richColors position="bottom-center" />
         </Suspense>
+        
+        {/* WebSocket Test Component - Enable with ?websocket=true */}
+        {new URLSearchParams(window.location.search).get('websocket') === 'true' && (
+          <Suspense fallback={null}>
+            <LazyWebSocketTest enabled={true} />
+          </Suspense>
+        )}
       </div>
     </ReactFlowProvider>
   );

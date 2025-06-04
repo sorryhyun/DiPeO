@@ -4,3 +4,9 @@
 
 export * from './unified-execution-client';
 export * from './hooks/useDiagramRunner';
+
+// WebSocket support for real-time bidirectional communication
+export * from './websocket-client';
+export * from './hooks/useWebSocket';
+export * from './hooks/useWebSocketMonitor';
+export * from './components/WebSocketTest';

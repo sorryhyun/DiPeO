@@ -20,9 +20,22 @@ monitor_queues: Dict[str, asyncio.Queue] = {}
 
 
 async def broadcast_to_monitors(event_data: Dict[str, Any]):
-    """Broadcast an event to all active monitor connections."""
+    """Broadcast an event to all active monitor connections (SSE and WebSocket)."""
+    # Try to broadcast to WebSocket clients as well
+    try:
+        from .websocket import get_connection_manager
+        ws_manager = get_connection_manager()
+        # Broadcast to all WebSocket clients
+        await ws_manager.broadcast(event_data)
+    except Exception as e:
+        # If WebSocket module is not available or error occurs, continue with SSE only
+        logger.debug(f"WebSocket broadcast skipped: {e}")
+    
     if not active_monitors:
         return
+    
+    # Log the event data being broadcast for debugging
+    logger.info(f"Broadcasting to {len(active_monitors)} SSE monitors. Event type: {event_data.get('type')}, node_id: {event_data.get('node_id')}")
     
     # Add monitor flag to distinguish from direct execution events
     event_data["from_monitor"] = True

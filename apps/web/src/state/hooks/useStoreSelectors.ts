@@ -14,6 +14,19 @@ export const useNodeExecutionState = (nodeId: string) => {
   const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
   const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
   
+  // Debug logging for node execution state
+  React.useEffect(() => {
+    if (isRunning || nodeRunningState) {
+      console.log(`[useNodeExecutionState] Node ${nodeId} state:`, {
+        nodeId,
+        isRunning,
+        isCurrentRunning,
+        nodeRunningState,
+        runningNodes,
+        lastUpdate
+      });
+    }
+  }, [nodeId, isRunning, isCurrentRunning, nodeRunningState, runningNodes, lastUpdate]);
   
   // Memoize the return object to prevent unnecessary re-renders
   return React.useMemo(() => ({

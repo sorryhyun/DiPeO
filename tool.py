@@ -462,8 +462,8 @@ def main():
                 # Open browser monitor first
                 open_browser_monitor()
                 
-                # Wait for monitor connection
-                if wait_for_monitor_connection():
+                # Wait for monitor connection with faster interval
+                if wait_for_monitor_connection(timeout=5, check_interval=0.1):
                     print("✓ Monitor connected")
                 else:
                     print("⚠️  No monitor connected within timeout, continuing anyway")
@@ -474,9 +474,10 @@ def main():
                 broadcast_diagram_to_monitors(diagram, execution_id)
                 
                 # Delay to ensure diagram is loaded and rendered in browser
-                time.sleep(1.5)
+                # Reduced delay since SSE connects faster now
+                time.sleep(1.0)
                 
-                # Run diagram - note that run_diagram will broadcast again, but that's OK
+                # Run diagram - disable show_in_browser to prevent double broadcast
                 result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)
                 
                 print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")

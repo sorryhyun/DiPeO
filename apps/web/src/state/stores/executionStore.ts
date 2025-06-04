@@ -78,26 +78,40 @@ export const useExecutionStore = create<ExecutionState>()(
       // Node tracking
       setRunningNodes: (nodeIds) => set({ runningNodes: nodeIds }),
       addRunningNode: (nodeId) => {
-        set((state) => ({
-          runningNodes: state.runningNodes.includes(nodeId) 
+        console.log('[ExecutionStore] addRunningNode called with:', nodeId);
+        set((state) => {
+          const newRunningNodes = state.runningNodes.includes(nodeId) 
             ? state.runningNodes 
-            : [...state.runningNodes, nodeId],
-          nodeRunningStates: {
+            : [...state.runningNodes, nodeId];
+          const newNodeRunningStates = {
             ...state.nodeRunningStates,
             [nodeId]: true
-          },
-          lastUpdate: Date.now()
-        }));
+          };
+          console.log('[ExecutionStore] Updated running nodes:', newRunningNodes);
+          console.log('[ExecutionStore] Updated node running states:', newNodeRunningStates);
+          return {
+            runningNodes: newRunningNodes,
+            nodeRunningStates: newNodeRunningStates,
+            lastUpdate: Date.now()
+          };
+        });
       },
       
       removeRunningNode: (nodeId) => {
-        set((state) => ({
-          runningNodes: state.runningNodes.filter(id => id !== nodeId),
-          nodeRunningStates: Object.fromEntries(
+        console.log('[ExecutionStore] removeRunningNode called with:', nodeId);
+        set((state) => {
+          const newRunningNodes = state.runningNodes.filter(id => id !== nodeId);
+          const newNodeRunningStates = Object.fromEntries(
             Object.entries(state.nodeRunningStates).filter(([id]) => id !== nodeId)
-          ),
-          lastUpdate: Date.now()
-        }));
+          );
+          console.log('[ExecutionStore] Updated running nodes:', newRunningNodes);
+          console.log('[ExecutionStore] Updated node running states:', newNodeRunningStates);
+          return {
+            runningNodes: newRunningNodes,
+            nodeRunningStates: newNodeRunningStates,
+            lastUpdate: Date.now()
+          };
+        });
       },
       clearRunningNodes: () => set({ runningNodes: [], nodeRunningStates: {} }),
       setCurrentRunningNode: (nodeId) => set({ currentRunningNode: nodeId }),
