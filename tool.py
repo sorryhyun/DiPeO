@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentDiagram CLI Tool - Simplified Version
+DiPeO CLI Tool - Simplified Version
 Focus on actual implemented features: import, export, run
 """
 

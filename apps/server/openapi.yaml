@@ -14,7 +14,7 @@ info:
     
     All diagram nodes execute server-side through the V2 API with consistent
     execution, centralized security, and SSE streaming for real-time updates.
-  version: 2.0.0
+  version: 2.0.1
   license:
     name: MIT
 
@@ -22,7 +22,7 @@ servers:
   - url: http://localhost:8000
     description: Local development server
   - url: https://api.dipeo.io
-    description: Production server (example)
+    description: Production server (planned)
 
 tags:
   - name: diagram
@@ -44,7 +44,11 @@ paths:
       summary: Execute a diagram
       description: |
         Execute a diagram using the unified backend execution engine with SSE streaming.
-        This V2 endpoint consolidates all node execution on the backend.
+        This endpoint consolidates all node execution on the backend, providing real-time
+        updates via Server-Sent Events for each node's execution status.
+        
+        The execution engine pre-initializes LLM models based on the diagram's person 
+        configurations for improved performance before starting the actual execution.
       operationId: executeDiagram
       requestBody:
         required: true
@@ -118,9 +122,21 @@ paths:
                 executionStarted:
                   value: |
                     data: {"type": "execution_started", "execution_id": "exec_1234567890", "total_nodes": 5}
+                nodeStart:
+                  value: |
+                    data: {"type": "node_start", "nodeId": "node_123", "nodeType": "person_job", "iteration_count": 0}
+                nodeProgress:
+                  value: |
+                    data: {"type": "node_progress", "nodeId": "node_123", "message": "Calling LLM API..."}
                 nodeComplete:
                   value: |
-                    data: {"type": "node_complete", "nodeId": "node_123", "output": {"result": "Hello"}, "cost": 0.02}
+                    data: {"type": "node_complete", "nodeId": "node_123", "output": {"result": "Hello, World!"}, "cost": 0.0002, "iteration_count": 0}
+                nodeSkipped:
+                  value: |
+                    data: {"type": "node_skipped", "nodeId": "node_456", "reason": "max_iterations_reached"}
+                executionComplete:
+                  value: |
+                    data: {"type": "execution_complete", "execution_id": "exec_1234567890", "total_cost": 0.0005, "duration": 2.34, "nodes_executed": 5, "nodes_skipped": 1}
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -151,7 +167,7 @@ paths:
                     type: array
                     items:
                       type: string
-                    example: ["start", "person_job", "condition", "db", "job", "endpoint"]
+                    example: ["start", "person_job", "person_batch_job", "condition", "db", "job", "endpoint"]
                   features:
                     type: object
                     properties:
@@ -429,7 +445,7 @@ paths:
                 model:
                   type: string
                   description: Model to test with
-                  example: "gpt-4o"
+                  example: "gpt-4o-mini"
                 messages:
                   type: string
                   description: Test message to send
@@ -665,6 +681,9 @@ paths:
                 heartbeat:
                   value: |
                     data: {"type": "heartbeat", "timestamp": 1234567890.123}
+                executionBroadcast:
+                  value: |
+                    data: {"type": "node_complete", "nodeId": "node_123", "execution_id": "exec_cli_1234", "source": "cli"}
 
   /api/monitor/status:
     get:
@@ -754,8 +773,8 @@ components:
           example: "node_123"
         type:
           type: string
-          description: Node type (frontend format with "Node" suffix)
-          enum: ["startNode", "personJobNode", "personBatchJobNode", "conditionNode", "dbNode", "jobNode", "endpointNode"]
+          description: Node type (snake_case format, unified across frontend and backend)
+          enum: ["start", "person_job", "person_batch_job", "condition", "db", "job", "endpoint"]
         data:
           type: object
           description: Node properties/configuration

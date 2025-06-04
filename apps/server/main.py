@@ -33,8 +33,8 @@ from .src.utils.dependencies import lifespan
 
 # Create FastAPI app
 app = FastAPI(
-    title="AgentDiagram Backend",
-    description="API server for AgentDiagram frontend",
+    title="DiPeO Backend API",
+    description="API server for DiPeO visual programming environment",
     lifespan=lifespan
 )
 
