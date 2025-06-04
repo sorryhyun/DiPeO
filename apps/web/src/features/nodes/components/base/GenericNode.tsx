@@ -10,6 +10,8 @@ function GenericNodeComponent({
   children,
   showFlipButton = true,
   onDragOver,
+  onDragEnter,
+  onDragLeave,
   onDrop,
   isRunning = false,
   onUpdateData,
@@ -39,6 +41,8 @@ function GenericNodeComponent({
       autoHandles={true}
       showFlipButton={showFlipButton}
       onDragOver={onDragOver}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
       onDrop={onDrop}
       isRunning={isRunning}
       onUpdateData={onUpdateData}

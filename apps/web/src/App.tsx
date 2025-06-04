@@ -65,7 +65,7 @@ function App() {
         </div>
 
         <Suspense fallback={null}>
-          <LazyToaster richColors position="top-center" />
+          <LazyToaster richColors position="bottom-center" />
         </Suspense>
       </DiagramProvider>
     </ReactFlowProvider>
