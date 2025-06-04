@@ -28,76 +28,104 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ## Overview
 
-DiPeO implements a **hybrid client-server execution model** that intelligently orchestrates diagram execution between frontend and backend environments based on security and capability requirements.
+DiPeO implements a **unified backend execution model** that consolidates all diagram execution logic on the server side, providing consistent behavior across browser, CLI, and API access.
 
-## Architecture Layers
+## Architecture
 
 ```
-Frontend (React/Node.js) ←→ Backend (FastAPI/Python)
-    ↓                           ↓
-Client-Safe Executors      Server-Only Executors
-(Start, Condition, Job,    (PersonJob, DB blocks)
- Endpoint)
+Frontend (React) ←→ Backend (FastAPI/Python)
+       ↓                     ↓
+   API Client     Unified Execution Engine
+                         ↓
+                   Executor Factory
+                         ↓
+    All Node Types: Start, Condition, Job, Endpoint,
+                   PersonJob, PersonBatchJob, DB
 ```
 
-### Execution Orchestration
+### Execution Architecture
 
-- **`ExecutionOrchestrator`**: Auto-detects environment, routes execution
-- **`ExecutionEngine`**: Core execution logic with dependency resolution  
-- **`ExecutorFactory`**: Creates environment-appropriate executors
-- **Base Executors**: Abstract classes for client-safe vs server-only operations
+- **Unified Execution Engine**: All nodes execute on the backend
+- **SSE Streaming**: Real-time execution updates via Server-Sent Events
+- **Executor Factory**: Creates appropriate executors for each node type
+- **Unified Node Types**: All components use snake_case format (`start`, `person_job`, etc.)
 
-## Node Classification
+## Node Types (All Backend-Executed)
 
-### Client-Safe Nodes (Local Execution)
-- **Start**: Initializes execution flow with static data
-- **Condition**: Boolean logic and branching  
-- **Job**: Stateless operations and safe code execution
-- **Endpoint**: Terminal nodes with optional file saving
+| Node Type | Purpose | Key Features |
+|-----------|---------|--------------|
+| **Start** | Initializes execution flow | Static data output |
+| **Condition** | Boolean logic and branching | True/false paths, detect_max_iterations |
+| **Job** | Sandboxed code execution | Python/JS/Bash support |
+| **Endpoint** | Terminal nodes | File saving, final outputs |
+| **PersonJob** | LLM API calls | Memory, max_iterations, firstOnlyPrompt |
+| **PersonBatchJob** | Batch LLM operations | Processes multiple inputs |
+| **DB** | Data operations | File I/O, database access |
 
-### Server-Only Nodes (Backend API Calls)
-- **PersonJob/PersonBatchJob**: LLM API calls with memory management
-- **DB**: File I/O, database operations, data sources
+## LLM YAML Format
 
-## Execution Strategies
+DiPeO supports a simplified, LLM-friendly YAML format for easy diagram creation:
 
-1. **Client-Only**: All nodes execute locally
-2. **Server-Only**: All nodes require backend execution
-3. **Hybrid**: Mixed execution with selective API calls
+```yaml
+flow:
+  - start -> analyze: "data"
+  - analyze -> report: "results"
+  - report -> end
 
-## Execution Flow Algorithm
+prompts:
+  analyze: "Analyze this data: {{data}}"
+  report: "Create a report based on: {{results}}"
 
-```typescript
-// 1. Dependency Analysis & Planning
-const plan = dependencyResolver.createExecutionPlan(diagram);
-
-// 2. Environment-Based Executor Selection  
-const executors = executorFactory.createExecutors(plan.strategy);
-
-// 3. Iterative Node Execution
-while (pendingNodes.size > 0) {
-  for (const node of readyNodes) {
-    if (isClientSafe(node)) {
-      result = executeLocally(node);
-    } else {
-      result = await callBackendAPI(node); // /api/nodes/{type}/execute
-    }
-    updateContext(result);
-  }
-}
+agents:
+  analyst:
+    model: "gpt-4.1-nano"
+    service: "openai"
 ```
 
-## Loop Algorithm
+## Execution Flow
 
-- There is no special mechanism dedicated to loops, but a loop can be implemented using the following two mechanisms:
+```python
+# 1. Unified execution endpoint receives diagram
+POST /api/run-diagram
 
-1. The person job block has an attribute called max_iteration. Once the block has been executed up to the number of times specified by max_iteration, it will be skipped for any subsequent requests. During this skipping, the forget rule does not apply, and all inputs are counted regardless of whether they were received via the first only handle or the default handle. For reference, the first only handle is used only for the initial execution of the block, after which it only accepts inputs through the default handle. If a first only handle is defined, the block will not accept input from the default handle on its first execution.
+# 2. Server-side execution with SSE streaming
+- Dependency resolution and planning
+- Sequential/parallel node execution
+- Real-time progress updates
+- Memory and context management
 
-2. The condition block decides whether to proceed with true or false using either the detect max iteration feature or an expression. When using detect max iteration, it proceeds with true if the preceding blocks have reached their max iteration and have been skipped; otherwise, it proceeds with false.
+# 3. Client receives streaming updates
+{type: 'node_start', nodeId: '...'}
+{type: 'node_complete', nodeId: '...', output: {...}}
+{type: 'execution_complete', total_cost: 0.05}
+```
 
-- Therefore, if you place two person job blocks with max_iterations=2 and connect them to a condition block set to detect max iteration, you can implement a loop that runs twice.
+## Loop Implementation
+
+Loops use PersonJob nodes with `iterationCount` and Condition nodes:
+
+1. **PersonJob Node Configuration**:
+   - `iterationCount`: Maximum execution count per node
+   - `firstOnlyPrompt`: Used only on first execution (count=0)
+   - `defaultPrompt`: Used for subsequent iterations (count>0)
+   - Node skips when execution count >= iterationCount
+
+2. **Condition Node** (`conditionType: "detect_max_iterations"`):
+   - Returns `false` while ANY node with iterationCount hasn't reached its limit
+   - Returns `true` when ALL nodes with iterationCount have reached their limits
+   - Acts as the loop exit gate
+
+**Example Flow**: Two PersonJob nodes (iterationCount=2) → Condition node
+- Iteration 1: Both execute (count 0→1), Condition returns `false`
+- Iteration 2: Both execute (count 1→2), Condition returns `false`
+- Iteration 3: Both skip (count=2), Condition returns `true` → loop exits
 
 ## Key Features
+
+### Variable Substitution
+- **Arrow Labels**: Become variable names (e.g., arrow "topic" → `{{topic}}`)
+- **Frontend**: `getInputValues()` maps arrow labels to variables
+- **Backend**: `_substitute_variables()` replaces `{{var}}` patterns
 
 ### Dependency Management
 - Topological sorting for optimal execution order
@@ -106,16 +134,11 @@ while (pendingNodes.size > 0) {
 - Condition branching with true/false paths
 
 ### Execution Context
-```typescript
-interface ExecutionContext {
-  nodeOutputs: Record<string, any>;           // Results from each node
-  nodeExecutionCounts: Record<string, number>; // Iteration tracking
-  conditionValues: Record<string, boolean>;    // Branch decisions
-  firstOnlyConsumed: Record<string, boolean>;  // First-only tracking
-  executionOrder: string[];                    // Execution sequence
-  totalCost: number;                          // Aggregated costs
-}
-```
+- **nodeOutputs**: Results from each node execution
+- **nodeExecutionCounts**: Iteration tracking for loops
+- **conditionValues**: Branch decisions for conditional flow
+- **executionOrder**: Sequential record of execution
+- **totalCost**: Aggregated LLM API costs
 
 ### Advanced Controls
 - **Loop Management**: Max iteration enforcement per node
@@ -125,56 +148,90 @@ interface ExecutionContext {
 
 ## Backend API Endpoints
 
-### Node Operations (Server-Only)
-- `POST /api/nodes/personjob/execute` - LLM calls with person config
-- `POST /api/nodes/db/execute` - File operations and data sources
-- `POST /api/nodes/endpoint/execute` - File saving operations
-
-### Diagram Execution
-- `POST /api/run-diagram` - Full backend execution with SSE streaming
-- `GET /api/monitor/stream` - SSE endpoint for execution monitoring
+### V2 Unified Execution
+- `POST /api/run-diagram` - Main execution endpoint with SSE streaming
+  - Request body: `{ "diagram": {...}, "options": {...} }`
+  - Returns SSE stream with real-time execution updates
+- `GET /api/execution-capabilities` - Feature discovery
 
 ## CLI Tool Integration
 
-The Python CLI tool leverages frontend execution logic via Node.js:
+The Python CLI tool directly interacts with the backend API:
 
 ```bash
-# Build the CLI runner (required after frontend changes)
-pnpm build:cli
+# Unified run command with execution modes
+python tool.py run diagrams/example.json --mode=monitor   # Pre-load models, open browser, then run
+python tool.py run diagrams/example.json                  # Standard execution with browser
+python tool.py run diagrams/example.json --mode=headless  # Pure backend execution (no browser)
+python tool.py run diagrams/example.json --mode=check     # Run and analyze conversation logs
 
-# Hybrid execution (recommended)
-python tool.py run-and-monitor diagram.json
-
-# Execution modes
-python tool.py run diagram.json           # Hybrid with fallback
-python tool.py run-headless diagram.json  # Pure backend execution
+# LLM YAML execution - supports simplified YAML format
+python tool.py run diagrams/workflow.llm-yaml --mode=monitor  # Execute LLM YAML with browser
+python tool.py run diagrams/workflow.yaml                     # Auto-detects format
 ```
 
-**Execution Strategy:**
-- Client-safe nodes execute locally for performance
-- Server-only nodes make targeted API calls to backend
-- Automatic fallback to pure backend if Node.js unavailable
+**Execution Modes:**
+- `monitor`: Pre-loads LLM models, opens browser visualization, then executes
+- `headless`: Pure backend execution without browser
+- `check`: Executes and analyzes conversation logs
+- Default: Standard execution with browser visualization
 
 ## Benefits
 
-- **Security**: Sensitive operations (LLM APIs, file system) stay server-side
-- **Performance**: Local execution where safe, reducing network overhead
-- **Flexibility**: Works across browser, CLI, and pure backend scenarios
-- **Resilience**: Graceful fallback strategies for different environments
+- **Unified Architecture**: Consistent execution behavior across all environments
+- **Real-time Monitoring**: SSE streaming provides live execution updates
+- **LLM YAML Support**: AI-friendly format for diagram creation and collaboration
+- **Type Safety**: Unified snake_case node types throughout the system
+- **Memory Management**: Person-based instances with persistent memory
 
 ## File Locations
 
-### Frontend Execution Engine
-- `apps/web/src/execution/execution-orchestrator.ts`
-- `apps/web/src/execution/core/execution-engine.ts`
-- `apps/web/src/execution/executors/`
+### Backend
+- `apps/server/src/engine/` - Unified execution engine
+  - `engine.py` - Main orchestrator
+  - `executors/` - Node executor implementations
+  - `planner.py` - Execution planning
+  - `resolver.py` - Dependency resolution
+- `apps/server/src/api/routers/diagram.py` - V2 API endpoints
+- `apps/server/src/services/` - Business logic services
+- `apps/server/src/llm/` - LLM provider adapters
 
-### CLI Integration
-- `tool.py` - Python CLI with hybrid execution
-- `execution_runner.cjs` - Generated Node.js bundle (run `pnpm build:cli`)
-- `apps/web/src/engine/cli-runner.ts` - CLI entry point source
-- `esbuild.config.cjs` - Build configuration
+### Frontend
+- `apps/web/src/engine/unified-execution-client.ts` - V2 API client
+- `apps/web/src/features/execution/hooks/useDiagramRunner.ts` - React execution hook
+- `apps/web/src/global/` - Global state management
+- `apps/web/src/shared/types/` - TypeScript type definitions
 
-### Backend API
-- `apps/server/src/api/routers/` - API endpoint implementations
-- `apps/server/src/services/` - Core business logic services
+### CLI & Tools
+- `tool.py` - Python CLI for diagram execution
+- `scripts/convert-diagram.ts` - LLM YAML converter
+- `files/diagrams/` - Diagram storage directory
+
+## Development
+
+### Common Commands
+
+#### Frontend (React/TypeScript)
+```bash
+pnpm dev:web          # Start development server (http://localhost:3000)
+pnpm build:web        # Build production bundle
+pnpm lint             # Run ESLint
+pnpm lint:fix         # Auto-fix linting issues
+pnpm typecheck        # TypeScript type checking
+pnpm analyze          # Bundle size analysis
+```
+
+#### Backend (FastAPI/Python)
+```bash
+python apps.server.main.py                        # Start server (http://localhost:8000)
+RELOAD=true python apps.server.main.py            # Start with auto-reload for development
+```
+
+### Development Guidelines
+
+- **Package Manager**: Use `pnpm` only (no npm/npx/node)
+- **LLM Model**: Default to `gpt-4.1-nano` for OpenAI
+- **Diagram Storage**: Save to `files/diagrams/` directory
+- **Type Safety**: Run `pnpm typecheck` before commits
+- **Testing**: Run appropriate test suites before merging
+- **Documentation**: Update CLAUDE.md files after architectural changes
