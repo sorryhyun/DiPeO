@@ -37,6 +37,7 @@ export interface SelectFieldConfig extends BaseFieldConfig {
   name: string;
   options: Array<{ value: string; label: string }> | (() => Array<{ value: string; label: string }>) | (() => Promise<Array<{ value: string; label: string }>>) | ((formData: unknown) => Promise<Array<{ value: string; label: string }>>);
   placeholder?: string;
+  disabled?: boolean;
   dependsOn?: string[]; // Fields that this select depends on - will reload when they change
 }
 

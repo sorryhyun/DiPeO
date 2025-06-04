@@ -82,9 +82,10 @@ def substitute_variables(text: str, variables: Dict[str, Any]) -> str:
         if OutputProcessor.is_personjob_output(value):
             # Check if the variable name suggests we want conversation history
             if 'conversation' in var_name.lower() or 'history' in var_name.lower():
-                # Return the full conversation history as JSON
-                history = OutputProcessor.extract_conversation_history(value)
-                return json.dumps(history, ensure_ascii=False)
+                # For conversation variables, we want to show the text content
+                # which represents the conversation that happened
+                text_value = OutputProcessor.extract_value(value)
+                return text_value if text_value else ""
             else:
                 # Default to extracting just the text
                 value = OutputProcessor.extract_value(value)

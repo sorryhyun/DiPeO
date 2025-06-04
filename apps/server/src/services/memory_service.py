@@ -87,6 +87,18 @@ class PersonMemory:
             if message.execution_id == execution_id:
                 self.forgotten_message_ids.add(message.id)
 
+    def forget_own_messages(self) -> None:
+        """Mark all messages sent BY this person as forgotten (but keep messages TO this person)."""
+        for message in self.messages:
+            if message.sender_person_id == self.person_id:
+                self.forgotten_message_ids.add(message.id)
+
+    def forget_own_messages_from_execution(self, execution_id: str) -> None:
+        """Mark messages sent BY this person from a specific execution as forgotten."""
+        for message in self.messages:
+            if message.execution_id == execution_id and message.sender_person_id == self.person_id:
+                self.forgotten_message_ids.add(message.id)
+
     def get_visible_messages(self, current_person_id: str) -> List[Dict[str, Any]]:
         """Get messages visible to this person, with roles adjusted based on perspective."""
         visible_messages = []
@@ -226,6 +238,15 @@ class MemoryService:
         else:
             for message in person_memory.messages:
                 person_memory.forgotten_message_ids.add(message.id)
+
+    def forget_own_messages_for_person(self, person_id: str, execution_id: Optional[str] = None) -> None:
+        """Make a person forget only their own messages (selective forgetting)."""
+        person_memory = self.get_or_create_person_memory(person_id)
+
+        if execution_id:
+            person_memory.forget_own_messages_from_execution(execution_id)
+        else:
+            person_memory.forget_own_messages()
 
     def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
         """Get the conversation history as visible to a specific person."""

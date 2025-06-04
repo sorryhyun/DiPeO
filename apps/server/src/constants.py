@@ -25,7 +25,8 @@ class ContentType(Enum):
 
 class ContextCleaningRule(Enum):
     ON_EVERY_TURN = "on_every_turn"
-    PRESERVE = "preserve"
+    UPON_REQUEST = "upon_request"
+    NO_FORGET = "no_forget"
 
 class LLMService(Enum):
     OPENAI = "openai" 

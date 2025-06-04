@@ -29,31 +29,10 @@ class BaseAdapter(ABC):
     
     # Provider-specific model fallbacks
     FALLBACK_MODELS: Dict[str, List[str]] = {
-        'claude': [
-            'claude-3-haiku-20240307',
-            'claude-3-sonnet-20240229',
-            'claude-3-opus-20240229',
-            'claude-3-5-sonnet-20241022',
-            'claude-3-5-sonnet-20240620'
-        ],
-        'openai': [
-            'gpt-4.1-nano',
-            'gpt-3.5-turbo',
-            'gpt-4',
-            'gpt-4-turbo-preview',
-            'gpt-4o',
-            'gpt-4o-mini'
-        ],
-        'gemini': [
-            'gemini-1.5-flash-002',
-            'gemini-1.5-flash-8b',
-            'gemini-1.5-pro-002',
-            'gemini-2.0-flash-exp'
-        ],
-        'grok': [
-            'grok-beta',
-            'grok-vision-beta'
-        ]
+        'claude': ['claude-3-5-sonnet-20241022'],
+        'openai': ['gpt-4.1-nano'],
+        'gemini': ['gemini-2.0-flash-exp'],
+        'grok': ['grok-beta',]
     }
     
     def __init__(self, model_name: str, api_key: str, base_url: Optional[str] = None):

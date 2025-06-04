@@ -30,6 +30,7 @@ export interface ArrowData {
   kind?: 'ALL' | 'SINGLE';
   template?: string;
   conversationState?: boolean;
+  inheritedContentType?: boolean; // Indicates if content type is inherited from input arrows
   [key: string]: unknown; // For React Flow compatibility
 }
 

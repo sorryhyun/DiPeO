@@ -19,6 +19,15 @@ export const arrowConfig: PanelConfig<ArrowData> = {
         field: 'contentType',
         values: ['variable_in_object']
       }
+    },
+    {
+      type: 'checkbox',
+      name: 'conversationState',
+      label: 'Include Conversation State',
+      conditional: {
+        field: 'contentType',
+        values: ['conversation_state']
+      }
     }
   ],
   rightColumn: [
@@ -32,8 +41,8 @@ export const arrowConfig: PanelConfig<ArrowData> = {
         { value: 'conversation_state', label: 'Conversation State' }
       ],
       conditional: {
-        field: '_sourceNodeType',
-        values: ['start', 'condition'],
+        field: 'inheritedContentType',
+        values: [true],
         operator: 'notEquals'
       }
     },
@@ -50,13 +59,19 @@ export const arrowConfig: PanelConfig<ArrowData> = {
       }
     },
     {
-      type: 'text',
-      name: 'contentTypeDisplay',
-      label: 'Content Type',
-      placeholder: 'Generic (Fixed)',
+      type: 'select',
+      name: 'contentType',
+      label: 'Content Type (Inherited)',
+      options: [
+        { value: 'raw_text', label: 'Raw Text' },
+        { value: 'variable_in_object', label: 'Variable in Object' },
+        { value: 'conversation_state', label: 'Conversation State' },
+        { value: 'generic', label: 'Generic' },
+        { value: 'empty', label: 'Empty' }
+      ],
       disabled: true,
       conditional: {
-        field: '_isFromConditionBranch',
+        field: 'inheritedContentType',
         values: [true],
         operator: 'equals'
       }

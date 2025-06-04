@@ -105,9 +105,9 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
       { name: 'defaultPrompt', label: 'Default Prompt', type: 'textarea', placeholder: 'Enter default prompt', rows: 4 },
       { name: 'firstOnlyPrompt', label: 'First Only Prompt', type: 'textarea', placeholder: 'Enter first only prompt', rows: 4 },
       { name: 'contextCleaningRule', label: 'Context Cleaning', type: 'select', options: [
-        { value: 'uponRequest', label: 'Upon Request' },
-        { value: 'noForget', label: 'No Forget' },
-        { value: 'onEveryTurn', label: 'On Every Turn' }
+        { value: 'upon_request', label: 'Upon Request' },
+        { value: 'no_forget', label: 'No Forget' },
+        { value: 'on_every_turn', label: 'On Every Turn' }
       ]},
       { name: 'iterationCount', label: 'Max Iterations', type: 'number', placeholder: '1' }
     ],

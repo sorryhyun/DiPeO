@@ -180,14 +180,72 @@ class PersonJobExecutor(BaseExecutor):
         system_prompt = person_config.get("systemPrompt", "")
         person_id = person_config.get("id", node_id)
         
+        # Handle context cleaning rule (forgetting) BEFORE making LLM call
+        context_cleaning_rule = properties.get("contextCleaningRule", "no_forget")
+        
+        # Get memory service for forgetting functionality
+        from ...utils.dependencies import get_memory_service
+        memory_service = get_memory_service()
+        
+        if memory_service and context_cleaning_rule in ["on_every_turn", "upon_request"]:
+            if context_cleaning_rule == "on_every_turn":
+                # Forget ALL previous messages (complete forgetting - clears entire conversation)
+                memory_service.forget_for_person(person_id)
+            elif context_cleaning_rule == "upon_request":
+                # Forget only own messages from this specific execution
+                if context.execution_id:
+                    memory_service.forget_own_messages_for_person(person_id, context.execution_id)
+                else:
+                    # Fallback to forgetting own messages if no execution_id
+                    memory_service.forget_own_messages_for_person(person_id)
+
         try:
+            # Import OutputProcessor here to avoid circular imports
+            from ...utils.output_processor import OutputProcessor
+            
+            # Get conversation history BEFORE making LLM call (after any forgetting)
+            conversation_history = memory_service.get_conversation_history(person_id) if memory_service else []
+            
+            # Build messages array with conversation history + current prompt
+            messages = []
+            
+            # Add conversation history
+            if conversation_history:
+                messages.extend(conversation_history)
+            
+            # If we have conversation state inputs, add those messages too
+            # This allows debates where different persons can see each other's messages
+            for arrow in context.incoming_arrows.get(node_id, []):
+                # Check if this arrow carries conversation state
+                arrow_data = arrow.get("data", arrow)
+                if arrow_data.get("contentType") == "conversation_state":
+                    source_id = arrow["source"]
+                    if source_id in context.node_outputs:
+                        output = context.node_outputs[source_id]
+                        if OutputProcessor.is_personjob_output(output):
+                            # Get the conversation history from the input
+                            input_conversation = OutputProcessor.extract_conversation_history(output)
+                            if input_conversation:
+                                # Add these messages to our conversation context
+                                # They represent the conversation that has happened so far
+                                messages.extend(input_conversation)
+                            
+                            # Also add the latest response as a message
+                            latest_text = OutputProcessor.extract_value(output)
+                            if latest_text:
+                                # Add as user message since it's input to this node
+                                messages.append({"role": "user", "content": latest_text})
+            
+            # Add current prompt as user message
+            messages.append({"role": "user", "content": final_prompt})
+            
             # Make LLM call
-            logger.debug(f"PersonJob {node_id} executing: count={execution_count}, max_iterations={max_iterations}, prompt={final_prompt[:50]}...")
+            logger.debug(f"PersonJob {node_id} executing: count={execution_count}, max_iterations={max_iterations}, history_messages={len(conversation_history)}, prompt={final_prompt[:50]}...")
             response = await self.llm_service.call_llm(
                 service=service,
                 api_key_id=api_key_id,
                 model=model,
-                messages=final_prompt,
+                messages=messages,
                 system_prompt=system_prompt
             )
             
@@ -195,10 +253,6 @@ class PersonJobExecutor(BaseExecutor):
             
             # Import OutputProcessor here to avoid circular imports
             from ...utils.output_processor import OutputProcessor
-            
-            # Get memory service from context
-            from ...utils.dependencies import get_memory_service
-            memory_service = get_memory_service()
             
             # Add messages to conversation memory if we have an execution_id
             if context.execution_id and memory_service:
@@ -230,16 +284,17 @@ class PersonJobExecutor(BaseExecutor):
                     cached_tokens=token_usage.cached
                 )
             
-            # Get conversation history for the person
-            conversation_history = memory_service.get_conversation_history(person_id)
+            # Create structured output with the full conversation that was sent to the LLM
+            # This includes both the person's own history and any conversation state from inputs
+            # Remove the final user prompt from the messages to get just the conversation history
+            full_conversation_history = messages[:-1] if messages else []
             
-            # Create structured output with conversation history
             # Use TokenUsage for consistency
             token_usage = TokenUsage.from_response(response)
             structured_output = OutputProcessor.create_personjob_output_from_tokens(
                 text=response["response"],
                 token_usage=token_usage,
-                conversation_history=conversation_history,
+                conversation_history=full_conversation_history,
                 model=model,
                 execution_time=execution_time
             )

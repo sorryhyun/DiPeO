@@ -329,7 +329,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             options={options}
             placeholder={fieldConfig.placeholder}
             className={fieldConfig.className}
-            isDisabled={isMonitorMode}
+            isDisabled={isMonitorMode || fieldConfig.disabled}
           />
         );
       }

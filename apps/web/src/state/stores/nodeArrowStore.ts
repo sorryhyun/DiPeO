@@ -133,10 +133,27 @@ export const useNodeArrowStore = create<NodeArrowState>()(
             const isFromConditionBranch = connection.sourceHandle === 'true' || connection.sourceHandle === 'false';
             
             let contentType: ArrowData['contentType'];
+            let conversationState = false;
+            
             if (isFromStartNode) {
               contentType = 'empty';
             } else if (isFromConditionBranch) {
-              contentType = 'generic';
+              // For condition nodes, inherit content type from input arrows
+              const inputArrows = state.arrows.filter(arrow => arrow.target === connection.source);
+              
+              if (inputArrows.length > 0) {
+                // Use the first input arrow's properties (TODO: handle multiple inputs in edge cases)
+                const primaryInputArrow = inputArrows[0];
+                if (primaryInputArrow?.data) {
+                  contentType = primaryInputArrow.data.contentType || 'generic';
+                  conversationState = primaryInputArrow.data.conversationState || false;
+                } else {
+                  contentType = 'generic';
+                }
+              } else {
+                // No input arrows yet, default to generic
+                contentType = 'generic';
+              }
             }
             
             const newArrow: Arrow = {
@@ -152,12 +169,13 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                 targetBlockId: connection.target!,
                 kind: 'ALL' as const,
                 template: '',
-                conversationState: false,
+                conversationState,
                 label: isFromConditionBranch ? connection.sourceHandle! : 'New Arrow',
                 contentType,
                 // Set branch property for condition node arrows
                 ...(isFromConditionBranch && {
-                  branch: connection.sourceHandle as 'true' | 'false'
+                  branch: connection.sourceHandle as 'true' | 'false',
+                  inheritedContentType: true
                 })
               }
             };
@@ -198,20 +216,88 @@ export const useNodeArrowStore = create<NodeArrowState>()(
           },
 
           updateArrowData: (arrowId: string, data: Partial<ArrowData>) => {
-            set({
-              arrows: get().arrows.map(arrow =>
-                arrow.id === arrowId ? { 
-                  ...arrow, 
-                  data: { ...arrow.data, ...data } as ArrowData 
-                } : arrow
-              )
-            });
+            const state = get();
+            const updatedArrows = state.arrows.map(arrow =>
+              arrow.id === arrowId ? { 
+                ...arrow, 
+                data: { ...arrow.data, ...data } as ArrowData 
+              } : arrow
+            );
+            
+            // After updating an arrow, check if it affects condition node outputs
+            const updatedArrow = updatedArrows.find(a => a.id === arrowId);
+            if (updatedArrow) {
+              // Find all arrows that originate from the target node of the updated arrow
+              const targetNode = state.nodes.find(n => n.id === updatedArrow.target);
+              if (targetNode?.data.type === 'condition') {
+                // Update all arrows originating from this condition node
+                const finalArrows = updatedArrows.map(arrow => {
+                  if (arrow.source === targetNode.id && arrow.data?.inheritedContentType) {
+                    return {
+                      ...arrow,
+                      data: {
+                        ...arrow.data,
+                        contentType: updatedArrow.data?.contentType || 'generic',
+                        conversationState: updatedArrow.data?.conversationState || false
+                      } as ArrowData
+                    };
+                  }
+                  return arrow;
+                });
+                set({ arrows: finalArrows });
+                return;
+              }
+            }
+            
+            set({ arrows: updatedArrows });
           },
 
           deleteArrow: (arrowId: string) => {
-            set({
-              arrows: get().arrows.filter(arrow => arrow.id !== arrowId)
-            });
+            const state = get();
+            const arrowToDelete = state.arrows.find(a => a.id === arrowId);
+            const remainingArrows = state.arrows.filter(arrow => arrow.id !== arrowId);
+            
+            // If deleting an arrow that goes into a condition node, update its output arrows
+            if (arrowToDelete) {
+              const targetNode = state.nodes.find(n => n.id === arrowToDelete.target);
+              if (targetNode?.data.type === 'condition') {
+                // Find remaining input arrows to the condition node
+                const remainingInputArrows = remainingArrows.filter(a => a.target === targetNode.id);
+                
+                // Update all output arrows from the condition node
+                const finalArrows = remainingArrows.map(arrow => {
+                  if (arrow.source === targetNode.id && arrow.data?.inheritedContentType) {
+                    if (remainingInputArrows.length > 0) {
+                      const primaryInputArrow = remainingInputArrows[0];
+                      if (primaryInputArrow?.data) {
+                        return {
+                          ...arrow,
+                          data: {
+                            ...arrow.data,
+                            contentType: primaryInputArrow.data.contentType || 'generic',
+                            conversationState: primaryInputArrow.data.conversationState || false
+                          } as ArrowData
+                        };
+                      }
+                    }
+                    // No input arrows or no data, reset to generic
+                    return {
+                      ...arrow,
+                      data: {
+                        ...arrow.data,
+                        contentType: 'generic' as const,
+                        conversationState: false
+                      } as ArrowData
+                    };
+                  }
+                  return arrow;
+                });
+                set({ arrows: finalArrows });
+                return;
+              }
+            }
+            
+            set({ arrows: remainingArrows });
           },
           
           // Batch operations
@@ -237,13 +323,28 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                     }
                   };
                 } else if (isFromConditionBranch) {
+                  // For condition nodes, inherit content type from input arrows
+                  const inputArrows = arrows.filter(a => a.target === arrow.source);
+                  let contentType: ArrowData['contentType'] = 'generic';
+                  let conversationState = arrow.data.conversationState || false;
+                  
+                  if (inputArrows.length > 0) {
+                    const primaryInputArrow = inputArrows[0];
+                    if (primaryInputArrow?.data) {
+                      contentType = primaryInputArrow.data.contentType || 'generic';
+                      conversationState = primaryInputArrow.data.conversationState || false;
+                    }
+                  }
+                  
                   return {
                     ...arrow,
                     data: {
                       ...arrow.data,
-                      contentType: 'generic' as const,
+                      contentType,
+                      conversationState,
                       // Set branch property for condition node arrows
-                      branch: arrow.sourceHandle as 'true' | 'false'
+                      branch: arrow.sourceHandle as 'true' | 'false',
+                      inheritedContentType: true
                     }
                   };
                 }
