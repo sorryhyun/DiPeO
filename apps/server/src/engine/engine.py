@@ -206,6 +206,21 @@ class UnifiedExecutionEngine:
                         else:
                             raise DiagramExecutionError(f"No nodes ready to execute. Pending: {pending_nodes}")
                     
+                    # Emit node_start events for all ready nodes
+                    for node_id in ready_nodes:
+                        node = context.nodes_by_id[node_id]
+                        properties = node.get("properties", {})
+                        node_type = properties.get("type", node["type"])
+                        
+                        start_event = {
+                            "type": "node_start",
+                            "node_id": node_id,
+                            "node_type": node_type
+                        }
+                        yield start_event
+                        # Broadcast to monitors
+                        await broadcast_to_monitors(start_event)
+                    
                     # Execute ready nodes (potentially in parallel)
                     execution_tasks = []
                     for node_id in ready_nodes:
@@ -420,7 +435,7 @@ class UnifiedExecutionEngine:
             self.loop_controller.mark_iteration_complete(node_id)
             
             event = {
-                "type": "node_completed",
+                "type": "node_complete",
                 "node_id": node_id,
                 "output": result.output,
                 "metadata": result.metadata,

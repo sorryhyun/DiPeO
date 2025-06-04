@@ -109,15 +109,15 @@ export const useDiagramRunner = () => {
           
           switch (update.type) {
             case 'node_start':
-              if (update.nodeId) {
-                setCurrentRunningNode(update.nodeId);
-                addRunningNode(update.nodeId);
+              if (update.node_id) {
+                setCurrentRunningNode(update.node_id);
+                addRunningNode(update.node_id);
               }
               break;
               
             case 'node_complete':
-              if (update.nodeId) {
-                removeRunningNode(update.nodeId);
+              if (update.node_id) {
+                removeRunningNode(update.node_id);
               }
               break;
               

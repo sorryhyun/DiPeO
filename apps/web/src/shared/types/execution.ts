@@ -4,28 +4,28 @@ import { Arrow } from './arrow';
 import { Diagram } from './diagram';
 
 export interface ExecutionContext {
-  executionId: string;
-  nodeOutputs: Record<string, unknown>;
-  nodeExecutionCounts: Record<string, number>;
-  totalCost: number;
-  startTime: number;
+  execution_id: string;
+  node_outputs: Record<string, unknown>;
+  node_execution_counts: Record<string, number>;
+  total_cost: number;
+  start_time: number;
   errors: Record<string, string>;
-  executionOrder: string[];
-  conditionValues: Record<string, boolean>;
-  firstOnlyConsumed: Record<string, boolean>;
+  execution_order: string[];
+  condition_values: Record<string, boolean>;
+  first_only_consumed: Record<string, boolean>;
   diagram?: Diagram | null;
-  // Frontend aliases (camelCase) 
-  nodesById: Record<string, Node>;
-  outgoingArrows: Record<string, Arrow[]>;
-  incomingArrows: Record<string, Arrow[]>;
+  // Frontend aliases (snake_case) 
+  nodes_by_id: Record<string, Node>;
+  outgoing_arrows: Record<string, Arrow[]>;
+  incoming_arrows: Record<string, Arrow[]>;
 }
 
 export interface ExecutionMetadata {
-  executionId: string;
-  startTime: number;
-  endTime?: number;
-  totalCost: number;
-  nodeCount: number;
+  execution_id: string;
+  start_time: number;
+  end_time?: number;
+  total_cost: number;
+  node_count: number;
   status: ExecutionStatus;
 }
 
@@ -54,8 +54,8 @@ export interface ExecutionOptions {
 }
 
 export interface ExecutionError {
-  nodeId?: string;
-  nodeType?: NodeType;
+  node_id?: string;
+  node_type?: NodeType;
   message: string;
   details?: Record<string, unknown>;
   timestamp: Date;

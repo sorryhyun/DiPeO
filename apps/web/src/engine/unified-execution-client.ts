@@ -25,13 +25,14 @@ export interface ExecutionOptions {
 export interface ExecutionUpdate {
   type: 'execution_started' | 'node_start' | 'node_complete' | 'execution_complete' | 'execution_error' | 'conversation_update';
   execution_id?: string;
-  nodeId?: string;
+  node_id?: string;
+  node_type?: string;
   output_preview?: string;
   context?: Record<string, unknown>;
   total_cost?: number;
   error?: string;
   timestamp?: string;
-  conversationId?: string;
+  conversation_id?: string;
   message?: unknown;
 }
 

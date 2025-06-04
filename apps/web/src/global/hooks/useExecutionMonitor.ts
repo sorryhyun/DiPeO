@@ -63,15 +63,15 @@ export const useExecutionMonitor = () => {
               break;
 
             case 'node_start':
-              if (data.nodeId) {
-                addRunningNode(data.nodeId);
-                setCurrentRunningNode(data.nodeId);
+              if (data.node_id) {
+                addRunningNode(data.node_id);
+                setCurrentRunningNode(data.node_id);
               }
               break;
 
             case 'node_complete':
-              if (data.nodeId) {
-                removeRunningNode(data.nodeId);
+              if (data.node_id) {
+                removeRunningNode(data.node_id);
               }
               break;
 

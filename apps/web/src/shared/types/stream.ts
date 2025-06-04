@@ -8,8 +8,8 @@ export interface StreamContext {
 
 export interface StreamUpdate {
   type: StreamUpdateType;
-  executionId: string;
-  nodeId?: string;
+  execution_id: string;
+  node_id?: string;
   data: unknown;
   timestamp: Date;
 }
