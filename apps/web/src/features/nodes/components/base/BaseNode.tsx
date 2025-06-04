@@ -39,7 +39,7 @@ function BaseNodeComponent({
   const nodeConfigs = storeContext?.nodeConfigs ?? nodeConfigsProp;
   
   // Check if node is flipped
-  const isFlipped = data?.flipped === true;
+  const isFlipped = data && typeof data === 'object' && 'flipped' in data && data.flipped === true;
   
   // Get configuration if nodeType is provided
   const config = nodeType ? nodeConfigs[nodeType] : null;
@@ -159,7 +159,8 @@ export const BaseNode = React.memo(BaseNodeComponent, (prevProps, nextProps) => 
     prevProps.id === nextProps.id &&
     prevProps.selected === nextProps.selected &&
     prevProps.isRunning === nextProps.isRunning &&
-    prevProps.data?.flipped === nextProps.data?.flipped &&
+    (prevProps.data && typeof prevProps.data === 'object' && 'flipped' in prevProps.data ? prevProps.data.flipped : false) === 
+    (nextProps.data && typeof nextProps.data === 'object' && 'flipped' in nextProps.data ? nextProps.data.flipped : false) &&
     prevProps.borderColor === nextProps.borderColor &&
     prevProps.showFlipButton === nextProps.showFlipButton &&
     prevProps.nodeType === nextProps.nodeType &&

@@ -544,7 +544,7 @@ def main():
             else:
                 # Use enhanced TypeScript conversion
                 import subprocess
-                cmd = ['pnpm', 'exec', 'tsx', 'scripts/convert-diagram.ts', str(input_path), str(output_path)]
+                cmd = ['pnpm', 'convert', str(input_path), str(output_path)]
                 if format_arg:
                     cmd.append(format_arg)
                 

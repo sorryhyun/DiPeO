@@ -57,8 +57,9 @@ const MemoryFlowVisualization: React.FC = () => {
         if (!person) return null;
 
         // Get execution context for this person
-        const personMessages = runContext?.persons?.[person.id]?.messages || [];
-        const messageCount = personMessages.length;
+        const personsData = runContext?.persons as Record<string, { messages?: unknown[] }> | undefined;
+        const personMessages = personsData?.[person.id]?.messages || [];
+        const messageCount = Array.isArray(personMessages) ? personMessages.length : 0;
 
         return (
           <div
@@ -109,12 +110,16 @@ const MemoryFlowVisualization: React.FC = () => {
               </div>
               
               {/* Activity indicator */}
-              {runContext?.nodeExecutionCounts?.[node.id] > 0 && (
-                <div className="mt-2 flex items-center space-x-1">
-                  <Zap className="h-3 w-3 text-yellow-400 animate-pulse" />
-                  <span className="text-xs text-yellow-300">Active</span>
-                </div>
-              )}
+              {(() => {
+                const executionCounts = runContext?.nodeExecutionCounts as Record<string, number> | undefined;
+                const count = executionCounts?.[node.id] || 0;
+                return count > 0 ? (
+                  <div className="mt-2 flex items-center space-x-1">
+                    <Zap className="h-3 w-3 text-yellow-400 animate-pulse" />
+                    <span className="text-xs text-yellow-300">Active</span>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             {/* Connection line to diagram above */}

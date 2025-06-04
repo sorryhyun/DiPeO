@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import MemoryFlowVisualization from './MemoryFlowVisualization';
-import ConversationDashboard from './ConversationDashboard';
+import ConversationDashboard from '@/features/conversation/components/ConversationDashboard';
 
 const MemoryCanvas: React.FC = () => {
   return (

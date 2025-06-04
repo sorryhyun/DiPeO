@@ -1,33 +1,38 @@
 #!/usr/bin/env tsx
 /* eslint-env node */
+/* global process */
 /**
- * Diagram conversion script using TypeScript serialization logic
- * Bridges Python CLI tool with sophisticated TypeScript converters
+ * CLI wrapper for diagram conversion that can properly resolve path aliases
  */
 
 import { readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
 import { parse as parseYaml } from 'yaml';
-import { YamlExporter } from '../apps/web/src/serialization/converters/yamlExporter';
-import { LLMYamlImporter } from '../apps/web/src/serialization/converters/llmYamlImporter';
+import { YamlExporter } from './yamlExporter';
+import { LLMYamlImporter } from './llmYamlImporter';
 
 // Parse command line arguments
 const [, , inputFile, outputFile, format] = process.argv;
 
-if (!inputFile || !outputFile) {
-  console.error('Usage: node convert-diagram.js <input> <output> [format]');
+// Resolve paths relative to project root (we're in apps/web when running)
+const resolvedInputFile = inputFile ? resolve(process.cwd(), '../..', inputFile) : undefined;
+const resolvedOutputFile = outputFile ? resolve(process.cwd(), '../..', outputFile) : undefined;
+
+if (!resolvedInputFile || !resolvedOutputFile) {
+  console.error('Usage: node convert-cli.js <input> <output> [format]');
   console.error('Formats: json, yaml, llm-yaml');
   process.exit(1);
 }
 
 try {
   // Read input file
-  const inputContent = readFileSync(inputFile, 'utf8');
+  const inputContent = readFileSync(resolvedInputFile, 'utf8');
   let diagram;
 
   // Parse input based on extension
-  if (inputFile.endsWith('.json')) {
+  if (resolvedInputFile.endsWith('.json')) {
     diagram = JSON.parse(inputContent);
-  } else if (inputFile.endsWith('.yaml') || inputFile.endsWith('.yml')) {
+  } else if (resolvedInputFile.endsWith('.yaml') || resolvedInputFile.endsWith('.yml') || resolvedInputFile.endsWith('.llm-yaml')) {
     const yamlData = parseYaml(inputContent);
     
     // Detect if this is LLM YAML format
@@ -39,12 +44,12 @@ try {
       diagram = YamlExporter.fromYAML(inputContent);
     }
   } else {
-    throw new Error(`Unsupported input format: ${inputFile}`);
+    throw new Error(`Unsupported input format: ${resolvedInputFile}`);
   }
 
   // Convert to output format
   let outputContent;
-  const targetFormat = format || outputFile.split('.').pop();
+  const targetFormat = format || resolvedOutputFile.split('.').pop();
 
   switch (targetFormat) {
     case 'json':
@@ -65,10 +70,10 @@ try {
   }
 
   // Write output file
-  writeFileSync(outputFile, outputContent);
+  writeFileSync(resolvedOutputFile, outputContent);
   console.log(`✓ Converted: ${inputFile} → ${outputFile} (${targetFormat})`);
 
 } catch (error) {
-  console.error(`Error: ${error.message}`);
+  console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }

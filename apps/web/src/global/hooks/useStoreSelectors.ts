@@ -142,32 +142,19 @@ export const useUIState = () => {
   const dashboardTab = useConsolidatedUIStore(state => state.dashboardTab);
   const setDashboardTab = useConsolidatedUIStore(state => state.setDashboardTab);
   
-  // Canvas state - new approach
+  // Canvas state
   const activeCanvas = useConsolidatedUIStore(state => state.activeCanvas);
   const setActiveCanvas = useConsolidatedUIStore(state => state.setActiveCanvas);
   const toggleCanvas = useConsolidatedUIStore(state => state.toggleCanvas);
-  
-  // Backward compatibility - deprecated but kept for transition
-  const isMemoryLayerTilted = useConsolidatedUIStore(state => state.isMemoryLayerTilted);
-  const setMemoryLayerTilted = useConsolidatedUIStore(state => state.setMemoryLayerTilted);
-  const toggleMemoryLayer = useConsolidatedUIStore(state => state.toggleMemoryLayer);
   
   const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
   
   return {
     dashboardTab,
     setDashboardTab,
-    
-    // New canvas state
     activeCanvas,
     setActiveCanvas,
     toggleCanvas,
-    
-    // Backward compatibility
-    isMemoryLayerTilted,
-    setMemoryLayerTilted,
-    toggleMemoryLayer,
-    
     hasSelection,
   };
 };

@@ -1,6 +1,4 @@
-// Canvas feature exports
-export { default as Canvas } from './components/Canvas';
-export { default as MemoryLayer } from './components/MemoryLayer';
+// Canvas feature exports - shared utilities only
 export { CustomArrow } from './components/CustomArrow';
 export { default as ContextMenu } from './components/ContextMenu';
 

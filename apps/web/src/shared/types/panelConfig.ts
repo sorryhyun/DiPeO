@@ -112,7 +112,7 @@ export interface ValidationRule<T> {
 
 export type ValidationRules<T> = ValidationRule<T>[];
 
-export interface PanelConfig<T extends Record<string, unknown>> {
+export interface PanelConfig<T> {
   layout: 'single' | 'twoColumn';
   fields?: FieldConfig[];        // For single column
   leftColumn?: FieldConfig[];    // For two column

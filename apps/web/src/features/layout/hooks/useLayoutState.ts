@@ -4,17 +4,17 @@ import { useConsolidatedUIStore } from '@/global/stores/consolidatedUIStore';
 export const useUIState = () => {
   const dashboardTab = useConsolidatedUIStore(state => state.dashboardTab);
   const setDashboardTab = useConsolidatedUIStore(state => state.setDashboardTab);
-  const isMemoryLayerTilted = useConsolidatedUIStore(state => state.isMemoryLayerTilted);
-  const setMemoryLayerTilted = useConsolidatedUIStore(state => state.setMemoryLayerTilted);
-  const toggleMemoryLayer = useConsolidatedUIStore(state => state.toggleMemoryLayer);
+  const activeCanvas = useConsolidatedUIStore(state => state.activeCanvas);
+  const setActiveCanvas = useConsolidatedUIStore(state => state.setActiveCanvas);
+  const toggleCanvas = useConsolidatedUIStore(state => state.toggleCanvas);
   const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
   
   return {
     dashboardTab,
     setDashboardTab,
-    isMemoryLayerTilted,
-    setMemoryLayerTilted,
-    toggleMemoryLayer,
+    activeCanvas,
+    setActiveCanvas,
+    toggleCanvas,
     hasSelection,
   };
 };
