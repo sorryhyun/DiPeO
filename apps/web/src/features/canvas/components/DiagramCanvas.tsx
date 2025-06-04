@@ -102,17 +102,11 @@ const DiagramCanvas: React.FC = () => {
   const projectPosition = useCallback((x: number, y: number) => {
     if (!reactFlowWrapper.current || !rfInstance) return { x: 0, y: 0 };
     
-    // Get the ReactFlow container bounds
-    const bounds = reactFlowWrapper.current.getBoundingClientRect();
-    
-    // Calculate position relative to the ReactFlow container
-    const relativeX = x - bounds.left;
-    const relativeY = y - bounds.top;
-    
-    // Convert to flow coordinates
+    // screenToFlowPosition expects screen coordinates (absolute), not relative
+    // So we pass x, y directly without subtracting the container bounds
     const position = rfInstance.screenToFlowPosition({ 
-      x: relativeX, 
-      y: relativeY 
+      x, 
+      y 
     });
     
     return roundPosition(position);
