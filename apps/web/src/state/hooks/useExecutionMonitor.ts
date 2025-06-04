@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useExecutionStore, useDiagramStore } from '@/state/stores';
 import { toast } from 'sonner';
-import { getStreamingUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
 import { useWebSocket, useWebSocketMessage } from '@/features/runtime/hooks/useWebSocket';
 import { DiagramState } from '@/common/types';
 
@@ -22,7 +21,8 @@ export const useExecutionMonitor = () => {
     addRunningNode,
     removeRunningNode,
     setCurrentRunningNode,
-    setRunContext
+    setRunContext,
+    addSkippedNode
   } = useExecutionStore();
   const loadDiagram = useDiagramStore(state => state.loadDiagram);
   const nodes = useDiagramStore(state => state.nodes);
@@ -57,14 +57,16 @@ export const useExecutionMonitor = () => {
       
       case 'node_skipped': {
         const skippedNodeId = data.node_id as string;
+        const skipReason = (data.reason as string) || 'No reason provided';
         if (skippedNodeId) {
-          console.log(`[Monitor] Removing skipped node: ${skippedNodeId}`);
+          console.log(`[Monitor] Node skipped: ${skippedNodeId}, reason: ${skipReason}`);
           removeRunningNode(skippedNodeId);
+          addSkippedNode(skippedNodeId, skipReason);
         }
         break;
       }
     }
-  }, [nodes, addRunningNode, removeRunningNode, setCurrentRunningNode]);
+  }, [nodes, addRunningNode, removeRunningNode, setCurrentRunningNode, addSkippedNode]);
 
   // Process any pending events when nodes change
   useEffect(() => {
@@ -147,127 +149,23 @@ export const useExecutionMonitor = () => {
       toast.error(`External execution failed: ${data.error}`);
     }
   });
-
-  // Fallback to SSE if WebSocket is not available or disabled
-  useEffect(() => {
-    // Use SSE only if WebSocket is not connected after a timeout
-    const sseTimeout = setTimeout(() => {
-      if (!isConnected) {
-        console.log('[Monitor] WebSocket not connected, falling back to SSE');
-        let isComponentMounted = true;
-
-        const attachEventHandlers = (eventSource: EventSource) => {
-          eventSource.onopen = () => {
-            console.log('SSE connected for execution monitoring (fallback)');
-          };
-
-          eventSource.onmessage = async (event) => {
-            if (!isComponentMounted) return;
-
-            try {
-              const data = JSON.parse(event.data);
-
-              // Debug log for monitor events
-              if (data.type && data.type.startsWith('node_')) {
-                console.log('[Monitor SSE Fallback] Received event:', data.type, data);
-              }
-
-              // Process events same as WebSocket
-              switch (data.type) {
-                case 'monitor_connected':
-                  console.log('Monitor connected (SSE):', data.monitor_id);
-                  break;
-
-                case 'execution_started':
-                  if (data.from_monitor || data.from_cli) {
-                    toast.info(`External execution started: ${data.execution_id}`);
-                    if (data.diagram && typeof data.diagram === 'object') {
-                      console.log('[Monitor SSE] Loading diagram from execution_started event');
-                      pendingEventsRef.current = [];
-                      diagramLoadedRef.current = false;
-                      loadDiagram(data.diagram as DiagramState, 'external');
-                    }
-                  }
-                  break;
-
-                case 'node_start':
-                  console.log('[Monitor SSE] node_start event received:', data);
-                  if (!diagramLoadedRef.current) {
-                    console.log('[Monitor SSE] Diagram not loaded yet, queueing event');
-                    pendingEventsRef.current.push({ type: data.type, data });
-                  } else {
-                    processEvent(data.type, data);
-                  }
-                  break;
-
-                case 'node_complete':
-                  console.log('[Monitor SSE] node_complete event received:', data);
-                  processEvent(data.type, data);
-                  break;
-                  
-                case 'node_skipped':
-                  console.log('[Monitor SSE] node_skipped event received:', data);
-                  processEvent(data.type, data);
-                  break;
-
-                case 'execution_complete':
-                  if (data.context && typeof data.context === 'object') {
-                    setRunContext(data.context as Record<string, unknown>);
-                  }
-                  if (data.from_monitor || data.from_cli) {
-                    toast.success('External execution completed');
-                  }
-                  break;
-
-                case 'execution_error':
-                  if (data.from_monitor || data.from_cli) {
-                    toast.error(`External execution failed: ${data.error}`);
-                  }
-                  break;
-              }
-            } catch (error) {
-              console.error('Failed to parse SSE monitor update:', error);
-            }
-          };
-
-          eventSource.onerror = (error) => {
-            console.error('SSE monitor connection error:', error);
-            eventSource.close();
-          };
-        };
-
-        const connectSSE = () => {
-          if (!isComponentMounted) return;
-
-          // Check if we have an early SSE connection from index.html
-          if (window.__earlySSEConnection && window.__earlySSEConnection.readyState !== EventSource.CLOSED) {
-            console.log('[Monitor] Reusing early SSE connection as fallback');
-            const eventSourceRef = window.__earlySSEConnection;
-            attachEventHandlers(eventSourceRef);
-            return;
-          }
-
-          // For SSE, connect directly to backend to avoid proxy issues
-          const sseUrl = import.meta.env.DEV 
-            ? `http://localhost:8000${API_ENDPOINTS.MONITOR_STREAM}`
-            : getStreamingUrl(API_ENDPOINTS.MONITOR_STREAM);
-          const eventSource = new EventSource(sseUrl);
-          attachEventHandlers(eventSource);
-        };
-
-        // Initial SSE connection as fallback
-        connectSSE();
-
-        return () => {
-          isComponentMounted = false;
-        };
+  
+  // Handle conversation update event
+  useWebSocketMessage('conversation_update', (data: Record<string, unknown>) => {
+    // Dispatch custom event for conversation components to handle
+    window.dispatchEvent(new CustomEvent('conversation-update', {
+      detail: {
+        type: 'message_added',
+        data: {
+          personId: data.person_id,
+          message: data.message,
+          conversationId: data.conversation_id
+        }
       }
-    }, 3000); // Wait 3 seconds for WebSocket before falling back to SSE
+    }));
+  });
 
-    return () => {
-      clearTimeout(sseTimeout);
-    };
-  }, [isConnected, processEvent, setRunContext, loadDiagram]);
+  // Note: SSE fallback has been removed. WebSocket is now the only transport mechanism.
 
   return null;
 };

@@ -28,6 +28,11 @@ export const personJobConfig: PanelConfig<PersonJobBlockData> = {
           className: 'flex-1'
         }
       ]
+    },
+    {
+      type: 'checkbox',
+      name: 'interactive',
+      label: 'Interactive Mode - Wait for user input before LLM call'
     }
   ],
   rightColumn: [

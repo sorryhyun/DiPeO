@@ -9,7 +9,7 @@ from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from fastapi.websockets import WebSocketState
 
-from ...utils.dependencies import get_app_context
+
 from ...utils.app_context import AppContext
 from ...engine.engine import UnifiedExecutionEngine
 from ...exceptions import ValidationError, DiagramExecutionError

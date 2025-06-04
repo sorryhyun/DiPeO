@@ -90,27 +90,6 @@ async def monitor_event_generator(monitor_id: str):
         logger.info(f"Monitor {monitor_id} disconnected")
 
 
-@router.get("/stream")
-async def monitor_stream(request: Request):
-    """
-    SSE endpoint for monitoring all diagram executions.
-    
-    This endpoint allows multiple clients to monitor execution status
-    across all running diagrams in real-time.
-    """
-    monitor_id = str(uuid.uuid4())
-    logger.info(f"New monitor connection: {monitor_id}")
-    
-    return StreamingResponse(
-        monitor_event_generator(monitor_id),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Cache-Control"
-        }
-    )
 
 
 @router.get("/status")

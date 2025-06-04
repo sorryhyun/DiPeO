@@ -8,6 +8,7 @@
 import { produce } from 'immer';
 import { getWebSocketClient, WebSocketClient, WSMessage } from './websocket-client';
 import type { Node, Arrow, PersonDefinition, ApiKey } from '@/common/types';
+import type { InteractivePromptData } from './components/InteractivePromptModal';
 
 export interface DiagramData {
   nodes: Node[];
@@ -60,7 +61,7 @@ export class WebSocketExecutionClient {
   }>();
   private executionContext = new Map<string, Record<string, unknown>>();
   private executionCost = new Map<string, number>();
-  private interactivePromptHandler: ((prompt: any) => void) | null = null;
+  private interactivePromptHandler: ((prompt: InteractivePromptData) => void) | null = null;
   
   constructor(wsClient?: WebSocketClient) {
     this.wsClient = wsClient || getWebSocketClient({ debug: true });
@@ -169,10 +170,10 @@ export class WebSocketExecutionClient {
   private handleInteractivePrompt(message: WSMessage): void {
     if (this.interactivePromptHandler) {
       this.interactivePromptHandler({
-        nodeId: message.nodeId,
-        executionId: message.executionId || this.currentExecutionId,
-        prompt: message.prompt,
-        context: message.context
+        nodeId: message.nodeId as string,
+        executionId: (message.executionId as string) || this.currentExecutionId || '',
+        prompt: message.prompt as string,
+        context: message.context as InteractivePromptData['context']
       });
     }
   }
@@ -197,7 +198,7 @@ export class WebSocketExecutionClient {
   /**
    * Set handler for interactive prompts
    */
-  setInteractivePromptHandler(handler: ((prompt: any) => void) | null): void {
+  setInteractivePromptHandler(handler: ((prompt: InteractivePromptData) => void) | null): void {
     this.interactivePromptHandler = handler;
   }
   
@@ -239,7 +240,7 @@ export class WebSocketExecutionClient {
     }
     
     // Set up update handler if provided
-    let messageHandler: EventListener | null = null;
+    let messageHandler: ((event: Event) => void) | null = null;
     if (onUpdate) {
       messageHandler = ((event: Event) => {
         const customEvent = event as CustomEvent;
@@ -272,7 +273,7 @@ export class WebSocketExecutionClient {
         } else {
           onUpdate(update);
         }
-      }) as EventListener;
+      });
       
       this.wsClient.addEventListener('message', messageHandler);
     }

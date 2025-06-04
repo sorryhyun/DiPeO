@@ -35,6 +35,8 @@ function BaseNodeComponent({
   
   // Use store values or fallback to props
   const isRunning = storeState?.isRunning ?? isRunningProp ?? false;
+  const isSkipped = storeState?.isSkipped ?? false;
+  const skipReason = storeState?.skipReason ?? '';
   const onUpdateData = updateNodeDataFromStore ?? onUpdateDataProp;
   const onUpdateNodeInternals = updateNodeInternalsFromStore ?? onUpdateNodeInternalsProp;
   const nodeConfigs = nodeConfigsFromStore ?? nodeConfigsProp;
@@ -91,8 +93,14 @@ function BaseNodeComponent({
   const baseClasses = 'relative p-2 border-2 rounded-lg transition-all duration-200';
   const stateClasses = isRunning 
     ? 'animate-pulse scale-105' 
+    : isSkipped 
+    ? 'opacity-75'
     : '';
-  const backgroundClass = isRunning ? 'bg-green-50' : 'bg-white';
+  const backgroundClass = isRunning 
+    ? 'bg-green-50' 
+    : isSkipped 
+    ? 'bg-yellow-50' 
+    : 'bg-white';
   
   const finalClassName = `${baseClasses} ${stateClasses} ${backgroundClass} ${effectiveClassName}`;
   
@@ -103,7 +111,9 @@ function BaseNodeComponent({
       data-node-color={effectiveBorderColor}
       data-node-selected={selected}
       data-node-running={isRunning}
+      data-node-skipped={isSkipped}
       className={finalClassName}
+      title={isSkipped ? `Skipped: ${skipReason}` : undefined}
     >
       {/* Add multiple visual indicators for running state */}
       {isRunning && (
@@ -111,6 +121,17 @@ function BaseNodeComponent({
           <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full animate-ping" />
           <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full" />
           <div className="absolute inset-0 bg-green-100 opacity-20 rounded-lg animate-pulse" />
+        </>
+      )}
+      
+      {/* Visual indicators for skipped state */}
+      {isSkipped && (
+        <>
+          <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-500 rounded-full" />
+          <div className="absolute inset-0 bg-yellow-100 opacity-20 rounded-lg" />
+          <div className="absolute top-1 right-1 text-xs text-yellow-700 font-medium">
+            SKIPPED
+          </div>
         </>
       )}
       

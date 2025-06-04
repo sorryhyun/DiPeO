@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect } from 'react';
 import { ConversationMessage } from '../types';
 
 interface UseMessagePollingProps {
@@ -11,76 +11,35 @@ interface UseMessagePollingProps {
 
 export const useMessagePolling = ({
   personId,
-  runContext,
-  lastUpdateTime,
+  runContext: _runContext, // No longer used - kept for backward compatibility
+  lastUpdateTime: _lastUpdateTime, // No longer used - kept for backward compatibility
   onNewMessage,
-  fetchConversationData
+  fetchConversationData: _fetchConversationData // No longer used - kept for backward compatibility
 }: UseMessagePollingProps) => {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const fetchConversationDataRef = useRef(fetchConversationData);
-
-  // Update the ref whenever fetchConversationData changes
-  useEffect(() => {
-    fetchConversationDataRef.current = fetchConversationData;
-  }, [fetchConversationData]);
-
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates via WebSocket/SSE
   useEffect(() => {
     const handleRealtimeUpdate = (event: CustomEvent) => {
       const { type, data } = event.detail;
 
-      if (type === 'message_added' && personId) {
-        // Add new message to the current view
-        const message = data.message as ConversationMessage;
-        onNewMessage(personId, message);
+      if (type === 'message_added' && data.personId) {
+        // Add new message to the current view if it matches the selected person
+        if (personId === data.personId || !personId) {
+          const message = data.message as ConversationMessage;
+          onNewMessage(data.personId, message);
+        }
       }
     };
 
-    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListener);
+    window.addEventListener('conversation-update', handleRealtimeUpdate as any);
     return () => {
-      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListener);
+      window.removeEventListener('conversation-update', handleRealtimeUpdate as any);
     };
   }, [personId, onNewMessage]);
 
-  // Start polling
-  const startPolling = useCallback(() => {
-    if (intervalRef.current) return; // Already polling
-
-    intervalRef.current = setInterval(() => {
-      // Check if we still have a selected person and last update time
-      if (personId && lastUpdateTime && fetchConversationDataRef.current) {
-        fetchConversationDataRef.current(personId, false, lastUpdateTime);
-      }
-    }, 5000); // Poll every 5 seconds
-  }, [personId, lastUpdateTime]);
-
-  // Stop polling
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  // Auto-start/stop polling based on conditions
-  useEffect(() => {
-    const hasRunContext = Object.keys(runContext).length > 0;
-
-    // Only start polling if we have a selected person and runContext
-    if (personId && hasRunContext) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-
-    return () => {
-      stopPolling();
-    };
-  }, [personId, runContext, startPolling, stopPolling]);
-
+  // Return empty functions for backward compatibility
   return {
-    startPolling,
-    stopPolling,
-    isPolling: intervalRef.current !== null
+    startPolling: () => {}, // No-op, we use real-time updates now
+    stopPolling: () => {}, // No-op
+    isPolling: false // Always false since we don't poll anymore
   };
 };

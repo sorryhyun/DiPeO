@@ -6,15 +6,12 @@ import { createErrorHandlerFactory, PersonDefinition } from '@/common/types';
 import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
 import { isApiKey, parseApiArrayResponse } from '@/common/utils/typeGuards';
 import { 
-  createUnifiedExecutionClient, 
-  type DiagramData, 
-  type ExecutionUpdate 
-} from '@/features/runtime/unified-execution-client';
-import { 
   createWebSocketExecutionClient,
-  type ExecutionUpdate as WSExecutionUpdate 
+  type DiagramData,
+  type ExecutionUpdate
 } from '@/features/runtime/websocket-execution-client';
 import { getWebSocketClient } from '@/features/runtime/websocket-client';
+import type { InteractivePromptData } from '@/features/runtime/components/InteractivePromptModal';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 
@@ -29,27 +26,33 @@ export const useDiagramRunner = () => {
     clearRunningNodes,
     setCurrentRunningNode,
     addRunningNode,
-    removeRunningNode
+    removeRunningNode,
+    skippedNodes
   } = useExecutionStore();
   const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [runError, setRunError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [interactivePrompt, setInteractivePrompt] = useState<InteractivePromptData | null>(null);
   
-  // Check if WebSocket execution is enabled
-  const useWebSocket = new URLSearchParams(window.location.search).has('websocket') || 
-                      new URLSearchParams(window.location.search).has('useWebSocket');
+  // Always use WebSocket execution (SSE has been deprecated)
+  const useWebSocket = true;
   
-  // Create appropriate execution client
+  // Create WebSocket execution client
   const executionClientRef = useRef(
-    useWebSocket 
-      ? createWebSocketExecutionClient(getWebSocketClient({ debug: true }))
-      : createUnifiedExecutionClient()
+    createWebSocketExecutionClient(getWebSocketClient({ debug: true }))
   );
   const isComponentMountedRef = useRef(true);
   
   useEffect(() => {
     if (useWebSocket) {
       console.log('[useDiagramRunner] Using WebSocket execution client');
+      // Set up interactive prompt handler for WebSocket
+      const wsClient = executionClientRef.current;
+      if ('setInteractivePromptHandler' in wsClient) {
+        wsClient.setInteractivePromptHandler((prompt: InteractivePromptData) => {
+          setInteractivePrompt(prompt);
+        });
+      }
     } else {
       console.log('[useDiagramRunner] Using SSE execution client');
     }
@@ -124,7 +127,7 @@ export const useDiagramRunner = () => {
           allowPartial: false,
           debugMode: false
         },
-        (update: ExecutionUpdate | WSExecutionUpdate) => {
+        (update: ExecutionUpdate) => {
           // Handle real-time execution updates
           if (!isComponentMountedRef.current) return;
           
@@ -173,12 +176,19 @@ export const useDiagramRunner = () => {
       }
       setRunStatus('success');
       
-      // Show cost if available
+      // Show execution summary
+      const skipCount = Object.keys(skippedNodes).length;
+      let summaryMessage = 'Execution completed successfully';
+      
       if (result.metadata?.totalCost && result.metadata.totalCost > 0) {
-        toast.success(`Execution completed. Total cost: $${result.metadata.totalCost.toFixed(4)}`);
-      } else {
-        toast.success('Execution completed successfully');
+        summaryMessage = `Execution completed. Total cost: $${result.metadata.totalCost.toFixed(4)}`;
       }
+      
+      if (skipCount > 0) {
+        summaryMessage += ` • ${skipCount} node${skipCount > 1 ? 's' : ''} skipped`;
+      }
+      
+      toast.success(summaryMessage);
       
       return result;
     } catch (error) {
@@ -217,6 +227,24 @@ export const useDiagramRunner = () => {
       executionClientRef.current.skipNode(nodeId);
     }
   }, [useWebSocket]);
+  
+  // Interactive prompt response handler
+  const sendInteractiveResponse = useCallback((nodeId: string, response: string) => {
+    if (useWebSocket && executionClientRef.current && 'sendInteractiveResponse' in executionClientRef.current) {
+      executionClientRef.current.sendInteractiveResponse(nodeId, response);
+      // Clear the prompt after sending response
+      setInteractivePrompt(null);
+    }
+  }, [useWebSocket]);
+  
+  // Cancel interactive prompt
+  const cancelInteractivePrompt = useCallback(() => {
+    setInteractivePrompt(null);
+    // Optionally send empty response to unblock execution
+    if (interactivePrompt && useWebSocket && executionClientRef.current && 'sendInteractiveResponse' in executionClientRef.current) {
+      executionClientRef.current.sendInteractiveResponse(interactivePrompt.nodeId, '');
+    }
+  }, [interactivePrompt, useWebSocket]);
 
   return {
     runStatus,
@@ -229,5 +257,9 @@ export const useDiagramRunner = () => {
     resumeNode,
     skipNode,
     isWebSocketEnabled: useWebSocket,
+    // Interactive prompt handling
+    interactivePrompt,
+    sendInteractiveResponse,
+    cancelInteractivePrompt,
   };
 };

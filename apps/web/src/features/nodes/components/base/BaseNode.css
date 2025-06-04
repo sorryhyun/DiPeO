@@ -60,8 +60,17 @@
   box-shadow: 0 0 0 4px var(--ring-color), 0 10px 15px -3px var(--shadow-color);
 }
 
+/* Skipped state */
+[data-node-skipped="true"] {
+  --border-color: rgb(250 204 21); /* yellow-400 */
+  --ring-color: rgb(253 224 71); /* yellow-300 */
+  --shadow-color: rgb(254 240 138); /* yellow-200 */
+  border-color: var(--border-color);
+  box-shadow: 0 0 0 2px var(--ring-color);
+}
+
 /* Hover effects */
-[data-node-color]:not([data-node-selected="true"]):not([data-node-running="true"]):hover {
+[data-node-color]:not([data-node-selected="true"]):not([data-node-running="true"]):not([data-node-skipped="true"]):hover {
   border-color: var(--border-color);
   box-shadow: 0 4px 6px -1px var(--shadow-color);
 }

@@ -13,27 +13,33 @@ export const useNodeExecutionState = (nodeId: string) => {
   const isRunning = runningNodes.includes(nodeId);
   const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
   const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
+  const skippedNodeInfo = useExecutionStore(state => state.skippedNodes[nodeId]);
+  const isSkipped = Boolean(skippedNodeInfo);
   
   // Debug logging for node execution state
   React.useEffect(() => {
-    if (isRunning || nodeRunningState) {
+    if (isRunning || nodeRunningState || isSkipped) {
       console.log(`[useNodeExecutionState] Node ${nodeId} state:`, {
         nodeId,
         isRunning,
         isCurrentRunning,
         nodeRunningState,
+        isSkipped,
+        skipReason: skippedNodeInfo?.reason,
         runningNodes,
         lastUpdate
       });
     }
-  }, [nodeId, isRunning, isCurrentRunning, nodeRunningState, runningNodes, lastUpdate]);
+  }, [nodeId, isRunning, isCurrentRunning, nodeRunningState, isSkipped, skippedNodeInfo, runningNodes, lastUpdate]);
   
   // Memoize the return object to prevent unnecessary re-renders
   return React.useMemo(() => ({
     isRunning,
     isCurrentRunning,
     nodeRunningState,
-  }), [isRunning, isCurrentRunning, nodeRunningState, lastUpdate]);
+    isSkipped,
+    skipReason: skippedNodeInfo?.reason,
+  }), [isRunning, isCurrentRunning, nodeRunningState, isSkipped, skippedNodeInfo?.reason, lastUpdate]);
 };
 
 // Single function selectors for common operations to avoid re-renders

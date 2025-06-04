@@ -10,6 +10,7 @@ export interface ExecutionState {
   runningNodes: string[];
   currentRunningNode: string | null;
   nodeRunningStates: Record<string, boolean>;
+  skippedNodes: Record<string, { reason: string; timestamp: number }>;
   lastUpdate?: number;
   
   // Stream connection
@@ -18,7 +19,7 @@ export interface ExecutionState {
   // Actions
   startExecution: (executionId: string) => void;
   completeExecution: () => void;
-  updateNodeStatus: (nodeId: string, status: 'running' | 'complete' | 'error') => void;
+  updateNodeStatus: (nodeId: string, status: 'running' | 'complete' | 'error' | 'skipped', reason?: string) => void;
   setRunContext: (context: Record<string, unknown>) => void;
   clearRunContext: () => void;
   setRunningNodes: (nodeIds: string[]) => void;
@@ -26,6 +27,7 @@ export interface ExecutionState {
   removeRunningNode: (nodeId: string) => void;
   clearRunningNodes: () => void;
   setCurrentRunningNode: (nodeId: string | null) => void;
+  addSkippedNode: (nodeId: string, reason: string) => void;
   
   // Stream management
   connectStream: (url: string) => void;
@@ -42,6 +44,7 @@ export const useExecutionStore = create<ExecutionState>()(
       runningNodes: [],
       currentRunningNode: null,
       nodeRunningStates: {},
+      skippedNodes: {},
       streamConnection: null,
 
       // Execution control
@@ -50,6 +53,7 @@ export const useExecutionStore = create<ExecutionState>()(
         executionId,
         runningNodes: [],
         nodeRunningStates: {},
+        skippedNodes: {},
         currentRunningNode: null
       }),
       
@@ -59,12 +63,18 @@ export const useExecutionStore = create<ExecutionState>()(
         currentRunningNode: null
       }),
       
-      updateNodeStatus: (nodeId, status) => {
+      updateNodeStatus: (nodeId, status, reason) => {
         if (status === 'running') {
           get().addRunningNode(nodeId);
           set({ currentRunningNode: nodeId });
         } else if (status === 'complete' || status === 'error') {
           get().removeRunningNode(nodeId);
+          if (get().currentRunningNode === nodeId) {
+            set({ currentRunningNode: null });
+          }
+        } else if (status === 'skipped' && reason) {
+          get().removeRunningNode(nodeId);
+          get().addSkippedNode(nodeId, reason);
           if (get().currentRunningNode === nodeId) {
             set({ currentRunningNode: null });
           }
@@ -115,6 +125,15 @@ export const useExecutionStore = create<ExecutionState>()(
       },
       clearRunningNodes: () => set({ runningNodes: [], nodeRunningStates: {} }),
       setCurrentRunningNode: (nodeId) => set({ currentRunningNode: nodeId }),
+      
+      addSkippedNode: (nodeId, reason) => {
+        set((state) => ({
+          skippedNodes: {
+            ...state.skippedNodes,
+            [nodeId]: { reason, timestamp: Date.now() }
+          }
+        }));
+      },
       
       // Stream management
       connectStream: (url) => {
