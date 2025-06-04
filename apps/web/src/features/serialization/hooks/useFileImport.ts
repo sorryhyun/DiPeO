@@ -1,6 +1,6 @@
 // Hook for importing diagrams from UML or YAML
 import React, { useCallback, ChangeEvent } from 'react';
-import { useDiagramOperationsStore } from '@/state/stores';
+import { loadDiagram } from '@/common/utils/diagramOperations';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
@@ -13,7 +13,6 @@ const createErrorHandler = createErrorHandlerFactory(toast);
 
 
 export const useFileImport = () => {
-  const { loadDiagram } = useDiagramOperationsStore();
   const { downloadYaml } = useDownload();
 
 
@@ -42,7 +41,7 @@ export const useFileImport = () => {
       undefined,
       errorHandler
     );
-  }, [loadDiagram]);
+  }, []);
 
   // Import from YAML (client-side parsing)
   const onImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +82,7 @@ export const useFileImport = () => {
     };
 
     reader.readAsText(file);
-  }, [loadDiagram]);
+  }, []);
 
   // Convert between formats
   const onConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +154,7 @@ export const useFileImport = () => {
     };
 
     reader.readAsText(file);
-  }, [loadDiagram]);
+  }, []);
 
   return {
     handleImportYAML,

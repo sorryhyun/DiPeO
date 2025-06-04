@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNodeArrowStore } from '@/state/stores';
+import { useDiagramStore } from '@/state/stores';
 
 // Base property form hook
 export function usePropertyFormBase<T extends Record<string, unknown>>(
@@ -37,7 +37,7 @@ export function usePropertyForm<T extends Record<string, unknown>>(
   nodeId: string,
   initialData: T
 ) {
-  const updateNodeData = useNodeArrowStore(state => state.updateNodeData);
+  const updateNodeData = useDiagramStore(state => state.updateNodeData);
   return usePropertyFormBase(initialData, (updates) => {
     updateNodeData(nodeId, updates);
   });

@@ -2,7 +2,7 @@
 import React, { useState, Suspense } from 'react';
 import { Button } from '@/common/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useNodeArrowStore, usePersonStore } from '@/state/stores';
+import { useDiagramStore } from '@/state/stores';
 import { usePersons, useSelectedElement, useUIState } from '@/state/hooks/useStoreSelectors';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
@@ -37,8 +37,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const nodes = useNodeArrowStore(state => state.nodes);
-  const arrows = useNodeArrowStore(state => state.arrows);
+  const nodes = useDiagramStore(state => state.nodes);
+  const arrows = useDiagramStore(state => state.arrows);
   const { setDashboardTab } = useUIState();
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
@@ -131,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                   systemPrompt: undefined
                 });
                 // Get the newly created person's ID and select it
-                const newPersonId = usePersonStore.getState().persons[usePersonStore.getState().persons.length - 1]?.id;
+                const newPersonId = useDiagramStore.getState().persons[useDiagramStore.getState().persons.length - 1]?.id;
                 if (newPersonId) {
                   handlePersonClick(newPersonId);
                 }

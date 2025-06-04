@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNodeArrowStore, usePersonStore, useMonitorStore } from '@/state/stores';
+import { useDiagramStore } from '@/state/stores';
 import { useExecutionStore } from '@/state/stores/executionStore';
 import { useConsolidatedUIStore } from '@/state/stores/consolidatedUIStore';
 
@@ -9,16 +9,11 @@ import { useConsolidatedUIStore } from '@/state/stores/consolidatedUIStore';
 export const useNodeExecutionState = (nodeId: string) => {
   // Subscribe to lastUpdate to force re-renders when execution state changes
   const lastUpdate = useExecutionStore(state => state.lastUpdate);
-  const isRunning = useExecutionStore(state => state.runningNodes.includes(nodeId));
+  const runningNodes = useExecutionStore(state => state.runningNodes);
+  const isRunning = runningNodes.includes(nodeId);
   const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
   const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
   
-  // Debug log when state changes
-  React.useEffect(() => {
-    if (isRunning) {
-      console.log(`[useNodeExecutionState] Node ${nodeId} is running`);
-    }
-  }, [isRunning, nodeId]);
   
   // Memoize the return object to prevent unnecessary re-renders
   return React.useMemo(() => ({
@@ -30,77 +25,69 @@ export const useNodeExecutionState = (nodeId: string) => {
 
 // Single function selectors for common operations to avoid re-renders
 export const useNodeDataUpdater = () => {
-  return useNodeArrowStore(state => state.updateNodeData);
+  return useDiagramStore(state => state.updateNodeData);
 };
 
 export const useArrowDataUpdater = () => {
-  return useNodeArrowStore(state => state.updateArrowData);
+  return useDiagramStore(state => state.updateArrowData);
 };
 
 // Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
-  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
-  const monitorNodes = useMonitorStore(state => state.monitorNodes);
-  const monitorArrows = useMonitorStore(state => state.monitorArrows);
-  const regularNodes = useNodeArrowStore(state => state.nodes);
-  const regularArrows = useNodeArrowStore(state => state.arrows);
-  const nodes = isMonitorMode ? monitorNodes : regularNodes;
-  const arrows = isMonitorMode ? monitorArrows : regularArrows;
-  const onNodesChange = useNodeArrowStore(state => state.onNodesChange);
-  const onArrowsChange = useNodeArrowStore(state => state.onArrowsChange);
-  const onConnect = useNodeArrowStore(state => state.onConnect);
-  const addNode = useNodeArrowStore(state => state.addNode);
-  const deleteNode = useNodeArrowStore(state => state.deleteNode);
-  const deleteArrow = useNodeArrowStore(state => state.deleteArrow);
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const nodes = useDiagramStore(state => state.nodes);
+  const arrows = useDiagramStore(state => state.arrows);
+  const onNodesChange = useDiagramStore(state => state.onNodesChange);
+  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
+  const onConnect = useDiagramStore(state => state.onConnect);
+  const addNode = useDiagramStore(state => state.addNode);
+  const deleteNode = useDiagramStore(state => state.deleteNode);
+  const deleteArrow = useDiagramStore(state => state.deleteArrow);
   
   // Memoize functions and object to prevent unnecessary re-renders
   return React.useMemo(() => ({
     nodes,
     arrows,
-    isMonitorMode,
+    isMonitorMode: isReadOnly,
     onNodesChange,
     onArrowsChange,
     onConnect,
     addNode,
     deleteNode,
     deleteArrow,
-  }), [nodes, arrows, isMonitorMode, onNodesChange, onArrowsChange, onConnect, addNode, deleteNode, deleteArrow]);
+  }), [nodes, arrows, isReadOnly, onNodesChange, onArrowsChange, onConnect, addNode, deleteNode, deleteArrow]);
 };
 
 // Person operations with monitor support
 export const usePersons = () => {
-  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
-  const monitorPersons = useMonitorStore(state => state.monitorPersons);
-  const regularPersons = usePersonStore(state => state.persons);
-  const persons = isMonitorMode ? monitorPersons : regularPersons;
-  const addPerson = usePersonStore(state => state.addPerson);
-  const updatePerson = usePersonStore(state => state.updatePerson);
-  const deletePerson = usePersonStore(state => state.deletePerson);
-  const getPersonById = usePersonStore(state => state.getPersonById);
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const persons = useDiagramStore(state => state.persons);
+  const addPerson = useDiagramStore(state => state.addPerson);
+  const updatePerson = useDiagramStore(state => state.updatePerson);
+  const deletePerson = useDiagramStore(state => state.deletePerson);
+  const getPersonById = useDiagramStore(state => state.getPersonById);
   
   return React.useMemo(() => ({
     persons,
-    isMonitorMode,
+    isMonitorMode: isReadOnly,
     addPerson,
     updatePerson,
     deletePerson,
     getPersonById,
-  }), [persons, isMonitorMode, addPerson, updatePerson, deletePerson, getPersonById]);
+  }), [persons, isReadOnly, addPerson, updatePerson, deletePerson, getPersonById]);
 };
 
 // Node operations with monitor support
 export const useNodes = () => {
-  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
-  const monitorNodes = useMonitorStore(state => state.monitorNodes);
-  const regularNodes = useNodeArrowStore(state => state.nodes);
-  const nodes = isMonitorMode ? monitorNodes : regularNodes;
-  const onNodesChange = useNodeArrowStore(state => state.onNodesChange);
-  const addNode = useNodeArrowStore(state => state.addNode);
-  const deleteNode = useNodeArrowStore(state => state.deleteNode);
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const nodes = useDiagramStore(state => state.nodes);
+  const onNodesChange = useDiagramStore(state => state.onNodesChange);
+  const addNode = useDiagramStore(state => state.addNode);
+  const deleteNode = useDiagramStore(state => state.deleteNode);
   
   return {
     nodes,
-    isMonitorMode,
+    isMonitorMode: isReadOnly,
     onNodesChange,
     addNode,
     deleteNode,
@@ -109,17 +96,15 @@ export const useNodes = () => {
 
 // Arrow operations with monitor support
 export const useArrows = () => {
-  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
-  const monitorArrows = useMonitorStore(state => state.monitorArrows);
-  const regularArrows = useNodeArrowStore(state => state.arrows);
-  const arrows = isMonitorMode ? monitorArrows : regularArrows;
-  const onArrowsChange = useNodeArrowStore(state => state.onArrowsChange);
-  const onConnect = useNodeArrowStore(state => state.onConnect);
-  const deleteArrow = useNodeArrowStore(state => state.deleteArrow);
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const arrows = useDiagramStore(state => state.arrows);
+  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
+  const onConnect = useDiagramStore(state => state.onConnect);
+  const deleteArrow = useDiagramStore(state => state.deleteArrow);
   
   return {
     arrows,
-    isMonitorMode,
+    isMonitorMode: isReadOnly,
     onArrowsChange,
     onConnect,
     deleteArrow,

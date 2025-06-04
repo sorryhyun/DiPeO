@@ -18,7 +18,7 @@ import {
   VariableDetectionTextArea
 } from './FormComponents';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
-import { useMonitorStore } from '@/state/stores';
+import { useDiagramStore } from '@/state/stores';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
@@ -38,7 +38,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const prevDepsRef = useRef<{ service?: string; apiKeyId?: string }>({});
   
   // Check if we're in monitor mode (read-only)
-  const isMonitorMode = useMonitorStore(state => state.isMonitorMode);
+  const isMonitorMode = useDiagramStore(state => state.isReadOnly);
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
@@ -460,7 +460,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
                 📊 Monitor Mode - Properties are read-only
               </p>
               <button
-                onClick={() => useMonitorStore.getState().clearMonitorDiagram()}
+                onClick={() => useDiagramStore.getState().clearDiagram()}
                 className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
               >
                 Exit Monitor Mode
@@ -484,7 +484,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
               📊 Monitor Mode - Properties are read-only
             </p>
             <button
-              onClick={() => useMonitorStore.getState().clearMonitorDiagram()}
+              onClick={() => useDiagramStore.getState().clearDiagram()}
               className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
             >
               Exit Monitor Mode

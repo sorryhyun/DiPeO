@@ -8,7 +8,7 @@ export interface ArrowValidation {
 }
 
 export interface DependencyInfo {
-  nodeId: string;
+  node_id: string;
   dependenciesMet: boolean;
   validArrows: Arrow[];
   missingDependencies: string[];

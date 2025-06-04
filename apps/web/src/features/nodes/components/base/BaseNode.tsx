@@ -1,12 +1,11 @@
 import React from 'react';
-import { Position } from '@xyflow/react';
+import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/common/components';
-import { BaseNodeProps, HandleConfig } from '@/common/types';
+import { BaseNodeProps, HandleConfig, getUnifiedNodeConfigsByReactFlowType } from '@/common/types';
 import { createHandleId } from '@/common/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
-import { useNodeExecutionState } from '@/state/hooks/useStoreSelectors';
-import { useDiagramContext } from '@/state/contexts/useDiagramContext';
+import { useNodeExecutionState, useNodeDataUpdater } from '@/state/hooks/useStoreSelectors';
 import './BaseNode.css';
 
 function BaseNodeComponent({
@@ -30,13 +29,15 @@ function BaseNodeComponent({
   
   // Always call hooks at the top level - React requires this
   const storeState = useNodeExecutionState(id);
-  const storeContext = useDiagramContext();
+  const updateNodeDataFromStore = useNodeDataUpdater();
+  const updateNodeInternalsFromStore = useUpdateNodeInternals();
+  const nodeConfigsFromStore = React.useMemo(() => getUnifiedNodeConfigsByReactFlowType(), []);
   
   // Use store values or fallback to props
   const isRunning = storeState?.isRunning ?? isRunningProp ?? false;
-  const onUpdateData = storeContext?.updateNodeData ?? onUpdateDataProp;
-  const onUpdateNodeInternals = storeContext?.updateNodeInternals ?? onUpdateNodeInternalsProp;
-  const nodeConfigs = storeContext?.nodeConfigs ?? nodeConfigsProp;
+  const onUpdateData = updateNodeDataFromStore ?? onUpdateDataProp;
+  const onUpdateNodeInternals = updateNodeInternalsFromStore ?? onUpdateNodeInternalsProp;
+  const nodeConfigs = nodeConfigsFromStore ?? nodeConfigsProp;
   
   // Check if node is flipped
   const isFlipped = data && typeof data === 'object' && 'flipped' in data && data.flipped === true;

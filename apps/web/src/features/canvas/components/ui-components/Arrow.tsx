@@ -163,7 +163,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
               ) : arrowData?.contentType && (
                 <span>
                   {arrowData.contentType === 'conversation_state' ? '💬' :
-                   arrowData.contentType === 'variable_in_object' ? '📦' : 
+                   arrowData.contentType === 'variable_in_object' ? '📦' :
                    '📝'}
                 </span>
               )}

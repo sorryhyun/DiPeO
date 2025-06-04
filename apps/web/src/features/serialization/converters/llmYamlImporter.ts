@@ -248,7 +248,7 @@ export class LLMYamlImporter {
             type: 'person_job',
             defaultPrompt: data.prompts?.[name] || '',
             firstOnlyPrompt: '',
-            contextCleaningRule: 'uponRequest',
+            contextCleaningRule: 'upon_request',
             iterationCount: 1,
             mode: 'sync',
             detectedVariables: this.detectVariables(data.prompts?.[name] || '')
@@ -298,7 +298,7 @@ export class LLMYamlImporter {
             type: 'person_job',
             defaultPrompt: '',
             firstOnlyPrompt: '',
-            contextCleaningRule: 'uponRequest',
+            contextCleaningRule: 'upon_request',
             iterationCount: 1,
             mode: 'sync',
             detectedVariables: []

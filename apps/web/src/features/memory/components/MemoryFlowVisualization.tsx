@@ -1,10 +1,9 @@
 import React from 'react';
-import { usePersonStore, useNodeArrowStore, useExecutionStore } from '@/state/stores';
+import { useDiagramStore, useExecutionStore } from '@/state/stores';
 import { Users, MessageSquare, Database, Zap } from 'lucide-react';
 
 const MemoryFlowVisualization: React.FC = () => {
-  const { persons } = usePersonStore();
-  const { nodes, arrows } = useNodeArrowStore();
+  const { persons, nodes, arrows } = useDiagramStore();
   const { runContext } = useExecutionStore();
 
   // Get person job nodes to position memory beneath them

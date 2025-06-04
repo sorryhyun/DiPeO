@@ -3,13 +3,22 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 export interface ExecutionState {
+  // Execution state
+  isExecuting: boolean;
+  executionId: string | null;
   runContext: Record<string, unknown>;
   runningNodes: string[];
   currentRunningNode: string | null;
-  nodeRunningStates: Record<string, boolean>; // Add this to track running states
-  lastUpdate?: number; // Force re-renders with timestamp
-
+  nodeRunningStates: Record<string, boolean>;
+  lastUpdate?: number;
+  
+  // Stream connection
+  streamConnection: EventSource | null;
+  
   // Actions
+  startExecution: (executionId: string) => void;
+  completeExecution: () => void;
+  updateNodeStatus: (nodeId: string, status: 'running' | 'complete' | 'error') => void;
   setRunContext: (context: Record<string, unknown>) => void;
   clearRunContext: () => void;
   setRunningNodes: (nodeIds: string[]) => void;
@@ -17,22 +26,58 @@ export interface ExecutionState {
   removeRunningNode: (nodeId: string) => void;
   clearRunningNodes: () => void;
   setCurrentRunningNode: (nodeId: string | null) => void;
+  
+  // Stream management
+  connectStream: (url: string) => void;
+  disconnectStream: () => void;
 }
 
 export const useExecutionStore = create<ExecutionState>()(
   devtools(
-    (set) => ({
+    (set, get) => ({
+      // State
+      isExecuting: false,
+      executionId: null,
       runContext: {},
       runningNodes: [],
       currentRunningNode: null,
-      nodeRunningStates: {}, // Add this to track running states
+      nodeRunningStates: {},
+      streamConnection: null,
 
+      // Execution control
+      startExecution: (executionId) => set({ 
+        isExecuting: true, 
+        executionId,
+        runningNodes: [],
+        nodeRunningStates: {},
+        currentRunningNode: null
+      }),
+      
+      completeExecution: () => set({ 
+        isExecuting: false, 
+        executionId: null,
+        currentRunningNode: null
+      }),
+      
+      updateNodeStatus: (nodeId, status) => {
+        if (status === 'running') {
+          get().addRunningNode(nodeId);
+          set({ currentRunningNode: nodeId });
+        } else if (status === 'complete' || status === 'error') {
+          get().removeRunningNode(nodeId);
+          if (get().currentRunningNode === nodeId) {
+            set({ currentRunningNode: null });
+          }
+        }
+      },
+
+      // Context management
       setRunContext: (context) => set({ runContext: context }),
       clearRunContext: () => set({ runContext: {} }),
 
+      // Node tracking
       setRunningNodes: (nodeIds) => set({ runningNodes: nodeIds }),
       addRunningNode: (nodeId) => {
-        console.log('[ExecutionStore] Adding running node:', nodeId);
         set((state) => ({
           runningNodes: state.runningNodes.includes(nodeId) 
             ? state.runningNodes 
@@ -56,6 +101,25 @@ export const useExecutionStore = create<ExecutionState>()(
       },
       clearRunningNodes: () => set({ runningNodes: [], nodeRunningStates: {} }),
       setCurrentRunningNode: (nodeId) => set({ currentRunningNode: nodeId }),
+      
+      // Stream management
+      connectStream: (url) => {
+        const currentConnection = get().streamConnection;
+        if (currentConnection) {
+          currentConnection.close();
+        }
+        
+        const eventSource = new EventSource(url);
+        set({ streamConnection: eventSource });
+      },
+      
+      disconnectStream: () => {
+        const connection = get().streamConnection;
+        if (connection) {
+          connection.close();
+          set({ streamConnection: null });
+        }
+      },
     }),
     {
       name: 'execution-store',

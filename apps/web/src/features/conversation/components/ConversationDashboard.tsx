@@ -4,7 +4,7 @@ import {
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
 import { Button, Input, Select, SelectItem } from '@/common/components';
-import { downloadJson } from '@/common/utils/downloadUtils';
+import { useDownload } from '@/features/serialization/hooks/useDownload';
 import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '@/state/hooks/useStoreSelectors';
 import { useConversationData, useMessagePolling } from '../hooks';
@@ -82,7 +82,9 @@ const ConversationDashboard: React.FC = () => {
   }, [dashboardSelectedPerson, conversationData, isLoadingMore, fetchMore]);
 
   // Export conversations
-  const exportConversations = () => {
+  const { downloadJson } = useDownload();
+  
+  const exportConversations = async () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
 
     const data = conversationData[dashboardSelectedPerson];

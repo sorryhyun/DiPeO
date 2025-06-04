@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/common/components';
-import { useApiKeyStore, useDiagramOperationsStore, useMonitorStore } from '@/state/stores';
+import { useApiKeyStore, useDiagramStore } from '@/state/stores';
 import { useUIState } from '@/state/hooks/useStoreSelectors';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
@@ -23,9 +23,9 @@ const TopBar = () => {
   const apiKeys = useApiKeyStore(state => state.apiKeys);
   const addApiKey = useApiKeyStore(state => state.addApiKey);
   const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
-  const clearDiagram = useDiagramOperationsStore(state => state.clearDiagram);
-  const clearMonitorDiagram = useMonitorStore(state => state.clearMonitorDiagram);
-  const storeIsMonitorMode = useMonitorStore(state => state.isMonitorMode);
+  const clearDiagramAction = useDiagramStore(state => state.clearDiagram);
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const setReadOnly = useDiagramStore(state => state.setReadOnly);
   const { onImportJSON } = useFileImport();
   const { onSaveToDirectory } = useExport();
   const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
@@ -93,7 +93,7 @@ const TopBar = () => {
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
             onClick={() => {
               if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
-                clearDiagram();
+                clearDiagramAction();
                 toast.success('Created new diagram');
               }
             }}
@@ -154,7 +154,7 @@ const TopBar = () => {
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
           </div>
         </div>
-        {(isMonitorMode || storeIsMonitorMode) && (
+        {(isMonitorMode || isReadOnly) && (
           <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -164,7 +164,12 @@ const TopBar = () => {
             <button
               onClick={() => {
                 setIsExitingMonitor(true);
-                clearMonitorDiagram();
+                clearDiagramAction();
+                setReadOnly(false);
+                // Remove monitor param from URL
+                const url = new URL(window.location.href);
+                url.searchParams.delete('monitor');
+                window.history.replaceState({}, '', url.toString());
                 toast.success('Exited monitor mode');
                 setTimeout(() => setIsExitingMonitor(false), 300);
               }}

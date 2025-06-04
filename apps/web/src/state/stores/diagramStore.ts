@@ -7,9 +7,12 @@ import {
 import { nanoid } from 'nanoid';
 import {
   ArrowData, DiagramNode, DiagramNodeData,
-  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow
+  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
+  DiagramState, PersonDefinition, ApiKey
 } from '@/common/types';
 import { getNodeConfig } from '@/common/types/nodeConfig';
+import { sanitizeDiagram } from "@/features/serialization/utils/diagramSanitizer";
+import { createPersonCrudActions } from "@/common/utils/storeCrudUtils";
 
 // Factory function to create default node data based on node config
 function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
@@ -88,10 +91,58 @@ function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
   return baseData as DiagramNodeData;
 }
 
-export interface NodeArrowState {
+const syncConditionArrows = (arrows: Arrow[], nodes: DiagramNode[]) => {
+  const updatedArrows = [...arrows];
+  let hasChanges = false;
+
+  // Find all condition nodes
+  const conditionNodes = nodes.filter(n => n.data.type === 'condition');
+
+  conditionNodes.forEach(conditionNode => {
+    const inputArrows = arrows.filter(a => a.target === conditionNode.id);
+    const outputArrows = arrows.filter(a =>
+      a.source === conditionNode.id &&
+      a.data?.inheritedContentType
+    );
+
+    if (inputArrows.length > 0 && outputArrows.length > 0) {
+      const primaryInputArrow = inputArrows[0];
+      const inputContentType = primaryInputArrow?.data?.contentType || 'generic';
+
+      // Update output arrows if needed
+      outputArrows.forEach(arrow => {
+        if (arrow.data?.contentType !== inputContentType) {
+          const index = updatedArrows.findIndex(a => a.id === arrow.id);
+          if (index !== -1) {
+            updatedArrows[index] = {
+              ...arrow,
+              data: {
+                ...arrow.data,
+                contentType: inputContentType
+              } as ArrowData
+            };
+            hasChanges = true;
+          }
+        }
+      });
+    }
+  });
+
+  return hasChanges ? updatedArrows : arrows;
+};
+
+export interface DiagramStore {
+  // Single source of truth for diagram data
   nodes: DiagramNode[];
   arrows: Arrow[];
-
+  persons: PersonDefinition[];
+  apiKeys: ApiKey[];
+  
+  // Mode flags
+  isReadOnly: boolean;  // For monitor mode or viewing external diagrams
+  source: 'local' | 'external';  // Where the diagram came from
+  
+  // Node/Arrow operations
   onNodesChange: OnNodesChange;
   onArrowsChange: OnArrowsChange;
   onConnect: OnConnect;
@@ -101,29 +152,53 @@ export interface NodeArrowState {
   updateArrowData: (arrowId: string, data: Partial<ArrowData>) => void;
   deleteArrow: (arrowId: string) => void;
   
+  // Person operations (CRUD)
+  addPerson: (person: Omit<PersonDefinition, 'id'>) => void;
+  updatePerson: (personId: string, data: Partial<PersonDefinition>) => void;
+  deletePerson: (personId: string) => void;
+  getPersonById: (personId: string) => PersonDefinition | undefined;
+  clearPersons: () => void;
+  setPersons: (persons: PersonDefinition[]) => void;
+  
   // Batch operations
   setNodes: (nodes: DiagramNode[]) => void;
   setArrows: (arrows: Arrow[]) => void;
-  clearNodesAndArrows: () => void;
+  
+  // Mode control
+  setReadOnly: (readOnly: boolean) => void;
+  loadDiagram: (diagram: DiagramState, source: 'local' | 'external') => void;
+  clearDiagram: () => void;
+  exportDiagram: () => DiagramState;
 }
 
-export const useNodeArrowStore = create<NodeArrowState>()(
+export const useDiagramStore = create<DiagramStore>()(
   devtools(
     persist(
       subscribeWithSelector(
         (set, get) => ({
           nodes: [],
           arrows: [],
+          persons: [],
+          apiKeys: [],
+          isReadOnly: false,
+          source: 'local',
 
           onNodesChange: (changes) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
             set({ nodes: applyNodeChanges(changes, get().nodes) as DiagramNode[] });
           },
 
           onArrowsChange: (changes) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
             set({ arrows: applyArrowChanges(changes, get().arrows) as Arrow<ArrowData>[] });
           },
 
           onConnect: (connection: Connection) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
+            
             const arrowId = `arrow-${nanoid().slice(0, 6).replace(/-/g, '_')}`;
             const state = get();
             const sourceNode = state.nodes.find(n => n.id === connection.source);
@@ -179,9 +254,17 @@ export const useNodeArrowStore = create<NodeArrowState>()(
               }
             };
             set({ arrows: addArrow(newArrow, get().arrows) });
+
+            const syncedArrows = syncConditionArrows(state.arrows, state.nodes);
+            if (syncedArrows !== state.arrows) {
+              set({ arrows: syncedArrows });
+            }
           },
 
           addNode: (type: string, position: { x: number; y: number }) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
+            
             const reactFlowType = getReactFlowType(type);
             const nodeId = `${reactFlowType}-${nanoid().slice(0, 6).replace(/-/g, '_')}`;
             
@@ -198,6 +281,9 @@ export const useNodeArrowStore = create<NodeArrowState>()(
           },
 
           updateNodeData: (nodeId: string, data: Partial<DiagramNodeData>) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
+            
             set({
               nodes: get().nodes.map(node =>
                 node.id === nodeId ? { ...node, data: { ...node.data, ...data } as DiagramNodeData } : node
@@ -206,6 +292,9 @@ export const useNodeArrowStore = create<NodeArrowState>()(
           },
 
           deleteNode: (nodeId: string) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
+            
             set({
               nodes: get().nodes.filter(node => node.id !== nodeId),
               arrows: get().arrows.filter(arrow => 
@@ -215,6 +304,9 @@ export const useNodeArrowStore = create<NodeArrowState>()(
           },
 
           updateArrowData: (arrowId: string, data: Partial<ArrowData>) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
+            
             const state = get();
             const updatedArrows = state.arrows.map(arrow =>
               arrow.id === arrowId ? { 
@@ -246,11 +338,14 @@ export const useNodeArrowStore = create<NodeArrowState>()(
                 return;
               }
             }
-            
-            set({ arrows: updatedArrows });
+            const syncedArrows = syncConditionArrows(updatedArrows, state.nodes);
+            set({ arrows: syncedArrows });
           },
 
           deleteArrow: (arrowId: string) => {
+            const { isReadOnly } = get();
+            if (isReadOnly) return;
+            
             const state = get();
             const arrowToDelete = state.arrows.find(a => a.id === arrowId);
             const remainingArrows = state.arrows.filter(arrow => arrow.id !== arrowId);
@@ -296,6 +391,17 @@ export const useNodeArrowStore = create<NodeArrowState>()(
             set({ arrows: remainingArrows });
           },
           
+          // Person operations using generic CRUD
+          ...createPersonCrudActions<PersonDefinition>(
+            () => get().persons,
+            (persons) => set({ persons }),
+            'PERSON'
+          ),
+          
+          setPersons: (persons: PersonDefinition[]) => {
+            set({ persons });
+          },
+          
           // Batch operations
           setNodes: (nodes: DiagramNode[]) => {
             set({ nodes });
@@ -307,7 +413,7 @@ export const useNodeArrowStore = create<NodeArrowState>()(
             const processedArrows = arrows.map(arrow => {
               const sourceNode = nodes.find(n => n.id === arrow.source);
               const isFromStartNode = sourceNode?.data.type === 'start';
-              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false' || arrow.data?.branch === 'true' || arrow.data?.branch === 'false';
               
               if (arrow.data) {
                 if (isFromStartNode) {
@@ -344,22 +450,86 @@ export const useNodeArrowStore = create<NodeArrowState>()(
               }
               return arrow;
             });
+            const syncedArrows = syncConditionArrows(processedArrows, nodes);
+            set({ arrows: syncedArrows });
+          },
+
+          setReadOnly: (readOnly) => set({ isReadOnly: readOnly }),
+          
+          loadDiagram: (diagram, source) => {
+            const sanitized = sanitizeDiagram(diagram);
+            console.log('[DiagramStore] Loading diagram with', sanitized.nodes?.length || 0, 'nodes, source:', source);
             
-            set({ arrows: processedArrows });
+            // Process arrows to set proper content type based on source node
+            const nodes = (sanitized.nodes || []) as DiagramNode[];
+            const arrows = ((sanitized.arrows || []) as Arrow[]).map(arrow => {
+              const sourceNode = nodes.find(n => n.id === arrow.source);
+              const isFromStartNode = sourceNode?.data.type === 'start';
+              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+              
+              if (arrow.data) {
+                if (isFromStartNode) {
+                  return {
+                    ...arrow,
+                    data: {
+                      ...arrow.data,
+                      content_type: 'empty' as const
+                    }
+                  };
+                } else if (isFromConditionBranch) {
+                  return {
+                    ...arrow,
+                    data: {
+                      ...arrow.data,
+                      content_type: 'generic' as const
+                    }
+                  };
+                }
+              }
+              return arrow;
+            });
+            
+            set({
+              nodes,
+              arrows,
+              persons: sanitized.persons || [],
+              apiKeys: sanitized.apiKeys || [],
+              source,
+              isReadOnly: source === 'external'
+            });
           },
           
-          clearNodesAndArrows: () => {
-            set({ nodes: [], arrows: [] });
+          clearDiagram: () => {
+            set({
+              nodes: [],
+              arrows: [],
+              persons: [],
+              apiKeys: [],
+              isReadOnly: false,
+              source: 'local'
+            });
+          },
+          
+          exportDiagram: (): DiagramState => {
+            const { nodes, arrows, persons, apiKeys } = get();
+            return sanitizeDiagram({
+              nodes,
+              arrows,
+              persons,
+              apiKeys
+            });
           },
         })
       ),
       {
-        name: 'dipeo-node-arrow-store',
-        // Only persist nodes and arrows, not functions
-        partialize: (state) => ({ 
+        name: 'dipeo-diagram-store',
+        // Only persist local diagrams
+        partialize: (state) => state.source === 'local' ? { 
           nodes: state.nodes, 
-          arrows: state.arrows 
-        }),
+          arrows: state.arrows,
+          persons: state.persons,
+          apiKeys: state.apiKeys
+        } : {},
       }
     )
   )

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useDiagramOperationsStore, useExecutionStore } from '@/state/stores';
+import { useExecutionStore } from '@/state/stores';
+import { exportDiagram } from '@/common/utils/diagramOperations';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/common/types';
 import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
@@ -17,7 +18,6 @@ type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
 
 export const useDiagramRunner = () => {
-  const { exportDiagram } = useDiagramOperationsStore();
   const {
     setRunContext,
     clearRunContext,
@@ -172,7 +172,7 @@ export const useDiagramRunner = () => {
         setRunStatus('fail');
       }
     }
-  }, [exportDiagram, clearRunningNodes, clearRunContext, setCurrentRunningNode, addRunningNode, removeRunningNode]);
+  }, [clearRunningNodes, clearRunContext, setCurrentRunningNode, addRunningNode, removeRunningNode]);
 
   return {
     runStatus,

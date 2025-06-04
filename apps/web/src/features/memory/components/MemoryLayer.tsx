@@ -1,11 +1,10 @@
 // apps/web/src/components/diagram/MemoryLayer.tsx
 import React from 'react';
-import { usePersonStore, useNodeArrowStore } from '@/state/stores';
+import { useDiagramStore } from '@/state/stores';
 import { MessageSquare, Database } from 'lucide-react';
 
 const MemoryLayer: React.FC = () => {
-  const { persons } = usePersonStore();
-  const { nodes } = useNodeArrowStore();
+  const { persons, nodes } = useDiagramStore();
   // Execution store available if needed
   // const { runContext } = useExecutionStore();
 

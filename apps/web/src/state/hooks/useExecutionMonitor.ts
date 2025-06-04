@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useExecutionStore, useMonitorStore } from '@/state/stores';
+import { useExecutionStore, useDiagramStore } from '@/state/stores';
 import { toast } from 'sonner';
 import { getStreamingUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
 
@@ -12,7 +12,7 @@ export const useExecutionMonitor = () => {
     setCurrentRunningNode,
     setRunContext
   } = useExecutionStore();
-  const { loadMonitorDiagram } = useMonitorStore();
+  const loadDiagram = useDiagramStore(state => state.loadDiagram);
 
   useEffect(() => {
     let isComponentMounted = true;
@@ -36,7 +36,7 @@ export const useExecutionMonitor = () => {
         }
       };
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = async (event) => {
         if (!isComponentMounted) return;
 
         try {
@@ -61,7 +61,10 @@ export const useExecutionMonitor = () => {
               if (data.from_monitor || data.from_cli) {
                 toast.info(`External execution started: ${data.execution_id}`);
                 if (data.diagram) {
-                  loadMonitorDiagram(data.diagram);
+                  console.log('[Monitor] Loading diagram from execution_started event');
+                  loadDiagram(data.diagram, 'external');
+                  // Small delay to ensure diagram is loaded before processing node events
+                  await new Promise(resolve => setTimeout(resolve, 100));
                 }
               }
               break;
@@ -140,7 +143,7 @@ export const useExecutionMonitor = () => {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [addRunningNode, removeRunningNode, setCurrentRunningNode, setRunContext, loadMonitorDiagram]);
+  }, [addRunningNode, removeRunningNode, setCurrentRunningNode, setRunContext, loadDiagram]);
 
   return null;
 };

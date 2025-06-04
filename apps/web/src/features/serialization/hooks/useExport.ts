@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useDiagramOperationsStore } from '@/state/stores';
+import { exportDiagram } from '@/common/utils/diagramOperations';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';
@@ -11,7 +11,6 @@ const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useExport = () => {
-  const { exportDiagram } = useDiagramOperationsStore();
   const { downloadYaml, downloadJson } = useDownload();
 
   // Export as clean YAML

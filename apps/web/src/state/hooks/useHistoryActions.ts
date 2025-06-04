@@ -1,12 +1,11 @@
 // Hook for history (undo/redo) actions
 import { useCallback } from 'react';
-import { useHistoryStore, useNodeArrowStore, usePersonStore, useDiagramOperationsStore } from '@/state/stores';
+import { useHistoryStore, useDiagramStore } from '@/state/stores';
+import { loadDiagram } from '@/common/utils/diagramOperations';
 
 export const useHistoryActions = () => {
   const { undo, redo, canUndo, canRedo, saveToHistory, clearHistory, initializeHistory } = useHistoryStore();
-  const { nodes, arrows } = useNodeArrowStore();
-  const { persons } = usePersonStore();
-  const { loadDiagram } = useDiagramOperationsStore();
+  const { nodes, arrows, persons } = useDiagramStore();
 
   // Save current state before making changes
   const saveCurrentState = useCallback(() => {
