@@ -201,7 +201,7 @@ def export_uml(diagram: Dict[str, Any]) -> str:
 
 
 def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = None):
-    """Broadcast diagram structure to browser monitors."""
+    """Broadcast diagram structure to browser monitors via WebSocket."""
     try:
         import uuid
         from datetime import datetime
@@ -214,6 +214,7 @@ def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = N
             "from_cli": True
         }
         
+        # First try the SSE broadcast endpoint (still available)
         response = requests.post(f"{API_URL}/api/monitor/broadcast", json=event_data)
         return response.status_code == 200
     except Exception:

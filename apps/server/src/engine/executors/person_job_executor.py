@@ -180,6 +180,9 @@ class PersonJobExecutor(BaseExecutor):
         system_prompt = person_config.get("systemPrompt", "")
         person_id = person_config.get("id", node_id)
         
+        # Check if this is an interactive node
+        is_interactive = properties.get("interactive", False)
+        
         # Handle context cleaning rule (forgetting) BEFORE making LLM call
         context_cleaning_rule = properties.get("contextCleaningRule", "no_forget")
         
@@ -238,6 +241,29 @@ class PersonJobExecutor(BaseExecutor):
             
             # Add current prompt as user message
             messages.append({"role": "user", "content": final_prompt})
+            
+            # Handle interactive mode - wait for user input before proceeding
+            if is_interactive and context.interactive_handler:
+                logger.info(f"PersonJob {node_id} requesting interactive input")
+                
+                # Send interactive prompt request
+                user_response = await context.interactive_handler(
+                    node_id=node_id,
+                    prompt=final_prompt,
+                    context={
+                        "person_id": person_id,
+                        "person_name": properties.get("label", person_config.get("name", "Person")),
+                        "model": model,
+                        "service": service,
+                        "execution_count": execution_count
+                    }
+                )
+                
+                # If user provided input, add it to the conversation
+                if user_response:
+                    messages.append({"role": "user", "content": user_response})
+                    # Also update the prompt for memory tracking
+                    final_prompt = f"{final_prompt}\n\nUser response: {user_response}"
             
             # Make LLM call
             logger.debug(f"PersonJob {node_id} executing: count={execution_count}, max_iterations={max_iterations}, history_messages={len(conversation_history)}, prompt={final_prompt[:50]}...")

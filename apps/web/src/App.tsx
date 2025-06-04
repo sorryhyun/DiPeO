@@ -15,6 +15,8 @@ const LazyWebSocketTest = React.lazy(() => import('@/features/runtime/components
 function App() {
   const { setReadOnly } = useDiagramStore();
   const { activeCanvas } = useUIState();
+  const params = new URLSearchParams(window.location.search);
+  const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
   
   useEffect(() => {
     const checkMonitorMode = () => {
@@ -41,7 +43,16 @@ function App() {
     };
   }, [setReadOnly]);
 
+  // Use execution monitor - it will automatically use WebSocket when available
   useExecutionMonitor();
+  
+  // Show WebSocket status when enabled via feature flag
+  useEffect(() => {
+    if (useWebSocket) {
+      console.log('[App] WebSocket monitoring enabled via feature flag');
+    }
+  }, [useWebSocket]);
+  
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col">

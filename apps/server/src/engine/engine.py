@@ -34,6 +34,7 @@ class ExecutionContext:
     api_keys: Dict[str, str] = field(default_factory=dict)
     persons: Dict[str, Dict] = field(default_factory=dict)
     execution_id: Optional[str] = None
+    interactive_handler: Optional[Any] = None  # Callback for interactive prompts
 
 
 class UnifiedExecutionEngine:
@@ -147,6 +148,9 @@ class UnifiedExecutionEngine:
                 
                 # Set execution_id from options if provided
                 context.execution_id = options.get("execution_id", f"exec_{int(time.time() * 1000)}")
+                
+                # Set interactive handler if provided
+                context.interactive_handler = options.get("interactive_handler")
                 
                 # Create execution plan
                 plan = self.execution_planner.create_execution_plan(

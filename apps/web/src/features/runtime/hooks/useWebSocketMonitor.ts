@@ -7,6 +7,7 @@ import { useEffect, useCallback } from 'react';
 import { useWebSocket, useWebSocketMessage } from './useWebSocket';
 import { useExecutionStore, useDiagramStore } from '@/state/stores';
 import { toast } from 'sonner';
+import { DiagramState } from '@/common/types';
 
 export const useWebSocketMonitor = (enabled = false) => {
   const { isConnected, connectionState } = useWebSocket({ 
@@ -24,8 +25,8 @@ export const useWebSocketMonitor = (enabled = false) => {
   const loadDiagram = useDiagramStore(state => state.loadDiagram);
   const nodes = useDiagramStore(state => state.nodes);
   
-  const processNodeEvent = useCallback((data: any) => {
-    const nodeId = data.node_id || data.nodeId;
+  const processNodeEvent = useCallback((data: Record<string, unknown>) => {
+    const nodeId = (data.node_id || data.nodeId) as string;
     if (!nodeId) return;
     
     const nodeExists = nodes.some(n => n.id === nodeId);
@@ -50,13 +51,13 @@ export const useWebSocketMonitor = (enabled = false) => {
   }, [nodes, addRunningNode, removeRunningNode, setCurrentRunningNode]);
   
   // Handle execution started events
-  useWebSocketMessage('execution_started', (message) => {
+  useWebSocketMessage('execution_started', (message: Record<string, unknown>) => {
     console.log('[WebSocket Monitor] Execution started:', message);
     if (message.from_monitor || message.from_cli || message.is_external) {
       toast.info(`External execution started: ${message.execution_id}`);
-      if (message.diagram) {
+      if (message.diagram && typeof message.diagram === 'object') {
         console.log('[WebSocket Monitor] Loading diagram from execution_started event');
-        loadDiagram(message.diagram, 'external');
+        loadDiagram(message.diagram as DiagramState, 'external');
       }
     }
   });
@@ -67,10 +68,10 @@ export const useWebSocketMonitor = (enabled = false) => {
   useWebSocketMessage('node_skipped', processNodeEvent);
   
   // Handle execution complete
-  useWebSocketMessage('execution_complete', (message) => {
+  useWebSocketMessage('execution_complete', (message: Record<string, unknown>) => {
     console.log('[WebSocket Monitor] Execution complete:', message);
-    if (message.context) {
-      setRunContext(message.context);
+    if (message.context && typeof message.context === 'object') {
+      setRunContext(message.context as Record<string, unknown>);
     }
     if (message.from_monitor || message.from_cli || message.is_external) {
       toast.success('External execution completed');
@@ -78,7 +79,7 @@ export const useWebSocketMonitor = (enabled = false) => {
   });
   
   // Handle execution errors
-  useWebSocketMessage('execution_error', (message) => {
+  useWebSocketMessage('execution_error', (message: Record<string, unknown>) => {
     console.log('[WebSocket Monitor] Execution error:', message);
     if (message.from_monitor || message.from_cli || message.is_external) {
       toast.error(`External execution failed: ${message.error}`);
@@ -86,7 +87,7 @@ export const useWebSocketMonitor = (enabled = false) => {
   });
   
   // Handle heartbeat (for debugging)
-  useWebSocketMessage('heartbeat', (message) => {
+  useWebSocketMessage('heartbeat', (message: Record<string, unknown>) => {
     console.log('[WebSocket Monitor] Heartbeat received:', message.timestamp);
   });
   

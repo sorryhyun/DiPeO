@@ -10,6 +10,11 @@ import {
   type DiagramData, 
   type ExecutionUpdate 
 } from '@/features/runtime/unified-execution-client';
+import { 
+  createWebSocketExecutionClient,
+  type ExecutionUpdate as WSExecutionUpdate 
+} from '@/features/runtime/websocket-execution-client';
+import { getWebSocketClient } from '@/features/runtime/websocket-client';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 
@@ -30,9 +35,25 @@ export const useDiagramRunner = () => {
   const [runError, setRunError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
-  // Unified execution client
-  const executionClientRef = useRef(createUnifiedExecutionClient());
+  // Check if WebSocket execution is enabled
+  const useWebSocket = new URLSearchParams(window.location.search).has('websocket') || 
+                      new URLSearchParams(window.location.search).has('useWebSocket');
+  
+  // Create appropriate execution client
+  const executionClientRef = useRef(
+    useWebSocket 
+      ? createWebSocketExecutionClient(getWebSocketClient({ debug: true }))
+      : createUnifiedExecutionClient()
+  );
   const isComponentMountedRef = useRef(true);
+  
+  useEffect(() => {
+    if (useWebSocket) {
+      console.log('[useDiagramRunner] Using WebSocket execution client');
+    } else {
+      console.log('[useDiagramRunner] Using SSE execution client');
+    }
+  }, [useWebSocket]);
   
   // Manual stop function
   const stopExecution = useCallback(() => {
@@ -103,21 +124,25 @@ export const useDiagramRunner = () => {
           allowPartial: false,
           debugMode: false
         },
-        (update: ExecutionUpdate) => {
+        (update: ExecutionUpdate | WSExecutionUpdate) => {
           // Handle real-time execution updates
           if (!isComponentMountedRef.current) return;
           
+          // Handle both SSE and WebSocket update formats
+          const nodeId = 'node_id' in update ? update.node_id : 
+                        'nodeId' in update ? update.nodeId : undefined;
+          
           switch (update.type) {
             case 'node_start':
-              if (update.node_id) {
-                setCurrentRunningNode(update.node_id);
-                addRunningNode(update.node_id);
+              if (nodeId) {
+                setCurrentRunningNode(nodeId);
+                addRunningNode(nodeId);
               }
               break;
               
             case 'node_complete':
-              if (update.node_id) {
-                removeRunningNode(update.node_id);
+              if (nodeId) {
+                removeRunningNode(nodeId);
               }
               break;
               
@@ -174,11 +199,35 @@ export const useDiagramRunner = () => {
     }
   }, [clearRunningNodes, clearRunContext, setCurrentRunningNode, addRunningNode, removeRunningNode]);
 
+  // Execution control functions (only available with WebSocket)
+  const pauseNode = useCallback((nodeId: string) => {
+    if (useWebSocket && executionClientRef.current && 'pauseNode' in executionClientRef.current) {
+      executionClientRef.current.pauseNode(nodeId);
+    }
+  }, [useWebSocket]);
+  
+  const resumeNode = useCallback((nodeId: string) => {
+    if (useWebSocket && executionClientRef.current && 'resumeNode' in executionClientRef.current) {
+      executionClientRef.current.resumeNode(nodeId);
+    }
+  }, [useWebSocket]);
+  
+  const skipNode = useCallback((nodeId: string) => {
+    if (useWebSocket && executionClientRef.current && 'skipNode' in executionClientRef.current) {
+      executionClientRef.current.skipNode(nodeId);
+    }
+  }, [useWebSocket]);
+
   return {
     runStatus,
     runError,
     retryCount,
     onRunDiagram, // Primary unified execution
     stopExecution, // Manual stop function
+    // Control functions (WebSocket only)
+    pauseNode,
+    resumeNode,
+    skipNode,
+    isWebSocketEnabled: useWebSocket,
   };
 };

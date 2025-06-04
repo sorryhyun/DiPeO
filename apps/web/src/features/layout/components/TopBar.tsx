@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/common/components';
-import { useApiKeyStore, useDiagramStore } from '@/state/stores';
+import { useApiKeyStore, useDiagramStore, useExecutionStore } from '@/state/stores';
 import { useUIState } from '@/state/hooks/useStoreSelectors';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
@@ -28,8 +28,17 @@ const TopBar = () => {
   const setReadOnly = useDiagramStore(state => state.setReadOnly);
   const { onImportJSON } = useFileImport();
   const { onSaveToDirectory } = useExport();
-  const { runStatus, onRunDiagram, stopExecution } = useDiagramRunner();
+  const { 
+    runStatus, 
+    onRunDiagram, 
+    stopExecution,
+    pauseNode,
+    resumeNode,
+    skipNode,
+    isWebSocketEnabled 
+  } = useDiagramRunner();
   const { activeCanvas, toggleCanvas } = useUIState();
+  const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
   
   const createErrorHandler = createErrorHandlerFactory(toast);
   
@@ -132,13 +141,43 @@ const TopBar = () => {
 
         <div className="flex items-center space-x-4">
           {runStatus === 'running' ? (
-            <Button 
-              variant="outline" 
-              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
-              onClick={stopExecution}
-            >
-              ⏹️ Stop
-            </Button>
+            <>
+              <Button 
+                variant="outline" 
+                className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
+                onClick={stopExecution}
+              >
+                ⏹️ Stop
+              </Button>
+              {isWebSocketEnabled && currentRunningNode && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-none hover:from-yellow-600 hover:to-amber-600 shadow-md hover:shadow-lg transition-all"
+                    onClick={() => pauseNode(currentRunningNode)}
+                    title="Pause current node"
+                  >
+                    ⏸️ Pause
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg transition-all"
+                    onClick={() => resumeNode(currentRunningNode)}
+                    title="Resume current node"
+                  >
+                    ▶️ Resume
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all"
+                    onClick={() => skipNode(currentRunningNode)}
+                    title="Skip current node"
+                  >
+                    ⏭️ Skip
+                  </Button>
+                </>
+              )}
+            </>
           ) : (
             <Button 
               variant="outline" 
@@ -152,6 +191,9 @@ const TopBar = () => {
             {runStatus === 'running' && <span className="text-blue-600 animate-pulse">⚡ Running...</span>}
             {runStatus === 'success' && <span className="text-green-600">✅ Success</span>}
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
+            {isWebSocketEnabled && runStatus !== 'idle' && (
+              <span className="text-sm text-gray-500 ml-2">(WebSocket)</span>
+            )}
           </div>
         </div>
         {(isMonitorMode || isReadOnly) && (
