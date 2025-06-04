@@ -164,7 +164,10 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
                 <span>
                   {arrowData.contentType === 'conversation_state' ? '💬' :
                    arrowData.contentType === 'variable_in_object' ? '📦' :
-                   '📝'}
+                   arrowData.contentType === 'raw_text' ? '📝' :
+                   arrowData.contentType === 'empty' ? '⚪' :
+                   arrowData.contentType === 'generic' ? '🔄' :
+                   '📋'}
                 </span>
               )}
               {arrowData?.label && (

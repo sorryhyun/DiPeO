@@ -10,86 +10,9 @@ import {
   getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
   DiagramState, PersonDefinition, ApiKey
 } from '@/common/types';
-import { getNodeConfig } from '@/common/types/nodeConfig';
 import { sanitizeDiagram } from "@/features/serialization/utils/diagramSanitizer";
 import { createPersonCrudActions } from "@/common/utils/storeCrudUtils";
-
-// Factory function to create default node data based on node config
-function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
-  const config = getNodeConfig(type);
-  
-  if (!config) {
-    // Fallback for unknown types
-    return {
-      id: nodeId,
-      type: 'start' as const,
-      label: 'Unknown'
-    };
-  }
-  
-  // Base properties common to all nodes
-  const baseData: Record<string, unknown> = {
-    id: nodeId,
-    type,
-    label: config.label
-  };
-  
-  // Add type-specific properties based on config and defaults
-  switch (type) {
-    case 'start':
-      baseData.description = '';
-      break;
-      
-    case 'person_job':
-      baseData.personId = undefined;
-      baseData.llmApi = undefined;
-      baseData.apiKeyId = undefined;
-      baseData.modelName = undefined;
-      baseData.defaultPrompt = '';
-      baseData.firstOnlyPrompt = '';
-      baseData.detectedVariables = [];
-      baseData.contextCleaningRule = 'upon_request';
-      baseData.contextCleaningTurns = undefined;
-      baseData.iterationCount = 1;
-      break;
-      
-    case 'job':
-      baseData.subType = 'code';
-      baseData.sourceDetails = '';
-      baseData.description = '';
-      break;
-      
-    case 'condition':
-      baseData.conditionType = 'expression';
-      baseData.expression = '';
-      break;
-      
-    case 'db':
-      baseData.subType = 'fixed_prompt';
-      baseData.sourceDetails = 'Enter your fixed prompt or content here';
-      baseData.description = '';
-      break;
-      
-    case 'endpoint':
-      baseData.description = '';
-      baseData.saveToFile = false;
-      baseData.filePath = '';
-      baseData.fileFormat = 'json';
-      break;
-      
-    case 'person_batch_job':
-      baseData.personId = undefined;
-      baseData.batchPrompt = '';
-      baseData.batchSize = 10;
-      baseData.parallelProcessing = false;
-      baseData.aggregationMethod = 'concatenate';
-      baseData.customAggregationPrompt = '';
-      baseData.iterationCount = 1;
-      break;
-  }
-  
-  return baseData as DiagramNodeData;
-}
+import { createDefaultNodeData } from "@/common/utils/nodeDefaults";
 
 const syncConditionArrows = (arrows: Arrow[], nodes: DiagramNode[]) => {
   const updatedArrows = [...arrows];
@@ -102,7 +25,9 @@ const syncConditionArrows = (arrows: Arrow[], nodes: DiagramNode[]) => {
     const inputArrows = arrows.filter(a => a.target === conditionNode.id);
     const outputArrows = arrows.filter(a =>
       a.source === conditionNode.id &&
-      a.data?.inheritedContentType
+      (a.sourceHandle?.endsWith('-true') || a.sourceHandle?.endsWith('-false') || 
+       a.sourceHandle === 'true' || a.sourceHandle === 'false' || 
+       a.data?.branch === 'true' || a.data?.branch === 'false')
     );
 
     if (inputArrows.length > 0 && outputArrows.length > 0) {
@@ -118,7 +43,26 @@ const syncConditionArrows = (arrows: Arrow[], nodes: DiagramNode[]) => {
               ...arrow,
               data: {
                 ...arrow.data,
-                contentType: inputContentType
+                contentType: inputContentType,
+                inheritedContentType: true
+              } as ArrowData
+            };
+            hasChanges = true;
+          }
+        }
+      });
+    } else if (inputArrows.length === 0 && outputArrows.length > 0) {
+      // No input arrows yet, set output arrows to generic
+      outputArrows.forEach(arrow => {
+        if (arrow.data?.contentType !== 'generic') {
+          const index = updatedArrows.findIndex(a => a.id === arrow.id);
+          if (index !== -1) {
+            updatedArrows[index] = {
+              ...arrow,
+              data: {
+                ...arrow.data,
+                contentType: 'generic',
+                inheritedContentType: true
               } as ArrowData
             };
             hasChanges = true;
@@ -205,7 +149,8 @@ export const useDiagramStore = create<DiagramStore>()(
             
             // Determine content type based on source node
             const isFromStartNode = sourceNode?.data.type === 'start';
-            const isFromConditionBranch = connection.sourceHandle === 'true' || connection.sourceHandle === 'false';
+            const isFromConditionBranch = connection.sourceHandle === 'true' || connection.sourceHandle === 'false' || 
+                                         connection.sourceHandle?.endsWith('-true') || connection.sourceHandle?.endsWith('-false');
             
             let contentType: ArrowData['contentType'];
             
@@ -248,17 +193,16 @@ export const useDiagramStore = create<DiagramStore>()(
                 contentType,
                 // Set branch property for condition node arrows
                 ...(isFromConditionBranch && {
-                  branch: connection.sourceHandle as 'true' | 'false',
+                  branch: connection.sourceHandle?.endsWith('-true') ? 'true' : 
+                         connection.sourceHandle?.endsWith('-false') ? 'false' : 
+                         connection.sourceHandle as 'true' | 'false',
                   inheritedContentType: true
                 })
               }
             };
-            set({ arrows: addArrow(newArrow, get().arrows) });
-
-            const syncedArrows = syncConditionArrows(state.arrows, state.nodes);
-            if (syncedArrows !== state.arrows) {
-              set({ arrows: syncedArrows });
-            }
+            const newArrows = addArrow(newArrow, get().arrows);
+            const syncedArrows = syncConditionArrows(newArrows, get().nodes);
+            set({ arrows: syncedArrows });
           },
 
           addNode: (type: string, position: { x: number; y: number }) => {
@@ -413,7 +357,9 @@ export const useDiagramStore = create<DiagramStore>()(
             const processedArrows = arrows.map(arrow => {
               const sourceNode = nodes.find(n => n.id === arrow.source);
               const isFromStartNode = sourceNode?.data.type === 'start';
-              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false' || arrow.data?.branch === 'true' || arrow.data?.branch === 'false';
+              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false' || 
+                                           arrow.sourceHandle?.endsWith('-true') || arrow.sourceHandle?.endsWith('-false') ||
+                                           arrow.data?.branch === 'true' || arrow.data?.branch === 'false';
               
               if (arrow.data) {
                 if (isFromStartNode) {
@@ -465,7 +411,9 @@ export const useDiagramStore = create<DiagramStore>()(
             const arrows = ((sanitized.arrows || []) as Arrow[]).map(arrow => {
               const sourceNode = nodes.find(n => n.id === arrow.source);
               const isFromStartNode = sourceNode?.data.type === 'start';
-              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+              const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false' || 
+                                           arrow.sourceHandle?.endsWith('-true') || arrow.sourceHandle?.endsWith('-false') ||
+                                           arrow.data?.branch === 'true' || arrow.data?.branch === 'false';
               
               if (arrow.data) {
                 if (isFromStartNode) {
@@ -473,7 +421,7 @@ export const useDiagramStore = create<DiagramStore>()(
                     ...arrow,
                     data: {
                       ...arrow.data,
-                      content_type: 'empty' as const
+                      contentType: 'empty' as const
                     }
                   };
                 } else if (isFromConditionBranch) {
@@ -481,7 +429,9 @@ export const useDiagramStore = create<DiagramStore>()(
                     ...arrow,
                     data: {
                       ...arrow.data,
-                      content_type: 'generic' as const
+                      contentType: arrow.data.contentType || 'generic',
+                      inheritedContentType: true,
+                      branch: (arrow.sourceHandle || arrow.data.branch) as 'true' | 'false'
                     }
                   };
                 }
@@ -489,9 +439,12 @@ export const useDiagramStore = create<DiagramStore>()(
               return arrow;
             });
             
+            // Sync condition arrows after loading
+            const syncedArrows = syncConditionArrows(arrows, nodes);
+            
             set({
               nodes,
-              arrows,
+              arrows: syncedArrows,
               persons: sanitized.persons || [],
               apiKeys: sanitized.apiKeys || [],
               source,

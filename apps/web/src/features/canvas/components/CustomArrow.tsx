@@ -30,7 +30,11 @@ export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>
     
     // Handle contentType conversion - only accept valid values
     if (data.contentType !== undefined) {
-      if (data.contentType === 'raw_text' || data.contentType === 'variable_in_object' || data.contentType === 'conversation_state') {
+      if (data.contentType === 'raw_text' || 
+          data.contentType === 'variable_in_object' || 
+          data.contentType === 'conversation_state' ||
+          data.contentType === 'empty' ||
+          data.contentType === 'generic') {
         coreModelData.contentType = data.contentType;
       }
     }
