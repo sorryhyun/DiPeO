@@ -1,0 +1,10 @@
+# Requirements for DiPeO CLI tool (tool.py)
+# Install with: pip install -r requirements-cli.txt
+
+# Core dependencies
+requests>=2.31.0,<3.0.0
+pyyaml>=6.0,<7.0
+websockets>=12.0,<13.0
+
+# For async operations
+asyncio  # Built-in, but listing for clarity

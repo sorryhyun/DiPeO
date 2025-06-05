@@ -69,7 +69,41 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
     e.stopPropagation();
     setIsDragging(true);
     
+    // Convert initial mouse position to flow coordinates
+    const initialFlowPosition = screenToFlowPosition({
+      x: e.clientX,
+      y: e.clientY,
+    });
+    
+    // Store the initial offset between mouse and control point
+    if (source === target) {
+      // For self-loops, calculate initial distance
+      const currentRadius = arrowData?.loopRadius ?? 50;
+      dragRef.current = {
+        startX: initialFlowPosition.x,
+        startY: initialFlowPosition.y,
+        controlX: currentRadius,
+        controlY: 0,
+      };
+    } else {
+      // For regular arrows, calculate current control point
+      const defaultControlX = (sourceX + targetX) / 2;
+      const defaultControlY = (sourceY + targetY) / 2;
+      const currentControlX = defaultControlX + controlPointOffsetX;
+      const currentControlY = defaultControlY + controlPointOffsetY;
+      
+      // Store initial mouse offset from current control point
+      dragRef.current = {
+        startX: initialFlowPosition.x - currentControlX,
+        startY: initialFlowPosition.y - currentControlY,
+        controlX: currentControlX,
+        controlY: currentControlY,
+      };
+    }
+    
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!dragRef.current) return;
+      
       // Convert mouse position to flow coordinates
       const flowPosition = screenToFlowPosition({
         x: moveEvent.clientX,
@@ -77,28 +111,31 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
       });
       
       if (source === target) {
-        // For self-loops, update the loop radius based on distance from node center
+        // For self-loops, calculate distance based on initial radius and mouse movement
         const nodeX = sourceX;
         const nodeY = sourceY;
+        const deltaX = flowPosition.x - dragRef.current.startX;
+        const deltaY = flowPosition.y - dragRef.current.startY;
+        
+        // Calculate new distance from node center
+        const newX = nodeX + dragRef.current.controlX + deltaX;
+        const newY = nodeY + deltaY;
         const distance = Math.sqrt(
-          Math.pow(flowPosition.x - nodeX, 2) + 
-          Math.pow(flowPosition.y - nodeY, 2)
+          Math.pow(newX - nodeX, 2) + 
+          Math.pow(newY - nodeY, 2)
         );
+        
         onUpdateData(id, {
           loopRadius: Math.max(30, Math.min(100, distance)),
         });
       } else {
-        // Calculate default control point (midpoint between source and target)
-        const defaultControlX = (sourceX + targetX) / 2;
-        const defaultControlY = (sourceY + targetY) / 2;
-        
-        // Calculate offset from current mouse position to default control point
-        const offsetX = flowPosition.x - defaultControlX;
-        const offsetY = flowPosition.y - defaultControlY;
+        // Apply the initial offset to maintain smooth dragging
+        const newControlX = flowPosition.x - dragRef.current.startX;
+        const newControlY = flowPosition.y - dragRef.current.startY;
         
         onUpdateData(id, {
-          controlPointOffsetX: offsetX,
-          controlPointOffsetY: offsetY,
+          controlPointOffsetX: newControlX,
+          controlPointOffsetY: newControlY,
         });
       }
     };
@@ -112,7 +149,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [id, source, target, screenToFlowPosition, sourceX, sourceY, targetX, targetY, onUpdateData]);
+  }, [id, source, target, screenToFlowPosition, sourceX, sourceY, targetX, targetY, onUpdateData, controlPointOffsetX, controlPointOffsetY, arrowData]);
 
   // Double-click to reset to straight line
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {

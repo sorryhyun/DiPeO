@@ -10,6 +10,7 @@ from .job_executor import JobExecutor
 from .endpoint_executor import EndpointExecutor
 from .person_job_executor import PersonJobExecutor, PersonBatchJobExecutor
 from .db_executor import DBExecutor
+from .user_response_executor import UserResponseExecutor
 from .utils import (
     get_input_values,
     substitute_variables,
@@ -49,6 +50,7 @@ def create_executors(llm_service=None, file_service=None) -> Dict[str, BaseExecu
         "condition": ConditionExecutor(),
         "job": JobExecutor(),
         "endpoint": EndpointExecutor(file_service),
+        "user_response": UserResponseExecutor(),
     }
     
     # Add LLM-based executors if service is available
@@ -81,6 +83,7 @@ __all__ = [
     "PersonJobExecutor",
     "PersonBatchJobExecutor",
     "DBExecutor",
+    "UserResponseExecutor",
     "create_executors",
     # Utility functions
     "get_input_values",

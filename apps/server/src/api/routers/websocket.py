@@ -24,7 +24,7 @@ from ..websocket_utils import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["websocket"])
 
 
 class ConnectionManager:

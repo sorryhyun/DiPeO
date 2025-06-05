@@ -282,6 +282,35 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Metadata
     description: 'End point and output destination',
     category: 'output'
+  },
+  
+  user_response: {
+    // Visual config
+    handles: [
+      { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '#6366f1' },
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#8b5cf6' }
+    ],
+    borderColor: 'indigo',
+    width: 'w-48',
+    className: 'rounded-lg',
+    emoji: '❓',
+    label: 'User Response',
+    
+    // React Flow mapping
+    reactFlowType: 'user_response',
+    blockType: 'user_response',
+    
+    // Properties config
+    propertyTitle: 'User Response Properties',
+    propertyFields: [
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'User Response', isRequired: true },
+      { name: 'prompt', label: 'Prompt Message', type: 'textarea', placeholder: 'Enter the message to show to the user...', rows: 3, isRequired: true },
+      { name: 'timeout', label: 'Timeout (seconds)', type: 'number', placeholder: '10', hint: 'How long to wait for user response (1-60 seconds)' }
+    ],
+    
+    // Metadata
+    description: 'Wait for user input with a prompt',
+    category: 'processing'
   }
 };
 

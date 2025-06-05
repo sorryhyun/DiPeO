@@ -16,6 +16,8 @@ export interface InteractivePromptData {
     model?: string;
     service?: string;
     execution_count?: number;
+    timeout?: number;
+    nodeType?: string;
   };
 }
 
@@ -58,14 +60,18 @@ export const InteractivePromptModal: React.FC<InteractivePromptModalProps> = ({
   if (!prompt) return null;
 
   const { context } = prompt;
-  const personInfo = context?.person_name || context?.person_id || 'Person';
-  const modelInfo = context?.model ? ` (${context.model})` : '';
+  const isUserResponse = context?.nodeType === 'user_response';
+  
+  // Different title based on node type
+  const title = isUserResponse 
+    ? 'User Input Required' 
+    : `Interactive Prompt from ${context?.person_name || context?.person_id || 'Person'}${context?.model ? ` (${context.model})` : ''}`;
 
   return (
     <Modal
       isOpen={true}
       onClose={() => onCancel?.()}
-      title={`Interactive Prompt from ${personInfo}${modelInfo}`}
+      title={title}
       className="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,6 +105,12 @@ export const InteractivePromptModal: React.FC<InteractivePromptModalProps> = ({
         {context?.execution_count !== undefined && (
           <div className="text-xs text-gray-500">
             Iteration: {context.execution_count + 1}
+          </div>
+        )}
+        
+        {context?.timeout && isUserResponse && (
+          <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+            ⏱️ Timeout: {context.timeout} seconds
           </div>
         )}
 

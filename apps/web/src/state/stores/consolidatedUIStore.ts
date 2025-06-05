@@ -9,7 +9,7 @@ export interface ConsolidatedUIState {
   selectedPersonId: string | null;
   
   // Canvas state - new approach to replace memory layer tilting
-  activeCanvas: 'diagram' | 'memory';
+  activeCanvas: 'diagram' | 'memory' | 'execution';
   
   // Dashboard state (moved from diagram store)
   dashboardTab: 'persons' | 'conversation' | 'properties';
@@ -27,7 +27,7 @@ export interface ConsolidatedUIState {
   setDashboardTab: (tab: 'persons' | 'conversation' | 'properties') => void;
 
   // Canvas actions
-  setActiveCanvas: (canvas: 'diagram' | 'memory') => void;
+  setActiveCanvas: (canvas: 'diagram' | 'memory' | 'execution') => void;
   toggleCanvas: () => void;
   
   // Computed state
@@ -87,9 +87,17 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
 
       // Canvas actions
       setActiveCanvas: (canvas) => set({ activeCanvas: canvas }),
-      toggleCanvas: () => set((state) => ({ 
-        activeCanvas: state.activeCanvas === 'diagram' ? 'memory' : 'diagram' 
-      })),
+      toggleCanvas: () => set((state) => {
+        // When in execution mode, toggle between diagram and execution
+        // When not in execution mode, toggle between diagram and memory
+        if (state.activeCanvas === 'execution') {
+          return { activeCanvas: 'diagram' };
+        } else if (state.activeCanvas === 'diagram') {
+          return { activeCanvas: 'memory' };
+        } else {
+          return { activeCanvas: 'diagram' };
+        }
+      }),
       
       // Computed state
       hasSelection: () => {

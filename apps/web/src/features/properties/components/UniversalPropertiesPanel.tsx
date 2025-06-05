@@ -13,7 +13,8 @@ import {
   personBatchJobConfig,
   arrowConfig,
   personConfig,
-  startConfig
+  startConfig,
+  userResponseConfig
 } from '../configs';
 
 // Union type for all possible data types
@@ -56,6 +57,8 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
         return personConfig as unknown as PanelConfig<Record<string, unknown>>;
       case 'start':
         return startConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'user_response':
+        return userResponseConfig as unknown as PanelConfig<Record<string, unknown>>;
       default:
         return null;
     }

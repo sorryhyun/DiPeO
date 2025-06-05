@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/common/components';
-import { useApiKeyStore, useDiagramStore, useExecutionStore } from '@/state/stores';
+import { useApiKeyStore, useDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/state/stores';
 import { useUIState } from '@/state/hooks/useStoreSelectors';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
@@ -50,7 +50,14 @@ const TopBar = () => {
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setIsMonitorMode(params.get('monitor') === 'true');
+    const isMonitor = params.get('monitor') === 'true';
+    setIsMonitorMode(isMonitor);
+    
+    // Auto-open execution mode when monitor mode is triggered
+    if (isMonitor) {
+      useConsolidatedUIStore.getState().setActiveCanvas('execution');
+      setReadOnly(true);
+    }
     const checkBackendApiKeys = async () => {
       try {
         const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
@@ -86,7 +93,7 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys();
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler]);
+  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler, setReadOnly]);
 
   useKeyboardShortcuts({
     onSave: () => onSaveToDirectory(),
@@ -192,55 +199,72 @@ const TopBar = () => {
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
           </div>
         </div>
-        {(isMonitorMode || isReadOnly) && (
-          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-            </span>
-            <span className="text-sm font-medium">Monitor Mode Active</span>
-            <button
-              onClick={() => {
-                setIsExitingMonitor(true);
-                clearDiagramAction();
-                setReadOnly(false);
-                // Remove monitor param from URL
-                const url = new URL(window.location.href);
-                url.searchParams.delete('monitor');
-                window.history.replaceState({}, '', url.toString());
-                toast.success('Exited monitor mode');
-                setTimeout(() => setIsExitingMonitor(false), 300);
-              }}
-              disabled={isExitingMonitor}
-              className={`ml-2 text-xs px-2 py-1 rounded transition-all ${
-                isExitingMonitor 
-                  ? 'bg-red-600 text-white cursor-not-allowed opacity-75' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isExitingMonitor ? 'Exiting...' : 'Exit'}
-            </button>
-          </div>
-        )}
+        
         <div className="flex items-center space-x-4">
           <Button
             variant="outline"
             className={`bg-white transition-all duration-300 ${
-              activeCanvas === 'memory'
-                ? 'bg-purple-100 border-purple-400 hover:bg-purple-200' 
+              activeCanvas === 'execution'
+                ? 'bg-green-100 border-green-400 hover:bg-green-200' 
                 : 'hover:bg-gray-50 hover:border-gray-300'
             }`}
-            onClick={toggleCanvas}
-            title={activeCanvas === 'memory' ? 'Show Diagram Canvas' : 'Show Memory Canvas'}
+            onClick={() => {
+              if (activeCanvas === 'execution') {
+                toggleCanvas();
+                // Exit read-only mode when leaving execution mode
+                setReadOnly(false);
+              } else {
+                useConsolidatedUIStore.getState().setActiveCanvas('execution');
+                // Set the diagram to read-only when entering execution mode
+                setReadOnly(true);
+              }
+            }}
+            title={activeCanvas === 'execution' ? 'Back to Diagram Canvas' : 'Enter Execution Mode'}
           >
             <Layers className={`h-4 w-4 mr-1 transition-transform duration-300 ${
-              activeCanvas === 'memory' ? 'rotate-12' : ''
+              activeCanvas === 'execution' ? 'rotate-12' : ''
             }`} />
-            {activeCanvas === 'memory' ? 'Diagram' : 'Memory'}
+            {activeCanvas === 'execution' ? 'Exit Execution Mode' : 'Execution Mode'}
           </Button>
+          
+          {(isMonitorMode || isReadOnly) ? (
+            <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+              </span>
+              <span className="text-sm font-medium">Monitor Mode Active</span>
+              <button
+                onClick={() => {
+                  setIsExitingMonitor(true);
+                  clearDiagramAction();
+                  setReadOnly(false);
+                  // Remove monitor param from URL
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('monitor');
+                  window.history.replaceState({}, '', url.toString());
+                  toast.success('Exited monitor mode');
+                  setTimeout(() => setIsExitingMonitor(false), 300);
+                }}
+                disabled={isExitingMonitor}
+                className={`ml-2 text-xs px-2 py-1 rounded transition-all ${
+                  isExitingMonitor 
+                    ? 'bg-red-600 text-white cursor-not-allowed opacity-75' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isExitingMonitor ? 'Exiting...' : 'Exit'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2 px-3 py-1 bg-gray-100 text-gray-600 rounded-md">
+              <span className="relative flex h-3 w-3">
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span>
+              </span>
+              <span className="text-sm font-medium">Monitor Mode Off</span>
+            </div>
+          )}
         </div>
-
-        <div className="w-32" />
       </div>
 
       <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />

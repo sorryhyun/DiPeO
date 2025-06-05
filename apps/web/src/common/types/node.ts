@@ -9,7 +9,8 @@ export type NodeType =
   | 'condition'
   | 'db'
   | 'job'
-  | 'endpoint';
+  | 'endpoint'
+  | 'user_response';
 
 export interface Position {
   x: number;
@@ -94,8 +95,14 @@ export interface EndpointBlockData extends BaseBlockData {
   fileFormat?: 'json' | 'text' | 'csv';
 }
 
+export interface UserResponseBlockData extends BaseBlockData {
+  type: 'user_response';
+  prompt?: string;
+  timeout?: number; // in seconds, default 10, max 60
+}
+
 // Union type for all block data types  
-export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData;
+export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData | UserResponseBlockData;
 
 // Unified Node interface combining execution.ts and domain.ts patterns
 export interface NodeData {

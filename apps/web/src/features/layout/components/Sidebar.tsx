@@ -39,7 +39,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const nodes = useDiagramStore(state => state.nodes);
   const arrows = useDiagramStore(state => state.arrows);
-  const { setDashboardTab } = useUIState();
+  const { setDashboardTab, activeCanvas } = useUIState();
   const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
   const { persons, addPerson } = usePersons();
   const { handleImportYAML } = useFileImport();
@@ -47,6 +47,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
+  const [conversationExpanded, setConversationExpanded] = useState(true);
+  const [memoryExpanded, setMemoryExpanded] = useState(true);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId);
@@ -70,6 +72,111 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
     );
   }
 
+  // In execution mode, show person views instead of blocks/file operations
+  if (activeCanvas === 'execution') {
+    const selectedPerson = selectedPersonId ? persons.find(p => p.id === selectedPersonId) : null;
+    
+    return (
+      <aside className="h-full p-4 border-r bg-gradient-to-b from-gray-900 to-black text-white flex flex-col overflow-hidden">
+        {/* Person Selection */}
+        <div className="mb-4">
+          <h3 className="font-semibold text-base mb-3 text-gray-300">Select Person</h3>
+          <div className="space-y-2">
+            {persons.map(person => (
+              <div
+                key={person.id}
+                className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                  selectedPersonId === person.id
+                    ? 'bg-blue-900/50 ring-2 ring-blue-500'
+                    : 'bg-gray-800 hover:bg-gray-700'
+                }`}
+                onClick={() => setSelectedPersonId(person.id)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🤖</span>
+                  <div className="truncate font-medium">
+                    {person.label || 'Unnamed Person'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Person Views */}
+        {selectedPerson && (
+          <>
+            {/* Conversation History */}
+            <div className="mb-4">
+              <h3
+                className="font-semibold flex items-center justify-between cursor-pointer hover:bg-gray-800/50 p-2 rounded-lg transition-colors duration-200"
+                onClick={() => setConversationExpanded(!conversationExpanded)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-base">💬</span>
+                  <span className="text-base font-medium">Conversation History</span>
+                </span>
+                {conversationExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+              </h3>
+              {conversationExpanded && (
+                <div className="mt-2 p-3 bg-gray-800 rounded-lg text-sm text-gray-300">
+                  <p>View conversation history in the dashboard below</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Memory Status */}
+            <div className="mb-4">
+              <h3
+                className="font-semibold flex items-center justify-between cursor-pointer hover:bg-gray-800/50 p-2 rounded-lg transition-colors duration-200"
+                onClick={() => setMemoryExpanded(!memoryExpanded)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-base">🧠</span>
+                  <span className="text-base font-medium">Memory Status</span>
+                </span>
+                {memoryExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+              </h3>
+              {memoryExpanded && (
+                <div className="mt-2 p-3 bg-gray-800 rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Model:</span>
+                    <span>{selectedPerson.modelName || 'Not set'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Service:</span>
+                    <span>{selectedPerson.service || 'Not set'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-400">System Prompt:</span>
+                    <p className="mt-1 text-xs text-gray-300 italic">
+                      {selectedPerson.systemPrompt || 'No system prompt defined'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Forget History */}
+            <div>
+              <h3 className="font-semibold text-base mb-2 text-gray-300">Forget History</h3>
+              <div className="p-3 bg-gray-800 rounded-lg text-sm text-gray-400">
+                <p>No forgotten messages</p>
+              </div>
+            </div>
+          </>
+        )}
+        
+        {!selectedPerson && (
+          <div className="flex-1 flex items-center justify-center text-gray-400">
+            <p className="text-center">Select a person to view details</p>
+          </div>
+        )}
+      </aside>
+    );
+  }
+  
+  // Regular mode (non-execution)
   return (
     <aside className="h-full p-4 border-r bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col overflow-hidden">
       {/* Blocks Palette Section */}
@@ -93,6 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               <DraggableBlock type="person_batch_job" label={`${UNIFIED_NODE_CONFIGS.person_batch_job?.emoji || '🤖📦'} ${UNIFIED_NODE_CONFIGS.person_batch_job?.label || 'Person Batch Job'} Block`} />
               <DraggableBlock type="condition" label={`${UNIFIED_NODE_CONFIGS.condition?.emoji || '🔀'} ${UNIFIED_NODE_CONFIGS.condition?.label || 'Condition'} Block`} />
               <DraggableBlock type="job" label={`${UNIFIED_NODE_CONFIGS.job?.emoji || '⚙️'} ${UNIFIED_NODE_CONFIGS.job?.label || 'Job'} Block`} />
+              <DraggableBlock type="user_response" label={`${UNIFIED_NODE_CONFIGS.user_response?.emoji || '💬'} ${UNIFIED_NODE_CONFIGS.user_response?.label || 'User Response'} Block`} />
               <DraggableBlock type="endpoint" label={`${UNIFIED_NODE_CONFIGS.endpoint?.emoji || '🎯'} ${UNIFIED_NODE_CONFIGS.endpoint?.label || 'Endpoint'} Block`} />
             </div>
             <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
