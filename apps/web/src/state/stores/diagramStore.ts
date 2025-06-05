@@ -10,7 +10,7 @@ import {
   getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
   DiagramState, PersonDefinition, ApiKey
 } from '@/common/types';
-import { sanitizeDiagram } from "@/features/serialization/utils/diagramSanitizer";
+import { sanitizeDiagram } from "@/features/io/utils/diagramSanitizer";
 import { createPersonCrudActions } from "@/common/utils/storeCrudUtils";
 import { createDefaultNodeData } from "@/common/utils/nodeDefaults";
 

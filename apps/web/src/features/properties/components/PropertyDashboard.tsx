@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { useNodes, useArrows, usePersons, useSelectedElement } from '@/state/hooks/useStoreSelectors';
 
 // Lazy load the properties renderer
-const PropertiesRenderer = React.lazy(() => import('@/features/properties/components/PropertiesRenderer'));
+const PropertiesRenderer = React.lazy(() => import('./PropertiesRenderer'));
 
 const PropertyDashboard: React.FC = () => {
   const { nodes } = useNodes();

@@ -4,7 +4,7 @@ import {
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
 import { Button, Input, Select } from '@/common/components';
-import { useDownload } from '@/features/serialization/hooks/useDownload';
+import { useDownload } from '@/features/io/hooks/useDownload';
 import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '@/state/hooks/useStoreSelectors';
 import { useConversationData, useMessagePolling } from '../hooks';
@@ -289,7 +289,6 @@ const ConversationDashboard: React.FC = () => {
     );
   };
 
-  // Check if we're embedded in IntegratedDashboard
   const isEmbedded = true; // Always embedded since we don't have routing
   
   if (isEmbedded) {

@@ -13,8 +13,8 @@ import {
   useLoadApiKeys,
   useClearDiagram
 } from '@/common/utils/storeSelectors';
-import { useFileImport } from '@/features/serialization/hooks/useFileImport';
-import { useExport } from '@/features/serialization/hooks/useExport';
+import { useFileImport } from '@/features/io/hooks/useFileImport';
+import { useExport } from '@/features/io/hooks/useExport';
 import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/features/canvas/hooks/useKeyboardShortcuts';
 import { LazyApiKeysModal } from '@/features/layout';

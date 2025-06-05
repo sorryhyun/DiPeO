@@ -20,5 +20,5 @@ export type { ApiKeyState } from './apiKeyStore';
 export type { DiagramStore } from './diagramStore';
 
 // Hooks from other directories
-// export { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions'; // Removed - use direct imports from serialization hooks
+// export { useDiagramActions } from '@/features/diagram/hooks/useDiagramActions'; // Removed - use direct imports from io hooks
 export { useHistoryActions } from '@/state/hooks/useHistoryActions';

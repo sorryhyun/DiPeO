@@ -1,6 +1,5 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { Panel } from './ui-components/Panel';
 import { UNIFIED_NODE_CONFIGS, DiagramNodeData, ArrowData, PersonDefinition } from '@/common/types';
 import { PanelConfig } from '@/common/types/panelConfig';
 import { GenericPropertyPanel } from './ui-components/GenericPropertyPanel';
@@ -71,22 +70,33 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
   
   if (!panelConfig) {
     return (
-      <Panel icon={<Settings className="w-5 h-5" />} title="Unknown Node Type">
-        <div className="text-red-500">No configuration found for node type: {nodeType}</div>
-      </Panel>
+      <div className="p-4 space-y-4">
+        <div className="flex items-center space-x-2 border-b pb-2">
+          <Settings className="w-5 h-5" />
+          <h3 className="text-lg font-semibold">Unknown Node Type</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="text-red-500">No configuration found for node type: {nodeType}</div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Panel 
-      icon={<span>{nodeConfig?.emoji || '⚙️'}</span>} 
-      title={nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
-    >
-      <GenericPanel
-        nodeId={nodeId}
-        data={data as Record<string, unknown>}
-        config={panelConfig}
-      />
-    </Panel>
+    <div className="p-4 space-y-4">
+      <div className="flex items-center space-x-2 border-b pb-2">
+        <span>{nodeConfig?.emoji || '⚙️'}</span>
+        <h3 className="text-lg font-semibold">
+          {nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
+        </h3>
+      </div>
+      <div className="space-y-4">
+        <GenericPanel
+          nodeId={nodeId}
+          data={data as Record<string, unknown>}
+          config={panelConfig}
+        />
+      </div>
+    </div>
   );
 };

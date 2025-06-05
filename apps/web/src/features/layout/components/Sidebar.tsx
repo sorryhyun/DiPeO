@@ -15,8 +15,8 @@ import {
   useActiveCanvas 
 } from '@/common/utils/storeSelectors';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
-import { useFileImport } from '@/features/serialization/hooks/useFileImport';
-import { useExport } from '@/features/serialization/hooks/useExport';
+import { useFileImport } from '@/features/io/hooks/useFileImport';
+import { useExport } from '@/features/io/hooks/useExport';
 import { FileUploadButton } from '@/common/components/common/FileUploadButton';
 import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
 
