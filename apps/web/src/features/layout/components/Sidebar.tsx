@@ -2,8 +2,18 @@
 import React, { useState, Suspense } from 'react';
 import { Button } from '@/common/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useDiagramStore } from '@/state/stores';
-import { usePersons, useSelectedElement, useUIState } from '@/state/hooks/useStoreSelectors';
+import { 
+  useNodes, 
+  useArrows, 
+  usePersons, 
+  useAddPerson,
+  useSelectedNodeId,
+  useSelectedArrowId,
+  useSelectedPersonId,
+  useSetSelectedPersonId,
+  useSetDashboardTab,
+  useActiveCanvas 
+} from '@/common/utils/storeSelectors';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
@@ -37,11 +47,16 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const nodes = useDiagramStore(state => state.nodes);
-  const arrows = useDiagramStore(state => state.arrows);
-  const { setDashboardTab, activeCanvas } = useUIState();
-  const { selectedPersonId, setSelectedPersonId, selectedNodeId, selectedArrowId } = useSelectedElement();
-  const { persons, addPerson } = usePersons();
+  const nodes = useNodes();
+  const arrows = useArrows();
+  const setDashboardTab = useSetDashboardTab();
+  const activeCanvas = useActiveCanvas();
+  const selectedPersonId = useSelectedPersonId();
+  const setSelectedPersonId = useSetSelectedPersonId();
+  const selectedNodeId = useSelectedNodeId();
+  const selectedArrowId = useSelectedArrowId();
+  const persons = usePersons();
+  const addPerson = useAddPerson();
   const { handleImportYAML } = useFileImport();
   const { onSaveYAMLToDirectory, onSaveLLMYAMLToDirectory } = useExport();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
@@ -239,7 +254,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                   systemPrompt: undefined
                 });
                 // Get the newly created person's ID and select it
-                const newPersonId = useDiagramStore.getState().persons[useDiagramStore.getState().persons.length - 1]?.id;
+                const newPersonId = persons[persons.length - 1]?.id;
                 if (newPersonId) {
                   handlePersonClick(newPersonId);
                 }
@@ -314,7 +329,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
-              onClick={() => onSaveYAMLToDirectory().catch(console.error)}
+              onClick={() => onSaveYAMLToDirectory()}
               title="Export to YAML format (saves to /files/yaml_diagrams/)"
             >
               <span className="mr-1">📤</span> Export YAML
@@ -323,7 +338,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={() => onSaveLLMYAMLToDirectory().catch(console.error)}
+              onClick={() => onSaveLLMYAMLToDirectory()}
               title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
             >
               <span className="mr-1">🤖</span> Export LLM YAML

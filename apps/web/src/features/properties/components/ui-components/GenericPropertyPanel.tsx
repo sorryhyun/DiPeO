@@ -9,9 +9,9 @@ import {
   UnifiedFieldRenderer,
   UnifiedFieldsRenderer
 } from '@/common/components/forms';
-import { PropertyFieldConfig } from '@/common/types/extendedFieldConfig';
+import { PropertyFieldConfig } from '@/common/types/fieldConfig';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
-import { useDiagramStore } from '@/state/stores';
+import { useIsReadOnly } from '@/common/utils/storeSelectors';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
@@ -31,7 +31,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const prevDepsRef = useRef<{ service?: string; apiKeyId?: string }>({});
   
   // Check if we're in monitor mode (read-only)
-  const isMonitorMode = useDiagramStore(state => state.isReadOnly);
+  const isMonitorMode = useIsReadOnly();
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {

@@ -1,6 +1,6 @@
 // Hook for importing diagrams from various file formats
 import { useCallback, ChangeEvent } from 'react';
-import { loadDiagram } from '@/common/utils/diagramOperations';
+import { loadDiagram } from '@/common/utils/storeSelectors';
 import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';

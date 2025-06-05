@@ -5,7 +5,7 @@ import {
   downloadBlob,
   getMimeType,
   withFileErrorHandling 
-} from '@/common/utils/file-operations';
+} from '@/common/utils/fileOperations';
 import { FileFormat } from '../utils/fileUtils';
 
 export const useDownload = () => {

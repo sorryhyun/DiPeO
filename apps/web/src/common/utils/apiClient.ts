@@ -6,7 +6,15 @@
 import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl } from './apiConfig';
 import { apiCache, ApiCache } from './apiCache';
-import { createErrorHandlerFactory } from '@/common/types';
+import { 
+  createErrorHandlerFactory,
+  type ApiKey, 
+  type Diagram, 
+  type DiagramState, 
+  type ApiResponse as ApiResponseType, 
+  type Node 
+} from '@/common/types';
+import { getApiKeys } from '@/common/utils/storeSelectors';
 
 // Types
 /* global RequestInit */
@@ -218,6 +226,134 @@ class ApiClient {
 
 // Export singleton instance
 export const apiClient = new ApiClient();
+
+// Legacy functional exports for backward compatibility
+export const fetchApiKeys = async (): Promise<ApiKey[]> => {
+  return apiClient.get<ApiKey[]>(API_ENDPOINTS.API_KEYS, {
+    errorContext: 'Load API Keys',
+  });
+};
+
+export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
+  const apiKeys = getApiKeys() || [];
+  
+  return apiKeys.map(apiKey => ({
+    value: apiKey.id,
+    label: `${apiKey.name} (${apiKey.service})`
+  }));
+};
+
+export const fetchAvailableModels = async (
+  service: string,
+  apiKeyId: string
+): Promise<Array<{ value: string; label: string }>> => {
+  const cacheKey = ApiCache.getModelListKey(service, apiKeyId);
+  const cachedModels = apiCache.get<Array<{ value: string; label: string }>>(cacheKey);
+  if (cachedModels) {
+    return cachedModels;
+  }
+
+  const data = await apiClient.get<{ models?: string[]; error?: string }>(
+    API_ENDPOINTS.MODELS(apiKeyId),
+    {
+      params: { service, api_key_id: apiKeyId },
+      errorContext: 'Fetch Models',
+    }
+  );
+  
+  if (data.error || !data.models) {
+    return [];
+  }
+  
+  const modelOptions = data.models.map((model: string) => ({
+    value: model,
+    label: model
+  }));
+  
+  apiCache.set(cacheKey, modelOptions);
+  return modelOptions;
+};
+
+export const preInitializeModel = async (
+  service: string,
+  model: string,
+  apiKeyId: string
+): Promise<boolean> => {
+  try {
+    const data = await apiClient.post<{ success: boolean }>(
+      API_ENDPOINTS.INITIALIZE_MODEL,
+      { service, model, api_key_id: apiKeyId },
+      { errorContext: 'Initialize Model', skipErrorToast: true }
+    );
+    return data.success || false;
+  } catch {
+    return false;
+  }
+};
+
+export const saveDiagram = async (
+  diagram: Diagram | DiagramState,
+  filename: string
+): Promise<ApiResponseType<{ path: string }>> => {
+  // Convert DiagramState to Diagram if needed
+  const diagramData: Diagram = 'apiKeys' in diagram 
+    ? {
+        nodes: diagram.nodes as Node[],
+        arrows: diagram.arrows,
+        persons: diagram.persons,
+      }
+    : diagram;
+    
+  return apiClient.post<ApiResponseType<{ path: string }>>(
+    API_ENDPOINTS.SAVE_DIAGRAM,
+    { diagram: diagramData, filename },
+    { errorContext: 'Save Diagram' }
+  );
+};
+
+export const convertDiagram = async (
+  content: string,
+  fromFormat: string,
+  toFormat: string
+): Promise<ApiResponseType<{ content: string; format: string }>> => {
+  return apiClient.post<ApiResponseType<{ content: string; format: string }>>(
+    API_ENDPOINTS.DIAGRAMS_CONVERT,
+    { content, from_format: fromFormat, to_format: toFormat },
+    { errorContext: 'Convert Diagram' }
+  );
+};
+
+export const uploadFile = async (file: File): Promise<ApiResponseType<{ filename: string; content: string }>> => {
+  const response = await apiClient.uploadFile(
+    API_ENDPOINTS.UPLOAD_FILE,
+    file,
+    undefined,
+    { errorContext: 'Upload File' }
+  );
+  return { data: { ...response, content: '' }, success: true };
+};
+
+export const checkHealth = async (): Promise<boolean> => {
+  try {
+    await apiClient.get<{ status: string }>(API_ENDPOINTS.HEALTH, { skipErrorToast: true });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const getExecutionCapabilities = async (): Promise<ApiResponseType<{ 
+  supported_node_types: string[]; 
+  features: { [key: string]: boolean } 
+}>> => {
+  const data = await apiClient.get<{ 
+    supported_node_types: string[]; 
+    features: { [key: string]: boolean } 
+  }>(API_ENDPOINTS.EXECUTION_CAPABILITIES, {
+    errorContext: 'Fetch Capabilities',
+  });
+  return { data, success: true };
+};
 
 // Convenience methods for common endpoints
 export const api = {

@@ -1,7 +1,7 @@
 // Explicit exports from unifiedNodeConfig
 export {
   type FieldConfig,
-  type UnifiedNodeConfig,
+  type NodeConfig,
   UNIFIED_NODE_CONFIGS,
   getNodeConfig,
   getNodeHandles,
@@ -11,7 +11,7 @@ export {
   getReactFlowType,
   getBlockType,
   getUnifiedNodeConfigsByReactFlowType
-} from './unifiedNodeConfig';
+} from './nodeConfig';
 
 // Explicit exports from errorHandling
 export {

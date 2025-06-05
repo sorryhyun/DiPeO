@@ -9,9 +9,10 @@ import {
   useCurrentRunningNode,
   useSetActiveCanvas,
   useActiveCanvas,
-  useToggleCanvas
-} from '@/common/utils/store-selectors';
-import { useApiKeyStore, useDiagramStore } from '@/state/stores';
+  useToggleCanvas,
+  useLoadApiKeys,
+  useClearDiagram
+} from '@/common/utils/storeSelectors';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
 import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
@@ -31,8 +32,8 @@ const TopBar = () => {
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const apiKeys = useApiKeys();
   const addApiKey = useAddApiKey();
-  const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
-  const clearDiagramAction = useDiagramStore(state => state.clearDiagram);
+  const loadApiKeys = useLoadApiKeys();
+  const clearDiagramAction = useClearDiagram();
   const isReadOnly = useIsReadOnly();
   const setReadOnly = useSetReadOnly();
   const { onImportJSON } = useFileImport();

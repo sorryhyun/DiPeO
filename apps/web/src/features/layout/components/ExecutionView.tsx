@@ -1,12 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { DiagramCanvas } from '@/features/canvas';
-import { usePersons, useSelectedElement } from '@/state/hooks/useStoreSelectors';
-import { useDiagramStore } from '@/state/stores';
+import { 
+  useNodes, 
+  usePersons,
+  useSelectedPersonId,
+  useSetSelectedPersonId 
+} from '@/common/utils/storeSelectors';
 
 const ExecutionView = () => {
-  const { persons } = usePersons();
-  const nodes = useDiagramStore(state => state.nodes);
-  const { selectedPersonId, setSelectedPersonId } = useSelectedElement();
+  const persons = usePersons();
+  const nodes = useNodes();
+  const selectedPersonId = useSelectedPersonId();
+  const setSelectedPersonId = useSetSelectedPersonId();
   const [personPositions, setPersonPositions] = useState<Record<string, { x: number; y: number }>>({}); 
   const personRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const canvasRef = useRef<HTMLDivElement>(null);

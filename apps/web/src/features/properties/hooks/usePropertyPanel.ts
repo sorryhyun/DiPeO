@@ -1,4 +1,4 @@
-import { useDiagramStore } from '@/state/stores';
+import { useUpdateNodeData, useUpdateArrowData, useUpdatePerson } from '@/common/utils/storeSelectors';
 import { usePropertyFormBase } from './usePropertyForm';
 
 export function usePropertyPanel<T extends Record<string, unknown>>(
@@ -6,16 +6,18 @@ export function usePropertyPanel<T extends Record<string, unknown>>(
   entityType: 'node' | 'arrow' | 'person',
   initialData: T
 ) {
-  const diagramStore = useDiagramStore();
+  const updateNodeData = useUpdateNodeData();
+  const updateArrowData = useUpdateArrowData();
+  const updatePerson = useUpdatePerson();
 
   
   return usePropertyFormBase<T>(initialData, (updates: Partial<T>) => {
     if (entityType === 'node') {
-      diagramStore.updateNodeData(entityId, updates as Record<string, unknown>);
+      updateNodeData(entityId, updates as Record<string, unknown>);
     } else if (entityType === 'arrow') {
-      diagramStore.updateArrowData(entityId, updates);
+      updateArrowData(entityId, updates);
     } else {
-      diagramStore.updatePerson(entityId, updates);
+      updatePerson(entityId, updates);
     }
   });
 }

@@ -1,5 +1,13 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useExecutionStore, useDiagramStore } from '@/state/stores';
+import { 
+  useAddRunningNode,
+  useRemoveRunningNode,
+  useSetCurrentRunningNode,
+  useSetRunContext,
+  useAddSkippedNode,
+  useLoadDiagram,
+  useNodes
+} from '@/common/utils/storeSelectors';
 import { toast } from 'sonner';
 import { useWebSocket, useWebSocketMessage } from '@/features/runtime/hooks/useWebSocket';
 import { DiagramState } from '@/common/types';
@@ -17,15 +25,13 @@ export const useExecutionMonitor = () => {
   // WebSocket connection with auto-connect
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   
-  const {
-    addRunningNode,
-    removeRunningNode,
-    setCurrentRunningNode,
-    setRunContext,
-    addSkippedNode
-  } = useExecutionStore();
-  const loadDiagram = useDiagramStore(state => state.loadDiagram);
-  const nodes = useDiagramStore(state => state.nodes);
+  const addRunningNode = useAddRunningNode();
+  const removeRunningNode = useRemoveRunningNode();
+  const setCurrentRunningNode = useSetCurrentRunningNode();
+  const setRunContext = useSetRunContext();
+  const addSkippedNode = useAddSkippedNode();
+  const loadDiagram = useLoadDiagram();
+  const nodes = useNodes();
 
   const processEvent = useCallback((type: string, data: Record<string, unknown>) => {
     switch (type) {

@@ -3,7 +3,7 @@ import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/common/components';
 import { BaseNodeProps, getUnifiedNodeConfigsByReactFlowType } from '@/common/types';
-import { createHandleId } from '@/common/utils/nodeHelpers';
+import { createHandleId } from '@/features/nodes/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import { useNodeExecutionState, useNodeDataUpdater } from '@/state/hooks/useStoreSelectors';
 import './BaseNode.css';

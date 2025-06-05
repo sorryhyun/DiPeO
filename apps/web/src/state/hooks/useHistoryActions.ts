@@ -1,11 +1,27 @@
 // Hook for history (undo/redo) actions
 import { useCallback } from 'react';
-import { useHistoryStore, useDiagramStore } from '@/state/stores';
-import { loadDiagram } from '@/common/utils/diagramOperations';
+import { 
+  useUndo,
+  useRedo,
+  useCanUndo,
+  useCanRedo,
+  useNodes,
+  useArrows,
+  usePersons,
+  useLoadDiagram
+} from '@/common/utils/storeSelectors';
+import { useHistoryStore } from '@/state/stores';
 
 export const useHistoryActions = () => {
-  const { undo, redo, canUndo, canRedo, saveToHistory, clearHistory, initializeHistory } = useHistoryStore();
-  const { nodes, arrows, persons } = useDiagramStore();
+  const { saveToHistory, clearHistory, initializeHistory } = useHistoryStore();
+  const undo = useUndo();
+  const redo = useRedo();
+  const canUndo = useCanUndo();
+  const canRedo = useCanRedo();
+  const nodes = useNodes();
+  const arrows = useArrows();
+  const persons = usePersons();
+  const loadDiagram = useLoadDiagram();
 
   // Save current state before making changes
   const saveCurrentState = useCallback(() => {
@@ -22,7 +38,7 @@ export const useHistoryActions = () => {
         arrows: previousState.arrows,
         persons: previousState.persons,
         apiKeys: [] // Preserve existing API keys
-      });
+      }, 'local');
     }
   }, [undo, loadDiagram]);
 
@@ -36,7 +52,7 @@ export const useHistoryActions = () => {
         arrows: nextState.arrows,
         persons: nextState.persons,
         apiKeys: [] // Preserve existing API keys
-      });
+      }, 'local');
     }
   }, [redo, loadDiagram]);
 
@@ -49,8 +65,8 @@ export const useHistoryActions = () => {
     saveCurrentState,
     handleUndo,
     handleRedo,
-    canUndo: canUndo(),
-    canRedo: canRedo(),
+    canUndo,
+    canRedo,
     clearHistory,
     initHistory,
   };

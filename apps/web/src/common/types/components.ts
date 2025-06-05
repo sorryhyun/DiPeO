@@ -1,6 +1,6 @@
 import React from 'react';
 import { Position } from '@xyflow/react';
-import { UnifiedNodeConfig } from './unifiedNodeConfig';
+import { NodeConfig } from './nodeConfig';
 
 export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -22,7 +22,7 @@ export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   isRunning?: boolean;
   onUpdateData?: (nodeId: string, data: unknown) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, UnifiedNodeConfig>;
+  nodeConfigs?: Record<string, NodeConfig>;
   onDragOver?: React.DragEventHandler<HTMLDivElement>;
   onDragEnter?: React.DragEventHandler<HTMLDivElement>;
   onDragLeave?: React.DragEventHandler<HTMLDivElement>;
@@ -43,7 +43,7 @@ export interface GenericNodeProps {
   isRunning?: boolean;
   onUpdateData?: (nodeId: string, data: unknown) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
-  nodeConfigs?: Record<string, UnifiedNodeConfig>;
+  nodeConfigs?: Record<string, NodeConfig>;
   borderColor?: string;
   width?: number | string;
   height?: number | string;

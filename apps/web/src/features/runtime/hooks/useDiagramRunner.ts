@@ -1,6 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useExecutionStore } from '@/state/stores';
-import { exportDiagram } from '@/common/utils/diagramOperations';
+import { 
+  useSetRunContext,
+  useClearRunContext,
+  useClearRunningNodes,
+  useSetCurrentRunningNode,
+  useAddRunningNode,
+  useRemoveRunningNode,
+  useSkippedNodes,
+  exportDiagramState
+} from '@/common/utils/storeSelectors';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/common/types';
 import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
@@ -20,15 +28,13 @@ type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
 
 export const useDiagramRunner = () => {
-  const {
-    setRunContext,
-    clearRunContext,
-    clearRunningNodes,
-    setCurrentRunningNode,
-    addRunningNode,
-    removeRunningNode,
-    skippedNodes
-  } = useExecutionStore();
+  const setRunContext = useSetRunContext();
+  const clearRunContext = useClearRunContext();
+  const clearRunningNodes = useClearRunningNodes();
+  const setCurrentRunningNode = useSetCurrentRunningNode();
+  const addRunningNode = useAddRunningNode();
+  const removeRunningNode = useRemoveRunningNode();
+  const skippedNodes = useSkippedNodes();
   const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [runError, setRunError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -82,7 +88,7 @@ export const useDiagramRunner = () => {
     setRetryCount(0);
 
     try {
-      const diagramData = exportDiagram();
+      const diagramData = exportDiagramState();
       
       // Validate API keys first
       try {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { exportDiagram } from '@/common/utils/diagramOperations';
+import { exportDiagramState } from '@/common/utils/storeSelectors';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';
@@ -9,8 +9,8 @@ import {
   downloadFile,
   withFileErrorHandling,
   getFileExtension
-} from '@/common/utils/file-operations';
-import { saveDiagram } from '@/common/utils/api-client';
+} from '@/common/utils/fileOperations';
+import { saveDiagram } from '@/common/utils/apiClient';
 import { 
   FileFormat,
   SaveFileOptions
@@ -23,7 +23,7 @@ export const useExport = () => {
 
   // Unified export function
   const exportDiagramAs = useCallback(async (format: FileFormat, filename?: string) => {
-    const diagramData = exportDiagram();
+    const diagramData = exportDiagramState();
     let content: string;
     let defaultFilename: string;
     
@@ -57,7 +57,7 @@ export const useExport = () => {
 
   // Save to backend directory
   const saveDiagramAs = useCallback(async (format: FileFormat, filename?: string) => {
-    const diagramData = exportDiagram();
+    const diagramData = exportDiagramState();
     
     const options: SaveFileOptions = {
       format,
@@ -144,7 +144,7 @@ export const useExport = () => {
 
   // Clone diagram with new name
   const cloneDiagram = useCallback(async (newName: string, format: FileFormat = 'json') => {
-    const diagramData = exportDiagram();
+    const diagramData = exportDiagramState();
     
     // Create a cloned diagram with metadata
     const clonedDiagram = {

@@ -6,7 +6,7 @@ import {
   getApiKeyOptions as getApiKeyOptionsFromClient,
   fetchAvailableModels,
   preInitializeModel as preInitializeModelClient 
-} from '@/common/utils/api-client';
+} from '@/common/utils/apiClient';
 
 export const formatPropertyValue = (value: unknown, type: string): string => {
   if (value === null || value === undefined) {

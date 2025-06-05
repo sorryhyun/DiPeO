@@ -8,7 +8,7 @@ import { useApiKeyStore } from '@/state/stores/apiKeyStore';
 import { useExecutionStore } from '@/state/stores/executionStore';
 import { useConsolidatedUIStore } from '@/state/stores/consolidatedUIStore';
 import { useHistoryStore } from '@/state/stores/historyStore';
-import { type DiagramNode, type Arrow, type PersonDefinition } from '@/common/types';
+import { type DiagramNode, type Arrow, type PersonDefinition, type DiagramState } from '@/common/types';
 
 /**
  * Diagram Store Selectors
@@ -45,6 +45,12 @@ export const useDeletePerson = () => useDiagramStore(state => state.deletePerson
 // Diagram state selectors
 export const useIsReadOnly = () => useDiagramStore(state => state.isReadOnly);
 export const useSetReadOnly = () => useDiagramStore(state => state.setReadOnly);
+export const useDiagramSource = () => useDiagramStore(state => state.source);
+export const useClearDiagram = () => useDiagramStore(state => state.clearDiagram);
+export const useLoadDiagram = () => useDiagramStore(state => state.loadDiagram);
+export const useExportDiagram = () => useDiagramStore(state => state.exportDiagram);
+export const useSetNodes = () => useDiagramStore(state => state.setNodes);
+export const useSetArrows = () => useDiagramStore(state => state.setArrows);
 
 // Combined selectors for common patterns
 export const useDiagramData = () => {
@@ -65,17 +71,34 @@ export const useSetApiKeys = () => useApiKeyStore(state => state.setApiKeys);
 export const useAddApiKey = () => useApiKeyStore(state => state.addApiKey);
 export const useUpdateApiKey = () => useApiKeyStore(state => state.updateApiKey);
 export const useDeleteApiKey = () => useApiKeyStore(state => state.deleteApiKey);
+export const useLoadApiKeys = () => useApiKeyStore(state => state.loadApiKeys);
+export const useClearApiKeys = () => useApiKeyStore(state => state.clearApiKeys);
 
 /**
  * Execution Store Selectors
  */
 export const useIsExecuting = () => useExecutionStore(state => state.isExecuting);
+export const useExecutionId = () => useExecutionStore(state => state.executionId);
 export const useRunContext = () => useExecutionStore(state => state.runContext);
 export const useRunningNodes = () => useExecutionStore(state => state.runningNodes);
 export const useCurrentRunningNode = () => useExecutionStore(state => state.currentRunningNode);
-// Note: nodeResults are not stored in ExecutionStore
+export const useNodeRunningStates = () => useExecutionStore(state => state.nodeRunningStates);
 export const useSkippedNodes = () => useExecutionStore(state => state.skippedNodes);
 export const useIsNodeSkipped = (nodeId: string) => useExecutionStore(state => Boolean(state.skippedNodes[nodeId]));
+export const useLastUpdate = () => useExecutionStore(state => state.lastUpdate);
+
+// Execution actions
+export const useStartExecution = () => useExecutionStore(state => state.startExecution);
+export const useCompleteExecution = () => useExecutionStore(state => state.completeExecution);
+export const useUpdateNodeStatus = () => useExecutionStore(state => state.updateNodeStatus);
+export const useSetRunContext = () => useExecutionStore(state => state.setRunContext);
+export const useClearRunContext = () => useExecutionStore(state => state.clearRunContext);
+export const useSetRunningNodes = () => useExecutionStore(state => state.setRunningNodes);
+export const useAddRunningNode = () => useExecutionStore(state => state.addRunningNode);
+export const useRemoveRunningNode = () => useExecutionStore(state => state.removeRunningNode);
+export const useClearRunningNodes = () => useExecutionStore(state => state.clearRunningNodes);
+export const useSetCurrentRunningNode = () => useExecutionStore(state => state.setCurrentRunningNode);
+export const useAddSkippedNode = () => useExecutionStore(state => state.addSkippedNode);
 
 // Node-specific execution state
 export const useNodeExecutionState = (nodeId: string) => {
@@ -154,3 +177,30 @@ export const useSelectedPersonData = () => {
   const selectedPersonId = useSelectedPersonId();
   return usePerson(selectedPersonId || '');
 };
+
+/**
+ * Non-hook store accessors for utility functions
+ * These should only be used outside of React components/hooks
+ */
+
+// API Key store accessors
+export const getApiKeys = () => useApiKeyStore.getState().apiKeys;
+export const getApiKeyById = (id: string) => useApiKeyStore.getState().apiKeys.find(key => key.id === id);
+
+// Diagram store accessors
+export const exportDiagram = (): DiagramState => {
+  return exportDiagramState();
+};
+
+export const loadDiagram = (diagram: DiagramState, source: 'local' | 'external' = 'local') => {
+  loadDiagramState(diagram, source);
+};
+
+export const clearDiagram = () => {
+  clearDiagramState();
+};
+export const exportDiagramState = () => useDiagramStore.getState().exportDiagram();
+export const loadDiagramState = (diagram: DiagramState, source: 'local' | 'external' = 'local') => {
+  useDiagramStore.getState().loadDiagram(diagram, source);
+};
+export const clearDiagramState = () => useDiagramStore.getState().clearDiagram();

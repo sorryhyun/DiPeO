@@ -1,12 +1,12 @@
 import type { NodeType } from './node';
 import React from 'react';
-import { PropertyFieldConfig, FieldConfig } from './extendedFieldConfig';
+import { PropertyFieldConfig, FieldConfig } from './fieldConfig';
 
 // Re-export FieldConfig for backward compatibility
 export type { FieldConfig };
 
 
-export interface UnifiedNodeConfig {
+export interface NodeConfig {
   // Visual properties
   label: string;
   description: string;
@@ -63,7 +63,7 @@ export interface UnifiedNodeConfig {
  * Complete unified node configurations.
  * This replaces all scattered node configuration across the codebase.
  */
-export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
+export const UNIFIED_NODE_CONFIGS: Record<NodeType, NodeConfig> = {
   start: {
     label: 'Start',
     description: 'Entry point of the workflow',
@@ -605,7 +605,7 @@ export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
 };
 
 // Helper functions to work with the unified config
-export const getNodeConfig = (nodeType: NodeType): UnifiedNodeConfig => {
+export const getNodeConfig = (nodeType: NodeType): NodeConfig => {
   return UNIFIED_NODE_CONFIGS[nodeType];
 };
 

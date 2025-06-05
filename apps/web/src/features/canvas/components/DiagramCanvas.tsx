@@ -30,7 +30,7 @@ import {
   useExecutionStatus,
   usePersons
 } from '@/state/hooks/useStoreSelectors';
-import { useUndo, useRedo } from '@/common/utils/store-selectors';
+import { useUndo, useRedo } from '@/common/utils/storeSelectors';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {

@@ -2,9 +2,9 @@ import React, { useCallback, useMemo } from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from './base/GenericNode';
 import { Code, Zap, Link as LinkIcon, Save } from 'lucide-react';
-import { usePersons, useUpdateNodeData } from '@/common/utils/store-selectors';
+import { usePersons, useUpdateNodeData } from '@/common/utils/storeSelectors';
 import { NodeType } from '@/common/types/node';
-import { getNodeConfig } from '@/common/types/unifiedNodeConfig';
+import { getNodeConfig } from '@/common/types/nodeConfig';
 
 // Type guard to safely get node type
 const getNodeType = (data: any): NodeType => {

@@ -17,7 +17,7 @@ export {
   createNodeId,
   getNodeDisplayName,
   createHandleId
-} from '@/common/utils/nodeHelpers';
+} from '@/features/nodes/utils/nodeHelpers';
 
 export {
   validateNode,

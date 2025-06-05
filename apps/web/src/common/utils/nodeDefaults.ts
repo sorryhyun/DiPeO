@@ -1,6 +1,6 @@
 import { DiagramNodeData } from '@/common/types';
 import { NodeType } from '@/common/types/node';
-import { getNodeConfig, getNodeDefaults } from '@/common/types/unifiedNodeConfig';
+import { getNodeConfig, getNodeDefaults } from '@/common/types/nodeConfig';
 
 // Factory function to create default node data based on node config
 export function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {

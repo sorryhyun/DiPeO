@@ -1,10 +1,17 @@
 import React from 'react';
-import { useDiagramStore, useExecutionStore } from '@/state/stores';
+import { 
+  usePersons,
+  useNodes,
+  useArrows,
+  useRunContext
+} from '@/common/utils/storeSelectors';
 import { Users, MessageSquare, Database, Zap } from 'lucide-react';
 
 const MemoryFlowVisualization: React.FC = () => {
-  const { persons, nodes, arrows } = useDiagramStore();
-  const { runContext } = useExecutionStore();
+  const persons = usePersons();
+  const nodes = useNodes();
+  const arrows = useArrows();
+  const runContext = useRunContext();
 
   // Get person job nodes to position memory beneath them
   const personJobNodes = nodes.filter(n => n.type === 'person_job');

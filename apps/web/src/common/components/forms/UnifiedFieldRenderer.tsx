@@ -1,7 +1,7 @@
 import React from 'react';
 import { UnifiedFormField } from './UnifiedFormField';
-import { PropertyFieldConfig } from '../../types/extendedFieldConfig';
-import { useDiagramStore } from '../../../state/stores';
+import { PropertyFieldConfig } from '../../types/fieldConfig';
+import { usePersons } from '@/common/utils/storeSelectors';
 
 interface UnifiedFieldRendererProps {
   field: PropertyFieldConfig;
@@ -24,7 +24,7 @@ export const UnifiedFieldRenderer: React.FC<UnifiedFieldRendererProps> = ({
   layout = 'inline',
   className
 }) => {
-  const persons = useDiagramStore((state) => state.persons);
+  const persons = usePersons();
   
   // Map field types to unified form field types
   const getFieldType = () => {
