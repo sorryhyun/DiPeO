@@ -10,7 +10,8 @@ export type NodeType =
   | 'db'
   | 'job'
   | 'endpoint'
-  | 'user_response';
+  | 'user_response'
+  | 'notion';
 
 export interface Position {
   x: number;
@@ -101,8 +102,24 @@ export interface UserResponseBlockData extends BaseBlockData {
   timeout?: number; // in seconds, default 10, max 60
 }
 
+export interface NotionBlockData extends BaseBlockData {
+  type: 'notion';
+  operation?: 'read_page' | 'list_blocks' | 'append_blocks' | 'update_block' | 'query_database' | 'create_page' | 'extract_text';
+  apiKeyId?: string;
+  pageId?: string;
+  blockId?: string;
+  databaseId?: string;
+  blocks?: string; // JSON string
+  blockData?: string; // JSON string
+  filter?: string; // JSON string
+  sorts?: string; // JSON string
+  parentConfig?: string; // JSON string
+  pageProperties?: string; // JSON string
+  children?: string; // JSON string
+}
+
 // Union type for all block data types  
-export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData | UserResponseBlockData;
+export type DiagramNodeData = StartBlockData | PersonJobBlockData | PersonBatchJobBlockData | JobBlockData | DBBlockData | ConditionBlockData | EndpointBlockData | UserResponseBlockData | NotionBlockData;
 
 // Unified Node interface combining execution.ts and domain.ts patterns
 export interface NodeData {

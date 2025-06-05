@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { DiagramCanvas } from '@/features/canvas';
-import { ConversationDashboard } from '@/features/conversation';
 import { usePersons, useSelectedElement } from '@/state/hooks/useStoreSelectors';
 import { useDiagramStore } from '@/state/stores';
 
@@ -54,10 +53,10 @@ const ExecutionView = () => {
   }, [persons]);
 
   return (
-    <div className="h-full flex flex-col bg-black">
+    <div className="h-full flex flex-col bg-gray-900">
       {/* Read-only Diagram Canvas */}
       <div className="flex-1 relative" ref={canvasRef}>
-        <DiagramCanvas />
+        <DiagramCanvas executionMode />
         
         {/* Connection lines from persons to nodes */}
         <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
@@ -81,10 +80,10 @@ const ExecutionView = () => {
                   y1={personPos.y}
                   x2={node.position.x + (node.width || 200) / 2}
                   y2={node.position.y + (node.height || 100) / 2}
-                  stroke={selectedPersonId === person.id ? '#60a5fa' : '#374151'}
+                  stroke={selectedPersonId === person.id ? '#60a5fa' : '#9ca3af'}
                   strokeWidth="2"
                   strokeDasharray="5,5"
-                  opacity={selectedPersonId === person.id ? 1 : 0.5}
+                  opacity={selectedPersonId === person.id ? 1 : 0.7}
                 />
               );
             });
@@ -92,7 +91,7 @@ const ExecutionView = () => {
         </svg>
         
         {/* Persons displayed horizontally */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm border-t border-gray-700">
+        <div className="absolute bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-sm border-t border-gray-600">
           <div className="flex items-center gap-4 p-4 overflow-x-auto">
             {persons.map(person => {
               const assignedNodes = personNodeMap.get(person.id) || [];
@@ -130,11 +129,6 @@ const ExecutionView = () => {
             )}
           </div>
         </div>
-      </div>
-      
-      {/* Conversation Dashboard at the bottom */}
-      <div className="h-80 border-t border-gray-700">
-        <ConversationDashboard />
       </div>
     </div>
   );

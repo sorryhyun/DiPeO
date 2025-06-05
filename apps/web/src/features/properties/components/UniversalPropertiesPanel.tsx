@@ -14,7 +14,8 @@ import {
   arrowConfig,
   personConfig,
   startConfig,
-  userResponseConfig
+  userResponseConfig,
+  notionConfig
 } from '../configs';
 
 // Union type for all possible data types
@@ -59,6 +60,8 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
         return startConfig as unknown as PanelConfig<Record<string, unknown>>;
       case 'user_response':
         return userResponseConfig as unknown as PanelConfig<Record<string, unknown>>;
+      case 'notion':
+        return notionConfig as unknown as PanelConfig<Record<string, unknown>>;
       default:
         return null;
     }

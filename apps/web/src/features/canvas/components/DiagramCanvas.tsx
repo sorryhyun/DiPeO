@@ -37,7 +37,11 @@ const edgeTypes: EdgeTypes = {
   customArrow: CustomArrowBase,
 };
 
-const DiagramCanvas: React.FC = () => {
+interface DiagramCanvasProps {
+  executionMode?: boolean;
+}
+
+const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
   // Use optimized selectors
   const {
     nodes,
@@ -146,9 +150,76 @@ const DiagramCanvas: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <PanelGroup direction="vertical">
-        {/* Canvas Panel */}
-        <Panel defaultSize={65} minSize={30}>
+      {executionMode ? (
+        // In execution mode, show only the canvas without property panel
+        <div className="h-full w-full relative outline-none" ref={reactFlowWrapper} tabIndex={0} style={{ minHeight: '400px' }}>
+          {/* Main diagram layer */}
+          <div className="absolute inset-0">
+            <ReactFlow
+              nodes={nodesWithExecutionState}
+              edges={arrows}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onArrowsChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onEdgeClick={onArrowClick}
+              onPaneClick={onPaneClick}
+              onInit={handleInit}
+              onNodeContextMenu={(event, node) => {
+                event.preventDefault();
+                setSelectedNodeId(node.id);
+                setSelectedArrowId(null);
+                openContextMenu(event.clientX, event.clientY, 'node');
+              }}
+              onEdgeContextMenu={(event, edge) => {
+                event.preventDefault();
+                setSelectedArrowId(edge.id);
+                setSelectedNodeId(null);
+                openContextMenu(event.clientX, event.clientY, 'edge');
+              }}
+              onPaneContextMenu={(event) => {
+                event.preventDefault();
+                setSelectedNodeId(null);
+                setSelectedArrowId(null);
+                openContextMenu(event.clientX, event.clientY, 'pane');
+              }}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
+              defaultEdgeOptions={{ type: 'customArrow', markerEnd: { type: MarkerType.ArrowClosed } }}
+              fitView
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              className="bg-gray-900"
+              style={{ width: '100%', height: '100%' }}
+            >
+              <Controls />
+              <Background variant={BackgroundVariant.Dots} gap={12} size={1} color={executionMode ? "#374151" : undefined} />
+            </ReactFlow>
+          </div>
+          
+          {isOpen && contextMenu.position && (
+            <Suspense fallback={null}>
+              <ContextMenu
+                position={contextMenu.position}
+                target={contextMenu.target}
+                selectedNodeId={selectedNodeId}
+                selectedArrowId={selectedArrowId}
+                containerRef={reactFlowWrapper as React.RefObject<HTMLDivElement>}
+                onAddNode={addNode}
+                onAddPerson={handleAddPerson}
+                onDeleteNode={deleteNode}
+                onDeleteArrow={deleteArrow}
+                onClose={closeContextMenu}
+                projectPosition={projectPosition}
+              />
+            </Suspense>
+          )}
+        </div>
+      ) : (
+        <PanelGroup direction="vertical">
+          {/* Canvas Panel */}
+          <Panel defaultSize={65} minSize={30}>
           <div
             className="h-full w-full relative outline-none"
             ref={reactFlowWrapper}
@@ -195,7 +266,7 @@ const DiagramCanvas: React.FC = () => {
                 fitView
                 onDragOver={onDragOver}
                 onDrop={onDrop}
-                className="bg-gradient-to-br from-slate-50 to-sky-100"
+                className={executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100"}
                 style={{ width: '100%', height: '100%' }}
               >
                 <Controls />
@@ -231,6 +302,7 @@ const DiagramCanvas: React.FC = () => {
           <PropertyDashboard />
         </Panel>
       </PanelGroup>
+      )}
     </div>
   );
 };

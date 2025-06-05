@@ -11,6 +11,7 @@ class NodeType(Enum):
     JOB = "job"
     ENDPOINT = "endpoint"
     USER_RESPONSE = "user_response"
+    NOTION = "notion"
     
 
 class DBBlockSubType(Enum):

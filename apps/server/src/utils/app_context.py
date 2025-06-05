@@ -11,6 +11,7 @@ from ..services.diagram_service import DiagramService
 from ..services.file_service import FileService
 from ..services.memory_service import MemoryService
 from ..services.execution_service import ExecutionService
+from ..services.notion_service import NotionService
 from ...config import BASE_DIR
 
 
@@ -24,6 +25,7 @@ class AppContext:
         self.file_service: Optional[FileService] = None
         self.memory_service: Optional[MemoryService] = None
         self.execution_service: Optional[ExecutionService] = None
+        self.notion_service: Optional[NotionService] = None
     
     async def startup(self):
         """Initialize all services on startup."""
@@ -37,12 +39,14 @@ class AppContext:
             self.api_key_service, 
             self.memory_service
         )
+        self.notion_service = NotionService(self)
         self.execution_service = ExecutionService(
             self.llm_service,
             self.api_key_service,
             self.memory_service,
             self.file_service,
-            self.diagram_service
+            self.diagram_service,
+            self.notion_service
         )
     
     async def shutdown(self):
@@ -107,6 +111,13 @@ def get_execution_service() -> ExecutionService:
     if app_context.execution_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.execution_service
+
+
+def get_notion_service() -> NotionService:
+    """Get NotionService instance from app context."""
+    if app_context.notion_service is None:
+        raise RuntimeError("Application context not initialized")
+    return app_context.notion_service
 
 
 def get_app_context() -> AppContext:

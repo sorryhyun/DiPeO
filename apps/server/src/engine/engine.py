@@ -55,7 +55,7 @@ class UnifiedExecutionEngine:
     loop control, skip management, and node execution.
     """
     
-    def __init__(self, llm_service=None, file_service=None, memory_service=None):
+    def __init__(self, llm_service=None, file_service=None, memory_service=None, notion_service=None):
         self.dependency_resolver = DependencyResolver()
         self.execution_planner = ExecutionPlanner()
         self.loop_controller = LoopController()
@@ -63,9 +63,11 @@ class UnifiedExecutionEngine:
         self.llm_service = llm_service
         self.file_service = file_service
         self.memory_service = memory_service
+        self.notion_service = notion_service
         self.executors = create_executors(
             llm_service=self.llm_service,
-            file_service=self.file_service
+            file_service=self.file_service,
+            notion_service=self.notion_service
         )
         self._execution_lock = asyncio.Lock()
 

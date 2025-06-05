@@ -311,6 +311,53 @@ export const UNIFIED_NODE_CONFIGS: Record<string, UnifiedNodeConfig> = {
     // Metadata
     description: 'Wait for user input with a prompt',
     category: 'processing'
+  },
+  
+  notion: {
+    // Visual config
+    handles: [
+      { type: 'input', position: Position.Left, name: 'default', offset: 50, color: '#000000' },
+      { type: 'output', position: Position.Right, name: 'default', offset: 50, color: '#000000' }
+    ],
+    borderColor: 'gray',
+    width: 'w-52',
+    className: 'rounded-lg',
+    emoji: '📄',
+    label: 'Notion',
+    
+    // React Flow mapping
+    reactFlowType: 'notion',
+    blockType: 'notion',
+    
+    // Properties config
+    propertyTitle: 'Notion Properties',
+    propertyFields: [
+      { name: 'label', label: 'Label', type: 'text', placeholder: 'Notion', isRequired: true },
+      { name: 'operation', label: 'Operation', type: 'select', options: [
+        { value: 'read_page', label: 'Read Page' },
+        { value: 'list_blocks', label: 'List Blocks' },
+        { value: 'append_blocks', label: 'Append Blocks' },
+        { value: 'update_block', label: 'Update Block' },
+        { value: 'query_database', label: 'Query Database' },
+        { value: 'create_page', label: 'Create Page' },
+        { value: 'extract_text', label: 'Extract Text from Blocks' }
+      ], isRequired: true },
+      { name: 'apiKeyId', label: 'API Key', type: 'select', options: [], isRequired: true }, // Will be populated dynamically
+      { name: 'pageId', label: 'Page ID', type: 'text', placeholder: 'Enter Notion page ID', hint: 'Required for read_page, list_blocks, append_blocks' },
+      { name: 'blockId', label: 'Block ID', type: 'text', placeholder: 'Enter block ID', hint: 'Required for update_block' },
+      { name: 'databaseId', label: 'Database ID', type: 'text', placeholder: 'Enter database ID', hint: 'Required for query_database' },
+      { name: 'blocks', label: 'Blocks (JSON)', type: 'textarea', placeholder: '[\n  {\n    "object": "block",\n    "type": "paragraph",\n    "paragraph": {\n      "rich_text": [{"type": "text", "text": {"content": "Hello"}}]\n    }\n  }\n]', rows: 6, hint: 'JSON array of blocks for append_blocks' },
+      { name: 'blockData', label: 'Block Data (JSON)', type: 'textarea', placeholder: '{\n  "paragraph": {\n    "rich_text": [{"type": "text", "text": {"content": "Updated text"}}]\n  }\n}', rows: 4, hint: 'JSON data for update_block' },
+      { name: 'filter', label: 'Filter (JSON)', type: 'textarea', placeholder: '{\n  "property": "Status",\n  "select": {\n    "equals": "Active"\n  }\n}', rows: 4, hint: 'Optional filter for query_database' },
+      { name: 'sorts', label: 'Sorts (JSON)', type: 'textarea', placeholder: '[\n  {\n    "property": "Created",\n    "direction": "descending"\n  }\n]', rows: 3, hint: 'Optional sorts for query_database' },
+      { name: 'parentConfig', label: 'Parent Config (JSON)', type: 'textarea', placeholder: '{\n  "database_id": "your-database-id"\n}', rows: 3, hint: 'Required for create_page' },
+      { name: 'pageProperties', label: 'Page Properties (JSON)', type: 'textarea', placeholder: '{\n  "Name": {\n    "title": [{"type": "text", "text": {"content": "New Page"}}]\n  }\n}', rows: 4, hint: 'Properties for create_page' },
+      { name: 'children', label: 'Children Blocks (JSON)', type: 'textarea', placeholder: '[\n  {\n    "object": "block",\n    "type": "paragraph",\n    "paragraph": {\n      "rich_text": [{"type": "text", "text": {"content": "Page content"}}]\n    }\n  }\n]', rows: 5, hint: 'Optional children blocks for create_page' }
+    ],
+    
+    // Metadata
+    description: 'Interact with Notion API',
+    category: 'data'
   }
 };
 

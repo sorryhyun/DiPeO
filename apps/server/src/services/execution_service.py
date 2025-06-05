@@ -23,7 +23,8 @@ class ExecutionService(BaseService):
         api_key_service,
         memory_service,
         file_service,
-        diagram_service
+        diagram_service,
+        notion_service=None
     ):
         super().__init__()
         self.llm_service = llm_service
@@ -31,6 +32,7 @@ class ExecutionService(BaseService):
         self.memory_service = memory_service
         self.file_service = file_service
         self.diagram_service = diagram_service
+        self.notion_service = notion_service
         
     async def validate_diagram_for_execution(self, diagram: Dict[str, Any]) -> None:
         """Validate diagram structure for execution."""
@@ -152,7 +154,8 @@ class ExecutionService(BaseService):
         execution_engine = UnifiedExecutionEngine(
             llm_service=self.llm_service,
             file_service=self.file_service,
-            memory_service=self.memory_service
+            memory_service=self.memory_service,
+            notion_service=self.notion_service
         )
         
         # Execute and yield updates

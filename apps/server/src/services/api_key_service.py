@@ -12,7 +12,8 @@ from ..constants import LLMService as LLMServiceEnum
 class APIKeyService(BaseService):
     """Service for managing API keys."""
     
-    VALID_SERVICES = {service.value for service in LLMServiceEnum}
+    # Include both LLM services and other external services
+    VALID_SERVICES = {service.value for service in LLMServiceEnum} | {"notion"}
     
     def __init__(self, store_file: Optional[str] = None):
         super().__init__()

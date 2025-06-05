@@ -8,3 +8,4 @@ export { arrowConfig } from './arrowConfig';
 export { personConfig } from './personConfig';
 export { startConfig } from './startConfig';
 export { userResponseConfig } from './userResponseConfig';
+export { default as notionConfig } from './notionConfig';
