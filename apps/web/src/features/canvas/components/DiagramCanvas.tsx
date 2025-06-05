@@ -13,13 +13,12 @@ import {
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import { useHistoryStore } from '@/state/stores';
 import {
   useContextMenu,
   useKeyboardShortcuts,
   CustomArrow as CustomArrowBase,
   ContextMenu
-} from '../wrappers';
+} from '..';
 import { roundPosition } from '../utils/canvasUtils';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
 import { DiagramNode, Arrow } from '@/common/types';
@@ -31,6 +30,7 @@ import {
   useExecutionStatus,
   usePersons
 } from '@/state/hooks/useStoreSelectors';
+import { useUndo, useRedo } from '@/common/utils/store-selectors';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
@@ -54,7 +54,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     deleteArrow,
   } = useCanvasState();
   
-  const { undo, redo } = useHistoryStore();
+  const undo = useUndo();
+  const redo = useRedo();
   
   const {
     selectedNodeId,

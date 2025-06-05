@@ -9,11 +9,20 @@ export { default as PersonClass } from './components/PersonClass';
 export type { FlowHandleProps } from './components/base/FlowHandle';
 
 // Hooks
-export * from './hooks/useNodeDrag';
-export * from './hooks/useNodeType';
+export { useNodeDrag } from './hooks/useNodeDrag';
+export { useNodeType } from './hooks/useNodeType';
 
 // Utils
-export * from '@/common/utils/nodeHelpers';
-export * from './utils/nodeValidation';
+export {
+  createNodeId,
+  getNodeDisplayName,
+  createHandleId
+} from '@/common/utils/nodeHelpers';
+
+export {
+  validateNode,
+  validateNodeData
+} from './utils/nodeValidation';
+export type { ValidationResult } from './utils/nodeValidation';
 
 

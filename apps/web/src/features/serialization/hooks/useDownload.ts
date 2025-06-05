@@ -1,5 +1,12 @@
 import React from 'react';
-import { downloadFile, getMimeType, FileFormat, withFileErrorHandling } from '../utils/fileUtils';
+import { 
+  downloadFile, 
+  downloadEnhanced as downloadEnhancedCore,
+  downloadBlob,
+  getMimeType,
+  withFileErrorHandling 
+} from '@/common/utils/file-operations';
+import { FileFormat } from '../utils/fileUtils';
 
 export const useDownload = () => {
   const [isDownloading, setIsDownloading] = React.useState(false);
@@ -53,24 +60,12 @@ export const useDownload = () => {
         }
       }
       
-      // Fall back to unified downloadFile utility
+      // Fall back to unified download utilities
       if (typeof data === 'string') {
-        downloadFile(data, filename, mimeType);
+        downloadFile(data, filename);
       } else {
-        // For blob data, convert to string or use URL
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.style.display = 'none';
-        
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
+        // For blob data, use downloadBlob utility
+        downloadBlob(blob, filename);
       }
       
     } catch (error) {
@@ -109,9 +104,17 @@ export const useDownload = () => {
   }, [downloadEnhanced]);
   
   // Wrapped versions with error handling
-  const safeDownload = withFileErrorHandling(downloadEnhanced, 'Download file');
-  const safeDownloadJson = withFileErrorHandling(downloadJson, 'Download JSON');
-  const safeDownloadYaml = withFileErrorHandling(downloadYaml, 'Download YAML');
+  const safeDownload = React.useCallback(async (data: string | Blob, filename: string, mimeType?: string) => {
+    return withFileErrorHandling(() => downloadEnhanced(data, filename, mimeType), 'Download file');
+  }, [downloadEnhanced]);
+  
+  const safeDownloadJson = React.useCallback(async (data: object, filename: string) => {
+    return withFileErrorHandling(() => downloadJson(data, filename), 'Download JSON');
+  }, [downloadJson]);
+  
+  const safeDownloadYaml = React.useCallback(async (data: string, filename: string) => {
+    return withFileErrorHandling(() => downloadYaml(data, filename), 'Download YAML');
+  }, [downloadYaml]);
   
   return { 
     // Core functions

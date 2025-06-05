@@ -3,7 +3,7 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
-import { Button, Input, Select, SelectItem } from '@/common/components';
+import { Button, Input, Select } from '@/common/components';
 import { useDownload } from '@/features/serialization/hooks/useDownload';
 import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '@/state/hooks/useStoreSelectors';
@@ -190,7 +190,7 @@ const ConversationDashboard: React.FC = () => {
         value={filters.executionId}
         onValueChange={(value) => setFilters(prev => ({ ...prev, executionId: value }))}
       >
-        <SelectItem value="">All Executions</SelectItem>
+        <option value="">All Executions</option>
       </Select>
       <label className="flex items-center space-x-2 text-sm">
         <input

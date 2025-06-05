@@ -314,7 +314,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
-              onClick={() => onSaveYAMLToDirectory()}
+              onClick={() => onSaveYAMLToDirectory().catch(console.error)}
               title="Export to YAML format (saves to /files/yaml_diagrams/)"
             >
               <span className="mr-1">📤</span> Export YAML
@@ -323,7 +323,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={() => onSaveLLMYAMLToDirectory()}
+              onClick={() => onSaveLLMYAMLToDirectory().catch(console.error)}
               title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
             >
               <span className="mr-1">🤖</span> Export LLM YAML

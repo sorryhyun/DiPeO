@@ -6,13 +6,14 @@ import { useDownload } from './useDownload';
 import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import {
-  saveDiagramToBackend,
   downloadFile,
-  FileFormat,
-  SaveFileOptions,
   withFileErrorHandling,
-  getMimeType,
   getFileExtension
+} from '@/common/utils/file-operations';
+import { saveDiagram } from '@/common/utils/api-client';
+import { 
+  FileFormat,
+  SaveFileOptions
 } from '../utils/fileUtils';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
@@ -47,9 +48,8 @@ export const useExport = () => {
     }
     
     const finalFilename = filename || defaultFilename;
-    const mimeType = getMimeType(format);
     
-    downloadFile(content, finalFilename, mimeType);
+    downloadFile(content, finalFilename);
     toast.success(`Exported as ${format.toUpperCase()}`);
     
     return { content, filename: finalFilename };
@@ -65,7 +65,7 @@ export const useExport = () => {
       defaultFilename: `diagram${getFileExtension(format)}`
     };
     
-    const result = await saveDiagramToBackend(diagramData, options);
+    const result = await saveDiagram(diagramData, `${options.filename}${getFileExtension(options.format)}`);
     
     if (result.success) {
       toast.success(`Saved ${format.toUpperCase()} to: ${result.filename}`);
@@ -155,10 +155,7 @@ export const useExport = () => {
       }
     };
     
-    return saveDiagramToBackend(clonedDiagram, {
-      format,
-      filename: `${newName}${getFileExtension(format)}`
-    });
+    return saveDiagram(clonedDiagram, `${newName}${getFileExtension(format)}`);
   }, []);
 
   return {

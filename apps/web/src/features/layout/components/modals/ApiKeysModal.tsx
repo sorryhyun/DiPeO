@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Modal, Select, SelectItem } from '@/common/components';
+import { Button, Input, Modal, Select } from '@/common/components';
 import { ApiKey, createErrorHandlerFactory } from '@/common/types';
 import { useApiKeyStore } from '@/state/stores';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
@@ -221,9 +221,9 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as ApiKey['service'] })}
               >
                 {API_SERVICES.map((service) => (
-                  <SelectItem key={service.value} value={service.value}>
+                  <option key={service.value} value={service.value}>
                     {service.label}
-                  </SelectItem>
+                  </option>
                 ))}
               </Select>
             </div>

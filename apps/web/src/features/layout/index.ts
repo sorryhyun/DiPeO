@@ -5,5 +5,8 @@ export { default as ExecutionView } from './components/ExecutionView';
 // IntegratedDashboard is lazy loaded in App.tsx, not exported here
 
 // Modals
-export * from './components/modals/ApiKeysModal';
-export * from './components/modals/LazyModals';
+// Default export from ApiKeysModal
+export { default as ApiKeysModal } from './components/modals/ApiKeysModal';
+
+// Named exports from LazyModals
+export { LazyApiKeysModal } from './components/modals/LazyModals';

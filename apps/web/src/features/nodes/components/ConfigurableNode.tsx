@@ -2,9 +2,9 @@ import React, { useCallback, useMemo } from 'react';
 import { NodeProps } from '@xyflow/react';
 import { GenericNode } from './base/GenericNode';
 import { Code, Zap, Link as LinkIcon, Save } from 'lucide-react';
-import { useDiagramStore } from '@/state/stores';
+import { usePersons, useUpdateNodeData } from '@/common/utils/store-selectors';
 import { NodeType } from '@/common/types/node';
-import { getNodeConfig, COMPLETE_NODE_CONFIGS } from '@/common/types/unifiedNodeConfig';
+import { getNodeConfig } from '@/common/types/unifiedNodeConfig';
 
 // Type guard to safely get node type
 const getNodeType = (data: any): NodeType => {
@@ -13,7 +13,7 @@ const getNodeType = (data: any): NodeType => {
 
 // Separate component for PersonJob content to use hooks
 const PersonJobContent: React.FC<{ config: any; data: any }> = ({ config, data }) => {
-  const persons = useDiagramStore(state => state.persons);
+  const persons = usePersons();
   const personLabel = useMemo(() => {
     if (!data.personId) return null;
     return persons.find(p => p.id === data.personId)?.label || 'Unknown';
@@ -179,7 +179,7 @@ const nodeRenderers: Record<NodeType, (props: { config: any; data: any; id: stri
   'person_batch_job': ({ config, data }) => {
     // Note: This is called from within a component, so the hook usage is valid
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const persons = useDiagramStore(state => state.persons);
+    const persons = usePersons();
     const personLabel = data.personId 
       ? persons.find(p => p.id === data.personId)?.label || 'Unknown'
       : null;
@@ -233,7 +233,7 @@ const nodeRenderers: Record<NodeType, (props: { config: any; data: any; id: stri
 const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeType = getNodeType(data);
   const config = getNodeConfig(nodeType);
-  const updateNodeData = useDiagramStore(state => state.updateNodeData);
+  const updateNodeData = useUpdateNodeData();
   const [isDragOver, setIsDragOver] = React.useState(false);
 
   // Event handlers for person_job drag and drop

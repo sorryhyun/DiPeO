@@ -1,12 +1,11 @@
 import type { NodeType } from './node';
 import React from 'react';
-import { FieldConfig } from './nodeConfig';
-import { PropertyFieldConfig } from './extendedFieldConfig';
+import { PropertyFieldConfig, FieldConfig } from './extendedFieldConfig';
 
-/**
- * Complete node configuration interface.
- * This is the single source of truth for all node type information.
- */
+// Re-export FieldConfig for backward compatibility
+export type { FieldConfig };
+
+
 export interface UnifiedNodeConfig {
   // Visual properties
   label: string;
@@ -16,6 +15,8 @@ export interface UnifiedNodeConfig {
   width: number;
   className?: string;
   category?: 'flow' | 'data' | 'llm' | 'control';
+  reactFlowType: string;
+  blockType: string;
   
   // Handle configuration
   handles: {
@@ -51,13 +52,9 @@ export interface UnifiedNodeConfig {
   
   // Node-specific behavior
   behavior?: {
-    // Whether this node can have multiple instances
     allowMultiple?: boolean;
-    // Whether this node is required in a diagram
     isRequired?: boolean;
-    // Custom rendering logic
     customRenderer?: (data: unknown) => React.ReactNode;
-    // Whether handles should be rendered vertically
     verticalHandles?: boolean;
   };
 }
@@ -66,7 +63,7 @@ export interface UnifiedNodeConfig {
  * Complete unified node configurations.
  * This replaces all scattered node configuration across the codebase.
  */
-export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
+export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
   start: {
     label: 'Start',
     description: 'Entry point of the workflow',
@@ -75,6 +72,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 200,
     className: 'bg-green-50',
     category: 'flow',
+    reactFlowType: 'start',
+    blockType: 'start',
     handles: {
       sources: [{
         id: 'default',
@@ -114,6 +113,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 200,
     className: 'bg-purple-50',
     category: 'control',
+    reactFlowType: 'condition',
+    blockType: 'condition',
     handles: {
       sources: [
         {
@@ -174,6 +175,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 250,
     className: 'bg-blue-50',
     category: 'data',
+    reactFlowType: 'job',
+    blockType: 'job',
     handles: {
       sources: [{
         id: 'default',
@@ -224,6 +227,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 200,
     className: 'bg-red-50',
     category: 'flow',
+    reactFlowType: 'endpoint',
+    blockType: 'endpoint',
     handles: {
       sources: [],
       targets: [{
@@ -268,6 +273,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 300,
     className: 'bg-indigo-50',
     category: 'llm',
+    reactFlowType: 'person_job',
+    blockType: 'person_job',
     handles: {
       sources: [{
         id: 'default',
@@ -355,6 +362,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 300,
     className: 'bg-indigo-100',
     category: 'llm',
+    reactFlowType: 'person_batch_job',
+    blockType: 'person_batch_job',
     handles: {
       sources: [{
         id: 'default',
@@ -410,6 +419,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 250,
     className: 'bg-yellow-50',
     category: 'data',
+    reactFlowType: 'db',
+    blockType: 'db',
     handles: {
       sources: [{
         id: 'default',
@@ -474,6 +485,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 250,
     className: 'bg-indigo-50',
     category: 'control',
+    reactFlowType: 'user_response',
+    blockType: 'user_response',
     handles: {
       sources: [{
         id: 'default',
@@ -522,6 +535,8 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
     width: 300,
     className: 'bg-gray-50',
     category: 'data',
+    reactFlowType: 'notion',
+    blockType: 'notion',
     handles: {
       sources: [{
         id: 'default',
@@ -591,7 +606,7 @@ export const COMPLETE_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig> = {
 
 // Helper functions to work with the unified config
 export const getNodeConfig = (nodeType: NodeType): UnifiedNodeConfig => {
-  return COMPLETE_NODE_CONFIGS[nodeType];
+  return UNIFIED_NODE_CONFIGS[nodeType];
 };
 
 export const getNodeHandles = (nodeType: NodeType) => {
@@ -609,14 +624,15 @@ export const getNodePropertyFields = (nodeType: NodeType) => {
   return config.propertyFields;
 };
 
-export const validateNodeData = (nodeType: NodeType, data: any) => {
+export const validateNodeData = (nodeType: NodeType, data: unknown) => {
   const config = getNodeConfig(nodeType);
   const errors: string[] = [];
+  const nodeData = data as Record<string, unknown>;
   
   if (config.validation) {
     // Check required fields
     for (const field of config.validation.requiredFields) {
-      if (!data[field]) {
+      if (!nodeData[field]) {
         errors.push(`${field} is required`);
       }
     }
@@ -634,4 +650,21 @@ export const validateNodeData = (nodeType: NodeType, data: any) => {
     valid: errors.length === 0,
     errors
   };
+};
+
+// Helper functions for React Flow type mapping
+export const getReactFlowType = (blockType: string): string => {
+  const config = Object.values(UNIFIED_NODE_CONFIGS).find(c => c.blockType === blockType);
+  return config?.reactFlowType || blockType;
+};
+
+export const getBlockType = (reactFlowType: string): string => {
+  const config = Object.values(UNIFIED_NODE_CONFIGS).find(c => c.reactFlowType === reactFlowType);
+  return config?.blockType || reactFlowType;
+};
+
+export const getUnifiedNodeConfigsByReactFlowType = () => {
+  return Object.fromEntries(
+    Object.entries(UNIFIED_NODE_CONFIGS).map(([_, config]) => [config.reactFlowType, config])
+  );
 };

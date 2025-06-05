@@ -37,11 +37,3 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   }
 );
 Select.displayName = "Select";
-
-export const SelectItem = React.forwardRef<
-  HTMLOptionElement,
-  React.OptionHTMLAttributes<HTMLOptionElement>
->(({ className, ...props }, ref) => {
-  return <option ref={ref} className={clsx("", className)} {...props} />;
-});
-SelectItem.displayName = "SelectItem";

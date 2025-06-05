@@ -24,7 +24,7 @@ function GenericNodeComponent({
   if (!config) {
     // Convert React Flow type to block type and get config from UNIFIED_NODE_CONFIGS
     const blockType = getBlockType(nodeType);
-    config = UNIFIED_NODE_CONFIGS[blockType];
+    config = UNIFIED_NODE_CONFIGS[blockType as keyof typeof UNIFIED_NODE_CONFIGS];
   }
   
   if (!config) {

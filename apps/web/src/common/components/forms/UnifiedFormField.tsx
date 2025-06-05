@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input } from '../Input';
-import { Select, SelectItem } from '../Select';
+import { Select } from '../Select';
 import { Switch } from '../Switch';
 import { FileUploadButton } from '../common/FileUploadButton';
 
@@ -107,13 +107,13 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
             className="w-full"
             {...customProps}
           >
-            {placeholder && <SelectItem value="">
-              <span className="text-text-tertiary">{placeholder}</span>
-            </SelectItem>}
+            {placeholder && <option value="">
+              {placeholder}
+            </option>}
             {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </SelectItem>
+              </option>
             ))}
           </Select>
         );
@@ -127,13 +127,13 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
             className="w-full"
             {...customProps}
           >
-            <SelectItem value="">
-              <span className="text-text-tertiary">Select person...</span>
-            </SelectItem>
+            <option value="">
+              Select person...
+            </option>
             {persons.map((person) => (
-              <SelectItem key={person.id} value={person.id}>
+              <option key={person.id} value={person.id}>
                 {person.name}
-              </SelectItem>
+              </option>
             ))}
           </Select>
         );

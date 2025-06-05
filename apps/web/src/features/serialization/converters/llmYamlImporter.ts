@@ -305,12 +305,16 @@ export class LLMYamlImporter {
           } as PersonJobBlockData;
       }
 
+      const actualNodeType = this.nodeTypeToId(info.type);
       nodes.push({
         id: nodeId,
-        type: this.nodeTypeToId(info.type),
+        type: this.getReactFlowType(actualNodeType), // ReactFlow type
         position: positions[name] || { x: 0, y: 0 },
-        data: nodeData
-      });
+        data: {
+          ...nodeData,
+          type: actualNodeType // Actual node type in data
+        }
+      } as DiagramNode);
     });
 
     return nodes;
@@ -509,6 +513,21 @@ export class LLMYamlImporter {
       start: 'start',
       endpoint: 'endpoint',
       personjob: 'person_job',
+      condition: 'condition',
+      db: 'db',
+      job: 'job',
+      generic: 'person_job'
+    };
+    return mapping[nodeType] || 'person_job';
+  }
+
+  private getReactFlowType(nodeType: string): string {
+    // Map node types to ReactFlow types (usually the same)
+    const mapping: Record<string, string> = {
+      start: 'start',
+      endpoint: 'endpoint',
+      personjob: 'person_job',
+      person_job: 'person_job',
       condition: 'condition',
       db: 'db',
       job: 'job',

@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
   // Import/Export
   IMPORT_YAML: '/api/import-yaml', 
   SAVE_DIAGRAM: '/api/diagrams/save',
+  DIAGRAMS_CONVERT: '/api/diagrams/convert',
   
 } as const;
 

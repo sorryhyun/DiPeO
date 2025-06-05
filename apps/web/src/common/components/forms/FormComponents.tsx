@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input, Select, SelectItem, Spinner, Switch } from '../index';
+import { Input, Select, Spinner, Switch } from '../index';
 import { FormFieldProps } from '@/common/types';
 
 export const FormField: React.FC<FormFieldProps> = ({ label, id, children, className = "space-y-1" }) => (
@@ -111,11 +111,11 @@ export const InlineSelectField: React.FC<SelectFieldProps & { className?: string
         disabled={isDisabled}
         className="min-w-0"
       >
-        <SelectItem value="">{placeholder}</SelectItem>
+        <option value="">{placeholder}</option>
         {options.map(opt => (
-          <SelectItem key={opt.value} value={opt.value}>
+          <option key={opt.value} value={opt.value}>
             {opt.label}
-          </SelectItem>
+          </option>
         ))}
       </Select>
     )}

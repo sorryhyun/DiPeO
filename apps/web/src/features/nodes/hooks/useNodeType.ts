@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { UNIFIED_NODE_CONFIGS } from '@/common/types';
 
 export const useNodeType = (nodeType: string) => {
-  const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType], [nodeType]);
+  const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS], [nodeType]);
 
   // Get handle configurations based on flip state
   const getHandles = useCallback((isFlipped: boolean = false) => {
@@ -10,18 +10,21 @@ export const useNodeType = (nodeType: string) => {
     
     // Handle configuration logic would go here
     // This is a simplified version - you may need to expand based on actual handle logic
-    const baseHandles = config.handles || [];
+    const allHandles = [
+      ...config.handles.sources.map((handle: any) => ({ ...handle, type: 'output' })),
+      ...config.handles.targets.map((handle: any) => ({ ...handle, type: 'input' }))
+    ];
     
     if (isFlipped) {
       // Flip handle positions if needed
-      return baseHandles.map(handle => ({
+      return allHandles.map((handle: any) => ({
         ...handle,
         position: handle.position === 'left' ? 'right' : 
                  handle.position === 'right' ? 'left' : handle.position
       }));
     }
     
-    return baseHandles;
+    return allHandles;
   }, [config]);
 
   // Get default node data

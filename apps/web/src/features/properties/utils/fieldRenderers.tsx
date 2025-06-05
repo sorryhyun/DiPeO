@@ -3,7 +3,7 @@ import { Switch } from '@/common/components';
 import {
   FormField, TextAreaField,
   InlineTextField, InlineSelectField
-} from '../wrappers';
+} from '@/common/components/forms';
 
 type FieldConfig = {
   name: string;

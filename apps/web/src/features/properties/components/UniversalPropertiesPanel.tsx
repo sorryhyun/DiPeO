@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { Panel } from '../wrappers';
+import { Panel } from './ui-components/Panel';
 import { UNIFIED_NODE_CONFIGS, DiagramNodeData, ArrowData, PersonDefinition } from '@/common/types';
 import { PanelConfig } from '@/common/types/panelConfig';
 import { GenericPropertyPanel } from './ui-components/GenericPropertyPanel';
@@ -28,7 +28,7 @@ interface UniversalPropertiesPanelProps {
 
 export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = ({ nodeId, data }) => {
   const nodeType = data.type;
-  const nodeConfig = UNIFIED_NODE_CONFIGS[nodeType];
+  const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
   
   // Cast to a more permissive type that accepts the union
   const GenericPanel = GenericPropertyPanel as React.FC<{
@@ -80,7 +80,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
   return (
     <Panel 
       icon={<span>{nodeConfig?.emoji || '⚙️'}</span>} 
-      title={nodeConfig?.propertyTitle || `${nodeType} Properties`}
+      title={nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
     >
       <GenericPanel
         nodeId={nodeId}

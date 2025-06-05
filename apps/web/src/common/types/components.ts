@@ -1,6 +1,6 @@
 import React from 'react';
 import { Position } from '@xyflow/react';
-import { UnifiedNodeConfig } from './nodeConfig';
+import { UnifiedNodeConfig } from './unifiedNodeConfig';
 
 export interface BaseNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;

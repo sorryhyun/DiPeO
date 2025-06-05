@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/common/components';
-import { useApiKeyStore, useDiagramStore, useExecutionStore, useConsolidatedUIStore } from '@/state/stores';
-import { useUIState } from '@/state/hooks/useStoreSelectors';
+import { 
+  useApiKeys, 
+  useAddApiKey, 
+  useIsReadOnly, 
+  useSetReadOnly, 
+  useCurrentRunningNode,
+  useSetActiveCanvas,
+  useActiveCanvas,
+  useToggleCanvas
+} from '@/common/utils/store-selectors';
+import { useApiKeyStore, useDiagramStore } from '@/state/stores';
 import { useFileImport } from '@/features/serialization/hooks/useFileImport';
 import { useExport } from '@/features/serialization/hooks/useExport';
 import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
@@ -20,12 +29,12 @@ const TopBar = () => {
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
-  const apiKeys = useApiKeyStore(state => state.apiKeys);
-  const addApiKey = useApiKeyStore(state => state.addApiKey);
+  const apiKeys = useApiKeys();
+  const addApiKey = useAddApiKey();
   const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
   const clearDiagramAction = useDiagramStore(state => state.clearDiagram);
-  const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const setReadOnly = useDiagramStore(state => state.setReadOnly);
+  const isReadOnly = useIsReadOnly();
+  const setReadOnly = useSetReadOnly();
   const { onImportJSON } = useFileImport();
   const { onSaveToDirectory } = useExport();
   const { 
@@ -36,8 +45,10 @@ const TopBar = () => {
     resumeNode,
     skipNode
   } = useDiagramRunner();
-  const { activeCanvas, toggleCanvas } = useUIState();
-  const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
+  const activeCanvas = useActiveCanvas();
+  const toggleCanvas = useToggleCanvas();
+  const currentRunningNode = useCurrentRunningNode();
+  const setActiveCanvas = useSetActiveCanvas();
   
   const createErrorHandler = createErrorHandlerFactory(toast);
   
@@ -55,7 +66,7 @@ const TopBar = () => {
     
     // Auto-open execution mode when monitor mode is triggered
     if (isMonitor) {
-      useConsolidatedUIStore.getState().setActiveCanvas('execution');
+      setActiveCanvas('execution');
       setReadOnly(true);
     }
     const checkBackendApiKeys = async () => {
@@ -93,10 +104,10 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys();
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler, setReadOnly]);
+  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler, setReadOnly, setActiveCanvas]);
 
   useKeyboardShortcuts({
-    onSave: () => onSaveToDirectory(),
+    onSave: () => onSaveToDirectory().catch(console.error),
   });
 
   return (
@@ -128,7 +139,7 @@ const TopBar = () => {
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => onSaveToDirectory()}
+            onClick={() => onSaveToDirectory().catch(console.error)}
             title="Save diagram to server (diagrams folder)"
           >
             💾 Save
@@ -214,7 +225,7 @@ const TopBar = () => {
                 // Exit read-only mode when leaving execution mode
                 setReadOnly(false);
               } else {
-                useConsolidatedUIStore.getState().setActiveCanvas('execution');
+                setActiveCanvas('execution');
                 // Set the diagram to read-only when entering execution mode
                 setReadOnly(true);
               }

@@ -1,5 +1,13 @@
 // API and LLM service types
 
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  filename?: string;
+  path?: string;
+}
+
 export interface ApiKey {
   id: string;
   name: string;

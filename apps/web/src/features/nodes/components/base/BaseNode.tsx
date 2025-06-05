@@ -2,7 +2,7 @@ import React from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/common/components';
-import { BaseNodeProps, HandleConfig, getUnifiedNodeConfigsByReactFlowType } from '@/common/types';
+import { BaseNodeProps, getUnifiedNodeConfigsByReactFlowType } from '@/common/types';
 import { createHandleId } from '@/common/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
 import { useNodeExecutionState, useNodeDataUpdater } from '@/state/hooks/useStoreSelectors';
@@ -50,24 +50,32 @@ function BaseNodeComponent({
   // Use auto-generated handles if autoHandles is true and config exists
   const effectiveHandles = React.useMemo(() => {
     if (autoHandles && config) {
-      return config.handles.map((handle: HandleConfig) => {
-        const isVertical = handle.position === Position.Top || handle.position === Position.Bottom;
+      const allHandles = [
+        ...config.handles.sources.map(handle => ({ ...handle, type: 'output' as const })),
+        ...config.handles.targets.map(handle => ({ ...handle, type: 'input' as const }))
+      ];
+      
+      return allHandles.map(handle => {
+        const isVertical = handle.position === 'top' || handle.position === 'bottom';
         const position = isFlipped && !isVertical
-          ? (handle.position === Position.Left ? Position.Right : Position.Left)
-          : handle.position;
+          ? (handle.position === 'left' ? Position.Right : Position.Left)
+          : (handle.position === 'left' ? Position.Left : 
+             handle.position === 'right' ? Position.Right :
+             handle.position === 'top' ? Position.Top : Position.Bottom);
         
+        const offset = handle.offset || { x: 0, y: 0 };
         const style = isVertical 
-          ? { left: `${handle.offset}%` }
-          : { top: `${handle.offset}%` };
+          ? { left: '50%', transform: `translateX(-50%) translateX(${offset.x}px)` }
+          : { top: '50%', transform: `translateY(-50%) translateY(${offset.y}px)` };
         
         return {
           type: handle.type,
           position,
-          id: createHandleId(id, handle.type, handle.name),
-          name: handle.name,
+          id: createHandleId(id, handle.type, handle.id),
+          name: handle.id,
           style,
-          offset: handle.offset,
-          className: handle.color
+          offset: 50, // Default offset for compatibility
+          className: handle.color || ''
         };
       });
     }
@@ -157,7 +165,7 @@ function BaseNodeComponent({
       </div>
 
       {/* Handles */}
-      {effectiveHandles.map((handle, index) => (
+      {effectiveHandles.map((handle: any, index: number) => (
         <FlowHandle
           key={handle.id || index}
           nodeId={id}

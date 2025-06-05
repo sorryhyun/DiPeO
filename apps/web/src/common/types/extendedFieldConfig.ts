@@ -1,4 +1,16 @@
-import { FieldConfig } from './nodeConfig';
+/**
+ * Base field configuration for node properties
+ */
+export interface FieldConfig {
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox';
+  placeholder?: string;
+  isRequired?: boolean;
+  options?: { value: string; label: string }[];
+  rows?: number;
+  hint?: string;
+}
 
 /**
  * Extended field configuration that supports all field types used in the application
