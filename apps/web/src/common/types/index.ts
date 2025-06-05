@@ -11,4 +11,3 @@ export * from './api';
 export * from './errors';
 export * from './stream';
 export * from './validation';
-export * from './constants';

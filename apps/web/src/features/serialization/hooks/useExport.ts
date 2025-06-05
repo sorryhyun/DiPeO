@@ -3,7 +3,7 @@ import { exportDiagram } from '@/common/utils/diagramOperations';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';
-import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/common/types';
+import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import {
   saveDiagramToBackend,
@@ -15,7 +15,6 @@ import {
   getFileExtension
 } from '../utils/fileUtils';
 
-const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useExport = () => {

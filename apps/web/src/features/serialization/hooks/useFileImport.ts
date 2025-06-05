@@ -1,7 +1,7 @@
 // Hook for importing diagrams from various file formats
 import { useCallback, ChangeEvent } from 'react';
 import { loadDiagram } from '@/common/utils/diagramOperations';
-import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/common/types';
+import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
 import { YamlExporter } from '../converters/yamlExporter';
@@ -15,7 +15,6 @@ import {
   FileFormat
 } from '../utils/fileUtils';
 
-const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useFileImport = () => {
@@ -127,7 +126,7 @@ export const useFileImport = () => {
   }, [convertJSONtoYAML]);
 
   // Import from URL
-  const importFromURL = useCallback(async (url: string, format?: FileFormat) => {
+  const importFromURL = useCallback(async (url: string, _format?: FileFormat) => {
     const errorHandler = createErrorHandler('Import from URL');
     
     try {
@@ -137,7 +136,6 @@ export const useFileImport = () => {
       }
       
       const content = await response.text();
-      const formatInfo = format ? { format, isLLMFormat: format === 'llm-yaml' } : detectFileFormat(content, url);
       
       // Create a virtual file object for unified processing
       const virtualFile = new File([content], url.split('/').pop() || 'imported-file', {

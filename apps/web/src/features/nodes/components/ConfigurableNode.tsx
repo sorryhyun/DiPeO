@@ -275,7 +275,7 @@ const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const content = renderer ? renderer({ config, data, id }) : (
     <>
       <span className="text-2xl mb-0.5">{config.emoji}</span>
-      <strong className="text-sm">{data.label || config.label}</strong>
+      <strong className="text-sm">{(data as any).label || config.label}</strong>
     </>
   );
 
@@ -285,7 +285,7 @@ const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     onDragEnter: handleDragEnter,
     onDragLeave: handleDragLeave,
     onDrop: handleDrop,
-  } : {};
+  } : undefined;
 
   return (
     <GenericNode
