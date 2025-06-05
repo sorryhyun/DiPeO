@@ -4,8 +4,7 @@ from .base_executor import BaseExecutor, ExecutorResult
 from .validator import (
     ValidationResult,
     validate_required_fields,
-    validate_positive_integer,
-    merge_validation_results
+    validate_numeric_range
 )
 from .utils import get_input_values, substitute_variables
 import logging
@@ -30,26 +29,27 @@ class UserResponseExecutor(BaseExecutor):
         # Validate required fields
         props = node.get("properties", {})
         required_fields = ["prompt"]
-        field_result = validate_required_fields(props, required_fields)
+        field_errors = validate_required_fields(props, required_fields)
+        errors.extend(field_errors)
         
-        # Validate timeout if provided
-        timeout = props.get("timeout", 10)
-        if timeout is not None:
-            if not isinstance(timeout, (int, float)):
-                errors.append("timeout must be a number")
-            elif timeout < 1:
-                errors.append("timeout must be at least 1 second")
-            elif timeout > 60:
-                errors.append("timeout cannot exceed 60 seconds")
+        # Validate timeout using centralized function
+        timeout_error = validate_numeric_range(
+            props,
+            "timeout",
+            min_value=1,
+            max_value=60,
+            required=False,
+            allow_int=True,
+            allow_float=True
+        )
+        if timeout_error:
+            errors.append(timeout_error)
         
-        # Combine results
-        results = [field_result]
-        if errors:
-            results.append(ValidationResult(is_valid=False, errors=errors))
-        if warnings:
-            results.append(ValidationResult(is_valid=True, warnings=warnings))
-            
-        return merge_validation_results(results)
+        return ValidationResult(
+            is_valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings
+        )
     
     async def execute(self, node: Dict[str, Any], context: 'ExecutionContext') -> ExecutorResult:
         """Execute user_response node - wait for user input"""

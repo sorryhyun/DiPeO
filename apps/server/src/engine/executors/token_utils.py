@@ -40,11 +40,23 @@ class TokenUsage:
                 output=usage[1] if len(usage) > 1 else 0
             )
 
-        # Standard format
+        # Extract tokens based on format
+        input_tokens = (getattr(usage, 'input_tokens', None) or
+                        getattr(usage, 'prompt_tokens', None) or 0)
+        output_tokens = (getattr(usage, 'output_tokens', None) or
+                         getattr(usage, 'completion_tokens', None) or 0)
+        cached_tokens = 0
+        
+        # Special handling for OpenAI cached tokens
+        if service == "openai":
+            # Try to get cached tokens from nested structure
+            if hasattr(usage, 'input_tokens_details') and hasattr(usage.input_tokens_details, 'cached_tokens'):
+                cached_tokens = usage.input_tokens_details.cached_tokens or 0
+        else:
+            cached_tokens = getattr(usage, 'cached_tokens', 0)
+            
         return cls(
-            input=(getattr(usage, 'input_tokens', None) or
-                   getattr(usage, 'prompt_tokens', None) or 0),
-            output=(getattr(usage, 'output_tokens', None) or
-                    getattr(usage, 'completion_tokens', None) or 0),
-            cached=getattr(usage, 'cached_tokens', 0)
+            input=input_tokens,
+            output=output_tokens,
+            cached=cached_tokens
         )

@@ -72,13 +72,14 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[
     return inputs
 
 
-def substitute_variables(text: str, variables: Dict[str, Any]) -> str:
+def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: bool = False) -> str:
     """
-    Substitute {{variable}} patterns in text.
+    Substitute {{variable}} or ${variable} patterns in text.
     
     Args:
         text: Text containing variable placeholders
         variables: Dictionary of variable values
+        evaluation_mode: If True, format output for evaluation (quote strings, Python booleans)
         
     Returns:
         Text with variables substituted
@@ -91,7 +92,8 @@ def substitute_variables(text: str, variables: Dict[str, Any]) -> str:
     import json
     
     def replace_var(match):
-        var_name = match.group(1)
+        # Extract variable name from either group ({{var}} or ${var})
+        var_name = match.group(1) or match.group(2)
         value = variables.get(var_name, match.group(0))
         
         # Check if this is a structured PersonJob output with conversation history
@@ -108,17 +110,24 @@ def substitute_variables(text: str, variables: Dict[str, Any]) -> str:
         
         # Convert to string, handling special cases
         if value is None:
-            return ""
+            return "None" if evaluation_mode else ""
         elif isinstance(value, bool):
-            return str(value).lower()
+            if evaluation_mode:
+                return "True" if value else "False"
+            else:
+                return str(value).lower()
+        elif isinstance(value, str):
+            # In evaluation mode, wrap strings in quotes
+            return f'"{value}"' if evaluation_mode else value
         elif isinstance(value, (list, dict)):
             # For complex objects, serialize to JSON
             return json.dumps(value, ensure_ascii=False)
         else:
             return str(value)
     
-    # Replace {{variable}} patterns
-    return re.sub(r'{{(\w+)}}', replace_var, text)
+    # Replace both {{variable}} and ${variable} patterns
+    pattern = r'{{(\w+)}}|\${(\w+)}'
+    return re.sub(pattern, replace_var, text)
 
 
 def has_incoming_connection(node: Dict[str, Any], context: 'ExecutionContext') -> bool:

@@ -1,14 +1,12 @@
 """Service for handling diagram execution with WebSocket support."""
-import asyncio
 import logging
 from typing import Dict, Any, AsyncIterator, Optional, Set, Callable, TYPE_CHECKING
-from datetime import datetime
 
 from ..utils.base_service import BaseService
-from ..exceptions import ValidationError, DiagramExecutionError
+from ..exceptions import ValidationError
 
 if TYPE_CHECKING:
-    from ..engine.engine import UnifiedExecutionEngine
+    pass
 
 
 logger = logging.getLogger(__name__)
@@ -116,7 +114,8 @@ class ExecutionService(BaseService):
         diagram: Dict[str, Any],
         options: Dict[str, Any],
         execution_id: str,
-        interactive_handler: Optional[Callable] = None
+        interactive_handler: Optional[Callable] = None,
+        state_manager: Optional[Any] = None
     ) -> AsyncIterator[Dict[str, Any]]:
         """Execute a diagram and yield updates.
         
@@ -125,6 +124,7 @@ class ExecutionService(BaseService):
             options: Execution options
             execution_id: Unique execution identifier
             interactive_handler: Optional handler for interactive prompts
+            state_manager: Optional WebSocket state manager for pause/resume control
             
         Yields:
             Dict containing execution updates
@@ -155,7 +155,8 @@ class ExecutionService(BaseService):
             llm_service=self.llm_service,
             file_service=self.file_service,
             memory_service=self.memory_service,
-            notion_service=self.notion_service
+            notion_service=self.notion_service,
+            state_manager=state_manager
         )
         
         # Execute and yield updates

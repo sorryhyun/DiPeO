@@ -1,8 +1,9 @@
 from typing import Dict, Set, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
 import logging
-import re
 from enum import Enum
+
+from .executors.utils import substitute_variables
 
 logger = logging.getLogger(__name__)
 
@@ -449,24 +450,8 @@ class SkipManager:
             return False
     
     def _substitute_variables(self, expression: str, context: Dict[str, Any]) -> str:
-        """Substitute variables in expression"""
-        # Pattern for {{variable}} or ${variable}
-        pattern = r'\{\{(\w+)\}\}|\$\{(\w+)\}'
-        
-        def replace_var(match):
-            var_name = match.group(1) or match.group(2)
-            value = context.get(var_name, f"undefined_{var_name}")
-            # Convert to string representation suitable for evaluation
-            if isinstance(value, str):
-                return f'"{value}"'
-            elif isinstance(value, bool):
-                return "True" if value else "False"
-            elif value is None:
-                return "None"
-            else:
-                return str(value)
-        
-        return re.sub(pattern, replace_var, expression)
+        """Substitute variables in expression using centralized function"""
+        return substitute_variables(expression, context, evaluation_mode=True)
     
     def _evaluate_simple_expression(self, expression: str) -> Any:
         """

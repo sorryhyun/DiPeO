@@ -1,7 +1,7 @@
 """WebSocket message dataclasses for type-safe message creation."""
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from enum import Enum
 
 

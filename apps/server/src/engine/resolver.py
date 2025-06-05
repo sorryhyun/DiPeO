@@ -1,8 +1,7 @@
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from collections import deque, defaultdict
 import logging
 
-# node_type_utils no longer needed - all types are already snake_case
 
 logger = logging.getLogger(__name__)
 

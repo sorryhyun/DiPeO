@@ -1,5 +1,4 @@
-import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from notion_client import Client
 from src.utils.base_service import BaseService
 from src.exceptions import DiagramExecutionError

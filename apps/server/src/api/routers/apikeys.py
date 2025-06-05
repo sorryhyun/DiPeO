@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from typing import List
 from pydantic import BaseModel
 import logging
@@ -124,7 +124,7 @@ async def test_api_key(
         if not service:
             raise ValidationError("Invalid API key data")
             
-    except (KeyError, FileNotFoundError, ValueError) as e:
+    except (KeyError, FileNotFoundError, ValueError):
         raise APIKeyNotFoundError(f"API key '{id}' not found")
     
     # Test the API key with LLM call
@@ -148,29 +148,3 @@ async def test_api_key(
             "success": False,
             "error": str(e)
         }
-
-
-# Keep this endpoint for backward compatibility during migration
-@router.get("/providers")
-async def get_supported_providers():
-    """Get list of supported LLM providers and their models."""
-    return {
-        "providers": {
-            "OpenAI": {
-                "service": "openai",
-                "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
-            },
-            "Anthropic": {
-                "service": "claude",
-                "models": ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-haiku-20240307"]
-            },
-            "Google": {
-                "service": "gemini", 
-                "models": ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"]
-            },
-            "xAI": {
-                "service": "grok",
-                "models": ["grok-2-latest", "grok-2-vision-1212"]
-            }
-        }
-    }

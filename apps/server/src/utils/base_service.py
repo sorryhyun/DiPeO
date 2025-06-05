@@ -4,6 +4,7 @@ from pathlib import Path
 
 from ...config import BASE_DIR
 from ..exceptions import ValidationError
+from ..constants import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
 
 
 class BaseService(ABC):
@@ -29,8 +30,9 @@ class BaseService(ABC):
         return full_path
     
     def normalize_service_name(self, service: str) -> str:
-        """Normalize service name to lowercase."""
-        return (service or "openai").lower()
+        """Normalize service name to provider name using centralized mapping."""
+        normalized = (service or DEFAULT_SERVICE).lower()
+        return SERVICE_TO_PROVIDER_MAP.get(normalized, normalized)
     
     def safe_get_nested(self, obj: Any, path: str, default: Any = None) -> Any:
         """Safely get nested value from object using dot notation."""

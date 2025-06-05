@@ -2,7 +2,7 @@
 Notion node executor - handles Notion API operations
 """
 
-from typing import Dict, Any, TYPE_CHECKING, Optional
+from typing import Dict, Any, TYPE_CHECKING
 import time
 import logging
 import json
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
 from .validator import validate_required_fields, validate_json_field
 from .utils import get_input_values, substitute_variables
-from ...exceptions import ValidationError, DiagramExecutionError
+from ...exceptions import ValidationError
 from ...utils.output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)

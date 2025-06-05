@@ -3,7 +3,6 @@ import json
 import logging
 import uuid
 from typing import Dict, Optional
-from datetime import datetime
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from fastapi.websockets import WebSocketState
@@ -151,7 +150,7 @@ class ConnectionManager:
             
             # Execute diagram and stream updates
             async for update in execution_service.execute_diagram(
-                diagram, options, execution_id, interactive_handler
+                diagram, options, execution_id, interactive_handler, self.state_manager
             ):
                 # Check if execution was aborted
                 if self.state_manager.is_execution_aborted(execution_id):

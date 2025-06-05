@@ -9,9 +9,7 @@ from ..exceptions import DiagramExecutionError
 from .resolver import DependencyResolver
 from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager
-from .executors.base_executor import BaseExecutor
 from .executors import create_executors
-# node_type_utils no longer needed - all types are already snake_case
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +53,7 @@ class UnifiedExecutionEngine:
     loop control, skip management, and node execution.
     """
     
-    def __init__(self, llm_service=None, file_service=None, memory_service=None, notion_service=None):
+    def __init__(self, llm_service=None, file_service=None, memory_service=None, notion_service=None, state_manager=None):
         self.dependency_resolver = DependencyResolver()
         self.execution_planner = ExecutionPlanner()
         self.loop_controller = LoopController()
@@ -64,6 +62,7 @@ class UnifiedExecutionEngine:
         self.file_service = file_service
         self.memory_service = memory_service
         self.notion_service = notion_service
+        self.state_manager = state_manager
         self.executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service,
@@ -397,7 +396,29 @@ class UnifiedExecutionEngine:
         properties = node.get("properties", {})
         node_type = properties.get("type", node["type"])
         
-        # Check if should skip
+        # Check if node is marked for skip via WebSocket control
+        if self.state_manager and context.execution_id:
+            if self.state_manager.is_node_skipped(context.execution_id, node_id):
+                context.skipped_nodes.add(node_id)
+                context.skip_reasons[node_id] = "user_skipped"
+                
+                event = {
+                    "type": "node_skipped",
+                    "node_id": node_id,
+                    "reason": "user_skipped"
+                }
+                # Broadcast to monitors
+                await broadcast_event(event)
+                return event
+                
+            # Check if node is paused - wait until resumed
+            while self.state_manager.is_node_paused(context.execution_id, node_id):
+                await asyncio.sleep(0.1)  # Check every 100ms
+                # Check if execution was aborted while paused
+                if self.state_manager.is_execution_aborted(context.execution_id):
+                    raise DiagramExecutionError("Execution aborted while node was paused")
+        
+        # Check if should skip based on skip manager rules
         if self.skip_manager.should_skip(node, context):
             reason = self.skip_manager.get_skip_reason(node_id)
             context.skipped_nodes.add(node_id)

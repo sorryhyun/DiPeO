@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import logging
 
-from .messages import MessageFactory, InteractivePromptTimeoutMessage
+from .messages import InteractivePromptTimeoutMessage
 
 logger = logging.getLogger(__name__)
 
