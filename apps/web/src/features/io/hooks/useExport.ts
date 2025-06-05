@@ -7,9 +7,9 @@ import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import {
   downloadFile,
-  withFileErrorHandling,
   getFileExtension
 } from '@/common/utils/fileOperations';
+import { withFileErrorHandling } from '../utils/fileUtils';
 import { saveDiagram } from '@/common/utils/apiClient';
 import { 
   FileFormat,

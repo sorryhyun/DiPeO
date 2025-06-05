@@ -194,11 +194,11 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
  * @param operationName - Name of the operation for error messages
  * @returns Wrapped function with error handling
  */
-export const withFileErrorHandling = <T extends (...args: any[]) => Promise<any>>(
-  operation: T,
+export function withFileErrorHandling<TArgs extends any[], TReturn>(
+  operation: (...args: TArgs) => Promise<TReturn>,
   operationName: string
-): T => {
-  return (async (...args: Parameters<T>) => {
+): (...args: TArgs) => Promise<TReturn> {
+  return async (...args: TArgs) => {
     try {
       const result = await operation(...args);
       return result;
@@ -207,8 +207,8 @@ export const withFileErrorHandling = <T extends (...args: any[]) => Promise<any>
       toast.error(`${operationName} failed: ${errorMessage}`);
       throw error;
     }
-  }) as T;
-};
+  };
+}
 
 /**
  * Get MIME type for file format
