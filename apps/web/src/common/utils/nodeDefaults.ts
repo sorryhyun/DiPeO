@@ -1,9 +1,12 @@
 import { DiagramNodeData } from '@/common/types';
-import { getNodeConfig } from '@/common/types/nodeConfig';
+import { NodeType } from '@/common/types/node';
+import { getNodeConfig, getNodeDefaults } from '@/common/types/unifiedNodeConfig';
 
 // Factory function to create default node data based on node config
 export function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
-  const config = getNodeConfig(type);
+  // Convert string type to NodeType enum
+  const nodeType = type as NodeType;
+  const config = getNodeConfig(nodeType);
   
   if (!config) {
     // Fallback for unknown types
@@ -14,64 +17,32 @@ export function createDefaultNodeData(type: string, nodeId: string): DiagramNode
     };
   }
   
+  // Get default data from unified configuration
+  const defaults = getNodeDefaults(nodeType);
+  
   // Base properties common to all nodes
   const baseData: Record<string, unknown> = {
     id: nodeId,
     type,
-    label: config.label
+    label: config.label,
+    ...defaults // Spread the default data from config
   };
   
-  // Add type-specific properties based on config and defaults
+  // Add any additional node-specific properties that might not be in config defaults
+  // (for backward compatibility or special cases)
   switch (type) {
-    case 'start':
-      baseData.description = '';
-      break;
-      
     case 'person_job':
-      baseData.personId = undefined;
-      baseData.llmApi = undefined;
-      baseData.apiKeyId = undefined;
-      baseData.modelName = undefined;
-      baseData.defaultPrompt = '';
-      baseData.firstOnlyPrompt = '';
-      baseData.detectedVariables = [];
-      baseData.contextCleaningRule = 'upon_request';
-      baseData.contextCleaningTurns = undefined;
-      baseData.iterationCount = 1;
-      break;
-      
-    case 'job':
-      baseData.subType = 'code';
-      baseData.sourceDetails = '';
-      baseData.description = '';
-      break;
-      
-    case 'condition':
-      baseData.conditionType = 'expression';
-      baseData.expression = '';
-      break;
-      
-    case 'db':
-      baseData.subType = 'fixed_prompt';
-      baseData.sourceDetails = 'Enter your fixed prompt or content here';
-      baseData.description = '';
+      // Ensure backward compatibility fields
+      baseData.detectedVariables = baseData.detectedVariables || [];
       break;
       
     case 'endpoint':
-      baseData.description = '';
-      baseData.saveToFile = false;
-      baseData.filePath = '';
-      baseData.fileFormat = 'json';
-      break;
-      
-    case 'person_batch_job':
-      baseData.personId = undefined;
-      baseData.batchPrompt = '';
-      baseData.batchSize = 10;
-      baseData.parallelProcessing = false;
-      baseData.aggregationMethod = 'concatenate';
-      baseData.customAggregationPrompt = '';
-      baseData.iterationCount = 1;
+      // Map 'action' to legacy fields for backward compatibility
+      if (baseData.action === 'save') {
+        baseData.saveToFile = true;
+        baseData.filePath = baseData.filename || '';
+        baseData.fileFormat = 'json';
+      }
       break;
   }
   

@@ -1,5 +1,5 @@
-// Hook for importing diagrams from UML or YAML
-import React, { useCallback, ChangeEvent } from 'react';
+// Hook for importing diagrams from various file formats
+import { useCallback, ChangeEvent } from 'react';
 import { loadDiagram } from '@/common/utils/diagramOperations';
 import { createAsyncErrorHandler, createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
@@ -7,159 +7,179 @@ import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';
+import {
+  readFileAsText,
+  detectFileFormat,
+  withFileErrorHandling,
+  selectFile,
+  FileFormat
+} from '../utils/fileUtils';
 
 const handleAsyncError = createAsyncErrorHandler(toast);
 const createErrorHandler = createErrorHandlerFactory(toast);
 
-
 export const useFileImport = () => {
   const { downloadYaml } = useDownload();
 
-
-  const handleImportYAML = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Unified import handler for all file types
+  const handleFileImport = useCallback(async (file: File) => {
+    const errorHandler = createErrorHandler('Import file');
     
-    const errorHandler = createErrorHandler('Import YAML');
-    
-    await handleAsyncError(
-      async () => {
-        const text = await file.text();
-        const res = await fetch(getApiUrl(API_ENDPOINTS.IMPORT_YAML), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ yaml: text }),
-        });
-        
-        if (!res.ok) {
-          throw new Error('Import YAML failed');
+    try {
+      // Read file content
+      const content = await readFileAsText(file);
+      
+      // Detect format
+      const formatInfo = detectFileFormat(content, file.name);
+      
+      // Process based on format
+      switch (formatInfo.format) {
+        case 'json': {
+          const diagram = JSON.parse(content);
+          loadDiagram(diagram);
+          toast.success('JSON file imported successfully');
+          break;
         }
         
-        const diagram = await res.json();
-        loadDiagram(diagram);
-      },
-      undefined,
-      errorHandler
-    );
-  }, []);
-
-  // Import from YAML (client-side parsing)
-  const onImportYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const errorHandler = createErrorHandler('Import YAML');
-    const reader = new FileReader();
-
-    reader.onload = async (e) => {
-      await handleAsyncError(
-        async () => {
-          const result = e.target?.result as string;
-          if (!result) {
-            throw new Error('Failed to read file content');
+        case 'yaml': {
+          // Use server-side YAML import
+          const res = await fetch(getApiUrl(API_ENDPOINTS.IMPORT_YAML), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ yaml: content }),
+          });
+          
+          if (!res.ok) {
+            throw new Error('Failed to import YAML file');
           }
-
-          // Try to detect YAML format
-          let diagramData;
-          if (result.includes('flow:') && (result.includes('prompts:') || result.includes('agents:'))) {
-            // LLM-friendly format
-            diagramData = LLMYamlImporter.fromLLMYAML(result);
-            toast.success('Imported from LLM-friendly YAML format');
-          } else {
-            // Standard format
-            diagramData = YamlExporter.fromYAML(result);
-            toast.success('Imported from YAML format');
-          }
-          loadDiagram(diagramData);
-        },
-        undefined,
-        errorHandler
-      );
-    };
-
-    reader.onerror = () => {
-      errorHandler(new Error('Failed to read file'));
-    };
-
-    reader.readAsText(file);
-  }, []);
-
-  // Convert between formats
-  const onConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const errorHandler = createErrorHandler('Convert JSON to YAML');
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const jsonContent = e.target?.result as string;
-        const diagram = JSON.parse(jsonContent);
-        const yamlContent = YamlExporter.toYAML(diagram);
-
-        const yamlFilename = file.name.replace('.json', '.yaml');
-        downloadYaml(yamlContent, yamlFilename);
-        toast.success('Converted JSON to YAML');
-      } catch (error) {
-        console.error(error);
-        errorHandler(error instanceof Error ? error : new Error('Failed to convert JSON to YAML'));
+          
+          const diagram = await res.json();
+          loadDiagram(diagram);
+          toast.success('YAML file imported successfully');
+          break;
+        }
+        
+        case 'llm-yaml': {
+          // Use LLM YAML importer
+          const diagram = LLMYamlImporter.fromLLMYAML(content);
+          loadDiagram(diagram);
+          toast.success('LLM-YAML file imported successfully');
+          break;
+        }
       }
-    };
+    } catch (error) {
+      errorHandler(error as Error);
+    }
+  }, []);
 
-    reader.readAsText(file);
+  // File input change handler
+  const onImportFile = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileImport(file);
+      // Reset input value to allow re-importing the same file
+      event.target.value = '';
+    }
+  }, [handleFileImport]);
+
+  // Import via file selection dialog
+  const importFileWithDialog = useCallback(async () => {
+    try {
+      const file = await selectFile({
+        acceptedTypes: '.json,.yaml,.yml,.llm-yaml'
+      });
+      await handleFileImport(file);
+    } catch (error) {
+      // User cancelled or error occurred
+      if (error instanceof Error && error.message !== 'No file selected') {
+        toast.error(error.message);
+      }
+    }
+  }, [handleFileImport]);
+
+  // Convert JSON to YAML
+  const convertJSONtoYAML = useCallback(async (file: File) => {
+    const errorHandler = createErrorHandler('Convert JSON to YAML');
+    
+    try {
+      const content = await readFileAsText(file);
+      const diagram = JSON.parse(content);
+      
+      const yamlContent = YamlExporter.toYAML(diagram);
+      
+      // Download the converted file
+      const filename = file.name.replace('.json', '.yaml');
+      downloadYaml(yamlContent, filename);
+      
+      toast.success('JSON converted to YAML successfully');
+    } catch (error) {
+      errorHandler(error as Error);
+    }
   }, [downloadYaml]);
 
-  // Import from JSON
-  const onImportJSON = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  // Convert JSON to YAML from file input
+  const onConvertJSONtoYAML = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      convertJSONtoYAML(file);
+      event.target.value = '';
+    }
+  }, [convertJSONtoYAML]);
 
-    console.log('Import JSON: File selected', file.name);
-    const errorHandler = createErrorHandler('Import JSON');
-    const reader = new FileReader();
+  // Import from URL
+  const importFromURL = useCallback(async (url: string, format?: FileFormat) => {
+    const errorHandler = createErrorHandler('Import from URL');
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch from URL: ${response.statusText}`);
+      }
+      
+      const content = await response.text();
+      const formatInfo = format ? { format, isLLMFormat: format === 'llm-yaml' } : detectFileFormat(content, url);
+      
+      // Create a virtual file object for unified processing
+      const virtualFile = new File([content], url.split('/').pop() || 'imported-file', {
+        type: 'text/plain'
+      });
+      
+      await handleFileImport(virtualFile);
+    } catch (error) {
+      errorHandler(error as Error);
+    }
+  }, [handleFileImport]);
 
-    reader.onload = async (e) => {
-      await handleAsyncError(
-        async () => {
-          const result = e.target?.result as string;
-          if (!result) {
-            throw new Error('Failed to read file content');
-          }
-
-          console.log('Import JSON: File content read', `${result.substring(0, 100)  }...`);
-          const diagramData = JSON.parse(result);
-          console.log('Import JSON: Parsed data', diagramData);
-          
-          // Validate the JSON has the expected structure
-          if (!diagramData.nodes || !Array.isArray(diagramData.nodes)) {
-            throw new Error('Invalid diagram format: missing nodes array');
-          }
-          if (!diagramData.arrows || !Array.isArray(diagramData.arrows)) {
-            throw new Error('Invalid diagram format: missing arrows array');
-          }
-          
-          console.log('Import JSON: Loading diagram...');
-          loadDiagram(diagramData);
-          console.log('Import JSON: Diagram loaded successfully');
-          toast.success('Imported from JSON format');
-        },
-        undefined,
-        errorHandler
-      );
-    };
-
-    reader.onerror = () => {
-      console.error('Import JSON: FileReader error');
-      errorHandler(new Error('Failed to read file'));
-    };
-
-    reader.readAsText(file);
-  }, []);
+  const onImportJSON = withFileErrorHandling(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file && file.name.endsWith('.json')) {
+        await handleFileImport(file);
+        event.target.value = '';
+      } else {
+        throw new Error('Please select a JSON file');
+      }
+    },
+    'Import JSON'
+  );
 
   return {
-    handleImportYAML,
-    onImportYAML,
-    onImportJSON,
+    onImportFile,
+    importFileWithDialog,
     onConvertJSONtoYAML,
+    importFromURL,
+    onImportJSON,
+    // Wrapped versions with error handling
+    handleImportYAML: withFileErrorHandling(
+      async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+          await handleFileImport(file);
+          event.target.value = '';
+        }
+      },
+      'Import YAML'
+    ),
+    handleImportJSON: onImportJSON
   };
 };

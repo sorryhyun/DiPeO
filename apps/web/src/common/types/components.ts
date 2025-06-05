@@ -44,4 +44,8 @@ export interface GenericNodeProps {
   onUpdateData?: (nodeId: string, data: unknown) => void;
   onUpdateNodeInternals?: (nodeId: string) => void;
   nodeConfigs?: Record<string, UnifiedNodeConfig>;
+  borderColor?: string;
+  width?: number | string;
+  height?: number | string;
+  className?: string;
 }

@@ -3,180 +3,16 @@ import { NodeProps } from '@xyflow/react';
 import { GenericNode } from './base/GenericNode';
 import { Code, Zap, Link as LinkIcon, Save } from 'lucide-react';
 import { useDiagramStore } from '@/state/stores';
-import { UNIFIED_NODE_CONFIGS, type
-  StartBlockData,
-  ConditionBlockData,
-  JobBlockData,
-  DBBlockData,
-  EndpointBlockData,
-  PersonJobBlockData,
-  PersonBatchJobBlockData,
-} from '@/common/types';
+import { NodeType } from '@/common/types/node';
+import { getNodeConfig, COMPLETE_NODE_CONFIGS } from '@/common/types/unifiedNodeConfig';
 
 // Type guard to safely get node type
-const getNodeType = (data: any): string => {
+const getNodeType = (data: any): NodeType => {
   return data?.type || 'start';
 };
 
-// Node-specific content renderers
-const nodeRenderers: Record<string, (props: NodeRenderProps) => React.ReactNode> = {
-  start: ({ config, data }) => (
-    <>
-      <span className="text-2xl mb-0.5">{config.emoji}</span>
-      <strong className="text-sm">{(data as StartBlockData).label || config.label}</strong>
-    </>
-  ),
-
-  condition: ({ config, data }) => {
-    const conditionData = data as ConditionBlockData;
-    const isFlipped = conditionData.flipped === true;
-    const isMaxIterationMode = conditionData.detectMaxIteration || conditionData.conditionType === 'detect_max_iterations';
-
-    return (
-      <>
-        <div className={`absolute ${isFlipped ? '-left-3' : '-right-3'} top-[30%] -translate-y-[140%] text-[10px] text-red-600 font-semibold pointer-events-none`}>
-          False
-        </div>
-        <div className={`absolute ${isFlipped ? '-left-3' : '-right-3'} top-[70%] translate-y-[40%] text-[10px] text-green-600 font-semibold pointer-events-none`}>
-          True
-        </div>
-        <div className="flex items-center justify-center mb-1">
-          <span className="text-lg mr-2">{config.emoji}</span>
-          <strong className="text-base">Condition</strong>
-        </div>
-        <div className="text-xs text-gray-600 mb-1 text-center">
-          {isMaxIterationMode ? (
-            <span className="font-medium">🔄 Detect Max Iterations</span>
-          ) : (
-            <span className="font-medium">📐 Expression</span>
-          )}
-        </div>
-        {!isMaxIterationMode && conditionData.expression && (
-          <div className="text-xs text-gray-500 px-2 truncate text-center" title={conditionData.expression}>
-            {conditionData.expression}
-          </div>
-        )}
-      </>
-    );
-  },
-
-  job: ({ config, data }) => {
-    const jobData = data as JobBlockData;
-    const subType = jobData.subType || 'code';
-    const icon = subType === 'code' ? (
-      <Code className="h-5 w-5 text-purple-600 flex-shrink-0" />
-    ) : subType === 'api_tool' ? (
-      <Zap className="h-5 w-5 text-blue-600 flex-shrink-0" />
-    ) : (
-      <LinkIcon className="h-5 w-5 text-green-600 flex-shrink-0" />
-    );
-    const subTypeLabel = subType === 'code' ? 'Code' : subType === 'api_tool' ? 'API Tool' : 'Diagram Link';
-    const details = jobData.sourceDetails || '<configure job details>';
-
-    return (
-      <>
-        <div className="flex items-center space-x-2 mb-1">
-          {icon}
-          <strong className="text-base truncate">{jobData.label}</strong>
-        </div>
-        <div className="text-sm text-gray-400 mb-0.5">{subTypeLabel}</div>
-        <p className="text-sm text-gray-500 truncate">{details}</p>
-      </>
-    );
-  },
-
-  db: ({ config, data }) => {
-    const dbData = data as DBBlockData;
-    return (
-      <>
-        <div className="flex items-center space-x-2 mb-1">
-          <span className="text-xl mr-2">{config.emoji}</span>
-          <strong className="text-base truncate">{dbData.label || 'DB Source'}</strong>
-        </div>
-        <p className="text-sm text-gray-500 truncate">Type: {dbData.subType || 'N/A'}</p>
-        <p className="text-sm text-gray-500 truncate">Source: {dbData.sourceDetails || 'N/A'}</p>
-      </>
-    );
-  },
-
-  endpoint: ({ config, data }) => {
-    const endpointData = data as EndpointBlockData;
-    return (
-      <>
-        <span className="text-2xl mb-0.5">{config.emoji}</span>
-        <strong className="text-sm truncate">{endpointData.label || 'End'}</strong>
-        {endpointData.saveToFile && (
-          <div className="flex items-center gap-1 mt-1">
-            <Save className="h-3 w-3 text-gray-600" />
-            <span className="text-xs text-gray-600">Save</span>
-          </div>
-        )}
-      </>
-    );
-  },
-
-  person_job: ({ config, data, id }) => {
-    const jobData = data as PersonJobBlockData;
-    const isFlipped = jobData.flipped === true;
-
-    return (
-      <>
-        <div
-          className={`absolute ${isFlipped ? '-right-3' : '-left-3'} top-[30%] -translate-y-[150%] text-[10px] text-purple-600 font-semibold pointer-events-none`}
-        >
-          first
-        </div>
-        <div
-          className={`absolute ${isFlipped ? '-right-3' : '-left-3'} top-[70%] translate-y-[50%] text-[10px] text-teal-600 font-semibold pointer-events-none`}
-        >
-          default
-        </div>
-        <PersonJobContent config={config} data={jobData} />
-      </>
-    );
-  },
-
-  person_batch_job: ({ config, data }) => {
-    const batchData = data as PersonBatchJobBlockData;
-    // Note: This is called from within a component, so the hook usage is valid
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const persons = useDiagramStore(state => state.persons);
-    const personLabel = batchData.personId 
-      ? persons.find(p => p.id === batchData.personId)?.label || 'Unknown'
-      : null;
-
-    return (
-      <>
-        <div className="flex items-center justify-center mb-1">
-          <span className="text-xl mr-2">{config.emoji}</span>
-          <strong className="text-base truncate" title={batchData.label || 'Person Batch Job'}>
-            {batchData.label || 'Person Batch Job'}
-          </strong>
-        </div>
-        {personLabel && (
-          <p className="text-sm text-gray-500 truncate text-center">
-            Person: {personLabel}
-          </p>
-        )}
-        <div className="mt-2 space-y-0.5 text-center">
-          {batchData.batchSize !== undefined && (
-            <p className="text-sm text-gray-600">
-              Batch size: <span className="font-medium">{batchData.batchSize}</span>
-            </p>
-          )}
-          {batchData.aggregationMethod && (
-            <p className="text-sm text-gray-600">
-              Aggregation: <span className="font-medium">{batchData.aggregationMethod}</span>
-            </p>
-          )}
-        </div>
-      </>
-    );
-  },
-};
-
 // Separate component for PersonJob content to use hooks
-const PersonJobContent: React.FC<{ config: any; data: PersonJobBlockData }> = ({ config, data }) => {
+const PersonJobContent: React.FC<{ config: any; data: any }> = ({ config, data }) => {
   const persons = useDiagramStore(state => state.persons);
   const personLabel = useMemo(() => {
     if (!data.personId) return null;
@@ -187,8 +23,8 @@ const PersonJobContent: React.FC<{ config: any; data: PersonJobBlockData }> = ({
     <>
       <div className="flex items-center justify-center mb-1">
         <span className="text-xl mr-2">{config.emoji}</span>
-        <strong className="text-base truncate" title={data.label || 'Person Job'}>
-          {data.label || 'Person Job'}
+        <strong className="text-base truncate" title={data.label || config.label}>
+          {data.label || config.label}
         </strong>
       </div>
       {personLabel && (
@@ -218,17 +54,185 @@ const PersonJobContent: React.FC<{ config: any; data: PersonJobBlockData }> = ({
   );
 };
 
-interface NodeRenderProps {
-  config: any;
-  data: any;
-  id: string;
-  selected?: boolean;
-}
+// Node-specific content renderers
+const nodeRenderers: Record<NodeType, (props: { config: any; data: any; id: string }) => React.ReactNode> = {
+  'start': ({ config, data }) => (
+    <>
+      <span className="text-2xl mb-0.5">{config.emoji}</span>
+      <strong className="text-sm">{data.label || config.label}</strong>
+    </>
+  ),
+
+  'condition': ({ config, data }) => {
+    const isFlipped = data.flipped === true;
+    const isMaxIterationMode = data.detectMaxIteration || data.conditionType === 'detect_max_iterations';
+    
+    // Get handle labels from config
+    const trueHandle = config.handles.sources.find((h: any) => h.id === 'true');
+    const falseHandle = config.handles.sources.find((h: any) => h.id === 'false');
+
+    return (
+      <>
+        <div className={`absolute ${isFlipped ? '-left-3' : '-right-3'} top-[30%] -translate-y-[140%] text-[10px] ${falseHandle?.color || 'text-red-600'} font-semibold pointer-events-none`}>
+          {falseHandle?.label || 'False'}
+        </div>
+        <div className={`absolute ${isFlipped ? '-left-3' : '-right-3'} top-[70%] translate-y-[40%] text-[10px] ${trueHandle?.color || 'text-green-600'} font-semibold pointer-events-none`}>
+          {trueHandle?.label || 'True'}
+        </div>
+        <div className="flex items-center justify-center mb-1">
+          <span className="text-lg mr-2">{config.emoji}</span>
+          <strong className="text-base">{config.label}</strong>
+        </div>
+        <div className="text-xs text-gray-600 mb-1 text-center">
+          {isMaxIterationMode ? (
+            <span className="font-medium">🔄 Detect Max Iterations</span>
+          ) : (
+            <span className="font-medium">📐 Expression</span>
+          )}
+        </div>
+        {!isMaxIterationMode && data.expression && (
+          <div className="text-xs text-gray-500 px-2 truncate text-center" title={data.expression}>
+            {data.expression}
+          </div>
+        )}
+      </>
+    );
+  },
+
+  'job': ({ config, data }) => {
+    const subType = data.subType || 'python';
+    const icon = subType === 'python' || subType === 'javascript' || subType === 'bash' ? (
+      <Code className="h-5 w-5 text-purple-600 flex-shrink-0" />
+    ) : subType === 'api_tool' ? (
+      <Zap className="h-5 w-5 text-blue-600 flex-shrink-0" />
+    ) : (
+      <LinkIcon className="h-5 w-5 text-green-600 flex-shrink-0" />
+    );
+    const subTypeLabel = subType.charAt(0).toUpperCase() + subType.slice(1);
+
+    return (
+      <>
+        <div className="flex items-center space-x-2 mb-1">
+          {icon}
+          <strong className="text-base truncate">{data.label || config.label}</strong>
+        </div>
+        <div className="text-sm text-gray-400 mb-0.5">{subTypeLabel}</div>
+        {data.code && (
+          <p className="text-sm text-gray-500 truncate">Code configured</p>
+        )}
+      </>
+    );
+  },
+
+  'db': ({ config, data }) => {
+    return (
+      <>
+        <div className="flex items-center space-x-2 mb-1">
+          <span className="text-xl mr-2">{config.emoji}</span>
+          <strong className="text-base truncate">{data.label || config.label}</strong>
+        </div>
+        <p className="text-sm text-gray-500 truncate">Operation: {data.operation || 'N/A'}</p>
+        <p className="text-sm text-gray-500 truncate">Path: {data.path || 'N/A'}</p>
+      </>
+    );
+  },
+
+  'endpoint': ({ config, data }) => {
+    return (
+      <>
+        <span className="text-2xl mb-0.5">{config.emoji}</span>
+        <strong className="text-sm truncate">{data.label || config.label}</strong>
+        {data.action === 'save' && (
+          <div className="flex items-center gap-1 mt-1">
+            <Save className="h-3 w-3 text-gray-600" />
+            <span className="text-xs text-gray-600">Save</span>
+          </div>
+        )}
+      </>
+    );
+  },
+
+  'person_job': ({ config, data, id }) => {
+    const isFlipped = data.flipped === true;
+    
+    // Get handle labels from config
+    const firstHandle = config.handles.targets.find((h: any) => h.id === 'first');
+    const defaultHandle = config.handles.targets.find((h: any) => h.id === 'default');
+
+    return (
+      <>
+        <div
+          className={`absolute ${isFlipped ? '-right-3' : '-left-3'} top-[30%] -translate-y-[150%] text-[10px] ${firstHandle?.color || 'text-purple-600'} font-semibold pointer-events-none`}
+        >
+          {firstHandle?.label || 'first'}
+        </div>
+        <div
+          className={`absolute ${isFlipped ? '-right-3' : '-left-3'} top-[70%] translate-y-[50%] text-[10px] ${defaultHandle?.color || 'text-teal-600'} font-semibold pointer-events-none`}
+        >
+          {defaultHandle?.label || 'default'}
+        </div>
+        <PersonJobContent config={config} data={data} />
+      </>
+    );
+  },
+
+  'person_batch_job': ({ config, data }) => {
+    // Note: This is called from within a component, so the hook usage is valid
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const persons = useDiagramStore(state => state.persons);
+    const personLabel = data.personId 
+      ? persons.find(p => p.id === data.personId)?.label || 'Unknown'
+      : null;
+
+    return (
+      <>
+        <div className="flex items-center justify-center mb-1">
+          <span className="text-xl mr-2">{config.emoji}</span>
+          <strong className="text-base truncate" title={data.label || config.label}>
+            {data.label || config.label}
+          </strong>
+        </div>
+        {personLabel && (
+          <p className="text-sm text-gray-500 truncate text-center">
+            Person: {personLabel}
+          </p>
+        )}
+        <div className="mt-2 space-y-0.5 text-center">
+          {data.batchSize !== undefined && (
+            <p className="text-sm text-gray-600">
+              Batch size: <span className="font-medium">{data.batchSize}</span>
+            </p>
+          )}
+        </div>
+      </>
+    );
+  },
+  
+  'user_response': ({ config, data }) => (
+    <>
+      <span className="text-2xl mb-0.5">{config?.emoji || '❓'}</span>
+      <strong className="text-sm">{data.label || 'User Response'}</strong>
+      {data.promptMessage && (
+        <p className="text-xs text-gray-500 mt-1 truncate">{data.promptMessage}</p>
+      )}
+    </>
+  ),
+  
+  'notion': ({ config, data }) => (
+    <>
+      <span className="text-2xl mb-0.5">{config?.emoji || '📄'}</span>
+      <strong className="text-sm">{data.label || 'Notion'}</strong>
+      {data.operation && (
+        <p className="text-xs text-gray-500 mt-1">{data.operation}</p>
+      )}
+    </>
+  ),
+};
 
 // Main configurable node component
 const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeType = getNodeType(data);
-  const config = UNIFIED_NODE_CONFIGS[nodeType];
+  const config = getNodeConfig(nodeType);
   const updateNodeData = useDiagramStore(state => state.updateNodeData);
   const [isDragOver, setIsDragOver] = React.useState(false);
 
@@ -253,50 +257,49 @@ const ConfigurableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const handleDrop = useCallback((e: React.DragEvent) => {
     if (nodeType === 'person_job') {
       e.preventDefault();
-      const personId = e.dataTransfer.getData('application/person');
-      if (personId) {
-        updateNodeData(id, { personId });
+      const personData = e.dataTransfer.getData('application/person');
+      if (personData) {
+        const person = JSON.parse(personData);
+        updateNodeData(id, { personId: person.id });
       }
       setIsDragOver(false);
     }
   }, [nodeType, id, updateNodeData]);
 
   if (!config) {
-    return (
-      <GenericNode id={id} data={data} selected={selected} nodeType="start">
-        <span className="text-red-500">Unknown node type: {nodeType}</span>
-      </GenericNode>
-    );
+    console.warn(`No configuration found for node type: ${nodeType}`);
+    return null;
   }
 
   const renderer = nodeRenderers[nodeType];
-  const showFlipButton = nodeType !== 'db'; // DB nodes don't have flip button
+  const content = renderer ? renderer({ config, data, id }) : (
+    <>
+      <span className="text-2xl mb-0.5">{config.emoji}</span>
+      <strong className="text-sm">{data.label || config.label}</strong>
+    </>
+  );
 
-  const genericNodeProps: any = {
-    id,
-    data,
-    selected,
-    nodeType: config.reactFlowType,
-    showFlipButton,
-  };
-
-  // Add drag handlers for person_job nodes
-  if (nodeType === 'person_job') {
-    genericNodeProps.onDragOver = handleDragOver;
-    genericNodeProps.onDragEnter = handleDragEnter;
-    genericNodeProps.onDragLeave = handleDragLeave;
-    genericNodeProps.onDrop = handleDrop;
-    genericNodeProps.className = isDragOver ? 'ring-2 ring-blue-400 ring-offset-2' : '';
-  }
+  // Get drag and drop props for person_job nodes
+  const dragProps = nodeType === 'person_job' ? {
+    onDragOver: handleDragOver,
+    onDragEnter: handleDragEnter,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+  } : {};
 
   return (
-    <GenericNode {...genericNodeProps}>
-      {renderer ? renderer({ config, data, id, selected }) : (
-        <>
-          <span className="text-2xl mb-0.5">{config.emoji}</span>
-          <strong className="text-sm">{(data as any).label || config.label}</strong>
-        </>
-      )}
+    <GenericNode
+      id={id}
+      data={data}
+      selected={selected}
+      nodeType={nodeType}
+      borderColor={config.borderColor}
+      width={config.width}
+      height={'auto'}
+      className={`${config.className} ${isDragOver ? 'ring-2 ring-purple-400' : ''}`}
+      {...dragProps}
+    >
+      {content}
     </GenericNode>
   );
 };

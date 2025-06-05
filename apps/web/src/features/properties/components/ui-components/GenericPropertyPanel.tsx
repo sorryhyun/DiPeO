@@ -6,17 +6,10 @@ import {
   TwoColumnPanelLayout,
   SingleColumnPanelLayout,
   FormRow,
-  InlineTextField,
-  InlineSelectField,
-  TextAreaField,
-  CheckboxField
+  UnifiedFieldRenderer,
+  UnifiedFieldsRenderer
 } from '@/common/components/forms';
-import {
-  IterationCountField,
-  PersonSelectionField,
-  LabelPersonRow,
-  VariableDetectionTextArea
-} from './PropertyFieldComponents';
+import { PropertyFieldConfig } from '@/common/types/extendedFieldConfig';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
 import { useDiagramStore } from '@/state/stores';
 
@@ -50,10 +43,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const entityType = getEntityType(data.type);
   const { formData, handleChange } = usePropertyPanel<T>(nodeId, entityType, data);
   
-  // Log formData state for person property panel
-  React.useEffect(() => {
-  }, [formData, data.type, nodeId]);
-  
   // Load async options when component mounts - only for non-dependent fields
   useEffect(() => {
     const loadAsyncOptions = async () => {
@@ -86,7 +75,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       for (const field of fieldsToProcess) {
         try {
           if (field.type === 'select' && typeof field.options === 'function' && field.name) {
-            // Non-dependent fields should not expect formData parameter
             const result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
             const options = result instanceof Promise ? await result : result;
             optionsMap[field.name] = options;
@@ -153,8 +141,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         const updatedOptions: Record<string, Array<{ value: string; label: string }>> = {};
         let hasUpdates = false;
         
-        // Log dependency change if this is person property panel
-        
         for (const field of fieldsToUpdate) {
           if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
             try {
@@ -163,10 +149,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
               const options = result instanceof Promise ? await result : result;
               updatedOptions[field.name] = options;
               hasUpdates = true;
-              
-              // Log model options fetch if this is the model field
             } catch (error) {
-              console.error(`[Person Property Panel] Failed to reload options for dependent field ${field.name}:`, error);
+              console.error(`Failed to reload options for dependent field ${field.name}:`, error);
               updatedOptions[field.name] = [];
               hasUpdates = true;
             }
@@ -197,25 +181,11 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     
     // If this is a model selection for a person entity and we have all required data, pre-initialize the model
     if (data.type === 'person' && name === 'modelName') {
-      console.log('[Person Property Panel] Model selection detected:', {
-        name,
-        value,
-        formDataService: formData.service,
-        formDataApiKeyId: formData.apiKeyId,
-        dataService: data.service,
-        dataApiKeyId: data.apiKeyId
-      });
-      
       // Check both formData and data for required fields
       const service = formData.service || data.service;
       const apiKeyId = formData.apiKeyId || data.apiKeyId;
       
       if (service && value && apiKeyId) {
-        console.log('[Person Property Panel] Pre-initializing model with:', {
-          service,
-          model: value,
-          apiKeyId
-        });
         try {
           await preInitializeModel(
             service as string,
@@ -223,22 +193,14 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             apiKeyId as string
           );
         } catch (error) {
-          console.warn('[Person Property Panel] Failed to pre-initialize model:', error);
+          console.warn('Failed to pre-initialize model:', error);
         }
-      } else {
-        console.log('[Person Property Panel] Missing required fields for pre-initialization:', {
-          service,
-          value,
-          apiKeyId
-        });
       }
     }
   };
   
-  // Field renderer function
-  const renderField = (fieldConfig: FieldConfig, index: number): React.ReactNode => {
-
-    
+  // Convert FieldConfig to PropertyFieldConfig
+  const convertFieldConfig = (fieldConfig: FieldConfig): PropertyFieldConfig | null => {
     // Check conditional rendering
     if (fieldConfig.conditional) {
       const fieldValue = formData[fieldConfig.conditional.field];
@@ -260,246 +222,158 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       
       if (!shouldRender) return null;
     }
-
-    const key = fieldConfig.name ? `${fieldConfig.name}-${index}` : `field-${index}`;
-
+    
+    // Convert special field types to unified types
+    let type: PropertyFieldConfig['type'] = 'string';
+    let multiline = false;
+    let min: number | undefined;
+    let max: number | undefined;
+    
     switch (fieldConfig.type) {
-      case 'text': {
-        return (
-          <InlineTextField
-            key={key}
-            label={fieldConfig.label || ''}
-            value={String(formData[fieldConfig.name] || '')}
-            onChange={(v) => updateField(fieldConfig.name, v)}
-            placeholder={fieldConfig.placeholder}
-            className={fieldConfig.className}
-            disabled={isMonitorMode || fieldConfig.disabled}
-          />
-        );
-      }
-
-      case 'select': {
-        let options: Array<{ value: string; label: string }> = [];
-        
-        if (Array.isArray(fieldConfig.options)) {
-          options = fieldConfig.options as Array<{ value: string; label: string }>;
-        } else if (typeof fieldConfig.options === 'function') {
-          // Check if we have loaded async options for this field
-          if (fieldConfig.name && asyncOptions[fieldConfig.name]) {
-            options = asyncOptions[fieldConfig.name] || [];
-          } else {
-            // Try to call the function synchronously as a fallback
-            try {
-              let result;
-              if (fieldConfig.options.length > 0) {
-                // Function expects formData parameter
-                result = (fieldConfig.options as (formData: T) => Promise<Array<{ value: string; label: string }>>)(formData);
-              } else {
-                // Function doesn't expect parameters
-                result = (fieldConfig.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
-              }
-              
-              if (result instanceof Promise) {
-                // For async functions not yet loaded, show empty options
-                options = [];
-              } else {
-                options = result as Array<{ value: string; label: string }>;
-              }
-            } catch (error) {
-              console.error(`Error getting options for ${fieldConfig.name}:`, error);
-              options = [];
-            }
-          }
-        }
-
-        
-        // For person service field, add the value to the key to force re-render
-        const selectKey = data.type === 'person' && fieldConfig.name === 'service' 
-          ? `${key}-${formData[fieldConfig.name]}`
-          : key;
-        
-        return (
-          <InlineSelectField
-            key={selectKey}
-            label={fieldConfig.label || ''}
-            value={String(formData[fieldConfig.name] || '')}
-            onChange={(v) => {
-              updateField(fieldConfig.name, v);
-            }}
-            options={options}
-            placeholder={fieldConfig.placeholder}
-            className={fieldConfig.className}
-            isDisabled={isMonitorMode || fieldConfig.disabled}
-          />
-        );
-      }
-
-      case 'textarea': {
-        return (
-          <TextAreaField
-            key={key}
-            label={fieldConfig.label || ''}
-            value={String(formData[fieldConfig.name] || '')}
-            onChange={(v) => updateField(fieldConfig.name, v)}
-            rows={fieldConfig.rows}
-            placeholder={fieldConfig.placeholder}
-            disabled={isMonitorMode}
-          />
-        );
-      }
-
-      case 'checkbox': {
-        return (
-          <CheckboxField
-            key={key}
-            label={fieldConfig.label || ''}
-            checked={!!formData[fieldConfig.name]}
-            onChange={(checked) => updateField(fieldConfig.name, checked)}
-            disabled={isMonitorMode}
-          />
-        );
-      }
-
-      case 'variableTextArea': {
-        return (
-          <VariableDetectionTextArea
-            key={key}
-            label={fieldConfig.label || ''}
-            value={String(formData[fieldConfig.name] || '')}
-            onChange={(v) => updateField(fieldConfig.name, v)}
-            rows={fieldConfig.rows}
-            placeholder={fieldConfig.placeholder}
-            detectedVariables={data.detectedVariables as string[] | undefined}
-            disabled={isMonitorMode}
-          />
-        );
-      }
-
-      case 'labelPersonRow': {
-        return (
-          <LabelPersonRow
-            key={key}
-            labelValue={String(formData.label || '')}
-            onLabelChange={(v) => updateField('label', v)}
-            personValue={String(formData.personId || '')}
-            onPersonChange={(v) => updateField('personId', v)}
-            labelPlaceholder={fieldConfig.labelPlaceholder}
-            personPlaceholder={fieldConfig.personPlaceholder}
-            disabled={isMonitorMode}
-          />
-        );
-      }
-
-      case 'iterationCount': {
-        return (
-          <IterationCountField
-            key={key}
-            value={Number(formData[fieldConfig.name]) || 1}
-            onChange={(v) => updateField(fieldConfig.name, v)}
-            min={fieldConfig.min}
-            max={fieldConfig.max}
-            label={fieldConfig.label}
-            className={fieldConfig.className}
-            disabled={isMonitorMode}
-          />
-        );
-      }
-
-      case 'personSelect': {
-        return (
-          <PersonSelectionField
-            key={key}
-            value={String(formData[fieldConfig.name] || '')}
-            onChange={(v) => updateField(fieldConfig.name, v)}
-            placeholder={fieldConfig.placeholder}
-            className={fieldConfig.className}
-            disabled={isMonitorMode}
-          />
-        );
-      }
-
-      case 'row': {
-        return (
-          <FormRow key={key} className={fieldConfig.className}>
-            {fieldConfig.fields.map((field, fieldIndex) => renderField(field, fieldIndex))}
-          </FormRow>
-        );
-      }
-
-      case 'custom': {
-        // For complex custom components
-        const CustomComponent = fieldConfig.component as React.ComponentType<{
-          formData: T;
-          handleChange: (name: string, value: unknown) => Promise<void>;
-          [key: string]: unknown;
-        }>;
-        return (
-          <CustomComponent
-            key={key}
-            formData={formData}
-            handleChange={updateField}
-            {...(fieldConfig.props || {})}
-          />
-        );
-      }
-
+      case 'text':
+        type = 'string';
+        break;
+      case 'select':
+        type = 'select';
+        break;
+      case 'textarea':
+      case 'variableTextArea':
+        type = 'string';
+        multiline = true;
+        break;
+      case 'checkbox':
+        type = 'boolean';
+        break;
+      case 'iterationCount':
+        type = 'number';
+        min = fieldConfig.min;
+        max = fieldConfig.max;
+        break;
+      case 'labelPersonRow':
+      case 'personSelect':
+        type = 'person';
+        break;
       default:
-        console.warn(`Unknown field type: ${(fieldConfig as FieldConfig & { type: string }).type}`);
         return null;
     }
+    
+    // Get options for select fields
+    let options: PropertyFieldConfig['options'];
+    if (fieldConfig.type === 'select') {
+      if (Array.isArray(fieldConfig.options)) {
+        options = fieldConfig.options;
+      } else if (fieldConfig.name && asyncOptions[fieldConfig.name]) {
+        options = asyncOptions[fieldConfig.name];
+      }
+    }
+    
+    const baseField: PropertyFieldConfig = {
+      name: fieldConfig.name || '',
+      label: fieldConfig.label || '',
+      type,
+      options,
+      multiline,
+      min,
+      max
+    };
+    
+    // Add optional properties based on field type
+    if ('placeholder' in fieldConfig) {
+      baseField.placeholder = fieldConfig.placeholder;
+    }
+    if ('required' in fieldConfig) {
+      baseField.isRequired = (fieldConfig as any).required;
+    }
+    if ('helperText' in fieldConfig) {
+      baseField.helperText = (fieldConfig as any).helperText;
+    }
+    if ('acceptedFileTypes' in fieldConfig) {
+      baseField.acceptedFileTypes = (fieldConfig as any).acceptedFileTypes;
+    }
+    
+    baseField.customProps = {
+      disabled: isMonitorMode || ('disabled' in fieldConfig ? fieldConfig.disabled : false),
+      detectedVariables: data.detectedVariables as string[] | undefined
+    };
+    
+    return baseField;
   };
-
-  // Render based on layout
-  if (config.layout === 'single') {
+  
+  // Field renderer function using UnifiedFieldRenderer
+  const renderField = (fieldConfig: FieldConfig, index: number): React.ReactNode => {
+    const convertedConfig = convertFieldConfig(fieldConfig);
+    if (!convertedConfig) return null;
+    
+    const key = fieldConfig.name ? `${fieldConfig.name}-${index}` : `field-${index}`;
+    
+    // Handle special cases
+    if (fieldConfig.type === 'row' && fieldConfig.fields) {
+      return (
+        <FormRow key={key} className={fieldConfig.className}>
+          {fieldConfig.fields.map((field, idx) => renderField(field, idx))}
+        </FormRow>
+      );
+    }
+    
+    if (fieldConfig.type === 'labelPersonRow') {
+      // Render two fields in a row
+      return (
+        <FormRow key={key}>
+          <UnifiedFieldRenderer
+            field={{
+              name: 'label',
+              label: 'Label',
+              type: 'string',
+              placeholder: fieldConfig.labelPlaceholder
+            }}
+            value={formData.label}
+            onChange={(v) => updateField('label', v)}
+          />
+          <UnifiedFieldRenderer
+            field={{
+              name: 'personId',
+              label: 'Person',
+              type: 'person',
+              placeholder: fieldConfig.personPlaceholder
+            }}
+            value={formData.personId}
+            onChange={(v) => updateField('personId', v)}
+          />
+        </FormRow>
+      );
+    }
+    
     return (
-      <Form>
-        {isMonitorMode && (
-          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-blue-700 font-medium">
-                📊 Monitor Mode - Properties are read-only
-              </p>
-              <button
-                onClick={() => useDiagramStore.getState().clearDiagram()}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
-              >
-                Exit Monitor Mode
-              </button>
-            </div>
-          </div>
-        )}
-        <SingleColumnPanelLayout>
-          {config.fields?.map((field, index) => renderField(field, index))}
-        </SingleColumnPanelLayout>
-      </Form>
+      <UnifiedFieldRenderer
+        key={key}
+        field={convertedConfig}
+        value={formData[convertedConfig.name]}
+        onChange={(v) => updateField(convertedConfig.name, v)}
+        nodeData={data}
+        className={fieldConfig.className}
+      />
     );
-  }
-
+  };
+  
+  const renderSection = (fields: FieldConfig[] | undefined) => {
+    if (!fields) return null;
+    return fields.map((field, index) => renderField(field, index));
+  };
+  
   return (
     <Form>
-      {isMonitorMode && (
-        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-blue-700 font-medium">
-              📊 Monitor Mode - Properties are read-only
-            </p>
-            <button
-              onClick={() => useDiagramStore.getState().clearDiagram()}
-              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
-            >
-              Exit Monitor Mode
-            </button>
-          </div>
-        </div>
+      {config.layout === 'twoColumn' ? (
+        <TwoColumnPanelLayout
+          leftColumn={renderSection(config.leftColumn)}
+          rightColumn={renderSection(config.rightColumn)}
+        />
+      ) : config.layout === 'single' ? (
+        <SingleColumnPanelLayout>
+          {renderSection(config.fields)}
+        </SingleColumnPanelLayout>
+      ) : (
+        renderSection(config.fields)
       )}
-      <TwoColumnPanelLayout
-        leftColumn={
-          <>{config.leftColumn?.map((field, index) => renderField(field, index))}</>
-        }
-        rightColumn={
-          <>{config.rightColumn?.map((field, index) => renderField(field, index))}</>
-        }
-      />
     </Form>
   );
 };
