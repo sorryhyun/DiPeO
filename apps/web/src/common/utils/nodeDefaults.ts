@@ -1,11 +1,9 @@
-import { DiagramNodeData } from '@/common/types';
-import { NodeType } from '@/common/types/node';
-import { getNodeConfig, getNodeDefaults } from '@/common/types/nodeConfig';
+import { Node, DiagramNodeData, getNodeConfig, getNodeDefaults } from '@/common/types';
 
 // Factory function to create default node data based on node config
 export function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
-  // Convert string type to NodeType enum
-  const nodeType = type as NodeType;
+  // Convert string type to Node type
+  const nodeType = type as Node['type'];
   const config = getNodeConfig(nodeType);
   
   if (!config) {

@@ -1,8 +1,9 @@
 // Consolidated UI store - manages all UI-related state including selections and dashboard
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { UIState, SelectionState } from '@/common/types';
 
-export interface ConsolidatedUIState {
+export interface ConsolidatedUIState extends Partial<UIState> {
   // Selection state
   selectedNodeId: string | null;
   selectedArrowId: string | null;

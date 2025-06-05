@@ -3,11 +3,10 @@ import { NodeProps } from '@xyflow/react';
 import { GenericNode } from './base/GenericNode';
 import { Code, Zap, Link as LinkIcon, Save } from 'lucide-react';
 import { usePersons, useUpdateNodeData } from '@/common/utils/storeSelectors';
-import { NodeType } from '@/common/types/node';
-import { getNodeConfig } from '@/common/types/nodeConfig';
+import { Node, getNodeConfig } from '@/common/types';
 
 // Type guard to safely get node type
-const getNodeType = (data: any): NodeType => {
+const getNodeType = (data: any): Node['type'] => {
   return data?.type || 'start';
 };
 
@@ -55,7 +54,7 @@ const PersonJobContent: React.FC<{ config: any; data: any }> = ({ config, data }
 };
 
 // Node-specific content renderers
-const nodeRenderers: Record<NodeType, (props: { config: any; data: any; id: string }) => React.ReactNode> = {
+const nodeRenderers: Record<Node['type'], (props: { config: any; data: any; id: string }) => React.ReactNode> = {
   'start': ({ config, data }) => (
     <>
       <span className="text-2xl mb-0.5">{config.emoji}</span>

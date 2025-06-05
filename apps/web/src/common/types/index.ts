@@ -1,3 +1,8 @@
+// Core type exports
+export * from './core';
+export * from './runtime';
+export * from './ui';
+
 // Explicit exports from unifiedNodeConfig
 export {
   type FieldConfig,

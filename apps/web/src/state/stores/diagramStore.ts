@@ -6,8 +6,9 @@ import {
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import {
+  Node, Arrow, Person, Diagram,
   ArrowData, DiagramNode, DiagramNodeData,
-  getReactFlowType, OnArrowsChange, Arrow, applyArrowChanges, addArrow,
+  getReactFlowType, OnArrowsChange, applyArrowChanges, addArrow,
   DiagramState, PersonDefinition, ApiKey
 } from '@/common/types';
 import { sanitizeDiagram } from "@/features/io/utils/diagramSanitizer";
