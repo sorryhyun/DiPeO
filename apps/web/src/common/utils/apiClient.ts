@@ -4,13 +4,11 @@
  */
 
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl } from './apiConfig';
-import { apiCache, ApiCache } from './apiCache';
+import { API_ENDPOINTS, getApiUrl, ApiCache, apiCache } from './apiConfig';
 import { 
   createErrorHandlerFactory,
   type ApiKey, 
   type Diagram, 
-  type DiagramState, 
   type ApiResponse as ApiResponseType, 
   type Node 
 } from '@/common/types';

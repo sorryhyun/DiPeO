@@ -3,7 +3,6 @@ import { exportDiagramState } from '@/common/utils/storeSelectors';
 import { YamlExporter } from '../converters/yamlExporter';
 import { LLMYamlImporter } from '../converters/llmYamlImporter';
 import { useDownload } from './useDownload';
-import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import {
   downloadFile,
@@ -15,8 +14,6 @@ import {
   FileFormat,
   SaveFileOptions
 } from '../utils/fileUtils';
-
-const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useExport = () => {
   const { downloadYaml, downloadJson } = useDownload();
@@ -120,8 +117,6 @@ export const useExport = () => {
 
   // Batch export function
   const exportAllFormats = useCallback(async (baseFilename: string = 'diagram') => {
-    const errorHandler = createErrorHandler('Export all formats');
-    
     try {
       const results = await Promise.allSettled([
         exportDiagramAs('json', `${baseFilename}.json`),
@@ -138,7 +133,8 @@ export const useExport = () => {
         throw new Error('All exports failed');
       }
     } catch (error) {
-      errorHandler(error as Error);
+      console.error('[Export all formats]', error);
+      toast.error(`Export all formats: ${(error as Error).message}`);
     }
   }, [exportDiagramAs]);
 

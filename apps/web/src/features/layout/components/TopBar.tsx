@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/common/components';
-import { 
-  useApiKeys, 
-  useAddApiKey, 
-  useIsReadOnly, 
-  useSetReadOnly, 
-  useCurrentRunningNode,
-  useSetActiveCanvas,
-  useActiveCanvas,
-  useToggleCanvas,
-  useLoadApiKeys,
-  useClearDiagram
-} from '@/common/utils/storeSelectors';
+import { useApiKeyStore } from '@/state/stores/apiKeyStore';
+import { useConsolidatedUIStore } from '@/state/stores';
+import { useDiagramStore } from '@/state/stores/diagramStore';
+import { useExecutionStore } from '@/state/stores';
 import { useFileImport } from '@/features/io/hooks/useFileImport';
 import { useExport } from '@/features/io/hooks/useExport';
 import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
@@ -21,7 +13,6 @@ import { LazyApiKeysModal } from '@/features/layout';
 import { FileUploadButton } from '@/common/components/common/FileUploadButton';
 import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory } from '@/common/types';
 import { isApiKey, parseApiArrayResponse } from '@/common/utils/typeGuards';
 
 
@@ -30,12 +21,10 @@ const TopBar = () => {
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
-  const apiKeys = useApiKeys();
-  const addApiKey = useAddApiKey();
-  const loadApiKeys = useLoadApiKeys();
-  const clearDiagramAction = useClearDiagram();
-  const isReadOnly = useIsReadOnly();
-  const setReadOnly = useSetReadOnly();
+  const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
+  const { isReadOnly, setReadOnly, activeCanvas, toggleCanvas, setActiveCanvas } = useConsolidatedUIStore();
+  const { clearDiagram } = useDiagramStore();
+  const { currentRunningNode } = useExecutionStore();
   const { onImportJSON } = useFileImport();
   const { onSaveToDirectory } = useExport();
   const { 
@@ -46,12 +35,6 @@ const TopBar = () => {
     resumeNode,
     skipNode
   } = useDiagramRunner();
-  const activeCanvas = useActiveCanvas();
-  const toggleCanvas = useToggleCanvas();
-  const currentRunningNode = useCurrentRunningNode();
-  const setActiveCanvas = useSetActiveCanvas();
-  
-  const createErrorHandler = createErrorHandlerFactory(toast);
   
   // Load API keys on mount
   useEffect(() => {
@@ -92,8 +75,8 @@ const TopBar = () => {
           }
         }
       } catch (error) {
-        const errorHandler = createErrorHandler('Check Backend API Keys');
-        errorHandler(error instanceof Error ? error : new Error('Failed to check backend API keys'));
+        console.error('[Check Backend API Keys]', error);
+        toast.error(`Check Backend API Keys: ${(error as Error).message}`);
         if (apiKeys.length === 0) {
           setIsApiModalOpen(true);
         }
@@ -105,7 +88,7 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys();
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey, createErrorHandler, setReadOnly, setActiveCanvas]);
+  }, [hasCheckedBackend, apiKeys.length, addApiKey, setReadOnly]);
 
   useKeyboardShortcuts({
     onSave: () => onSaveToDirectory().catch(console.error),
@@ -120,7 +103,7 @@ const TopBar = () => {
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
             onClick={() => {
               if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
-                clearDiagramAction();
+                clearDiagram();
                 toast.success('Created new diagram');
               }
             }}

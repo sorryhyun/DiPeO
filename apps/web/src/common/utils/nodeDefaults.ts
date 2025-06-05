@@ -1,4 +1,5 @@
-import { Node, DiagramNodeData, getNodeConfig, getNodeDefaults } from '@/common/types';
+import { Node, DiagramNodeData } from '@/common/types';
+import { getNodeConfig, getNodeDefaults } from '@/config/nodes';
 
 // Factory function to create default node data based on node config
 export function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {

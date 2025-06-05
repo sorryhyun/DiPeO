@@ -1,6 +1,8 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
-import { GenericNodeProps, UNIFIED_NODE_CONFIGS, getBlockType } from '@/common/types';
+import { GenericNodeProps } from '@/common/types';
+import { NODE_CONFIGS } from '@/config/nodes';
+import type { NodeType } from '@/config/nodes';
 
 function GenericNodeComponent({ 
   id: nodeId,
@@ -19,16 +21,15 @@ function GenericNodeComponent({
   nodeConfigs = {},
   ...restProps
 }: GenericNodeProps & React.HTMLAttributes<HTMLDivElement>) {
-  // Try to get config from provided nodeConfigs first, then fallback to UNIFIED_NODE_CONFIGS
+  // Try to get config from provided nodeConfigs first, then fallback to NODE_CONFIGS
   let config = nodeConfigs[nodeType];
   if (!config) {
-    // Convert React Flow type to block type and get config from UNIFIED_NODE_CONFIGS
-    const blockType = getBlockType(nodeType);
-    config = UNIFIED_NODE_CONFIGS[blockType as keyof typeof UNIFIED_NODE_CONFIGS];
+    // Get config from NODE_CONFIGS
+    config = NODE_CONFIGS[nodeType as NodeType];
   }
   
   if (!config) {
-    console.error(`No configuration found for node type: ${nodeType} (block type: ${getBlockType(nodeType)})`);
+    console.error(`No configuration found for node type: ${nodeType}`);
     return null;
   }
 

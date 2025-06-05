@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PanelConfig, FieldConfig } from '@/common/types/panelConfig';
 import { usePropertyPanel } from '@/features/properties';
-import {
-  Form,
-  TwoColumnPanelLayout,
-  SingleColumnPanelLayout,
-  FormRow,
-  UnifiedFieldRenderer,
-  UnifiedFieldsRenderer
-} from '@/common/components/forms';
 import { PropertyFieldConfig } from '@/common/types/fieldConfig';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
 import { useIsReadOnly } from '@/common/utils/storeSelectors';
+import { Input, Select, Switch } from '@/common/components';
+import { renderInlineField, renderTextAreaField, isTextAreaField } from '@/features/properties/utils/fieldRenderers';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;

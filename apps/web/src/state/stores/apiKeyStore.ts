@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
+import { nanoid } from 'nanoid';
 import { ApiKey } from '@/common/types';
-import { createApiKeyCrudActions } from "@/common/utils/storeCrudUtils";
 import { api } from '@/common/utils/apiClient';
 
 export interface ApiKeyState {
@@ -22,12 +22,35 @@ export const useApiKeyStore = create<ApiKeyState>()(
       (set, get) => ({
         apiKeys: [],
         
-        // API key operations using generic CRUD
-        ...createApiKeyCrudActions<ApiKey>(
-          () => get().apiKeys,
-          (apiKeys) => set({ apiKeys }),
-          'APIKEY'
-        ),
+        addApiKey: (apiKeyData: Omit<ApiKey, 'id'>) => {
+          const newApiKey = {
+            ...apiKeyData,
+            id: `APIKEY_${nanoid().slice(0, 6).replace(/-/g, '_').toUpperCase()}`
+          } as ApiKey;
+          set(state => ({ apiKeys: [...state.apiKeys, newApiKey] }));
+        },
+        
+        updateApiKey: (id: string, data: Partial<ApiKey>) => {
+          set(state => ({
+            apiKeys: state.apiKeys.map(key => 
+              key.id === id ? { ...key, ...data } : key
+            )
+          }));
+        },
+        
+        deleteApiKey: (id: string) => {
+          set(state => ({
+            apiKeys: state.apiKeys.filter(key => key.id !== id)
+          }));
+        },
+        
+        getApiKeyById: (id: string) => {
+          return get().apiKeys.find(key => key.id === id);
+        },
+        
+        clearApiKeys: () => {
+          set({ apiKeys: [] });
+        },
         
         loadApiKeys: async () => {
           try {
@@ -36,7 +59,6 @@ export const useApiKeyStore = create<ApiKeyState>()(
               id: key.id,
               name: key.name,
               service: key.service as ApiKey['service'],
-              keyReference: '***hidden***' // Don't store raw keys in frontend
             }));
             
             set({ apiKeys });

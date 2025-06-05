@@ -1,6 +1,5 @@
 import { toast } from 'react-hot-toast';
 import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
-import { createErrorHandlerFactory } from '@/common/types/errorHandling';
 
 /**
  * File format types supported by the system
@@ -115,8 +114,6 @@ export const saveDiagramToBackend = async (
   diagram: any,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
-  const errorHandler = createErrorHandlerFactory({ error: toast.error })('Save diagram');
-  
   try {
     const response = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
       method: 'POST',
@@ -141,7 +138,8 @@ export const saveDiagramToBackend = async (
       filename: result.filename
     };
   } catch (error) {
-    errorHandler(error as Error);
+    console.error('[Save diagram]', error);
+    toast.error(`Save diagram: ${(error as Error).message}`);
     throw error;
   }
 };

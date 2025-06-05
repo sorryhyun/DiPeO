@@ -1,4 +1,6 @@
 import { Node } from '@xyflow/react';
+import { validateNodeData as validateNodeConfig } from '@/config/nodes';
+import type { NodeType } from '@/config/nodes';
 
 /**
  * Node validation utilities
@@ -56,19 +58,18 @@ export const validateNode = (node: Node): ValidationResult => {
 };
 
 export const validateNodeData = (nodeType: string, data: unknown): ValidationResult => {
-  const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!data) {
-    errors.push('Node data is required');
-    return { isValid: false, errors, warnings };
+    return { isValid: false, errors: ['Node data is required'], warnings };
   }
 
-  // Add type-specific data validation here
+  // Use the new configuration-based validation
+  const validationResult = validateNodeConfig(nodeType as NodeType, data as Record<string, any>);
 
   return {
-    isValid: errors.length === 0,
-    errors,
+    isValid: validationResult.valid,
+    errors: validationResult.errors,
     warnings,
   };
 };

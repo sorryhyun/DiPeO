@@ -5,4 +5,3 @@ export * from './components/common/FileUploadButton';
 
 export * from './utils/apiConfig';
 export * from './utils/apiClient';
-export * from './utils/storeCrudUtils';

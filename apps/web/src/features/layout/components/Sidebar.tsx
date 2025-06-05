@@ -12,8 +12,8 @@ import {
   useSelectedPersonId,
   useSetSelectedPersonId,
   useSetDashboardTab,
-  useActiveCanvas 
-} from '@/common/utils/storeSelectors';
+  useActiveCanvas
+} from '@/state/stores';
 import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
 import { useFileImport } from '@/features/io/hooks/useFileImport';
 import { useExport } from '@/features/io/hooks/useExport';

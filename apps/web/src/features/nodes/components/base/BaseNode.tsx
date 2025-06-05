@@ -2,99 +2,74 @@ import React from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/common/components';
-import { BaseNodeProps, getUnifiedNodeConfigsByReactFlowType } from '@/common/types';
+import { getNodeConfig } from '@/config/nodes';
 import { createHandleId } from '@/features/nodes/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
-import { useNodeExecutionState, useNodeDataUpdater } from '@/state/hooks/useStoreSelectors';
+import { useDiagramStore, useAppStore } from '@/state/stores';
 import './BaseNode.css';
 
-function BaseNodeComponent({
-  id,
-  children,
-  className = '',
-  selected = false,
-  onFlip,
-  handles = [],
-  borderColor = 'gray',
-  showFlipButton = true,
-  nodeType,
-  data,
-  autoHandles = false,
-  isRunning: isRunningProp,
-  onUpdateData: onUpdateDataProp,
-  onUpdateNodeInternals: onUpdateNodeInternalsProp,
-  nodeConfigs: nodeConfigsProp = {},
-  ...divProps
-}: BaseNodeProps) {
+// Simplified props - no more prop drilling
+interface BaseNodeProps {
+  id: string;
+  type: string;
+  selected?: boolean;
+  data: Record<string, any>;
+}
+
+export function BaseNode({ id, type, selected, data }: BaseNodeProps) {
+  // Direct store access
+  const updateNode = useDiagramStore(state => state.updateNode);
+  const updateNodeInternals = useUpdateNodeInternals();
   
-  // Always call hooks at the top level - React requires this
-  const storeState = useNodeExecutionState(id);
-  const updateNodeDataFromStore = useNodeDataUpdater();
-  const updateNodeInternalsFromStore = useUpdateNodeInternals();
-  const nodeConfigsFromStore = React.useMemo(() => getUnifiedNodeConfigsByReactFlowType(), []);
+  // Execution state
+  const isNodeRunning = useAppStore(state => state.isNodeRunning);
+  const isRunning = isNodeRunning(id);
   
-  // Use store values or fallback to props
-  const isRunning = storeState?.isRunning ?? isRunningProp ?? false;
-  const isSkipped = storeState?.isSkipped ?? false;
-  const skipReason = storeState?.skipReason ?? '';
-  const onUpdateData = updateNodeDataFromStore ?? onUpdateDataProp;
-  const onUpdateNodeInternals = updateNodeInternalsFromStore ?? onUpdateNodeInternalsProp;
-  const nodeConfigs = nodeConfigsFromStore ?? nodeConfigsProp;
+  // For now, we'll handle skipped state later when we refactor execution
+  const isSkipped = false;
+  const skippedInfo = null;
   
-  // Check if node is flipped
-  const isFlipped = data && typeof data === 'object' && 'flipped' in data && data.flipped === true;
+  // Node configuration
+  const config = getNodeConfig(type);
+  const isFlipped = data?.flipped === true;
   
-  // Get configuration if nodeType is provided
-  const config = nodeType ? nodeConfigs[nodeType] : null;
-  
-  // Use auto-generated handles if autoHandles is true and config exists
-  const effectiveHandles = React.useMemo(() => {
-    if (autoHandles && config) {
-      const allHandles = [
-        ...config.handles.sources.map(handle => ({ ...handle, type: 'output' as const })),
-        ...config.handles.targets.map(handle => ({ ...handle, type: 'input' as const }))
-      ];
+  // Generate handles from config
+  const handles = React.useMemo(() => {
+    const allHandles = [
+      ...(config.handles.output || []).map(handle => ({ ...handle, type: 'output' as const })),
+      ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
+    ];
+    
+    return allHandles.map(handle => {
+      const isVertical = handle.position === 'top' || handle.position === 'bottom';
+      const position = isFlipped && !isVertical
+        ? (handle.position === 'left' ? Position.Right : Position.Left)
+        : (handle.position === 'left' ? Position.Left : 
+           handle.position === 'right' ? Position.Right :
+           handle.position === 'top' ? Position.Top : Position.Bottom);
       
-      return allHandles.map(handle => {
-        const isVertical = handle.position === 'top' || handle.position === 'bottom';
-        const position = isFlipped && !isVertical
-          ? (handle.position === 'left' ? Position.Right : Position.Left)
-          : (handle.position === 'left' ? Position.Left : 
-             handle.position === 'right' ? Position.Right :
-             handle.position === 'top' ? Position.Top : Position.Bottom);
-        
-        const offset = handle.offset || { x: 0, y: 0 };
-        const style = isVertical 
-          ? { left: '50%', transform: `translateX(-50%) translateX(${offset.x}px)` }
-          : { top: '50%', transform: `translateY(-50%) translateY(${offset.y}px)` };
-        
-        return {
-          type: handle.type,
-          position,
-          id: createHandleId(id, handle.type, handle.id),
-          name: handle.id,
-          style,
-          offset: 50, // Default offset for compatibility
-          className: handle.color || ''
-        };
-      });
-    }
-    return handles;
-  }, [autoHandles, config, handles, id, isFlipped]);
+      const offset = handle.offset || { x: 0, y: 0 };
+      const style = isVertical 
+        ? { left: '50%', transform: `translateX(-50%) translateX(${offset.x}px)` }
+        : { top: '50%', transform: `translateY(-50%) translateY(${offset.y}px)` };
+      
+      return {
+        type: handle.type,
+        position,
+        id: createHandleId(id, handle.type, handle.id),
+        name: handle.id,
+        style,
+        offset: 50, // Default offset for compatibility
+        className: handle.color || ''
+      };
+    });
+  }, [config, id, isFlipped]);
   
-  // Use config values if available and not overridden
-  const effectiveBorderColor = (autoHandles && config?.borderColor) || borderColor;
-  const effectiveClassName = `${(autoHandles && config?.width) || ''} ${(autoHandles && config?.className) || ''} ${className}`.trim();
-  
-  // Handle flip with update if using auto handles
+  // Handle flip
   const handleFlip = React.useCallback(() => {
-    if (autoHandles && onUpdateData && onUpdateNodeInternals) {
-      onUpdateData(id, { flipped: !isFlipped });
-      onUpdateNodeInternals(id);
-    } else if (onFlip) {
-      onFlip();
-    }
-  }, [autoHandles, id, isFlipped, onFlip, onUpdateData, onUpdateNodeInternals]);
+    updateNode(id, { ...data, flipped: !isFlipped });
+    updateNodeInternals(id);
+  }, [id, data, isFlipped, updateNode, updateNodeInternals]);
   
 
   // Apply base classes with data attributes for dynamic styling
@@ -110,18 +85,17 @@ function BaseNodeComponent({
     ? 'bg-yellow-50' 
     : 'bg-white';
   
-  const finalClassName = `${baseClasses} ${stateClasses} ${backgroundClass} ${effectiveClassName}`;
-  
+  const borderColorClass = `border-${config.color}-500`;
+  const className = `${baseClasses} ${stateClasses} ${backgroundClass} ${borderColorClass}`;
 
   return (
     <div
-      {...divProps}
-      data-node-color={effectiveBorderColor}
+      data-node-color={borderColorClass}
       data-node-selected={selected}
       data-node-running={isRunning}
       data-node-skipped={isSkipped}
-      className={finalClassName}
-      title={isSkipped ? `Skipped: ${skipReason}` : undefined}
+      className={className}
+      title={isSkipped ? `Skipped: ${skippedInfo?.reason}` : undefined}
     >
       {/* Add multiple visual indicators for running state */}
       {isRunning && (
@@ -144,7 +118,7 @@ function BaseNodeComponent({
       )}
       
       {/* Flip button */}
-      {showFlipButton && selected && (onFlip || autoHandles) && !isRunning && (
+      {selected && !isRunning && (
         <Button
           onClick={handleFlip}
           variant="outline"
@@ -156,24 +130,38 @@ function BaseNodeComponent({
         </Button>
       )}
 
-      {/* Content with running indicator */}
+      {/* Node content */}
       <div className={isRunning ? 'relative z-10' : ''}>
-        {children}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">{config.icon}</span>
+          <span className="font-medium">{config.label}</span>
+        </div>
+        
+        {/* Display key node data */}
+        {Object.entries(data).map(([key, value]) => {
+          if (key === 'id' || key === 'type' || key === 'flipped') return null;
+          return (
+            <div key={key} className="text-xs text-gray-600 truncate">
+              {key}: {String(value)}
+            </div>
+          );
+        })}
+        
         {isRunning && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-500 animate-pulse rounded-b" />
         )}
       </div>
 
       {/* Handles */}
-      {effectiveHandles.map((handle: any, index: number) => (
+      {handles.map((handle: any) => (
         <FlowHandle
-          key={handle.id || index}
+          key={handle.id}
           nodeId={id}
           type={handle.type}
-          name={'name' in handle ? handle.name : `${handle.type}-${index}`}
+          name={handle.name}
           position={handle.position}
-          offset={'offset' in handle ? handle.offset : 50}
-          color={handle.className}  // Extract color from className
+          offset={handle.offset}
+          color={handle.className}
           style={handle.style}
           className={`${isRunning ? 'animate-pulse' : ''}`}
         />
@@ -181,7 +169,3 @@ function BaseNodeComponent({
     </div>
   );
 }
-
-// Remove memo to allow execution state updates to propagate through
-// The component handles its own execution state via useNodeExecutionState hook
-export const BaseNode = BaseNodeComponent;

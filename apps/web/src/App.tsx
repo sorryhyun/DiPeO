@@ -3,7 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from '@/features/layout';
 import { useExecutionMonitor } from '@/state/hooks/useExecutionMonitor';
-import { useSetReadOnly, useActiveCanvas } from '@/common/utils/storeSelectors';
+import { useConsolidatedUIStore } from '@/state/stores';
 import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
 
 // Lazy load heavy components
@@ -15,8 +15,7 @@ const LazyWebSocketTest = React.lazy(() => import('@/features/runtime/components
 const LazyInteractivePromptModal = React.lazy(() => import('@/features/runtime/components/InteractivePromptModal'));
 
 function App() {
-  const setReadOnly = useSetReadOnly();
-  const activeCanvas = useActiveCanvas();
+  const { setReadOnly, activeCanvas } = useConsolidatedUIStore();
   const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';

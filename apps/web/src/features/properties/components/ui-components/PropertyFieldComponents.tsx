@@ -1,14 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Input, Spinner } from '@/common/components';
+import { Input, Spinner, Select } from '@/common/components';
 import { FileUploadButton } from '@/common';
 import { usePersons } from '@/state/hooks/useStoreSelectors';
-import {
-  FormField,
-  FormRow,
-  InlineSelectField,
-  InlineTextField,
-  TextAreaField
-} from '@/common/components/forms';
 
 // Specialized Field Components for Property Panels
 
@@ -36,15 +29,25 @@ export const PersonSelectionField: React.FC<PersonSelectionFieldProps> = ({
   );
 
   return (
-    <InlineSelectField
-      label="Person"
-      value={value}
-      onChange={(v) => onChange(v || '')}
-      options={personOptions}
-      placeholder={placeholder || (required ? "Select person" : "None")}
-      className={className}
-      isDisabled={disabled}
-    />
+    <div className="flex items-center gap-2">
+      <label className="text-xs font-medium whitespace-nowrap">Person</label>
+      <Select
+        value={value}
+        onValueChange={(v) => onChange(v || '')}
+        disabled={disabled}
+      >
+        <Select.Trigger className={className}>
+          <Select.Value placeholder={placeholder || (required ? "Select person" : "None")} />
+        </Select.Trigger>
+        <Select.Content>
+          {personOptions.map(opt => (
+            <Select.Item key={opt.value} value={opt.value}>
+              {opt.label}
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select>
+    </div>
   );
 };
 
@@ -67,15 +70,16 @@ export const LabelPersonRow: React.FC<LabelPersonRowProps> = ({
   personPlaceholder,
   disabled
 }) => (
-  <FormRow>
-    <InlineTextField
-      label="Label"
-      value={labelValue}
-      onChange={onLabelChange}
-      placeholder={labelPlaceholder}
-      className="flex-1"
-      disabled={disabled}
-    />
+  <div className="flex flex-wrap gap-3">
+    <div className="flex items-center gap-2 flex-1">
+      <label className="text-xs font-medium whitespace-nowrap">Label</label>
+      <Input
+        value={labelValue}
+        onChange={(e) => onLabelChange(e.target.value)}
+        placeholder={labelPlaceholder}
+        disabled={disabled}
+      />
+    </div>
     <PersonSelectionField
       value={personValue}
       onChange={onPersonChange}
@@ -83,7 +87,7 @@ export const LabelPersonRow: React.FC<LabelPersonRowProps> = ({
       className="flex-1"
       disabled={disabled}
     />
-  </FormRow>
+  </div>
 );
 
 interface IterationCountFieldProps {
@@ -105,17 +109,22 @@ export const IterationCountField: React.FC<IterationCountFieldProps> = ({
   label = "Max Iter",
   disabled
 }) => (
-  <InlineTextField
-    label={label}
-    value={String(value || min)}
-    onChange={(v) => {
-      const num = parseInt(v) || min;
-      onChange(Math.min(Math.max(num, min), max));
-    }}
-    placeholder={String(min)}
-    className={className}
-    disabled={disabled}
-  />
+  <div className="flex items-center gap-2">
+    <label className="text-xs font-medium whitespace-nowrap">{label}</label>
+    <Input
+      type="number"
+      value={String(value || min)}
+      onChange={(e) => {
+        const num = parseInt(e.target.value) || min;
+        onChange(Math.min(Math.max(num, min), max));
+      }}
+      placeholder={String(min)}
+      className={className}
+      disabled={disabled}
+      min={min}
+      max={max}
+    />
+  </div>
 );
 
 interface VariableDetectionTextAreaProps {
@@ -143,15 +152,18 @@ export const VariableDetectionTextArea: React.FC<VariableDetectionTextAreaProps>
   }, [detectedVariables]);
 
   return (
-    <TextAreaField
-      label={label}
-      value={value}
-      onChange={onChange}
-      rows={rows}
-      placeholder={placeholder}
-      hint={hint}
-      disabled={disabled}
-    />
+    <div className="space-y-1">
+      <label className="text-xs font-medium">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="flex w-full rounded-md border border-slate-300 bg-transparent py-1.5 px-2.5 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+      />
+      {hint && <p className="text-xs text-gray-600">{hint}</p>}
+    </div>
   );
 };
 
@@ -192,7 +204,8 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
   };
 
   return (
-    <FormField label={label} id={id}>
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-xs font-medium">{label}</label>
       <div className="space-y-2">
         <Input
           id={id}
@@ -221,6 +234,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
           )}
         </div>
       </div>
-    </FormField>
+    </div>
   );
 };

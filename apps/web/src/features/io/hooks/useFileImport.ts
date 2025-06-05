@@ -1,7 +1,6 @@
 // Hook for importing diagrams from various file formats
 import { useCallback, ChangeEvent } from 'react';
 import { loadDiagram } from '@/common/utils/storeSelectors';
-import { createErrorHandlerFactory } from '@/common/types';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
 import { YamlExporter } from '../converters/yamlExporter';
@@ -15,15 +14,11 @@ import {
   FileFormat
 } from '../utils/fileUtils';
 
-const createErrorHandler = createErrorHandlerFactory(toast);
-
 export const useFileImport = () => {
   const { downloadYaml } = useDownload();
 
   // Unified import handler for all file types
   const handleFileImport = useCallback(async (file: File) => {
-    const errorHandler = createErrorHandler('Import file');
-    
     try {
       // Read file content
       const content = await readFileAsText(file);
@@ -67,7 +62,8 @@ export const useFileImport = () => {
         }
       }
     } catch (error) {
-      errorHandler(error as Error);
+      console.error('[Import file]', error);
+      toast.error(`Import file: ${(error as Error).message}`);
     }
   }, []);
 
@@ -98,8 +94,6 @@ export const useFileImport = () => {
 
   // Convert JSON to YAML
   const convertJSONtoYAML = useCallback(async (file: File) => {
-    const errorHandler = createErrorHandler('Convert JSON to YAML');
-    
     try {
       const content = await readFileAsText(file);
       const diagram = JSON.parse(content);
@@ -112,7 +106,8 @@ export const useFileImport = () => {
       
       toast.success('JSON converted to YAML successfully');
     } catch (error) {
-      errorHandler(error as Error);
+      console.error('[Convert JSON to YAML]', error);
+      toast.error(`Convert JSON to YAML: ${(error as Error).message}`);
     }
   }, [downloadYaml]);
 
@@ -127,8 +122,6 @@ export const useFileImport = () => {
 
   // Import from URL
   const importFromURL = useCallback(async (url: string, _format?: FileFormat) => {
-    const errorHandler = createErrorHandler('Import from URL');
-    
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -144,7 +137,8 @@ export const useFileImport = () => {
       
       await handleFileImport(virtualFile);
     } catch (error) {
-      errorHandler(error as Error);
+      console.error('[Import from URL]', error);
+      toast.error(`Import from URL: ${(error as Error).message}`);
     }
   }, [handleFileImport]);
 
