@@ -12,9 +12,20 @@ from .controllers import LoopController, SkipManager
 from .executors.base_executor import BaseExecutor
 from .executors import create_executors
 # node_type_utils no longer needed - all types are already snake_case
-from ..api.routers.monitor import broadcast_to_monitors
 
 logger = logging.getLogger(__name__)
+
+
+async def broadcast_event(event_data: Dict[str, Any]):
+    """Broadcast an event to all WebSocket connections if available."""
+    try:
+        from ..api.routers.websocket import get_connection_manager
+        ws_manager = get_connection_manager()
+        # Broadcast to all WebSocket clients
+        await ws_manager.broadcast(event_data)
+    except Exception as e:
+        # If WebSocket module is not available or error occurs, log and continue
+        logger.debug(f"WebSocket broadcast skipped: {e}")
 
 
 @dataclass
@@ -170,7 +181,7 @@ class UnifiedExecutionEngine:
                 }
                 yield event
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 
                 # Execute nodes according to plan
                 pending_nodes = set(plan.execution_order)
@@ -229,7 +240,7 @@ class UnifiedExecutionEngine:
                         }
                         yield start_event
                         # Broadcast to monitors
-                        await broadcast_to_monitors(start_event)
+                        await broadcast_event(start_event)
                     
                     # Execute ready nodes (potentially in parallel)
                     execution_tasks = []
@@ -253,14 +264,14 @@ class UnifiedExecutionEngine:
                             }
                             yield event
                             # Broadcast to monitors
-                            await broadcast_to_monitors(event)
+                            await broadcast_event(event)
                             
                             if not options.get("continue_on_error", False):
                                 raise result
                         else:
                             yield result
                             # Broadcast to monitors
-                            await broadcast_to_monitors(result)
+                            await broadcast_event(result)
                             
                             # Handle conditional re-queuing for loops
                             if node_id in context.condition_values:
@@ -302,7 +313,7 @@ class UnifiedExecutionEngine:
                 }
                 yield event
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 
             except Exception as e:
                 logger.error(f"Diagram execution failed: {str(e)}")
@@ -312,7 +323,7 @@ class UnifiedExecutionEngine:
                 }
                 yield event
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 raise
     
     def _build_execution_context(self, diagram: Dict[str, Any]) -> ExecutionContext:
@@ -396,7 +407,7 @@ class UnifiedExecutionEngine:
                 "reason": reason
             }
             # Broadcast to monitors
-            await broadcast_to_monitors(event)
+            await broadcast_event(event)
             return event
         
         # Get executor for node type
@@ -433,7 +444,7 @@ class UnifiedExecutionEngine:
                     "output": result.output
                 }
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 return event
             
             # Update context for successful execution
@@ -465,7 +476,7 @@ class UnifiedExecutionEngine:
                 "token_count": result.tokens.input + result.tokens.output
             }
             # Broadcast to monitors
-            await broadcast_to_monitors(event)
+            await broadcast_event(event)
             return event
             
         except Exception as e:

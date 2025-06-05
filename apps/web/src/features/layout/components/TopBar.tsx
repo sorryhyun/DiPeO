@@ -34,8 +34,7 @@ const TopBar = () => {
     stopExecution,
     pauseNode,
     resumeNode,
-    skipNode,
-    isWebSocketEnabled 
+    skipNode
   } = useDiagramRunner();
   const { activeCanvas, toggleCanvas } = useUIState();
   const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
@@ -149,7 +148,7 @@ const TopBar = () => {
               >
                 ⏹️ Stop
               </Button>
-              {isWebSocketEnabled && currentRunningNode && (
+              {currentRunningNode && (
                 <>
                   <Button
                     variant="outline"
@@ -191,9 +190,6 @@ const TopBar = () => {
             {runStatus === 'running' && <span className="text-blue-600 animate-pulse">⚡ Running...</span>}
             {runStatus === 'success' && <span className="text-green-600">✅ Success</span>}
             {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
-            {isWebSocketEnabled && runStatus !== 'idle' && (
-              <span className="text-sm text-gray-500 ml-2">(WebSocket)</span>
-            )}
           </div>
         </div>
         {(isMonitorMode || isReadOnly) && (

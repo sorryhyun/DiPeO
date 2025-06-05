@@ -34,8 +34,7 @@ export const useDiagramRunner = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [interactivePrompt, setInteractivePrompt] = useState<InteractivePromptData | null>(null);
   
-  // Always use WebSocket execution (SSE has been deprecated)
-  const useWebSocket = true;
+  // WebSocket execution client
   
   // Create WebSocket execution client
   const executionClientRef = useRef(
@@ -44,19 +43,15 @@ export const useDiagramRunner = () => {
   const isComponentMountedRef = useRef(true);
   
   useEffect(() => {
-    if (useWebSocket) {
-      console.log('[useDiagramRunner] Using WebSocket execution client');
-      // Set up interactive prompt handler for WebSocket
-      const wsClient = executionClientRef.current;
-      if ('setInteractivePromptHandler' in wsClient) {
-        wsClient.setInteractivePromptHandler((prompt: InteractivePromptData) => {
-          setInteractivePrompt(prompt);
-        });
-      }
-    } else {
-      console.log('[useDiagramRunner] Using SSE execution client');
+    console.log('[useDiagramRunner] Using WebSocket execution client');
+    // Set up interactive prompt handler for WebSocket
+    const wsClient = executionClientRef.current;
+    if ('setInteractivePromptHandler' in wsClient) {
+      wsClient.setInteractivePromptHandler((prompt: InteractivePromptData) => {
+        setInteractivePrompt(prompt);
+      });
     }
-  }, [useWebSocket]);
+  }, []);
   
   // Manual stop function
   const stopExecution = useCallback(() => {
@@ -119,7 +114,7 @@ export const useDiagramRunner = () => {
         console.warn('API key validation failed:', keyError);
       }
 
-      // Use unified execution client with SSE streaming
+      // Execute diagram using WebSocket client
       const result = await executionClientRef.current.execute(
         diagramData as DiagramData, 
         {
@@ -131,20 +126,20 @@ export const useDiagramRunner = () => {
           // Handle real-time execution updates
           if (!isComponentMountedRef.current) return;
           
-          // Handle both SSE and WebSocket update formats
-          const nodeId = 'node_id' in update ? update.node_id : 
-                        'nodeId' in update ? update.nodeId : undefined;
+          // Handle WebSocket update formats
+          const nodeId = 'node_id' in update ? (update as any).node_id : 
+                        'nodeId' in update ? (update as any).nodeId : undefined;
           
           switch (update.type) {
             case 'node_start':
-              if (nodeId) {
+              if (nodeId && typeof nodeId === 'string') {
                 setCurrentRunningNode(nodeId);
                 addRunningNode(nodeId);
               }
               break;
               
             case 'node_complete':
-              if (nodeId) {
+              if (nodeId && typeof nodeId === 'string') {
                 removeRunningNode(nodeId);
               }
               break;
@@ -209,42 +204,42 @@ export const useDiagramRunner = () => {
     }
   }, [clearRunningNodes, clearRunContext, setCurrentRunningNode, addRunningNode, removeRunningNode]);
 
-  // Execution control functions (only available with WebSocket)
+  // Execution control functions
   const pauseNode = useCallback((nodeId: string) => {
-    if (useWebSocket && executionClientRef.current && 'pauseNode' in executionClientRef.current) {
+    if (executionClientRef.current && 'pauseNode' in executionClientRef.current) {
       executionClientRef.current.pauseNode(nodeId);
     }
-  }, [useWebSocket]);
+  }, []);
   
   const resumeNode = useCallback((nodeId: string) => {
-    if (useWebSocket && executionClientRef.current && 'resumeNode' in executionClientRef.current) {
+    if (executionClientRef.current && 'resumeNode' in executionClientRef.current) {
       executionClientRef.current.resumeNode(nodeId);
     }
-  }, [useWebSocket]);
+  }, []);
   
   const skipNode = useCallback((nodeId: string) => {
-    if (useWebSocket && executionClientRef.current && 'skipNode' in executionClientRef.current) {
+    if (executionClientRef.current && 'skipNode' in executionClientRef.current) {
       executionClientRef.current.skipNode(nodeId);
     }
-  }, [useWebSocket]);
+  }, []);
   
   // Interactive prompt response handler
   const sendInteractiveResponse = useCallback((nodeId: string, response: string) => {
-    if (useWebSocket && executionClientRef.current && 'sendInteractiveResponse' in executionClientRef.current) {
+    if (executionClientRef.current && 'sendInteractiveResponse' in executionClientRef.current) {
       executionClientRef.current.sendInteractiveResponse(nodeId, response);
       // Clear the prompt after sending response
       setInteractivePrompt(null);
     }
-  }, [useWebSocket]);
+  }, []);
   
   // Cancel interactive prompt
   const cancelInteractivePrompt = useCallback(() => {
     setInteractivePrompt(null);
     // Optionally send empty response to unblock execution
-    if (interactivePrompt && useWebSocket && executionClientRef.current && 'sendInteractiveResponse' in executionClientRef.current) {
+    if (interactivePrompt && executionClientRef.current && 'sendInteractiveResponse' in executionClientRef.current) {
       executionClientRef.current.sendInteractiveResponse(interactivePrompt.nodeId, '');
     }
-  }, [interactivePrompt, useWebSocket]);
+  }, [interactivePrompt]);
 
   return {
     runStatus,
@@ -252,11 +247,10 @@ export const useDiagramRunner = () => {
     retryCount,
     onRunDiagram, // Primary unified execution
     stopExecution, // Manual stop function
-    // Control functions (WebSocket only)
+    // Control functions
     pauseNode,
     resumeNode,
     skipNode,
-    isWebSocketEnabled: useWebSocket,
     // Interactive prompt handling
     interactivePrompt,
     sendInteractiveResponse,

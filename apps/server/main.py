@@ -25,7 +25,6 @@ from .src.api.routers import (
     apikeys_router,
     files_router,
     conversations_router,
-    monitor_router,
     websocket_router
 )
 from .src.api.middleware import setup_middleware
@@ -49,7 +48,6 @@ app.include_router(diagram_router)
 app.include_router(apikeys_router)
 app.include_router(files_router)
 app.include_router(conversations_router)
-app.include_router(monitor_router)
 app.include_router(websocket_router)
 
 
@@ -82,17 +80,17 @@ def start():
     # Multi-worker support for better parallel execution
     config.workers = int(os.environ.get("WORKERS", 4))
     
-    # Graceful timeout for SSE connections
+    # Graceful timeout for WebSocket connections
     config.graceful_timeout = 30.0
     
     # Access and error logging
     config.accesslog = "-"
     config.errorlog = "-"
     
-    # Keep alive for long-running SSE connections
+    # Keep alive for long-running WebSocket connections
     config.keep_alive_timeout = 75.0
     
-    # Enable HTTP/2 for better SSE multiplexing
+    # Enable HTTP/2 for better WebSocket multiplexing
     config.h2_max_concurrent_streams = 100
     
     # Note: Hypercorn doesn't support hot reload like uvicorn

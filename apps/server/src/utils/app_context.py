@@ -10,6 +10,7 @@ from ..services.llm_service import LLMService
 from ..services.diagram_service import DiagramService
 from ..services.file_service import FileService
 from ..services.memory_service import MemoryService
+from ..services.execution_service import ExecutionService
 from ...config import BASE_DIR
 
 
@@ -22,6 +23,7 @@ class AppContext:
         self.diagram_service: Optional[DiagramService] = None
         self.file_service: Optional[FileService] = None
         self.memory_service: Optional[MemoryService] = None
+        self.execution_service: Optional[ExecutionService] = None
     
     async def startup(self):
         """Initialize all services on startup."""
@@ -34,6 +36,13 @@ class AppContext:
             self.llm_service, 
             self.api_key_service, 
             self.memory_service
+        )
+        self.execution_service = ExecutionService(
+            self.llm_service,
+            self.api_key_service,
+            self.memory_service,
+            self.file_service,
+            self.diagram_service
         )
     
     async def shutdown(self):
@@ -91,3 +100,15 @@ def get_memory_service() -> MemoryService:
     if app_context.memory_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.memory_service
+
+
+def get_execution_service() -> ExecutionService:
+    """Get ExecutionService instance from app context."""
+    if app_context.execution_service is None:
+        raise RuntimeError("Application context not initialized")
+    return app_context.execution_service
+
+
+def get_app_context() -> AppContext:
+    """Get AppContext instance for dependency injection."""
+    return app_context
