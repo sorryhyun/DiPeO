@@ -17,9 +17,6 @@ const apiHost = typeof window === 'undefined'
 export const API_CONFIG = {
   // HTTP API base URL
   BASE_URL: isDev || typeof window === 'undefined' ? `http://${apiHost}` : '',
-  
-  // SSE streaming base URL
-  STREAMING_BASE_URL: isDev || typeof window === 'undefined' ? `http://${apiHost}` : '',
 } as const;
 
 // Export for backward compatibility
@@ -50,8 +47,6 @@ export const API_ENDPOINTS = {
   IMPORT_YAML: '/api/import-yaml', 
   SAVE_DIAGRAM: '/api/diagrams/save',
   
-  // Monitoring
-  MONITOR_STREAM: '/api/monitor/stream',
 } as const;
 
 // Helper functions
@@ -68,9 +63,5 @@ export function getApiUrl(endpoint: string): string {
   
   // For other paths, prepend base URL
   return `${API_CONFIG.BASE_URL}${endpoint}`;
-}
-
-export function getStreamingUrl(endpoint: string): string {
-  return `${API_CONFIG.STREAMING_BASE_URL}${endpoint}`;
 }
 

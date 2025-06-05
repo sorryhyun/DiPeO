@@ -165,7 +165,6 @@ export const useExecutionMonitor = () => {
     }));
   });
 
-  // Note: SSE fallback has been removed. WebSocket is now the only transport mechanism.
 
   return null;
 };

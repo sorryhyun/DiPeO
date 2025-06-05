@@ -7,14 +7,7 @@ __pycache__/
 .venv/
 *.egg-info/
 .pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.ruff_cache/
-apikey.json
+apikeys.json
 output.txt
 
 # Node.js
@@ -35,7 +28,7 @@ notion.md
 CLAUDE.md
 apps/web/CLAUDE.md
 apps/server/CLAUDE.md
-packages/CLAUDE.md
+
 # Environment files
 .env
 .env.local
@@ -58,14 +51,12 @@ apps/server/src/*/__pycache__/
 apps/web/dist/
 # Project file storage - consolidated under files/
 files/
-apikeys.json
+
 pnpm-lock.yaml
 pnpm-workspace.yaml
 .claude
 example.yaml
 TODO.md
-MIGRATION_PLAN.md
-AGENTS.md
 CLAUDE.local.md
 # Temporary files
 *.tmp

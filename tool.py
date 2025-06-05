@@ -323,7 +323,7 @@ def open_browser_monitor():
 
 
 def wait_for_monitor_connection(timeout: int = 10, check_interval: float = 0.5) -> bool:
-    """Wait for at least one monitor to connect to the SSE endpoint."""
+    """Wait for at least one monitor to connect."""
     import time
     start_time = time.time()
     
@@ -535,7 +535,6 @@ def main():
                 asyncio.run(broadcast_diagram_to_monitors(diagram, execution_id))
                 
                 # Delay to ensure diagram is loaded and rendered in browser
-                # Reduced delay since SSE connects faster now
                 time.sleep(1.0)
                 
                 # Run diagram - disable show_in_browser to prevent double broadcast

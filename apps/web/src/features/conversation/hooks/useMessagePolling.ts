@@ -16,7 +16,7 @@ export const useMessagePolling = ({
   onNewMessage,
   fetchConversationData: _fetchConversationData // No longer used - kept for backward compatibility
 }: UseMessagePollingProps) => {
-  // Subscribe to real-time updates via WebSocket/SSE
+  // Subscribe to real-time updates via WebSocket
   useEffect(() => {
     const handleRealtimeUpdate = (event: CustomEvent) => {
       const { type, data } = event.detail;

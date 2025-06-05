@@ -83,23 +83,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false,
-        // Special handling for SSE
-        configure: (proxy, _options) => {
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            // Preserve SSE headers
-            if (req.url?.includes('/monitor/stream')) {
-              proxyRes.headers['cache-control'] = 'no-cache';
-              proxyRes.headers['content-type'] = 'text/event-stream';
-              proxyRes.headers['connection'] = 'keep-alive';
-              proxyRes.headers['access-control-allow-origin'] = '*';
-            }
-            // Flush headers immediately for streaming
-            if (typeof res.flushHeaders === 'function') {
-              res.flushHeaders();
-            }
-          });
-        }
+        secure: false
       },
     },
   },
@@ -114,23 +98,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false,
-        // Special handling for SSE
-        configure: (proxy, _options) => {
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            // Preserve SSE headers
-            if (req.url?.includes('/monitor/stream')) {
-              proxyRes.headers['cache-control'] = 'no-cache';
-              proxyRes.headers['content-type'] = 'text/event-stream';
-              proxyRes.headers['connection'] = 'keep-alive';
-              proxyRes.headers['access-control-allow-origin'] = '*';
-            }
-            // Flush headers immediately for streaming
-            if (typeof res.flushHeaders === 'function') {
-              res.flushHeaders();
-            }
-          });
-        }
+        secure: false
       },
     },
   }

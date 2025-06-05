@@ -13,8 +13,6 @@ export interface ExecutionState {
   skippedNodes: Record<string, { reason: string; timestamp: number }>;
   lastUpdate?: number;
   
-  // Stream connection
-  streamConnection: EventSource | null;
   
   // Actions
   startExecution: (executionId: string) => void;
@@ -29,9 +27,6 @@ export interface ExecutionState {
   setCurrentRunningNode: (nodeId: string | null) => void;
   addSkippedNode: (nodeId: string, reason: string) => void;
   
-  // Stream management
-  connectStream: (url: string) => void;
-  disconnectStream: () => void;
 }
 
 export const useExecutionStore = create<ExecutionState>()(
@@ -45,7 +40,6 @@ export const useExecutionStore = create<ExecutionState>()(
       currentRunningNode: null,
       nodeRunningStates: {},
       skippedNodes: {},
-      streamConnection: null,
 
       // Execution control
       startExecution: (executionId) => set({ 
@@ -133,26 +127,7 @@ export const useExecutionStore = create<ExecutionState>()(
             [nodeId]: { reason, timestamp: Date.now() }
           }
         }));
-      },
-      
-      // Stream management
-      connectStream: (url) => {
-        const currentConnection = get().streamConnection;
-        if (currentConnection) {
-          currentConnection.close();
-        }
-        
-        const eventSource = new EventSource(url);
-        set({ streamConnection: eventSource });
-      },
-      
-      disconnectStream: () => {
-        const connection = get().streamConnection;
-        if (connection) {
-          connection.close();
-          set({ streamConnection: null });
-        }
-      },
+      }
     }),
     {
       name: 'execution-store',
