@@ -11,8 +11,8 @@ export {
 // Export specialized property components
 export { 
   PersonSelectionField, LabelPersonRow, IterationCountField, 
-  VariableDetectionTextArea
-} from '../components/ui-components/FormComponents';
+  VariableDetectionTextArea, FileUploadField
+} from '../components/ui-components/PropertyFieldComponents';
 
 // Hooks
 export { usePropertyForm } from '../hooks/usePropertyForm';

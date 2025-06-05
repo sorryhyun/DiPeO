@@ -10,7 +10,7 @@ import {
   TextAreaField
 } from '@/common/components/forms';
 
-// Specialized Field Components
+// Specialized Field Components for Property Panels
 
 interface PersonSelectionFieldProps {
   value: string;
@@ -224,17 +224,3 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     </FormField>
   );
 };
-
-// Re-export commonly used generic components for convenience
-export {
-  FormField,
-  Form,
-  FormRow,
-  InlineFormField,
-  TextAreaField,
-  InlineTextField,
-  InlineSelectField,
-  CheckboxField,
-  TwoColumnPanelLayout,
-  SingleColumnPanelLayout
-} from '@/common/components/forms';

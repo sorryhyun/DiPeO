@@ -16,7 +16,7 @@ import {
   PersonSelectionField,
   LabelPersonRow,
   VariableDetectionTextArea
-} from './FormComponents';
+} from './PropertyFieldComponents';
 import { preInitializeModel } from '@/features/properties/utils/propertyHelpers';
 import { useDiagramStore } from '@/state/stores';
 

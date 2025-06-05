@@ -37,16 +37,13 @@ const ConversationDashboard: React.FC = () => {
 
   useMessagePolling({
     personId: dashboardSelectedPerson,
-    runContext,
-    lastUpdateTime: null, // Will be managed internally by the hook
     onNewMessage: (personId: string, message: ConversationMessage) => {
       addMessage(personId, message);
       // Auto-scroll to bottom
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    },
-    fetchConversationData
+    }
   });
 
   // Initial load when runContext changes

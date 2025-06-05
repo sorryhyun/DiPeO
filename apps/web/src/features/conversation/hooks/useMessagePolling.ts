@@ -1,20 +1,15 @@
+/* global EventListener */
 import { useEffect } from 'react';
 import { ConversationMessage } from '../types';
 
 interface UseMessagePollingProps {
   personId: string | null;
-  runContext: Record<string, unknown>;
-  lastUpdateTime: string | null;
   onNewMessage: (personId: string, message: ConversationMessage) => void;
-  fetchConversationData: (personId?: string, append?: boolean, since?: string) => Promise<void>;
 }
 
 export const useMessagePolling = ({
   personId,
-  runContext: _runContext, // No longer used - kept for backward compatibility
-  lastUpdateTime: _lastUpdateTime, // No longer used - kept for backward compatibility
-  onNewMessage,
-  fetchConversationData: _fetchConversationData // No longer used - kept for backward compatibility
+  onNewMessage
 }: UseMessagePollingProps) => {
   // Subscribe to real-time updates via WebSocket
   useEffect(() => {
@@ -30,16 +25,11 @@ export const useMessagePolling = ({
       }
     };
 
-    window.addEventListener('conversation-update', handleRealtimeUpdate as any);
+    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListener);
     return () => {
-      window.removeEventListener('conversation-update', handleRealtimeUpdate as any);
+      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListener);
     };
   }, [personId, onNewMessage]);
 
-  // Return empty functions for backward compatibility
-  return {
-    startPolling: () => {}, // No-op, we use real-time updates now
-    stopPolling: () => {}, // No-op
-    isPolling: false // Always false since we don't poll anymore
-  };
+  // No return value needed - hook only sets up event listeners
 };

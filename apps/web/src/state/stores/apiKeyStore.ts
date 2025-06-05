@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
-import { ApiKey, createErrorHandlerFactory } from '@/common/types';
+import { ApiKey } from '@/common/types';
 import { createApiKeyCrudActions } from "@/common/utils/storeCrudUtils";
-import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
-import { toast } from 'sonner';
+import { api } from '@/common/utils/apiClient';
 
 export interface ApiKeyState {
   apiKeys: ApiKey[];
@@ -16,8 +15,6 @@ export interface ApiKeyState {
   loadApiKeys: () => Promise<void>;
   setApiKeys: (apiKeys: ApiKey[]) => void;
 }
-
-const createErrorHandler = createErrorHandlerFactory(toast);
 
 export const useApiKeyStore = create<ApiKeyState>()(
   devtools(
@@ -33,25 +30,18 @@ export const useApiKeyStore = create<ApiKeyState>()(
         ),
         
         loadApiKeys: async () => {
-          const errorHandler = createErrorHandler('Load API Keys');
           try {
-            const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
-            if (!response.ok) {
-              throw new Error(`Failed to load API keys: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            const apiKeys = (Array.isArray(data) ? data : data.apiKeys || []).map((key: {id: string; name: string; service: string}) => ({
+            const data = await api.apiKeys.list();
+            const apiKeys = data.map((key) => ({
               id: key.id,
               name: key.name,
-              service: key.service,
+              service: key.service as ApiKey['service'],
               keyReference: '***hidden***' // Don't store raw keys in frontend
             }));
             
             set({ apiKeys });
           } catch (error) {
             console.error('Error loading API keys:', error);
-            errorHandler(error as Error);
             throw error;
           }
         },
