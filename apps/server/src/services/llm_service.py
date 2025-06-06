@@ -16,7 +16,7 @@ class LLMService(BaseService):
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()
         self.api_key_service = api_key_service
-        # Connection pool for adapters to avoid creating new instances
+        # Connection pool  for adapters to avoid creating new instances
         self._adapter_pool = {}
     
     def _get_api_key(self, api_key_id: str) -> str:
