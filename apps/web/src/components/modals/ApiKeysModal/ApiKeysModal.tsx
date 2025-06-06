@@ -34,7 +34,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const [_loading, setLoading] = useState(false);
 
   // Create error handler for API key operations
-  const createErrorHandler = createErrorHandlerFactory(toast);
+  const createErrorHandler = createErrorHandlerFactory('ApiKeysModal');
 
   // Load API keys when modal opens
   useEffect(() => {
@@ -123,8 +123,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         // Remove from local store
         deleteApiKey(id);
       } catch (error) {
-        const errorHandler = createErrorHandler('Delete API Key');
-        errorHandler(error as Error);
+        createErrorHandler(error);
       }
     }
   };

@@ -78,7 +78,7 @@ function App() {
               }>
                 <LazyDiagramCanvas />
               </Suspense>
-            ) : activeCanvas === 'memory' ? (
+            ) : activeCanvas === 'execution' ? (
               <Suspense fallback={
                 <div className="h-full bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center">
                   <div className="text-gray-400 animate-pulse">Loading memory canvas...</div>

@@ -13,7 +13,7 @@ import {
 } from '@/hooks/useStoreSelectors';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
-const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.PropertiesPanel })));
+const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onNodeDragStart } = useCanvasInteractions();
@@ -60,10 +60,38 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   };
 
   if (position === 'right') {
+    // Find the selected element and its data
+    let selectedId: string | null = null;
+    let selectedData: any = null;
+    
+    if (selectedNodeId) {
+      const node = nodes.find(n => n.id === selectedNodeId);
+      if (node) {
+        selectedId = node.id;
+        selectedData = node.data;
+      }
+    } else if (selectedArrowId) {
+      const arrow = arrows.find(a => a.id === selectedArrowId);
+      if (arrow) {
+        selectedId = arrow.id;
+        selectedData = { ...arrow.data, type: 'arrow' };
+      }
+    } else if (selectedPersonId) {
+      const person = persons.find(p => p.id === selectedPersonId);
+      if (person) {
+        selectedId = person.id;
+        selectedData = { ...person, type: 'person' };
+      }
+    }
+    
     return (
       <aside className="h-full border-l bg-gray-50 overflow-y-auto">
         <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
-          <PropertiesPanel />
+          {selectedId && selectedData ? (
+            <PropertiesPanel nodeId={selectedId} data={selectedData} />
+          ) : (
+            <div className="p-4 text-gray-500">Select an element to view properties</div>
+          )}
         </Suspense>
       </aside>
     );

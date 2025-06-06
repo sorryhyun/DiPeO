@@ -244,7 +244,8 @@ export class Yaml {
       apiKeys.push({
         id,
         name: key.name,
-        service: key.service as ApiKey['service']
+        service: key.service as ApiKey['service'],
+        keyReference: id // Use id as keyReference
       });
     });
 

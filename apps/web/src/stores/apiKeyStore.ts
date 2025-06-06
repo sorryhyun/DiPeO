@@ -59,6 +59,7 @@ export const useApiKeyStore = create<ApiKeyState>()(
               id: key.id,
               name: key.name,
               service: key.service as ApiKey['service'],
+              keyReference: key.id, // Use id as keyReference since API doesn't return it
             }));
             
             set({ apiKeys });

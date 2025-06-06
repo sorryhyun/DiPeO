@@ -23,7 +23,7 @@ export * from './useFileOperations';
 export * from './usePropertyManager';
 
 // Data & API
-export * from './useApiKeys';
+// useApiKeys is exported from useStoreSelectors
 export * from './useConversationData';
 
 // History & State Management

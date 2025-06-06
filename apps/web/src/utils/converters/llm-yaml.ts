@@ -417,7 +417,8 @@ export class LlmYaml {
         apiKeys[service] = {
           id: apiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
-          service: service as ApiKey['service']
+          service: service as ApiKey['service'],
+          keyReference: apiKeyId // Use id as keyReference
         };
       }
     });
