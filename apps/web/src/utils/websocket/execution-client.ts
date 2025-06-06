@@ -178,7 +178,7 @@ export class ExecutionClient {
   private cleanup(executionId: string): void {
     this.executionResolvers.delete(executionId);
     this.executionContext.delete(executionId);
-    this.executionCost.delete(executionId);
+    this.executionTokens.delete(executionId);
     if (this.currentExecutionId === executionId) {
       this.currentExecutionId = null;
     }
@@ -228,8 +228,8 @@ export class ExecutionClient {
           output: message.output,
           output_preview: message.output_preview as string,
           context: message.context as Record<string, unknown>,
-          totalCost: message.total_cost as number,
-          cost: message.cost as number,
+          totalTokens: message.total_tokens as number,
+          tokens: message.tokens as number,
           error: message.error as string,
           timestamp: message.timestamp as string,
           conversationId: message.conversation_id as string,

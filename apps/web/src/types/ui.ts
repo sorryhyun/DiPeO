@@ -32,6 +32,7 @@ export interface NotificationState {
   duration?: number;
 }
 
+
 export interface ConversationFilters {
   searchTerm?: string;
   executionId?: string;

@@ -7,12 +7,12 @@ import { useConsolidatedUIStore, useDiagramStore } from './stores';
 import { useDiagramRunner } from './hooks/useDiagramRunner';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('./components/canvas/DiagramCanvas'));
-const LazyMemoryCanvas = React.lazy(() => import('./components/panels/MemoryCanvas').then(module => ({ default: module.MemoryCanvas })));
-const LazyExecutionView = React.lazy(() => import('./components/layout/ExecutionView'));
+const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
+const LazyMemoryCanvas = React.lazy(() => import('./components/execution/MemoryCanvas').then(module => ({ default: module.MemoryCanvas })));
+const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyWebSocketTest = React.lazy(() => import('./components/panels/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
-const LazyInteractivePromptModal = React.lazy(() => import('./components/panels/InteractivePromptModal'));
+const LazyWebSocketTest = React.lazy(() => import('./components/dev/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
+const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
 
 function App() {
   const { activeCanvas } = useConsolidatedUIStore();

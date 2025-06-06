@@ -76,8 +76,8 @@ export interface ExecutionUpdate {
   output?: unknown;
   output_preview?: string;
   context?: Record<string, unknown>;
-  totalCost?: number;
-  cost?: number;
+  totalTokens?: number;
+  tokens?: number;
   error?: string;
   timestamp?: string;
   conversationId?: string;
@@ -89,12 +89,12 @@ export interface ExecutionResult {
   success?: boolean;
   executionId?: string;
   context?: Record<string, unknown>;
-  totalCost?: number;
+  totalTokens?: number;
   duration?: number;
   finalContext?: Record<string, any>;
   error?: string;
   metadata?: {
-    totalCost?: number;
+    totalTokens?: number;
     executionTime?: number;
   };
 }

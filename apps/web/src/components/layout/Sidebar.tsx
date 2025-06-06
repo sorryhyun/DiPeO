@@ -1,10 +1,10 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState, Suspense } from 'react';
-import { Button } from '@/components/common/Button';
+import { Button } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { NODE_CONFIGS, PersonDefinition } from '@/types';
 import { useFileOperations } from '@/hooks/useFileOperations';
-import { FileUploadButton } from '@/components/common/common/FileUploadButton';
+import { FileUploadButton } from '@/components/ui/buttons';
 import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
 import { 
   useNodes, 
@@ -14,7 +14,7 @@ import {
 } from '@/hooks/useStoreSelectors';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
-const PropertiesPanel = React.lazy(() => import('@/components/panels/UniversalPropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
+const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.PropertiesPanel })));
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onNodeDragStart } = useCanvasInteractions();

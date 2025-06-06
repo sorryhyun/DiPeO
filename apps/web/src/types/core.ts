@@ -30,6 +30,7 @@ export interface Person {
 
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
+  personId: string;
   content: string;
   timestamp?: string;
 }
