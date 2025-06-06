@@ -3,10 +3,7 @@ import { Layers } from 'lucide-react';
 import { Button } from '@/components/common';
 import { useApiKeyStore } from '@/stores/apiKeyStore';
 import { useConsolidatedUIStore } from '@/stores';
-import { useDiagramStore } from '@/stores/diagramStore';
-import { useExecutionStore } from '@/stores';
-import { useFileImport } from '@/hooks/useFileImport';
-import { useExport } from '@/hooks/useExport';
+import { useDiagram } from '@/hooks';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { LazyApiKeysModal } from '@/components/layout/modals/LazyModals';
@@ -23,10 +20,33 @@ const TopBar = () => {
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useConsolidatedUIStore();
-  const { clearDiagram, isReadOnly, setReadOnly } = useDiagramStore();
-  const { currentRunningNode } = useExecutionStore();
-  const { onImportJSON } = useFileImport();
-  const { onSaveToDirectory } = useExport();
+  
+  // Use the unified diagram hook
+  const diagram = useDiagram({
+    enableFileOperations: true,
+    enableInteractions: false,
+    enableMonitoring: true
+  });
+  
+  // Extract what we need from diagram
+  const {
+    clear: clearDiagram,
+    isMonitorMode: isReadOnly,
+    currentRunningNode,
+    importWithDialog,
+    saveJSON: onSaveToDirectory,
+    _ui: { setReadOnly }
+  } = diagram;
+  
+  // Create onChange handler for FileUploadButton
+  const onImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && diagram.importFile) {
+      diagram.importFile(file);
+    }
+  };
+  
+  // Still need diagram runner for some execution features
   const { 
     runStatus, 
     onRunDiagram, 

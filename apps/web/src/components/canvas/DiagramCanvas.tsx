@@ -13,18 +13,12 @@ import {
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import { useCanvasInteractions } from '@/hooks';
-import { ContextMenu } from './ContextMenu';
+import { useDiagram } from '@/hooks';
+import ContextMenu from './ContextMenu';
 import { CustomArrow as CustomArrowBase } from './CustomArrow';
 import { roundPosition } from '@/utils/canvas';
 import nodeTypes from './nodeTypes';
 import { DiagramNode, Arrow } from '@/types';
-import { 
-  useCanvasState, 
-  useSelectedElement, 
-  usePersons 
-} from '@/hooks/useStoreSelectors';
-import { useHistoryActions } from '@/hooks/useHistoryActions';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
@@ -36,7 +30,13 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
-  // Use optimized selectors
+  // Use the unified diagram hook
+  const diagram = useDiagram({
+    enableInteractions: true,
+    enableFileOperations: true
+  });
+  
+  // Destructure commonly used values for cleaner code
   const {
     nodes,
     arrows,
@@ -46,30 +46,17 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     addNode,
     deleteNode,
     deleteArrow,
-  } = useCanvasState();
-  
-  const { handleUndo, handleRedo } = useHistoryActions();
-  
-  const {
     selectedNodeId,
     selectedArrowId,
     selectedPersonId,
-    setSelectedNodeId,
-    setSelectedArrowId,
-  } = useSelectedElement();
-  
-  // Person actions from optimized selector
-  const { addPerson, deletePerson } = usePersons();  
-
-  const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
-  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<DiagramNode, Arrow> | null>(null);
-  
-  const handleInit = useCallback((instance: ReactFlowInstance<DiagramNode, Arrow>) => {
-    setRfInstance(instance);
-  }, []);
-  
-  // Canvas interactions - provides context menu, keyboard shortcuts, and drag/drop
-  const {
+    selectNode,
+    selectArrow,
+    addPerson,
+    deletePerson,
+    undo,
+    redo,
+    save,
+    // Canvas interactions
     contextMenu,
     openContextMenu,
     closeContextMenu,
@@ -81,11 +68,14 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu
-  } = useCanvasInteractions({
-    onSave: () => console.log('Save triggered'),
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-  });
+  } = diagram;
+
+  const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<DiagramNode, Arrow> | null>(null);
+  
+  const handleInit = useCallback((instance: ReactFlowInstance<DiagramNode, Arrow>) => {
+    setRfInstance(instance);
+  }, []);
 
   // Simple nodes array - let BaseNode handle running state via execution store
   const nodesWithExecutionState = nodes;
@@ -117,21 +107,20 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         console.warn('ReactFlow instance not ready');
         return;
       }
-      onNodeDrop(event, projectPosition);
+      onNodeDrop?.(event, projectPosition);
     },
     [onNodeDrop, projectPosition, rfInstance]
   );
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
-    setSelectedNodeId(node.id);
+    selectNode(node.id);
   };
   const onArrowClick = (_: React.MouseEvent, edge: Edge) => {
-    setSelectedArrowId(edge.id);
+    selectArrow(edge.id);
   };
-  const onPaneClick = () => {
-    setSelectedNodeId(null);
-    setSelectedArrowId(null);
-    closeContextMenu();
+  const handlePaneClick = () => {
+    diagram.clearSelection();
+    closeContextMenu?.();
   };
 
   return (
@@ -149,29 +138,26 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               onConnect={onConnect}
               onNodeClick={onNodeClick}
               onEdgeClick={onArrowClick}
-              onPaneClick={onPaneClick}
+              onPaneClick={handlePaneClick}
               onInit={handleInit}
               onNodeContextMenu={(event, node) => {
-                setSelectedNodeId(node.id);
-                setSelectedArrowId(null);
-                onNodeContextMenu(event, node.id);
+                selectNode(node.id);
+                onNodeContextMenu?.(event, node.id);
               }}
               onEdgeContextMenu={(event, edge) => {
-                setSelectedArrowId(edge.id);
-                setSelectedNodeId(null);
-                onEdgeContextMenu(event, edge.id);
+                selectArrow(edge.id);
+                onEdgeContextMenu?.(event, edge.id);
               }}
               onPaneContextMenu={(event) => {
-                setSelectedNodeId(null);
-                setSelectedArrowId(null);
-                onPaneContextMenu(event);
+                diagram.clearSelection();
+                onPaneContextMenu?.(event);
               }}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
               defaultEdgeOptions={{ type: 'customArrow', markerEnd: { type: MarkerType.ArrowClosed } }}
               fitView
-              onDragOver={onDragOver}
+              onDragOver={onDragOver || undefined}
               onDrop={onDrop}
               className="bg-gray-900"
               style={{ width: '100%', height: '100%' }}
@@ -222,21 +208,18 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
                 onEdgeClick={onArrowClick}
-                onPaneClick={onPaneClick}
+                onPaneClick={handlePaneClick}
                 onInit={handleInit}
                 onNodeContextMenu={(event, node) => {
-                  setSelectedNodeId(node.id);
-                  setSelectedArrowId(null);
+                  selectNode(node.id);
                   onNodeContextMenu(event, node.id);
                 }}
                 onEdgeContextMenu={(event, edge) => {
-                  setSelectedArrowId(edge.id);
-                  setSelectedNodeId(null);
+                  selectArrow(edge.id);
                   onEdgeContextMenu(event, edge.id);
                 }}
                 onPaneContextMenu={(event) => {
-                  setSelectedNodeId(null);
-                  setSelectedArrowId(null);
+                  diagram.clearSelection();
                   onPaneContextMenu(event);
                 }}
                 nodeTypes={nodeTypes}
@@ -244,7 +227,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
                 connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
                 defaultEdgeOptions={{ type: 'customArrow', markerEnd: { type: MarkerType.ArrowClosed } }}
                 fitView
-                onDragOver={onDragOver}
+                onDragOver={onDragOver || undefined}
                 onDrop={onDrop}
                 className={executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100"}
                 style={{ width: '100%', height: '100%' }}
@@ -254,7 +237,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               </ReactFlow>
             </div>
             
-            {isContextMenuOpen && contextMenu.position && (
+            {isContextMenuOpen && contextMenu?.position && (
               <Suspense fallback={null}>
                 <ContextMenu
                   position={contextMenu.position}
@@ -266,7 +249,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
                   onAddPerson={handleAddPerson}
                   onDeleteNode={deleteNode}
                   onDeleteArrow={deleteArrow}
-                  onClose={closeContextMenu}
+                  onClose={closeContextMenu || (() => {})}
                   projectPosition={projectPosition}
                 />
               </Suspense>

@@ -13,8 +13,8 @@ import {
   type Node 
 } from '@/types';
 
-// Internal API response for HTTP client
-interface ApiResponse<T> {
+// Internal HTTP response wrapper
+interface HttpResponse<T> {
   data: T;
   status: number;
   headers: Headers;
@@ -46,7 +46,7 @@ class Client {
   private async request<T>(
     endpoint: string,
     options: ApiRequestOptions = {}
-  ): Promise<ApiResponse<T>> {
+  ): Promise<HttpResponse<T>> {
     const {
       params,
       cacheConfig,
@@ -301,19 +301,13 @@ export const saveDiagram = async (
   diagram: Diagram,
   filename: string
 ): Promise<ApiResponseType<{ path: string }>> => {
-  // Convert DiagramState to Diagram if needed
-  const diagramData: Diagram = 'apiKeys' in diagram 
-    ? diagram as Diagram
-    : {
-        ...diagram,
-        apiKeys: []
-      };
-    
-  return apiClient.post<ApiResponseType<{ path: string }>>(
+  const data = await apiClient.post<{ path: string }>(
     API_ENDPOINTS.SAVE_DIAGRAM,
-    { diagram: diagramData, filename },
+    { diagram, filename },
     { errorContext: 'Save Diagram' }
   );
+  
+  return { data, success: true };
 };
 
 export const convertDiagram = async (
@@ -321,11 +315,13 @@ export const convertDiagram = async (
   fromFormat: string,
   toFormat: string
 ): Promise<ApiResponseType<{ content: string; format: string }>> => {
-  return apiClient.post<ApiResponseType<{ content: string; format: string }>>(
+  const data = await apiClient.post<{ content: string; format: string }>(
     API_ENDPOINTS.DIAGRAMS_CONVERT,
     { content, from_format: fromFormat, to_format: toFormat },
     { errorContext: 'Convert Diagram' }
   );
+  
+  return { data, success: true };
 };
 
 export const uploadFile = async (file: File): Promise<ApiResponseType<{ filename: string; content: string }>> => {

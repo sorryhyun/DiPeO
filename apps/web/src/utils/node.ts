@@ -10,8 +10,8 @@ export const createNodeId = (): string => {
 };
 
 export function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
-  // Convert string type to Node type
-  const nodeType = type as Node['type'];
+  // Convert string type to NodeType
+  const nodeType = type as NodeType;
   const config = getNodeConfig(nodeType);
   
   if (!config) {

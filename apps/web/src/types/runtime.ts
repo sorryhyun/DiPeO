@@ -33,10 +33,13 @@ export interface MessageHandler {
 }
 
 export interface WebSocketClientOptions {
+  url?: string;
   debug?: boolean;
   autoReconnect?: boolean;
   maxReconnectAttempts?: number;
   reconnectInterval?: number;
+  maxReconnectInterval?: number;
+  reconnectDecay?: number;
 }
 
 export interface NodeExecutionEvent {

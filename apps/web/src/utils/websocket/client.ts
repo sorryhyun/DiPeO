@@ -161,7 +161,7 @@ export class Client extends EventTarget {
   on(type: string, handler: ConnectionHandler | MessageHandler): this {
     if (['connected', 'disconnected', 'error', 'message', 'reconnectFailed'].includes(type)) {
       // Use addEventListener for connection events
-      this.addEventListener(type, handler as EventListener);
+      this.addEventListener(type, handler as any);
     } else {
       // Use message handlers for message types
       if (!this.messageHandlers.has(type)) {
@@ -180,7 +180,7 @@ export class Client extends EventTarget {
   off(type: string, handler: ConnectionHandler | MessageHandler): this {
     if (['connected', 'disconnected', 'error', 'message', 'reconnectFailed'].includes(type)) {
       // Use removeEventListener for connection events
-      this.removeEventListener(type, handler as EventListener);
+      this.removeEventListener(type, handler as any);
     } else {
       // Use message handlers for message types
       const handlers = this.messageHandlers.get(type);
