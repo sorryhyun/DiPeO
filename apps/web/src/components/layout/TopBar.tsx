@@ -4,14 +4,12 @@ import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useApiKeys, useAddApiKey, useLoadApiKeys, useUIState, useSetReadOnly } from '@/hooks/useStoreSelectors';
 import { useDiagram } from '@/hooks';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
-import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse } from '@/utils/types';
 
 
 const TopBar = () => {
-  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
@@ -89,16 +87,11 @@ const TopBar = () => {
             });
           }
           
-          if (backendKeys.length === 0 && apiKeys.length === 0) {
-            setIsApiModalOpen(true);
-          }
+          // API keys modal is now in the sidebar
         }
       } catch (error) {
         console.error('[Check Backend API Keys]', error);
         toast.error(`Check Backend API Keys: ${(error as Error).message}`);
-        if (apiKeys.length === 0) {
-          setIsApiModalOpen(true);
-        }
       } finally {
         setHasCheckedBackend(true);
       }
@@ -144,16 +137,6 @@ const TopBar = () => {
             title="Save diagram to server (diagrams folder)"
           >
             💾 Save
-          </Button>
-          
-          <div className="border-l border-gray-300 h-6 mx-2" />
-          
-          <Button 
-            variant="outline" 
-            className="bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors"
-            onClick={() => setIsApiModalOpen(true)}
-          >
-            🔑 API Keys
           </Button>
         </div>
 
@@ -229,10 +212,14 @@ const TopBar = () => {
                 toggleCanvas();
                 // Exit read-only mode when leaving execution mode
                 setReadOnly?.(false);
+                // Also exit monitor mode when leaving execution mode
+                setIsMonitorMode(false);
               } else {
                 setActiveCanvas('execution');
                 // Set the diagram to read-only when entering execution mode
                 setReadOnly?.(true);
+                // Also activate monitor mode when entering execution mode
+                setIsMonitorMode(true);
               }
             }}
             title={activeCanvas === 'execution' ? 'Back to Diagram Canvas' : 'Enter Execution Mode'}
@@ -284,7 +271,6 @@ const TopBar = () => {
         </div>
       </div>
 
-      <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
     </header>
   );
 };

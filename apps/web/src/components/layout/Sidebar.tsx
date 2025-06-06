@@ -11,6 +11,7 @@ import {
   usePersons,
   useSelectedElement 
 } from '@/hooks/useStoreSelectors';
+import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
@@ -54,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
   const [conversationExpanded, setConversationExpanded] = useState(true);
   const [memoryExpanded, setMemoryExpanded] = useState(true);
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId);
@@ -130,6 +132,17 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* API Keys Button */}
+      <div className="mb-4 px-2">
+        <Button 
+          variant="outline" 
+          className="w-full bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200 py-2"
+          onClick={() => setIsApiModalOpen(true)}
+        >
+          🔑 API Keys
+        </Button>
       </div>
 
       {/* Persons Section */}
@@ -229,6 +242,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
           </div>
         )}
       </div>
+      
+      <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
     </aside>
   );
 };

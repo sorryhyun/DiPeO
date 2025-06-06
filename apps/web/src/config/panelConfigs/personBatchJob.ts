@@ -8,20 +8,14 @@ export const personBatchJobPanelConfig: PanelConfig<Record<string, any>> = {
       labelPlaceholder: 'Person Batch Job'
     },
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'text',
-          name: 'batchSize',
-          label: 'Batch Size',
-          placeholder: '10',
-          className: 'w-24'
-        },
-        {
-          type: 'maxIteration',
-          name: 'maxIteration'
-        }
-      ]
+      type: 'text',
+      name: 'batchSize',
+      label: 'Batch Size',
+      placeholder: '10'
+    },
+    {
+      type: 'maxIteration',
+      name: 'maxIteration'
     },
     {
       type: 'checkbox',
@@ -29,19 +23,13 @@ export const personBatchJobPanelConfig: PanelConfig<Record<string, any>> = {
       label: 'Enable Parallel Processing'
     },
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'select',
-          name: 'aggregationMethod',
-          label: 'Aggregation',
-          options: [
-            { value: 'concatenate', label: 'Concatenate' },
-            { value: 'summarize', label: 'Summarize' },
-            { value: 'custom', label: 'Custom' }
-          ],
-          className: 'flex-1'
-        }
+      type: 'select',
+      name: 'aggregationMethod',
+      label: 'Aggregation',
+      options: [
+        { value: 'concatenate', label: 'Concatenate' },
+        { value: 'summarize', label: 'Summarize' },
+        { value: 'custom', label: 'Custom' }
       ]
     }
   ],

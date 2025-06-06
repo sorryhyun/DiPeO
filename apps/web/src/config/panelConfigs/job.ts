@@ -4,38 +4,25 @@ export const jobPanelConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'text',
-          name: 'label',
-          label: 'Label',
-          placeholder: 'Job',
-          className: 'flex-1'
-        },
-        {
-          type: 'select',
-          name: 'subType',
-          label: 'Type',
-          options: [
-            { value: 'code', label: 'Code Execution' },
-            { value: 'api_tool', label: 'API Tool' },
-            { value: 'diagram_link', label: 'Diagram Link' }
-          ],
-          className: 'flex-1'
-        }
+      type: 'text',
+      name: 'label',
+      label: 'Label',
+      placeholder: 'Job'
+    },
+    {
+      type: 'select',
+      name: 'subType',
+      label: 'Type',
+      options: [
+        { value: 'code', label: 'Code Execution' },
+        { value: 'api_tool', label: 'API Tool' },
+        { value: 'diagram_link', label: 'Diagram Link' }
       ]
     },
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'maxIteration',
-          name: 'maxIteration',
-          label: 'Max Iter',
-          className: 'flex-1'
-        }
-      ]
+      type: 'maxIteration',
+      name: 'maxIteration',
+      label: 'Max Iter'
     }
   ],
   rightColumn: [

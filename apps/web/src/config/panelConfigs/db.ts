@@ -4,25 +4,18 @@ export const dbPanelConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'text',
-          name: 'label',
-          label: 'Label',
-          placeholder: 'Database',
-          className: 'flex-1'
-        },
-        {
-          type: 'select',
-          name: 'subType',
-          label: 'Source Type',
-          options: [
-            { value: 'fixed_prompt', label: 'Fixed Prompt' },
-            { value: 'file', label: 'File' }
-          ],
-          className: 'flex-1'
-        }
+      type: 'text',
+      name: 'label',
+      label: 'Label',
+      placeholder: 'Database'
+    },
+    {
+      type: 'select',
+      name: 'subType',
+      label: 'Source Type',
+      options: [
+        { value: 'fixed_prompt', label: 'Fixed Prompt' },
+        { value: 'file', label: 'File' }
       ]
     }
   ],

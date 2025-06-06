@@ -10,30 +10,23 @@ export const personPanelConfig: PanelConfig<Record<string, any>> = {
       placeholder: 'Person Name'
     },
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'select',
-          name: 'service',
-          label: 'Service',
-          options: [
-            { value: 'openai', label: 'OpenAI' },
-            { value: 'claude', label: 'Claude' },
-            { value: 'gemini', label: 'Gemini' },
-            { value: 'grok', label: 'Grok' },
-            { value: 'custom', label: 'Custom' }
-          ],
-          className: 'flex-1'
-        },
-        {
-          type: 'select',
-          name: 'apiKeyId',
-          label: 'API Key',
-          options: [], // Dynamic options
-          placeholder: 'Select API Key',
-          className: 'flex-1'
-        }
+      type: 'select',
+      name: 'service',
+      label: 'Service',
+      options: [
+        { value: 'openai', label: 'OpenAI' },
+        { value: 'claude', label: 'Claude' },
+        { value: 'gemini', label: 'Gemini' },
+        { value: 'grok', label: 'Grok' },
+        { value: 'custom', label: 'Custom' }
       ]
+    },
+    {
+      type: 'select',
+      name: 'apiKeyId',
+      label: 'API Key',
+      options: [], // Dynamic options
+      placeholder: 'Select API Key'
     },
     {
       type: 'select',

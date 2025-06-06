@@ -4,24 +4,18 @@ export const conditionPanelConfig: PanelConfig<Record<string, any>> = {
   layout: 'single',
   fields: [
     {
-      type: 'row',
-      className: 'grid grid-cols-2 gap-2',
-      fields: [
-        {
-          type: 'text',
-          name: 'label',
-          label: 'Block Label',
-          placeholder: 'Condition'
-        },
-        {
-          type: 'select',
-          name: 'conditionType',
-          label: 'Condition Type',
-          options: [
-            { value: 'expression', label: 'Expression' },
-            { value: 'detect_max_iterations', label: 'Max Iterations' }
-          ]
-        }
+      type: 'text',
+      name: 'label',
+      label: 'Block Label',
+      placeholder: 'Condition'
+    },
+    {
+      type: 'select',
+      name: 'conditionType',
+      label: 'Condition Type',
+      options: [
+        { value: 'expression', label: 'Expression' },
+        { value: 'detect_max_iterations', label: 'Max Iterations' }
       ]
     },
     {

@@ -15,35 +15,28 @@ export const endpointPanelConfig: PanelConfig<Record<string, any>> = {
       label: 'Save output to file'
     },
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'text',
-          name: 'filePath',
-          label: 'File Path',
-          placeholder: 'results/output.txt',
-          conditional: {
-            field: 'saveToFile',
-            values: [true]
-          },
-          className: 'flex-1'
-        },
-        {
-          type: 'select',
-          name: 'fileFormat',
-          label: 'File Format',
-          options: [
-            { value: 'text', label: 'Plain Text' },
-            { value: 'json', label: 'JSON' },
-            { value: 'csv', label: 'CSV' }
-          ],
-          conditional: {
-            field: 'saveToFile',
-            values: [true]
-          },
-          className: 'flex-1'
-        }
-      ]
+      type: 'text',
+      name: 'filePath',
+      label: 'File Path',
+      placeholder: 'results/output.txt',
+      conditional: {
+        field: 'saveToFile',
+        values: [true]
+      }
+    },
+    {
+      type: 'select',
+      name: 'fileFormat',
+      label: 'File Format',
+      options: [
+        { value: 'text', label: 'Plain Text' },
+        { value: 'json', label: 'JSON' },
+        { value: 'csv', label: 'CSV' }
+      ],
+      conditional: {
+        field: 'saveToFile',
+        values: [true]
+      }
     }
   ],
   rightColumn: []

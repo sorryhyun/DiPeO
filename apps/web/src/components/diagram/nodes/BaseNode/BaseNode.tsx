@@ -201,7 +201,7 @@ export function BaseNode({
         {/* Header */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{config.icon}</span>
-          <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>{config.label}</span>
+          <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>{data.name || config.label}</span>
         </div>
         
         {/* Node data display */}

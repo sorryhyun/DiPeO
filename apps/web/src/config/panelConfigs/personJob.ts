@@ -8,25 +8,18 @@ export const personJobPanelConfig: PanelConfig<Record<string, any>> = {
       labelPlaceholder: 'Person Job'
     },
     {
-      type: 'row',
-      fields: [
-        {
-          type: 'select',
-          name: 'contextCleaningRule',
-          label: 'Forget',
-          options: [
-            { value: 'upon_request', label: 'Upon This Request' },
-            { value: 'no_forget', label: 'Do Not Forget' },
-            { value: 'on_every_turn', label: 'On Every Turn' }
-          ],
-          className: 'flex-1'
-        },
-        {
-          type: 'maxIteration',
-          name: 'maxIteration',
-          className: 'flex-1'
-        }
+      type: 'select',
+      name: 'contextCleaningRule',
+      label: 'Forget',
+      options: [
+        { value: 'upon_request', label: 'Upon This Request' },
+        { value: 'no_forget', label: 'Do Not Forget' },
+        { value: 'on_every_turn', label: 'On Every Turn' }
       ]
+    },
+    {
+      type: 'maxIteration',
+      name: 'maxIteration'
     },
     {
       type: 'checkbox',
