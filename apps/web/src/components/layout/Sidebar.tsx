@@ -24,11 +24,11 @@ export const DraggableBlock = ({ type, label }: { type: string; label: string })
 
   return (
     <div
-      className="p-3 border rounded-lg bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 cursor-grab text-center text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:border-blue-300 group"
+      className="p-2 border rounded-lg bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 cursor-grab text-center text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:border-blue-300 group"
       onDragStart={(event) => onNodeDragStart(event, type)}
       draggable
     >
-      <div className="text-lg group-hover:scale-110 transition-transform duration-200">{icon}</div>
+      <div className="text-base group-hover:scale-110 transition-transform duration-200">{icon}</div>
       <div className="text-sm font-medium text-gray-700 leading-tight">{text}</div>
     </div>
   );
@@ -116,13 +116,13 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
           <div className="mt-3">
             <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="start" label={`${NODE_CONFIGS.start?.icon || '🚀'} ${NODE_CONFIGS.start?.label || 'Start'} Block`} />
-              <DraggableBlock type="person_job" label={`${NODE_CONFIGS.person_job?.icon || '🤖'} ${NODE_CONFIGS.person_job?.label || 'Person Job'} Block`} />
-              <DraggableBlock type="person_batch_job" label={`${NODE_CONFIGS.person_batch_job?.icon || '🤖📦'} ${NODE_CONFIGS.person_batch_job?.label || 'Person Batch Job'} Block`} />
-              <DraggableBlock type="condition" label={`${NODE_CONFIGS.condition?.icon || '🔀'} ${NODE_CONFIGS.condition?.label || 'Condition'} Block`} />
-              <DraggableBlock type="job" label={`${NODE_CONFIGS.job?.icon || '⚙️'} ${NODE_CONFIGS.job?.label || 'Job'} Block`} />
-              <DraggableBlock type="user_response" label={`${NODE_CONFIGS.user_response?.icon || '💬'} ${NODE_CONFIGS.user_response?.label || 'User Response'} Block`} />
-              <DraggableBlock type="endpoint" label={`${NODE_CONFIGS.endpoint?.icon || '🎯'} ${NODE_CONFIGS.endpoint?.label || 'Endpoint'} Block`} />
+              <DraggableBlock type="start" label={`${NODE_CONFIGS.start?.icon || '🚀'} ${NODE_CONFIGS.start?.label || 'Start'}`} />
+              <DraggableBlock type="person_job" label={`${NODE_CONFIGS.person_job?.icon || '🤖'} ${NODE_CONFIGS.person_job?.label || 'Person Job'}`} />
+              <DraggableBlock type="person_batch_job" label={`${NODE_CONFIGS.person_batch_job?.icon || '🤖📦'} ${NODE_CONFIGS.person_batch_job?.label || 'Person Batch Job'}`} />
+              <DraggableBlock type="condition" label={`${NODE_CONFIGS.condition?.icon || '🔀'} ${NODE_CONFIGS.condition?.label || 'Condition'}`} />
+              <DraggableBlock type="job" label={`${NODE_CONFIGS.job?.icon || '⚙️'} ${NODE_CONFIGS.job?.label || 'Job'}`} />
+              <DraggableBlock type="user_response" label={`${NODE_CONFIGS.user_response?.icon || '💬'} ${NODE_CONFIGS.user_response?.label || 'User Response'}`} />
+              <DraggableBlock type="endpoint" label={`${NODE_CONFIGS.endpoint?.icon || '🎯'} ${NODE_CONFIGS.endpoint?.label || 'Endpoint'}`} />
             </div>
             <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">

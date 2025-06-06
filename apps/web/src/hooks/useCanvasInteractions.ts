@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
-
+import { useReactFlow } from '@xyflow/react';
 import { Node } from '@/types/core';
 import {useUISelectors, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
@@ -47,6 +47,9 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     clearSelection 
   } = useUISelectors();
   const { undo, redo, canUndo, canRedo } = useHistorySelectors();
+  
+  // Get React Flow instance for zoom level
+  const { getViewport } = useReactFlow();
 
   // Local state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -120,11 +123,12 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
     
-    // Calculate offset from element center
+    // Calculate offset from element center and scale by current zoom
     const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const { zoom } = getViewport();
     dragOffset.current = {
-      x: event.clientX - (rect.left + rect.width / 2),
-      y: event.clientY - (rect.top + rect.height / 2)
+      x: (event.clientX - (rect.left + rect.width / 2)) / zoom,
+      y: (event.clientY - (rect.top + rect.height / 2)) / zoom
     };
 
     setDragState({
@@ -132,7 +136,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
       dragType: 'node',
       dragData: nodeType
     });
-  }, [isMonitorMode]);
+  }, [isMonitorMode, getViewport]);
 
   // Handle drag start for persons from sidebar
   const onPersonDragStart = useCallback((event: DragEvent, personId: string) => {
@@ -165,8 +169,12 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     const type = event.dataTransfer.getData('application/reactflow');
     if (!type) return;
     
-    // Get the drop position - this should be where the cursor is
-    const dropPosition = projectPosition(event.clientX, event.clientY);
+    // Get the drop position adjusted by the drag offset (scaled by current zoom)
+    const { zoom } = getViewport();
+    const dropPosition = projectPosition(
+      event.clientX - dragOffset.current.x * zoom, 
+      event.clientY - dragOffset.current.y * zoom
+    );
     
     // Add the node at the drop position
     addNode(type as Node['type'], dropPosition);
@@ -175,7 +183,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
       isDragging: false,
       dragType: null,
     });
-  }, [addNode, isMonitorMode]);
+  }, [addNode, isMonitorMode, getViewport]);
 
   // Handle person drop on nodes (for PersonJob nodes)
   const onPersonDrop = useCallback((

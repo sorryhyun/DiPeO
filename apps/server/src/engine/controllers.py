@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class IterationStats:
-    """Statistics about loop iterations"""
+    """Statistics about loop iterations."""
     total_iterations: Dict[str, int] = field(default_factory=dict)
     max_iterations_map: Dict[str, int] = field(default_factory=dict)
     nodes_at_max: Set[str] = field(default_factory=set)
@@ -18,7 +18,7 @@ class IterationStats:
 
 
 class SkipReason(Enum):
-    """Enumeration of skip reasons"""
+    """Enumeration of skip reasons."""
     MAX_ITERATIONS_REACHED = "max_iterations_reached"
     CONDITION_NOT_MET = "condition_not_met"
     DEPENDENCY_SKIPPED = "dependency_skipped"
@@ -32,596 +32,478 @@ class LoopController:
     Manages loop execution state, tracking iterations for nodes and
     determining when loops should terminate.
     """
-    
+
     def __init__(self, max_iterations: int = 100):
         """
         Initialize loop controller.
-        
+
         Args:
-            max_iterations: Global maximum iteration limit for safety
+            max_iterations: Global maximum iteration limit for safety.
         """
+        # iteration_counts defaults to 0 for any new node
         self.iteration_counts: Dict[str, int] = {}
         self.max_iterations = max_iterations
         self.loop_nodes: Set[str] = set()
         self.node_max_iterations: Dict[str, int] = {}
         self.logger = logger
-    
+
     def register_loop_node(self, node_id: str, max_iterations: Optional[int] = None) -> None:
         """
         Register a node as part of a loop with optional max iterations.
-        
+
         Args:
-            node_id: The node ID to register
-            max_iterations: Node-specific max iterations (overrides state)
+            node_id: The node ID to register.
+            max_iterations: Node-specific max iterations (overrides global limit).
         """
         self.loop_nodes.add(node_id)
         if max_iterations is not None:
             self.node_max_iterations[node_id] = max_iterations
-        
-        # Initialize iteration count if not exists
-        if node_id not in self.iteration_counts:
-            self.iteration_counts[node_id] = 0
-    
+
+        # Ensure there's an entry (defaults to 0)
+        self.iteration_counts.setdefault(node_id, 0)
+
+    def _effective_max(self, node_id: str) -> int:
+        """
+        Return the "effective" max-iteration count for a node:
+        either the per-node override (if present), or the global max.
+        """
+        return self.node_max_iterations.get(node_id, self.max_iterations)
+
     def should_continue_loop(self, node_id: str) -> bool:
         """
         Check if a node should continue iterating.
-        
+
         Args:
-            node_id: The node to check
-            
+            node_id: The node to check.
+
         Returns:
-            True if the node should continue, False if it should stop
+            True if the node should continue, False if it should stop.
         """
+        # If this node never registered as a loop node, we assume "always continue"
         if node_id not in self.loop_nodes:
-            # Not a loop node, always continue
             return True
-        
-        current_count = self.iteration_counts.get(node_id, 0)
-        
-        # Check node-specific limit first
-        if node_id in self.node_max_iterations:
-            max_iter = self.node_max_iterations[node_id]
-            if current_count >= max_iter:
-                self.logger.debug(f"Node {node_id} reached max iterations: {max_iter}")
-                return False
-        
-        # Check state limit
-        if current_count >= self.max_iterations:
-            self.logger.warning(f"Node {node_id} reached state max iterations: {self.max_iterations}")
+
+        current = self.iteration_counts.get(node_id, 0)
+        limit = self._effective_max(node_id)
+
+        if current >= limit:
+            # Distinguish logging based on whether it was node-specific vs. global
+            if node_id in self.node_max_iterations:
+                self.logger.debug(f"Node {node_id} reached its own max iterations: {limit}")
+            else:
+                self.logger.warning(f"Node {node_id} reached global max iterations: {limit}")
             return False
-        
+
         return True
-    
+
     def increment_iteration(self, node_id: str) -> int:
         """
         Increment iteration count for a node.
-        
+
         Args:
-            node_id: The node to increment
-            
+            node_id: The node to increment.
+
         Returns:
-            The new iteration count
+            The new iteration count.
         """
-        if node_id not in self.iteration_counts:
-            self.iteration_counts[node_id] = 0
-        
-        self.iteration_counts[node_id] += 1
+        self.iteration_counts[node_id] = self.iteration_counts.get(node_id, 0) + 1
         return self.iteration_counts[node_id]
-    
+
     def reset_iterations(self, node_id: str) -> None:
         """
         Reset iteration count for a node.
-        
+
         Args:
-            node_id: The node to reset
+            node_id: The node to reset.
         """
         self.iteration_counts[node_id] = 0
         self.logger.debug(f"Reset iterations for node {node_id}")
-    
+
     def get_iteration_count(self, node_id: str) -> int:
         """
         Get current iteration count for a node (0-based).
-        
+
         Args:
-            node_id: The node to check
-            
+            node_id: The node to check.
+
         Returns:
-            Current iteration count (0 if never executed)
+            Current iteration count (0 if never executed).
         """
         return self.iteration_counts.get(node_id, 0)
-    
+
     def get_remaining_iterations(self, node_id: str) -> Optional[int]:
         """
         Calculate remaining iterations for a node.
-        
+
         Args:
-            node_id: The node to check
-            
+            node_id: The node to check.
+
         Returns:
-            Number of remaining iterations, or None if unlimited
+            Number of remaining iterations, or 0 if already at/beyond limit.
         """
         current = self.get_iteration_count(node_id)
-        
-        # Check node-specific limit
-        if node_id in self.node_max_iterations:
-            max_iter = self.node_max_iterations[node_id]
-            return max(0, max_iter - current)
-        
-        # Check if approaching state limit
-        if current < self.max_iterations:
-            return self.max_iterations - current
-        
-        return 0
-    
+        limit = self._effective_max(node_id)
+        return max(0, limit - current)
+
     def has_any_node_reached_max_iterations(self) -> bool:
         """
-        Check if ANY node has reached its max iteration limit.
-        
+        Check if ANY loop-registered node has reached its max iteration limit.
+
         Returns:
-            True if any node has reached its limit
+            True if any node is at or beyond its limit.
         """
-        for node_id in self.loop_nodes:
-            current = self.iteration_counts.get(node_id, 0)
-            
-            # Check node-specific limit
-            if node_id in self.node_max_iterations:
-                if current >= self.node_max_iterations[node_id]:
-                    return True
-            
-            # Check state limit
-            if current >= self.max_iterations:
-                return True
-        
-        return False
-    
+        # Equivalent to: is there at least one node_id such that current >= effective_max
+        return any(
+            self.iteration_counts.get(nid, 0) >= self._effective_max(nid)
+            for nid in self.loop_nodes
+        )
+
     def have_all_nodes_reached_max_iterations(self) -> bool:
         """
-        Check if ALL loop nodes have reached their max iteration limits.
-        This is used by condition nodes to determine loop exit.
-        
+        Check if ALL loop-registered nodes have reached their max iteration limits.
+        (Used by a condition node to decide loop termination.)
+
         Returns:
-            True if all loop nodes have reached their limits
+            True if every loop node is at or beyond its limit, False otherwise.
+            If there are no loop nodes, returns False.
         """
         if not self.loop_nodes:
             return False
-        
-        for node_id in self.loop_nodes:
-            current = self.iteration_counts.get(node_id, 0)
-            
-            # Check node-specific limit
-            if node_id in self.node_max_iterations:
-                if current < self.node_max_iterations[node_id]:
-                    return False
-            else:
-                # If no specific limit, use state limit
-                if current < self.max_iterations:
-                    return False
-        
-        return True
-    
+
+        return all(
+            self.iteration_counts.get(nid, 0) >= self._effective_max(nid)
+            for nid in self.loop_nodes
+        )
+
     def get_iteration_stats(self) -> IterationStats:
         """
         Get comprehensive iteration statistics.
-        
+
         Returns:
-            IterationStats object with detailed information
+            IterationStats object with total counts, effective maxes, and which nodes are capped.
         """
         stats = IterationStats()
-        
-        # Collect iteration counts and limits
-        for node_id in self.loop_nodes:
-            current = self.iteration_counts.get(node_id, 0)
-            stats.total_iterations[node_id] = current
-            
-            # Determine effective max for this node
-            if node_id in self.node_max_iterations:
-                max_iter = self.node_max_iterations[node_id]
-            else:
-                max_iter = self.max_iterations
-            
-            stats.max_iterations_map[node_id] = max_iter
-            
-            # Check if at max
-            if current >= max_iter:
-                stats.nodes_at_max.add(node_id)
-        
-        # Check if all nodes at max
-        stats.all_nodes_at_max = (
-            len(stats.nodes_at_max) == len(self.loop_nodes) 
-            and len(self.loop_nodes) > 0
+
+        for nid in self.loop_nodes:
+            curr = self.iteration_counts.get(nid, 0)
+            eff_max = self._effective_max(nid)
+
+            stats.total_iterations[nid] = curr
+            stats.max_iterations_map[nid] = eff_max
+
+            if curr >= eff_max:
+                stats.nodes_at_max.add(nid)
+
+        stats.all_nodes_at_max = bool(
+            self.loop_nodes and len(stats.nodes_at_max) == len(self.loop_nodes)
         )
-        
         return stats
-    
+
     def mark_iteration_complete(self, node_id: str) -> Tuple[bool, int]:
         """
-        Mark an iteration as complete for a node.
-        Combines increment and continuation check.
-        
+        Mark an iteration as complete for a node (increment count, then decide continuation).
+
         Args:
-            node_id: The node that completed an iteration
-            
+            node_id: The node that completed an iteration.
+
         Returns:
-            Tuple of (should_continue, new_iteration_count)
+            (should_continue: bool, new_iteration_count: int)
         """
         new_count = self.increment_iteration(node_id)
-        should_continue = self.should_continue_loop(node_id)
-        
-        return should_continue, new_count
-    
+        return (new_count < self._effective_max(node_id), new_count)
+
     def create_sub_controller(self, node_ids: List[str]) -> 'LoopController':
         """
-        Create a new loop controller for a subset of nodes.
-        Useful for nested loops or sub-workflows.
-        
+        Create a new LoopController for a subset of nodes (e.g., nested loops).
+
         Args:
-            node_ids: List of node IDs for the sub-controller
-            
+            node_ids: List of node IDs to carry over.
+
         Returns:
-            New LoopController instance
+            A newly instantiated LoopController sharing the same global max.
         """
-        sub_controller = LoopController(max_iterations=self.max_iterations)
-        
-        # Copy relevant node configurations
-        for node_id in node_ids:
-            if node_id in self.loop_nodes:
-                max_iter = self.node_max_iterations.get(node_id)
-                sub_controller.register_loop_node(node_id, max_iter)
-        
-        return sub_controller
-    
-    def update_from_node_properties(self, node: Dict) -> None:
+        sub = LoopController(max_iterations=self.max_iterations)
+        for nid in node_ids:
+            if nid in self.loop_nodes:
+                # Copy over per-node override if it exists
+                sub.register_loop_node(nid, self.node_max_iterations.get(nid))
+        return sub
+
+    def update_from_node_properties(self, node: Dict[str, Any]) -> None:
         """
-        Update loop configuration from node properties.
-        Specifically handles PersonJob nodes with maxIteration.
-        
+        Update loop configuration from a node's properties (e.g., PersonJob with maxIteration).
+
         Args:
-            node: Node dictionary with properties
+            node: Node dictionary containing keys "id", "type", and optional "properties".
         """
         node_id = node.get("id")
-        node_type = node.get("type")
-        node_properties = node.get("properties", {})
-        
-        # Check for maxIteration in node properties
-        if "maxIteration" in node_properties:
-            max_iter = node_properties["maxIteration"]
-            if isinstance(max_iter, int) and max_iter > 0:
-                self.register_loop_node(node_id, max_iter)
-                self.logger.debug(f"Registered loop node {node_id} with maxIteration={max_iter}")
-        
-        # PersonJob and PersonBatchJob nodes can be loop nodes
-        elif node_type in ["personjob", "personbatchjob"]:
-            # Check if they have loop-related properties
-            if node_properties.get("firstOnlyPrompt") or node_properties.get("iterationPrompt"):
+        props = node.get("properties", {})
+        # If node explicitly supplies a maxIteration integer > 0, register with that override
+        max_iter = props.get("maxIteration")
+        if isinstance(max_iter, int) and max_iter > 0:
+            self.register_loop_node(node_id, max_iter)
+            self.logger.debug(f"Registered loop node {node_id} with maxIteration={max_iter}")
+            return
+
+        # Otherwise, if node-type indicates a PersonJob or PersonBatchJob and it has loop indicators, register with no override
+        node_type = (node.get("type") or "").lower()
+        if node_type in {"personjob", "personbatchjob"}:
+            if props.get("firstOnlyPrompt") or props.get("iterationPrompt"):
                 self.register_loop_node(node_id)
                 self.logger.debug(f"Registered {node_type} node {node_id} as loop node")
 
 
 class SkipManager:
     """
-    Centralizes skip decision logic, tracking which nodes should be skipped
-    and why during execution.
+    Centralizes skip‐decision logic, tracking which nodes should be skipped and why.
     """
-    
+
     def __init__(self):
         self.skip_reasons: Dict[str, str] = {}
         self.skipped_nodes: Set[str] = set()
         self.logger = logger
-    
+
     def should_skip(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
         """
-        Main skip decision based on various factors.
-        
+        Main skip decision based on multiple factors:
+        1) Already marked skipped
+        2) Exceeded iteration count (PersonJob-type)
+        3) skipCondition property
+        4) Dependencies all skipped
+        5) firstOnlyPrompt already consumed
+
         Args:
-            node: The node to evaluate
-            context: Current execution context
-            
+            node: The node to evaluate (must have "id", "type", "properties").
+            context: Current execution context (must expose node_execution_counts, incoming_arrows, skipped_nodes, first_only_consumed, node_outputs).
+
         Returns:
-            True if the node should be skipped
+            True if the node should be skipped, False otherwise. If skipped, records a reason.
         """
         node_id = node["id"]
-        
-        # Check if already skipped
         if node_id in self.skipped_nodes:
             return True
-        
-        # Check iteration-based skip
-        if self._should_skip_due_to_iterations(node, context):
+
+        # 1) Iteration-based skip (only PersonJob-like nodes)
+        if self._skip_due_to_iterations(node, context):
             self.mark_skipped(node_id, SkipReason.MAX_ITERATIONS_REACHED.value)
             return True
-        
-        # Check condition-based skip
-        skip_due_to_condition, reason = self._should_skip_based_on_condition(node, context)
-        if skip_due_to_condition:
+
+        # 2) Condition-based skip (skipCondition property)
+        skip_cond, reason = self._skip_based_on_condition(node, context)
+        if skip_cond:
             self.mark_skipped(node_id, reason)
             return True
-        
-        # Check dependency-based skip
-        if self._should_skip_due_to_dependencies(node, context):
+
+        # 3) Dependency-based skip (all required deps were skipped)
+        if self._skip_due_to_dependencies(node, context):
             self.mark_skipped(node_id, SkipReason.DEPENDENCY_SKIPPED.value)
             return True
-        
-        # Check first-only consumption for PersonJob nodes
-        if self._should_skip_due_to_first_only(node, context):
+
+        # 4) firstOnlyPrompt‐based skip (only PersonJob-type)
+        if self._skip_due_to_first_only(node, context):
             self.mark_skipped(node_id, SkipReason.FIRST_ONLY_CONSUMED.value)
             return True
-        
+
         return False
-    
-    def _should_skip_due_to_iterations(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
-        """Check if node should skip due to max iterations"""
-        node_id = node["id"]
-        node_properties = node.get("properties", {})
-        node_type = node_properties.get("type", node.get("type", "")).lower()
-        
-        # Only check iteration count for person job nodes
-        if node_type in ["personjob", "person_job", "personbatchjob", "person_batch_job", "personjobnode", "personbatchjobnode"]:
-            # Check if node has maxIteration property
-            max_iterations = node_properties.get("maxIteration")
-            if max_iterations is not None and isinstance(max_iterations, int):
-                current_count = context.node_execution_counts.get(node_id, 0)
-                if current_count >= max_iterations:
-                    self.logger.debug(f"Node {node_id} reached max iterations: {max_iterations}")
-                    return True
-        
-        return False
-    
-    def _should_skip_due_to_dependencies(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
-        """Check if node should skip because dependencies were skipped"""
-        node_id = node["id"]
-        
-        # Get all dependencies
-        incoming_arrows = context.incoming_arrows.get(node_id, [])
-        
-        # Check if all non-optional dependencies were skipped
-        required_deps_skipped = True
-        has_required_deps = False
-        
-        for arrow in incoming_arrows:
-            source_id = arrow["source"]
-            
-            # Skip if source doesn't exist
-            if source_id not in context.nodes_by_id:
-                continue
-            
-            # Check if this is an optional dependency (first-only)
-            is_optional = self._is_optional_dependency(arrow, node)
-            
-            if not is_optional:
-                has_required_deps = True
-                if source_id not in context.skipped_nodes:
-                    required_deps_skipped = False
-                    break
-        
-        # Skip only if we have required dependencies and all were skipped
-        return has_required_deps and required_deps_skipped
-    
-    def _should_skip_due_to_first_only(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
-        """Check if PersonJob should skip because first-only was already consumed"""
-        properties = node.get("properties", {})
-        node_type = properties.get("type", node["type"])
-        if node_type not in ["person_job", "personjob", "person_batch_job", "personbatchjob"]:
-            return False
-        
-        node_id = node["id"]
-        properties = node.get("properties", {})
-        
-        # Check if node has first-only configuration
-        if properties.get("firstOnlyPrompt") and context.first_only_consumed.get(node_id, False):
-            # Already consumed first-only and no default prompt
-            if not properties.get("defaultPrompt"):
-                return True
-        
-        return False
-    
-    def _is_optional_dependency(self, arrow: Dict[str, Any], target_node: Dict[str, Any]) -> bool:
-        """Check if an arrow represents an optional (first-only) dependency"""
-        properties = target_node.get("properties", {})
-        node_type = properties.get("type", target_node["type"])
-        if node_type in ["person_job", "personjob", "person_batch_job", "personbatchjob"]:
-            first_only_inputs = properties.get("firstOnlyInputs", [])
-            arrow_label = arrow.get("label", "")
-            return arrow_label in first_only_inputs
-        return False
-    
-    def evaluateCondition(self, expression: str, context: Dict[str, Any]) -> bool:
+
+    def _normalize_node_type(self, node: Dict[str, Any]) -> str:
         """
-        Evaluate a condition expression with context.
-        Supports simple comparisons and logical operators.
-        
-        Args:
-            expression: The condition expression to evaluate
-            context: Variable context for substitution
-            
-        Returns:
-            Boolean result of the evaluation
+        Return lowercase of either node["properties"]["type"] if present, or node["type"].
+        This helps unify checks for PersonJob-like nodes.
+        """
+        props = node.get("properties", {})
+        # Use .get("type") inside properties if available, else top-level
+        return (props.get("type", node.get("type", "")) or "").lower()
+
+    def _is_personjob_type(self, node: Dict[str, Any]) -> bool:
+        """
+        Return True if this node is one of the recognized PersonJob-like types.
+        """
+        nt = self._normalize_node_type(node)
+        return nt in {
+            "personjob",
+            "person_job",
+            "personbatchjob",
+            "person_batch_job"
+        }
+
+    def _skip_due_to_iterations(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
+        """
+        Skip if a PersonJob-type node has a 'maxIteration' property
+        and its execution count has been exhausted.
+        """
+        if not self._is_personjob_type(node):
+            return False
+
+        node_id = node["id"]
+        props = node.get("properties", {})
+        max_iter = props.get("maxIteration")
+        if isinstance(max_iter, int):
+            current_count = context.node_execution_counts.get(node_id, 0)
+            if current_count >= max_iter:
+                self.logger.debug(f"Node {node_id} reached max iterations: {max_iter}")
+                return True
+
+        return False
+
+    def _skip_due_to_dependencies(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
+        """
+        Skip if all required (non-optional) upstream dependencies were skipped.
+        Optional dependencies are those labeled in 'firstOnlyInputs'.
+        """
+        node_id = node["id"]
+        incoming = context.incoming_arrows.get(node_id, [])
+        props = node.get("properties", {})
+        first_only_inputs = set(props.get("firstOnlyInputs", []))
+
+        has_required = False
+        all_required_skipped = True
+
+        for arrow in incoming:
+            source_id = arrow.get("source")
+            if source_id not in context.nodes_by_id:
+                # If the source doesn't exist in the graph, ignore it.
+                continue
+
+            is_optional = arrow.get("label", "") in first_only_inputs
+            if not is_optional:
+                has_required = True
+                if source_id not in context.skipped_nodes:
+                    all_required_skipped = False
+                    break
+
+        return has_required and all_required_skipped
+
+    def _skip_due_to_first_only(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
+        """
+        Skip PersonJob-type nodes if 'firstOnlyPrompt' was consumed previously and
+        there is no 'defaultPrompt' to fall back on.
+        """
+        if not self._is_personjob_type(node):
+            return False
+
+        node_id = node["id"]
+        props = node.get("properties", {})
+        if props.get("firstOnlyPrompt") and context.first_only_consumed.get(node_id, False):
+            if not props.get("defaultPrompt"):
+                return True
+
+        return False
+
+    def _skip_based_on_condition(self, node: Dict[str, Any], context: 'ExecutionContext') -> Tuple[bool, str]:
+        """
+        Evaluate a skipCondition expression in node properties (if any).
+        Returns (True, reason) if skipCondition evaluates to True; else (False, "").
+        """
+        props = node.get("properties", {})
+        skip_expr = props.get("skipCondition")
+        if not skip_expr:
+            return (False, "")
+
+        # Build an evaluation context by merging node_outputs and execution_counts
+        eval_context = {
+            "node_outputs": context.node_outputs,
+            "execution_counts": context.node_execution_counts,
+            **context.node_outputs,  # flatten all outputs for easy access
+        }
+
+        if self._evaluate_condition(skip_expr, eval_context):
+            return (True, SkipReason.CONDITION_NOT_MET.value)
+        return (False, "")
+
+    def _evaluate_condition(self, expression: str, context: Dict[str, Any]) -> bool:
+        """
+        1) Substitute variables
+        2) Evaluate a simple boolean/comparison expression
         """
         try:
-            # Substitute variables in the expression
-            substituted = self._substitute_variables(expression, context)
-            
-            # Simple expression evaluation
-            # WARNING: This is a simplified version. In production, use a proper expression parser
-            result = self._evaluate_simple_expression(substituted)
-            
-            return bool(result)
+            substituted = substitute_variables(expression, context, evaluation_mode=True)
+            return bool(self._evaluate_simple_expression(substituted))
         except Exception as e:
             self.logger.error(f"Failed to evaluate condition '{expression}': {e}")
             return False
-    
-    def _substitute_variables(self, expression: str, context: Dict[str, Any]) -> str:
-        """Substitute variables in expression using centralized function"""
-        return substitute_variables(expression, context, evaluation_mode=True)
-    
-    def _evaluate_simple_expression(self, expression: str) -> Any:
+
+    def _evaluate_simple_expression(self, expr: str) -> Any:
         """
-        Evaluate a simple expression safely.
-        Only supports basic comparisons and logical operators.
+        A minimal parser for:
+          - boolean literals true/false
+          - comparisons: ==, !=, >=, <=, >, <
+          - logical &&, ||
+        Does NOT use eval() and is purely string-based.
         """
-        # Remove extra whitespace
-        expression = expression.strip()
-        
-        # Handle boolean literals
-        if expression.lower() == "true":
+        expression = expr.strip()
+
+        # Boolean literals
+        low = expression.lower()
+        if low == "true":
             return True
-        elif expression.lower() == "false":
+        if low == "false":
             return False
-        
-        # Handle basic comparisons
-        # This is a simplified implementation - enhance with proper parsing
-        operators = ["===", "!==", "==", "!=", ">=", "<=", ">", "<"]
-        
-        for op in operators:
+
+        # Comparison operators
+        for op in ("===", "!==", "==", "!=", ">=", "<=", ">", "<"):
             if op in expression:
-                parts = expression.split(op, 1)
-                if len(parts) == 2:
-                    left = self._parse_value(parts[0].strip())
-                    right = self._parse_value(parts[1].strip())
-                    
-                    if op in ["===", "=="]:
-                        return left == right
-                    elif op in ["!==", "!="]:
-                        return left != right
-                    elif op == ">=":
-                        return float(left) >= float(right)
-                    elif op == "<=":
-                        return float(left) <= float(right)
-                    elif op == ">":
-                        return float(left) > float(right)
-                    elif op == "<":
-                        return float(left) < float(right)
-        
-        # Handle logical operators (simplified)
+                left, right = expression.split(op, 1)
+                left_val = self._parse_value(left.strip())
+                right_val = self._parse_value(right.strip())
+                if op in ("===", "=="):
+                    return left_val == right_val
+                if op in ("!==", "!="):
+                    return left_val != right_val
+                if op == ">=":
+                    return float(left_val) >= float(right_val)
+                if op == "<=":
+                    return float(left_val) <= float(right_val)
+                if op == ">":
+                    return float(left_val) > float(right_val)
+                if op == "<":
+                    return float(left_val) < float(right_val)
+
+        # Logical AND/OR
         if "&&" in expression:
-            parts = expression.split("&&")
-            return all(self._evaluate_simple_expression(p.strip()) for p in parts)
-        elif "||" in expression:
-            parts = expression.split("||")
-            return any(self._evaluate_simple_expression(p.strip()) for p in parts)
-        
-        # Try to parse as a simple value
+            return all(self._evaluate_simple_expression(part.strip()) for part in expression.split("&&"))
+        if "||" in expression:
+            return any(self._evaluate_simple_expression(part.strip()) for part in expression.split("||"))
+
+        # Fallback: plain value
         return self._parse_value(expression)
-    
+
     def _parse_value(self, value: str) -> Any:
-        """Parse a string value into appropriate type"""
-        value = value.strip()
-        
-        # Handle quoted strings
-        if (value.startswith('"') and value.endswith('"')) or \
-           (value.startswith("'") and value.endswith("'")):
-            return value[1:-1]
-        
-        # Handle booleans
-        if value.lower() == "true":
+        """
+        Convert a string literal into Python types: number, boolean, None, or stripped string.
+        """
+        v = value.strip()
+        if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+            return v[1:-1]
+        low = v.lower()
+        if low == "true":
             return True
-        elif value.lower() == "false":
+        if low == "false":
             return False
-        
-        # Handle None/null
-        if value.lower() in ["none", "null"]:
+        if low in ("none", "null"):
             return None
-        
-        # Try to parse as number
+
+        # Try numeric
         try:
-            if "." in value:
-                return float(value)
-            else:
-                return int(value)
+            if "." in v:
+                return float(v)
+            return int(v)
         except ValueError:
-            # Return as string if all else fails
-            return value
-    
+            return v
+
     def mark_skipped(self, node_id: str, reason: str) -> None:
         """
-        Record a node as skipped with reason.
-        
-        Args:
-            node_id: The node that was skipped
-            reason: Why it was skipped
+        Record a node as skipped with a reason.
         """
         self.skipped_nodes.add(node_id)
         self.skip_reasons[node_id] = reason
         self.logger.debug(f"Node {node_id} skipped: {reason}")
-    
+
     def is_skipped(self, node_id: str) -> bool:
-        """
-        Check if a node was skipped.
-        
-        Args:
-            node_id: The node to check
-            
-        Returns:
-            True if the node was skipped
-        """
         return node_id in self.skipped_nodes
-    
+
     def get_skip_reason(self, node_id: str) -> Optional[str]:
-        """
-        Get the reason why a node was skipped.
-        
-        Args:
-            node_id: The node to check
-            
-        Returns:
-            Skip reason or None if not skipped
-        """
         return self.skip_reasons.get(node_id)
-    
-    def should_skip_based_on_condition(
-        self, 
-        node: Dict[str, Any], 
-        context: 'ExecutionContext'
-    ) -> Tuple[bool, str]:
-        """
-        Check if node should skip based on condition evaluation.
-        
-        Args:
-            node: The node to evaluate
-            context: Execution context
-            
-        Returns:
-            Tuple of (should_skip, reason)
-        """
-        return self._should_skip_based_on_condition(node, context)
-    
-    def _should_skip_based_on_condition(
-        self,
-        node: Dict[str, Any],
-        context: 'ExecutionContext'
-    ) -> Tuple[bool, str]:
-        """Internal method for condition-based skip logic"""
-        node_type = node.get("type")
-        properties = node.get("properties", {})
-        
-        # Special handling for condition nodes checking max_iterations
-        if node_type == "condition":
-            condition_type = properties.get("conditionType")
-            if condition_type == "max_iterations":
-                # This condition should return true when all nodes reach max iterations
-                # (handled by the executor, not skip logic)
-                return False, ""
-        
-        # Check skip conditions in node properties
-        skip_condition = properties.get("skipCondition")
-        if skip_condition:
-            # Build context for condition evaluation
-            eval_context = {
-                "node_outputs": context.node_outputs,
-                "execution_counts": context.node_execution_counts,
-                **context.node_outputs  # Flatten outputs for easier access
-            }
-            
-            should_skip = self.evaluateCondition(skip_condition, eval_context)
-            if should_skip:
-                return True, SkipReason.CONDITION_NOT_MET.value
-        
-        return False, ""
-    
+
     def get_all_skipped_nodes(self) -> Dict[str, str]:
-        """
-        Get all skipped nodes and their reasons.
-        
-        Returns:
-            Dictionary mapping node IDs to skip reasons
-        """
         return dict(self.skip_reasons)

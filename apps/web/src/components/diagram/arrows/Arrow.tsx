@@ -91,18 +91,12 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
         controlY: 0,
       };
     } else {
-      // For regular arrows, calculate current control point
-      const defaultControlX = (sourceX + targetX) / 2;
-      const defaultControlY = (sourceY + targetY) / 2;
-      const currentControlX = defaultControlX + controlPointOffsetX;
-      const currentControlY = defaultControlY + controlPointOffsetY;
-      
-      // Store initial mouse offset from current control point
+      // For regular arrows, store initial mouse position and current offset
       dragRef.current = {
-        startX: initialFlowPosition.x - currentControlX,
-        startY: initialFlowPosition.y - currentControlY,
-        controlX: currentControlX,
-        controlY: currentControlY,
+        startX: initialFlowPosition.x,
+        startY: initialFlowPosition.y,
+        controlX: controlPointOffsetX,
+        controlY: controlPointOffsetY,
       };
     }
     
@@ -134,9 +128,13 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
           loopRadius: Math.max(30, Math.min(100, distance)),
         });
       } else {
-        // Apply the initial offset to maintain smooth dragging
-        const newControlX = flowPosition.x - dragRef.current.startX;
-        const newControlY = flowPosition.y - dragRef.current.startY;
+        // Calculate the mouse movement delta
+        const deltaX = flowPosition.x - dragRef.current.startX;
+        const deltaY = flowPosition.y - dragRef.current.startY;
+        
+        // Apply delta to the original control point offset
+        const newControlX = dragRef.current.controlX + deltaX;
+        const newControlY = dragRef.current.controlY + deltaY;
         
         onUpdateData(id, {
           controlPointOffsetX: newControlX,

@@ -158,52 +158,56 @@ const TopBar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          {runStatus === 'running' ? (
+          {activeCanvas === 'execution' && (
             <>
-              <Button 
-                variant="outline" 
-                className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
-                onClick={stopExecution}
-              >
-                ⏹️ Stop
-              </Button>
-              {currentRunningNode && (
+              {runStatus === 'running' ? (
                 <>
-                  <Button
-                    variant="outline"
-                    className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-none hover:from-yellow-600 hover:to-amber-600 shadow-md hover:shadow-lg transition-all"
-                    onClick={() => pauseNode(currentRunningNode)}
-                    title="Pause current node"
+                  <Button 
+                    variant="outline" 
+                    className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
+                    onClick={stopExecution}
                   >
-                    ⏸️ Pause
+                    ⏹️ Stop
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg transition-all"
-                    onClick={() => resumeNode(currentRunningNode)}
-                    title="Resume current node"
-                  >
-                    ▶️ Resume
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all"
-                    onClick={() => skipNode(currentRunningNode)}
-                    title="Skip current node"
-                  >
-                    ⏭️ Skip
-                  </Button>
+                  {currentRunningNode && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-none hover:from-yellow-600 hover:to-amber-600 shadow-md hover:shadow-lg transition-all"
+                        onClick={() => pauseNode(currentRunningNode)}
+                        title="Pause current node"
+                      >
+                        ⏸️ Pause
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg transition-all"
+                        onClick={() => resumeNode(currentRunningNode)}
+                        title="Resume current node"
+                      >
+                        ▶️ Resume
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all"
+                        onClick={() => skipNode(currentRunningNode)}
+                        title="Skip current node"
+                      >
+                        ⏭️ Skip
+                      </Button>
+                    </>
+                  )}
                 </>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
+                  onClick={onRunDiagram}
+                >
+                  ▶️ Run Diagram
+                </Button>
               )}
             </>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-              onClick={onRunDiagram}
-            >
-              ▶️ Run Diagram
-            </Button>
           )}
           <div className="whitespace-nowrap text-base font-medium">
             {runStatus === 'running' && <span className="text-blue-600 animate-pulse">⚡ Running...</span>}

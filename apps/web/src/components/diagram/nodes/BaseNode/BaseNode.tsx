@@ -164,11 +164,11 @@ export function BaseNode({
   // Get node display data
   const getDisplayData = () => {
     const entries = Object.entries(data).filter(([key]) => 
-      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height'].includes(key)
+      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage'].includes(key)
     );
     
-    // Show most important fields first
-    const importantFields = ['label', 'prompt', 'defaultPrompt', 'firstOnlyPrompt'];
+    // Show most important fields first (excluding prompts)
+    const importantFields = ['label'];
     const important = entries.filter(([key]) => importantFields.includes(key));
     const others = entries.filter(([key]) => !importantFields.includes(key));
     
@@ -213,7 +213,7 @@ export function BaseNode({
             
             return (
               <div key={key} className={`text-xs ${isExecutionMode ? 'text-gray-700 font-medium' : 'text-gray-600'}`}>
-                <span className="font-medium">{key}:</span> {displayValue}
+                {displayValue}
               </div>
             );
           })}
