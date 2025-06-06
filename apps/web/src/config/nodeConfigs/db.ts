@@ -5,8 +5,8 @@ export const dbNodeConfig: NodeConfigItem = {
   icon: '💾',
   color: 'yellow',
   handles: {
-    input: [{ id: 'default', position: 'top' }],
-    output: [{ id: 'default', position: 'bottom' }]
+    input: [{ id: 'default', position: 'bottom', offset: { x: -20, y: 0 } }],
+    output: [{ id: 'default', position: 'bottom', offset: { x: 20, y: 0 } }]
   },
   fields: [
     { 
