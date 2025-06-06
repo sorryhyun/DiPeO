@@ -37,10 +37,10 @@ const MAX_HISTORY_SIZE = 50;
 function createSnapshot(): DiagramSnapshot {
   const state = useDiagramStore.getState();
   return {
-    nodes: [...state.nodes],
-    arrows: [...state.arrows],
-    persons: [...state.persons],
-    apiKeys: [...state.apiKeys],
+    nodes: state.nodeList(),
+    arrows: state.arrowList(),
+    persons: state.personList(),
+    apiKeys: state.apiKeyList(),
     timestamp: Date.now()
   };
 }

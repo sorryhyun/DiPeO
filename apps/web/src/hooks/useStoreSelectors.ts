@@ -4,6 +4,7 @@ import { useExecutionStore } from '@/stores/executionStore';
 import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useApiKeyStore } from '@/stores/apiKeyStore';
+import { Node, Arrow, Person, ApiKey } from '@/types';
 
 // ===== Key Optimized Selectors =====
 
@@ -56,8 +57,8 @@ export const useArrowDataUpdater = () => {
 // Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
   const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const nodes = useDiagramStore(state => state.nodes);
-  const arrows = useDiagramStore(state => state.arrows);
+  const nodes = useDiagramStore(state => state.nodeList());
+  const arrows = useDiagramStore(state => state.arrowList());
   const onNodesChange = useDiagramStore(state => state.onNodesChange);
   const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
   const onConnect = useDiagramStore(state => state.onConnect);
@@ -82,7 +83,7 @@ export const useCanvasState = () => {
 // Person operations with monitor support
 export const usePersons = () => {
   const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const persons = useDiagramStore(state => state.persons);
+  const persons = useDiagramStore(state => state.personList());
   const addPerson = useDiagramStore(state => state.addPerson);
   const updatePerson = useDiagramStore(state => state.updatePerson);
   const deletePerson = useDiagramStore(state => state.deletePerson);
@@ -101,7 +102,7 @@ export const usePersons = () => {
 // Node operations with monitor support
 export const useNodes = () => {
   const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const nodes = useDiagramStore(state => state.nodes);
+  const nodes = useDiagramStore(state => state.nodeList());
   const onNodesChange = useDiagramStore(state => state.onNodesChange);
   const addNode = useDiagramStore(state => state.addNode);
   const deleteNode = useDiagramStore(state => state.deleteNode);
@@ -118,7 +119,7 @@ export const useNodes = () => {
 // Arrow operations with monitor support
 export const useArrows = () => {
   const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const arrows = useDiagramStore(state => state.arrows);
+  const arrows = useDiagramStore(state => state.arrowList());
   const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
   const onConnect = useDiagramStore(state => state.onConnect);
   const deleteArrow = useDiagramStore(state => state.deleteArrow);
@@ -243,7 +244,7 @@ export const useExecutions = () => useExecutionStore(state => state);
 export const clearDiagram = () => useDiagramStore.getState().clear();
 
 // Missing exports for compatibility
-export const loadDiagram = (diagram: any) => useDiagramStore.getState().loadDiagram(diagram);
+export const loadDiagram = (diagram: { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys?: ApiKey[] }) => useDiagramStore.getState().loadDiagram(diagram);
 export const useSelectedPersonId = () => useConsolidatedUIStore(state => state.selectedPersonId);
 export const useSetSelectedPersonId = () => useConsolidatedUIStore(state => state.setSelectedPersonId);
 export const useClearRunContext = () => {
@@ -288,8 +289,8 @@ export const useUISelectors = () => {
 
 export const useCanvasSelectors = () => {
   const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const nodes = useDiagramStore(state => state.nodes);
-  const arrows = useDiagramStore(state => state.arrows);
+  const nodes = useDiagramStore(state => state.nodeList());
+  const arrows = useDiagramStore(state => state.arrowList());
   const onNodesChange = useDiagramStore(state => state.onNodesChange);
   const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
   const onConnect = useDiagramStore(state => state.onConnect);

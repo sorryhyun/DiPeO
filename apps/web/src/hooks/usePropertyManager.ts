@@ -1,8 +1,45 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { isDraft, current } from 'immer';
 import { useCanvasSelectors } from './useStoreSelectors';
 import { type ApiKey } from '@/types';
 import { useDiagramStore } from "@/stores";
 import { useApiKeys } from "@/hooks/useApiKeys";
+
+// Safe deep comparison using Immer to handle draft states
+function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
+  // Get the current value if it's an Immer draft
+  const val1 = isDraft(obj1) ? current(obj1) : obj1;
+  const val2 = isDraft(obj2) ? current(obj2) : obj2;
+  
+  // Handle primitives and null/undefined
+  if (val1 === val2) return true;
+  if (val1 == null || val2 == null) return false;
+  if (typeof val1 !== 'object' || typeof val2 !== 'object') return false;
+  
+  // Arrays
+  if (Array.isArray(val1) && Array.isArray(val2)) {
+    if (val1.length !== val2.length) return false;
+    for (let i = 0; i < val1.length; i++) {
+      if (!safeDeepEqual(val1[i], val2[i])) return false;
+    }
+    return true;
+  }
+  
+  // Objects
+  if (Array.isArray(val1) || Array.isArray(val2)) return false;
+  
+  const keys1 = Object.keys(val1);
+  const keys2 = Object.keys(val2);
+  
+  if (keys1.length !== keys2.length) return false;
+  
+  for (const key of keys1) {
+    if (!keys2.includes(key)) return false;
+    if (!safeDeepEqual((val1 as any)[key], (val2 as any)[key])) return false;
+  }
+  
+  return true;
+}
 
 interface ValidationRule<T> {
   field: keyof T;
@@ -48,7 +85,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
 
   // Update form data when initial data changes
   useEffect(() => {
-    if (JSON.stringify(initialData) !== JSON.stringify(initialDataRef.current)) {
+    if (!safeDeepEqual(initialData, initialDataRef.current)) {
       setFormData(initialData);
       setIsDirty(false);
       setErrors({});

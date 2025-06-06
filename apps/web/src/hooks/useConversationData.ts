@@ -144,7 +144,9 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   useEffect(() => {
     if (!enableRealtimeUpdates) return;
 
-    const handleRealtimeUpdate = (event: CustomEvent) => {
+    const handleRealtimeUpdate = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      
       const { type, data } = event.detail;
 
       if (type === 'message_added' && data.personId) {
@@ -156,9 +158,9 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       }
     };
 
-    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListenerOrEventListenerObject);
+    window.addEventListener('conversation-update', handleRealtimeUpdate);
     return () => {
-      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListenerOrEventListenerObject);
+      window.removeEventListener('conversation-update', handleRealtimeUpdate);
     };
   }, [personId, addMessage, enableRealtimeUpdates]);
 

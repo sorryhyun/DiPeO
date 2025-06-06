@@ -26,9 +26,9 @@ export default defineConfig({
           'store-vendor': ['zustand'],
           
           // Large components - lazy loaded
-          'conversation': ['./src/features/conversation/components/ConversationDashboard'],
-          'properties': ['./src/features/properties/components/PropertiesRenderer'],
-          'modals': ['./src/features/layout/components/modals/ApiKeysModal'],
+          'conversation': ['./src/components/conversation/ConversationDashboard/ConversationDashboard'],
+          'properties': ['./src/components/properties/renderers/PropertiesRenderer'],
+          'modals': ['./src/components/modals/ApiKeysModal/ApiKeysModal'],
         },
         
         // Better chunk naming

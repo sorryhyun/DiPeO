@@ -119,7 +119,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
         return (
           <Select
             value={value || ''}
-            onChange={onChange}
+            onValueChange={onChange}
             disabled={disabled}
             className="w-full"
             {...customProps}
@@ -139,7 +139,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
         return (
           <Select
             value={value || ''}
-            onChange={onChange}
+            onValueChange={onChange}
             disabled={disabled}
             className="w-full"
             {...customProps}

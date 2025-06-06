@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PanelConfig, PanelFieldConfig, PropertyFieldConfig, SelectFieldConfig } from '@/types';
 import { usePropertyManager } from '@/hooks/usePropertyManager';
 import { useIsReadOnly } from '@/hooks/useStoreSelectors';
@@ -34,7 +34,24 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   };
   
   const entityType = getEntityType(data.type);
-  const { formData, updateField: updateFormField } = usePropertyManager<T>(nodeId, entityType, data, {
+  
+  // Create a clean copy of data to avoid circular references
+  const cleanData = useMemo(() => {
+    try {
+      // Use structured clone if available (modern browsers)
+      if (typeof structuredClone === 'function') {
+        return structuredClone(data);
+      }
+      // Fallback: create a shallow copy
+      return { ...data };
+    } catch (error) {
+      // If structured clone fails (e.g., due to functions), use shallow copy
+      console.warn('Failed to clone data, using shallow copy:', error);
+      return { ...data };
+    }
+  }, [data]);
+  
+  const { formData, updateField: updateFormField } = usePropertyManager<T>(nodeId, entityType, cleanData as T, {
     autoSave: true,
     autoSaveDelay: 500
   });
@@ -294,7 +311,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     
     baseField.customProps = {
       disabled: isMonitorMode || baseField.disabled || false,
-      detectedVariables: data.detectedVariables as string[] | undefined
+      detectedVariables: formData.detectedVariables as string[] | undefined
     };
     
     return baseField;
@@ -384,7 +401,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         max={convertedConfig.max}
         helperText={convertedConfig.helperText}
         acceptedFileTypes={convertedConfig.acceptedFileTypes}
-        detectedVariables={data.detectedVariables as string[] | undefined}
+        detectedVariables={formData.detectedVariables as string[] | undefined}
         className={fieldConfig.className}
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
       />
