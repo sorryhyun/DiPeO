@@ -100,8 +100,8 @@ export class ExecutionClient {
       
       resolver.resolve({
         context,
-        totalTokens: totalTokens,
-        executionId: executionId,
+        totalTokens,
+        executionId,
         metadata: {
           totalTokens,
           executionTime: message.duration as number

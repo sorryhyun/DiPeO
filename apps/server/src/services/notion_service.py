@@ -1,16 +1,15 @@
 from typing import Any, Dict, List, Optional
 from notion_client import Client
-from src.utils.base_service import BaseService
-from src.exceptions import DiagramExecutionError
-from src.utils.app_context import AppContext
+from ..utils.base_service import BaseService
+from ..engine.errors import DiagramExecutionError
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class NotionService(BaseService[AppContext]):
-    def __init__(self, context: AppContext):
-        super().__init__(context)
+class NotionService(BaseService):
+    def __init__(self):
+        super().__init__()
         self._clients: Dict[str, Client] = {}
     
     def _get_client(self, api_key: str) -> Client:

@@ -39,7 +39,7 @@ class AppContext:
             self.api_key_service, 
             self.memory_service
         )
-        self.notion_service = NotionService(self)
+        self.notion_service = NotionService()
         self.execution_service = ExecutionService(
             self.llm_service,
             self.api_key_service,

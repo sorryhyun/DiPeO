@@ -166,7 +166,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
           />
         );
         
-      case 'file':
+      case 'file': {
         const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
           const file = event.target.files?.[0];
           if (!file) return;
@@ -218,6 +218,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
             </div>
           </div>
         );
+      }
         
       default:
         return null;

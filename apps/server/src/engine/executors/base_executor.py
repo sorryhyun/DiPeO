@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 import logging
-from .token_utils import TokenUsage
+from ...utils.token_usage import TokenUsage
 
 if TYPE_CHECKING:
     from ..engine import ExecutionContext

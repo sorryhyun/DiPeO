@@ -4,7 +4,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from .executors.token_utils import TokenUsage
+from ..utils.token_usage import TokenUsage
 from ..exceptions import DiagramExecutionError
 from .resolver import DependencyResolver
 from .planner import ExecutionPlanner

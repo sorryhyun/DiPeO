@@ -14,7 +14,7 @@ from .utils import (
     get_input_values,
     substitute_variables
 )
-from .token_utils import TokenUsage
+from ...utils.token_usage import TokenUsage
 from .validator import (
     ValidationResult,
     validate_required_fields,

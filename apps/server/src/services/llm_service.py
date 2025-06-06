@@ -7,7 +7,7 @@ from ..exceptions import LLMServiceError, APIKeyError
 from ..llm import ChatResult, create_adapter
 from .api_key_service import APIKeyService
 from ..utils.base_service import BaseService
-from ..engine.executors.token_utils import TokenUsage
+from ..utils.token_usage import TokenUsage
 
 
 class LLMService(BaseService):
