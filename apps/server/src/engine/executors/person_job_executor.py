@@ -153,22 +153,31 @@ class PersonJobExecutor(BaseExecutor):
             )
         
         # Determine which prompt to use
-        first_only_prompt = properties.get("firstOnlyPrompt", "")
+        first_only_prompt = properties.get("firstOnlyPrompt")
         default_prompt = properties.get("defaultPrompt", "")
         main_prompt = properties.get("prompt", "")
         
-        # Use first-only prompt on first execution if available
-        if execution_count == 0 and first_only_prompt:
+        # Use first-only prompt on first execution if it exists (even if empty)
+        # Only use it if the key exists in properties, not just if it's truthy
+        if execution_count == 0 and "firstOnlyPrompt" in properties:
             prompt = first_only_prompt
         elif default_prompt:
             prompt = default_prompt
         else:
             prompt = main_prompt
         
-        if not prompt:
+        # Allow empty prompts if we have conversation state inputs
+        has_conversation_inputs = False
+        for arrow in context.incoming_arrows.get(node_id, []):
+            arrow_data = arrow.get("data", arrow)
+            if arrow_data.get("contentType") == "conversation_state":
+                has_conversation_inputs = True
+                break
+        
+        if not prompt and not has_conversation_inputs:
             return ExecutorResult(
                 output=None,
-                error="No prompt available for execution",
+                error="No prompt available for execution and no conversation state inputs",
                 metadata={"execution_count": execution_count},
                 tokens=TokenUsage(),
                 execution_time=time.time() - start_time
@@ -243,8 +252,19 @@ class PersonJobExecutor(BaseExecutor):
                                 # Add as user message since it's input to this node
                                 messages.append({"role": "user", "content": latest_text})
             
-            # Add current prompt as user message
-            messages.append({"role": "user", "content": final_prompt})
+            # Add current prompt as user message only if not empty
+            if final_prompt:
+                messages.append({"role": "user", "content": final_prompt})
+            
+            # Ensure we have at least some messages to send to the LLM
+            if not messages:
+                return ExecutorResult(
+                    output=None,
+                    error="No messages to send to LLM (no prompt and no conversation history)",
+                    metadata={"execution_count": execution_count},
+                    tokens=TokenUsage(),
+                    execution_time=time.time() - start_time
+                )
             
             # Handle interactive mode - wait for user input before proceeding
             if is_interactive and context.interactive_handler:

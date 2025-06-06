@@ -133,7 +133,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             // Node mutators
             addNode: (type, position) => {
-              const id = `${type}-${nanoid(6)}`;
+              const id = `${type}-${nanoid(4)}`;
               const newNode: Node = {
                 id,
                 type,
@@ -182,7 +182,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             // Arrow mutators
             addArrow: (source, target, sourceHandle, targetHandle) => {
-              const id = `arrow-${nanoid(6)}`;
+              const id = `arrow-${nanoid(4)}`;
               const newArrow: Arrow = {
                 id,
                 source,
@@ -225,7 +225,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             // Person mutators
             addPerson: (person) => {
-              const id = `person-${nanoid(6)}`;
+              const id = `person-${nanoid(4)}`;
               set(
                 produce(draft => {
                   draft.persons.set(id, { ...person, id });
@@ -333,7 +333,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             onConnect: ({ source, target, sourceHandle, targetHandle }) => {
               if (!source || !target) return;
-              const id = `arrow-${nanoid(6)}`;
+              const id = `arrow-${nanoid(4)}`;
               get().upsertArrow({ id, source, target, sourceHandle, targetHandle, data: {} } as Arrow);
             },
 
@@ -355,14 +355,30 @@ export const useDiagramStore = create<DiagramStore>()(
               }),
 
             exportDiagram: () => ({
-              nodes: get().nodeList().map(node => ({
-                ...node,
-                position: {
-                  x: Math.round(node.position.x * 10) / 10,
-                  y: Math.round(node.position.y * 10) / 10
+              nodes: get().nodeList().map(node => {
+                // Filter out UI state properties that React Flow adds
+                const nodeData = { ...node } as Record<string, any>;
+                delete nodeData.selected;
+                delete nodeData.dragging;
+                
+                // Round position values
+                if (nodeData.position) {
+                  nodeData.position = {
+                    x: Math.round(nodeData.position.x * 10) / 10,
+                    y: Math.round(nodeData.position.y * 10) / 10
+                  };
                 }
-              })),
-              arrows: get().arrowList(),
+                
+                return nodeData as Node;
+              }),
+              arrows: get().arrowList().map(arrow => {
+                // Filter out UI state properties from arrows
+                const arrowData = { ...arrow } as Record<string, any>;
+                delete arrowData.selected;
+                delete arrowData.dragging;
+                
+                return arrowData as Arrow;
+              }),
               persons: get().personList(),
               apiKeys: get().apiKeyList()
             }),
