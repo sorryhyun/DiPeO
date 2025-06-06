@@ -295,6 +295,55 @@ def validate_json_field(
         return None, f"Invalid JSON in {field_name}: {str(e)}"
 
 
+def validate_numeric_range(
+    properties: Dict[str, Any],
+    field_name: str,
+    min_value: Optional[float] = None,
+    max_value: Optional[float] = None,
+    required: bool = False,
+    allow_int: bool = True,
+    allow_float: bool = True
+) -> Optional[str]:
+    """
+    Validate that a field is a number within a specified range.
+    
+    Args:
+        properties: Node properties
+        field_name: Name of the field to validate
+        min_value: Minimum allowed value (inclusive)
+        max_value: Maximum allowed value (inclusive)
+        required: Whether the field is required
+        allow_int: Whether integer values are allowed
+        allow_float: Whether float values are allowed
+        
+    Returns:
+        Error message if invalid, None if valid
+    """
+    value = properties.get(field_name)
+    
+    if value is None:
+        return f"{field_name} is required" if required else None
+    
+    # Type checking
+    if allow_int and allow_float:
+        if not isinstance(value, (int, float)):
+            return f"{field_name} must be a number"
+    elif allow_int and not allow_float:
+        if not isinstance(value, int):
+            return f"{field_name} must be an integer"
+    elif allow_float and not allow_int:
+        if not isinstance(value, float):
+            return f"{field_name} must be a float"
+    
+    # Range checking
+    if min_value is not None and value < min_value:
+        return f"{field_name} must be at least {min_value}"
+    if max_value is not None and value > max_value:
+        return f"{field_name} cannot exceed {max_value}"
+    
+    return None
+
+
 def validate_dangerous_code(
     code: str,
     language: str,

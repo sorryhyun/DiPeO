@@ -14,7 +14,7 @@ from .utils import (
     get_input_values,
     substitute_variables
 )
-from .token_utils import TokenUsage
+from ...utils.token_usage import TokenUsage
 from .validator import (
     ValidationResult,
     validate_required_fields,
@@ -95,10 +95,10 @@ class PersonJobExecutor(BaseExecutor):
         )
         errors.extend(prompt_errors)
         
-        # Validate iterationCount using centralized validation
+        # Validate maxIteration using centralized validation
         iteration_error = validate_positive_integer(
             properties,
-            "iterationCount",
+            "maxIteration",
             min_value=1,
             required=False
         )
@@ -124,12 +124,16 @@ class PersonJobExecutor(BaseExecutor):
         if not person_config and person_id:
             person_config = context.persons.get(person_id, {})
         
-        # Get input values for variable substitution
-        inputs = get_input_values(node, context)
-        
-        # Check iteration count and handle first-only logic
+        # Check iteration count to determine which handle to use
         execution_count = context.node_execution_counts.get(node_id, 0)
-        max_iterations = properties.get("iterationCount")
+        max_iterations = properties.get("maxIteration")
+        
+        # Determine which handle to use for inputs based on execution count
+        # First execution (count=0) uses "first" handle, subsequent use "default" handle
+        target_handle = "first" if execution_count == 0 else "default"
+        
+        # Get input values for variable substitution from the appropriate handle
+        inputs = get_input_values(node, context, target_handle_filter=target_handle)
         
         # Skip if max iterations reached
         if max_iterations and execution_count >= max_iterations:
@@ -179,6 +183,9 @@ class PersonJobExecutor(BaseExecutor):
         api_key_id = person_config.get("apiKeyId")
         system_prompt = person_config.get("systemPrompt", "")
         person_id = person_config.get("id", node_id)
+        
+        # Check if this is an interactive node
+        is_interactive = properties.get("interactive", False)
         
         # Handle context cleaning rule (forgetting) BEFORE making LLM call
         context_cleaning_rule = properties.get("contextCleaningRule", "no_forget")
@@ -238,6 +245,29 @@ class PersonJobExecutor(BaseExecutor):
             
             # Add current prompt as user message
             messages.append({"role": "user", "content": final_prompt})
+            
+            # Handle interactive mode - wait for user input before proceeding
+            if is_interactive and context.interactive_handler:
+                logger.info(f"PersonJob {node_id} requesting interactive input")
+                
+                # Send interactive prompt request
+                user_response = await context.interactive_handler(
+                    node_id=node_id,
+                    prompt=final_prompt,
+                    context={
+                        "person_id": person_id,
+                        "person_name": properties.get("label", person_config.get("name", "Person")),
+                        "model": model,
+                        "service": service,
+                        "execution_count": execution_count
+                    }
+                )
+                
+                # If user provided input, add it to the conversation
+                if user_response:
+                    messages.append({"role": "user", "content": user_response})
+                    # Also update the prompt for memory tracking
+                    final_prompt = f"{final_prompt}\n\nUser response: {user_response}"
             
             # Make LLM call
             logger.debug(f"PersonJob {node_id} executing: count={execution_count}, max_iterations={max_iterations}, history_messages={len(conversation_history)}, prompt={final_prompt[:50]}...")

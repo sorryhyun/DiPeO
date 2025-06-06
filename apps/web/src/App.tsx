@@ -1,26 +1,29 @@
 // Application root component
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { TopBar, Sidebar } from '@/features/layout';
-import { useExecutionMonitor } from '@/state/hooks/useExecutionMonitor';
-import { useDiagramStore } from '@/state/stores';
-import { useUIState } from '@/state/hooks/useStoreSelectors';
+import { TopBar, Sidebar } from './components/layout';
+import { useRealtimeExecution } from './hooks/useRealtimeExecution';
+import { useConsolidatedUIStore, useDiagramStore } from './stores';
+import { useDiagramRunner } from './hooks/useDiagramRunner';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas').then(module => ({ default: module.DiagramCanvas })));
-const LazyMemoryCanvas = React.lazy(() => import('@/features/memory').then(module => ({ default: module.MemoryCanvas })));
+const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
+const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyWebSocketTest = React.lazy(() => import('@/features/runtime/components/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
+const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
 
 function App() {
+  const { activeCanvas } = useConsolidatedUIStore();
   const { setReadOnly } = useDiagramStore();
-  const { activeCanvas } = useUIState();
+  const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
+  const params = new URLSearchParams(window.location.search);
+  const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
   
   useEffect(() => {
     const checkMonitorMode = () => {
       const params = new URLSearchParams(window.location.search);
       const monitorParam = params.get('monitor') === 'true';
-      setReadOnly(monitorParam);
+      setReadOnly?.(monitorParam);
 
       if (monitorParam) {
         document.title = 'AgentDiagram - Monitor Mode';
@@ -41,7 +44,16 @@ function App() {
     };
   }, [setReadOnly]);
 
-  useExecutionMonitor();
+  // Use realtime execution monitor - it will automatically use WebSocket when available
+  useRealtimeExecution({ enableMonitoring: true });
+  
+  // Show WebSocket status when enabled via feature flag
+  useEffect(() => {
+    if (useWebSocket) {
+      console.log('[App] WebSocket monitoring enabled via feature flag');
+    }
+  }, [useWebSocket]);
+  
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col">
@@ -57,7 +69,7 @@ function App() {
 
           {/* Right Content - Canvas switching based on activeCanvas */}
           <div className="flex-1 flex flex-col">
-            {activeCanvas === 'diagram' ? (
+            {activeCanvas === 'main' ? (
               <Suspense fallback={
                 <div className="h-full bg-gradient-to-br from-slate-50 to-sky-100 flex items-center justify-center">
                   <div className="text-gray-500 animate-pulse">Loading diagram canvas...</div>
@@ -65,13 +77,21 @@ function App() {
               }>
                 <LazyDiagramCanvas />
               </Suspense>
-            ) : (
+            ) : activeCanvas === 'execution' ? (
               <Suspense fallback={
-                <div className="h-full bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center">
-                  <div className="text-gray-400 animate-pulse">Loading memory canvas...</div>
+                <div className="h-full bg-black flex items-center justify-center">
+                  <div className="text-gray-400 animate-pulse">Loading execution view...</div>
                 </div>
               }>
-                <LazyMemoryCanvas />
+                <LazyExecutionView />
+              </Suspense>
+            ) : (
+              <Suspense fallback={
+                <div className="h-full bg-black flex items-center justify-center">
+                  <div className="text-gray-400 animate-pulse">Loading execution view...</div>
+                </div>
+              }>
+                <LazyExecutionView />
               </Suspense>
             )}
           </div>
@@ -81,10 +101,15 @@ function App() {
           <LazyToaster richColors position="bottom-center" />
         </Suspense>
         
-        {/* WebSocket Test Component - Enable with ?websocket=true */}
-        {new URLSearchParams(window.location.search).get('websocket') === 'true' && (
+        
+        {/* Interactive Prompt Modal */}
+        {interactivePrompt && (
           <Suspense fallback={null}>
-            <LazyWebSocketTest enabled={true} />
+            <LazyInteractivePromptModal
+              prompt={interactivePrompt}
+              onResponse={sendInteractiveResponse}
+              onCancel={cancelInteractivePrompt}
+            />
           </Suspense>
         )}
       </div>

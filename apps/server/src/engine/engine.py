@@ -4,17 +4,26 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from .executors.token_utils import TokenUsage
+from ..utils.token_usage import TokenUsage
 from ..exceptions import DiagramExecutionError
 from .resolver import DependencyResolver
 from .planner import ExecutionPlanner
 from .controllers import LoopController, SkipManager
-from .executors.base_executor import BaseExecutor
 from .executors import create_executors
-# node_type_utils no longer needed - all types are already snake_case
-from ..api.routers.monitor import broadcast_to_monitors
 
 logger = logging.getLogger(__name__)
+
+
+async def broadcast_event(event_data: Dict[str, Any]):
+    """Broadcast an event to all WebSocket connections if available."""
+    try:
+        from ..api.routers.websocket import get_connection_manager
+        ws_manager = get_connection_manager()
+        # Broadcast to all WebSocket clients
+        await ws_manager.broadcast(event_data)
+    except Exception as e:
+        # If WebSocket module is not available or error occurs, log and continue
+        logger.debug(f"WebSocket broadcast skipped: {e}")
 
 
 @dataclass
@@ -34,6 +43,7 @@ class ExecutionContext:
     api_keys: Dict[str, str] = field(default_factory=dict)
     persons: Dict[str, Dict] = field(default_factory=dict)
     execution_id: Optional[str] = None
+    interactive_handler: Optional[Any] = None  # Callback for interactive prompts
 
 
 class UnifiedExecutionEngine:
@@ -43,7 +53,7 @@ class UnifiedExecutionEngine:
     loop control, skip management, and node execution.
     """
     
-    def __init__(self, llm_service=None, file_service=None, memory_service=None):
+    def __init__(self, llm_service=None, file_service=None, memory_service=None, notion_service=None, state_manager=None):
         self.dependency_resolver = DependencyResolver()
         self.execution_planner = ExecutionPlanner()
         self.loop_controller = LoopController()
@@ -51,9 +61,12 @@ class UnifiedExecutionEngine:
         self.llm_service = llm_service
         self.file_service = file_service
         self.memory_service = memory_service
+        self.notion_service = notion_service
+        self.state_manager = state_manager
         self.executors = create_executors(
             llm_service=self.llm_service,
-            file_service=self.file_service
+            file_service=self.file_service,
+            notion_service=self.notion_service
         )
         self._execution_lock = asyncio.Lock()
 
@@ -148,6 +161,9 @@ class UnifiedExecutionEngine:
                 # Set execution_id from options if provided
                 context.execution_id = options.get("execution_id", f"exec_{int(time.time() * 1000)}")
                 
+                # Set interactive handler if provided
+                context.interactive_handler = options.get("interactive_handler")
+                
                 # Create execution plan
                 plan = self.execution_planner.create_execution_plan(
                     context.nodes_by_id,
@@ -166,7 +182,7 @@ class UnifiedExecutionEngine:
                 }
                 yield event
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 
                 # Execute nodes according to plan
                 pending_nodes = set(plan.execution_order)
@@ -225,7 +241,7 @@ class UnifiedExecutionEngine:
                         }
                         yield start_event
                         # Broadcast to monitors
-                        await broadcast_to_monitors(start_event)
+                        await broadcast_event(start_event)
                     
                     # Execute ready nodes (potentially in parallel)
                     execution_tasks = []
@@ -249,14 +265,14 @@ class UnifiedExecutionEngine:
                             }
                             yield event
                             # Broadcast to monitors
-                            await broadcast_to_monitors(event)
+                            await broadcast_event(event)
                             
                             if not options.get("continue_on_error", False):
                                 raise result
                         else:
                             yield result
                             # Broadcast to monitors
-                            await broadcast_to_monitors(result)
+                            await broadcast_event(result)
                             
                             # Handle conditional re-queuing for loops
                             if node_id in context.condition_values:
@@ -298,7 +314,7 @@ class UnifiedExecutionEngine:
                 }
                 yield event
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 
             except Exception as e:
                 logger.error(f"Diagram execution failed: {str(e)}")
@@ -308,7 +324,7 @@ class UnifiedExecutionEngine:
                 }
                 yield event
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 raise
     
     def _build_execution_context(self, diagram: Dict[str, Any]) -> ExecutionContext:
@@ -352,7 +368,7 @@ class UnifiedExecutionEngine:
         node = context.nodes_by_id.get(node_id)
         if node:
             properties = node.get("properties", {})
-            max_iterations = properties.get("iterationCount")
+            max_iterations = properties.get("maxIteration")
             if max_iterations:
                 current_count = context.node_execution_counts.get(node_id, 0)
                 if current_count >= max_iterations:
@@ -380,7 +396,29 @@ class UnifiedExecutionEngine:
         properties = node.get("properties", {})
         node_type = properties.get("type", node["type"])
         
-        # Check if should skip
+        # Check if node is marked for skip via WebSocket control
+        if self.state_manager and context.execution_id:
+            if self.state_manager.is_node_skipped(context.execution_id, node_id):
+                context.skipped_nodes.add(node_id)
+                context.skip_reasons[node_id] = "user_skipped"
+                
+                event = {
+                    "type": "node_skipped",
+                    "node_id": node_id,
+                    "reason": "user_skipped"
+                }
+                # Broadcast to monitors
+                await broadcast_event(event)
+                return event
+                
+            # Check if node is paused - wait until resumed
+            while self.state_manager.is_node_paused(context.execution_id, node_id):
+                await asyncio.sleep(0.1)  # Check every 100ms
+                # Check if execution was aborted while paused
+                if self.state_manager.is_execution_aborted(context.execution_id):
+                    raise DiagramExecutionError("Execution aborted while node was paused")
+        
+        # Check if should skip based on skip manager rules
         if self.skip_manager.should_skip(node, context):
             reason = self.skip_manager.get_skip_reason(node_id)
             context.skipped_nodes.add(node_id)
@@ -392,7 +430,7 @@ class UnifiedExecutionEngine:
                 "reason": reason
             }
             # Broadcast to monitors
-            await broadcast_to_monitors(event)
+            await broadcast_event(event)
             return event
         
         # Get executor for node type
@@ -429,7 +467,7 @@ class UnifiedExecutionEngine:
                     "output": result.output
                 }
                 # Broadcast to monitors
-                await broadcast_to_monitors(event)
+                await broadcast_event(event)
                 return event
             
             # Update context for successful execution
@@ -461,7 +499,7 @@ class UnifiedExecutionEngine:
                 "token_count": result.tokens.input + result.tokens.output
             }
             # Broadcast to monitors
-            await broadcast_to_monitors(event)
+            await broadcast_event(event)
             return event
             
         except Exception as e:
@@ -496,7 +534,7 @@ class UnifiedExecutionEngine:
 
                 # Check if node can be re-executed
                 properties = node.get("properties", {})
-                max_iterations = properties.get("iterationCount")
+                max_iterations = properties.get("maxIteration")
 
                 if max_iterations:
                     current_count = context.node_execution_counts.get(node_id, 0)
@@ -510,7 +548,7 @@ class UnifiedExecutionEngine:
                             f"Not re-queuing {node_id}: reached max iterations {max_iterations}"
                         )
                 else:
-                    # Nodes without iterationCount can also be re-queued if part of loop
+                    # Nodes without maxIteration can also be re-queued if part of loop
                     node_type = node.get("type", "").lower()
                     if node_type not in ["condition", "conditionnode"]:
                         requeued_nodes.add(node_id)

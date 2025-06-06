@@ -2,11 +2,12 @@ import time
 from typing import Any, List, Optional, Tuple, Union
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from ..constants import LLMService as LLMServiceEnum
+from ..constants import LLMService as LLMServiceEnum, PROVIDER_TO_ENUM_MAP
 from ..exceptions import LLMServiceError, APIKeyError
 from ..llm import ChatResult, create_adapter
 from .api_key_service import APIKeyService
 from ..utils.base_service import BaseService
+from ..utils.token_usage import TokenUsage
 
 
 class LLMService(BaseService):
@@ -15,7 +16,7 @@ class LLMService(BaseService):
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()
         self.api_key_service = api_key_service
-        # Connection pool for adapters to avoid creating new instances
+        # Connection pool  for adapters to avoid creating new instances
         self._adapter_pool = {}
     
     def _get_api_key(self, api_key_id: str) -> str:
@@ -28,26 +29,19 @@ class LLMService(BaseService):
     
     def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
         """Get the appropriate LLM adapter with connection pooling and TTL."""
-        normalized_service = self.normalize_service_name(service)
+        # normalize_service_name already maps to provider name
+        provider = self.normalize_service_name(service)
         
-        # Map service names to provider names for the factory
-        provider_map = {
-            LLMServiceEnum.CLAUDE.value: 'anthropic',
-            LLMServiceEnum.GROK.value: 'xai',
-            LLMServiceEnum.GEMINI.value: 'google',
-            LLMServiceEnum.OPENAI.value: 'openai'
-        }
-        
-        if normalized_service not in provider_map:
+        # Validate provider is supported
+        if provider not in PROVIDER_TO_ENUM_MAP:
             raise LLMServiceError(f"Unsupported LLM service: {service}")
         
-        # Use pooling - cache key includes service, model, and api_key_id
-        cache_key = f"{normalized_service}:{model}:{api_key_id}"
+        # Use pooling - cache key includes provider, model, and api_key_id
+        cache_key = f"{provider}:{model}:{api_key_id}"
         
         if cache_key not in self._adapter_pool:
             # Only get the key when creating new adapter
             raw_key = self._get_api_key(api_key_id)
-            provider = provider_map[normalized_service]
             
             # Store both adapter AND the resolved key with timestamp
             self._adapter_pool[cache_key] = {
@@ -64,51 +58,12 @@ class LLMService(BaseService):
         
         return entry['adapter']
     
-    def _get_token_counts(self, usage: Any, service: str) -> Tuple[int, int, int]:
-        """Extract token counts from usage object based on service."""
-        if usage is None:
-            return 0, 0, 0
-        
-        if service == LLMServiceEnum.GEMINI.value and isinstance(usage, (list, tuple)):
-            if len(usage) >= 2:
-                return usage[0], usage[1], 0
-            return 0, 0, 0
-        
-        input_tokens = (
-            self.safe_get_nested(usage, 'input_tokens') or
-            self.safe_get_nested(usage.usage, 'prompt_tokens') or
-            self.safe_get_nested(usage, 'prompt_token_count') or 0
-        )
-        
-        output_tokens = (
-            self.safe_get_nested(usage, 'output_tokens') or 
-            self.safe_get_nested(usage.usage, 'completion_tokens') or
-            self.safe_get_nested(usage, 'candidates_token_count') or 0
-        )
-        
-        cached_tokens = 0
-        if service == LLMServiceEnum.OPENAI.value:
-            cached_tokens = self.safe_get_nested(usage, 'input_tokens_details.cached_tokens', 0)
-        
-        return input_tokens, output_tokens, cached_tokens
     
-    def get_token_counts(self, client_name: str, usage: Any) -> dict[str, int]:
+    def get_token_counts(self, client_name: str, usage: Any) -> TokenUsage:
         """Get token counts from LLM usage."""
-        
         # Normalize the client/service name
         normalized_service = self.normalize_service_name(client_name)
-        
-        if usage is None:
-            return {"total": 0, "input": 0, "output": 0, "cached": 0}
-        
-        input_tokens, output_tokens, cached_tokens = self._get_token_counts(usage, normalized_service)
-        
-        return {
-            "total": input_tokens + output_tokens,
-            "input": input_tokens,
-            "output": output_tokens,
-            "cached": cached_tokens
-        }
+        return TokenUsage.from_usage(usage, normalized_service)
     
     def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
         """Extract text and usage from adapter result."""
@@ -172,13 +127,15 @@ class LLMService(BaseService):
                 )
             
             text, usage = self._extract_result_and_usage(result)
-            token_counts = self.get_token_counts(service or "chatgpt", usage)
+            token_usage = self.get_token_counts(service or "chatgpt", usage)
             return {
                 "response": text,
-                "token_count": token_counts["total"],
-                "input_tokens": token_counts["input"],
-                "output_tokens": token_counts["output"],
-                "cached_tokens": token_counts["cached"]
+                "token_usage": token_usage,
+                # Keep these for backward compatibility
+                "token_count": token_usage.total,
+                "input_tokens": token_usage.input,
+                "output_tokens": token_usage.output,
+                "cached_tokens": token_usage.cached
             }
             
         except Exception as e:

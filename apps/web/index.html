@@ -8,26 +8,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      // Establish SSE connection immediately for monitor mode
-      (function() {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('monitor') === 'true') {
-          const sseUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:8000/api/monitor/stream'
-            : '/api/monitor/stream';
-          
-          // Create global SSE connection that React can use later
-          window.__earlySSEConnection = new EventSource(sseUrl);
-          window.__earlySSEConnection.onopen = () => {
-            console.log('[Early SSE] Monitor connection established');
-          };
-          window.__earlySSEConnection.onerror = (error) => {
-            console.error('[Early SSE] Connection error:', error);
-          };
-        }
-      })();
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

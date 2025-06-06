@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 def round_position(position: dict) -> dict:
-    """Round position coordinates to 2 decimal places."""
+    """Round position coordinates to 1 decimal places."""
     return {
-        "x": round(position["x"], 2),
-        "y": round(position["y"], 2)
+        "x": round(position["x"], 1),
+        "y": round(position["y"], 1)
     }
 
 

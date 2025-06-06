@@ -22,8 +22,7 @@ from .validator import (
     ValidationResult,
     validate_required_fields,
     validate_enum_field,
-    validate_dangerous_code,
-    merge_validation_results
+    validate_dangerous_code
 )
 
 logger = logging.getLogger(__name__)

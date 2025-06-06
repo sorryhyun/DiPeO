@@ -9,131 +9,173 @@ import sys
 import requests
 import yaml
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import asyncio
-import aiohttp
 import time
-from typing import Optional
+import websockets
+import uuid
 
 
 async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = True, debug: bool = False) -> Dict[str, Any]:
-    """Execute diagram using unified backend V2 API with streaming support."""
-    async with aiohttp.ClientSession() as session:
-        try:
-            # Prepare request payload
-            payload = {"diagram": diagram}
-            if debug:
-                payload["options"] = {"debugMode": True}
-                
-            if stream:
-                # Use V2 streaming endpoint
-                async with session.post(
-                    f"{API_URL}/api/diagrams/execute",
-                    json=payload,
-                    headers={"Content-Type": "application/json", "Accept": "text/event-stream"}
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        return {
-                            "context": {},
-                            "total_token_count": 0,
-                            "messages": [],
-                            "error": f"Backend execution failed: {response.status} - {error_text}"
-                        }
-                    
-                    # Process SSE stream
-                    final_result = {
-                        "context": {},
-                        "total_token_count": 0,
-                        "messages": []
-                    }
-                    
-                    node_timings = {} if debug else None
-                    
-                    async for line in response.content:
-                        line = line.decode('utf-8').strip()
-                        if line.startswith('data: '):
-                            try:
-                                data = json.loads(line[6:])  # Remove 'data: ' prefix
-                                
-                                if debug:
-                                    # Show all events in debug mode
-                                    event_type = data.get('type', 'unknown')
-                                    print(f"🐛 Debug: Event '{event_type}' - {json.dumps(data, indent=2)}")
-                                
-                                if data.get('type') == 'node_start' and debug:
-                                    node_data = data.get('data', {})
-                                    node_id = node_data.get('nodeId', 'unknown')
-                                    node_timings[node_id] = time.time()
-                                    print(f"🐛 Starting node {node_id} ({node_data.get('nodeType', 'unknown')})")
-                                
-                                elif data.get('type') == 'node_completed':
-                                    # Backend sends data directly in the event, not wrapped in 'data'
-                                    node_id = data.get('node_id', 'unknown')
-                                    node_type = data.get('metadata', {}).get('nodeType', 'unknown')
-                                    
-                                    if debug and node_id in node_timings:
-                                        elapsed = time.time() - node_timings[node_id]
-                                        print(f"✓ Node {node_id} ({node_type}) completed in {elapsed:.2f}s")
-                                        if data.get('output'):
-                                            print(f"  Output: {str(data['output'])[:100]}...")
-                                    
-                                    if 'token_count' in data:
-                                        final_result['total_token_count'] += data['token_count']
-                                        if debug:
-                                            print(f"  Token count: {data['token_count']}")
-                                    
-                                elif data.get('type') == 'node_skipped' and debug:
-                                    node_data = data.get('data', {})
-                                    print(f"⏭️  Node {node_data.get('nodeId', 'unknown')} skipped: {node_data.get('reason', 'unknown')}")
-                                    
-                                elif data.get('type') == 'execution_complete':
-                                    execution_data = data.get('data', {})
-                                    final_result['context'] = execution_data.get('context', {})
-                                    final_result['total_token_count'] = execution_data.get('total_token_count', final_result['total_token_count'])
-                                    
-                                elif data.get('type') == 'error':
-                                    error_data = data.get('data', {})
-                                    print(f"❌ Execution error: {error_data.get('message', 'Unknown error')}")
-                                    if debug and error_data.get('details'):
-                                        print(f"  Details: {json.dumps(error_data['details'], indent=2)}")
-                                    final_result['error'] = error_data.get('message', 'Unknown error')
-                                    
-                            except json.JSONDecodeError:
-                                if debug:
-                                    print(f"🐛 Debug: Malformed JSON line: {line}")
-                                pass  # Skip malformed JSON
-                    
-                    return final_result
-            else:
-                # Use V2 non-streaming endpoint
-                async with session.post(
-                    f"{API_URL}/api/diagrams/execute",
-                    json=payload,
-                    headers={"Content-Type": "application/json"}
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        return {
-                            "context": result.get("context", {}),
-                            "total_token_count": result.get("total_token_count", 0),
-                            "messages": []
-                        }
-                    else:
-                        error_text = await response.text()
-                        return {
-                            "context": {},
-                            "total_token_count": 0,
-                            "messages": [],
-                            "error": f"API execution failed: {response.status} - {error_text}"
-                        }
-        except Exception as e:
-            return {
-                "context": {},
-                "total_token_count": 0,
-                "messages": [],
-                "error": f"Execution error: {str(e)}"
+    """Execute diagram using WebSocket-based backend execution."""
+    # WebSocket URL
+    ws_url = f"ws://localhost:8000/api/ws"
+    
+    # Initialize result
+    final_result = {
+        "context": {},
+        "total_token_count": 0,
+        "messages": [],
+        "execution_id": None
+    }
+    
+    node_timings = {} if debug else None
+    
+    try:
+        async with websockets.connect(ws_url) as websocket:
+            # Send execute_diagram message
+            execution_message = {
+                "type": "execute_diagram",
+                "diagram": diagram,
+                "options": {
+                    "debugMode": debug,
+                    "stream": stream
+                }
             }
+            
+            await websocket.send(json.dumps(execution_message))
+            
+            if debug:
+                print(f"🐛 Debug: Sent execution request via WebSocket")
+            
+            # Process incoming messages
+            async for message in websocket:
+                try:
+                    data = json.loads(message)
+                    
+                    if debug:
+                        event_type = data.get('type', 'unknown')
+                        # Don't print full diagram for execution_started
+                        if event_type == 'execution_started':
+                            print(f"🐛 Debug: Event '{event_type}' - execution_id: {data.get('execution_id')}")
+                        else:
+                            print(f"🐛 Debug: Event '{event_type}' - {json.dumps(data, indent=2)}")
+                    
+                    # Handle different message types
+                    if data.get('type') == 'execution_started':
+                        final_result['execution_id'] = data.get('execution_id')
+                        if debug:
+                            print(f"🚀 Execution started with ID: {final_result['execution_id']}")
+                            print(f"  Total nodes: {data.get('total_nodes', 'unknown')}")
+                    
+                    elif data.get('type') == 'node_start':
+                        node_id = data.get('node_id', 'unknown')
+                        if debug:
+                            node_timings[node_id] = time.time()
+                            print(f"🐛 Starting node {node_id} ({data.get('node_type', 'unknown')})")
+                    
+                    elif data.get('type') == 'node_progress':
+                        if debug:
+                            node_id = data.get('node_id', 'unknown')
+                            message_text = data.get('message', '')
+                            print(f"  Progress [{node_id}]: {message_text}")
+                    
+                    elif data.get('type') == 'node_complete':
+                        node_id = data.get('node_id', 'unknown')
+                        node_type = data.get('node_type', 'unknown')
+                        
+                        if debug and node_id in node_timings:
+                            elapsed = time.time() - node_timings[node_id]
+                            print(f"✓ Node {node_id} ({node_type}) completed in {elapsed:.2f}s")
+                            if data.get('output'):
+                                print(f"  Output: {str(data['output'])[:100]}...")
+                        
+                        # Accumulate token count if available
+                        if 'token_count' in data:
+                            # Direct token count from backend
+                            tokens = data['token_count']
+                            final_result['total_token_count'] += tokens
+                            if debug:
+                                print(f"  Tokens: {tokens}")
+                        elif 'cost' in data:
+                            # Fallback: estimate tokens from cost (rough approximation)
+                            # Assuming ~$0.01 per 1000 tokens for simplicity
+                            estimated_tokens = int(data['cost'] * 100000)
+                            final_result['total_token_count'] += estimated_tokens
+                            if debug:
+                                print(f"  Cost: ${data['cost']:.4f} (~{estimated_tokens} tokens)")
+                    
+                    elif data.get('type') == 'node_skipped':
+                        if debug:
+                            node_id = data.get('node_id', 'unknown')
+                            reason = data.get('reason', 'unknown')
+                            print(f"⏭️  Node {node_id} skipped: {reason}")
+                    
+                    elif data.get('type') == 'node_error':
+                        node_id = data.get('node_id', 'unknown')
+                        error = data.get('error', 'Unknown error')
+                        print(f"❌ Node {node_id} error: {error}")
+                        if debug and data.get('details'):
+                            print(f"  Details: {json.dumps(data.get('details'), indent=2)}")
+                    
+                    elif data.get('type') == 'execution_complete':
+                        # Extract final results
+                        if 'data' in data:
+                            # New format: nested data structure
+                            exec_data = data['data']
+                            final_result['context'] = exec_data.get('context', {})
+                            # Get total token count directly
+                            if 'total_token_count' in exec_data:
+                                final_result['total_token_count'] = exec_data['total_token_count']
+                            elif 'context' in exec_data and 'tokens' in exec_data['context']:
+                                # Alternative: sum from token details
+                                tokens = exec_data['context']['tokens']
+                                final_result['total_token_count'] = tokens.get('input', 0) + tokens.get('output', 0)
+                        else:
+                            # Old format compatibility
+                            final_result['context'] = data.get('final_context', {})
+                            if 'total_cost' in data:
+                                # Estimate from cost if no token count
+                                final_result['total_token_count'] = int(data['total_cost'] * 100000)
+                        if 'duration' in data and debug:
+                            print(f"⏱️  Total execution time: {data['duration']:.2f}s")
+                        break  # Execution is complete
+                    
+                    elif data.get('type') == 'execution_error':
+                        error_msg = data.get('error', 'Unknown execution error')
+                        print(f"❌ Execution error: {error_msg}")
+                        final_result['error'] = error_msg
+                        break
+                    
+                    elif data.get('type') == 'interactive_prompt':
+                        # Handle interactive prompts if needed
+                        print(f"⚠️  Interactive prompt requested but not supported in CLI mode")
+                        print(f"  Prompt: {data.get('prompt', 'unknown')}")
+                        # Could implement interactive input here if needed
+                    
+                except json.JSONDecodeError:
+                    if debug:
+                        print(f"🐛 Debug: Malformed JSON message: {message}")
+                    pass  # Skip malformed JSON
+            
+            return final_result
+            
+    except (websockets.exceptions.WebSocketException, ConnectionRefusedError):
+        error_msg = f"Cannot connect to WebSocket at {ws_url}. Make sure the server is running."
+        print(f"❌ {error_msg}")
+        return {
+            "context": {},
+            "total_token_count": 0,
+            "messages": [],
+            "error": error_msg
+        }
+    except Exception as e:
+        return {
+            "context": {},
+            "total_token_count": 0,
+            "messages": [],
+            "error": f"Execution error: {str(e)}"
+        }
 
 
 
@@ -200,24 +242,44 @@ def export_uml(diagram: Dict[str, Any]) -> str:
     return result.get('output', '')
 
 
-def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = None):
-    """Broadcast diagram structure to browser monitors."""
+async def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: str = None):
+    """Broadcast diagram structure to browser monitors via WebSocket."""
+    from datetime import datetime
+    
     try:
-        import uuid
-        from datetime import datetime
+        ws_url = f"ws://localhost:8000/api/ws"
         
-        event_data = {
-            "type": "execution_started",
-            "execution_id": execution_id or f"cli_{uuid.uuid4().hex[:8]}",
-            "diagram": diagram,
-            "timestamp": datetime.now().isoformat(),
-            "from_cli": True
-        }
-        
-        response = requests.post(f"{API_URL}/api/monitor/broadcast", json=event_data)
-        return response.status_code == 200
+        async with websockets.connect(ws_url) as websocket:
+            # Send a monitor broadcast message
+            broadcast_message = {
+                "type": "broadcast_event",
+                "event": {
+                    "type": "execution_started",
+                    "execution_id": execution_id or f"cli_{uuid.uuid4().hex[:8]}",
+                    "diagram": diagram,
+                    "timestamp": datetime.now().isoformat(),
+                    "from_cli": True
+                }
+            }
+            
+            await websocket.send(json.dumps(broadcast_message))
+            return True
+            
     except Exception:
-        return False
+        # Fall back to REST endpoint if WebSocket fails
+        try:
+            event_data = {
+                "type": "execution_started",
+                "execution_id": execution_id or f"cli_{uuid.uuid4().hex[:8]}",
+                "diagram": diagram,
+                "timestamp": datetime.now().isoformat(),
+                "from_cli": True
+            }
+            
+            response = requests.post(f"{API_URL}/api/monitor/broadcast", json=event_data)
+            return response.status_code == 200
+        except Exception:
+            return False
 
 
 def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True, debug: bool = False) -> Dict[str, Any]:
@@ -239,7 +301,7 @@ def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initi
         if debug:
             print("🌐 Browser visualization enabled - open http://localhost:3000 to see execution")
         # Broadcast diagram structure to monitors
-        broadcast_diagram_to_monitors(diagram)
+        asyncio.run(broadcast_diagram_to_monitors(diagram))
     
     result = asyncio.run(run_diagram_backend_execution(diagram, stream=stream, debug=debug))
     
@@ -261,7 +323,7 @@ def open_browser_monitor():
 
 
 def wait_for_monitor_connection(timeout: int = 10, check_interval: float = 0.5) -> bool:
-    """Wait for at least one monitor to connect to the SSE endpoint."""
+    """Wait for at least one monitor to connect."""
     import time
     start_time = time.time()
     
@@ -333,7 +395,7 @@ def pre_initialize_models(diagram: Dict[str, Any], verbose: bool = False) -> Dic
     person_models = extract_person_models(diagram)
     
     if not person_models:
-        return {"message": "No person nodes with complete model configuration found", "initialized": 0}
+        return {"message": "No person nodes with complete model configuration found", "initialized": 0, "failed": 0}
     
     if verbose:
         print(f"Found {len(person_models)} unique model(s) in diagram")
@@ -469,12 +531,10 @@ def main():
                     print("⚠️  No monitor connected within timeout, continuing anyway")
                 
                 # Now broadcast diagram structure to connected monitors
-                import uuid
                 execution_id = f"cli_{uuid.uuid4().hex[:8]}"
-                broadcast_diagram_to_monitors(diagram, execution_id)
+                asyncio.run(broadcast_diagram_to_monitors(diagram, execution_id))
                 
                 # Delay to ensure diagram is loaded and rendered in browser
-                # Reduced delay since SSE connects faster now
                 time.sleep(1.0)
                 
                 # Run diagram - disable show_in_browser to prevent double broadcast

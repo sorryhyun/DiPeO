@@ -184,27 +184,13 @@ class DBExecutor(BaseExecutor):
             
             api_type = api_config.get("apiType", "").lower()
             
-            if api_type == "notion":
-                return await self._execute_notion_api(api_config)
-            else:
-                raise ValidationError(f"Unsupported API type: {api_type}")
+            # Currently no API types are supported
+            # This structure is kept for future API integrations
+            raise ValidationError(f"API type '{api_type}' is not currently supported")
         
         except json.JSONDecodeError:
             raise ValidationError("Invalid API configuration JSON")
     
-    async def _execute_notion_api(self, api_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute Notion API calls
-        
-        This is a placeholder for future Notion API integration.
-        When implemented, it will support:
-        - Database queries and updates
-        - Page creation and modification
-        - Block manipulation
-        """
-        raise NotImplementedError(
-            "Notion API integration is planned for a future release. "
-            "Please use file-based operations or other supported API types for now."
-        )
     
     async def _execute_code(self, code_snippet: str, inputs: list) -> Dict[str, Any]:
         """Execute code in sandbox environment"""

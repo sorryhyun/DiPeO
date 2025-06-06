@@ -1,7 +1,7 @@
 from typing import Any, List, Dict, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from ..engine.executors.token_utils import TokenUsage
+    from .token_usage import TokenUsage
 
 
 class OutputProcessor:

@@ -10,6 +10,8 @@ class NodeType(Enum):
     DB = "db"
     JOB = "job"
     ENDPOINT = "endpoint"
+    USER_RESPONSE = "user_response"
+    NOTION = "notion"
     
 
 class DBBlockSubType(Enum):
@@ -41,10 +43,25 @@ DEFAULT_TEMPERATURE: Final[float] = 0.7
 SUPPORTED_DOC_EXTENSIONS: Final[set[str]] = {".txt", ".md", ".docx", ".pdf"}
 SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {".py", ".js", ".ts", ".json", ".yaml", ".yml"}
 
-# Token pricing rates per million tokens (kept for reference but not actively used)
-# COST_RATES: Final[dict[str, dict[str, float]]] = {
-#     "openai": {"input": 2.0, "output": 8.0, "cached": 0.5},
-#     "claude": {"input": 3.0, "output": 15.0},
-#     "gemini": {"input": 3.0, "output": 15.0},
-#     "grok": {"input": 2.5, "output": 10.0}
-# }
+# Service name mapping for normalization
+SERVICE_TO_PROVIDER_MAP: Final[dict[str, str]] = {
+    "openai": "openai",
+    "chatgpt": "openai",
+    "claude": "anthropic",
+    "anthropic": "anthropic",
+    "gemini": "google",
+    "google": "google",
+    "grok": "xai",
+    "xai": "xai"
+}
+
+# Provider to LLM service enum mapping
+PROVIDER_TO_ENUM_MAP: Final[dict[str, LLMService]] = {
+    "openai": LLMService.OPENAI,
+    "anthropic": LLMService.CLAUDE,
+    "google": LLMService.GEMINI,
+    "xai": LLMService.GROK
+}
+
+# Default service when none specified
+DEFAULT_SERVICE: Final[str] = "openai"

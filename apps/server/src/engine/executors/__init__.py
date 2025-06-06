@@ -10,6 +10,8 @@ from .job_executor import JobExecutor
 from .endpoint_executor import EndpointExecutor
 from .person_job_executor import PersonJobExecutor, PersonBatchJobExecutor
 from .db_executor import DBExecutor
+from .user_response_executor import UserResponseExecutor
+from .notion_executor import NotionExecutor
 from .utils import (
     get_input_values,
     substitute_variables,
@@ -33,13 +35,14 @@ from .validator import (
 )
 
 
-def create_executors(llm_service=None, file_service=None) -> Dict[str, BaseExecutor]:
+def create_executors(llm_service=None, file_service=None, notion_service=None) -> Dict[str, BaseExecutor]:
     """
     Create executor instances based on available services.
     
     Args:
         llm_service: LLMService instance for LLM-based executors
         file_service: FileService instance for file operations
+        notion_service: NotionService instance for Notion API operations
         
     Returns:
         Dictionary mapping node types to executor instances
@@ -49,6 +52,7 @@ def create_executors(llm_service=None, file_service=None) -> Dict[str, BaseExecu
         "condition": ConditionExecutor(),
         "job": JobExecutor(),
         "endpoint": EndpointExecutor(file_service),
+        "user_response": UserResponseExecutor(),
     }
     
     # Add LLM-based executors if service is available
@@ -67,6 +71,10 @@ def create_executors(llm_service=None, file_service=None) -> Dict[str, BaseExecu
     if file_service:
         executors["db"] = DBExecutor(file_service)
     
+    # Add Notion executor if service is available
+    if notion_service:
+        executors["notion"] = NotionExecutor(notion_service)
+    
     return executors
 
 
@@ -81,6 +89,8 @@ __all__ = [
     "PersonJobExecutor",
     "PersonBatchJobExecutor",
     "DBExecutor",
+    "UserResponseExecutor",
+    "NotionExecutor",
     "create_executors",
     # Utility functions
     "get_input_values",

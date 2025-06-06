@@ -1,4 +1,6 @@
 // Type declarations for File System Access API
+type BufferSource = ArrayBufferView | ArrayBuffer;
+
 interface FileSystemWritableFileStream extends WritableStream {
   write(data: BufferSource | Blob | string): Promise<void>;
   seek(position: number): Promise<void>;
@@ -21,7 +23,6 @@ interface SaveFilePickerOptions {
 declare global {
   interface Window {
     showSaveFilePicker?: (options?: SaveFilePickerOptions) => Promise<FileSystemFileHandle>;
-    __earlySSEConnection?: EventSource;
   }
 }
 

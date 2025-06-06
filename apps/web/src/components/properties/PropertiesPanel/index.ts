@@ -1,0 +1,1 @@
+export { UniversalPropertiesPanel } from './PropertiesPanel';

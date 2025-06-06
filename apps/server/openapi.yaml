@@ -6,14 +6,14 @@ info:
     that executes agent diagrams through a unified backend execution engine.
     
     This API provides endpoints for:
-    - Diagram execution with real-time SSE streaming
+    - Diagram execution with real-time WebSocket streaming
     - API key management for LLM providers
     - File operations and uploads
     - Conversation memory management
     - Real-time execution monitoring
     
     All diagram nodes execute server-side through the V2 API with consistent
-    execution, centralized security, and SSE streaming for real-time updates.
+    execution, centralized security, and WebSocket streaming for real-time updates.
   version: 2.0.1
   license:
     name: MIT
@@ -43,9 +43,8 @@ paths:
         - diagram
       summary: Execute a diagram
       description: |
-        Execute a diagram using the unified backend execution engine with SSE streaming.
-        This endpoint consolidates all node execution on the backend, providing real-time
-        updates via Server-Sent Events for each node's execution status.
+        Execute a diagram using the unified backend execution engine.
+        This endpoint consolidates all node execution on the backend.
         
         The execution engine pre-initializes LLM models based on the diagram's person 
         configurations for improved performance before starting the actual execution.
@@ -102,41 +101,18 @@ paths:
                       description: Enable debug mode with detailed logging
       responses:
         '200':
-          description: Execution stream started
+          description: Execution started
           content:
-            text/event-stream:
+            application/json:
               schema:
-                type: string
-                description: |
-                  Server-Sent Events stream with execution updates.
-                  Event types include:
-                  - execution_started
-                  - node_start
-                  - node_progress
-                  - node_complete
-                  - node_skipped
-                  - node_error
-                  - execution_complete
-                  - execution_error
-              examples:
-                executionStarted:
-                  value: |
-                    data: {"type": "execution_started", "execution_id": "exec_1234567890", "total_nodes": 5}
-                nodeStart:
-                  value: |
-                    data: {"type": "node_start", "nodeId": "node_123", "nodeType": "person_job", "iteration_count": 0}
-                nodeProgress:
-                  value: |
-                    data: {"type": "node_progress", "nodeId": "node_123", "message": "Calling LLM API..."}
-                nodeComplete:
-                  value: |
-                    data: {"type": "node_complete", "nodeId": "node_123", "output": {"result": "Hello, World!"}, "cost": 0.0002, "iteration_count": 0}
-                nodeSkipped:
-                  value: |
-                    data: {"type": "node_skipped", "nodeId": "node_456", "reason": "max_iterations_reached"}
-                executionComplete:
-                  value: |
-                    data: {"type": "execution_complete", "execution_id": "exec_1234567890", "total_cost": 0.0005, "duration": 2.34, "nodes_executed": 5, "nodes_skipped": 1}
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                    example: "exec_1234567890"
+                  message:
+                    type: string
+                    example: "Diagram execution started. Connect to WebSocket for real-time updates."
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -656,94 +632,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/monitor/stream:
-    get:
-      tags:
-        - monitor
-      summary: Monitor execution stream
-      description: |
-        SSE endpoint for monitoring all diagram executions.
-        This endpoint allows multiple clients to monitor execution status
-        across all running diagrams in real-time.
-      operationId: monitorStream
-      responses:
-        '200':
-          description: SSE stream established
-          content:
-            text/event-stream:
-              schema:
-                type: string
-                description: Server-Sent Events stream
-              examples:
-                monitorConnected:
-                  value: |
-                    data: {"type": "monitor_connected", "monitor_id": "uuid-1234"}
-                heartbeat:
-                  value: |
-                    data: {"type": "heartbeat", "timestamp": 1234567890.123}
-                executionBroadcast:
-                  value: |
-                    data: {"type": "node_complete", "nodeId": "node_123", "execution_id": "exec_cli_1234", "source": "cli"}
-
-  /api/monitor/status:
-    get:
-      tags:
-        - monitor
-      summary: Get monitor status
-      description: Get current monitoring status
-      operationId: getMonitorStatus
-      responses:
-        '200':
-          description: Monitor status
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  active_monitors:
-                    type: integer
-                    description: Number of active monitor connections
-                  monitor_ids:
-                    type: array
-                    items:
-                      type: string
-                    description: List of active monitor IDs
-
-  /api/monitor/broadcast:
-    post:
-      tags:
-        - monitor
-      summary: Broadcast event
-      description: |
-        Broadcast an event to all monitor connections.
-        Used by CLI and external executions to notify browser monitors.
-      operationId: broadcastEvent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Event data to broadcast
-              additionalProperties: true
-      responses:
-        '200':
-          description: Event broadcasted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  broadcasted_to:
-                    type: integer
-                    description: Number of monitors that received the event
-                  message:
-                    type: string
-                  error:
-                    type: string
-                    description: Present only if success is false
 
   /metrics:
     get:

@@ -9,7 +9,7 @@ import logging
 
 from .base_executor import BaseExecutor, ExecutorResult
 from .utils import get_input_values
-from .validator import ValidationResult
+from .validator import ValidationResult, validate_required_fields, validate_enum_field
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +30,33 @@ class ConditionExecutor(BaseExecutor):
         properties = node.get("properties", {})
         condition_type = properties.get("conditionType", "expression")
         
-        if condition_type == "expression":
-            # Validate condition expression
-            expression = properties.get("expression", "")
-            if not expression:
-                errors.append("Condition expression is required")
-            else:
-                # Basic expression validation
-                if not any(op in expression for op in ["==", "!=", "<", ">", "<=", ">=", "and", "or", "true", "false"]):
-                    warnings.append("Expression may not contain valid comparison operators")
+        # Validate condition type enum
+        enum_error = validate_enum_field(
+            properties, 
+            "conditionType", 
+            ["expression", "detect_max_iterations"],
+            case_sensitive=True
+        )
+        if enum_error:
+            errors.append(enum_error)
         
-        elif condition_type in ["detect_max_iterations"]:
+        if condition_type == "expression":
+            # Validate required expression field
+            field_errors = validate_required_fields(
+                properties,
+                ["expression"],
+                {"expression": "Condition expression"}
+            )
+            errors.extend(field_errors)
+            
+            # Basic expression validation
+            expression = properties.get("expression", "")
+            if expression and not any(op in expression for op in ["==", "!=", "<", ">", "<=", ">=", "and", "or", "true", "false"]):
+                warnings.append("Expression may not contain valid comparison operators")
+        
+        elif condition_type == "detect_max_iterations":
             # No specific validation needed for max_iterations type
             pass
-        else:
-            errors.append(f"Invalid condition type: {condition_type}")
         
         return ValidationResult(
             is_valid=len(errors) == 0,
@@ -205,7 +217,7 @@ class ConditionExecutor(BaseExecutor):
             # Check if this node has max iterations defined
             execution_count = context.node_execution_counts.get(source_node_id, 0)
             node_properties = source_node.get("properties", {})
-            max_iterations = node_properties.get("iterationCount")
+            max_iterations = node_properties.get("maxIteration")
             
             if max_iterations:
                 has_nodes_with_max_iterations = True
@@ -241,7 +253,7 @@ class ConditionExecutor(BaseExecutor):
                     
                     execution_count = context.node_execution_counts.get(check_node_id, 0)
                     node_properties = loop_node.get("properties", {})
-                    max_iterations = node_properties.get("iterationCount")
+                    max_iterations = node_properties.get("maxIteration")
                     
                     if max_iterations:
                         has_nodes_with_max_iterations = True

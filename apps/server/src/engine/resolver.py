@@ -1,8 +1,7 @@
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from collections import deque, defaultdict
 import logging
 
-# node_type_utils no longer needed - all types are already snake_case
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +78,11 @@ class DependencyResolver:
         required_arrows = []
         first_only_arrows = []
         
+        # Special handling for PersonJob nodes
+        properties = node.get("properties", {})
+        node_type = properties.get("type", node["type"])
+        is_person_job = node_type in ["person_job", "person_batch_job"]
+        
         # Categorize arrows
         for arrow in incoming:
             source_id = arrow["source"]
@@ -88,14 +92,39 @@ class DependencyResolver:
                 self.logger.debug(f"Source node {source_id} not found for arrow to {node_id}")
                 continue
                 
-            # Check if this is a first-only input
-            is_first = self._is_first_only_arrow(arrow, node)
-            self.logger.debug(f"Arrow from {source_id} to {node_id}: is_first_only={is_first}, targetHandle={arrow.get('targetHandle', '')}")
+            target_handle = arrow.get("targetHandle", "")
             
-            if is_first:
-                first_only_arrows.append(arrow)
+            # For PersonJob nodes, categorize based on handle and execution count
+            if is_person_job:
+                # Check if this is a "first" handle
+                is_first_handle = (target_handle == "first" or 
+                                 target_handle.endswith("-first") or 
+                                 target_handle.endswith("-input-first"))
+                
+                if is_first_handle:
+                    if execution_count == 0:
+                        # On first execution, "first" handle arrows are required
+                        required_arrows.append(arrow)
+                    else:
+                        # On subsequent executions, "first" handle arrows are ignored
+                        continue
+                else:
+                    # Default handle arrows (anything not "first")
+                    if execution_count == 0:
+                        # On first execution, "default" handle arrows are ignored
+                        continue
+                    else:
+                        # On subsequent executions, "default" handle arrows are required
+                        required_arrows.append(arrow)
             else:
-                required_arrows.append(arrow)
+                # For non-PersonJob nodes, use the original logic
+                is_first = self._is_first_only_arrow(arrow, node)
+                self.logger.debug(f"Arrow from {source_id} to {node_id}: is_first_only={is_first}, targetHandle={arrow.get('targetHandle', '')}")
+                
+                if is_first:
+                    first_only_arrows.append(arrow)
+                else:
+                    required_arrows.append(arrow)
         
         # Check required dependencies
         for arrow in required_arrows:
@@ -140,9 +169,11 @@ class DependencyResolver:
         properties = target_node.get("properties", {})
         node_type = properties.get("type", target_node["type"])
         if node_type in ["person_job", "person_batch_job"]:
-            # Check if the arrow's targetHandle ends with "-first"
+            # Check if the arrow's targetHandle is "first"
             target_handle = arrow.get("targetHandle", "")
-            return target_handle.endswith("-first")
+            return (target_handle == "first" or 
+                   target_handle.endswith("-first") or 
+                   target_handle.endswith("-input-first"))
         return False
     
     def _is_arrow_dependency_met(self, arrow: Dict, context: 'ExecutionContext') -> bool:

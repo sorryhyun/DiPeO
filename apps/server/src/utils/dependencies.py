@@ -13,6 +13,7 @@ from .app_context import (
     get_diagram_service,
     get_file_service,
     get_memory_service,
+    get_app_context,
     lifespan
 )
 
@@ -22,5 +23,6 @@ __all__ = [
     'get_diagram_service',
     'get_file_service',
     'get_memory_service',
+    'get_app_context',
     'lifespan'
 ]

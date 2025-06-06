@@ -3,6 +3,8 @@ from .diagram_service import DiagramService
 from .llm_service import LLMService
 from .memory_service import MemoryService
 from .file_service import FileService
+from .execution_service import ExecutionService
+from .notion_service import NotionService
 
 __all__ = [
     "APIKeyService",
@@ -10,4 +12,6 @@ __all__ = [
     "LLMService",
     "MemoryService",
     "FileService",
+    "ExecutionService",
+    "NotionService",
 ]
