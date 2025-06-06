@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PanelConfig, PanelFieldConfig, PropertyFieldConfig, SelectFieldConfig } from '@/types';
 import { usePropertyManager } from '@/hooks/usePropertyManager';
-import { useIsReadOnly } from '@/hooks/useStoreSelectors';
+import { useIsReadOnly, usePersons } from '@/hooks/useStoreSelectors';
 import { UnifiedFormField } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { preInitializeModel } from '@/utils/api';
@@ -25,6 +25,15 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   
   // Check if we're in monitor mode (read-only)
   const isMonitorMode = useIsReadOnly();
+  
+  // Get persons data from store
+  const { persons } = usePersons();
+  
+  // Convert persons to the format expected by UnifiedFormField
+  const personsForSelect = useMemo(() => 
+    persons.map(person => ({ id: person.id, name: person.label })),
+    [persons]
+  );
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
@@ -351,6 +360,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             onChange={(v) => updateField('personId', v)}
             placeholder={fieldConfig.personPlaceholder}
             disabled={isMonitorMode}
+            persons={personsForSelect}
           />
         </FormRow>
       );
@@ -404,6 +414,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         detectedVariables={formData.detectedVariables as string[] | undefined}
         className={fieldConfig.className}
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
+        persons={getFieldType() === 'person-select' ? personsForSelect : undefined}
       />
     );
   };

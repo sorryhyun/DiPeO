@@ -217,7 +217,7 @@ class ConditionExecutor(BaseExecutor):
             # Check if this node has max iterations defined
             execution_count = context.node_execution_counts.get(source_node_id, 0)
             node_properties = source_node.get("properties", {})
-            max_iterations = node_properties.get("iterationCount")
+            max_iterations = node_properties.get("maxIteration")
             
             if max_iterations:
                 has_nodes_with_max_iterations = True
@@ -253,7 +253,7 @@ class ConditionExecutor(BaseExecutor):
                     
                     execution_count = context.node_execution_counts.get(check_node_id, 0)
                     node_properties = loop_node.get("properties", {})
-                    max_iterations = node_properties.get("iterationCount")
+                    max_iterations = node_properties.get("maxIteration")
                     
                     if max_iterations:
                         has_nodes_with_max_iterations = True

@@ -124,12 +124,16 @@ class PersonJobExecutor(BaseExecutor):
         if not person_config and person_id:
             person_config = context.persons.get(person_id, {})
         
-        # Get input values for variable substitution
-        inputs = get_input_values(node, context)
-        
-        # Check iteration count and handle first-only logic
+        # Check iteration count to determine which handle to use
         execution_count = context.node_execution_counts.get(node_id, 0)
         max_iterations = properties.get("maxIteration")
+        
+        # Determine which handle to use for inputs based on execution count
+        # First execution (count=0) uses "first" handle, subsequent use "default" handle
+        target_handle = "first" if execution_count == 0 else "default"
+        
+        # Get input values for variable substitution from the appropriate handle
+        inputs = get_input_values(node, context, target_handle_filter=target_handle)
         
         # Skip if max iterations reached
         if max_iterations and execution_count >= max_iterations:

@@ -8,7 +8,6 @@ import { useDiagramRunner } from './hooks/useDiagramRunner';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
-const LazyMemoryCanvas = React.lazy(() => import('./components/execution/MemoryCanvas').then(module => ({ default: module.MemoryCanvas })));
 const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
@@ -80,11 +79,11 @@ function App() {
               </Suspense>
             ) : activeCanvas === 'execution' ? (
               <Suspense fallback={
-                <div className="h-full bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center">
-                  <div className="text-gray-400 animate-pulse">Loading memory canvas...</div>
+                <div className="h-full bg-black flex items-center justify-center">
+                  <div className="text-gray-400 animate-pulse">Loading execution view...</div>
                 </div>
               }>
-                <LazyMemoryCanvas />
+                <LazyExecutionView />
               </Suspense>
             ) : (
               <Suspense fallback={

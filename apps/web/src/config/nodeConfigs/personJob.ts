@@ -22,11 +22,11 @@ export const personJobNodeConfig: NodeConfigItem = {
       label: 'Context Cleaning', 
       required: true,
       options: [
-        { value: 'none', label: 'No Cleaning' },
-        { value: 'trim', label: 'Trim Old Messages' },
-        { value: 'summarize', label: 'Summarize Context' }
+        { value: 'no_forget', label: 'No Forgetting' },
+        { value: 'on_every_turn', label: 'Forget on Every Turn' },
+        { value: 'upon_request', label: 'Forget Upon Request' }
       ]
     }
   ],
-  defaults: { personId: '', maxIteration: 1, firstOnlyPrompt: '', defaultPrompt: '', contextCleaningRule: 'none' }
+  defaults: { personId: '', maxIteration: 1, firstOnlyPrompt: '', defaultPrompt: '', contextCleaningRule: 'no_forget' }
 };

@@ -11,13 +11,14 @@ if TYPE_CHECKING:
     from ..engine import ExecutionContext
 
 
-def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[str, Any]:
+def get_input_values(node: Dict[str, Any], context: 'ExecutionContext', target_handle_filter: str = None) -> Dict[str, Any]:
     """
     Get input values for a node from incoming arrows.
     
     Args:
         node: The node to get inputs for
         context: Execution context with arrow information
+        target_handle_filter: Optional filter to only include arrows connected to specific handle
         
     Returns:
         Dictionary mapping arrow labels to their values
@@ -30,6 +31,15 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[
     from ...utils.output_processor import OutputProcessor
     
     for arrow in incoming:
+        # If we have a handle filter, check if this arrow matches
+        if target_handle_filter:
+            target_handle = arrow.get("targetHandle", "")
+            # Check if handle ends with the filter value (e.g., "-first" or "-default")
+            # or matches exactly (for backwards compatibility)
+            if not (target_handle.endswith(f"-{target_handle_filter}") or 
+                    target_handle == target_handle_filter):
+                continue
+        
         source_id = arrow["source"]
         # Handle both direct label and nested data.label structure
         label = arrow.get("label", "")
@@ -44,23 +54,7 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext') -> Dict[
             content_type = arrow.get("contentType")
             if not content_type and "data" in arrow:
                 content_type = arrow["data"].get("contentType")
-            
-            # Special handling for condition nodes - inherit content type from their inputs
-            source_node = context.nodes_by_id.get(source_id)
-            if source_node and source_node.get("properties", {}).get("type") == "condition":
-                # If source is a condition node and no explicit content type, 
-                # inherit from the condition's incoming arrow
-                if not content_type or content_type == "raw_text":
-                    condition_incoming = context.incoming_arrows.get(source_id, [])
-                    if condition_incoming:
-                        # Get the first incoming arrow's content type
-                        first_arrow = condition_incoming[0]
-                        inherited_type = first_arrow.get("contentType")
-                        if not inherited_type and "data" in first_arrow:
-                            inherited_type = first_arrow["data"].get("contentType")
-                        if inherited_type:
-                            content_type = inherited_type
-            
+
             # Handle content type
             if content_type == "conversation_state":
                 # Pass the full structured output with conversation history

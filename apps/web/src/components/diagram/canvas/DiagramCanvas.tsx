@@ -132,7 +132,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     <div className="h-full flex flex-col">
       {executionMode ? (
         // In execution mode, show only the canvas without property panel
-        <div className="h-full w-full relative outline-none" ref={reactFlowWrapper} tabIndex={0} style={{ minHeight: '400px', position: 'relative' }}>
+        <div className="h-full w-full relative outline-none" ref={reactFlowWrapper} tabIndex={0} style={{ minHeight: '100%', height: '100%', position: 'relative' }}>
           {/* Main diagram layer */}
           <div className="absolute inset-0">
             <ReactFlow

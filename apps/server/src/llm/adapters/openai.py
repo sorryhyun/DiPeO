@@ -141,6 +141,7 @@ class ChatGPTAdapter(BaseAdapter):
                 adjusted_messages.append(adjusted_msg)
 
             # Make the API call with adjusted messages
+            print(adjusted_messages)
             response = self.client.responses.create(
                 model=self.model_name,
                 input=adjusted_messages,
