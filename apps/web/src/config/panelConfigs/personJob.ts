@@ -20,11 +20,6 @@ export const personJobPanelConfig: PanelConfig<Record<string, any>> = {
     {
       type: 'maxIteration',
       name: 'maxIteration'
-    },
-    {
-      type: 'checkbox',
-      name: 'interactive',
-      label: 'Interactive Mode - Wait for user input before LLM call'
     }
   ],
   rightColumn: [

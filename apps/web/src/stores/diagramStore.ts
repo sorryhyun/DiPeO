@@ -355,7 +355,13 @@ export const useDiagramStore = create<DiagramStore>()(
               }),
 
             exportDiagram: () => ({
-              nodes: get().nodeList(),
+              nodes: get().nodeList().map(node => ({
+                ...node,
+                position: {
+                  x: Math.round(node.position.x * 10) / 10,
+                  y: Math.round(node.position.y * 10) / 10
+                }
+              })),
               arrows: get().arrowList(),
               persons: get().personList(),
               apiKeys: get().apiKeyList()

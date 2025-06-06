@@ -13,8 +13,7 @@ import {
   getFileExtension,
   getMimeType,
   saveDiagramToBackend,
-  FileFormat,
-  SaveFileOptions
+  FileFormat
 } from '@/utils/file';
 
 export type SupportedFormat = 'json' | 'yaml' | 'llm-yaml';
@@ -239,8 +238,8 @@ export const useFileOperations = () => {
     }
   }, [downloadEnhanced]);
 
-  // Save to backend directory
-  const saveDiagramAs = useCallback(async (format: SupportedFormat, filename?: string) => {
+  // Save to backend directory using the export functionality
+  const saveDiagramToServer = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
       const diagramData = exportDiagramState();
@@ -428,11 +427,11 @@ export const useFileOperations = () => {
     exportLLMYAML: () => exportDiagramAs('llm-yaml'),
     exportDiagramAs,
     
-    // Save operations
-    saveJSON: (filename?: string) => saveDiagramAs('json', filename),
-    saveYAML: (filename?: string) => saveDiagramAs('yaml', filename),
-    saveLLMYAML: (filename?: string) => saveDiagramAs('llm-yaml', filename),
-    saveDiagramAs,
+    // Save operations (save to server)
+    saveJSON: (filename?: string) => saveDiagramToServer('json', filename),
+    saveYAML: (filename?: string) => saveDiagramToServer('yaml', filename),
+    saveLLMYAML: (filename?: string) => saveDiagramToServer('llm-yaml', filename),
+    saveDiagramAs: saveDiagramToServer, // Deprecated - use exportDiagramAs for downloads
     
     // Download operations
     download,
@@ -455,5 +454,8 @@ export const useFileOperations = () => {
     safeImport: withFileErrorHandling(importFile, 'Import file'),
     safeExport: withFileErrorHandling((format: SupportedFormat) => exportDiagramAs(format), 'Export file'),
     safeDownload: withFileErrorHandling(download, 'Download file'),
+    
+    // Save to server
+    saveDiagramToServer,
   };
 };

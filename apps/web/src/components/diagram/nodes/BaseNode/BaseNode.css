@@ -75,6 +75,27 @@
   box-shadow: 0 4px 6px -1px var(--shadow-color);
 }
 
+/* Force handles to be positioned on the edge */
+.react-flow__handle {
+  position: absolute !important;
+}
+
+.react-flow__handle-top {
+  top: -8px !important;
+}
+
+.react-flow__handle-bottom {
+  bottom: -8px !important;
+}
+
+.react-flow__handle-left {
+  left: -8px !important;
+}
+
+.react-flow__handle-right {
+  right: -8px !important;
+}
+
 /* Handle colors for different node colors */
 [data-node-color="gray"] .react-flow__handle {
   background-color: rgb(107 114 128); /* gray-500 */

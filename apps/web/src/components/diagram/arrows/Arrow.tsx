@@ -137,8 +137,8 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
         const newControlY = dragRef.current.controlY + deltaY;
         
         onUpdateData(id, {
-          controlPointOffsetX: newControlX,
-          controlPointOffsetY: newControlY,
+          controlPointOffsetX: Math.round(newControlX * 10) / 10,
+          controlPointOffsetY: Math.round(newControlY * 10) / 10,
         });
       }
     };

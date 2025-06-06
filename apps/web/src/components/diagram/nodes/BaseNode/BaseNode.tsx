@@ -63,8 +63,8 @@ export function BaseNode({
       
       const offset = handle.offset || { x: 0, y: 0 };
       const style = isVertical 
-        ? { left: '50%', transform: `translateX(-50%) translateX(${offset.x}px)` }
-        : { top: '50%', transform: `translateY(-50%) translateY(${offset.y}px)` };
+        ? { left: `${50 + (offset.x / 2)}%`, transform: `translateX(-50%)` }
+        : { top: `${50 + (offset.y / 2)}%`, transform: `translateY(-50%)` };
       
       return {
         type: handle.type,
