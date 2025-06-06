@@ -17,7 +17,7 @@ import {
   personConfig,
   userResponseConfig,
   notionConfig
-} from '../features/properties/configs';
+} from '../config';
 
 export interface UnifiedNodeConfig {
   nodeType: string;

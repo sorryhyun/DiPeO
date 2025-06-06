@@ -1,19 +1,19 @@
 // Application root component
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { TopBar, Sidebar } from './features/layout';
-import { useExecutionMonitor } from './state/hooks/useExecutionMonitor';
+import { TopBar, Sidebar } from './components/layout';
+import { useExecutionMonitor } from './hooks/useExecutionMonitor';
 import { useConsolidatedUIStore } from './state/stores';
 import { useDiagramStore } from './state/stores';
-import { useDiagramRunner } from './features/runtime/hooks/useDiagramRunner';
+import { useDiagramRunner } from './hooks/useDiagramRunner';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('./features/canvas').then(module => ({ default: module.DiagramCanvas })));
-const LazyMemoryCanvas = React.lazy(() => import('./features/memory').then(module => ({ default: module.MemoryCanvas })));
-const LazyExecutionView = React.lazy(() => import('./features/layout').then(module => ({ default: module.ExecutionView })));
+const LazyDiagramCanvas = React.lazy(() => import('./components/canvas/DiagramCanvas'));
+const LazyMemoryCanvas = React.lazy(() => import('./components/panels/MemoryCanvas').then(module => ({ default: module.MemoryCanvas })));
+const LazyExecutionView = React.lazy(() => import('./components/layout/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyWebSocketTest = React.lazy(() => import('./features/runtime/components/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
-const LazyInteractivePromptModal = React.lazy(() => import('@/features/runtime/components/InteractivePromptModal'));
+const LazyWebSocketTest = React.lazy(() => import('./components/panels/WebSocketTest').then(module => ({ default: module.default })));
+const LazyInteractivePromptModal = React.lazy(() => import('./components/panels/InteractivePromptModal'));
 
 function App() {
   const { activeCanvas } = useConsolidatedUIStore();
@@ -72,7 +72,7 @@ function App() {
 
           {/* Right Content - Canvas switching based on activeCanvas */}
           <div className="flex-1 flex flex-col">
-            {activeCanvas === 'diagram' ? (
+            {activeCanvas === 'main' ? (
               <Suspense fallback={
                 <div className="h-full bg-gradient-to-br from-slate-50 to-sky-100 flex items-center justify-center">
                   <div className="text-gray-500 animate-pulse">Loading diagram canvas...</div>
