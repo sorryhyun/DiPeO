@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
+import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 
 import { Node } from '@/types/core';
 import {useUISelectors, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
@@ -229,6 +229,11 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
 
       // Delete key
       if (e.key === 'Delete') {
+        console.log('[useCanvasInteractions] Delete key pressed', {
+          selectedNodeId,
+          selectedArrowId,
+          hasShortcutHandler: !!shortcuts?.onDelete
+        });
         e.preventDefault();
         if (shortcuts?.onDelete) {
           shortcuts.onDelete();
@@ -359,7 +364,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
   // Additional helper functions
   const hasSelection = selectedNodeId !== null || selectedArrowId !== null;
   
-  const find = useCallback((nodeId: string) => {
+  const find = useCallback((_nodeId: string) => {
     // This is a placeholder - implement actual node finding logic if needed
     return undefined;
   }, []);

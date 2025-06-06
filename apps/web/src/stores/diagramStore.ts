@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
 import { Node, Arrow, Person, ApiKey } from '@/types';
+import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
 
 export interface DiagramStore {
   // Data
@@ -12,12 +13,12 @@ export interface DiagramStore {
   
   // Node actions
   addNode: (type: Node['type'], position: { x: number; y: number }) => void;
-  updateNode: (id: string, data: any) => void;
+  updateNode: (id: string, data: Record<string, unknown>) => void;
   deleteNode: (id: string) => void;
   
   // Arrow actions
   addArrow: (source: string, target: string, sourceHandle?: string, targetHandle?: string) => void;
-  updateArrow: (id: string, data: any) => void;
+  updateArrow: (id: string, data: Record<string, unknown>) => void;
   deleteArrow: (id: string) => void;
   
   // Person actions
@@ -48,9 +49,9 @@ export interface DiagramStore {
   setReadOnly?: (readOnly: boolean) => void;
   
   // Flow compatibility
-  onNodesChange?: (changes: any) => void;
-  onArrowsChange?: (changes: any) => void;
-  onConnect?: (connection: any) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onArrowsChange: (changes: EdgeChange[]) => void;
+  onConnect: (connection: Connection) => void;
 }
 
 export const useDiagramStore = create<DiagramStore>()(
@@ -190,9 +191,32 @@ export const useDiagramStore = create<DiagramStore>()(
         setReadOnly: (readOnly: boolean) => set({ isReadOnly: readOnly }),
         
         // Flow compatibility
-        onNodesChange: () => {},
-        onArrowsChange: () => {},
-        onConnect: () => {}
+        onNodesChange: (changes) => {
+          set({
+            nodes: applyNodeChanges(changes, get().nodes) as Node[]
+          });
+        },
+        
+        onArrowsChange: (changes) => {
+          set({
+            arrows: applyEdgeChanges(changes, get().arrows).map(edge => ({
+              ...edge,
+              sourceHandle: edge.sourceHandle || undefined,
+              targetHandle: edge.targetHandle || undefined
+            })) as Arrow[]
+          });
+        },
+        
+        onConnect: (connection) => {
+          if (connection.source && connection.target) {
+            get().addArrow(
+              connection.source,
+              connection.target,
+              connection.sourceHandle || undefined,
+              connection.targetHandle || undefined
+            );
+          }
+        }
       }),
       {
         name: 'dipeo-diagram',

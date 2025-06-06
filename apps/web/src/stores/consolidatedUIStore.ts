@@ -57,7 +57,14 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
       
       // Selection actions (unified interface)
       select: (id, type) => {
-        set({ selection: { id, type } });
+        console.log('[consolidatedUIStore] select:', { id, type });
+        set({ 
+          selection: { id, type },
+          // Update legacy compatibility fields
+          selectedNodeId: type === 'node' ? id : null,
+          selectedArrowId: type === 'arrow' ? id : null,
+          selectedPersonId: type === 'person' ? id : null,
+        });
         // Auto-switch dashboard tab based on selection
         if (type === 'person') {
           set({ dashboardTab: 'persons' });
@@ -66,7 +73,12 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
         }
       },
       
-      clearSelection: () => set({ selection: null }),
+      clearSelection: () => set({ 
+        selection: null,
+        selectedNodeId: null,
+        selectedArrowId: null,
+        selectedPersonId: null,
+      }),
       
       // View actions
       setActiveView: (view) => set({ activeView: view }),
@@ -85,41 +97,39 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
       getSelectedId: () => get().selection?.id || null,
       getSelectedType: () => get().selection?.type || null,
       
-      // Legacy compatibility getters
-      get selectedNodeId() {
-        const selection = get().selection;
-        return selection?.type === 'node' ? selection.id : null;
-      },
-      get selectedArrowId() {
-        const selection = get().selection;
-        return selection?.type === 'arrow' ? selection.id : null;
-      },
-      get selectedPersonId() {
-        const selection = get().selection;
-        return selection?.type === 'person' ? selection.id : null;
-      },
+      // Legacy compatibility - computed as state fields
+      selectedNodeId: null,
+      selectedArrowId: null,
+      selectedPersonId: null,
       
       // Legacy compatibility setters
       setSelectedNodeId: (id) => {
-        if (id) {
-          get().select(id, 'node');
-        } else {
-          get().clearSelection();
-        }
+        console.log('[consolidatedUIStore] setSelectedNodeId:', id);
+        set({ 
+          selection: id ? { id, type: 'node' } : null,
+          selectedNodeId: id,
+          selectedArrowId: null,
+          selectedPersonId: null,
+          dashboardTab: id ? 'properties' : get().dashboardTab
+        });
       },
       setSelectedArrowId: (id) => {
-        if (id) {
-          get().select(id, 'arrow');
-        } else {
-          get().clearSelection();
-        }
+        set({ 
+          selection: id ? { id, type: 'arrow' } : null,
+          selectedNodeId: null,
+          selectedArrowId: id,
+          selectedPersonId: null,
+          dashboardTab: id ? 'properties' : get().dashboardTab
+        });
       },
       setSelectedPersonId: (id) => {
-        if (id) {
-          get().select(id, 'person');
-        } else {
-          get().clearSelection();
-        }
+        set({ 
+          selection: id ? { id, type: 'person' } : null,
+          selectedNodeId: null,
+          selectedArrowId: null,
+          selectedPersonId: id,
+          dashboardTab: id ? 'persons' : get().dashboardTab
+        });
       }
     }),
     { name: 'consolidated-ui-store' }

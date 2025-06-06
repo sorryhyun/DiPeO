@@ -6,6 +6,7 @@ import {
   useSelectedPersonId,
   useSetSelectedPersonId 
 } from '@/hooks/useStoreSelectors';
+import ExecutionControls from './ExecutionControls';
 
 const ExecutionView = () => {
   const { persons } = usePersons();
@@ -59,6 +60,9 @@ const ExecutionView = () => {
 
   return (
     <div className="h-full flex flex-col bg-gray-900">
+      {/* Execution Controls */}
+      <ExecutionControls />
+      
       {/* Read-only Diagram Canvas */}
       <div className="flex-1 relative" ref={canvasRef}>
         <DiagramCanvas executionMode />

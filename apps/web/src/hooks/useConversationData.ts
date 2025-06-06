@@ -156,9 +156,9 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       }
     };
 
-    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListener);
+    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListenerOrEventListenerObject);
     return () => {
-      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListener);
+      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListenerOrEventListenerObject);
     };
   }, [personId, addMessage, enableRealtimeUpdates]);
 

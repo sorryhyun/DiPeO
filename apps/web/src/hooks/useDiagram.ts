@@ -213,21 +213,17 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // =====================
 
   const selectNode = useCallback((nodeId: string) => {
+    console.log('[useDiagram] Selecting node:', nodeId);
     ui.setSelectedNodeId(nodeId);
-    ui.setSelectedArrowId(null);
-    ui.setSelectedPersonId(null);
   }, [ui]);
 
   const selectArrow = useCallback((arrowId: string) => {
+    console.log('[useDiagram] Selecting arrow:', arrowId);
     ui.setSelectedArrowId(arrowId);
-    ui.setSelectedNodeId(null);
-    ui.setSelectedPersonId(null);
   }, [ui]);
 
   const selectPerson = useCallback((personId: string) => {
     ui.setSelectedPersonId(personId);
-    ui.setSelectedNodeId(null);
-    ui.setSelectedArrowId(null);
   }, [ui]);
 
   const clearSelection = useCallback(() => {

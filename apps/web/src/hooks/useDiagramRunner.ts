@@ -10,20 +10,14 @@ import {
   exportDiagramState
 } from '@/hooks/useStoreSelectors';
 import { toast } from 'sonner';
-import { PersonDefinition } from '@/types';
+import { PersonDefinition, InteractivePromptData } from '@/types';
+import { DiagramData, ExecutionUpdate } from '@/types/api';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { isApiKey, parseApiArrayResponse } from '@/utils/types';
 import { 
   createWebSocketExecutionClient
 } from '@/utils/websocket/execution-client';
 import { getWebSocketClient } from '@/utils/websocket/client';
-import type { 
-  InteractivePromptData 
-} from '@/types';
-import type {
-  DiagramData,
-  ExecutionUpdate
-} from '@/types/api';
 
 // Removed unused createErrorHandler
 
@@ -53,7 +47,6 @@ export const useDiagramRunner = () => {
   const isComponentMountedRef = useRef(true);
   
   useEffect(() => {
-    console.log('[useDiagramRunner] Using WebSocket execution client');
     // Set up interactive prompt handler for WebSocket
     const wsClient = executionClientRef.current;
     if ('setInteractivePromptHandler' in wsClient) {

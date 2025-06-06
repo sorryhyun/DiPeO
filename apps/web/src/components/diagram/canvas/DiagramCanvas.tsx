@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect, Suspense } from 'react';
+import React, { useCallback, useRef, useState, Suspense } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -13,12 +13,18 @@ import {
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+import { FileText, MessageSquare } from 'lucide-react';
 import { useDiagram } from '@/hooks';
+import { useConsolidatedUIStore } from '@/stores';
 import ContextMenu from '../controls/ContextMenu';
 import { CustomArrow as CustomArrowBase } from '../arrows/CustomArrow';
 import { roundPosition } from '@/utils/canvas';
 import nodeTypes from '../nodes/nodeTypes';
 import { DiagramNode, Arrow } from '@/types';
+
+// Lazy load the dashboard components
+const PropertiesTab = React.lazy(() => import('@/components/properties/PropertiesTab'));
+const ConversationTab = React.lazy(() => import('@/components/conversation/ConversationTab'));
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
@@ -36,6 +42,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     enableFileOperations: true
   });
   
+  // Add UI store hooks
+  const { dashboardTab, setDashboardTab } = useConsolidatedUIStore();
+  
   // Destructure commonly used values for cleaner code
   const {
     nodes,
@@ -48,23 +57,15 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     deleteArrow,
     selectedNodeId,
     selectedArrowId,
-    selectedPersonId,
     selectNode,
     selectArrow,
     addPerson,
-    deletePerson,
-    undo,
-    redo,
-    save,
     // Canvas interactions
     contextMenu,
-    openContextMenu,
     closeContextMenu,
     isContextMenuOpen,
-    onNodeDragStart,
     onDragOver,
     onNodeDrop,
-    onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu
@@ -262,10 +263,49 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         {/* Resizable Handle */}
         <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
 
-        {/* Property Dashboard Panel - now handled by Sidebar */}
+        {/* Property Dashboard Panel - now with tabs */}
         <Panel defaultSize={35} minSize={20}>
-          <div className="h-full bg-gray-50 flex items-center justify-center text-gray-500">
-            Properties panel moved to right sidebar
+          <div className="h-full bg-white flex flex-col">
+            {/* Tab Header */}
+            <div className="flex border-b bg-gray-50">
+              <button
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                  dashboardTab === 'properties'
+                    ? 'bg-white border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={() => setDashboardTab('properties')}
+              >
+                <FileText className="w-4 h-4" />
+                Properties
+              </button>
+              <button
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                  dashboardTab === 'conversation'
+                    ? 'bg-white border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={() => setDashboardTab('conversation')}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Conversation
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-hidden">
+              <Suspense fallback={
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-gray-500 animate-pulse">Loading...</div>
+                </div>
+              }>
+                {dashboardTab === 'properties' ? (
+                  <PropertiesTab />
+                ) : (
+                  <ConversationTab />
+                )}
+              </Suspense>
+            </div>
           </div>
         </Panel>
       </PanelGroup>
