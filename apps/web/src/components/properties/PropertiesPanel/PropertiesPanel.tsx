@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { DiagramNodeData, ArrowData, PersonDefinition, PanelConfig } from '@/types';
 import { NODE_CONFIGS, getPanelConfig } from '@/config';
-import { GenericPropertyPanel } from './ui-components/GenericPropertyPanel';
+import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 
 // Union type for all possible data types
 type UniversalData = DiagramNodeData | (ArrowData & { type: 'arrow' }) | (PersonDefinition & { type: 'person' });

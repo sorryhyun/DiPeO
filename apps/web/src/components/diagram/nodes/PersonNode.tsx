@@ -3,8 +3,7 @@ import React from 'react';
 import { Position, NodeProps } from '@xyflow/react';
 import { PersonDefinition } from '@/types';
 import { User } from 'lucide-react';
-import { FlowHandle } from './base/FlowHandle';
-// import { createHandleId } from '@/utils/node';
+import { FlowHandle } from '../controls/FlowHandle';
 
 const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
   const [isDragging, setIsDragging] = React.useState(false);

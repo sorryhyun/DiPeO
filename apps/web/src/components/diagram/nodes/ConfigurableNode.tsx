@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
-import { BaseNode } from './base/BaseNode';
+import { BaseNode } from './BaseNode';
 
 // Main component - much simpler now
 export default function ConfigurableNode({ id, data, selected }: NodeProps) {

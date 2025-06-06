@@ -14,10 +14,10 @@ import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { useDiagram } from '@/hooks';
-import ContextMenu from './ContextMenu';
-import { CustomArrow as CustomArrowBase } from './CustomArrow';
+import ContextMenu from '../controls/ContextMenu';
+import { CustomArrow as CustomArrowBase } from '../arrows/CustomArrow';
 import { roundPosition } from '@/utils/canvas';
-import nodeTypes from './nodeTypes';
+import nodeTypes from '../nodes/nodeTypes';
 import { DiagramNode, Arrow } from '@/types';
 
 // Use dependency injection instead of wrapper components

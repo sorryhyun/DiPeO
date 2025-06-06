@@ -9,7 +9,7 @@ export interface ExecutionState {
   pausedNodes: string[];
   context: Record<string, any>;
   errors: Record<string, string>;
-  totalCost?: number;
+  totalTokens?: number;
   startTime?: string;
   endTime?: string;
 }
@@ -49,7 +49,7 @@ export interface NodeExecutionEvent {
   message?: string;
   output?: any;
   error?: string;
-  cost?: number;
+  tokenCount?: number;
 }
 
 export interface ExecutionControlMessage {
@@ -92,7 +92,7 @@ export interface ExecutionStartedEvent {
 export interface ExecutionCompleteEvent {
   type: 'execution_complete';
   executionId: string;
-  totalCost?: number;
+  totalTokens?: number;
   duration?: number;
 }
 
@@ -124,7 +124,7 @@ export interface MonitoringData {
   };
   performance: {
     averageNodeTime: number;
-    totalCost: number;
+    totalTokens: number;
     memoryUsage?: number;
   };
 }

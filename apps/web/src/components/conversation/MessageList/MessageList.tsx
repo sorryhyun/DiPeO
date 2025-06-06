@@ -53,12 +53,6 @@ export const MessageList: React.FC<MessageListProps> = ({
                   {message.tokenCount}
                 </span>
               )}
-              {message.content && (
-                <span className="flex items-center">
-                  <DollarSign className="h-3 w-3" />
-                  {message..toFixed(4)}
-                </span>
-              )}
             </div>
           </div>
           <div className="text-sm whitespace-pre-wrap break-words">{message.content}</div>

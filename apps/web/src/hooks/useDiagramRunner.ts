@@ -185,8 +185,8 @@ export const useDiagramRunner = () => {
       const skipCount = Object.keys(skippedNodes).length;
       let summaryMessage = 'Execution completed successfully';
       
-      if (result.metadata?.totalCost && result.metadata.totalCost > 0) {
-        summaryMessage = `Execution completed. Total cost: $${result.metadata.totalCost.toFixed(4)}`;
+      if (result.metadata?.totalTokens && result.metadata.totalTokens > 0) {
+        summaryMessage = `Execution completed. Total tokens: ${result.metadata.totalTokens.toFixed(2)}`;
       }
       
       if (skipCount > 0) {

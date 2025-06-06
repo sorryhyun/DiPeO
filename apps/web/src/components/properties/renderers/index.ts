@@ -1,2 +1,2 @@
-export { PropertiesRenderer } from './PropertiesRenderer';
+export { default as PropertiesRenderer } from './PropertiesRenderer';
 export { GenericPropertyPanel } from './GenericPropertyPanel';

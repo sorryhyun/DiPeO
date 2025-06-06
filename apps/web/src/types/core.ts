@@ -29,10 +29,13 @@ export interface Person {
 }
 
 export interface ConversationMessage {
+  id?: string;
   role: 'user' | 'assistant' | 'system';
   personId: string;
   content: string;
   timestamp?: string;
+  tokenCount?: number;
+  nodeLabel?: string;
 }
 
 export interface PersonMemoryState {

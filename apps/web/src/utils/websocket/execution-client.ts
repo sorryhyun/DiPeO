@@ -33,7 +33,7 @@ export class ExecutionClient {
     reject: (error: Error) => void;
   }>();
   private executionContext = new Map<string, Record<string, unknown>>();
-  private executionCost = new Map<string, number>();
+  private executionTokens = new Map<string, number>();
   private interactivePromptHandler: ((prompt: InteractivePromptData) => void) | null = null;
   
   constructor(wsClient?: Client) {
@@ -68,7 +68,7 @@ export class ExecutionClient {
     const executionId = message.execution_id as string;
     if (executionId) {
       this.executionContext.set(executionId, {});
-      this.executionCost.set(executionId, 0);
+      this.executionTokens.set(executionId, 0);
     }
   }
   
@@ -84,8 +84,8 @@ export class ExecutionClient {
     
     // Update cost if provided
     if (typeof message.cost === 'number') {
-      const currentCost = this.executionCost.get(executionId) || 0;
-      this.executionCost.set(executionId, currentCost + message.cost);
+      const currentTokens = this.executionTokens.get(executionId) || 0;
+      this.executionTokens.set(executionId, currentTokens + message.token_count);
     }
   }
   
@@ -96,14 +96,14 @@ export class ExecutionClient {
     const resolver = this.executionResolvers.get(executionId);
     if (resolver) {
       const context = message.context as Record<string, unknown> || this.executionContext.get(executionId) || {};
-      const totalCost = message.total_cost as number || this.executionCost.get(executionId) || 0;
+      const totalTokens = message.total_token_count as number || this.executionTokens.get(executionId) || 0;
       
       resolver.resolve({
         context,
-        totalCost: totalCost,
+        totalTokens: totalTokens,
         executionId: executionId,
         metadata: {
-          totalCost,
+          totalTokens,
           executionTime: message.duration as number
         }
       });

@@ -39,7 +39,7 @@ export interface NodeState {
   endTime: Date | null;
   progress?: string;
   error?: string;
-  cost?: number;
+  tokenCount?: number;
   skipReason?: string;
 }
 
@@ -295,7 +295,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
   }, [loadDiagramAction, clearRunContext, clearRunningNodes]);
 
   const handleExecutionComplete = useCallback((data: Record<string, unknown>) => {
-    const totalCost = data.total_cost as number;
+    const totalTokenCount = data.total_token_count as number;
     const duration = data.duration as number;
 
     setExecutionState(prev => ({
@@ -315,7 +315,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
       toast.success('External execution completed');
     }
 
-    console.log('[useRealtimeExecution] Execution completed. Cost:', totalCost, 'Duration:', duration);
+    console.log('[useRealtimeExecution] Execution completed. Token count:', totalTokenCount, 'Duration:', duration);
   }, [setRunContext, clearRunningNodes]);
 
   const handleExecutionError = useCallback((data: Record<string, unknown>) => {
@@ -400,7 +400,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
 
   const handleNodeComplete = useCallback((data: Record<string, unknown>) => {
     const nodeId = (data.node_id || data.nodeId) as string;
-    const cost = data.cost as number;
+    const tokenCount = data.token_count as number;
 
     if (nodeId) {
       removeRunningNode(nodeId);
@@ -411,7 +411,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
           status: 'completed' as const,
           startTime: prev[nodeId]?.startTime || null,
           endTime: new Date(),
-          cost
+          tokenCount
         }
       }));
 
@@ -420,7 +420,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
         completedNodes: prev.completedNodes + 1
       }));
 
-      console.log('[useRealtimeExecution] Node completed:', nodeId, 'Cost:', cost);
+      console.log('[useRealtimeExecution] Node completed:', nodeId, 'Token count:', tokenCount);
     }
   }, [removeRunningNode]);
 

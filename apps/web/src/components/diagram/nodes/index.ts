@@ -1,4 +1,4 @@
 export { BaseNode } from './BaseNode';
-export { ConfigurableNode } from './ConfigurableNode';
-export { PersonNode } from './PersonNode';
-export { nodeTypes } from './nodeTypes';
+export { default as ConfigurableNode } from './ConfigurableNode';
+export { default as PersonNode } from './PersonNode';
+export { default as nodeTypes } from './nodeTypes';

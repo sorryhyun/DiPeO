@@ -1,2 +1,2 @@
 export { CustomArrow } from './CustomArrow';
-export { Arrow } from './Arrow';
+export { CustomArrow as Arrow } from './Arrow';

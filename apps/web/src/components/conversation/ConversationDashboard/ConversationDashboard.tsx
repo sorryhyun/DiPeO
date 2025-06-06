@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '@/hooks/useStoreSelectors';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
-import { ConversationMessage, ConversationFilters } from '@/types/ui';
+import { ConversationMessage } from '@/types/core';
+import { ConversationFilters } from '@/types/ui';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<string | null>(null);
@@ -115,7 +116,7 @@ const ConversationDashboard: React.FC = () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return 0;
 
     return conversationData[dashboardSelectedPerson].messages
-      .reduce((sum, msg) => sum + (msg.token || 0), 0);
+      .reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
   };
 
   // Handle whole conversation button click
@@ -232,7 +233,7 @@ const ConversationDashboard: React.FC = () => {
       // Sort messages by timestamp
       allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
-      const totalTokens = allMessages.reduce((sum, msg) => sum + (msg.token || 0), 0);
+      const totalTokens = allMessages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
       
       return (
         <div className="flex-1 flex flex-col overflow-hidden">

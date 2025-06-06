@@ -1,10 +1,10 @@
 import React from 'react';
-import { CustomArrow as CustomArrowBase } from './ui-components/Arrow';
+import { CustomArrow as CustomArrowBase } from './Arrow';
 import { useArrowDataUpdater } from '@/hooks/useStoreSelectors';
 import { ArrowData } from '@/types';
 
 // Re-export types from local ui-components
-export type { CustomArrowProps } from './ui-components/Arrow';
+export type { CustomArrowProps } from './Arrow';
 
 // Wrapper component that integrates with app stores
 export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>[0]) => {
