@@ -7,8 +7,8 @@ export const conditionNodeConfig: NodeConfigItem = {
   handles: {
     input: [{ id: 'default', position: 'left' }],
     output: [
-      { id: 'true', position: 'right', label: 'True', offset: { x: 0, y: -15 } },
-      { id: 'false', position: 'right', label: 'False', offset: { x: 0, y: 15 } }
+      { id: 'true', position: 'right', label: 'True', offset: { x: 0, y: -15 }, color: '#16a34a' },
+      { id: 'false', position: 'right', label: 'False', offset: { x: 0, y: 15 }, color: '#dc2626' }
     ]
   },
   fields: [

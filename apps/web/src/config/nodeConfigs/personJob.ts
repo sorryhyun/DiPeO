@@ -6,8 +6,8 @@ export const personJobNodeConfig: NodeConfigItem = {
   color: 'indigo',
   handles: {
     input: [
-      { id: 'first', position: 'left', label: 'First', offset: { x: 0, y: -15 } },
-      { id: 'default', position: 'left', label: 'Default', offset: { x: 0, y: 15 } }
+      { id: 'first', position: 'left', label: 'First', offset: { x: 0, y: -15 }, color: '#f59e0b' },
+      { id: 'default', position: 'left', label: 'Default', offset: { x: 0, y: 15 }, color: '#2563eb' }
     ],
     output: [{ id: 'default', position: 'right' }]
   },

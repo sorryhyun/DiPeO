@@ -6,6 +6,7 @@ export interface HandleConfig {
   position: 'top' | 'right' | 'bottom' | 'left';
   label?: string;
   offset?: { x: number; y: number };
+  color?: string;
 }
 
 export interface NodeConfigItem {

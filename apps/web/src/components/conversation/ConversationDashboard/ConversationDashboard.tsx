@@ -25,6 +25,7 @@ const ConversationDashboard: React.FC = () => {
   const { runContext } = useExecutionStatus();
   const { selectedPersonId } = useSelectedElement();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
 
   // Use consolidated conversation data hook with real-time updates
   const {
@@ -32,7 +33,6 @@ const ConversationDashboard: React.FC = () => {
     isLoading,
     isLoadingMore,
     fetchConversationData,
-    addMessage,
     fetchMore
   } = useConversationData({
     filters,
@@ -57,7 +57,7 @@ const ConversationDashboard: React.FC = () => {
   // Initial load when runContext changes
   useEffect(() => {
     if (Object.keys(runContext).length > 0) {
-      fetchConversationData();
+      void fetchConversationData();
     }
   }, [runContext, fetchConversationData]);
 
@@ -66,7 +66,7 @@ const ConversationDashboard: React.FC = () => {
     if (selectedPersonId && selectedPersonId !== dashboardSelectedPerson) {
       setDashboardSelectedPerson(selectedPersonId);
       if (!conversationData[selectedPersonId]) {
-        fetchConversationData(selectedPersonId);
+        void fetchConversationData(selectedPersonId);
       }
     }
   }, [selectedPersonId, dashboardSelectedPerson, conversationData, fetchConversationData]);
@@ -82,7 +82,7 @@ const ConversationDashboard: React.FC = () => {
       conversationData[dashboardSelectedPerson]?.hasMore &&
       !isLoadingMore
     ) {
-      fetchMore(dashboardSelectedPerson);
+      void fetchMore(dashboardSelectedPerson);
     }
   }, [dashboardSelectedPerson, conversationData, isLoadingMore, fetchMore]);
 
@@ -107,7 +107,7 @@ const ConversationDashboard: React.FC = () => {
       }
     };
 
-    downloadJSON(exportData, `conversation-${person?.label || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
+    void downloadJSON(exportData, `conversation-${person?.label || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
     toast.success('Conversation exported');
   };
 
@@ -122,7 +122,7 @@ const ConversationDashboard: React.FC = () => {
   // Handle whole conversation button click
   const handleWholeConversation = () => {
     setDashboardSelectedPerson('whole');
-    fetchConversationData(); // Fetch all conversations
+    void fetchConversationData(); // Fetch all conversations
   };
 
   // Render person status bar
@@ -212,7 +212,7 @@ const ConversationDashboard: React.FC = () => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => fetchConversationData(dashboardSelectedPerson || undefined)}
+        onClick={() => void fetchConversationData(dashboardSelectedPerson || undefined)}
       >
         Apply
       </Button>

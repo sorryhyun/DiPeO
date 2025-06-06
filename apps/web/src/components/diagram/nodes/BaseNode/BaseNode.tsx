@@ -73,7 +73,7 @@ export function BaseNode({
         name: handle.id,
         style,
         offset: 50,
-        className: (handle as any).color || ''
+        color: handle.color
       };
     });
   }, [config, id, isFlipped]);
@@ -164,11 +164,11 @@ export function BaseNode({
   // Get node display data
   const getDisplayData = () => {
     const entries = Object.entries(data).filter(([key]) => 
-      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage'].includes(key)
+      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage', 'label', 'name'].includes(key)
     );
     
-    // Show most important fields first (excluding prompts)
-    const importantFields = ['label'];
+    // Show most important fields first (excluding prompts and labels since they're in header)
+    const importantFields: string[] = [];
     const important = entries.filter(([key]) => importantFields.includes(key));
     const others = entries.filter(([key]) => !importantFields.includes(key));
     
@@ -201,7 +201,7 @@ export function BaseNode({
         {/* Header */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{config.icon}</span>
-          <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>{data.name || config.label}</span>
+          <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>{data.label || data.name || `${config.label} ${id}`}</span>
         </div>
         
         {/* Node data display */}
@@ -241,7 +241,7 @@ export function BaseNode({
           name={handle.name}
           position={handle.position}
           offset={handle.offset}
-          color={handle.className}
+          color={handle.color}
           style={handle.style}
           className={isRunning ? 'animate-pulse' : ''}
         />

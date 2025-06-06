@@ -1,6 +1,7 @@
 import type { PanelConfig } from '@/types';
+import { fetchApiKeys } from '@/utils/api';
 
-export const notionPanelConfig: PanelConfig<Record<string, any>> = {
+export const notionPanelConfig: PanelConfig<Record<string, unknown>> = {
   layout: 'single',
   fields: [
     {
@@ -27,7 +28,21 @@ export const notionPanelConfig: PanelConfig<Record<string, any>> = {
       name: 'apiKeyId',
       label: 'API Key',
       type: 'select',
-      options: []
+      options: async () => {
+        try {
+          const apiKeys = await fetchApiKeys();
+          // Filter for Notion API keys only
+          return apiKeys
+            .filter(key => key.service === 'notion')
+            .map(key => ({
+              value: key.id,
+              label: key.name
+            }));
+        } catch (error) {
+          console.error('Failed to fetch API keys:', error);
+          return [];
+        }
+      }
     },
     {
       name: 'pageId',

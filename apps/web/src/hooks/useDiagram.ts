@@ -208,17 +208,13 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     realtime.respondToPrompt(nodeId, response);
   }, [realtime]);
 
-  // =====================
   // SELECTION OPERATIONS
-  // =====================
 
   const selectNode = useCallback((nodeId: string) => {
-    console.log('[useDiagram] Selecting node:', nodeId);
     ui.setSelectedNodeId(nodeId);
   }, [ui]);
 
   const selectArrow = useCallback((arrowId: string) => {
-    console.log('[useDiagram] Selecting arrow:', arrowId);
     ui.setSelectedArrowId(arrowId);
   }, [ui]);
 

@@ -15,7 +15,8 @@ import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { FileText, MessageSquare } from 'lucide-react';
 import { useDiagram } from '@/hooks';
-import { useConsolidatedUIStore } from '@/stores';
+import { useExecutionStore } from '@/stores/executionStore';
+import { useIsReadOnly } from '@/hooks/useStoreSelectors';
 import ContextMenu from '../controls/ContextMenu';
 import { CustomArrow as CustomArrowBase } from '../arrows/CustomArrow';
 import { roundPosition } from '@/utils/canvas';
@@ -42,8 +43,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     enableFileOperations: true
   });
   
-  // Add UI store hooks
-  const { dashboardTab, setDashboardTab } = useConsolidatedUIStore();
+  // Check execution and monitor mode
+  const isExecuting = useExecutionStore(state => state.isExecuting);
+  const isMonitorMode = useIsReadOnly();
   
   // Destructure commonly used values for cleaner code
   const {
@@ -263,46 +265,37 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         {/* Resizable Handle */}
         <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
 
-        {/* Property Dashboard Panel - now with tabs */}
+        {/* Property/Conversation Panel - switches based on execution mode */}
         <Panel defaultSize={35} minSize={20}>
           <div className="h-full bg-white flex flex-col">
-            {/* Tab Header */}
+            {/* Panel Header */}
             <div className="flex border-b bg-gray-50">
-              <button
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
-                  dashboardTab === 'properties'
-                    ? 'bg-white border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                }`}
-                onClick={() => setDashboardTab('properties')}
-              >
-                <FileText className="w-4 h-4" />
-                Properties
-              </button>
-              <button
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
-                  dashboardTab === 'conversation'
-                    ? 'bg-white border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                }`}
-                onClick={() => setDashboardTab('conversation')}
-              >
-                <MessageSquare className="w-4 h-4" />
-                Conversation
-              </button>
+              <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border-b-2 border-blue-500 text-blue-600">
+                {isExecuting || isMonitorMode ? (
+                  <>
+                    <MessageSquare className="w-4 h-4" />
+                    Conversation
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4" />
+                    Properties
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Tab Content */}
+            {/* Panel Content */}
             <div className="flex-1 overflow-hidden">
               <Suspense fallback={
                 <div className="h-full flex items-center justify-center">
                   <div className="text-gray-500 animate-pulse">Loading...</div>
                 </div>
               }>
-                {dashboardTab === 'properties' ? (
-                  <PropertiesTab />
-                ) : (
+                {isExecuting || isMonitorMode ? (
                   <ConversationTab />
+                ) : (
+                  <PropertiesTab />
                 )}
               </Suspense>
             </div>
