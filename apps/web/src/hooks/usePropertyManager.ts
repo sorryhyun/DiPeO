@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useCanvasSelectors } from './store/useCanvasSelectors';
-import { useApiKeySelectors } from './store/useApiKeySelectors';
+import { useCanvasSelectors } from './useStoreSelectors';
 import { type ApiKey } from '@/types';
+import { useDiagramStore } from "@/stores";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 interface ValidationRule<T> {
   field: keyof T;
@@ -31,8 +32,9 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
   } = options;
 
   // Store selectors
-  const { updateNode, updateArrow, updatePerson, isMonitorMode } = useCanvasSelectors();
-  const { apiKeys } = useApiKeySelectors();
+  const {updateArrow, updatePerson} = useDiagramStore();
+  const { updateNode, isMonitorMode } = useCanvasSelectors();
+  const { apiKeysList: apiKeys } = useApiKeys();
 
   // Form state
   const [formData, setFormData] = useState<T>(initialData);

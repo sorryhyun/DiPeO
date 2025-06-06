@@ -34,6 +34,14 @@ export interface ConversationMessage {
   timestamp?: string;
 }
 
+export interface PersonMemoryState {
+  messages: ConversationMessage[];
+  totalMessages: number;
+  visibleMessages: number;
+  forgottenMessages: number;
+  hasMore: boolean;
+}
+
 export interface ApiKey {
   id: string;
   name: string;

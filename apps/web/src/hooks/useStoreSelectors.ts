@@ -211,7 +211,6 @@ export const useExecutionStatus = () => {
 
 // Missing exports for backward compatibility
 export const getApiKeys = () => useApiKeyStore.getState().apiKeys;
-export const useApiKeys = () => useApiKeyStore(state => state.apiKeys);
 
 // History actions
 export const useUndo = () => useHistoryStore(state => state.undo);
@@ -255,3 +254,80 @@ export const useClearRunningNodes = () => {
 export const useUpdateNodeData = () => useDiagramStore(state => state.updateNode);
 export const useUpdateArrowData = () => useDiagramStore(state => state.updateArrow);
 export const useUpdatePerson = () => useDiagramStore(state => state.updatePerson);
+
+// Grouped selectors for compatibility
+export const useUISelectors = () => {
+  const selectedNodeId = useConsolidatedUIStore(state => state.selectedNodeId);
+  const selectedArrowId = useConsolidatedUIStore(state => state.selectedArrowId);
+  const selectedPersonId = useConsolidatedUIStore(state => state.selectedPersonId);
+  const setSelectedNodeId = useConsolidatedUIStore(state => state.setSelectedNodeId);
+  const setSelectedArrowId = useConsolidatedUIStore(state => state.setSelectedArrowId);
+  const setSelectedPersonId = useConsolidatedUIStore(state => state.setSelectedPersonId);
+  const clearSelection = useConsolidatedUIStore(state => state.clearSelection);
+  
+  return {
+    selectedNodeId,
+    selectedArrowId,
+    selectedPersonId,
+    setSelectedNodeId,
+    setSelectedArrowId,
+    setSelectedPersonId,
+    clearSelection,
+  };
+};
+
+export const useCanvasSelectors = () => {
+  const isReadOnly = useDiagramStore(state => state.isReadOnly);
+  const nodes = useDiagramStore(state => state.nodes);
+  const arrows = useDiagramStore(state => state.arrows);
+  const onNodesChange = useDiagramStore(state => state.onNodesChange);
+  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
+  const onConnect = useDiagramStore(state => state.onConnect);
+  const addNode = useDiagramStore(state => state.addNode);
+  const deleteNode = useDiagramStore(state => state.deleteNode);
+  const deleteArrow = useDiagramStore(state => state.deleteArrow);
+  const updateNode = useDiagramStore(state => state.updateNode);
+  
+  return {
+    nodes,
+    arrows,
+    isMonitorMode: isReadOnly,
+    onNodesChange,
+    onArrowsChange,
+    onConnect,
+    addNode,
+    deleteNode,
+    deleteArrow,
+    updateNode,
+  };
+};
+
+export const useExecutionSelectors = () => {
+  const runContext = useExecutionStore(state => state.runContext);
+  const runningNodes = useExecutionStore(state => state.runningNodes);
+  const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
+  const nodeRunningStates = useExecutionStore(state => state.nodeRunningStates);
+  const skippedNodes = useExecutionStore(state => state.skippedNodes);
+  
+  return {
+    runContext,
+    runningNodes,
+    currentRunningNode,
+    nodeRunningStates,
+    skippedNodes,
+  };
+};
+
+export const useHistorySelectors = () => {
+  const undo = useHistoryStore(state => state.undo);
+  const redo = useHistoryStore(state => state.redo);
+  const canUndo = useHistoryStore(state => state.canUndo);
+  const canRedo = useHistoryStore(state => state.canRedo);
+  
+  return {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  };
+};

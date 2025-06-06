@@ -1,7 +1,7 @@
 import { useState, useCallback, ChangeEvent } from 'react';
-import { useCanvasSelectors } from './store/useCanvasSelectors';
+import { loadDiagram, exportDiagramState } from './useStoreSelectors';
 import { toast } from 'sonner';
-import { getApiUrl, API_ENDPOINTS } from '@/utils/api/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/utils/api/config';
 import { Yaml } from '@/utils/converters/yaml';
 import { LlmYaml } from '@/utils/converters/llm-yaml';
 import {
@@ -10,18 +10,16 @@ import {
   withFileErrorHandling,
   selectFile,
   downloadFile,
-  downloadBlob,
   getFileExtension,
   getMimeType,
   saveDiagramToBackend,
   FileFormat,
   SaveFileOptions
-} from '@/utils/fileOperations';
+} from '@/utils/file';
 
 export type SupportedFormat = 'json' | 'yaml' | 'llm-yaml';
 
 export const useFileOperations = () => {
-  const { loadDiagram, exportDiagram } = useCanvasSelectors();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -68,10 +66,18 @@ export const useFileOperations = () => {
       }
       
       // Fall back to unified download utilities
-      if (typeof data === 'string') {
-        downloadFile(data, filename);
+      if (data instanceof Blob) {
+        // Convert Blob to URL and download
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
-        downloadBlob(blob, filename);
+        downloadFile(data, filename);
       }
       
     } catch (error) {
@@ -193,7 +199,7 @@ export const useFileOperations = () => {
   const exportDiagramAs = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagram();
+      const diagramData = exportDiagramState();
       let content: string;
       let defaultFilename: string;
       
@@ -231,21 +237,24 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [exportDiagram, downloadEnhanced]);
+  }, [downloadEnhanced]);
 
   // Save to backend directory
   const saveDiagramAs = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagram();
+      const diagramData = exportDiagramState();
       
       const finalFilename = filename || `diagram${getFileExtension(format)}`;
-      const result = await saveDiagramToBackend(diagramData, finalFilename);
+      const result = await saveDiagramToBackend(diagramData, {
+        filename: finalFilename,
+        format: format as FileFormat
+      });
       
       if (result.success) {
         toast.success(`Saved ${format.toUpperCase()} to: ${result.filename}`);
       } else {
-        throw new Error(result.error || 'Failed to save diagram');
+        throw new Error('Failed to save diagram');
       }
       
       return result;
@@ -256,7 +265,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [exportDiagram]);
+  }, []);
 
   // ===================
   // DOWNLOAD OPERATIONS  
@@ -348,7 +357,7 @@ export const useFileOperations = () => {
   const cloneDiagram = useCallback(async (newName: string, format: SupportedFormat = 'json') => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagram();
+      const diagramData = exportDiagramState();
       
       // Create a cloned diagram with metadata
       const clonedDiagram = {
@@ -359,7 +368,10 @@ export const useFileOperations = () => {
         }
       };
       
-      const result = await saveDiagramToBackend(clonedDiagram, `${newName}${getFileExtension(format)}`);
+      const result = await saveDiagramToBackend(clonedDiagram, {
+        filename: `${newName}${getFileExtension(format)}`,
+        format: format as FileFormat
+      });
       
       if (result.success) {
         toast.success(`Cloned diagram as: ${result.filename}`);
@@ -373,7 +385,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [exportDiagram]);
+  }, []);
 
   // ===================
   // UTILITY FUNCTIONS

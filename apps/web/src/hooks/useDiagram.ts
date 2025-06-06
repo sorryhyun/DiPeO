@@ -1,8 +1,15 @@
 import { useCallback } from 'react';
-import { useCanvasSelectors } from './store/useCanvasSelectors';
-import { useExecutionSelectors } from './store/useExecutionSelectors';
-import { useUISelectors } from './store/useUISelectors';
-import { useHistorySelectors } from './store/useHistorySelectors';
+import { 
+  useCanvasSelectors, 
+  useExecutionSelectors, 
+  useUISelectors, 
+  useHistorySelectors,
+  usePersons,
+  exportDiagramState,
+  loadDiagram as loadDiagramAction,
+  clearDiagram
+} from './useStoreSelectors';
+import { useDiagramStore } from '@/stores';
 import { useRealtimeExecution } from './useRealtimeExecution';
 import { useFileOperations } from './useFileOperations';
 import { useCanvasInteractions } from './useCanvasInteractions';
@@ -37,6 +44,9 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // Canvas state and operations
   const canvas = useCanvasSelectors();
   
+  // Diagram store operations
+  const diagramStore = useDiagramStore();
+  
   // Execution state and operations
   const execution = useExecutionSelectors();
   
@@ -45,6 +55,9 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   
   // History operations
   const history = useHistorySelectors();
+  
+  // Person operations
+  const persons = usePersons();
   
   // Realtime execution (WebSocket)
   const realtime = useRealtimeExecution({
@@ -107,13 +120,13 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Get diagram state
   const getDiagramState = useCallback((): DiagramState => {
-    return canvas.exportDiagram();
-  }, [canvas]);
+    return exportDiagramState();
+  }, []);
 
   // Load diagram state
   const loadDiagramState = useCallback((diagram: DiagramState, source?: string) => {
-    canvas.loadDiagram(diagram, source);
-  }, [canvas]);
+    loadDiagramAction(diagram);
+  }, []);
 
   // =====================
   // ELEMENT OPERATIONS
@@ -141,8 +154,8 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Arrow operations
   const updateArrow = useCallback((arrowId: string, updates: Record<string, unknown>) => {
-    return canvas.updateArrow(arrowId, updates);
-  }, [canvas]);
+    return diagramStore.updateArrow(arrowId, updates);
+  }, [diagramStore]);
 
   const deleteArrow = useCallback((arrowId: string) => {
     canvas.deleteArrow(arrowId);
@@ -157,23 +170,23 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Person operations
   const addPerson = useCallback((person: Omit<Person, 'id'>) => {
-    return canvas.addPerson(person);
-  }, [canvas]);
+    return persons.addPerson(person);
+  }, [persons]);
 
   const updatePerson = useCallback((personId: string, updates: Record<string, unknown>) => {
-    return canvas.updatePerson(personId, updates);
-  }, [canvas]);
+    return persons.updatePerson(personId, updates);
+  }, [persons]);
 
   const deletePerson = useCallback((personId: string) => {
-    canvas.deletePerson(personId);
+    persons.deletePerson(personId);
     if (ui.selectedPersonId === personId) {
       ui.clearSelection();
     }
-  }, [canvas, ui]);
+  }, [persons, ui]);
 
   const getPerson = useCallback((personId: string): Person | undefined => {
-    return canvas.getPersonById(personId);
-  }, [canvas]);
+    return persons.getPersonById(personId);
+  }, [persons]);
 
   // =====================
   // EXECUTION CONTROL
@@ -252,7 +265,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     // Canvas data
     nodes: canvas.nodes,
     arrows: canvas.arrows,
-    persons: canvas.persons,
+    persons: persons.persons,
     
     // Execution data
     runningNodes: execution.runningNodes,
@@ -265,7 +278,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     selectedNodeId: ui.selectedNodeId,
     selectedArrowId: ui.selectedArrowId,
     selectedPersonId: ui.selectedPersonId,
-    hasSelection: ui.hasSelection,
+    hasSelection: !!(ui.selectedNodeId || ui.selectedArrowId || ui.selectedPersonId),
     
     // State flags
     isMonitorMode: canvas.isMonitorMode,
@@ -277,7 +290,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     // Diagram operations
     getDiagramState,
     loadDiagramState,
-    clear: canvas.clear,
+    clear: clearDiagram,
     
     // Node operations
     addNode,

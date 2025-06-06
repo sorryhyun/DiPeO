@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
-import { UNIFIED_NODE_CONFIGS } from '../../../types';
+import { NODE_CONFIGS } from '@/types';
 
 export const useNodeType = (nodeType: string) => {
-  const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS], [nodeType]);
+  const config = useMemo(() => NODE_CONFIGS[nodeType as keyof typeof NODE_CONFIGS], [nodeType]);
 
   // Get handle configurations based on flip state
   const getHandles = useCallback((isFlipped: boolean = false) => {
@@ -10,10 +10,9 @@ export const useNodeType = (nodeType: string) => {
     
     // Handle configuration logic would go here
     // This is a simplified version - you may need to expand based on actual handle logic
-    const allHandles = [
-      ...config.handles.sources.map((handle: any) => ({ ...handle, type: 'output' })),
-      ...config.handles.targets.map((handle: any) => ({ ...handle, type: 'input' }))
-    ];
+    const inputHandles = (config.handles.input || []).map((handle: any) => ({ ...handle, type: 'input' }));
+    const outputHandles = (config.handles.output || []).map((handle: any) => ({ ...handle, type: 'output' }));
+    const allHandles = [...inputHandles, ...outputHandles];
     
     if (isFlipped) {
       // Flip handle positions if needed
@@ -42,7 +41,7 @@ export const useNodeType = (nodeType: string) => {
     if (!config) return {};
     
     return {
-      borderColor: config.borderColor
+      borderColor: config.color || '#ccc' // Use color property as border color
     };
   }, [config]);
 
@@ -53,10 +52,11 @@ export const useNodeType = (nodeType: string) => {
 
   return {
     config,
-    emoji: config?.emoji,
+    emoji: config?.icon, // Map icon to emoji for backward compatibility
+    icon: config?.icon,
     label: config?.label,
-    reactFlowType: config?.reactFlowType,
-    borderColor: config?.borderColor,
+    reactFlowType: nodeType, // Use nodeType as reactFlowType
+    borderColor: config?.color || '#ccc', // Use color property as border color
     getHandles,
     getDefaultData,
     getNodeStyles,

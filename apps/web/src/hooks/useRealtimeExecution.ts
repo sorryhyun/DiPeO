@@ -1,9 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useCanvasSelectors } from './store/useCanvasSelectors';
-import { useExecutionSelectors } from './store/useExecutionSelectors';
-import { Client, WSMessage, getWebSocketClient } from '@/utils/websocket/client';
+import { Client, getWebSocketClient } from '@/utils/websocket';
 import { toast } from 'sonner';
-import { DiagramState } from '@/types';
+import { DiagramState, WSMessage } from '@/types';
+import { 
+  useCanvasSelectors, 
+  useExecutionSelectors,
+  useAddRunningNode,
+  useRemoveRunningNode,
+  useSetCurrentRunningNode,
+  useSetRunContext,
+  useAddSkippedNode,
+  useClearRunContext,
+  useClearRunningNodes,
+  loadDiagram as loadDiagramAction,
+  exportDiagramState
+} from './useStoreSelectors';
 
 export interface UseRealtimeExecutionOptions {
   autoConnect?: boolean;
@@ -40,20 +51,23 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
   } = options;
 
   // Store selectors
-  const { loadDiagram, exportDiagram, nodes } = useCanvasSelectors();
+  const { nodes } = useCanvasSelectors();
+  const execution = useExecutionSelectors();
   const {
     runningNodes,
     currentRunningNode,
     nodeRunningStates,
     skippedNodes,
-    addRunningNode,
-    removeRunningNode,
-    setCurrentRunningNode,
-    setRunContext,
-    addSkippedNode,
-    clearRunContext,
-    clearRunningNodes
-  } = useExecutionSelectors();
+  } = execution;
+
+  // Store actions
+  const addRunningNode = useAddRunningNode();
+  const removeRunningNode = useRemoveRunningNode();
+  const setCurrentRunningNode = useSetCurrentRunningNode();
+  const setRunContext = useSetRunContext();
+  const addSkippedNode = useAddSkippedNode();
+  const clearRunContext = useClearRunContext();
+  const clearRunningNodes = useClearRunningNodes();
 
   // Local state
   const [isConnected, setIsConnected] = useState(false);
@@ -273,12 +287,12 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
     if ((data.from_monitor || data.from_cli) && data.diagram) {
       toast.info(`External execution started: ${executionId}`);
       console.log('[useRealtimeExecution] Loading diagram from external execution');
-      loadDiagram(data.diagram as DiagramState, 'external');
+      loadDiagramAction(data.diagram as DiagramState);
       pendingEventsRef.current = [];
     }
 
     console.log('[useRealtimeExecution] Execution started:', executionId);
-  }, [loadDiagram, clearRunContext, clearRunningNodes]);
+  }, [loadDiagramAction, clearRunContext, clearRunningNodes]);
 
   const handleExecutionComplete = useCallback((data: Record<string, unknown>) => {
     const totalCost = data.total_cost as number;
@@ -540,7 +554,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
 
   // Execution control
   const executeDiagram = useCallback(async (diagram?: DiagramState) => {
-    const diagramToExecute = diagram || exportDiagram();
+    const diagramToExecute = diagram || exportDiagramState();
     
     send({
       type: 'execute_diagram',
@@ -549,7 +563,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
         from_browser: true
       }
     });
-  }, [exportDiagram, send]);
+  }, [send]);
 
   const pauseNode = useCallback((nodeId: string) => {
     send({ type: 'pause_node', nodeId });

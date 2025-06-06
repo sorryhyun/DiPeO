@@ -1,5 +1,6 @@
 // apps/web/src/utils/sanitizer.ts
 import { DiagramState, PersonDefinition } from '@/types';
+import {roundPosition} from './layout';
 
 export function sanitizeDiagram(diagram: DiagramState): DiagramState {
   return {
@@ -42,9 +43,3 @@ export function sanitizeDiagram(diagram: DiagramState): DiagramState {
     } as PersonDefinition))
   };
 }
-
-export const roundPosition = (pos: { x: number; y: number }, decimals: number = 1) => ({
-  x: Math.round(pos.x * Math.pow(10, decimals)) / Math.pow(10, decimals),
-  y: Math.round(pos.y * Math.pow(10, decimals)) / Math.pow(10, decimals)
-});
-

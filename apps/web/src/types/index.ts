@@ -16,7 +16,7 @@ export {
 } from './api';
 
 // Re-export simplified node configurations
-export { NODE_CONFIGS } from '@/config/nodeConfigs';
+export { NODE_CONFIGS } from '@/config';
 
 // Alias for backward compatibility
-export { NODE_CONFIGS as UNIFIED_NODE_CONFIGS } from '@/config/nodeConfigs';
+export { NODE_CONFIGS as UNIFIED_NODE_CONFIGS } from '@/config';

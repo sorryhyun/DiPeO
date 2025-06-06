@@ -2,7 +2,7 @@ import React from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/common';
-import { getNodeConfig } from '@/config/nodeConfigs';
+import { getNodeConfig } from '@/config/helpers';
 import { createHandleId } from '@/utils/node';
 import { FlowHandle } from './FlowHandle';
 import { useDiagramStore } from '@/stores';

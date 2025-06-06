@@ -10,9 +10,9 @@ import {
   exportDiagramState
 } from '@/hooks/useStoreSelectors';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory, PersonDefinition } from '@/types';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/api/apiConfig';
-import { isApiKey, parseApiArrayResponse } from '@/utils/typeGuards';
+import { PersonDefinition } from '@/types';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
+import { isApiKey, parseApiArrayResponse } from '@/utils/types';
 import { 
   createWebSocketExecutionClient
 } from '@/utils/websocket/execution-client';
@@ -25,7 +25,7 @@ import type {
   ExecutionUpdate
 } from '@/types/api';
 
-const createErrorHandler = createErrorHandlerFactory(toast);
+// Removed unused createErrorHandler
 
 type RunStatus = 'idle' | 'running' | 'success' | 'fail';
 
@@ -160,7 +160,7 @@ export const useDiagramRunner = () => {
               break;
               
             case 'execution_started':
-              console.log('Execution started:', update.execution_id);
+              console.log('Execution started:', update.executionId);
               break;
               
             case 'execution_complete':
@@ -205,9 +205,8 @@ export const useDiagramRunner = () => {
         setRunError(errorMessage);
         console.error('Run Diagram Error:', errorMessage);
         
-        // Show error toast using error handler factory
-        const errorHandler = createErrorHandler('Diagram Execution');
-        errorHandler(new Error(errorMessage));
+        // Show error toast directly
+        toast.error(`Diagram Execution: ${errorMessage}`);
         
         setRunStatus('fail');
       }

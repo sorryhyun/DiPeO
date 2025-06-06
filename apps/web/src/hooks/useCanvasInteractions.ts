@@ -1,9 +1,7 @@
 import { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
-import { useCanvasSelectors } from './store/useCanvasSelectors';
-import { useUISelectors } from './store/useUISelectors';
-import { useHistorySelectors } from './store/useHistorySelectors';
-import { Node } from '@/types/core';
 
+import { Node } from '@/types/core';
+import {useUISelectors, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
 // TYPES
 // =====================
@@ -26,6 +24,8 @@ interface KeyboardShortcutsConfig {
   onSave?: () => void;
   onExport?: () => void;
   onImport?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 // =====================
@@ -274,7 +274,9 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
       // Ctrl+Z or Cmd+Z for undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        if (canUndo) {
+        if (shortcuts?.onUndo) {
+          shortcuts.onUndo();
+        } else if (canUndo) {
           undo();
         }
       }
@@ -282,7 +284,9 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
       // Ctrl+Shift+Z or Cmd+Shift+Z for redo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
         e.preventDefault();
-        if (canRedo) {
+        if (shortcuts?.onRedo) {
+          shortcuts.onRedo();
+        } else if (canRedo) {
           redo();
         }
       }
@@ -290,7 +294,9 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
       // Ctrl+Y or Cmd+Y for redo (alternative)
       if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
         e.preventDefault();
-        if (canRedo) {
+        if (shortcuts?.onRedo) {
+          shortcuts.onRedo();
+        } else if (canRedo) {
           redo();
         }
       }
@@ -350,6 +356,14 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
   // RETURN INTERFACE
   // =====================
 
+  // Additional helper functions
+  const hasSelection = selectedNodeId !== null || selectedArrowId !== null;
+  
+  const find = useCallback((nodeId: string) => {
+    // This is a placeholder - implement actual node finding logic if needed
+    return undefined;
+  }, []);
+
   return {
     // Context menu
     contextMenu,
@@ -384,11 +398,16 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     isMonitorMode,
     selectedNodeId,
     selectedArrowId,
+    hasSelection,
     
     // History
     canUndo,
     canRedo,
     undo,
     redo,
+    
+    // Additional properties
+    isConnectable: !isMonitorMode, // Can connect nodes when not in monitor mode
+    find,
   };
 };

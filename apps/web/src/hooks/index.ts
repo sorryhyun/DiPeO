@@ -1,31 +1,30 @@
-// ===== CONSOLIDATED HOOKS =====
-// Master diagram hook - combines all functionalities
-export * from './useDiagram';
-
-// Domain-specific store selectors
-export * from './store';
-
-// Consolidated functionality hooks
-export * from './usePropertyManager';
-export * from './useFileOperations';
-export * from './useRealtimeExecution';
-export * from './useCanvasInteractions';
-
-// ===== REMAINING HOOKS =====
-// Store selectors (main hooks - keep for gradual migration)
+// ===== STORE SELECTORS =====
+// Domain-specific store selectors replace useStoreSelectors
 export * from './useStoreSelectors';
 
-// Conversation hooks
-export * from './useConversationData';
+// ===== MASTER HOOKS =====
+// High-level hooks that combine multiple concerns
+export * from './useDiagram';
+export * from './useDiagramEditor';
 
-// Node hooks
+// ===== FEATURE HOOKS =====
+// Canvas & Interactions
+export * from './useCanvasInteractions';
 export * from './useNodeType';
 
-// Properties hooks  
-export * from './useApiKeys';
-
-// Runtime hooks
+// Execution & Runtime
 export * from './useDiagramRunner';
+export * from './useRealtimeExecution';
 
-// Store hooks
+// File Operations
+export * from './useFileOperations';
+
+// Property Management
+export * from './usePropertyManager';
+
+// Data & API
+export * from './useApiKeys';
+export * from './useConversationData';
+
+// History & State Management
 export * from './useHistoryActions';

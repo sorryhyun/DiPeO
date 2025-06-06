@@ -100,8 +100,8 @@ export class ExecutionClient {
       
       resolver.resolve({
         context,
-        total_cost: totalCost,
-        execution_id: executionId,
+        totalCost: totalCost,
+        executionId: executionId,
         metadata: {
           totalCost,
           executionTime: message.duration as number
@@ -222,17 +222,17 @@ export class ExecutionClient {
         // Convert WebSocket message to ExecutionUpdate format
         const update: ExecutionUpdate = {
           type: message.type,
-          execution_id: message.execution_id as string,
+          executionId: message.execution_id as string,
           nodeId: message.nodeId as string,
-          node_type: message.node_type as string,
+          nodeType: message.node_type as string,
           output: message.output,
           output_preview: message.output_preview as string,
           context: message.context as Record<string, unknown>,
-          total_cost: message.total_cost as number,
+          totalCost: message.total_cost as number,
           cost: message.cost as number,
           error: message.error as string,
           timestamp: message.timestamp as string,
-          conversation_id: message.conversation_id as string,
+          conversationId: message.conversation_id as string,
           message: message.message
         };
         

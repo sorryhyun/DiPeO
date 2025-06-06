@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/api/apiConfig';
-import { createErrorHandlerFactory } from '@/types';
-import { ConversationMessage, PersonMemoryState, ConversationFilters } from '@/types/ui';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
+import { ConversationFilters } from '@/types/ui';
+import { ConversationMessage, PersonMemoryState } from '@/types/core';
+
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -21,7 +22,6 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const createErrorHandler = createErrorHandlerFactory(toast);
   const lastUpdateTime = useRef<string | null>(null);
   const messageCounts = useRef<Record<string, number>>({});
 
@@ -96,7 +96,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       console.error('Failed to fetch conversation data:', error);
       const errorMessage = 'Failed to load conversations';
       setError(errorMessage);
-      createErrorHandler(errorMessage)(error as Error);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -120,7 +120,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     });
 
     // Update last update time
-    lastUpdateTime.current = message.timestamp;
+    lastUpdateTime.current = message.timestamp || null;
   }, []);
 
   // Refresh data for a specific person or all
