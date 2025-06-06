@@ -7,9 +7,9 @@ import { Button, Input, Select } from '../../../common/components';
 import { useDownload } from '../../io/hooks/useDownload';
 import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '../../../state/hooks/useStoreSelectors';
-import { useConversationData, useMessagePolling } from '../hooks';
+import { useConversationData } from '../hooks';
 import { MessageList } from './MessageList';
-import { ConversationMessage, ConversationFilters } from '../types';
+import { ConversationMessage, ConversationFilters } from '@/types/ui';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<string | null>(null);
@@ -25,7 +25,7 @@ const ConversationDashboard: React.FC = () => {
   const { selectedPersonId } = useSelectedElement();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Use extracted hooks
+  // Use consolidated conversation data hook with real-time updates
   const {
     conversationData,
     isLoading,
@@ -33,18 +33,25 @@ const ConversationDashboard: React.FC = () => {
     fetchConversationData,
     addMessage,
     fetchMore
-  } = useConversationData(filters);
-
-  useMessagePolling({
+  } = useConversationData({
+    filters,
     personId: dashboardSelectedPerson,
-    onNewMessage: (personId: string, message: ConversationMessage) => {
-      addMessage(personId, message);
-      // Auto-scroll to bottom
+    enableRealtimeUpdates: true
+  });
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    const handleMessageAdded = () => {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    }
-  });
+    };
+
+    window.addEventListener('conversation-update', handleMessageAdded);
+    return () => {
+      window.removeEventListener('conversation-update', handleMessageAdded);
+    };
+  }, []);
 
   // Initial load when runContext changes
   useEffect(() => {

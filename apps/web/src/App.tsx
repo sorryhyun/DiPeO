@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useExecutionMonitor } from './hooks/useExecutionMonitor';
+import { useRealtimeExecution } from './hooks/useRealtimeExecution';
 import { useConsolidatedUIStore, useDiagramStore } from './stores';
 import { useDiagramRunner } from './hooks/useDiagramRunner';
 
@@ -46,8 +46,8 @@ function App() {
     };
   }, [setReadOnly]);
 
-  // Use execution monitor - it will automatically use WebSocket when available
-  useExecutionMonitor();
+  // Use realtime execution monitor - it will automatically use WebSocket when available
+  useRealtimeExecution({ enableMonitoring: true });
   
   // Show WebSocket status when enabled via feature flag
   useEffect(() => {

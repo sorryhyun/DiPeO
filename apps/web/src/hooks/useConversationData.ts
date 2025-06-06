@@ -1,12 +1,21 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 import { createErrorHandlerFactory } from '@/types';
-import { ConversationMessage, PersonMemoryState, ConversationFilters } from '@/types';
+import { ConversationMessage, PersonMemoryState, ConversationFilters } from '@/types/ui';
 
 const MESSAGES_PER_PAGE = 50;
 
-export const useConversationData = (filters: ConversationFilters) => {
+export interface UseConversationDataOptions {
+  filters: ConversationFilters;
+  personId?: string | null;
+  enableRealtimeUpdates?: boolean;
+}
+
+export const useConversationData = (options: UseConversationDataOptions | ConversationFilters) => {
+  // Support both old and new API for backward compatibility
+  const { filters, personId = null, enableRealtimeUpdates = true } = 
+    'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true };
   const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -132,6 +141,28 @@ export const useConversationData = (filters: ConversationFilters) => {
     return fetchConversationData();
   }, [fetchConversationData]);
 
+  // Real-time message polling via WebSocket events (consolidated from useMessagePolling)
+  useEffect(() => {
+    if (!enableRealtimeUpdates) return;
+
+    const handleRealtimeUpdate = (event: CustomEvent) => {
+      const { type, data } = event.detail;
+
+      if (type === 'message_added' && data.personId) {
+        // Add new message to the current view if it matches the selected person
+        if (personId === data.personId || !personId) {
+          const message = data.message as ConversationMessage;
+          addMessage(data.personId, message);
+        }
+      }
+    };
+
+    window.addEventListener('conversation-update', handleRealtimeUpdate as EventListener);
+    return () => {
+      window.removeEventListener('conversation-update', handleRealtimeUpdate as EventListener);
+    };
+  }, [personId, addMessage, enableRealtimeUpdates]);
+
   return {
     conversationData,
     isLoading,
@@ -142,6 +173,8 @@ export const useConversationData = (filters: ConversationFilters) => {
     addMessage,
     refresh,
     fetchMore,
-    applyFilters
+    applyFilters,
+    // Realtime updates now built-in
+    enableRealtimeUpdates,
   };
 };

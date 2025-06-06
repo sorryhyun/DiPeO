@@ -25,6 +25,20 @@ export interface WebSocketMessage {
   [key: string]: any;
 }
 
+// Alias for backward compatibility
+export type WSMessage = WebSocketMessage;
+
+export interface MessageHandler {
+  (message: WSMessage): void;
+}
+
+export interface WebSocketClientOptions {
+  debug?: boolean;
+  autoReconnect?: boolean;
+  maxReconnectAttempts?: number;
+  reconnectInterval?: number;
+}
+
 export interface NodeExecutionEvent {
   type: 'node_start' | 'node_progress' | 'node_complete' | 'node_error' | 'node_paused' | 'node_resumed' | 'node_skipped';
   nodeId: string;

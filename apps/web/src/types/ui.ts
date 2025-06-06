@@ -32,6 +32,31 @@ export interface NotificationState {
   duration?: number;
 }
 
+// Conversation types
+export interface ConversationMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  cost?: number;
+  personId?: string;
+}
+
+export interface PersonMemoryState {
+  messages: ConversationMessage[];
+  totalMessages: number;
+  visibleMessages: number;
+  forgottenMessages: number;
+  hasMore: boolean;
+}
+
+export interface ConversationFilters {
+  searchTerm?: string;
+  executionId?: string;
+  showForgotten?: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+
 export interface CanvasState {
   zoom: number;
   center: { x: number; y: number };

@@ -13,22 +13,17 @@ import {
 import '@xyflow/react/dist/style.css';
 import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import {
-  useContextMenu,
-  useKeyboardShortcuts
-} from '@/hooks';
+import { useCanvasInteractions } from '@/hooks';
 import { ContextMenu } from './ContextMenu';
 import { CustomArrow as CustomArrowBase } from './CustomArrow';
 import { roundPosition } from '@/utils/canvasUtils';
 import nodeTypes from './nodeTypes';
-import { useNodeDrag } from '@/hooks/useNodeDrag';
 import { DiagramNode, Arrow } from '@/types';
 import { 
   useCanvasState, 
   useSelectedElement, 
   usePersons 
 } from '@/hooks/useStoreSelectors';
-import { useExecutionMonitor } from '@/hooks/useExecutionMonitor';
 import { useHistoryActions } from '@/hooks/useHistoryActions';
 
 // Use dependency injection instead of wrapper components
@@ -63,10 +58,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     setSelectedArrowId,
   } = useSelectedElement();
   
-  // Execution state from optimized selector
-  const executionMonitor = useExecutionMonitor();
-  const { isRunning, runningNodes, currentRunningNode } = executionMonitor || { isRunning: false, runningNodes: [], currentRunningNode: null };
-  
   // Person actions from optimized selector
   const { addPerson, deletePerson } = usePersons();  
 
@@ -77,30 +68,29 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     setRfInstance(instance);
   }, []);
   
-  const { contextMenu, openContextMenu, closeContextMenu, isOpen } = useContextMenu();
+  // Canvas interactions - provides context menu, keyboard shortcuts, and drag/drop
+  const {
+    contextMenu,
+    openContextMenu,
+    closeContextMenu,
+    isContextMenuOpen,
+    onNodeDragStart,
+    onDragOver,
+    onNodeDrop,
+    onPaneClick,
+    onPaneContextMenu,
+    onNodeContextMenu,
+    onEdgeContextMenu
+  } = useCanvasInteractions({
+    onSave: () => console.log('Save triggered'),
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+  });
 
   // Simple nodes array - let BaseNode handle running state via execution store
   const nodesWithExecutionState = nodes;
 
-  // Update ReactFlow instance when running nodes change
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      // Removed console.log for production build
-    }
-    // Removed viewport manipulation - let React Flow handle updates naturally
-  }, [runningNodes, currentRunningNode]);
-
-  // Handle keyboard shortcuts
-  useKeyboardShortcuts({
-    onDelete: () => {
-      if (selectedNodeId) deleteNode(selectedNodeId);
-      else if (selectedArrowId) deleteArrow(selectedArrowId);
-      else if (selectedPersonId) deletePerson(selectedPersonId);
-    },
-    onEscape: closeContextMenu,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-  });
+  // Note: Keyboard shortcuts are now handled by useCanvasInteractions
 
   // Helper to project screen coords to RF coords
   const projectPosition = useCallback((x: number, y: number) => {
@@ -116,10 +106,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     return roundPosition(position);
   }, [rfInstance]);
 
-  // Context menu actions
-  // Use extracted node drag hook
-  const { onDragOver, onDrop: onNodeDrop } = useNodeDrag();
-
   const handleAddPerson = () => {
     addPerson({ label: 'New Person' });
   };
@@ -131,9 +117,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         console.warn('ReactFlow instance not ready');
         return;
       }
-      onNodeDrop(event, addNode, projectPosition);
+      onNodeDrop(event, projectPosition);
     },
-    [onNodeDrop, addNode, projectPosition, rfInstance]
+    [onNodeDrop, projectPosition, rfInstance]
   );
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
@@ -166,22 +152,19 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               onPaneClick={onPaneClick}
               onInit={handleInit}
               onNodeContextMenu={(event, node) => {
-                event.preventDefault();
                 setSelectedNodeId(node.id);
                 setSelectedArrowId(null);
-                openContextMenu(event.clientX, event.clientY, 'node');
+                onNodeContextMenu(event, node.id);
               }}
               onEdgeContextMenu={(event, edge) => {
-                event.preventDefault();
                 setSelectedArrowId(edge.id);
                 setSelectedNodeId(null);
-                openContextMenu(event.clientX, event.clientY, 'edge');
+                onEdgeContextMenu(event, edge.id);
               }}
               onPaneContextMenu={(event) => {
-                event.preventDefault();
                 setSelectedNodeId(null);
                 setSelectedArrowId(null);
-                openContextMenu(event.clientX, event.clientY, 'pane');
+                onPaneContextMenu(event);
               }}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
@@ -198,7 +181,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             </ReactFlow>
           </div>
           
-          {isOpen && contextMenu.position && (
+          {isContextMenuOpen && contextMenu.position && (
             <Suspense fallback={null}>
               <ContextMenu
                 position={contextMenu.position}
@@ -242,22 +225,19 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
                 onPaneClick={onPaneClick}
                 onInit={handleInit}
                 onNodeContextMenu={(event, node) => {
-                  event.preventDefault();
                   setSelectedNodeId(node.id);
                   setSelectedArrowId(null);
-                  openContextMenu(event.clientX, event.clientY, 'node');
+                  onNodeContextMenu(event, node.id);
                 }}
                 onEdgeContextMenu={(event, edge) => {
-                  event.preventDefault();
                   setSelectedArrowId(edge.id);
                   setSelectedNodeId(null);
-                  openContextMenu(event.clientX, event.clientY, 'edge');
+                  onEdgeContextMenu(event, edge.id);
                 }}
                 onPaneContextMenu={(event) => {
-                  event.preventDefault();
                   setSelectedNodeId(null);
                   setSelectedArrowId(null);
-                  openContextMenu(event.clientX, event.clientY, 'pane');
+                  onPaneContextMenu(event);
                 }}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
@@ -274,7 +254,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               </ReactFlow>
             </div>
             
-            {isOpen && contextMenu.position && (
+            {isContextMenuOpen && contextMenu.position && (
               <Suspense fallback={null}>
                 <ContextMenu
                   position={contextMenu.position}

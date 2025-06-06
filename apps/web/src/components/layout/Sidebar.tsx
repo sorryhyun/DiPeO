@@ -3,10 +3,9 @@ import React, { useState, Suspense } from 'react';
 import { Button } from '@/components/common/Button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { NODE_CONFIGS, PersonDefinition } from '@/types';
-import { useFileImport } from '@/hooks/useFileImport';
-import { useExport } from '@/hooks/useExport';
+import { useFileOperations } from '@/hooks/useFileOperations';
 import { FileUploadButton } from '@/components/common/common/FileUploadButton';
-import { useNodeDrag } from '@/hooks/useNodeDrag';
+import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
 import { 
   useNodes, 
   useArrows, 
@@ -18,7 +17,7 @@ import {
 const PropertiesPanel = React.lazy(() => import('@/components/panels/UniversalPropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
-  const { onDragStart } = useNodeDrag();
+  const { onNodeDragStart } = useCanvasInteractions();
 
   // Extract emoji from label (assuming it's the first character(s))
   const icon = label.split(' ')[0] || '';
@@ -27,7 +26,7 @@ export const DraggableBlock = ({ type, label }: { type: string; label: string })
   return (
     <div
       className="p-3 border rounded-lg bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 cursor-grab text-center text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:border-blue-300 group"
-      onDragStart={(event) => onDragStart(event, type)}
+      onDragStart={(event) => onNodeDragStart(event, type)}
       draggable
     >
       <div className="text-lg group-hover:scale-110 transition-transform duration-200">{icon}</div>
@@ -50,8 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
     setSelectedPersonId 
   } = useSelectedElement();
   const { persons, addPerson } = usePersons();
-  const { handleImportYAML } = useFileImport();
-  const { onSaveYAMLToDirectory, onSaveLLMYAMLToDirectory } = useExport();
+  const { handleFileInput, saveYAML, saveLLMYAML } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
@@ -177,7 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         {fileOperationsExpanded && (
           <div className="mt-3 space-y-2 px-2">
             <FileUploadButton
-              onFileUpload={handleImportYAML}
+              onFileUpload={handleFileInput}
               className="w-full text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               variant="outline"
               size="sm"
@@ -189,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
               size="sm"
-              onClick={() => onSaveYAMLToDirectory()}
+              onClick={() => saveYAML()}
               title="Export to YAML format (saves to /files/yaml_diagrams/)"
             >
               <span className="mr-1">📤</span> Export YAML
@@ -198,7 +196,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={() => onSaveLLMYAMLToDirectory()}
+              onClick={() => saveLLMYAML()}
               title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
             >
               <span className="mr-1">🤖</span> Export LLM YAML

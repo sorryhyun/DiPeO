@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCanvasSelectors } from './store/useCanvasSelectors';
+import { useApiKeySelectors } from './store/useApiKeySelectors';
+import { type ApiKey } from '@/types';
 
 interface ValidationRule<T> {
   field: keyof T;
   validator: (value: unknown, formData: T) => string | null;
 }
 
-interface UsePropertyFormStateOptions<T> {
+interface UsePropertyManagerOptions<T> {
   validationRules?: ValidationRule<T>[];
   autoSave?: boolean;
   autoSaveDelay?: number;
@@ -13,11 +16,11 @@ interface UsePropertyFormStateOptions<T> {
   onError?: (error: string) => void;
 }
 
-export const usePropertyFormState = <T extends Record<string, unknown>>(
-  initialData: T,
+export const usePropertyManager = <T extends Record<string, unknown>>(
   entityId: string,
   entityType: 'node' | 'arrow' | 'person',
-  options: UsePropertyFormStateOptions<T> = {}
+  initialData: T,
+  options: UsePropertyManagerOptions<T> = {}
 ) => {
   const {
     validationRules = [],
@@ -27,6 +30,11 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
     onError
   } = options;
 
+  // Store selectors
+  const { updateNode, updateArrow, updatePerson, isMonitorMode } = useCanvasSelectors();
+  const { apiKeys } = useApiKeySelectors();
+
+  // Form state
   const [formData, setFormData] = useState<T>(initialData);
   const [isDirty, setIsDirty] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,8 +75,29 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
     return newErrors;
   }, [validationRules]);
 
+  // Auto-save function
+  const autoSaveToStore = useCallback((data: T) => {
+    if (isMonitorMode) return; // Don't auto-save in monitor mode
+    
+    try {
+      if (entityType === 'node') {
+        updateNode(entityId, data as Record<string, unknown>);
+      } else if (entityType === 'arrow') {
+        updateArrow(entityId, data);
+      } else {
+        updatePerson(entityId, data);
+      }
+      setLastSaved(new Date());
+    } catch (error) {
+      if (onError) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to auto-save';
+        onError(errorMessage);
+      }
+    }
+  }, [entityType, entityId, updateNode, updateArrow, updatePerson, isMonitorMode, onError]);
+
   // Handle field changes
-  const handleChange = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
+  const updateField = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
@@ -87,21 +116,23 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
       setIsDirty(true);
       
       // Auto-save logic
-      if (autoSave && onSave) {
+      if (autoSave && !fieldError) {
         if (autoSaveTimeoutRef.current) {
           clearTimeout(autoSaveTimeoutRef.current);
         }
         
         autoSaveTimeoutRef.current = window.setTimeout(() => {
-          if (!fieldError) {
+          if (onSave) {
             handleSave(newData);
+          } else {
+            autoSaveToStore(newData);
           }
         }, autoSaveDelay);
       }
       
       return newData;
     });
-  }, [validateField, autoSave, onSave, autoSaveDelay]);
+  }, [validateField, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
 
   // Handle bulk updates
   const updateFormData = useCallback((updates: Partial<T>) => {
@@ -126,19 +157,23 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
       setIsDirty(true);
       
       // Auto-save if no errors
-      if (autoSave && onSave && !hasNewErrors) {
+      if (autoSave && !hasNewErrors) {
         if (autoSaveTimeoutRef.current) {
           clearTimeout(autoSaveTimeoutRef.current);
         }
         
         autoSaveTimeoutRef.current = window.setTimeout(() => {
-          handleSave(newData);
+          if (onSave) {
+            handleSave(newData);
+          } else {
+            autoSaveToStore(newData);
+          }
         }, autoSaveDelay);
       }
       
       return newData;
     });
-  }, [errors, validateField, autoSave, onSave, autoSaveDelay]);
+  }, [errors, validateField, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
 
   // Handle manual save
   const handleSave = useCallback(async (dataToSave?: T) => {
@@ -153,12 +188,14 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
       return false;
     }
     
-    if (!onSave) return true;
-    
     setIsSubmitting(true);
     
     try {
-      await onSave(saveData);
+      if (onSave) {
+        await onSave(saveData);
+      } else {
+        autoSaveToStore(saveData);
+      }
       setIsDirty(false);
       setLastSaved(new Date());
       setErrors({});
@@ -172,7 +209,7 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, onSave, onError]);
+  }, [formData, validateForm, onSave, onError, autoSaveToStore]);
 
   // Handle form reset
   const reset = useCallback(() => {
@@ -184,6 +221,15 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
     }
   }, []);
 
+  // API key options for dropdowns
+  const apiKeyOptions = useCallback(() => {
+    return apiKeys.map((key: ApiKey) => ({
+      value: key.id,
+      label: `${key.service}: ${key.name}`,
+      service: key.service
+    }));
+  }, [apiKeys]);
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -194,16 +240,23 @@ export const usePropertyFormState = <T extends Record<string, unknown>>(
   }, []);
 
   return {
+    // Form data
     formData,
     isDirty,
     errors,
     isSubmitting,
     lastSaved,
     hasErrors: Object.keys(errors).length > 0,
-    handleChange,
+    isReadOnly: isMonitorMode,
+    
+    // Actions
+    updateField,
     updateFormData,
-    handleSave: () => handleSave(formData),
+    save: () => handleSave(formData),
     reset,
-    validateForm: () => validateForm(formData)
+    validateForm: () => validateForm(formData),
+    
+    // Utility
+    apiKeyOptions: apiKeyOptions(),
   };
 };
