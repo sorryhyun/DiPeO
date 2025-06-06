@@ -1,7 +1,7 @@
 import React from 'react';
 import { UnifiedFormField } from './UnifiedFormField';
-import { PropertyFieldConfig } from '../../types/fieldConfig';
-import { usePersons } from '@/common/utils/storeSelectors';
+import { PropertyFieldConfig } from '../../../types';
+import { usePersons } from '../../utils/storeSelectors';
 
 interface UnifiedFieldRendererProps {
   field: PropertyFieldConfig;

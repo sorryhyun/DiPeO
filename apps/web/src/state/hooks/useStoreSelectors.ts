@@ -1,9 +1,9 @@
 import React from 'react';
-import { useDiagramStore } from '@/state/stores';
-import { useExecutionStore } from '@/state/stores/executionStore';
-import { useConsolidatedUIStore } from '@/state/stores/consolidatedUIStore';
-import { useHistoryStore } from '@/state/stores/historyStore';
-import { useApiKeyStore } from '@/state/stores/apiKeyStore';
+import { useDiagramStore } from '../stores';
+import { useExecutionStore } from '../stores/executionStore';
+import { useConsolidatedUIStore } from '../stores/consolidatedUIStore';
+import { useHistoryStore } from '../stores/historyStore';
+import { useApiKeyStore } from '../stores/apiKeyStore';
 
 // ===== Key Optimized Selectors =====
 
@@ -214,3 +214,19 @@ export const exportDiagramState = () => useDiagramStore.getState().exportDiagram
 export const useSkippedNodes = () => useExecutionStore(state => state.skippedNodes);
 export const useExecutions = () => useExecutionStore(state => state);
 export const clearDiagram = () => useDiagramStore.getState().clear();
+
+// Missing exports for compatibility
+export const loadDiagram = (diagram: any) => useDiagramStore.getState().loadDiagram(diagram);
+export const useSelectedPersonId = () => useConsolidatedUIStore(state => state.selectedPersonId);
+export const useSetSelectedPersonId = () => useConsolidatedUIStore(state => state.setSelectedPersonId);
+export const useClearRunContext = () => {
+  const setRunContext = useExecutionStore(state => state.setRunContext);
+  return () => setRunContext(null);
+};
+export const useClearRunningNodes = () => {
+  const store = useExecutionStore.getState();
+  return () => {
+    store.runningNodes.forEach(nodeId => store.removeRunningNode(nodeId));
+    store.setCurrentRunningNode(null);
+  };
+};

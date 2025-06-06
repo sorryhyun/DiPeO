@@ -9,8 +9,8 @@ import {
   useArrows,
   usePersons,
   useLoadDiagram
-} from '@/common/utils/storeSelectors';
-import { useHistoryStore } from '@/state/stores';
+} from '../../common/utils/storeSelectors';
+import { useHistoryStore } from '../stores';
 
 export const useHistoryActions = () => {
   const { saveToHistory, clearHistory, initializeHistory } = useHistoryStore();

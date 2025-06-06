@@ -11,8 +11,8 @@ import {
   type Diagram, 
   type ApiResponse as ApiResponseType, 
   type Node 
-} from '@/common/types';
-import { getApiKeys } from '@/common/utils/storeSelectors';
+} from '../../types';
+import { getApiKeys } from './storeSelectors';
 
 // Types
 /* global RequestInit */
@@ -300,12 +300,11 @@ export const saveDiagram = async (
 ): Promise<ApiResponseType<{ path: string }>> => {
   // Convert DiagramState to Diagram if needed
   const diagramData: Diagram = 'apiKeys' in diagram 
-    ? {
-        nodes: diagram.nodes as Node[],
-        arrows: diagram.arrows,
-        persons: diagram.persons,
-      }
-    : diagram;
+    ? diagram as Diagram
+    : {
+        ...diagram,
+        apiKeys: []
+      };
     
   return apiClient.post<ApiResponseType<{ path: string }>>(
     API_ENDPOINTS.SAVE_DIAGRAM,

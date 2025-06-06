@@ -1,4 +1,4 @@
-import { PanelConfig } from '@/common/types/panelConfig';
+import { PanelConfig } from '../../../types';
 
 const notionConfig: PanelConfig<Record<string, any>> = {
   layout: 'single',

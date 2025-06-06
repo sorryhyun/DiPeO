@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 
-import { ArrowData } from '@/common/types';
+import { Arrow } from '../../../../types';
+
+type ArrowData = Arrow['data'];
 
 export interface CustomArrowProps extends EdgeProps {
   onUpdateData?: (edgeId: string, data: Partial<ArrowData>) => void;

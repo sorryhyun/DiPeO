@@ -1,7 +1,7 @@
 import React from 'react';
 import { CustomArrow as CustomArrowBase } from './ui-components/Arrow';
 import { useArrowDataUpdater } from '@/state/hooks/useStoreSelectors';
-import { ArrowData } from '@/common/types';
+import { ArrowData } from '../../../types';
 
 // Re-export types from local ui-components
 export type { CustomArrowProps } from './ui-components/Arrow';
@@ -39,7 +39,7 @@ export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>
       }
     }
     
-    updateArrowData(edgeId, coreModelData);
+    updateArrowData?.(edgeId, coreModelData);
   }, [updateArrowData]);
   
   return (

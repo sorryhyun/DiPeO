@@ -7,13 +7,13 @@
 
 import { produce } from 'immer';
 import { getWebSocketClient, WebSocketClient, WSMessage } from './websocket-client';
-import type { Node, Arrow, PersonDefinition, ApiKey } from '@/common/types';
+import type { Node, Arrow, Person, ApiKey } from '../../types';
 import type { InteractivePromptData } from './components/InteractivePromptModal';
 
 export interface DiagramData {
   nodes: Node[];
   arrows: Arrow[];
-  persons?: PersonDefinition[];
+  persons?: Person[];
   apiKeys?: ApiKey[];
 }
 

@@ -8,16 +8,16 @@ import {
   useRemoveRunningNode,
   useSkippedNodes,
   exportDiagramState
-} from '@/common/utils/storeSelectors';
+} from '../../../common/utils/storeSelectors';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory, PersonDefinition } from '@/common/types';
-import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
-import { isApiKey, parseApiArrayResponse } from '@/common/utils/typeGuards';
+import { createErrorHandlerFactory, PersonDefinition } from '../../../types';
+import { API_ENDPOINTS, getApiUrl } from '../../../common/utils/apiConfig';
+import { isApiKey, parseApiArrayResponse } from '../../../common/utils/typeGuards';
 import { 
   createWebSocketExecutionClient,
   type DiagramData,
   type ExecutionUpdate
-} from '@/features/runtime/websocket-execution-client';
+} from '../websocket-execution-client';
 import { getWebSocketClient } from '@/features/runtime/websocket-client';
 import type { InteractivePromptData } from '@/features/runtime/components/InteractivePromptModal';
 

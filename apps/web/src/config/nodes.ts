@@ -1,5 +1,5 @@
 // Simplified node configuration system - single source of truth
-import type { Node } from '../common/types/core';
+import type { Node } from '../types';
 
 export type NodeType = Node['type'];
 

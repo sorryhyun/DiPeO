@@ -1,4 +1,5 @@
 import { useCallback, useRef, type DragEvent } from 'react';
+import { Node } from '@/common/types/core';
 
 export const useNodeDrag = () => {
   // Store drag offset to align node properly with cursor
@@ -26,7 +27,7 @@ export const useNodeDrag = () => {
   // Handle drop for adding nodes to canvas
   const onDrop = useCallback((
     event: DragEvent, 
-    addNode: (type: string, position: { x: number; y: number }) => void,
+    addNode: (type: Node['type'], position: { x: number; y: number }) => void,
     projectPosition: (x: number, y: number) => { x: number; y: number }
   ) => {
     event.preventDefault();
@@ -38,7 +39,7 @@ export const useNodeDrag = () => {
     
     // Add the node at the drop position
     // React Flow will use this as the top-left corner of the node
-    addNode(type, dropPosition);
+    addNode(type as Node['type'], dropPosition);
   }, []);
 
   // Handle drag over for person drop on nodes

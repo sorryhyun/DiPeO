@@ -1,18 +1,18 @@
 // Application root component
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { TopBar, Sidebar } from '@/features/layout';
-import { useExecutionMonitor } from '@/state/hooks/useExecutionMonitor';
-import { useConsolidatedUIStore } from '@/state/stores';
-import { useDiagramStore } from '@/state/stores';
-import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
+import { TopBar, Sidebar } from './features/layout';
+import { useExecutionMonitor } from './state/hooks/useExecutionMonitor';
+import { useConsolidatedUIStore } from './state/stores';
+import { useDiagramStore } from './state/stores';
+import { useDiagramRunner } from './features/runtime/hooks/useDiagramRunner';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('@/features/canvas').then(module => ({ default: module.DiagramCanvas })));
-const LazyMemoryCanvas = React.lazy(() => import('@/features/memory').then(module => ({ default: module.MemoryCanvas })));
-const LazyExecutionView = React.lazy(() => import('@/features/layout').then(module => ({ default: module.ExecutionView })));
+const LazyDiagramCanvas = React.lazy(() => import('./features/canvas').then(module => ({ default: module.DiagramCanvas })));
+const LazyMemoryCanvas = React.lazy(() => import('./features/memory').then(module => ({ default: module.MemoryCanvas })));
+const LazyExecutionView = React.lazy(() => import('./features/layout').then(module => ({ default: module.ExecutionView })));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyWebSocketTest = React.lazy(() => import('@/features/runtime/components/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
+const LazyWebSocketTest = React.lazy(() => import('./features/runtime/components/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
 const LazyInteractivePromptModal = React.lazy(() => import('@/features/runtime/components/InteractivePromptModal'));
 
 function App() {

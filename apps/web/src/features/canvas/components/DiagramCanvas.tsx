@@ -21,7 +21,7 @@ import {
 } from '..';
 import { roundPosition } from '../utils/canvasUtils';
 import { nodeTypes, useNodeDrag } from '@/features/nodes';
-import { DiagramNode, Arrow } from '@/common/types';
+import { DiagramNode, Arrow } from '../../../types';
 import PropertyDashboard from './PropertyDashboard';
 
 import { 

@@ -1,4 +1,4 @@
-import { PanelConfig } from '@/common/types/panelConfig';
+import { PanelConfig } from '../../../types';
 
 export const conditionConfig: PanelConfig<Record<string, any>> = {
   layout: 'single',

@@ -1,5 +1,10 @@
-// Unified node configuration mapping
-import { PanelConfig } from './panelConfig';
+// Consolidated type exports
+export * from './core';
+export * from './runtime';
+export * from './ui';
+
+// Import node configs - needs to be here to avoid circular deps
+import { PanelConfig } from './ui';
 import {
   startConfig,
   endpointConfig,
@@ -12,7 +17,7 @@ import {
   personConfig,
   userResponseConfig,
   notionConfig
-} from '@/features/properties/configs';
+} from '../features/properties/configs';
 
 export interface UnifiedNodeConfig {
   nodeType: string;

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
-import { ApiKey } from '@/common/types';
-import { api } from '@/common/utils/apiClient';
+import { ApiKey } from '../../types';
+import { api } from '../../common/utils/apiClient';
 
 export interface ApiKeyState {
   apiKeys: ApiKey[];

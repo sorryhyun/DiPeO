@@ -6,7 +6,7 @@ import {
   Arrow,
   Person,
   ApiKey
-} from '@/common/types';
+} from '../../../types';
 
 interface Edge {
   source: string;

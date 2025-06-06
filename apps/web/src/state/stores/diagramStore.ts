@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
-import { Node, Arrow, Person, Diagram } from '@/common/types/core';
+import { Node, Arrow, Person, Diagram, ApiKey } from '../../types';
 
 export interface DiagramStore {
   // Data
@@ -30,7 +30,7 @@ export interface DiagramStore {
   // Utility
   clear: () => void;
   loadDiagram: (data: { nodes: Node[]; arrows: Arrow[]; persons: Person[] }) => void;
-  exportDiagram: () => { nodes: Node[]; arrows: Arrow[]; persons: Person[] };
+  exportDiagram: () => { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys: ApiKey[] };
   
   // Additional properties for compatibility
   isReadOnly?: boolean;
@@ -142,7 +142,8 @@ export const useDiagramStore = create<DiagramStore>()(
         exportDiagram: () => ({
           nodes: get().nodes,
           arrows: get().arrows,
-          persons: get().persons
+          persons: get().persons,
+          apiKeys: [] // TODO: Get from apiKeyStore when needed
         }),
         
         // Additional methods for compatibility

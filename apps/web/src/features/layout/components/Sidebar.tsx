@@ -1,6 +1,6 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState, Suspense } from 'react';
-import { Button } from '@/common/components';
+import { Button } from '../../../common/components';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { 
   useNodes, 
@@ -13,15 +13,15 @@ import {
   useSetSelectedPersonId,
   useSetDashboardTab,
   useActiveCanvas
-} from '@/state/stores';
-import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '@/common/types';
-import { useFileImport } from '@/features/io/hooks/useFileImport';
-import { useExport } from '@/features/io/hooks/useExport';
-import { FileUploadButton } from '@/common/components/common/FileUploadButton';
-import { useNodeDrag } from '@/features/nodes/hooks/useNodeDrag';
+} from '../../../state/stores';
+import { UNIFIED_NODE_CONFIGS, PersonDefinition } from '../../../types';
+import { useFileImport } from '../../io/hooks/useFileImport';
+import { useExport } from '../../io/hooks/useExport';
+import { FileUploadButton } from '../../../common/components/common/FileUploadButton';
+import { useNodeDrag } from '../../nodes/hooks/useNodeDrag';
 
 // Lazy load PropertiesRenderer as it's only used in right sidebar
-const PropertiesRenderer = React.lazy(() => import('@/features/properties/components/PropertiesRenderer'));
+const PropertiesRenderer = React.lazy(() => import('../../properties/components/PropertiesRenderer'));
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onDragStart } = useNodeDrag();

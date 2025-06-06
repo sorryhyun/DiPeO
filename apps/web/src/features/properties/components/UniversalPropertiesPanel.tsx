@@ -1,8 +1,8 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { DiagramNodeData, ArrowData, PersonDefinition } from '@/common/types';
-import { NODE_CONFIGS } from '@/config/nodes';
-import { PanelConfig } from '@/common/types/panelConfig';
+import { DiagramNodeData, ArrowData, PersonDefinition } from '../../../types';
+import { NODE_CONFIGS } from '../../../config/nodes';
+import { PanelConfig } from '../../../types';
 import { GenericPropertyPanel } from './ui-components/GenericPropertyPanel';
 import {
   endpointConfig,

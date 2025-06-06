@@ -1,6 +1,96 @@
-// Error types
-import { Node } from './core';
+// Core domain types - Essential entities and their relationships
 
+export interface Node {
+  id: string;
+  type: 'start' | 'job' | 'person_job' | 'condition' | 'endpoint' | 'db' | 'notion' | 'person_batch_job' | 'user_response';
+  position: { x: number; y: number };
+  data: Record<string, any>; // Flexible data storage - stop over-typing
+}
+
+export interface Arrow {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  data?: Record<string, any>;
+}
+
+export interface Person {
+  id: string;
+  label: string;
+  apiKeyId?: string;
+  modelName?: string;
+  service?: string;
+  systemPrompt?: string;
+  memory?: ConversationMessage[];
+  options?: Record<string, any>;
+}
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  service: 'openai' | 'anthropic' | 'google' | 'groq' | 'notion' | 'claude' | 'grok' | 'gemini' | 'custom';
+}
+
+export interface Diagram {
+  nodes: Node[];
+  arrows: Arrow[];
+  persons: Person[];
+  apiKeys: ApiKey[];
+  metadata?: {
+    id?: string;
+    name?: string;
+    description?: string;
+    created?: string;
+    modified?: string;
+  };
+}
+
+// API types
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  filename?: string;
+  path?: string;
+}
+
+export interface ChatResult {
+  text: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+// Validation types
+export interface ArrowValidation {
+  isValid: boolean;
+  arrow: Arrow;
+  reason?: string;
+}
+
+export interface DependencyInfo {
+  node_id: string;
+  dependenciesMet: boolean;
+  validArrows: Arrow[];
+  missingDependencies: string[];
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Error types
 type NodeType = Node['type'];
 
 export class AgentDiagramException extends Error {
@@ -95,3 +185,10 @@ export function createErrorHandlerFactory(context: string) {
     }
   };
 }
+
+// Type aliases for compatibility
+export type DiagramNode = Node;
+export type DiagramState = Diagram;
+export type PersonDefinition = Person;
+export type ArrowData = Record<string, any>;
+export type DiagramNodeData = Record<string, any>;

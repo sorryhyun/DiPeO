@@ -3,10 +3,10 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
-import { Button, Input, Select } from '@/common/components';
-import { useDownload } from '@/features/io/hooks/useDownload';
+import { Button, Input, Select } from '../../../common/components';
+import { useDownload } from '../../io/hooks/useDownload';
 import { toast } from 'sonner';
-import { usePersons, useSelectedElement, useExecutionStatus } from '@/state/hooks/useStoreSelectors';
+import { usePersons, useSelectedElement, useExecutionStatus } from '../../../state/hooks/useStoreSelectors';
 import { useConversationData, useMessagePolling } from '../hooks';
 import { MessageList } from './MessageList';
 import { ConversationMessage, ConversationFilters } from '../types';

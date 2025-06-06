@@ -1,5 +1,5 @@
 import React from 'react';
-import { UNIFIED_NODE_CONFIGS } from '@/common/types';
+import { UNIFIED_NODE_CONFIGS, Node } from '../../../types';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -7,7 +7,7 @@ export interface ContextMenuProps {
   selectedNodeId?: string | null;
   selectedArrowId?: string | null;
   containerRef: React.RefObject<HTMLDivElement>;
-  onAddNode: (type: string, position: { x: number; y: number }) => void;
+  onAddNode: (type: Node['type'], position: { x: number; y: number }) => void;
   onAddPerson: () => void;
   onDeleteNode: (nodeId: string) => void;
   onDeleteArrow: (arrowId: string) => void;
@@ -35,11 +35,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   // Use props if provided, otherwise derive from UNIFIED_NODE_CONFIGS
   const nodeTypes = nodeTypesProp || Object.keys(UNIFIED_NODE_CONFIGS);
   const nodeLabels = nodeLabelsProp || Object.fromEntries(
-    Object.entries(UNIFIED_NODE_CONFIGS).map(([key, config]) => [key, config.label])
+    Object.keys(UNIFIED_NODE_CONFIGS).map(key => [key, key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())])
   );
   const handleAddNode = (nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
-    onAddNode(nodeType, pos);
+    onAddNode(nodeType as Node['type'], pos);
     onClose();
   };
 

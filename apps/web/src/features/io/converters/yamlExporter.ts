@@ -6,7 +6,7 @@ import {
   Arrow,
   ApiKey,
   Node
-} from '@/common/types';
+} from '../../../types';
 import { nanoid } from 'nanoid';
 
 interface YamlDiagram {

@@ -1,6 +1,6 @@
 import { 
   ApiKey
-} from '@/common/types';
+} from '../../types';
 
 // API key type guard
 export function isApiKey(value: unknown): value is ApiKey {

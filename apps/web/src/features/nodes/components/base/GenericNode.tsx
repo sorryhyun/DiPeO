@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
-import { GenericNodeProps } from '@/common/types';
+import { GenericNodeProps } from '../../../types';
 import { NODE_CONFIGS } from '@/config/nodes';
 import type { NodeType } from '@/config/nodes';
 

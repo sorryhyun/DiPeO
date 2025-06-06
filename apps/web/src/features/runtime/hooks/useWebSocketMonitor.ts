@@ -12,9 +12,9 @@ import {
   useSetRunContext,
   useLoadDiagram,
   useNodes
-} from '@/common/utils/storeSelectors';
+} from '../../../common/utils/storeSelectors';
 import { toast } from 'sonner';
-import { DiagramState } from '@/common/types';
+import { DiagramState } from '../../../types';
 
 export const useWebSocketMonitor = (enabled = false) => {
   const { isConnected, connectionState } = useWebSocket({ 

@@ -3,7 +3,7 @@
  * All file download, upload, and save operations should go through this module
  */
 
-import type { ApiResponse, Diagram } from '@/common/types';
+import type { ApiResponse, Diagram } from '../../types';
 import { getApiUrl, API_ENDPOINTS } from './apiConfig';
 
 /**

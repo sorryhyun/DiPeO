@@ -1,5 +1,5 @@
 // apps/web/src/utils/diagramSanitizer.ts
-import { DiagramState, PersonDefinition } from '@/common/types';
+import { DiagramState, PersonDefinition } from '../../../types';
 
 export function sanitizeDiagram(diagram: DiagramState): DiagramState {
   return {

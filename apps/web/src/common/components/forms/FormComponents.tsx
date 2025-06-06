@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input, Select, Spinner, Switch } from '../index';
-import { FormFieldProps } from '@/common/types';
+import { FormFieldProps } from '../../../types';
 
 export const FormField: React.FC<FormFieldProps> = ({ label, id, children, className = "space-y-1" }) => (
   <div className={className}>

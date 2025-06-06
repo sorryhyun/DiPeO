@@ -1,4 +1,4 @@
-import { PanelConfig } from '@/common/types/panelConfig';
+import { PanelConfig } from '../../../types';
 
 export const endpointConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',

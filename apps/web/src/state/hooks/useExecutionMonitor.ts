@@ -7,10 +7,10 @@ import {
   useAddSkippedNode,
   useLoadDiagram,
   useNodes
-} from '@/common/utils/storeSelectors';
+} from '../../common/utils/storeSelectors';
 import { toast } from 'sonner';
-import { useWebSocket, useWebSocketMessage } from '@/features/runtime/hooks/useWebSocket';
-import { DiagramState } from '@/common/types';
+import { useWebSocket, useWebSocketMessage } from '../../features/runtime/hooks/useWebSocket';
+import { DiagramState } from '../../types';
 
 interface MonitorEvent {
   type: string;

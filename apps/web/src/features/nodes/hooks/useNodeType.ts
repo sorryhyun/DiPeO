@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { UNIFIED_NODE_CONFIGS } from '@/common/types';
+import { UNIFIED_NODE_CONFIGS } from '../../../types';
 
 export const useNodeType = (nodeType: string) => {
   const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS], [nodeType]);
