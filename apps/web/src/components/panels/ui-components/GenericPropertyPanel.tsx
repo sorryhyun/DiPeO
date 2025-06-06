@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PanelConfig, FieldConfig } from '../../../../types';
-import { usePropertyPanel } from '../..';
-import { PropertyFieldConfig } from '../../../../types';
-import { preInitializeModel } from '../../utils/propertyHelpers';
-import { useIsReadOnly } from '../../../../common/utils/storeSelectors';
-import { Input, Select, Switch } from '../../../../common/components';
-import { renderInlineField, renderTextAreaField, isTextAreaField } from '../../utils/fieldRenderers';
+import { PanelConfig, FieldConfig } from '../../../types';
+import { usePropertyPanel } from '../../hooks/usePropertyPanel';
+import { PropertyFieldConfig } from '../../../types';
+import { preInitializeModel } from '../../../utils/propertyHelpers';
+import { useIsReadOnly } from '../../../hooks/useStoreSelectors';
+import { UnifiedFormField, FormRow, Form, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../../common/forms';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
@@ -293,7 +292,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     return baseField;
   };
   
-  // Field renderer function using UnifiedFieldRenderer
+  // Field renderer function using UnifiedFormField
   const renderField = (fieldConfig: FieldConfig, index: number): React.ReactNode => {
     const convertedConfig = convertFieldConfig(fieldConfig);
     if (!convertedConfig) return null;
@@ -313,38 +312,67 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       // Render two fields in a row
       return (
         <FormRow key={key}>
-          <UnifiedFieldRenderer
-            field={{
-              name: 'label',
-              label: 'Label',
-              type: 'string',
-              placeholder: fieldConfig.labelPlaceholder
-            }}
+          <UnifiedFormField
+            type="text"
+            name="label"
+            label="Label"
             value={formData.label}
             onChange={(v) => updateField('label', v)}
+            placeholder={fieldConfig.labelPlaceholder}
+            disabled={isMonitorMode}
           />
-          <UnifiedFieldRenderer
-            field={{
-              name: 'personId',
-              label: 'Person',
-              type: 'person',
-              placeholder: fieldConfig.personPlaceholder
-            }}
+          <UnifiedFormField
+            type="person-select"
+            name="personId"
+            label="Person"
             value={formData.personId}
             onChange={(v) => updateField('personId', v)}
+            placeholder={fieldConfig.personPlaceholder}
+            disabled={isMonitorMode}
           />
         </FormRow>
       );
     }
     
+    // Map field types to UnifiedFormField types
+    const getFieldType = () => {
+      switch (convertedConfig.type) {
+        case 'string':
+          return convertedConfig.multiline ? 'variable-textarea' : 'text';
+        case 'select':
+          return 'select';
+        case 'boolean':
+          return 'checkbox';
+        case 'number':
+          return fieldConfig.type === 'iterationCount' ? 'iteration-count' : 'number';
+        case 'person':
+          return 'person-select';
+        case 'file':
+          return 'file';
+        default:
+          return 'text';
+      }
+    };
+    
     return (
-      <UnifiedFieldRenderer
+      <UnifiedFormField
         key={key}
-        field={convertedConfig}
+        type={getFieldType()}
+        name={convertedConfig.name}
+        label={convertedConfig.label}
         value={formData[convertedConfig.name]}
         onChange={(v) => updateField(convertedConfig.name, v)}
-        nodeData={data}
+        placeholder={convertedConfig.placeholder}
+        options={convertedConfig.options}
+        disabled={isMonitorMode}
+        required={convertedConfig.isRequired}
+        min={convertedConfig.min}
+        max={convertedConfig.max}
+        helperText={convertedConfig.helperText}
+        acceptedFileTypes={convertedConfig.acceptedFileTypes}
+        detectedVariables={data.detectedVariables as string[] | undefined}
         className={fieldConfig.className}
+        rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
       />
     );
   };

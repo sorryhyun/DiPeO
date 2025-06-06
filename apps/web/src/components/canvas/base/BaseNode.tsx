@@ -1,36 +1,46 @@
 import React from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
-import { Button } from '@/common/components';
-import { getNodeConfig } from '@/config/nodes';
-import { createHandleId } from '@/features/nodes/utils/nodeHelpers';
+import { Button } from '@/components/common';
+import { getNodeConfig } from '@/config/nodeConfigs';
+import { createHandleId } from '@/utils/nodeHelpers';
 import { FlowHandle } from './FlowHandle';
-import { useDiagramStore, useAppStore } from '@/state/stores';
+import { useDiagramStore } from '@/stores';
+import { useExecutionMonitor } from '@/hooks/useExecutionMonitor';
 import './BaseNode.css';
 
-// Simplified props - no more prop drilling
+// Unified props for the single node renderer
 interface BaseNodeProps {
   id: string;
   type: string;
   selected?: boolean;
   data: Record<string, any>;
+  showFlipButton?: boolean;
+  className?: string;
 }
 
-export function BaseNode({ id, type, selected, data }: BaseNodeProps) {
+export function BaseNode({ 
+  id, 
+  type, 
+  selected, 
+  data, 
+  showFlipButton = true,
+  className 
+}: BaseNodeProps) {
   // Direct store access
   const updateNode = useDiagramStore(state => state.updateNode);
   const updateNodeInternals = useUpdateNodeInternals();
   
-  // Execution state
-  const isNodeRunning = useAppStore(state => state.isNodeRunning);
-  const isRunning = isNodeRunning(id);
-  
-  // For now, we'll handle skipped state later when we refactor execution
-  const isSkipped = false;
-  const skippedInfo = null;
+  // Get execution state
+  const executionMonitor = useExecutionMonitor();
+  const nodeState = executionMonitor?.nodeStates?.[id];
+  const isRunning = nodeState?.status === 'running';
+  const isSkipped = nodeState?.status === 'skipped';
+  const isCompleted = nodeState?.status === 'completed';
+  const hasError = nodeState?.status === 'error';
   
   // Node configuration
-  const config = getNodeConfig(type);
+  const config = getNodeConfig(type as any);
   const isFlipped = data?.flipped === true;
   
   // Generate handles from config
@@ -59,8 +69,8 @@ export function BaseNode({ id, type, selected, data }: BaseNodeProps) {
         id: createHandleId(id, handle.type, handle.id),
         name: handle.id,
         style,
-        offset: 50, // Default offset for compatibility
-        className: handle.color || ''
+        offset: 50,
+        className: (handle as any).color || ''
       };
     });
   }, [config, id, isFlipped]);
@@ -71,54 +81,100 @@ export function BaseNode({ id, type, selected, data }: BaseNodeProps) {
     updateNodeInternals(id);
   }, [id, data, isFlipped, updateNode, updateNodeInternals]);
   
+  // Determine node appearance based on state
+  const getNodeClasses = () => {
+    const baseClasses = 'relative p-3 border-2 rounded-lg transition-all duration-200 min-w-32 shadow-sm';
+    let stateClasses = '';
+    let backgroundClass = 'bg-white';
+    let borderClass = `border-${config.color}-500`;
+    
+    if (isRunning) {
+      stateClasses = 'animate-pulse scale-105';
+      backgroundClass = 'bg-green-50';
+      borderClass = 'border-green-500';
+    } else if (hasError) {
+      backgroundClass = 'bg-red-50';
+      borderClass = 'border-red-500';
+    } else if (isCompleted) {
+      backgroundClass = 'bg-blue-50';
+      borderClass = 'border-blue-500';
+    } else if (isSkipped) {
+      stateClasses = 'opacity-75';
+      backgroundClass = 'bg-yellow-50';
+      borderClass = 'border-yellow-500';
+    } else if (selected) {
+      borderClass = `border-${config.color}-600`;
+      stateClasses = 'ring-2 ring-blue-200';
+    }
+    
+    return `${baseClasses} ${stateClasses} ${backgroundClass} ${borderClass} ${className || ''}`;
+  };
 
-  // Apply base classes with data attributes for dynamic styling
-  const baseClasses = 'relative p-2 border-2 rounded-lg transition-all duration-200';
-  const stateClasses = isRunning 
-    ? 'animate-pulse scale-105' 
-    : isSkipped 
-    ? 'opacity-75'
-    : '';
-  const backgroundClass = isRunning 
-    ? 'bg-green-50' 
-    : isSkipped 
-    ? 'bg-yellow-50' 
-    : 'bg-white';
-  
-  const borderColorClass = `border-${config.color}-500`;
-  const className = `${baseClasses} ${stateClasses} ${backgroundClass} ${borderColorClass}`;
-
-  return (
-    <div
-      data-node-color={borderColorClass}
-      data-node-selected={selected}
-      data-node-running={isRunning}
-      data-node-skipped={isSkipped}
-      className={className}
-      title={isSkipped ? `Skipped: ${skippedInfo?.reason}` : undefined}
-    >
-      {/* Add multiple visual indicators for running state */}
-      {isRunning && (
+  // Get status indicator
+  const getStatusIndicator = () => {
+    if (isRunning) {
+      return (
         <>
           <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full animate-ping" />
           <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full" />
-          <div className="absolute inset-0 bg-green-100 opacity-20 rounded-lg animate-pulse" />
         </>
-      )}
-      
-      {/* Visual indicators for skipped state */}
-      {isSkipped && (
+      );
+    }
+    
+    if (hasError) {
+      return (
+        <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full">
+          <span className="absolute inset-0 text-white text-xs flex items-center justify-center">!</span>
+        </div>
+      );
+    }
+    
+    if (isCompleted) {
+      return (
+        <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full">
+          <span className="absolute inset-0 text-white text-xs flex items-center justify-center">✓</span>
+        </div>
+      );
+    }
+    
+    if (isSkipped) {
+      return (
         <>
           <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-500 rounded-full" />
-          <div className="absolute inset-0 bg-yellow-100 opacity-20 rounded-lg" />
           <div className="absolute top-1 right-1 text-xs text-yellow-700 font-medium">
-            SKIPPED
+            SKIP
           </div>
         </>
-      )}
+      );
+    }
+    
+    return null;
+  };
+
+  // Get node display data
+  const getDisplayData = () => {
+    const entries = Object.entries(data).filter(([key]) => 
+      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height'].includes(key)
+    );
+    
+    // Show most important fields first
+    const importantFields = ['label', 'prompt', 'defaultPrompt', 'firstOnlyPrompt'];
+    const important = entries.filter(([key]) => importantFields.includes(key));
+    const others = entries.filter(([key]) => !importantFields.includes(key));
+    
+    return [...important, ...others].slice(0, 3); // Limit to 3 fields for cleaner display
+  };
+
+  return (
+    <div
+      className={getNodeClasses()}
+      title={nodeState?.message || `${config.label} Node`}
+    >
+      {/* Status indicators */}
+      {getStatusIndicator()}
       
       {/* Flip button */}
-      {selected && !isRunning && (
+      {selected && showFlipButton && !isRunning && (
         <Button
           onClick={handleFlip}
           variant="outline"
@@ -132,21 +188,35 @@ export function BaseNode({ id, type, selected, data }: BaseNodeProps) {
 
       {/* Node content */}
       <div className={isRunning ? 'relative z-10' : ''}>
+        {/* Header */}
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xl">{config.icon}</span>
-          <span className="font-medium">{config.label}</span>
+          <span className="text-lg">{config.icon}</span>
+          <span className="font-medium text-sm">{config.label}</span>
         </div>
         
-        {/* Display key node data */}
-        {Object.entries(data).map(([key, value]) => {
-          if (key === 'id' || key === 'type' || key === 'flipped') return null;
-          return (
-            <div key={key} className="text-xs text-gray-600 truncate">
-              {key}: {String(value)}
-            </div>
-          );
-        })}
+        {/* Node data display */}
+        <div className="space-y-1">
+          {getDisplayData().map(([key, value]) => {
+            const displayValue = typeof value === 'string' && value.length > 20 
+              ? `${value.substring(0, 20)}...` 
+              : String(value);
+            
+            return (
+              <div key={key} className="text-xs text-gray-600">
+                <span className="font-medium">{key}:</span> {displayValue}
+              </div>
+            );
+          })}
+        </div>
         
+        {/* Status message */}
+        {nodeState?.message && (
+          <div className="mt-2 text-xs text-gray-500 italic">
+            {nodeState.message}
+          </div>
+        )}
+        
+        {/* Progress bar for running state */}
         {isRunning && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-500 animate-pulse rounded-b" />
         )}
@@ -163,7 +233,7 @@ export function BaseNode({ id, type, selected, data }: BaseNodeProps) {
           offset={handle.offset}
           color={handle.className}
           style={handle.style}
-          className={`${isRunning ? 'animate-pulse' : ''}`}
+          className={isRunning ? 'animate-pulse' : ''}
         />
       ))}
     </div>

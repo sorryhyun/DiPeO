@@ -273,7 +273,7 @@ class LoopController:
     def update_from_node_properties(self, node: Dict) -> None:
         """
         Update loop configuration from node properties.
-        Specifically handles PersonJob nodes with iterationCount.
+        Specifically handles PersonJob nodes with maxIteration.
         
         Args:
             node: Node dictionary with properties
@@ -282,12 +282,12 @@ class LoopController:
         node_type = node.get("type")
         node_properties = node.get("properties", {})
         
-        # Check for iterationCount in node properties
-        if "iterationCount" in node_properties:
-            max_iter = node_properties["iterationCount"]
+        # Check for maxIteration in node properties
+        if "maxIteration" in node_properties:
+            max_iter = node_properties["maxIteration"]
             if isinstance(max_iter, int) and max_iter > 0:
                 self.register_loop_node(node_id, max_iter)
-                self.logger.debug(f"Registered loop node {node_id} with iterationCount={max_iter}")
+                self.logger.debug(f"Registered loop node {node_id} with maxIteration={max_iter}")
         
         # PersonJob and PersonBatchJob nodes can be loop nodes
         elif node_type in ["personjob", "personbatchjob"]:
@@ -356,8 +356,8 @@ class SkipManager:
         
         # Only check iteration count for person job nodes
         if node_type in ["personjob", "person_job", "personbatchjob", "person_batch_job", "personjobnode", "personbatchjobnode"]:
-            # Check if node has iterationCount property
-            max_iterations = node_properties.get("iterationCount")
+            # Check if node has maxIteration property
+            max_iterations = node_properties.get("maxIteration")
             if max_iterations is not None and isinstance(max_iterations, int):
                 current_count = context.node_execution_counts.get(node_id, 0)
                 if current_count >= max_iterations:

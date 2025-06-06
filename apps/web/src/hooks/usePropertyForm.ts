@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useUpdateNodeData } from '@/common/utils/storeSelectors';
+import { useUpdateNodeData } from '@/hooks/useStoreSelectors';
 
 // Base property form hook
 export function usePropertyFormBase<T extends Record<string, unknown>>(

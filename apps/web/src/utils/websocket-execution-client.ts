@@ -6,48 +6,21 @@
  */
 
 import { produce } from 'immer';
-import { getWebSocketClient, WebSocketClient, WSMessage } from './websocket-client';
-import type { Node, Arrow, Person, ApiKey } from '@/types';
-import type { InteractivePromptData } from '@/components';
-
-export interface DiagramData {
-  nodes: Node[];
-  arrows: Arrow[];
-  persons?: Person[];
-  apiKeys?: ApiKey[];
-}
-
-export interface ExecutionOptions {
-  continueOnError?: boolean;
-  allowPartial?: boolean;
-  debugMode?: boolean;
-}
-
-export interface ExecutionUpdate {
-  type: string;
-  execution_id?: string;
-  nodeId?: string;  // Backend uses nodeId, not node_id
-  node_type?: string;
-  output?: unknown;
-  output_preview?: string;
-  context?: Record<string, unknown>;
-  total_cost?: number;
-  cost?: number;
-  error?: string;
-  timestamp?: string;
-  conversation_id?: string;
-  message?: unknown;
-}
-
-export interface ExecutionResult {
-  context: Record<string, unknown>;
-  total_cost?: number;
-  execution_id?: string;
-  metadata?: {
-    totalCost?: number;
-    executionTime?: number;
-  };
-}
+import { getWebSocketClient, WebSocketClient } from './websocket-client';
+import type { 
+  Node, 
+  Arrow, 
+  Person, 
+  ApiKey, 
+  WSMessage,
+  InteractivePromptData
+} from '@/types';
+import type {
+  DiagramData,
+  ExecutionOptions,
+  ExecutionUpdate,
+  ExecutionResult
+} from '@/types/api';
 
 /**
  * WebSocket-based execution client with real-time control capabilities

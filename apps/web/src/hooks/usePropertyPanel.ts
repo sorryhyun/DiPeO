@@ -1,4 +1,4 @@
-import { useUpdateNodeData, useUpdateArrowData, useUpdatePerson } from '@/config';
+import { useUpdateNodeData, useUpdateArrowData, useUpdatePerson } from '@/hooks/useStoreSelectors';
 import { usePropertyFormBase } from './usePropertyForm';
 
 export function usePropertyPanel<T extends Record<string, unknown>>(

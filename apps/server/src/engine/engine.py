@@ -368,7 +368,7 @@ class UnifiedExecutionEngine:
         node = context.nodes_by_id.get(node_id)
         if node:
             properties = node.get("properties", {})
-            max_iterations = properties.get("iterationCount")
+            max_iterations = properties.get("maxIteration")
             if max_iterations:
                 current_count = context.node_execution_counts.get(node_id, 0)
                 if current_count >= max_iterations:
@@ -534,7 +534,7 @@ class UnifiedExecutionEngine:
 
                 # Check if node can be re-executed
                 properties = node.get("properties", {})
-                max_iterations = properties.get("iterationCount")
+                max_iterations = properties.get("maxIteration")
 
                 if max_iterations:
                     current_count = context.node_execution_counts.get(node_id, 0)
@@ -548,7 +548,7 @@ class UnifiedExecutionEngine:
                             f"Not re-queuing {node_id}: reached max iterations {max_iterations}"
                         )
                 else:
-                    # Nodes without iterationCount can also be re-queued if part of loop
+                    # Nodes without maxIteration can also be re-queued if part of loop
                     node_type = node.get("type", "").lower()
                     if node_type not in ["condition", "conditionnode"]:
                         requeued_nodes.add(node_id)

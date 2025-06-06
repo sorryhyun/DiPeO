@@ -37,7 +37,7 @@ export interface ConversationMessage {
 export interface ApiKey {
   id: string;
   name: string;
-  service: 'openai' | 'anthropic' | 'google' | 'groq' | 'notion' | 'claude' | 'grok' | 'gemini' | 'custom';
+  service: 'openai' | 'anthropic' | 'google' | 'notion' | 'grok'  | 'custom';
 }
 
 export interface Diagram {
@@ -91,7 +91,7 @@ export interface ValidationResult {
 }
 
 // Error types
-type NodeType = Node['type'];
+export type NodeType = Node['type'];
 
 export class AgentDiagramException extends Error {
   constructor(

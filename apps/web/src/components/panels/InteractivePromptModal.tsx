@@ -3,23 +3,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Modal } from '@/common/components/Modal';
-import { Button } from '@/common/components/Button';
-
-export interface InteractivePromptData {
-  nodeId: string;
-  executionId: string;
-  prompt: string;
-  context?: {
-    person_id?: string;
-    person_name?: string;
-    model?: string;
-    service?: string;
-    execution_count?: number;
-    timeout?: number;
-    nodeType?: string;
-  };
-}
+import { Modal } from '@/components/common/Modal';
+import { Button } from '@/components/common/Button';
+import type { InteractivePromptData } from '@/types';
 
 interface InteractivePromptModalProps {
   prompt: InteractivePromptData | null;

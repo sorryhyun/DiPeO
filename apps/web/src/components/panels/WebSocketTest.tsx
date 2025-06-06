@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { useWebSocketMonitor } from '../hooks/useWebSocketMonitor';
-import { Button } from '@/common/components/Button';
-import { getWebSocketClient } from '../websocket-client';
+import { useWebSocketMonitor } from '@/hooks/useWebSocketMonitor';
+import { Button } from '@/components/common/Button';
+import { getWebSocketClient } from '@/utils/websocket-client';
 
 interface WebSocketTestProps {
   enabled?: boolean;

@@ -13,6 +13,13 @@ import {
   type Node 
 } from '@/types';
 
+// Internal API response for HTTP client
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  headers: Headers;
+}
+
 // Types
 /* global RequestInit */
 interface ApiRequestOptions extends RequestInit {
@@ -25,11 +32,6 @@ interface ApiRequestOptions extends RequestInit {
   errorContext?: string;
 }
 
-interface ApiResponse<T> {
-  data: T;
-  status: number;
-  headers: Headers;
-}
 
 class ApiClient {
   private defaultHeaders = {

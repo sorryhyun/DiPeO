@@ -1,5 +1,5 @@
 import { useCallback, useRef, type DragEvent } from 'react';
-import { Node } from '@/common/types/core';
+import { Node } from '@/types/core';
 
 export const useNodeDrag = () => {
   // Store drag offset to align node properly with cursor

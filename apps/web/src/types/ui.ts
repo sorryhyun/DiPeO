@@ -87,7 +87,7 @@ export type FieldType =
   | 'select' 
   | 'textarea' 
   | 'checkbox' 
-  | 'iterationCount' 
+  | 'maxIteration'
   | 'personSelect'
   | 'variableTextArea'
   | 'labelPersonRow'
@@ -134,8 +134,8 @@ export interface CheckboxFieldConfig extends BaseFieldConfig {
   name: string;
 }
 
-export interface IterationCountFieldConfig extends BaseFieldConfig {
-  type: 'iterationCount';
+export interface MaxIterationFieldConfig extends BaseFieldConfig {
+  type: 'maxIteration';
   name: string;
   min?: number;
   max?: number;
@@ -176,7 +176,7 @@ export type PanelFieldConfig =
   | SelectFieldConfig 
   | TextAreaFieldConfig
   | CheckboxFieldConfig
-  | IterationCountFieldConfig
+  | MaxIterationFieldConfig
   | PersonSelectFieldConfig
   | VariableTextAreaFieldConfig
   | LabelPersonRowFieldConfig

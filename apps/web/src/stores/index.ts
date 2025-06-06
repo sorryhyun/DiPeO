@@ -4,7 +4,6 @@ export { useExecutionStore } from './executionStore';
 export { useConsolidatedUIStore } from './consolidatedUIStore';
 
 // Supporting stores
-export { useAppStore } from './appStore';
 export { useApiKeyStore } from './apiKeyStore';
 export { useHistoryStore } from './historyStore';
 

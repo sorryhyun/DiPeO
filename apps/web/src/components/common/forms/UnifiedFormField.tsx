@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Input } from '../Input';
 import { Select } from '../Select';
 import { Switch } from '../Switch';
-import { FileUploadButton } from './common/FileUploadButton';
+import Spinner from '../Spinner';
+import { FileUploadButton } from '../common/FileUploadButton';
 
 export interface UnifiedFormFieldProps {
-  type: 'text' | 'select' | 'textarea' | 'checkbox' | 'number' | 'file' | 'person-select' | 'iteration-count';
+  type: 'text' | 'select' | 'textarea' | 'checkbox' | 'number' | 'file' | 'person-select' | 'iteration-count' | 'variable-textarea';
   name: string;
   label: string;
   value: any;
@@ -23,6 +24,11 @@ export interface UnifiedFormFieldProps {
   persons?: Array<{ id: string; name: string }>;
   acceptedFileTypes?: string;
   customProps?: Record<string, any>;
+  rows?: number;
+  hint?: string;
+  detectedVariables?: string[];
+  onFileUpload?: (file: File) => Promise<void>;
+  isLoading?: boolean;
 }
 
 /**
@@ -47,9 +53,23 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   helperText,
   persons = [],
   acceptedFileTypes,
-  customProps = {}
+  customProps = {},
+  rows = 4,
+  hint,
+  detectedVariables,
+  onFileUpload,
+  isLoading = false
 }) => {
   const fieldId = `field-${name}`;
+  const [localLoading, setLocalLoading] = useState(false);
+  const isLoadingState = isLoading || localLoading;
+  
+  // Memoize variable detection hint
+  const variableHint = useMemo(() => {
+    if (!detectedVariables?.length) return hint;
+    const variableText = `Detected variables: ${detectedVariables.map(v => `{{${v}}}`).join(', ')}`;
+    return hint ? `${hint}\n${variableText}` : variableText;
+  }, [detectedVariables, hint]);
   
   const renderField = () => {
     switch (type) {
@@ -85,6 +105,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
         );
         
       case 'textarea':
+      case 'variable-textarea':
         return (
           <textarea
             id={fieldId}
@@ -92,8 +113,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             disabled={disabled}
-            rows={4}
-            className="w-full px-3 py-2 text-sm bg-background-secondary border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            rows={rows}
+            className="flex w-full rounded-md border border-slate-300 bg-transparent py-1.5 px-2.5 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             {...customProps}
           />
         );
@@ -150,23 +171,56 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
         );
         
       case 'file':
+        const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+
+          if (onFileUpload) {
+            setLocalLoading(true);
+            try {
+              await onFileUpload(file);
+            } finally {
+              setLocalLoading(false);
+            }
+          } else {
+            // Default behavior: read as text
+            const reader = new FileReader();
+            reader.onload = (e) => onChange(e.target?.result as string);
+            reader.readAsText(file);
+          }
+        };
+
         return (
-          <FileUploadButton
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => onChange(e.target?.result as string);
-                reader.readAsText(file);
-              }
-            }}
-            accept={acceptedFileTypes}
-            disabled={disabled}
-            className="w-full"
-            {...customProps}
-          >
-            Select File
-          </FileUploadButton>
+          <div className="space-y-2">
+            <Input
+              id={fieldId}
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder || "Enter file path or upload below"}
+              disabled={isLoadingState}
+              className="w-full"
+            />
+            
+            <div className="flex items-center gap-2">
+              <FileUploadButton
+                accept={acceptedFileTypes || ".txt,.docx,.doc,.pdf,.csv,.json"}
+                onChange={handleFileUpload}
+                disabled={isLoadingState}
+                variant="outline"
+                size="sm"
+                {...customProps}
+              >
+                {isLoadingState ? "Uploading..." : "Upload File"}
+              </FileUploadButton>
+              
+              {isLoadingState && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Spinner size="sm" className="mr-2" />
+                  <span>Uploading...</span>
+                </div>
+              )}
+            </div>
+          </div>
         );
         
       default:
@@ -184,7 +238,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
         {fieldElement}
-        {helperText && <p className="text-xs text-text-tertiary">{helperText}</p>}
+        {(helperText || variableHint) && <p className="text-xs text-gray-600">{variableHint || helperText}</p>}
         {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     );
@@ -199,7 +253,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
       </label>
       <div className="flex-1">
         {fieldElement}
-        {helperText && <p className="text-xs text-text-tertiary mt-1">{helperText}</p>}
+        {(helperText || variableHint) && <p className="text-xs text-gray-600 mt-1">{variableHint || helperText}</p>}
         {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
       </div>
     </div>

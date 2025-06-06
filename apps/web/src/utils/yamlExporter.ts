@@ -344,7 +344,7 @@ export class YamlExporter {
             defaultPrompt: step.prompt || '',
             firstOnlyPrompt: step.first_prompt || '',
             contextCleaningRule: step.forget || 'uponRequest',
-            iterationCount: step.max_iterations || 1,
+            maxIterations: step.max_iterations || 1,
             mode: step.mode || 'sync',
             detectedVariables: this.detectVariables(step.prompt || '', step.first_prompt || '')
           }

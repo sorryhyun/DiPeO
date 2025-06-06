@@ -11,7 +11,7 @@ export default function ConfigurableNode({ id, data, selected }: NodeProps) {
       id={id}
       type={nodeType}
       selected={selected}
-      data={data}
+      data={data || {}}
     />
   );
 }

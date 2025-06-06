@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 
-import { Arrow } from '../../../../types';
+import { Arrow } from '@/types';
 
 type ArrowData = Arrow['data'];
 

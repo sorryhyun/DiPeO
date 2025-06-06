@@ -11,7 +11,7 @@ const LazyDiagramCanvas = React.lazy(() => import('./components/canvas/DiagramCa
 const LazyMemoryCanvas = React.lazy(() => import('./components/panels/MemoryCanvas').then(module => ({ default: module.MemoryCanvas })));
 const LazyExecutionView = React.lazy(() => import('./components/layout/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyWebSocketTest = React.lazy(() => import('./components/panels/WebSocketTest').then(module => ({ default: module.default })));
+const LazyWebSocketTest = React.lazy(() => import('./components/panels/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
 const LazyInteractivePromptModal = React.lazy(() => import('./components/panels/InteractivePromptModal'));
 
 function App() {

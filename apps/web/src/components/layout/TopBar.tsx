@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
-import { Button } from '@/common/components';
-import { useApiKeyStore } from '@/state/stores/apiKeyStore';
-import { useConsolidatedUIStore } from '@/state/stores';
-import { useDiagramStore } from '@/state/stores/diagramStore';
-import { useExecutionStore } from '@/state/stores';
-import { useFileImport } from '@/features/io/hooks/useFileImport';
-import { useExport } from '@/features/io/hooks/useExport';
-import { useDiagramRunner } from '@/features/runtime/hooks/useDiagramRunner';
-import { useKeyboardShortcuts } from '@/features/canvas/hooks/useKeyboardShortcuts';
-import { LazyApiKeysModal } from '@/features/layout';
-import { FileUploadButton } from '@/common/components/common/FileUploadButton';
-import { API_ENDPOINTS, getApiUrl } from '@/common/utils/apiConfig';
+import { Button } from '@/components/common';
+import { useApiKeyStore } from '@/stores/apiKeyStore';
+import { useConsolidatedUIStore } from '@/stores';
+import { useDiagramStore } from '@/stores/diagramStore';
+import { useExecutionStore } from '@/stores';
+import { useFileImport } from '@/hooks/useFileImport';
+import { useExport } from '@/hooks/useExport';
+import { useDiagramRunner } from '@/hooks/useDiagramRunner';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { LazyApiKeysModal } from '@/components/layout/modals/LazyModals';
+import { FileUploadButton } from '@/components/common/common/FileUploadButton';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse } from '@/common/utils/typeGuards';
+import { isApiKey, parseApiArrayResponse } from '@/utils/typeGuards';
 
 
 const TopBar = () => {
@@ -232,7 +232,7 @@ const TopBar = () => {
               <button
                 onClick={() => {
                   setIsExitingMonitor(true);
-                  clearDiagramAction();
+                  clearDiagram();
                   setReadOnly(false);
                   // Remove monitor param from URL
                   const url = new URL(window.location.href);

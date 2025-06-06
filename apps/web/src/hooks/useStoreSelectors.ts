@@ -1,9 +1,9 @@
 import React from 'react';
-import { useDiagramStore } from '../stores';
-import { useExecutionStore } from '../stores/executionStore';
-import { useConsolidatedUIStore } from '../stores/consolidatedUIStore';
-import { useHistoryStore } from '../stores/historyStore';
-import { useApiKeyStore } from '../stores/apiKeyStore';
+import { useDiagramStore } from '@/stores';
+import { useExecutionStore } from '@/stores/executionStore';
+import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { useApiKeyStore } from '@/stores/apiKeyStore';
 
 // ===== Key Optimized Selectors =====
 
@@ -162,6 +162,18 @@ export const useUIState = () => {
   const setActiveCanvas = useConsolidatedUIStore(state => state.setActiveCanvas);
   const toggleCanvas = useConsolidatedUIStore(state => state.toggleCanvas);
   
+  // View state
+  const activeView = useConsolidatedUIStore(state => state.activeView);
+  const setActiveView = useConsolidatedUIStore(state => state.setActiveView);
+  
+  // Modal state
+  const showApiKeysModal = useConsolidatedUIStore(state => state.showApiKeysModal);
+  const showExecutionModal = useConsolidatedUIStore(state => state.showExecutionModal);
+  const openApiKeysModal = useConsolidatedUIStore(state => state.openApiKeysModal);
+  const closeApiKeysModal = useConsolidatedUIStore(state => state.closeApiKeysModal);
+  const openExecutionModal = useConsolidatedUIStore(state => state.openExecutionModal);
+  const closeExecutionModal = useConsolidatedUIStore(state => state.closeExecutionModal);
+  
   const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
   
   return {
@@ -170,6 +182,14 @@ export const useUIState = () => {
     activeCanvas,
     setActiveCanvas,
     toggleCanvas,
+    activeView,
+    setActiveView,
+    showApiKeysModal,
+    showExecutionModal,
+    openApiKeysModal,
+    closeApiKeysModal,
+    openExecutionModal,
+    closeExecutionModal,
     hasSelection,
   };
 };
@@ -221,7 +241,7 @@ export const useSelectedPersonId = () => useConsolidatedUIStore(state => state.s
 export const useSetSelectedPersonId = () => useConsolidatedUIStore(state => state.setSelectedPersonId);
 export const useClearRunContext = () => {
   const setRunContext = useExecutionStore(state => state.setRunContext);
-  return () => setRunContext(null);
+  return () => setRunContext({});
 };
 export const useClearRunningNodes = () => {
   const store = useExecutionStore.getState();
@@ -230,3 +250,8 @@ export const useClearRunningNodes = () => {
     store.setCurrentRunningNode(null);
   };
 };
+
+// Missing exports for backward compatibility
+export const useUpdateNodeData = () => useDiagramStore(state => state.updateNode);
+export const useUpdateArrowData = () => useDiagramStore(state => state.updateArrow);
+export const useUpdatePerson = () => useDiagramStore(state => state.updatePerson);

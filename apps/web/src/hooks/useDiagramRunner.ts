@@ -8,18 +8,22 @@ import {
   useRemoveRunningNode,
   useSkippedNodes,
   exportDiagramState
-} from '../../../common/utils/storeSelectors';
+} from '@/hooks/useStoreSelectors';
 import { toast } from 'sonner';
-import { createErrorHandlerFactory, PersonDefinition } from '../@/types';
-import { API_ENDPOINTS, getApiUrl } from '../../../common/utils/apiConfig';
-import { isApiKey, parseApiArrayResponse } from '../../../common/utils/typeGuards';
+import { createErrorHandlerFactory, PersonDefinition } from '@/types';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { isApiKey, parseApiArrayResponse } from '@/utils/typeGuards';
 import { 
-  createWebSocketExecutionClient,
-  type DiagramData,
-  type ExecutionUpdate
-} from '../websocket-execution-client';
-import { getWebSocketClient } from '@/features/runtime/websocket-client';
-import type { InteractivePromptData } from '@/features/runtime/components/InteractivePromptModal';
+  createWebSocketExecutionClient
+} from '@/utils/websocket-execution-client';
+import { getWebSocketClient } from '@/utils/websocket-client';
+import type { 
+  InteractivePromptData 
+} from '@/types';
+import type {
+  DiagramData,
+  ExecutionUpdate
+} from '@/types/api';
 
 const createErrorHandler = createErrorHandlerFactory(toast);
 

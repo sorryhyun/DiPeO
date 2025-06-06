@@ -47,3 +47,67 @@ export interface InteractivePrompt {
   timeout: number;
   timestamp: string;
 }
+
+export interface InteractivePromptData {
+  nodeId: string;
+  executionId: string;
+  prompt: string;
+  timeout?: number;
+  timeRemaining?: number;
+  isOpen?: boolean;
+  context?: {
+    person_id?: string;
+    person_name?: string;
+    model?: string;
+    service?: string;
+    execution_count?: number;
+    nodeType?: string;
+  };
+}
+
+// Execution lifecycle events
+export interface ExecutionStartedEvent {
+  type: 'execution_started';
+  executionId: string;
+  total_nodes: number;
+}
+
+export interface ExecutionCompleteEvent {
+  type: 'execution_complete';
+  executionId: string;
+  totalCost?: number;
+  duration?: number;
+}
+
+export interface ExecutionAbortedEvent {
+  type: 'execution_aborted';
+  executionId: string;
+  reason?: string;
+}
+
+// Node control types
+export interface NodeControlState {
+  [nodeId: string]: {
+    status: 'running' | 'paused' | 'completed' | 'skipped' | 'error';
+    canPause: boolean;
+    canResume: boolean;
+    canSkip: boolean;
+  };
+}
+
+// Monitoring types
+export interface MonitoringData {
+  executionId: string;
+  startTime: string;
+  currentNode?: string;
+  progress: {
+    completed: number;
+    total: number;
+    percentage: number;
+  };
+  performance: {
+    averageNodeTime: number;
+    totalCost: number;
+    memoryUsage?: number;
+  };
+}

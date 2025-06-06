@@ -15,21 +15,21 @@ import '@xyflow/react/dist/base.css';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
   useContextMenu,
-  useKeyboardShortcuts,
-  ContextMenu
-} from '../../hooks';
+  useKeyboardShortcuts
+} from '@/hooks';
+import { ContextMenu } from './ContextMenu';
 import { CustomArrow as CustomArrowBase } from './CustomArrow';
-import { roundPosition } from '../../utils/canvasUtils';
-import { nodeTypes } from './nodeTypes';
-import { useNodeDrag } from '../../hooks/useNodeDrag';
+import { roundPosition } from '@/utils/canvasUtils';
+import nodeTypes from './nodeTypes';
+import { useNodeDrag } from '@/hooks/useNodeDrag';
 import { DiagramNode, Arrow } from '@/types';
 import { 
   useCanvasState, 
   useSelectedElement, 
   usePersons 
-} from '../../hooks/useStoreSelectors';
-import { useExecution } from '../../hooks/useExecutionMonitor';
-import { useHistoryActions } from '../../hooks/useHistoryActions';
+} from '@/hooks/useStoreSelectors';
+import { useExecutionMonitor } from '@/hooks/useExecutionMonitor';
+import { useHistoryActions } from '@/hooks/useHistoryActions';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
@@ -53,7 +53,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     deleteArrow,
   } = useCanvasState();
   
-  const { undo, redo } = useHistoryActions();
+  const { handleUndo, handleRedo } = useHistoryActions();
   
   const {
     selectedNodeId,
@@ -64,7 +64,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   } = useSelectedElement();
   
   // Execution state from optimized selector
-  const { isRunning, runningNodes, currentRunningNode } = useExecution();
+  const executionMonitor = useExecutionMonitor();
+  const { isRunning, runningNodes, currentRunningNode } = executionMonitor || { isRunning: false, runningNodes: [], currentRunningNode: null };
   
   // Person actions from optimized selector
   const { addPerson, deletePerson } = usePersons();  
@@ -97,8 +98,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
       else if (selectedPersonId) deletePerson(selectedPersonId);
     },
     onEscape: closeContextMenu,
-    onUndo: undo,
-    onRedo: redo,
+    onUndo: handleUndo,
+    onRedo: handleRedo,
   });
 
   // Helper to project screen coords to RF coords

@@ -136,20 +136,20 @@ POST /api/run-diagram
 
 ## Loop Implementation
 
-Loops use PersonJob nodes with `iterationCount` and Condition nodes:
+Loops use PersonJob nodes with `maxIteration` and Condition nodes:
 
 1. **PersonJob Node Configuration**:
-   - `iterationCount`: Maximum execution count per node
+   - `maxIteration`: Maximum execution count per node
    - `firstOnlyPrompt`: Used only on first execution (count=0)
    - `defaultPrompt`: Used for subsequent iterations (count>0)
-   - Node skips when execution count >= iterationCount
+   - Node skips when execution count >= maxIteration
 
 2. **Condition Node** (`conditionType: "detect_max_iterations"`):
-   - Returns `false` while ANY node with iterationCount hasn't reached its limit
-   - Returns `true` when ALL nodes with iterationCount have reached their limits
+   - Returns `false` while ANY node with maxIteration hasn't reached its limit
+   - Returns `true` when ALL nodes with maxIteration have reached their limits
    - Acts as the loop exit gate
 
-**Example Flow**: Two PersonJob nodes (iterationCount=2) → Condition node
+**Example Flow**: Two PersonJob nodes (maxIteration=2) → Condition node
 - Iteration 1: Both execute (count 0→1), Condition returns `false`
 - Iteration 2: Both execute (count 1→2), Condition returns `false`
 - Iteration 3: Both skip (count=2), Condition returns `true` → loop exits

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { DiagramCanvas } from '@/features/canvas';
+import { DiagramCanvas } from '@/components/canvas';
 import { 
   useNodes, 
   usePersons,
   useSelectedPersonId,
   useSetSelectedPersonId 
-} from '@/common/utils/storeSelectors';
+} from '@/hooks/useStoreSelectors';
 
 const ExecutionView = () => {
   const persons = usePersons();

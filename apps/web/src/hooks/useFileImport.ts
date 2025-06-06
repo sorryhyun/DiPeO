@@ -1,10 +1,10 @@
 // Hook for importing diagrams from various file formats
 import { useCallback, ChangeEvent } from 'react';
-import { loadDiagram } from '@/common/utils/storeSelectors';
+import { loadDiagram } from '@/hooks/useStoreSelectors';
 import { toast } from 'sonner';
-import { getApiUrl, API_ENDPOINTS } from '@/common/utils/apiConfig';
-import { YamlExporter } from '../converters/yamlExporter';
-import { LLMYamlImporter } from '../converters/llmYamlImporter';
+import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
+import { YamlExporter } from '@/utils/yamlExporter';
+import { LLMYamlImporter } from '@/utils/llmYamlImporter';
 import { useDownload } from './useDownload';
 import {
   readFileAsText,
@@ -12,7 +12,7 @@ import {
   withFileErrorHandling,
   selectFile,
   FileFormat
-} from '../utils/fileUtils';
+} from '@/utils/fileOperations';
 
 export const useFileImport = () => {
   const { downloadYaml } = useDownload();

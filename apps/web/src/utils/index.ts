@@ -23,7 +23,6 @@ export * from './nodeHelpers';
 export * from './nodeValidation';
 
 // Property utilities (consolidated)
-export * from './fieldRenderers';
 export * from './propertyHelpers';
 
 // Diagram utilities

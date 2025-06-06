@@ -5,8 +5,8 @@ import {
   downloadBlob,
   getMimeType,
   withFileErrorHandling 
-} from '@/common/utils/fileOperations';
-import { FileFormat } from '../utils/fileUtils';
+} from '@/utils/fileOperations';
+import { FileFormat } from '@/utils/fileOperations';
 
 export const useDownload = () => {
   const [isDownloading, setIsDownloading] = React.useState(false);

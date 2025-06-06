@@ -2,7 +2,7 @@
 export * from './canvas/DiagramCanvas';
 export * from './canvas/ContextMenu';
 export * from './canvas/CustomArrow';
-export * from './canvas/Arrow';
+export { default as NodeComponent } from './canvas/ConfigurableNode';
 
 // Panel components  
 export * from './panels/ConversationDashboard';
@@ -28,6 +28,4 @@ export * from './common/Select';
 export * from './common/Spinner';
 export * from './common/Switch';
 export * from './common/common/FileUploadButton';
-export * from './common/forms/FormComponents';
-export * from './common/forms/UnifiedFieldRenderer';
-export * from './common/forms/UnifiedFormField';
+export * from './common/forms';

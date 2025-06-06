@@ -18,9 +18,3 @@ export {
   createFormField,
   type UnifiedFormFieldProps
 } from './UnifiedFormField';
-
-// UnifiedFieldRenderer exports
-export { 
-  UnifiedFieldRenderer,
-  UnifiedFieldsRenderer
-} from './UnifiedFieldRenderer';

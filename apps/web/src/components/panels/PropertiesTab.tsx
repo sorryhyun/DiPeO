@@ -1,10 +1,20 @@
 import React, { Suspense } from 'react';
-import { useNodes, useArrows, usePersons, useSelectedElement } from '@/state/hooks/useStoreSelectors';
+import { useNodes, useArrows, usePersons, useSelectedElement } from '@/hooks/useStoreSelectors';
 
-// Lazy load the unified properties panel
-const PropertiesPanel = React.lazy(() => import('../../../components/panels/PropertiesPanel'));
+// Lazy load the properties renderer
+const PropertiesRenderer = React.lazy(() => import('./PropertiesRenderer'));
 
 export const PropertiesTab: React.FC = () => {
+  const { nodes } = useNodes();
+  const { arrows } = useArrows();
+  const { persons } = usePersons();
+  
+  const {
+    selectedPersonId,
+    selectedNodeId,
+    selectedArrowId,
+  } = useSelectedElement();
+
   return (
     <div className="flex-1 overflow-y-auto">
       <Suspense fallback={
@@ -20,7 +30,14 @@ export const PropertiesTab: React.FC = () => {
           </div>
         </div>
       }>
-        <PropertiesPanel />
+        <PropertiesRenderer
+          selectedNodeId={selectedNodeId}
+          selectedArrowId={selectedArrowId}
+          selectedPersonId={selectedPersonId}
+          nodes={nodes}
+          arrows={arrows}
+          persons={persons}
+        />
       </Suspense>
     </div>
   );

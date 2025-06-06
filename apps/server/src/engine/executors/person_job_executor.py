@@ -95,10 +95,10 @@ class PersonJobExecutor(BaseExecutor):
         )
         errors.extend(prompt_errors)
         
-        # Validate iterationCount using centralized validation
+        # Validate maxIteration using centralized validation
         iteration_error = validate_positive_integer(
             properties,
-            "iterationCount",
+            "maxIteration",
             min_value=1,
             required=False
         )
@@ -129,7 +129,7 @@ class PersonJobExecutor(BaseExecutor):
         
         # Check iteration count and handle first-only logic
         execution_count = context.node_execution_counts.get(node_id, 0)
-        max_iterations = properties.get("iterationCount")
+        max_iterations = properties.get("maxIteration")
         
         # Skip if max iterations reached
         if max_iterations and execution_count >= max_iterations:

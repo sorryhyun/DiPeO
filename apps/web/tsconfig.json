@@ -21,9 +21,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@/features/*": ["src/features/*"],
-      "@/common/*": ["src/common/*"],
-      "@/state/*": ["src/state/*"]
+      "@/components/*": ["src/components/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@/stores/*": ["src/stores/*"],
+      "@/types/*": ["src/types/*"],
+      "@/utils/*": ["src/utils/*"],
+      "@/config/*": ["src/config/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

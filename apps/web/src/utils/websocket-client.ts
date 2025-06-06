@@ -2,22 +2,9 @@
  * WebSocket client wrapper for real-time bidirectional communication
  */
 
-export interface WSMessage {
-  type: string;
-  [key: string]: unknown;
-}
+import type { WSMessage, MessageHandler, WebSocketClientOptions } from '@/types';
 
-export type MessageHandler = (message: WSMessage) => void;
 export type ConnectionHandler = (event: CustomEvent) => void;
-
-export interface WebSocketClientOptions {
-  url?: string;
-  reconnectInterval?: number;
-  maxReconnectInterval?: number;
-  reconnectDecay?: number;
-  maxReconnectAttempts?: number;
-  debug?: boolean;
-}
 
 export class WebSocketClient extends EventTarget {
   private ws: WebSocket | null = null;
