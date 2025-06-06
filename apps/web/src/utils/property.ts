@@ -1,13 +1,7 @@
 /**
- * Unified property and field utilities
- * All form, field, and property operations
+ * Property and field utilities - form field operations only
+ * API operations should be imported directly from apiClient
  */
-
-import { 
-  getApiKeyOptions as getApiKeyOptionsFromClient,
-  fetchAvailableModels,
-  preInitializeModel as preInitializeModelClient 
-} from './apiClient';
 
 /**
  * Field validation result interface
@@ -83,51 +77,6 @@ export const shouldShowProperty = (key: string, value: unknown): boolean => {
   return true;
 };
 
-/**
- * Get API key options for select fields
- * Delegates to centralized API client
- */
-export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
-  return getApiKeyOptionsFromClient();
-};
-
-
-/**
- * Get model options dynamically based on selected service and API key
- * Delegates to centralized API client
- */
-export const getDynamicModelOptions = async (
-  service?: string, 
-  apiKeyId?: string
-): Promise<Array<{ value: string; label: string }>> => {
-  if (!service || !apiKeyId) {
-    return [];
-  }
-  
-  try {
-    return await fetchAvailableModels(service, apiKeyId);
-  } catch {
-    return [];
-  }
-};
-
-/**
- * Pre-initialize a model client on the backend for faster subsequent execution
- * Delegates to centralized API client
- */
-export const preInitializeModel = async (
-  service: string,
-  model: string,
-  apiKeyId: string
-): Promise<boolean> => {
-  console.log('[Person Property Panel] Pre-initializing model client:', {
-    service,
-    model,
-    apiKeyId
-  });
-  
-  return preInitializeModelClient(service, model, apiKeyId);
-};
 
 /**
  * Field validation functions

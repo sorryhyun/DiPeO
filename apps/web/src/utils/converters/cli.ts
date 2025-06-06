@@ -8,8 +8,8 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { parse as parseYaml } from 'yaml';
-import { YamlExporter } from './yamlExporter';
-import { LLMYamlImporter } from './llmYamlImporter';
+import { Yaml } from './yaml';
+import { LlmYaml } from './llm-yaml';
 
 // Parse command line arguments
 const [, , inputFile, outputFile, format] = process.argv;
@@ -38,10 +38,10 @@ try {
     // Detect if this is LLM YAML format
     if (yamlData.flow && (yamlData.prompts || yamlData.agents)) {
       // LLM YAML format - convert to DiagramState
-      diagram = LLMYamlImporter.fromLLMYAML(inputContent);
+      diagram = LlmYaml.fromLLMYAML(inputContent);
     } else {
       // Enhanced YAML format - convert to DiagramState  
-      diagram = YamlExporter.fromYAML(inputContent);
+      diagram = Yaml.fromYAML(inputContent);
     }
   } else {
     throw new Error(`Unsupported input format: ${resolvedInputFile}`);
@@ -58,11 +58,11 @@ try {
       
     case 'yaml':
     case 'yml':
-      outputContent = YamlExporter.toYAML(diagram);
+      outputContent = Yaml.toYAML(diagram);
       break;
       
     case 'llm-yaml':
-      outputContent = LLMYamlImporter.toLLMYAML(diagram);
+      outputContent = LlmYaml.toLLMYAML(diagram);
       break;
       
     default:

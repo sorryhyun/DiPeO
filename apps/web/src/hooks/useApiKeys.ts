@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl, API_ENDPOINTS } from '../../../common/utils/apiConfig';
+import { getApiUrl, API_ENDPOINTS } from '@/utils/api/apiConfig';
 import { type ApiKey } from '../@/types';
 
 export const useApiKeys = () => {

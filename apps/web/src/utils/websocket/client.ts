@@ -6,7 +6,7 @@ import type { WSMessage, MessageHandler, WebSocketClientOptions } from '@/types'
 
 export type ConnectionHandler = (event: CustomEvent) => void;
 
-export class WebSocketClient extends EventTarget {
+export class Client extends EventTarget {
   private ws: WebSocket | null = null;
   private readonly url: string;
   private readonly messageHandlers = new Map<string, Set<MessageHandler>>();
@@ -221,11 +221,11 @@ export class WebSocketClient extends EventTarget {
 }
 
 // Singleton instance
-let wsClient: WebSocketClient | null = null;
+let wsClient: Client | null = null;
 
-export function getWebSocketClient(options?: WebSocketClientOptions): WebSocketClient {
+export function getWebSocketClient(options?: WebSocketClientOptions): Client {
   if (!wsClient) {
-    wsClient = new WebSocketClient(options);
+    wsClient = new Client(options);
   }
   return wsClient;
 }

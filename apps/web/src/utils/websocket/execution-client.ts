@@ -6,7 +6,7 @@
  */
 
 import { produce } from 'immer';
-import { getWebSocketClient, WebSocketClient } from './websocket-client';
+import { getWebSocketClient, Client } from './client';
 import type { 
   Node, 
   Arrow, 
@@ -25,8 +25,8 @@ import type {
 /**
  * WebSocket-based execution client with real-time control capabilities
  */
-export class WebSocketExecutionClient {
-  private wsClient: WebSocketClient;
+export class ExecutionClient {
+  private wsClient: Client;
   private currentExecutionId: string | null = null;
   private executionResolvers = new Map<string, {
     resolve: (result: ExecutionResult) => void;
@@ -36,7 +36,7 @@ export class WebSocketExecutionClient {
   private executionCost = new Map<string, number>();
   private interactivePromptHandler: ((prompt: InteractivePromptData) => void) | null = null;
   
-  constructor(wsClient?: WebSocketClient) {
+  constructor(wsClient?: Client) {
     this.wsClient = wsClient || getWebSocketClient({ debug: true });
     this.setupHandlers();
   }
@@ -399,6 +399,6 @@ export class WebSocketExecutionClient {
 /**
  * Create a new WebSocket execution client instance
  */
-export function createWebSocketExecutionClient(wsClient?: WebSocketClient): WebSocketExecutionClient {
-  return new WebSocketExecutionClient(wsClient);
+export function createWebSocketExecutionClient(wsClient?: Client): ExecutionClient {
+  return new ExecutionClient(wsClient);
 }

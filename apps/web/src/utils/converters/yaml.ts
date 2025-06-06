@@ -1,4 +1,4 @@
-// apps/web/src/utils/yamlExporter.ts
+// apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
 import {
   Diagram,
@@ -68,7 +68,7 @@ interface YamlDiagram {
 }
 
 
-export class YamlExporter {
+export class Yaml {
   /**
    * Convert DiagramState to enhanced YAML format with full data preservation
    */

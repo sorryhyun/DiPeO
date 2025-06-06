@@ -11,12 +11,12 @@ import {
 } from '@/hooks/useStoreSelectors';
 import { toast } from 'sonner';
 import { createErrorHandlerFactory, PersonDefinition } from '@/types';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/api/apiConfig';
 import { isApiKey, parseApiArrayResponse } from '@/utils/typeGuards';
 import { 
   createWebSocketExecutionClient
-} from '@/utils/websocket-execution-client';
-import { getWebSocketClient } from '@/utils/websocket-client';
+} from '@/utils/websocket/execution-client';
+import { getWebSocketClient } from '@/utils/websocket/client';
 import type { 
   InteractivePromptData 
 } from '@/types';

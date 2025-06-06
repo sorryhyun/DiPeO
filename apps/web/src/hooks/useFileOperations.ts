@@ -1,9 +1,9 @@
 import { useState, useCallback, ChangeEvent } from 'react';
 import { useCanvasSelectors } from './store/useCanvasSelectors';
 import { toast } from 'sonner';
-import { getApiUrl, API_ENDPOINTS } from '@/utils/apiConfig';
-import { YamlExporter } from '@/utils/yamlExporter';
-import { LLMYamlImporter } from '@/utils/llmYamlImporter';
+import { getApiUrl, API_ENDPOINTS } from '@/utils/api/apiConfig';
+import { Yaml } from '@/utils/converters/yaml';
+import { LlmYaml } from '@/utils/converters/llm-yaml';
 import {
   readFileAsText,
   detectFileFormat,
@@ -125,7 +125,7 @@ export const useFileOperations = () => {
         
         case 'llm-yaml': {
           // Use LLM YAML importer
-          const diagram = LLMYamlImporter.fromLLMYAML(content);
+          const diagram = LlmYaml.fromLLMYAML(content);
           loadDiagram(diagram);
           toast.success('LLM-YAML file imported successfully');
           break;
@@ -204,12 +204,12 @@ export const useFileOperations = () => {
           break;
           
         case 'yaml':
-          content = YamlExporter.toYAML(diagramData);
+          content = Yaml.toYAML(diagramData);
           defaultFilename = 'diagram.yaml';
           break;
           
         case 'llm-yaml':
-          content = LLMYamlImporter.toLLMYAML(diagramData);
+          content = LlmYaml.toLLMYAML(diagramData);
           defaultFilename = 'diagram.llm-yaml';
           break;
           
@@ -297,7 +297,7 @@ export const useFileOperations = () => {
       const content = await readFileAsText(file);
       const diagram = JSON.parse(content);
       
-      const yamlContent = YamlExporter.toYAML(diagram);
+      const yamlContent = Yaml.toYAML(diagram);
       
       // Download the converted file
       const filename = file.name.replace('.json', '.yaml');

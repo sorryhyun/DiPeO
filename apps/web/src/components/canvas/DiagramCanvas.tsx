@@ -16,7 +16,7 @@ import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { useCanvasInteractions } from '@/hooks';
 import { ContextMenu } from './ContextMenu';
 import { CustomArrow as CustomArrowBase } from './CustomArrow';
-import { roundPosition } from '@/utils/canvasUtils';
+import { roundPosition } from '@/utils/canvas/canvasUtils';
 import nodeTypes from './nodeTypes';
 import { DiagramNode, Arrow } from '@/types';
 import { 

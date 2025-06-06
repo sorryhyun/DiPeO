@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/api/apiConfig';
 import { createErrorHandlerFactory } from '@/types';
 import { ConversationMessage, PersonMemoryState, ConversationFilters } from '@/types/ui';
 

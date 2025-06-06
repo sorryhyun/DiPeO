@@ -5,7 +5,7 @@
 
 import { toast } from 'react-hot-toast';
 import type { ApiResponse, Diagram } from '@/types';
-import { getApiUrl, API_ENDPOINTS } from './apiConfig';
+import { getApiUrl, API_ENDPOINTS } from './api/apiConfig';
 
 export type FileFormat = 'json' | 'yaml' | 'llm-yaml';
 

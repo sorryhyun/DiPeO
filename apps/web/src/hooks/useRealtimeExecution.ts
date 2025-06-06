@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCanvasSelectors } from './store/useCanvasSelectors';
 import { useExecutionSelectors } from './store/useExecutionSelectors';
-import { WebSocketClient, WSMessage, getWebSocketClient } from '@/utils/websocket-client';
+import { Client, WSMessage, getWebSocketClient } from '@/utils/websocket/client';
 import { toast } from 'sonner';
 import { DiagramState } from '@/types';
 
@@ -72,7 +72,7 @@ export const useRealtimeExecution = (options: UseRealtimeExecutionOptions = {}) 
   const [nodeStates, setNodeStates] = useState<Record<string, NodeState>>({});
 
   // Refs
-  const clientRef = useRef<WebSocketClient | null>(null);
+  const clientRef = useRef<Client | null>(null);
   const pendingEventsRef = useRef<Array<{ type: string; data: Record<string, unknown> }>>([]);
   const subscriptionSentRef = useRef<boolean>(false);
 

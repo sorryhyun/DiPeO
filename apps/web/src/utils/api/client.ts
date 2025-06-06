@@ -4,7 +4,7 @@
  */
 
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl, ApiCache, apiCache } from './apiConfig';
+import { API_ENDPOINTS, getApiUrl, ApiCache, apiCache } from './config';
 import { 
   createErrorHandlerFactory,
   type ApiKey, 
@@ -33,12 +33,12 @@ interface ApiRequestOptions extends RequestInit {
 }
 
 
-class ApiClient {
+class Client {
   private defaultHeaders = {
     'Content-Type': 'application/json',
   };
 
-  private createErrorHandler = createErrorHandlerFactory('ApiClient');
+  private createErrorHandler = createErrorHandlerFactory('Client');
 
   /**
    * Generic request method with error handling and caching
@@ -229,7 +229,7 @@ class ApiClient {
 }
 
 // Export singleton instance
-export const apiClient = new ApiClient();
+export const apiClient = new Client();
 
 // Legacy functional exports for backward compatibility
 export const fetchApiKeys = async (): Promise<ApiKey[]> => {

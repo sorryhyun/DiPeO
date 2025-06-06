@@ -36,7 +36,7 @@ interface LLMYamlFormat {
   data?: Record<string, string>;
 }
 
-export class LLMYamlImporter {
+export class LlmYaml {
   private nodeMap: Record<string, string> = {};
   private personMap: Record<string, string> = {};
 
@@ -44,7 +44,7 @@ export class LLMYamlImporter {
    * Import LLM-friendly YAML and convert to DiagramState format
    */
   static fromLLMYAML(yamlString: string): Diagram {
-    const importer = new LLMYamlImporter();
+    const importer = new LlmYaml();
     return importer.importYaml(yamlString);
   }
 
@@ -52,7 +52,7 @@ export class LLMYamlImporter {
    * Export DiagramState to LLM-friendly YAML format
    */
   static toLLMYAML(diagram: Diagram): string {
-    const importer = new LLMYamlImporter();
+    const importer = new LlmYaml();
     return importer.exportYaml(diagram);
   }
 
