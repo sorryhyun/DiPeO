@@ -4,8 +4,7 @@ export * from './canvas/ContextMenu';
 export * from './canvas/CustomArrow';
 export * from './canvas/Arrow';
 
-// Panel components
-export * from './panels/PropertiesPanel';
+// Panel components  
 export * from './panels/ConversationDashboard';
 export * from './panels/ConversationTab';
 export * from './panels/MessageList';

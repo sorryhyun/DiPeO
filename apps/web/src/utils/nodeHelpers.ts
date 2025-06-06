@@ -1,7 +1,8 @@
 import { Node } from '@xyflow/react';
+import type { Node as DiagramNode } from '@/types';
 
 /**
- * Utility functions for node operations
+ * Unified node utilities - all node operations in one place
  */
 
 export const createNodeId = (): string => {
@@ -16,3 +17,10 @@ export const getNodeDisplayName = (node: Node): string => {
 export function createHandleId(nodeId: string, type: string, name?: string): string {
   return name ? `${nodeId}-${type}-${name}` : `${nodeId}-${type}`;
 }
+
+/**
+ * Get node data with defaults
+ */
+export const getNodeData = (node: DiagramNode, defaults: Record<string, any> = {}): Record<string, any> => {
+  return { ...defaults, ...node.data };
+};

@@ -237,7 +237,9 @@ export const fetchApiKeys = async (): Promise<ApiKey[]> => {
 };
 
 export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
-  const apiKeys = getApiKeys() || [];
+  // This should be called from a React component using useApiKeyStore
+  // For now, return empty array and let the component handle this
+  const apiKeys: ApiKey[] = [];
   
   return apiKeys.map((apiKey: ApiKey) => ({
     value: apiKey.id,

@@ -1,8 +1,7 @@
 import React from 'react';
 import { BaseNode } from './BaseNode';
 import { GenericNodeProps } from '@/types';
-import { NODE_CONFIGS } from '@/config';
-import type { NodeType } from '@/config';
+import { NODE_CONFIGS, type NodeType } from '@/config';
 
 function GenericNodeComponent({ 
   id: nodeId,

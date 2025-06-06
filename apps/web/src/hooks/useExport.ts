@@ -1,19 +1,17 @@
 import { useCallback } from 'react';
-import { exportDiagramState } from '@/common/utils/storeSelectors';
-import { YamlExporter } from '../converters/yamlExporter';
-import { LLMYamlImporter } from '../converters/llmYamlImporter';
+import { exportDiagramState } from '../utils/storeSelectors';
+import { YamlExporter } from '../utils/yamlExporter';
+import { LLMYamlImporter } from '../utils/llmYamlImporter';
 import { useDownload } from './useDownload';
 import { toast } from 'sonner';
 import {
   downloadFile,
-  getFileExtension
-} from '@/common/utils/fileOperations';
-import { withFileErrorHandling } from '../utils/fileUtils';
-import { saveDiagram } from '@/common/utils/apiClient';
-import { 
+  getFileExtension,
+  withFileErrorHandling,
   FileFormat,
-  SaveFileOptions
-} from '../utils/fileUtils';
+  SaveFileOptions,
+  saveDiagramToBackend
+} from '../utils/fileOperations';
 
 export const useExport = () => {
   const { downloadYaml, downloadJson } = useDownload();

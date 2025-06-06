@@ -3,8 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecutionMonitor } from './hooks/useExecutionMonitor';
-import { useConsolidatedUIStore } from './state/stores';
-import { useDiagramStore } from './state/stores';
+import { useConsolidatedUIStore, useDiagramStore } from './stores';
 import { useDiagramRunner } from './hooks/useDiagramRunner';
 
 // Lazy load heavy components

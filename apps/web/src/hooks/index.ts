@@ -1,5 +1,5 @@
-// Simplified hooks (Phase 3: State Simplification)
-export { useDiagram, useExecution, useUI } from './useSimplifiedStores';
+// Store selectors (main hooks)
+export * from './useStoreSelectors';
 
 // Canvas hooks
 export * from './useContextMenu';
@@ -32,4 +32,3 @@ export * from './useWebSocketMonitor';
 // Store hooks
 export * from './useExecutionMonitor';
 export * from './useHistoryActions';
-export * from './useStoreSelectors';

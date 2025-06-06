@@ -21,11 +21,9 @@ export * from './canvasUtils';
 export * from './nodeDefaults';
 export * from './nodeHelpers';
 export * from './nodeValidation';
-export * from './nodeDataHelpers';
 
-// Property utilities
+// Property utilities (consolidated)
 export * from './fieldRenderers';
-export * from './fieldValidation';
 export * from './propertyHelpers';
 
 // Diagram utilities

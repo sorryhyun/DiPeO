@@ -16,15 +16,20 @@ import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import {
   useContextMenu,
   useKeyboardShortcuts,
-  CustomArrow as CustomArrowBase,
   ContextMenu
-} from '..';
-import { roundPosition } from '../utils/canvasUtils';
-import { nodeTypes, useNodeDrag } from '@/features/nodes';
+} from '../../hooks';
+import { CustomArrow as CustomArrowBase } from './CustomArrow';
+import { roundPosition } from '../../utils/canvasUtils';
+import { nodeTypes } from './nodeTypes';
+import { useNodeDrag } from '../../hooks/useNodeDrag';
 import { DiagramNode, Arrow } from '@/types';
-// PropertyDashboard removed - using unified PropertiesPanel in Sidebar
-
-import { useDiagram, useExecution, useUI } from '@/state/hooks';
+import { 
+  useCanvasState, 
+  useSelectedElement, 
+  usePersons 
+} from '../../hooks/useStoreSelectors';
+import { useExecution } from '../../hooks/useExecutionMonitor';
+import { useHistoryActions } from '../../hooks/useHistoryActions';
 
 // Use dependency injection instead of wrapper components
 const edgeTypes: EdgeTypes = {
@@ -48,8 +53,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     deleteArrow,
   } = useCanvasState();
   
-  const undo = useUndo();
-  const redo = useRedo();
+  const { undo, redo } = useHistoryActions();
   
   const {
     selectedNodeId,
@@ -60,7 +64,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   } = useSelectedElement();
   
   // Execution state from optimized selector
-  const { runningNodes, currentRunningNode } = useExecutionStatus();
+  const { isRunning, runningNodes, currentRunningNode } = useExecution();
   
   // Person actions from optimized selector
   const { addPerson, deletePerson } = usePersons();  
