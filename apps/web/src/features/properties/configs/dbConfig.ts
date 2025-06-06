@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { DBBlockData } from '@/common/types';
 
-export const dbConfig: PanelConfig<DBBlockData> = {
+export const dbConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {

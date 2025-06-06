@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { ConditionBlockData } from '@/common/types';
 
-export const conditionConfig: PanelConfig<ConditionBlockData> = {
+export const conditionConfig: PanelConfig<Record<string, any>> = {
   layout: 'single',
   fields: [
     {

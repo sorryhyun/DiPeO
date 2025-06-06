@@ -22,8 +22,8 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
-  const { isReadOnly, setReadOnly, activeCanvas, toggleCanvas, setActiveCanvas } = useConsolidatedUIStore();
-  const { clearDiagram } = useDiagramStore();
+  const { activeCanvas, toggleCanvas, setActiveCanvas } = useConsolidatedUIStore();
+  const { clearDiagram, isReadOnly, setReadOnly } = useDiagramStore();
   const { currentRunningNode } = useExecutionStore();
   const { onImportJSON } = useFileImport();
   const { onSaveToDirectory } = useExport();

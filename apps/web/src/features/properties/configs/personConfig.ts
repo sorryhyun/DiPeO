@@ -1,8 +1,7 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { PersonDefinition } from '@/common/types';
 import { getApiKeyOptions, getDynamicModelOptions } from '../utils/propertyHelpers';
 
-export const personConfig: PanelConfig<PersonDefinition> = {
+export const personConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {
@@ -42,7 +41,7 @@ export const personConfig: PanelConfig<PersonDefinition> = {
       name: 'modelName',
       label: 'Model',
       options: (formData: unknown) => {
-        const data = formData as Partial<PersonDefinition>;
+        const data = formData as Record<string, any>;
         return getDynamicModelOptions(data.service, data.apiKeyId);
       },
       placeholder: 'Select Model',

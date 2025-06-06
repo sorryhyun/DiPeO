@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { PersonBatchJobBlockData } from '@/common/types';
 
-export const personBatchJobConfig: PanelConfig<PersonBatchJobBlockData> = {
+export const personBatchJobConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {

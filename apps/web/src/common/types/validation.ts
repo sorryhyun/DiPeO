@@ -1,5 +1,5 @@
 // Validation and flow control types
-import { Arrow } from './arrow';
+import { Arrow } from './core';
 
 export interface ArrowValidation {
   isValid: boolean;

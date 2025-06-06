@@ -1,16 +1,11 @@
 import { parse, stringify } from 'yaml';
 import { nanoid } from 'nanoid';
 import {
-  DiagramState,
-  DiagramNode,
+  Diagram,
+  Node,
   Arrow,
-  PersonDefinition,
-  ApiKey,
-  PersonJobBlockData,
-  ConditionBlockData,
-  DBBlockData,
-  StartBlockData,
-  EndpointBlockData
+  Person,
+  ApiKey
 } from '@/common/types';
 
 interface Edge {
@@ -48,7 +43,7 @@ export class LLMYamlImporter {
   /**
    * Import LLM-friendly YAML and convert to DiagramState format
    */
-  static fromLLMYAML(yamlString: string): DiagramState {
+  static fromLLMYAML(yamlString: string): Diagram {
     const importer = new LLMYamlImporter();
     return importer.importYaml(yamlString);
   }
@@ -56,12 +51,12 @@ export class LLMYamlImporter {
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  static toLLMYAML(diagram: DiagramState): string {
+  static toLLMYAML(diagram: Diagram): string {
     const importer = new LLMYamlImporter();
     return importer.exportYaml(diagram);
   }
 
-  private importYaml(yamlContent: string): DiagramState {
+  private importYaml(yamlContent: string): Diagram {
     try {
       const data = parse(yamlContent) as LLMYamlFormat;
 
@@ -98,7 +93,7 @@ export class LLMYamlImporter {
             id: 'error-node',
             label: `Import Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
             type: 'start'
-          } as StartBlockData
+          }
         }],
         arrows: [],
         persons: [],
@@ -219,8 +214,8 @@ export class LLMYamlImporter {
     return 'generic';
   }
 
-  private buildNodes(nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): DiagramNode[] {
-    const nodes: DiagramNode[] = [];
+  private buildNodes(nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): Node[] {
+    const nodes: Node[] = [];
     const positions = this.calculatePositions(nodeInfo);
 
     Object.entries(nodeInfo).forEach(([name, info]) => {
@@ -232,14 +227,14 @@ export class LLMYamlImporter {
         label: name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       };
 
-      let nodeData: StartBlockData | PersonJobBlockData | ConditionBlockData | DBBlockData | EndpointBlockData = baseData as StartBlockData;
+      let nodeData: Record<string, any> = baseData;
 
       switch (info.type) {
         case 'start':
           nodeData = {
             ...baseData,
             type: 'start'
-          } as StartBlockData;
+          };
           break;
 
         case 'person_job':
@@ -252,7 +247,7 @@ export class LLMYamlImporter {
             iterationCount: 1,
             mode: 'sync',
             detectedVariables: this.detectVariables(data.prompts?.[name] || '')
-          } as PersonJobBlockData;
+          };
           break;
 
         case 'condition': {
@@ -266,7 +261,7 @@ export class LLMYamlImporter {
             type: 'condition',
             conditionType: 'expression',
             expression: conditions.length > 0 ? `${name}_check` : ''
-          } as ConditionBlockData;
+          };
           break;
         }
 
@@ -277,7 +272,7 @@ export class LLMYamlImporter {
             type: 'db',
             subType: dataSource && dataSource.match(/\.(txt|json|csv)$/) ? 'file' : 'fixed_prompt',
             sourceDetails: dataSource || ''
-          } as DBBlockData;
+          };
           break;
         }
 
@@ -288,7 +283,7 @@ export class LLMYamlImporter {
             saveToFile: false,
             filePath: '',
             fileFormat: 'text'
-          } as EndpointBlockData;
+          };
           break;
 
         default:
@@ -302,7 +297,7 @@ export class LLMYamlImporter {
             iterationCount: 1,
             mode: 'sync',
             detectedVariables: []
-          } as PersonJobBlockData;
+          };
       }
 
       const actualNodeType = this.nodeTypeToId(info.type);
@@ -314,7 +309,7 @@ export class LLMYamlImporter {
           ...nodeData,
           type: actualNodeType // Actual node type in data
         }
-      } as DiagramNode);
+      } as Node);
     });
 
     return nodes;
@@ -351,13 +346,13 @@ export class LLMYamlImporter {
     return arrows;
   }
 
-  private buildPersons(nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): PersonDefinition[] {
-    const persons: PersonDefinition[] = [];
+  private buildPersons(nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): Person[] {
+    const persons: Person[] = [];
     const agentsData = data.agents || {};
 
     // Default agent for nodes with prompts but no specific agent
     const defaultPersonId = `PERSON_${nanoid(6)}`;
-    const defaultPerson: PersonDefinition = {
+    const defaultPerson: Person = {
       id: defaultPersonId,
       label: 'Default Assistant',
       modelName: 'gpt-4',
@@ -412,7 +407,7 @@ export class LLMYamlImporter {
     return persons;
   }
 
-  private extractApiKeys(persons: PersonDefinition[]): ApiKey[] {
+  private extractApiKeys(persons: Person[]): ApiKey[] {
     const apiKeys: Record<string, ApiKey> = {};
 
     persons.forEach(person => {
@@ -436,7 +431,7 @@ export class LLMYamlImporter {
     return Object.values(apiKeys);
   }
 
-  private linkPersonsToNodes(nodes: DiagramNode[], nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): void {
+  private linkPersonsToNodes(nodes: Node[], nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): void {
     nodes.forEach(node => {
       // Find original name from nodeMap
       const originalName = Object.entries(this.nodeMap).find(([, id]) => id === node.id)?.[0];
@@ -444,7 +439,7 @@ export class LLMYamlImporter {
 
       const info = nodeInfo[originalName];
       if (info?.type === 'person_job' && node.data.type === 'person_job') {
-        const nodeData = node.data as PersonJobBlockData;
+        const nodeData = node.data;
         
         // Check if this node has a specific agent
         if (data.agents?.[originalName]) {
@@ -551,7 +546,7 @@ export class LLMYamlImporter {
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  private exportYaml(diagram: DiagramState): string {
+  private exportYaml(diagram: Diagram): string {
     const flow: string[] = [];
     const prompts: Record<string, string> = {};
     const agents: Record<string, unknown> = {};
@@ -632,14 +627,12 @@ export class LLMYamlImporter {
       const nodeName = nodeNameMap[node.id];
       
       if (nodeName && node.type === 'person_job' && node.data.type === 'person_job') {
-        const nodeData = node.data as PersonJobBlockData;
-        if (nodeData.defaultPrompt) {
-          prompts[nodeName] = nodeData.defaultPrompt;
+        if (node.data.defaultPrompt) {
+          prompts[nodeName] = node.data.defaultPrompt;
         }
       } else if (nodeName && node.type === 'db' && node.data.type === 'db') {
-        const dbData = node.data as DBBlockData;
-        if (dbData.sourceDetails) {
-          data[nodeName] = dbData.sourceDetails;
+        if (node.data.sourceDetails) {
+          data[nodeName] = node.data.sourceDetails;
         }
       }
     });

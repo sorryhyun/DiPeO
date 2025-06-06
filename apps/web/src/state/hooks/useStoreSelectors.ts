@@ -2,6 +2,8 @@ import React from 'react';
 import { useDiagramStore } from '@/state/stores';
 import { useExecutionStore } from '@/state/stores/executionStore';
 import { useConsolidatedUIStore } from '@/state/stores/consolidatedUIStore';
+import { useHistoryStore } from '@/state/stores/historyStore';
+import { useApiKeyStore } from '@/state/stores/apiKeyStore';
 
 // ===== Key Optimized Selectors =====
 
@@ -186,3 +188,29 @@ export const useExecutionStatus = () => {
     nodeRunningStates,
   };
 };
+
+// Missing exports for backward compatibility
+export const getApiKeys = () => useApiKeyStore.getState().apiKeys;
+export const useApiKeys = () => useApiKeyStore(state => state.apiKeys);
+
+// History actions
+export const useUndo = () => useHistoryStore(state => state.undo);
+export const useRedo = () => useHistoryStore(state => state.redo);
+export const useCanUndo = () => useHistoryStore(state => state.canUndo);
+export const useCanRedo = () => useHistoryStore(state => state.canRedo);
+
+// Execution actions  
+export const useAddRunningNode = () => useExecutionStore(state => state.addRunningNode);
+export const useRemoveRunningNode = () => useExecutionStore(state => state.removeRunningNode);
+export const useSetCurrentRunningNode = () => useExecutionStore(state => state.setCurrentRunningNode);
+export const useSetRunContext = () => useExecutionStore(state => state.setRunContext);
+export const useAddSkippedNode = () => useExecutionStore(state => state.addSkippedNode);
+
+// Diagram actions
+export const useLoadDiagram = () => useDiagramStore(state => state.loadDiagram);
+export const exportDiagramState = () => useDiagramStore.getState().exportDiagram();
+
+// More store selectors
+export const useSkippedNodes = () => useExecutionStore(state => state.skippedNodes);
+export const useExecutions = () => useExecutionStore(state => state);
+export const clearDiagram = () => useDiagramStore.getState().clear();

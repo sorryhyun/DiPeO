@@ -1,5 +1,7 @@
 // Error types
-import { NodeType } from './node';
+import { Node } from './core';
+
+type NodeType = Node['type'];
 
 export class AgentDiagramException extends Error {
   constructor(
@@ -82,4 +84,14 @@ export class PersonJobExecutionError extends AgentDiagramException {
     super(message, details);
     this.name = 'PersonJobExecutionError';
   }
+}
+
+// Error handler factory
+export function createErrorHandlerFactory(context: string) {
+  return (error: unknown): void => {
+    console.error(`[${context}] Error:`, error);
+    if (error instanceof Error) {
+      console.error(`[${context}] Stack:`, error.stack);
+    }
+  };
 }

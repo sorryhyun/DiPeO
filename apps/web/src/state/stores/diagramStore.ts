@@ -1,34 +1,9 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
+import { Node, Arrow, Person, Diagram } from '@/common/types/core';
 
-// Simplified types - no more over-engineering
-export interface Node {
-  id: string;
-  type: 'start' | 'job' | 'person_job' | 'condition' | 'db' | 'endpoint' | 'user_response' | 'notion' | 'person_batch_job';
-  position: { x: number; y: number };
-  data: Record<string, any>;
-}
-
-export interface Arrow {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
-  data?: Record<string, any>;
-}
-
-export interface Person {
-  id: string;
-  label: string;
-  service?: string;
-  apiKeyId?: string;
-  modelName?: string;
-  options?: Record<string, any>;
-}
-
-interface DiagramStore {
+export interface DiagramStore {
   // Data
   nodes: Node[];
   arrows: Arrow[];
@@ -56,6 +31,16 @@ interface DiagramStore {
   clear: () => void;
   loadDiagram: (data: { nodes: Node[]; arrows: Arrow[]; persons: Person[] }) => void;
   exportDiagram: () => { nodes: Node[]; arrows: Arrow[]; persons: Person[] };
+  
+  // Additional properties for compatibility
+  isReadOnly?: boolean;
+  setReadOnly?: (readOnly: boolean) => void;
+  onNodesChange?: (changes: any) => void;
+  onArrowsChange?: (changes: any) => void;
+  onConnect?: (connection: any) => void;
+  getPersonById?: (id: string) => Person | undefined;
+  updateNodeData?: (id: string, data: any) => void;
+  updateArrowData?: (id: string, data: any) => void;
 }
 
 export const useDiagramStore = create<DiagramStore>()(
@@ -158,7 +143,17 @@ export const useDiagramStore = create<DiagramStore>()(
           nodes: get().nodes,
           arrows: get().arrows,
           persons: get().persons
-        })
+        }),
+        
+        // Additional methods for compatibility
+        isReadOnly: false,
+        setReadOnly: (readOnly: boolean) => set({ isReadOnly: readOnly }),
+        onNodesChange: () => {},
+        onArrowsChange: () => {},
+        onConnect: () => {},
+        getPersonById: (id: string) => get().persons.find(p => p.id === id),
+        updateNodeData: (id: string, data: any) => get().updateNode(id, data),
+        updateArrowData: (id: string, data: any) => get().updateArrow(id, data)
       }),
       {
         name: 'dipeo-diagram',

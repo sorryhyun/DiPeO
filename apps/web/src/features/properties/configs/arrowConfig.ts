@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { ArrowData } from '@/common/types';
 
-export const arrowConfig: PanelConfig<ArrowData> = {
+export const arrowConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {

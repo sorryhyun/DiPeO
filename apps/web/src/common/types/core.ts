@@ -11,6 +11,7 @@ export interface Arrow {
   id: string;
   source: string;
   target: string;
+  type?: string;
   sourceHandle?: string;
   targetHandle?: string;
   data?: Record<string, any>;
@@ -21,8 +22,10 @@ export interface Person {
   label: string;
   apiKeyId?: string;
   modelName?: string;
-  serviceName?: string;
+  service?: string;
+  systemPrompt?: string;
   memory?: ConversationMessage[];
+  options?: Record<string, any>;
 }
 
 export interface ConversationMessage {
@@ -31,10 +34,17 @@ export interface ConversationMessage {
   timestamp?: string;
 }
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  service: 'openai' | 'anthropic' | 'google' | 'groq' | 'notion';
+}
+
 export interface Diagram {
   nodes: Node[];
   arrows: Arrow[];
   persons: Person[];
+  apiKeys: ApiKey[];
   metadata?: {
     id?: string;
     name?: string;

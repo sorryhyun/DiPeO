@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { EndpointBlockData } from '@/common/types';
 
-export const endpointConfig: PanelConfig<EndpointBlockData> = {
+export const endpointConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {

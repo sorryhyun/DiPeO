@@ -73,7 +73,9 @@ export const UnifiedFieldRenderer: React.FC<UnifiedFieldRendererProps> = ({
   
   // Get persons for person-select fields
   const getPersons = () => {
-    return Object.values(persons).map(p => ({
+    // persons is an object from usePersons hook with a persons array property
+    const personsList = persons.persons || [];
+    return personsList.map(p => ({
       id: p.id,
       name: p.label || 'Unknown'
     }));

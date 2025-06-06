@@ -37,7 +37,7 @@ class ApiClient {
     'Content-Type': 'application/json',
   };
 
-  private createErrorHandler = createErrorHandlerFactory(toast);
+  private createErrorHandler = createErrorHandlerFactory('ApiClient');
 
   /**
    * Generic request method with error handling and caching
@@ -77,7 +77,12 @@ class ApiClient {
       url += `?${searchParams.toString()}`;
     }
 
-    const errorHandler = this.createErrorHandler(errorContext);
+    const errorHandler = (error: Error) => {
+      this.createErrorHandler(error);
+      if (!skipErrorToast) {
+        toast.error(`${errorContext}: ${error.message}`);
+      }
+    };
 
     try {
       const response = await fetch(url, {
@@ -235,7 +240,7 @@ export const fetchApiKeys = async (): Promise<ApiKey[]> => {
 export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
   const apiKeys = getApiKeys() || [];
   
-  return apiKeys.map(apiKey => ({
+  return apiKeys.map((apiKey: ApiKey) => ({
     value: apiKey.id,
     label: `${apiKey.name} (${apiKey.service})`
   }));
@@ -290,7 +295,7 @@ export const preInitializeModel = async (
 };
 
 export const saveDiagram = async (
-  diagram: Diagram | DiagramState,
+  diagram: Diagram,
   filename: string
 ): Promise<ApiResponseType<{ path: string }>> => {
   // Convert DiagramState to Diagram if needed

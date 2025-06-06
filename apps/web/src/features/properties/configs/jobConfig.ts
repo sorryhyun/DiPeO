@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { JobBlockData } from '@/common/types';
 
-export const jobConfig: PanelConfig<JobBlockData> = {
+export const jobConfig: PanelConfig<Record<string, any>> = {
   layout: 'twoColumn',
   leftColumn: [
     {

@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { NotionBlockData } from '@/common/types';
 
-const notionConfig: PanelConfig<NotionBlockData> = {
+const notionConfig: PanelConfig<Record<string, any>> = {
   layout: 'single',
   fields: [
     {

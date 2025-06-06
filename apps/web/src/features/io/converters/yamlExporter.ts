@@ -1,17 +1,11 @@
 // apps/web/src/utils/yamlExporter.ts
 import { stringify, parse } from 'yaml';
 import {
-  DiagramState,
-  PersonDefinition,
-  PersonJobBlockData,
-  JobBlockData,
-  DBBlockData,
-  ConditionBlockData,
-  EndpointBlockData,
+  Diagram,
+  Person,
   Arrow,
-  ArrowData,
   ApiKey,
-  DiagramNode
+  Node
 } from '@/common/types';
 import { nanoid } from 'nanoid';
 
@@ -78,7 +72,7 @@ export class YamlExporter {
   /**
    * Convert DiagramState to enhanced YAML format with full data preservation
    */
-  static toYAML(diagram: DiagramState): string {
+  static toYAML(diagram: Diagram): string {
     const yamlDiagram = this.toYamlFormat(diagram);
 
     return stringify(yamlDiagram, {
@@ -89,14 +83,14 @@ export class YamlExporter {
     });
   }
 
-  static fromYAML(yamlString: string): DiagramState {
+  static fromYAML(yamlString: string): Diagram {
     const yamlDiagram = parse(yamlString);
     return this.fromYamlFormat(yamlDiagram as YamlDiagram);
   }
   /**
    * Convert DiagramState to YAML format
    */
-  private static toYamlFormat(diagram: DiagramState): YamlDiagram {
+  private static toYamlFormat(diagram: Diagram): YamlDiagram {
     const apiKeys: Record<string, { service: string; name: string }> = {};
     const persons: YamlDiagram['persons'] = {};
     const workflow: YamlDiagram['workflow'] = [];
@@ -152,9 +146,9 @@ export class YamlExporter {
    * Convert node to enhanced workflow step
    */
   private static nodeToEnhancedStep(
-    node: DiagramNode,
+    node: Node,
     connections: Arrow[],
-    _persons: PersonDefinition[]
+    _persons: Person[]
   ): YamlDiagram['workflow'][0] | null {
     const data = node.data;
     const baseStep: YamlDiagram['workflow'][0] = {
@@ -188,51 +182,46 @@ export class YamlExporter {
         return baseStep;
 
       case 'person_job': {
-        const pjData = data as PersonJobBlockData;
         return {
           ...baseStep,
-          ...(pjData.personId && { person: pjData.personId }),
-          ...(pjData.defaultPrompt && { prompt: pjData.defaultPrompt }),
-          ...(pjData.firstOnlyPrompt && { first_prompt: pjData.firstOnlyPrompt }),
-          ...(pjData.contextCleaningRule && { forget: pjData.contextCleaningRule }),
-          ...(pjData.iterationCount && { max_iterations: pjData.iterationCount })
+          ...(data.personId && { person: data.personId }),
+          ...(data.defaultPrompt && { prompt: data.defaultPrompt }),
+          ...(data.firstOnlyPrompt && { first_prompt: data.firstOnlyPrompt }),
+          ...(data.contextCleaningRule && { forget: data.contextCleaningRule }),
+          ...(data.iterationCount && { max_iterations: data.iterationCount })
         };
       }
 
       case 'condition': {
-        const cData = data as ConditionBlockData;
         return {
           ...baseStep,
-          ...(cData.conditionType && { condition_type: cData.conditionType }),
-          ...(cData.expression && { expression: cData.expression }),
-          ...(cData.maxIterations && { max_iterations: cData.maxIterations })
+          ...(data.conditionType && { condition_type: data.conditionType }),
+          ...(data.expression && { expression: data.expression }),
+          ...(data.maxIterations && { max_iterations: data.maxIterations })
         };
       }
 
       case 'db': {
-        const dbData = data as DBBlockData;
         return {
           ...baseStep,
-          ...(dbData.subType && { sub_type: dbData.subType }),
-          ...(dbData.sourceDetails && { source: dbData.sourceDetails })
+          ...(data.subType && { sub_type: data.subType }),
+          ...(data.sourceDetails && { source: data.sourceDetails })
         };
       }
 
       case 'job': {
-        const jobData = data as JobBlockData;
         return {
           ...baseStep,
-          ...(jobData.subType && { sub_type: jobData.subType }),
-          ...(jobData.sourceDetails && { code: jobData.sourceDetails })
+          ...(data.subType && { sub_type: data.subType }),
+          ...(data.sourceDetails && { code: data.sourceDetails })
         };
       }
 
       case 'endpoint': {
-        const epData = data as EndpointBlockData;
         return {
           ...baseStep,
-          ...(epData.saveToFile && epData.filePath && { file: epData.filePath }),
-          ...(epData.fileFormat && { file_format: epData.fileFormat })
+          ...(data.saveToFile && data.filePath && { file: data.filePath }),
+          ...(data.fileFormat && { file_format: data.fileFormat })
         };
       }
 
@@ -244,10 +233,10 @@ export class YamlExporter {
   /**
    * Convert enhanced YAML format back to DiagramState
    */
-  private static fromYamlFormat(yamlDiagram: YamlDiagram): DiagramState {
-    const nodes: DiagramNode[] = [];
+  private static fromYamlFormat(yamlDiagram: YamlDiagram): Diagram {
+    const nodes: Node[] = [];
     const arrows: Arrow[] = [];
-    const persons: PersonDefinition[] = [];
+    const persons: Person[] = [];
     const apiKeys: ApiKey[] = [];
 
     // Convert API keys
@@ -295,8 +284,8 @@ export class YamlExporter {
                 sourceHandleId: conn.source_handle,
                 targetHandleId: conn.target_handle,
                 label: conn.label || 'flow',
-                contentType: conn.content_type as ArrowData['contentType'],
-                branch: conn.branch as 'true' | 'false',
+                contentType: conn.content_type || 'raw_text',
+                branch: conn.branch as 'true' | 'false' | undefined,
                 controlPointOffsetX: conn.control_offset?.x,
                 controlPointOffsetY: conn.control_offset?.y
               }
@@ -319,8 +308,8 @@ export class YamlExporter {
    */
   private static enhancedStepToNode(
     step: YamlDiagram['workflow'][0],
-    _persons: PersonDefinition[]
-  ): DiagramNode | null {
+    _persons: Person[]
+  ): Node | null {
     const baseData = {
       id: step.id,
       label: step.label || this.extractLabelFromId(step.id)
@@ -354,11 +343,11 @@ export class YamlExporter {
             personId: step.person,
             defaultPrompt: step.prompt || '',
             firstOnlyPrompt: step.first_prompt || '',
-            contextCleaningRule: step.forget as PersonJobBlockData['contextCleaningRule'] || 'uponRequest',
+            contextCleaningRule: step.forget || 'uponRequest',
             iterationCount: step.max_iterations || 1,
             mode: step.mode || 'sync',
             detectedVariables: this.detectVariables(step.prompt || '', step.first_prompt || '')
-          } as PersonJobBlockData
+          }
         };
 
       case 'condition':
@@ -369,10 +358,10 @@ export class YamlExporter {
           data: {
             ...baseData,
             type: 'condition',
-            conditionType: step.condition_type as ConditionBlockData['conditionType'] || 'expression',
+            conditionType: step.condition_type || 'expression',
             expression: step.expression || '',
             maxIterations: step.max_iterations
-          } as ConditionBlockData
+          }
         };
 
       case 'db':
@@ -383,9 +372,9 @@ export class YamlExporter {
           data: {
             ...baseData,
             type: 'db',
-            subType: step.sub_type as DBBlockData['subType'] || 'fixed_prompt',
+            subType: step.sub_type || 'fixed_prompt',
             sourceDetails: step.source || ''
-          } as DBBlockData
+          }
         };
 
       case 'job':
@@ -396,9 +385,9 @@ export class YamlExporter {
           data: {
             ...baseData,
             type: 'job',
-            subType: step.sub_type as JobBlockData['subType'] || 'code',
+            subType: step.sub_type || 'code',
             sourceDetails: step.code || ''
-          } as JobBlockData
+          }
         };
 
       case 'endpoint':
@@ -411,8 +400,8 @@ export class YamlExporter {
             type: 'endpoint',
             saveToFile: !!step.file,
             filePath: step.file || '',
-            fileFormat: step.file_format as EndpointBlockData['fileFormat'] || 'text'
-          } as EndpointBlockData
+            fileFormat: step.file_format || 'text'
+          }
         };
 
       default:

@@ -1,7 +1,6 @@
 import { PanelConfig } from '@/common/types/panelConfig';
-import { UserResponseBlockData } from '@/common/types/node';
 
-export const userResponseConfig: PanelConfig<UserResponseBlockData> = {
+export const userResponseConfig: PanelConfig<Record<string, any>> = {
   layout: 'single',
   fields: [
     {
