@@ -1,10 +1,9 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState, Suspense } from 'react';
-import { Button } from '@/components/ui/buttons';
+import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { NODE_CONFIGS, PersonDefinition } from '@/types';
+import { NODE_CONFIGS } from '@/types';
 import { useFileOperations } from '@/hooks/useFileOperations';
-import { FileUploadButton } from '@/components/ui/buttons';
 import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
 import { 
   useNodes, 
@@ -131,9 +130,9 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                   onClick={() => handlePersonClick(person.id)}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{person.emoji || '🤖'}</span>
+                    <span className="text-base">🤖</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs truncate">{person.name}</p>
+                      <p className="font-medium text-xs truncate">{person.label}</p>
                       <p className="text-xs text-gray-500 truncate">{person.service || 'No service'}</p>
                     </div>
                   </div>
@@ -145,13 +144,11 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               size="sm"
               onClick={() => addPerson({
-                name: `Person ${persons.length + 1}`,
-                emoji: '🤖',
+                label: `Person ${persons.length + 1}`,
                 service: 'openai',
                 modelName: 'gpt-4.1-nano',
                 apiKeyId: '',
                 systemPrompt: '',
-                description: ''
               })}
             >
               <span className="mr-1">➕</span> Add Person
@@ -175,7 +172,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         {fileOperationsExpanded && (
           <div className="mt-3 space-y-2 px-2">
             <FileUploadButton
-              onFileUpload={handleFileInput}
+              onChange={handleFileInput}
               className="w-full text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               variant="outline"
               size="sm"

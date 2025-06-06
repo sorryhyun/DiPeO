@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PanelConfig, FieldConfig } from '../../../types';
-import { usePropertyPanel } from '../../hooks/usePropertyPanel';
-import { PropertyFieldConfig } from '../../../types';
-import { preInitializeModel } from '../../../utils/propertyHelpers';
-import { useIsReadOnly } from '../../../hooks/useStoreSelectors';
-import { UnifiedFormField, FormRow, Form, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../../common/forms';
+import { PanelConfig, FieldConfig, PanelFieldConfig, PropertyFieldConfig } from '@/types';
+import { usePropertyManager } from '@/hooks/usePropertyManager';
+import { useIsReadOnly } from '@/hooks/useStoreSelectors';
+import { UnifiedFormField } from '../fields';
+import { Form, FormRow } from '../fields/FormComponents';
+
+// Simple layout components
+const TwoColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="grid grid-cols-2 gap-4">
+    {children}
+  </div>
+);
+
+const SingleColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="space-y-3">
+    {children}
+  </div>
+);
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
@@ -34,7 +46,15 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   };
   
   const entityType = getEntityType(data.type);
-  const { formData, handleChange } = usePropertyPanel<T>(nodeId, entityType, data);
+  const { formData, updateField: updateFormField } = usePropertyManager<T>(nodeId, entityType, data, {
+    autoSave: true,
+    autoSaveDelay: 500
+  });
+  
+  // Create a handleChange wrapper for compatibility
+  const handleChange = (name: string, value: any) => {
+    updateFormField(name as keyof T, value);
+  };
   
   // Load async options when component mounts - only for non-dependent fields
   useEffect(() => {
@@ -293,7 +313,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   };
   
   // Field renderer function using UnifiedFormField
-  const renderField = (fieldConfig: FieldConfig, index: number): React.ReactNode => {
+  const renderField = (fieldConfig: PanelFieldConfig, index: number): React.ReactNode => {
     const convertedConfig = convertFieldConfig(fieldConfig);
     if (!convertedConfig) return null;
     
@@ -377,7 +397,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     );
   };
   
-  const renderSection = (fields: FieldConfig[] | undefined) => {
+  const renderSection = (fields: PanelFieldConfig[] | undefined) => {
     if (!fields) return null;
     return fields.map((field, index) => renderField(field, index));
   };

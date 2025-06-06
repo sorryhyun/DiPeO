@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/components/ui';
 import { ApiKey, createErrorHandlerFactory } from '@/types';
-import { useApiKeys, useAddApiKey, useDeleteApiKey, useLoadApiKeys } from '../../../../common/utils/storeSelectors';
+import { useApiKeys, useAddApiKey, useDeleteApiKey, useLoadApiKeys } from '@/hooks/useStoreSelectors';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { API_ENDPOINTS, getApiUrl } from '../../../../common/utils/apiConfig';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 
 interface ApiKeysModalProps {
@@ -12,7 +12,7 @@ interface ApiKeysModalProps {
 }
 
 const API_SERVICES = [
-  { value: 'claude', label: 'Claude (Anthropic)' },
+  { value: 'anthropic', label: 'Claude (Anthropic)' },
   { value: 'openai', label: 'ChatGPT (OpenAI)' },
   { value: 'grok', label: 'Grok' },
   { value: 'gemini', label: 'Gemini (Google)' },
@@ -26,7 +26,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const loadApiKeys = useLoadApiKeys();
   const [newKeyForm, setNewKeyForm] = useState<Partial<ApiKey>>({
     name: '',
-    service: 'claude',
+    service: 'openai',
     keyReference: '',
   });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -98,7 +98,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       // Reset form
       setNewKeyForm({
         name: '',
-        service: 'claude',
+        service: 'openai',
         keyReference: '',
       });
       

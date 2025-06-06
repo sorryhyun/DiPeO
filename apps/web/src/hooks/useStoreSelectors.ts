@@ -209,6 +209,14 @@ export const useExecutionStatus = () => {
   };
 };
 
+// API Key selectors
+export const useApiKeys = () => useApiKeyStore(state => state.apiKeys);
+export const useAddApiKey = () => useApiKeyStore(state => state.addApiKey);
+export const useUpdateApiKey = () => useApiKeyStore(state => state.updateApiKey);
+export const useDeleteApiKey = () => useApiKeyStore(state => state.deleteApiKey);
+export const useLoadApiKeys = () => useApiKeyStore(state => state.loadApiKeys);
+export const useClearApiKeys = () => useApiKeyStore(state => state.clearApiKeys);
+
 // Missing exports for backward compatibility
 export const getApiKeys = () => useApiKeyStore.getState().apiKeys;
 
@@ -254,6 +262,8 @@ export const useClearRunningNodes = () => {
 export const useUpdateNodeData = () => useDiagramStore(state => state.updateNode);
 export const useUpdateArrowData = () => useDiagramStore(state => state.updateArrow);
 export const useUpdatePerson = () => useDiagramStore(state => state.updatePerson);
+export const useSetReadOnly = () => useDiagramStore(state => state.setReadOnly);
+export const useIsReadOnly = () => useDiagramStore(state => state.isReadOnly);
 
 // Grouped selectors for compatibility
 export const useUISelectors = () => {

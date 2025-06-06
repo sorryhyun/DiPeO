@@ -8,8 +8,8 @@ import {
 } from '@/hooks/useStoreSelectors';
 
 const ExecutionView = () => {
-  const persons = usePersons();
-  const nodes = useNodes();
+  const { persons } = usePersons();
+  const { nodes } = useNodes();
   const selectedPersonId = useSelectedPersonId();
   const setSelectedPersonId = useSetSelectedPersonId();
   const [personPositions, setPersonPositions] = useState<Record<string, { x: number; y: number }>>({}); 
@@ -83,8 +83,8 @@ const ExecutionView = () => {
                   key={`${person.id}-${nodeId}`}
                   x1={personPos.x}
                   y1={personPos.y}
-                  x2={node.position.x + (node.width || 200) / 2}
-                  y2={node.position.y + (node.height || 100) / 2}
+                  x2={node.position.x + 100}
+                  y2={node.position.y + 50}
                   stroke={selectedPersonId === person.id ? '#60a5fa' : '#9ca3af'}
                   strokeWidth="2"
                   strokeDasharray="5,5"

@@ -11,7 +11,6 @@ const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/D
 const LazyMemoryCanvas = React.lazy(() => import('./components/execution/MemoryCanvas').then(module => ({ default: module.MemoryCanvas })));
 const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyWebSocketTest = React.lazy(() => import('./components/dev/WebSocketTest').then(module => ({ default: module.WebSocketTest })));
 const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
 
 function App() {
@@ -25,7 +24,7 @@ function App() {
     const checkMonitorMode = () => {
       const params = new URLSearchParams(window.location.search);
       const monitorParam = params.get('monitor') === 'true';
-      setReadOnly(monitorParam);
+      setReadOnly?.(monitorParam);
 
       if (monitorParam) {
         document.title = 'AgentDiagram - Monitor Mode';
@@ -103,12 +102,6 @@ function App() {
           <LazyToaster richColors position="bottom-center" />
         </Suspense>
         
-        {/* WebSocket Test Component - Enable with ?websocket=true */}
-        {new URLSearchParams(window.location.search).get('websocket') === 'true' && (
-          <Suspense fallback={null}>
-            <LazyWebSocketTest enabled={true} />
-          </Suspense>
-        )}
         
         {/* Interactive Prompt Modal */}
         {interactivePrompt && (

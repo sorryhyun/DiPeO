@@ -94,9 +94,9 @@ export const InteractivePromptModal: React.FC<InteractivePromptModalProps> = ({
           </div>
         )}
         
-        {context?.timeout && isUserResponse && (
+        {prompt.timeout && isUserResponse && (
           <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-            ⏱️ Timeout: {context.timeout} seconds
+            ⏱️ Timeout: {prompt.timeout} seconds
           </div>
         )}
 

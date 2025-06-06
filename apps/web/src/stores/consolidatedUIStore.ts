@@ -6,8 +6,8 @@ export interface ConsolidatedUIState {
   selection: { id: string; type: 'node' | 'arrow' | 'person' } | null;
   
   // View state
-  activeView: 'diagram' | 'memory' | 'execution';
-  activeCanvas: 'main' | 'memory';
+  activeView: 'diagram' | 'execution';
+  activeCanvas: 'main' | 'execution';
   dashboardTab: 'properties' | 'persons' | 'conversation';
   
   // Modal state
@@ -19,8 +19,8 @@ export interface ConsolidatedUIState {
   clearSelection: () => void;
   
   // View actions
-  setActiveView: (view: 'diagram' | 'memory' | 'execution') => void;
-  setActiveCanvas: (canvas: 'main' | 'memory') => void;
+  setActiveView: (view: 'diagram' | 'execution' ) => void;
+  setActiveCanvas: (canvas: 'main' | 'execution') => void;
   setDashboardTab: (tab: 'properties' | 'persons' | 'conversation') => void;
   toggleCanvas: () => void;
   
@@ -72,7 +72,7 @@ export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
       setActiveView: (view) => set({ activeView: view }),
       setActiveCanvas: (canvas) => set({ activeCanvas: canvas }),
       setDashboardTab: (tab) => set({ dashboardTab: tab }),
-      toggleCanvas: () => set({ activeCanvas: get().activeCanvas === 'main' ? 'memory' : 'main' }),
+      toggleCanvas: () => set({ activeCanvas: get().activeCanvas === 'main' ? 'execution' : 'main' }),
       
       // Modal actions
       openApiKeysModal: () => set({ showApiKeysModal: true }),

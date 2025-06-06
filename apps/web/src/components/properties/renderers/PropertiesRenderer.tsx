@@ -1,11 +1,11 @@
 // Reusable component for rendering property panels based on selection
 import React, { useMemo, Suspense } from 'react';
-import { DiagramNode, Arrow, PersonDefinition, ArrowData } from '../../../types';
+import { DiagramNode, Arrow, PersonDefinition } from '../../../types';
 
 // Lazy load PropertiesPanel as it's a heavy component
 const UniversalPropertiesPanel = React.lazy(() => 
   import('../PropertiesPanel/PropertiesPanel').then(module => ({ 
-    default: module.default 
+    default: module.UniversalPropertiesPanel 
   }))
 );
 
@@ -15,7 +15,7 @@ interface PropertiesRendererProps {
   selectedArrowId?: string | null;
   selectedPersonId?: string | null;
   nodes?: DiagramNode[];
-  arrows?: Arrow<ArrowData>[];
+  arrows?: Arrow[];
   persons?: PersonDefinition[];
 }
 
@@ -35,7 +35,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
   // Memoize person data to avoid creating new object references
   const personData = useMemo(() => {
     if (!selectedPersonId) return null;
-    const person = persons.find(p => p.id === selectedPersonId);
+    const person = persons?.find(p => p.id === selectedPersonId);
     if (!person) return null;
     return { ...person, type: 'person' as const };
   }, [selectedPersonId, persons]);
@@ -43,11 +43,11 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
   // Memoize arrow data to avoid creating new object references
   const arrowData = useMemo(() => {
     if (!selectedArrowId) return null;
-    const arrow = arrows.find(a => a.id === selectedArrowId);
+    const arrow = arrows?.find(a => a.id === selectedArrowId);
     if (!arrow || !arrow.data) return null;
     
     // Find source node to determine if this is a special arrow
-    const sourceNode = nodes.find(n => n.id === arrow.source);
+    const sourceNode = nodes?.find(n => n.id === arrow.source);
     const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
     
     // Ensure we have a valid id from arrow data
@@ -74,7 +74,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
         </Suspense>
       );
     } else if (selectedNodeId) {
-      const node = nodes.find(n => n.id === selectedNodeId);
+      const node = nodes?.find(n => n.id === selectedNodeId);
       if (node) {
         title = `${node.data.label || 'Block'} Properties`;
         content = (

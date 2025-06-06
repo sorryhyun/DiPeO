@@ -150,7 +150,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               }}
               onPaneContextMenu={(event) => {
                 diagram.clearSelection();
-                onPaneContextMenu?.(event);
+                onPaneContextMenu?.(event as React.MouseEvent);
               }}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
@@ -167,11 +167,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             </ReactFlow>
           </div>
           
-          {isContextMenuOpen && contextMenu.position && (
+          {isContextMenuOpen && contextMenu?.position && (
             <Suspense fallback={null}>
               <ContextMenu
                 position={contextMenu.position}
-                target={contextMenu.target}
+                target={contextMenu?.target || 'pane'}
                 selectedNodeId={selectedNodeId}
                 selectedArrowId={selectedArrowId}
                 containerRef={reactFlowWrapper as React.RefObject<HTMLDivElement>}
@@ -212,15 +212,15 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
                 onInit={handleInit}
                 onNodeContextMenu={(event, node) => {
                   selectNode(node.id);
-                  onNodeContextMenu(event, node.id);
+                  onNodeContextMenu?.(event as React.MouseEvent, node.id);
                 }}
                 onEdgeContextMenu={(event, edge) => {
                   selectArrow(edge.id);
-                  onEdgeContextMenu(event, edge.id);
+                  onEdgeContextMenu?.(event as React.MouseEvent, edge.id);
                 }}
                 onPaneContextMenu={(event) => {
                   diagram.clearSelection();
-                  onPaneContextMenu(event);
+                  onPaneContextMenu?.(event as React.MouseEvent);
                 }}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}

@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
 import { createHandleId } from '@/utils/node';
 import { FlowHandle } from '@/components/diagram/controls';
-import { useDiagramStore } from '@/stores';
-import { useExecutionMonitor } from '@/hooks/useExecutionMonitor';
+import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
+import { useRealtimeExecution } from '@/hooks/useRealtimeExecution';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -27,13 +27,13 @@ export function BaseNode({
   showFlipButton = true,
   className 
 }: BaseNodeProps) {
-  // Direct store access
-  const updateNode = useDiagramStore(state => state.updateNode);
+  // Store selectors
+  const updateNode = useNodeDataUpdater();
   const updateNodeInternals = useUpdateNodeInternals();
   
   // Get execution state
-  const executionMonitor = useExecutionMonitor();
-  const nodeState = executionMonitor?.nodeStates?.[id];
+  const { nodeStates } = useRealtimeExecution();
+  const nodeState = nodeStates?.[id];
   const isRunning = nodeState?.status === 'running';
   const isSkipped = nodeState?.status === 'skipped';
   const isCompleted = nodeState?.status === 'completed';
@@ -168,7 +168,7 @@ export function BaseNode({
   return (
     <div
       className={getNodeClasses()}
-      title={nodeState?.message || `${config.label} Node`}
+      title={nodeState?.progress || `${config.label} Node`}
     >
       {/* Status indicators */}
       {getStatusIndicator()}
@@ -209,10 +209,10 @@ export function BaseNode({
           })}
         </div>
         
-        {/* Status message */}
-        {nodeState?.message && (
+        {/* Progress or error message */}
+        {(nodeState?.progress || nodeState?.error) && (
           <div className="mt-2 text-xs text-gray-500 italic">
-            {nodeState.message}
+            {nodeState.progress || nodeState.error}
           </div>
         )}
         

@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { useNodes, useArrows, usePersons, useSelectedElement } from '@/hooks/useStoreSelectors';
 
 // Lazy load the properties renderer
-const PropertiesRenderer = React.lazy(() => import('./PropertiesRenderer'));
+const PropertiesRenderer = React.lazy(() => import('./renderers/PropertiesRenderer'));
 
 export const PropertiesTab: React.FC = () => {
   const { nodes } = useNodes();

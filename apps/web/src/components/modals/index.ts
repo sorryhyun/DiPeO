@@ -1,2 +1,2 @@
 export * from './ApiKeysModal';
-export { LazyModals } from './LazyModals';
+export { LazyApiKeysModal } from './LazyModals';

@@ -18,6 +18,3 @@ export * from './layout';
 
 // Modal components
 export * from './modals';
-
-// Dev components (only in development)
-export * from './dev';

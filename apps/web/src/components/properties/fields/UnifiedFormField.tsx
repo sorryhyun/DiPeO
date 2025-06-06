@@ -1,9 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Input } from '../Input';
-import { Select } from '../Select';
-import { Switch } from '../Switch';
-import Spinner from '../Spinner';
-import { FileUploadButton } from '../common/FileUploadButton';
+import { Input, Select, Switch, Spinner, FileUploadButton } from '../../ui';
 
 export interface UnifiedFormFieldProps {
   type: 'text' | 'select' | 'textarea' | 'checkbox' | 'number' | 'file' | 'person-select' | 'iteration-count' | 'variable-textarea';

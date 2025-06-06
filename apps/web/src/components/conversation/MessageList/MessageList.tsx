@@ -1,7 +1,6 @@
 import React from 'react';
 import { Hash, DollarSign } from 'lucide-react';
-import { PersonDefinition } from '@/types/core';
-import { ConversationMessage } from '@/types/core';
+import { PersonDefinition, ConversationMessage } from '@/types';
 
 interface MessageListProps {
   messages: ConversationMessage[];
@@ -57,7 +56,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
           <div className="text-sm whitespace-pre-wrap break-words">{message.content}</div>
           <div className="text-xs opacity-50 mt-1">
-            {new Date(message.timestamp).toLocaleString()}
+            {message.timestamp ? new Date(message.timestamp).toLocaleString() : 'No timestamp'}
           </div>
         </div>
       </div>

@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
-import { Button } from '@/components/ui/buttons';
-import { useApiKeyStore } from '@/stores/apiKeyStore';
-import { useConsolidatedUIStore } from '@/stores';
+import { Button, FileUploadButton } from '@/components/ui/buttons';
+import { useApiKeys, useAddApiKey, useLoadApiKeys, useUIState, useSetReadOnly } from '@/hooks/useStoreSelectors';
 import { useDiagram } from '@/hooks';
 import { useDiagramRunner } from '@/hooks/useDiagramRunner';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { LazyApiKeysModal } from '@/components/modals';
-import { FileUploadButton } from '@/components/ui/buttons';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/apiConfig';
+import { LazyApiKeysModal } from '@/components/modals/LazyModals';
+import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse } from '@/utils/typeGuards';
+import { isApiKey, parseApiArrayResponse } from '@/utils/types';
 
 
 const TopBar = () => {
@@ -18,8 +15,13 @@ const TopBar = () => {
   const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
-  const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
-  const { activeCanvas, toggleCanvas, setActiveCanvas } = useConsolidatedUIStore();
+  
+  // Use store selectors
+  const apiKeys = useApiKeys();
+  const addApiKey = useAddApiKey();
+  const loadApiKeys = useLoadApiKeys();
+  const setReadOnly = useSetReadOnly();
+  const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
   // Use the unified diagram hook
   const diagram = useDiagram({
@@ -33,9 +35,7 @@ const TopBar = () => {
     clear: clearDiagram,
     isMonitorMode: isReadOnly,
     currentRunningNode,
-    importWithDialog,
     saveJSON: onSaveToDirectory,
-    _ui: { setReadOnly }
   } = diagram;
   
   // Create onChange handler for FileUploadButton
@@ -71,7 +71,7 @@ const TopBar = () => {
     // Auto-open execution mode when monitor mode is triggered
     if (isMonitor) {
       setActiveCanvas('execution');
-      setReadOnly(true);
+      setReadOnly?.(true);
     }
     const checkBackendApiKeys = async () => {
       try {
@@ -108,11 +108,9 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys();
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey, setReadOnly]);
+  }, [hasCheckedBackend, apiKeys.length, addApiKey, setReadOnly, setActiveCanvas]);
 
-  useKeyboardShortcuts({
-    onSave: () => onSaveToDirectory().catch(console.error),
-  });
+  // Keyboard shortcuts could be added here if needed
 
   return (
     <header className="p-3 border-b bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm">
@@ -143,7 +141,7 @@ const TopBar = () => {
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => onSaveToDirectory().catch(console.error)}
+            onClick={() => onSaveToDirectory?.()?.catch(console.error)}
             title="Save diagram to server (diagrams folder)"
           >
             💾 Save
@@ -227,11 +225,11 @@ const TopBar = () => {
               if (activeCanvas === 'execution') {
                 toggleCanvas();
                 // Exit read-only mode when leaving execution mode
-                setReadOnly(false);
+                setReadOnly?.(false);
               } else {
                 setActiveCanvas('execution');
                 // Set the diagram to read-only when entering execution mode
-                setReadOnly(true);
+                setReadOnly?.(true);
               }
             }}
             title={activeCanvas === 'execution' ? 'Back to Diagram Canvas' : 'Enter Execution Mode'}
@@ -253,7 +251,7 @@ const TopBar = () => {
                 onClick={() => {
                   setIsExitingMonitor(true);
                   clearDiagram();
-                  setReadOnly(false);
+                  setReadOnly?.(false);
                   // Remove monitor param from URL
                   const url = new URL(window.location.href);
                   url.searchParams.delete('monitor');

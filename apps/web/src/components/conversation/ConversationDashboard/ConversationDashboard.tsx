@@ -231,7 +231,11 @@ const ConversationDashboard: React.FC = () => {
       });
       
       // Sort messages by timestamp
-      allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      allMessages.sort((a, b) => {
+        const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return aTime - bTime;
+      });
       
       const totalTokens = allMessages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
       
