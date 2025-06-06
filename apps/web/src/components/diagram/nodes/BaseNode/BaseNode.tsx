@@ -7,6 +7,7 @@ import { createHandleId } from '@/utils/node';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
 import { useRealtimeExecution } from '@/hooks/useRealtimeExecution';
+import { useConsolidatedUIStore } from '@/stores';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -30,6 +31,8 @@ export function BaseNode({
   // Store selectors
   const updateNode = useNodeDataUpdater();
   const updateNodeInternals = useUpdateNodeInternals();
+  const { activeCanvas } = useConsolidatedUIStore();
+  const isExecutionMode = activeCanvas === 'execution';
   
   // Get execution state
   const { nodeStates } = useRealtimeExecution();
@@ -83,10 +86,17 @@ export function BaseNode({
   
   // Determine node appearance based on state
   const getNodeClasses = () => {
-    const baseClasses = 'relative p-3 border-2 rounded-lg transition-all duration-200 min-w-32 shadow-sm';
+    const baseClasses = 'relative p-3 border-2 rounded-lg transition-all duration-200 min-w-32';
     let stateClasses = '';
     let backgroundClass = 'bg-white';
     let borderClass = `border-${config.color}-500`;
+    let shadowClass = 'shadow-sm';
+    
+    // Apply execution mode styling
+    if (isExecutionMode) {
+      shadowClass = 'shadow-lg';
+      borderClass = `border-${config.color}-600`;
+    }
     
     if (isRunning) {
       stateClasses = 'animate-pulse scale-105';
@@ -107,7 +117,7 @@ export function BaseNode({
       stateClasses = 'ring-2 ring-blue-200';
     }
     
-    return `${baseClasses} ${stateClasses} ${backgroundClass} ${borderClass} ${className || ''}`;
+    return `${baseClasses} ${stateClasses} ${backgroundClass} ${borderClass} ${shadowClass} ${className || ''}`;
   };
 
   // Get status indicator
@@ -191,7 +201,7 @@ export function BaseNode({
         {/* Header */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{config.icon}</span>
-          <span className="font-medium text-sm">{config.label}</span>
+          <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>{config.label}</span>
         </div>
         
         {/* Node data display */}
@@ -202,7 +212,7 @@ export function BaseNode({
               : String(value);
             
             return (
-              <div key={key} className="text-xs text-gray-600">
+              <div key={key} className={`text-xs ${isExecutionMode ? 'text-gray-700 font-medium' : 'text-gray-600'}`}>
                 <span className="font-medium">{key}:</span> {displayValue}
               </div>
             );

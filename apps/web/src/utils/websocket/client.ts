@@ -77,9 +77,6 @@ export class Client extends EventTarget {
           this.send(message);
         }
       }
-      
-      // Send initial subscribe message for monitoring
-      this.send({ type: 'subscribe_monitor' });
     };
     
     this.ws.onmessage = (event) => {

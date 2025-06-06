@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
+import { useConsolidatedUIStore } from '@/stores';
 
 import { Arrow } from '@/types';
 
@@ -28,6 +29,8 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   const { screenToFlowPosition } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
+  const { activeCanvas } = useConsolidatedUIStore();
+  const isExecutionMode = activeCanvas === 'execution';
   
   const arrowData = data as ArrowData;
   const controlPointOffsetX = arrowData?.controlPointOffsetX ?? 0;
@@ -182,8 +185,8 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
             padding: '4px 8px',
             borderRadius: '6px',
             pointerEvents: 'all',
-            color: selected ? '#1d4ed8' : '#374151',
-            fontWeight: selected ? '600' : '500',
+            color: selected ? '#1d4ed8' : (isExecutionMode ? '#111827' : '#374151'),
+            fontWeight: selected ? '600' : (isExecutionMode ? '600' : '500'),
             maxWidth: '200px',
             cursor: isDragging ? 'grabbing' : 'grab',
             userSelect: 'none',

@@ -68,9 +68,8 @@ const TopBar = () => {
     const isMonitor = params.get('monitor') === 'true';
     setIsMonitorMode(isMonitor);
     
-    // Auto-open execution mode when monitor mode is triggered
+    // Only set read-only mode for monitor mode, don't auto-switch to execution
     if (isMonitor) {
-      setActiveCanvas('execution');
       setReadOnly?.(true);
     }
     const checkBackendApiKeys = async () => {
@@ -250,8 +249,9 @@ const TopBar = () => {
               <button
                 onClick={() => {
                   setIsExitingMonitor(true);
-                  clearDiagram();
+                  // Don't clear diagram when exiting monitor mode
                   setReadOnly?.(false);
+                  setIsMonitorMode(false);
                   // Remove monitor param from URL
                   const url = new URL(window.location.href);
                   url.searchParams.delete('monitor');
