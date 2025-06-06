@@ -1,22 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PanelConfig, FieldConfig, PanelFieldConfig, PropertyFieldConfig } from '@/types';
+import { PanelConfig, PanelFieldConfig, PropertyFieldConfig, SelectFieldConfig } from '@/types';
 import { usePropertyManager } from '@/hooks/usePropertyManager';
 import { useIsReadOnly } from '@/hooks/useStoreSelectors';
 import { UnifiedFormField } from '../fields';
-import { Form, FormRow } from '../fields/FormComponents';
-
-// Simple layout components
-const TwoColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="grid grid-cols-2 gap-4">
-    {children}
-  </div>
-);
-
-const SingleColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="space-y-3">
-    {children}
-  </div>
-);
+import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
+import { preInitializeModel } from '@/utils/api';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
@@ -52,20 +40,20 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   });
   
   // Create a handleChange wrapper for compatibility
-  const handleChange = (name: string, value: any) => {
-    updateFormField(name as keyof T, value);
+  const handleChange = (name: string, value: unknown) => {
+    updateFormField(name as keyof T, value as T[keyof T]);
   };
   
   // Load async options when component mounts - only for non-dependent fields
   useEffect(() => {
     const loadAsyncOptions = async () => {
-      const fieldsToProcess: FieldConfig[] = [];
+      const fieldsToProcess: SelectFieldConfig[] = [];
       
       // Collect fields that need async options but are NOT dependent on formData
-      const collectFields = (fields: FieldConfig[]) => {
+      const collectFields = (fields: PanelFieldConfig[]) => {
         fields.forEach(field => {
           if (field.type === 'select' && typeof field.options === 'function' && !field.dependsOn) {
-            fieldsToProcess.push(field);
+            fieldsToProcess.push(field as SelectFieldConfig);
           } else if (field.type === 'row' && field.fields) {
             collectFields(field.fields);
           }
@@ -88,7 +76,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       for (const field of fieldsToProcess) {
         try {
           if (field.type === 'select' && typeof field.options === 'function' && field.name) {
-            const result = (field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>)();
+            const optionsFn = field.options as () => Promise<Array<{ value: string; label: string }>> | Array<{ value: string; label: string }>;
+            const result = optionsFn();
             const options = result instanceof Promise ? await result : result;
             optionsMap[field.name] = options;
           }
@@ -130,10 +119,10 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       prevDepsRef.current = { service: currentService, apiKeyId: currentApiKeyId };
       
       try {
-        const fieldsToUpdate: FieldConfig[] = [];
+        const fieldsToUpdate: SelectFieldConfig[] = [];
         
         // Collect fields that have dependencies
-        const collectDependentFields = (fields: FieldConfig[]) => {
+        const collectDependentFields = (fields: PanelFieldConfig[]) => {
           fields.forEach(field => {
             if (field.type === 'select' && field.dependsOn && typeof field.options === 'function') {
               fieldsToUpdate.push(field);
@@ -158,7 +147,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
           if (field.type === 'select' && field.dependsOn && field.name && typeof field.options === 'function') {
             try {
               // Dependent fields expect formData parameter
-              const result = (field.options as (formData: T) => Promise<Array<{ value: string; label: string }>>)(formData);
+              const optionsFn = field.options as (formData: T) => Promise<Array<{ value: string; label: string }>>;
+              const result = optionsFn(formData);
               const options = result instanceof Promise ? await result : result;
               updatedOptions[field.name] = options;
               hasUpdates = true;
@@ -190,7 +180,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     }
 
     // Update the form data - always allow updating fields (including new optional fields)
-    handleChange(name as keyof T, value as T[keyof T]);
+    handleChange(name, value);
     
     // If this is a model selection for a person entity and we have all required data, pre-initialize the model
     if (data.type === 'person' && name === 'modelName') {
@@ -212,8 +202,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     }
   };
   
-  // Convert FieldConfig to PropertyFieldConfig
-  const convertFieldConfig = (fieldConfig: FieldConfig): PropertyFieldConfig | null => {
+  // Convert PanelFieldConfig to PropertyFieldConfig
+  const convertPanelFieldConfig = (fieldConfig: PanelFieldConfig): PropertyFieldConfig | null => {
     // Check conditional rendering
     if (fieldConfig.conditional) {
       const fieldValue = formData[fieldConfig.conditional.field];
@@ -234,6 +224,11 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       }
       
       if (!shouldRender) return null;
+    }
+    
+    // Handle special field types that don't have direct property field equivalents
+    if (fieldConfig.type === 'row' || fieldConfig.type === 'custom' || fieldConfig.type === 'labelPersonRow') {
+      return null;
     }
     
     // Convert special field types to unified types
@@ -257,12 +252,11 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       case 'checkbox':
         type = 'boolean';
         break;
-      case 'iterationCount':
+      case 'maxIteration':
         type = 'number';
         min = fieldConfig.min;
         max = fieldConfig.max;
         break;
-      case 'labelPersonRow':
       case 'personSelect':
         type = 'person';
         break;
@@ -272,10 +266,10 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     
     // Get options for select fields
     let options: PropertyFieldConfig['options'];
-    if (fieldConfig.type === 'select') {
+    if (fieldConfig.type === 'select' && fieldConfig.name) {
       if (Array.isArray(fieldConfig.options)) {
         options = fieldConfig.options;
-      } else if (fieldConfig.name && asyncOptions[fieldConfig.name]) {
+      } else if (asyncOptions[fieldConfig.name]) {
         options = asyncOptions[fieldConfig.name];
       }
     }
@@ -294,18 +288,12 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     if ('placeholder' in fieldConfig) {
       baseField.placeholder = fieldConfig.placeholder;
     }
-    if ('required' in fieldConfig) {
-      baseField.isRequired = (fieldConfig as any).required;
-    }
-    if ('helperText' in fieldConfig) {
-      baseField.helperText = (fieldConfig as any).helperText;
-    }
-    if ('acceptedFileTypes' in fieldConfig) {
-      baseField.acceptedFileTypes = (fieldConfig as any).acceptedFileTypes;
+    if ('disabled' in fieldConfig) {
+      baseField.disabled = fieldConfig.disabled;
     }
     
     baseField.customProps = {
-      disabled: isMonitorMode || ('disabled' in fieldConfig ? fieldConfig.disabled : false),
+      disabled: isMonitorMode || baseField.disabled || false,
       detectedVariables: data.detectedVariables as string[] | undefined
     };
     
@@ -314,9 +302,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   
   // Field renderer function using UnifiedFormField
   const renderField = (fieldConfig: PanelFieldConfig, index: number): React.ReactNode => {
-    const convertedConfig = convertFieldConfig(fieldConfig);
-    if (!convertedConfig) return null;
-    
     const key = fieldConfig.name ? `${fieldConfig.name}-${index}` : `field-${index}`;
     
     // Handle special cases
@@ -336,7 +321,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             type="text"
             name="label"
             label="Label"
-            value={formData.label}
+            value={(formData as Record<string, unknown>).label}
             onChange={(v) => updateField('label', v)}
             placeholder={fieldConfig.labelPlaceholder}
             disabled={isMonitorMode}
@@ -345,7 +330,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             type="person-select"
             name="personId"
             label="Person"
-            value={formData.personId}
+            value={(formData as Record<string, unknown>).personId}
             onChange={(v) => updateField('personId', v)}
             placeholder={fieldConfig.personPlaceholder}
             disabled={isMonitorMode}
@@ -354,17 +339,24 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       );
     }
     
+    // Convert to PropertyFieldConfig for standard fields
+    const convertedConfig = convertPanelFieldConfig(fieldConfig);
+    if (!convertedConfig) return null;
+    
     // Map field types to UnifiedFormField types
     const getFieldType = () => {
       switch (convertedConfig.type) {
         case 'string':
-          return convertedConfig.multiline ? 'variable-textarea' : 'text';
+          if (fieldConfig.type === 'variableTextArea') {
+            return 'variable-textarea';
+          }
+          return convertedConfig.multiline ? 'textarea' : 'text';
         case 'select':
           return 'select';
         case 'boolean':
           return 'checkbox';
         case 'number':
-          return fieldConfig.type === 'iterationCount' ? 'iteration-count' : 'number';
+          return fieldConfig.type === 'maxIteration' ? 'iteration-count' : 'number';
         case 'person':
           return 'person-select';
         case 'file':
@@ -374,13 +366,15 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       }
     };
     
+    const fieldValue = fieldConfig.name ? formData[fieldConfig.name as keyof T] : undefined;
+    
     return (
       <UnifiedFormField
         key={key}
         type={getFieldType()}
         name={convertedConfig.name}
         label={convertedConfig.label}
-        value={formData[convertedConfig.name]}
+        value={fieldValue}
         onChange={(v) => updateField(convertedConfig.name, v)}
         placeholder={convertedConfig.placeholder}
         options={convertedConfig.options}

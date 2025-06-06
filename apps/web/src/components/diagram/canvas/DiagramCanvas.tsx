@@ -120,7 +120,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   };
   const handlePaneClick = () => {
     diagram.clearSelection();
-    closeContextMenu?.();
+    if (closeContextMenu) {
+      closeContextMenu();
+    }
   };
 
   return (
@@ -179,7 +181,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
                 onAddPerson={handleAddPerson}
                 onDeleteNode={deleteNode}
                 onDeleteArrow={deleteArrow}
-                onClose={closeContextMenu}
+                onClose={closeContextMenu || (() => {})}
                 projectPosition={projectPosition}
               />
             </Suspense>
