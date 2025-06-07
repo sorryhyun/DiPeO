@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
+import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { produce, enableMapSet } from 'immer';
 import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
 import { Node, Arrow, Person, ApiKey } from '@/types';
@@ -137,7 +137,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             // Node mutators
             addNode: (type, position) => {
-              const id = `${type}-${nanoid(4)}`;
+              const id = `${type}-${generateShortId().slice(0, 4)}`;
               const newNode: Node = {
                 id,
                 type,
@@ -186,7 +186,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             // Arrow mutators
             addArrow: (source, target, sourceHandle, targetHandle) => {
-              const id = `arrow-${nanoid(4)}`;
+              const id = `arrow-${generateShortId().slice(0, 4)}`;
               const newArrow: Arrow = {
                 id,
                 source,
@@ -229,7 +229,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             // Person mutators
             addPerson: (person) => {
-              const id = `person-${nanoid(4)}`;
+              const id = `person-${generateShortId().slice(0, 4)}`;
               set(
                 produce(draft => {
                   draft.persons.set(id, { ...person, id });
@@ -260,7 +260,7 @@ export const useDiagramStore = create<DiagramStore>()(
             addApiKey: (apiKeyData) => {
               const newApiKey = {
                 ...apiKeyData,
-                id: `APIKEY_${nanoid().slice(0, 6).replace(/-/g, '_').toUpperCase()}`
+                id: entityIdGenerators.apiKey()
               } as ApiKey;
               set(
                 produce(draft => {
@@ -337,7 +337,7 @@ export const useDiagramStore = create<DiagramStore>()(
 
             onConnect: ({ source, target, sourceHandle, targetHandle }) => {
               if (!source || !target) return;
-              const id = `arrow-${nanoid(4)}`;
+              const id = `arrow-${generateShortId().slice(0, 4)}`;
               get().upsertArrow({ id, source, target, sourceHandle, targetHandle, data: {} } as Arrow);
             },
 
@@ -531,7 +531,7 @@ export const useDiagramStore = create<DiagramStore>()(
               
               // Process API keys first
               const apiKeys: ApiKey[] = (data.apiKeys || []).map((apiKeyData) => {
-                const id = `APIKEY_${nanoid(4).replace(/-/g, '_').toUpperCase()}`;
+                const id = entityIdGenerators.apiKey();
                 const label = ensureUniqueLabel(apiKeyData.name || 'API Key', usedApiKeyLabels);
                 apiKeyLabelToId.set(label, id);
                 
@@ -545,7 +545,7 @@ export const useDiagramStore = create<DiagramStore>()(
               
               // Process persons
               const persons: Person[] = (data.persons || []).map((personData) => {
-                const id = `person-${nanoid(4)}`;
+                const id = `person-${generateShortId().slice(0, 4)}`;
                 const label = ensureUniqueLabel(personData.name || personData.label || 'Person', usedPersonLabels);
                 personLabelToId.set(label, id);
                 
@@ -565,7 +565,7 @@ export const useDiagramStore = create<DiagramStore>()(
               
               // Process nodes
               const nodes: Node[] = (data.nodes || []).map((nodeData) => {
-                const id = `${nodeData.type}-${nanoid(4)}`;
+                const id = `${nodeData.type}-${generateShortId().slice(0, 4)}`;
                 const label = ensureUniqueLabel(nodeData.label || nodeData.data?.label || nodeData.type, usedNodeLabels);
                 nodeLabelToId.set(label, id);
                 
@@ -591,7 +591,7 @@ export const useDiagramStore = create<DiagramStore>()(
               
               // Process arrows
               const arrows: Arrow[] = (data.arrows || []).map((arrowData) => {
-                const id = `arrow-${nanoid(4)}`;
+                const id = `arrow-${generateShortId().slice(0, 4)}`;
                 
                 // Resolve source/target references
                 const source = (arrowData.sourceLabel && nodeLabelToId.get(arrowData.sourceLabel)) || arrowData.source || '';

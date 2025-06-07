@@ -1,7 +1,7 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
 import { Diagram, Person, Arrow, ApiKey, Node } from '@/types/core';
-import { nanoid } from 'nanoid';
+import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { buildNode, NodeInfo } from './nodeBuilders';
 
 interface YamlDiagram {
@@ -217,7 +217,7 @@ export class Yaml {
     // Convert API keys - generate new IDs
     Object.entries(yamlDiagram.apiKeys || {}).forEach(([_name, key]) => {
       apiKeys.push({
-        id: `APIKEY_${nanoid().slice(0, 4).replace(/-/g, '_').toUpperCase()}`,
+        id: entityIdGenerators.apiKey(),
         name: key.name,
         service: key.service as ApiKey['service']
       });
@@ -238,7 +238,7 @@ export class Yaml {
       }
       
       persons.push({
-        id: `person-${nanoid(4)}`,  // Generate fresh ID
+        id: `person-${generateShortId().slice(0, 4)}`,  // Generate fresh ID
         label,  // Use the key as label
         modelName: person.model,
         service: person.service as ApiKey['service'],
@@ -272,7 +272,7 @@ export class Yaml {
           step.connections.forEach(conn => {
             const targetId = nodeLabelToId.get(conn.to);
             if (targetId) {
-              const arrowId = `arrow-${nanoid(4)}`;
+              const arrowId = `arrow-${generateShortId().slice(0, 4)}`;
               arrows.push({
                 id: arrowId,
                 source: sourceId,

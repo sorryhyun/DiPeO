@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateShortId } from '@/utils/id';
 import { Diagram, Node, Arrow, Person, ApiKey } from '@/types/core';
 
 // Edge type for graph representation
@@ -270,7 +270,7 @@ export class DiagramAssembler {
       
       if (!sourceId || !targetId) return;
       
-      const arrowId = `arrow-${nanoid(4)}`;
+      const arrowId = `arrow-${generateShortId().slice(0, 4)}`;
       const arrow: Arrow = {
         id: arrowId,
         source: sourceId,

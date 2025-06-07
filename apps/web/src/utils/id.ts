@@ -1,58 +1,16 @@
-/**
- * Centralized ID generation utilities
- * 
- * Provides consistent ID generation across the application
- * using nanoid for URL-safe unique identifiers.
- */
-
 import { nanoid } from 'nanoid';
 
-/**
- * Default ID length for general use
- */
-const DEFAULT_ID_LENGTH = 21;
+const DEFAULT_ID_LENGTH = 4;
+const SHORT_ID_LENGTH = 4;
 
-/**
- * Shorter ID length for human-readable IDs
- */
-const SHORT_ID_LENGTH = 10;
-
-/**
- * Generate a unique ID
- * 
- * @param length - Optional length of the ID (default: 21)
- * @returns A URL-safe unique identifier
- */
 export function generateId(length: number = DEFAULT_ID_LENGTH): string {
   return nanoid(length);
 }
 
-/**
- * Generate a short unique ID (10 characters)
- * 
- * Use this for user-visible IDs where brevity is important.
- * Note: Shorter IDs have higher collision probability.
- * 
- * @returns A short URL-safe unique identifier
- */
 export function generateShortId(): string {
   return nanoid(SHORT_ID_LENGTH);
 }
 
-/**
- * Generate a prefixed ID
- * 
- * Useful for type-safe IDs that indicate their purpose
- * 
- * @param prefix - The prefix to add (e.g., 'node', 'arrow', 'person')
- * @param separator - Optional separator between prefix and ID (default: '_')
- * @param length - Optional length of the random part (default: 21)
- * @returns A prefixed unique identifier
- * 
- * @example
- * generatePrefixedId('node') // 'node_V1StGXR8_Z5jdHi6B-myT'
- * generatePrefixedId('arrow', '-') // 'arrow-V1StGXR8_Z5jdHi6B-myT'
- */
 export function generatePrefixedId(
   prefix: string,
   separator: string = '_',
@@ -115,6 +73,11 @@ export function extractPrefix(id: string, separator: string = '_'): string | nul
   return parts.length > 0 && parts[0] !== undefined ? parts[0] : null;
 }
 
+
+export function generateApiKeyId(): string {
+  return `APIKEY_${nanoid().slice(0, 4).replace(/-/g, '_').toUpperCase()}`;
+}
+
 /**
  * Type-safe ID generation for specific entity types
  */
@@ -122,7 +85,7 @@ export const entityIdGenerators = {
   node: () => generatePrefixedId('node'),
   arrow: () => generatePrefixedId('arrow'),
   person: () => generatePrefixedId('person'),
-  apiKey: () => generatePrefixedId('apikey'),
+  apiKey: () => generateApiKeyId(), // Use custom format
   execution: () => generatePrefixedId('exec'),
   conversation: () => generatePrefixedId('conv'),
 } as const;

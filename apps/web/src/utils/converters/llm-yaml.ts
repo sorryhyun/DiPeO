@@ -1,5 +1,5 @@
 import { parse, stringify } from 'yaml';
-import { nanoid } from 'nanoid';
+import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { Diagram, Person, ApiKey, Node, NodeType } from '@/types/core';
 import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';
@@ -58,7 +58,7 @@ export class LlmYaml {
       },
       
       createArrowData: (edge, sourceId, targetId) => ({
-        id: `arrow-${nanoid(6)}`,
+        id: `arrow-${generateShortId().slice(0, 6)}`,
         sourceBlockId: sourceId,
         targetBlockId: targetId,
         label: edge.variable || 'flow',
@@ -165,7 +165,7 @@ export class LlmYaml {
     const agentsData = data.agents || {};
 
     // Default agent for nodes with prompts but no specific agent
-    const defaultPersonId = `PERSON_${nanoid(6)}`;
+    const defaultPersonId = `PERSON_${generateShortId().slice(0, 6)}`;
     const defaultPerson: Person = {
       id: defaultPersonId,
       label: 'Default Assistant',
@@ -176,7 +176,7 @@ export class LlmYaml {
 
     // Create persons from agents section
     Object.entries(agentsData).forEach(([agentName, agentConfig]) => {
-      const personId = `PERSON_${nanoid(6)}`;
+      const personId = `PERSON_${generateShortId().slice(0, 6)}`;
       personMap.set(agentName, personId);
 
       if (typeof agentConfig === 'string') {
@@ -230,7 +230,7 @@ export class LlmYaml {
     persons.forEach(person => {
       const service = person.service || 'openai';
       if (!apiKeys[service]) {
-        const apiKeyId = `APIKEY_${nanoid(6)}`;
+        const apiKeyId = entityIdGenerators.apiKey();
         apiKeys[service] = {
           id: apiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,

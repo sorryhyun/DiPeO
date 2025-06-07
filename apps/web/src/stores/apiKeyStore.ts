@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
+import { entityIdGenerators } from '@/utils/id';
 import { ApiKey } from '@/types';
 import { api } from '@/utils';
 
@@ -25,7 +25,7 @@ export const useApiKeyStore = create<ApiKeyState>()(
         addApiKey: (apiKeyData: Omit<ApiKey, 'id'>) => {
           const newApiKey = {
             ...apiKeyData,
-            id: `APIKEY_${nanoid().slice(0, 6).replace(/-/g, '_').toUpperCase()}`
+            id: entityIdGenerators.apiKey()
           } as ApiKey;
           set(state => ({ apiKeys: [...state.apiKeys, newApiKey] }));
         },

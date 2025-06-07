@@ -5,6 +5,7 @@ import {
   ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT, 
   REQUIRED_ASTERISK, FLEX_CENTER_GAP 
 } from '../styles.constants';
+import { readFileAsText } from '@/utils/file';
 
 export type FieldValue = string | number | boolean | null | undefined;
 
@@ -145,9 +146,12 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
         }
       } else {
         // Default behavior: read as text
-        const reader = new FileReader();
-        reader.onload = (e) => p.onChange(e.target?.result as string);
-        reader.readAsText(file);
+        try {
+          const content = await readFileAsText(file);
+          p.onChange(content);
+        } catch (error) {
+          console.error('Error reading file:', error);
+        }
       }
     };
 

@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateShortId } from '@/utils/id';
 import { Node, NodeType } from '@/types/core';
 
 // Common utilities
@@ -28,7 +28,7 @@ type NodeBuilder<T extends Node = Node> = (info: NodeInfo) => T;
 // Unified node builders lookup map
 export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   start: (info) => {
-    const id = `st-${nanoid(4)}`;
+    const id = `st-${generateShortId().slice(0, 4)}`;
     return {
       id,
       type: 'start' as const,
@@ -42,11 +42,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   person_job: (info) => ({
-    id: `pj-${nanoid(4)}`,
+    id: `pj-${generateShortId().slice(0, 4)}`,
     type: 'person_job',
     position: info.position,
     data: {
-      id: `pj-${nanoid(4)}`,
+      id: `pj-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'person_job',
       personId: info.personId,
@@ -60,11 +60,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   condition: (info) => ({
-    id: `cd-${nanoid(4)}`,
+    id: `cd-${generateShortId().slice(0, 4)}`,
     type: 'condition',
     position: info.position,
     data: {
-      id: `cd-${nanoid(4)}`,
+      id: `cd-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'condition',
       conditionType: info.conditionType || 'expression',
@@ -74,11 +74,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   db: (info) => ({
-    id: `db-${nanoid(4)}`,
+    id: `db-${generateShortId().slice(0, 4)}`,
     type: 'db',
     position: info.position,
     data: {
-      id: `db-${nanoid(4)}`,
+      id: `db-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'db',
       subType: info.subType || (info.dataSource?.match(/\.(txt|json|csv)$/) ? 'file' : 'fixed_prompt'),
@@ -87,11 +87,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   job: (info) => ({
-    id: `jb-${nanoid(4)}`,
+    id: `jb-${generateShortId().slice(0, 4)}`,
     type: 'job',
     position: info.position,
     data: {
-      id: `jb-${nanoid(4)}`,
+      id: `jb-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'job',
       subType: info.subType || 'code',
@@ -100,11 +100,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   endpoint: (info) => ({
-    id: `ep-${nanoid(4)}`,
+    id: `ep-${generateShortId().slice(0, 4)}`,
     type: 'endpoint',
     position: info.position,
     data: {
-      id: `ep-${nanoid(4)}`,
+      id: `ep-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'endpoint',
       saveToFile: !!info.filePath,
@@ -114,11 +114,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   notion: (info) => ({
-    id: `nt-${nanoid(4)}`,
+    id: `nt-${generateShortId().slice(0, 4)}`,
     type: 'notion',
     position: info.position,
     data: {
-      id: `nt-${nanoid(4)}`,
+      id: `nt-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'notion',
       subType: info.subType || 'read',
@@ -128,11 +128,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   person_batch_job: (info) => ({
-    id: `pb-${nanoid(4)}`,
+    id: `pb-${generateShortId().slice(0, 4)}`,
     type: 'person_batch_job',
     position: info.position,
     data: {
-      id: `pb-${nanoid(4)}`,
+      id: `pb-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'person_batch_job',
       personId: info.personId,
@@ -145,11 +145,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   }),
 
   user_response: (info) => ({
-    id: `ur-${nanoid(4)}`,
+    id: `ur-${generateShortId().slice(0, 4)}`,
     type: 'user_response',
     position: info.position,
     data: {
-      id: `ur-${nanoid(4)}`,
+      id: `ur-${generateShortId().slice(0, 4)}`,
       label: capitalize(info.name),
       type: 'user_response',
       promptMessage: info.promptMessage || 'Please provide input',
@@ -165,11 +165,11 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
     }
     // Ultimate fallback
     return {
-      id: `nd-${nanoid(4)}`,
+      id: `nd-${generateShortId().slice(0, 4)}`,
       type: 'person_job' as const,
       position: info.position,
       data: {
-        id: `nd-${nanoid(4)}`,
+        id: `nd-${generateShortId().slice(0, 4)}`,
         label: capitalize(info.name),
         type: 'person_job',
         defaultPrompt: '',

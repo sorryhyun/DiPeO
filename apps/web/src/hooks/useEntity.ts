@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { nanoid } from 'nanoid';
+import { generateShortId } from '@/utils/id';
 
 /**
  * Generic entity type with required id field
@@ -84,7 +84,7 @@ export function createEntityHook<T extends BaseEntity>(
       setEntities,
       getSelectedId,
       setSelectedId,
-      generateId = () => nanoid(8),
+      generateId = () => generateShortId().slice(0, 8),
       validateEntity,
       onError,
     } = config;

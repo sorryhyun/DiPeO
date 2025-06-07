@@ -7,7 +7,7 @@ import { Node, Arrow, Person, ApiKey } from '@/types';
 import { useDiagramStore } from '@/stores';
 import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
 import { createEntityHook, SingleEntityOperations } from './useEntity';
-import { nanoid } from 'nanoid';
+import { generateShortId, entityIdGenerators } from '@/utils/id';
 
 // Re-export for backward compatibility
 export type EntityOperations<T extends { id: string }> = SingleEntityOperations<T>;
@@ -43,7 +43,7 @@ export const useNodeEntities = createEntityHook<Node>({
   },
   getSelectedId: () => useConsolidatedUIStore.getState().selectedNodeId,
   setSelectedId: (id) => useConsolidatedUIStore.getState().setSelectedNodeId(id),
-  generateId: () => `node-${nanoid(4)}`,
+  generateId: () => `node-${generateShortId().slice(0, 4)}`,
   validateEntity: (node) => !!node.type && !!node.position,
 });
 
@@ -82,7 +82,7 @@ export const useArrowEntities = createEntityHook<Arrow>({
   },
   getSelectedId: () => useConsolidatedUIStore.getState().selectedArrowId,
   setSelectedId: (id) => useConsolidatedUIStore.getState().setSelectedArrowId(id),
-  generateId: () => `arrow-${nanoid(4)}`,
+  generateId: () => `arrow-${generateShortId().slice(0, 4)}`,
   validateEntity: (arrow) => !!arrow.source && !!arrow.target,
 });
 
@@ -111,7 +111,7 @@ export const usePersonEntities = createEntityHook<Person>({
     store.setPersons(persons);
   },
   // Person entities don't have selection state
-  generateId: () => `person-${nanoid(4)}`,
+  generateId: () => `person-${generateShortId().slice(0, 4)}`,
 });
 
 /**
@@ -139,5 +139,5 @@ export const useApiKeyEntities = createEntityHook<ApiKey>({
     store.setApiKeys(apiKeys);
   },
   // API keys don't have selection state
-  generateId: () => `APIKEY_${nanoid().slice(0, 6).replace(/-/g, '_').toUpperCase()}`,
+  generateId: () => entityIdGenerators.apiKey(),
 });
