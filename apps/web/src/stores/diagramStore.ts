@@ -539,8 +539,7 @@ export const useDiagramStore = create<DiagramStore>()(
                   ...apiKeyData,
                   id,
                   name: label,
-                  service: apiKeyData.service || 'custom',
-                  keyReference: apiKeyData.keyReference || ''
+                  service: apiKeyData.service || 'custom'
                 } as ApiKey;
               });
               

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { isDraft, current } from 'immer';
+import { useQueries } from '@tanstack/react-query';
 import { useCanvasSelectors } from './useStoreSelectors';
-import { type ApiKey } from '@/types';
-import { useDiagramStore } from "@/stores";
-import { useApiKeys } from "@/hooks/useApiKeys";
+import { type ApiKey, PanelConfig, PanelFieldConfig, SelectFieldConfig } from '@/types';
+import { useDiagramStore, useApiKeyStore } from "@/stores";
 
 // Safe deep comparison using Immer to handle draft states
 function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
@@ -46,12 +46,20 @@ interface ValidationRule<T> {
   validator: (value: unknown, formData: T) => string | null;
 }
 
+interface ProcessedField {
+  field: PanelFieldConfig;
+  options?: Array<{ value: string; label: string }>;
+  isLoading?: boolean;
+  error?: Error | null;
+}
+
 interface UsePropertyManagerOptions<T> {
   validationRules?: ValidationRule<T>[];
   autoSave?: boolean;
   autoSaveDelay?: number;
   onSave?: (data: T) => Promise<void> | void;
   onError?: (error: string) => void;
+  panelConfig?: PanelConfig<T>;
 }
 
 export const usePropertyManager = <T extends Record<string, unknown>>(
@@ -71,7 +79,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
   // Store selectors
   const {updateArrow, updatePerson} = useDiagramStore();
   const { updateNode, isMonitorMode } = useCanvasSelectors();
-  const { apiKeysList: apiKeys } = useApiKeys();
+  const { apiKeys } = useApiKeyStore();
 
   // Form state
   const [formData, setFormData] = useState<T>(initialData);
@@ -83,25 +91,33 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
   const autoSaveTimeoutRef = useRef<number | undefined>(undefined);
   const initialDataRef = useRef(initialData);
 
-  // Update form data when initial data changes
+  // Combined effect for initialization and cleanup
   useEffect(() => {
+    // Update form data when initial data changes
     if (!safeDeepEqual(initialData, initialDataRef.current)) {
       setFormData(initialData);
       setIsDirty(false);
       setErrors({});
       initialDataRef.current = initialData;
     }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
   }, [initialData]);
 
-  // Validation function
-  const validateField = useCallback((field: keyof T, value: unknown, currentFormData: T): string | null => {
+  // Validation function - no need for useCallback since validationRules is stable
+  const validateField = (field: keyof T, value: unknown, currentFormData: T): string | null => {
     const rule = validationRules.find(r => r.field === field);
     if (!rule) return null;
     return rule.validator(value, currentFormData);
-  }, [validationRules]);
+  };
 
   // Validate all fields
-  const validateForm = useCallback((data: T): Record<string, string> => {
+  const validateForm = (data: T): Record<string, string> => {
     const newErrors: Record<string, string> = {};
     
     for (const rule of validationRules) {
@@ -112,7 +128,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     }
     
     return newErrors;
-  }, [validationRules]);
+  };
 
   // Auto-save function
   const autoSaveToStore = useCallback((data: T) => {
@@ -135,43 +151,39 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     }
   }, [entityType, entityId, updateNode, updateArrow, updatePerson, isMonitorMode, onError]);
 
-  // Handle field changes
+  // Handle field changes with batched state updates
   const updateField = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      
-      // Validate the changed field
-      const fieldError = validateField(field, value, newData);
-      setErrors(prevErrors => {
-        const newErrors = { ...prevErrors };
-        if (fieldError) {
-          newErrors[field as string] = fieldError;
-        } else {
-          delete newErrors[field as string];
-        }
-        return newErrors;
-      });
-      
-      setIsDirty(true);
-      
-      // Auto-save logic
-      if (autoSave && !fieldError) {
-        if (autoSaveTimeoutRef.current) {
-          clearTimeout(autoSaveTimeoutRef.current);
-        }
-        
-        autoSaveTimeoutRef.current = window.setTimeout(() => {
-          if (onSave) {
-            handleSave(newData);
-          } else {
-            autoSaveToStore(newData);
-          }
-        }, autoSaveDelay);
+    // Batch all state updates together
+    const newData = { ...formData, [field]: value };
+    const fieldError = validateField(field, value, newData);
+    
+    // Update all state at once
+    setFormData(newData);
+    setErrors(prevErrors => {
+      if (fieldError) {
+        return { ...prevErrors, [field as string]: fieldError };
+      } else {
+        const { [field as string]: _, ...rest } = prevErrors;
+        return rest;
+      }
+    });
+    setIsDirty(true);
+    
+    // Auto-save logic
+    if (autoSave && !fieldError) {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
       }
       
-      return newData;
-    });
-  }, [validateField, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
+      autoSaveTimeoutRef.current = window.setTimeout(() => {
+        if (onSave) {
+          handleSave(newData);
+        } else {
+          autoSaveToStore(newData);
+        }
+      }, autoSaveDelay);
+    }
+  }, [formData, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
 
   // Handle bulk updates
   const updateFormData = useCallback((updates: Partial<T>) => {
@@ -260,8 +272,8 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     }
   }, []);
 
-  // API key options for dropdowns
-  const apiKeyOptions = useCallback(() => {
+  // API key options for dropdowns - memoize instead of useCallback
+  const apiKeyOptions = useMemo(() => {
     return apiKeys.map((key: ApiKey) => ({
       value: key.id,
       label: `${key.service}: ${key.name}`,
@@ -269,14 +281,121 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     }));
   }, [apiKeys]);
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
+  // Panel schema functionality
+  const fields = useMemo(() => {
+    if (!options.panelConfig) return [];
+    const config = options.panelConfig;
+    
+    const flattenFields = (fields: PanelFieldConfig[]): PanelFieldConfig[] => {
+      const result: PanelFieldConfig[] = [];
+      
+      fields.forEach(field => {
+        if (field.type === 'row' && field.fields) {
+          result.push(...flattenFields(field.fields));
+        } else {
+          result.push(field);
+        }
+      });
+      
+      return result;
     };
-  }, []);
+    
+    let allFields: PanelFieldConfig[] = [];
+    
+    if (config.fields) {
+      allFields = allFields.concat(flattenFields(config.fields));
+    }
+    if (config.leftColumn) {
+      allFields = allFields.concat(flattenFields(config.leftColumn));
+    }
+    if (config.rightColumn) {
+      allFields = allFields.concat(flattenFields(config.rightColumn));
+    }
+    
+    return allFields;
+  }, [options.panelConfig]);
+
+  // Filter fields that need async options
+  const asyncFields = useMemo(() => {
+    return fields.filter(
+      field => field.type === 'select' && typeof field.options === 'function'
+    ) as SelectFieldConfig[];
+  }, [fields]);
+
+  // Create queries for async fields
+  const queries = useQueries({
+    queries: asyncFields.map(field => {
+      const getDependencyValues = () => {
+        if (!field.dependsOn) return [];
+        
+        const dependencies = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
+        return dependencies.map(dep => formData[dep as keyof T]);
+      };
+
+      const checkDependencies = () => {
+        if (!field.dependsOn) return true;
+        
+        const dependencies = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
+        return dependencies.every(dep => {
+          const value = formData[dep as keyof T];
+          return value !== undefined && value !== null && value !== '';
+        });
+      };
+
+      return {
+        queryKey: ['field-options', field.name, ...getDependencyValues()],
+        queryFn: async () => {
+          const optionsFn = field.options as (formData?: T) => Promise<Array<{ value: string; label: string }>>;
+          
+          if (field.dependsOn) {
+            return await optionsFn(formData);
+          }
+          
+          return await optionsFn();
+        },
+        enabled: checkDependencies(),
+        staleTime: 5 * 60 * 1000,
+        cacheTime: 10 * 60 * 1000,
+      };
+    })
+  });
+
+  // Create a map of field names to their query results
+  const optionsMap = useMemo(() => {
+    const map = new Map<string, ProcessedField['options']>();
+    const loadingMap = new Map<string, boolean>();
+    const errorMap = new Map<string, Error | null>();
+    
+    asyncFields.forEach((field, index) => {
+      const query = queries[index];
+      if (field.name && query) {
+        map.set(field.name, query.data || []);
+        loadingMap.set(field.name, query.isLoading);
+        errorMap.set(field.name, query.error);
+      }
+    });
+    
+    return { options: map, loading: loadingMap, errors: errorMap };
+  }, [asyncFields, queries]);
+
+  // Process all fields with their options
+  const processedFields = useMemo(() => {
+    return fields.map(field => {
+      const processed: ProcessedField = { field };
+      
+      if (field.type === 'select' && field.name) {
+        if (typeof field.options === 'function') {
+          processed.options = optionsMap.options.get(field.name) || [];
+          processed.isLoading = optionsMap.loading.get(field.name) || false;
+          processed.error = optionsMap.errors.get(field.name) || null;
+        } else if (Array.isArray(field.options)) {
+          processed.options = field.options;
+        }
+      }
+      
+      return processed;
+    });
+  }, [fields, optionsMap]);
 
   return {
     // Form data
@@ -296,6 +415,10 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     validateForm: () => validateForm(formData),
     
     // Utility
-    apiKeyOptions: apiKeyOptions(),
+    apiKeyOptions,
+    
+    // Panel schema
+    processedFields,
+    fields,
   };
 };

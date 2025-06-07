@@ -1,13 +1,10 @@
-import React, { useEffect, useCallback } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { PanelConfig, PanelFieldConfig, Person } from '@/types';
-import { usePanelSchema } from '@/hooks/usePanelSchema';
-import { useIsReadOnly, usePersons } from '@/hooks/useStoreSelectors';
+import React, { useCallback } from 'react';
+import { PanelConfig, PanelFieldConfig } from '@/types';
+import { usePropertyManager } from '@/hooks/usePropertyManager';
+import { usePersons } from '@/hooks/useStoreSelectors';
 import { UnifiedFormField } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { preInitializeModel } from '@/utils/api';
-import { useDiagramStore } from '@/stores/diagramStore';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
@@ -20,8 +17,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   data,
   config
 }: GenericPropertyPanelProps<T>) => {
-  const queryClient = useQueryClient();
-  const isMonitorMode = useIsReadOnly();
   const { persons } = usePersons();
 
   // Convert persons to the format expected by UnifiedFormField
@@ -36,69 +31,27 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   
   const entityType = getEntityType(data.type);
 
-  // Initialize React Hook Form
-  const form = useForm<T>({
-    defaultValues: data as any,
-    mode: 'onChange',
+  // Use enhanced property manager with panel schema support
+  const {
+    formData,
+    updateField,
+    processedFields,
+    isReadOnly
+  } = usePropertyManager<T>(nodeId, entityType, data, {
+    autoSave: true,
+    autoSaveDelay: 500,
+    panelConfig: config
   });
-
-  // Get processed fields with async options
-  const processedFields = usePanelSchema(config, form);
-
-  // Get store actions
-  const { updateNode, updateArrow, updatePerson } = useDiagramStore();
-
-  // Create mutation for saving data
-  const saveMutation = useMutation({
-    mutationFn: async (values: T) => {
-      // Save to the appropriate store based on entity type
-      if (entityType === 'node') {
-        updateNode(nodeId, values);
-      } else if (entityType === 'arrow') {
-        updateArrow(nodeId, values);
-      } else if (entityType === 'person') {
-        updatePerson(nodeId, values as Partial<Person>);
-      }
-      
-      return values;
-    },
-    onSuccess: () => {
-      // Invalidate relevant queries if needed
-      queryClient.invalidateQueries({ queryKey: ['diagram'] });
-    },
-  });
-
-  // Auto-save on form changes with debounce
-  useEffect(() => {
-    if (isMonitorMode) return;
-    
-    let timeoutId: ReturnType<typeof setTimeout>;
-    
-    const subscription = form.watch((value) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        saveMutation.mutate(value as T);
-      }, 500); // 500ms debounce
-    });
-    
-    return () => {
-      clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
-  }, [form, saveMutation, isMonitorMode]);
 
   // Handle field updates with model pre-initialization
-  const updateField = useCallback(async (name: string, value: unknown) => {
-    if (isMonitorMode) return;
-    
-    // Update form value
-    form.setValue(name as any, value as any, { shouldDirty: true });
+  const handleFieldUpdate = useCallback(async (name: string, value: unknown) => {
+    // Update field using property manager
+    updateField(name as keyof T, value as T[keyof T]);
     
     // If this is a model selection for a person entity, pre-initialize the model
     if (data.type === 'person' && name === 'modelName') {
-      const formValues = form.getValues();
-      const service = formValues.service || data.service;
-      const apiKeyId = formValues.apiKeyId || data.apiKeyId;
+      const service = formData.service || data.service;
+      const apiKeyId = formData.apiKeyId || data.apiKeyId;
       
       if (service && value && apiKeyId) {
         try {
@@ -112,13 +65,12 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         }
       }
     }
-  }, [isMonitorMode, form, data]);
+  }, [updateField, formData, data]);
 
   // Check if field should be rendered based on conditional rules
   const shouldRenderField = useCallback((fieldConfig: PanelFieldConfig): boolean => {
     if (!fieldConfig.conditional) return true;
     
-    const formData = form.watch();
     const fieldValue = formData[fieldConfig.conditional.field];
     const { values, operator = 'includes' } = fieldConfig.conditional;
     
@@ -131,7 +83,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       default:
         return values.includes(fieldValue);
     }
-  }, [form]);
+  }, [formData]);
 
   // Convert field type to UnifiedFormField type
   const getFieldType = (fieldConfig: PanelFieldConfig) => {
@@ -179,19 +131,19 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             type="text"
             name="label"
             label="Label"
-            value={form.watch('label' as any)}
-            onChange={(v) => updateField('label', v)}
+            value={formData.label as any}
+            onChange={(v) => handleFieldUpdate('label', v)}
             placeholder={fieldConfig.labelPlaceholder}
-            disabled={isMonitorMode}
+            disabled={isReadOnly}
           />
           <UnifiedFormField
             type="person-select"
             name="personId"
             label="Person"
-            value={form.watch('personId' as any)}
-            onChange={(v) => updateField('personId', v)}
+            value={formData.personId as any}
+            onChange={(v) => handleFieldUpdate('personId', v)}
             placeholder={fieldConfig.personPlaceholder}
-            disabled={isMonitorMode}
+            disabled={isReadOnly}
             persons={personsForSelect}
           />
         </FormRow>
@@ -206,7 +158,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     const options = processedField?.options;
     const isLoading = processedField?.isLoading;
     
-    const fieldValue = fieldConfig.name ? form.watch(fieldConfig.name as any) : undefined;
+    const fieldValue = fieldConfig.name ? formData[fieldConfig.name] : undefined;
     
     return (
       <UnifiedFormField
@@ -215,22 +167,22 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         name={fieldConfig.name || ''}
         label={fieldConfig.label || ''}
         value={fieldValue}
-        onChange={(v) => updateField(fieldConfig.name || '', v)}
+        onChange={(v) => handleFieldUpdate(fieldConfig.name || '', v)}
         placeholder={'placeholder' in fieldConfig ? fieldConfig.placeholder : undefined}
         options={fieldConfig.type === 'select' ? options : undefined}
-        disabled={isMonitorMode || ('disabled' in fieldConfig && fieldConfig.disabled) || isLoading}
+        disabled={isReadOnly || ('disabled' in fieldConfig && fieldConfig.disabled) || isLoading}
         required={'isRequired' in fieldConfig ? (fieldConfig as any).isRequired : undefined}
         min={fieldConfig.type === 'maxIteration' ? fieldConfig.min : undefined}
         max={fieldConfig.type === 'maxIteration' ? fieldConfig.max : undefined}
         helperText={'helperText' in fieldConfig ? (fieldConfig as any).helperText : undefined}
         acceptedFileTypes={'acceptedFileTypes' in fieldConfig ? (fieldConfig as any).acceptedFileTypes : undefined}
-        detectedVariables={form.watch('detectedVariables' as any) as string[] | undefined}
+        detectedVariables={formData.detectedVariables as string[] | undefined}
         className={fieldConfig.className}
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
         persons={getFieldType(fieldConfig) === 'person-select' ? personsForSelect : undefined}
       />
     );
-  }, [form, updateField, isMonitorMode, personsForSelect, shouldRenderField, processedFields]);
+  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
 
   const renderSection = useCallback((fields: PanelFieldConfig[] | undefined) => {
     if (!fields) return null;
@@ -238,21 +190,19 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   }, [renderField]);
 
   return (
-    <FormProvider {...form}>
-      <Form>
-        {config.layout === 'twoColumn' ? (
-          <TwoColumnPanelLayout
-            leftColumn={renderSection(config.leftColumn)}
-            rightColumn={renderSection(config.rightColumn)}
-          />
-        ) : config.layout === 'single' ? (
-          <SingleColumnPanelLayout>
-            {renderSection(config.fields)}
-          </SingleColumnPanelLayout>
-        ) : (
-          renderSection(config.fields)
-        )}
-      </Form>
-    </FormProvider>
+    <Form>
+      {config.layout === 'twoColumn' ? (
+        <TwoColumnPanelLayout
+          leftColumn={renderSection(config.leftColumn)}
+          rightColumn={renderSection(config.rightColumn)}
+        />
+      ) : config.layout === 'single' ? (
+        <SingleColumnPanelLayout>
+          {renderSection(config.fields)}
+        </SingleColumnPanelLayout>
+      ) : (
+        renderSection(config.fields)
+      )}
+    </Form>
   );
 };

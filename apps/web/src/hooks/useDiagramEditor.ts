@@ -1,11 +1,11 @@
 // hooks/useDiagramEditor.ts
-import {useExecutionSelectors, useCanvasSelectors, useUISelectors} from "@/hooks/useStoreSelectors";
+import {useExecutionSelectors, useCanvasSelectors, useSelectedElement} from "@/hooks/useStoreSelectors";
 import {useCallback} from "react";
 
 export const useDiagramEditor = () => {
   const canvas = useCanvasSelectors();
   const execution = useExecutionSelectors();
-  const ui = useUISelectors();
+  const selection = useSelectedElement();
 
   return {
     // Canvas
@@ -18,15 +18,15 @@ export const useDiagramEditor = () => {
     runningNodes: execution.runningNodes,
 
     // UI
-    selectedId: ui.selectedNodeId || ui.selectedArrowId,
+    selectedId: selection.selectedNodeId || selection.selectedArrowId,
 
     // Combined actions
     deleteSelected: useCallback(() => {
-      if (ui.selectedNodeId) {
-        canvas.deleteNode(ui.selectedNodeId);
-      } else if (ui.selectedArrowId) {
-        canvas.deleteArrow(ui.selectedArrowId);
+      if (selection.selectedNodeId) {
+        canvas.deleteNode(selection.selectedNodeId);
+      } else if (selection.selectedArrowId) {
+        canvas.deleteArrow(selection.selectedArrowId);
       }
-    }, [ui.selectedNodeId, ui.selectedArrowId, canvas.deleteNode, canvas.deleteArrow]),
+    }, [selection.selectedNodeId, selection.selectedArrowId, canvas.deleteNode, canvas.deleteArrow]),
   };
 };

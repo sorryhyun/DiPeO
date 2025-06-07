@@ -6,7 +6,7 @@ import { getNodeConfig } from '@/config/helpers';
 import { createHandleId } from '@/utils/node';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import { useRealtimeExecution } from '@/hooks/useRealtimeExecution';
+import { useExecution } from '@/hooks/useExecution';
 import { useConsolidatedUIStore } from '@/stores';
 import './BaseNode.css';
 
@@ -22,7 +22,7 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { nodeStates } = useRealtimeExecution();
+  const { nodeStates } = useExecution();
   const nodeState = nodeStates?.[nodeId];
   
   return useMemo(() => ({

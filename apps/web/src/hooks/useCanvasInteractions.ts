@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { Node } from '@/types/core';
-import {useUISelectors, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
+import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
 // TYPES
 // =====================
@@ -45,7 +45,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     selectedNodeId, 
     selectedArrowId, 
     clearSelection 
-  } = useUISelectors();
+  } = useSelectedElement();
   const { undo, redo, canUndo, canRedo } = useHistorySelectors();
   
   // Get React Flow instance for zoom level

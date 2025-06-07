@@ -2,9 +2,8 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useRealtimeExecution } from './hooks/useRealtimeExecution';
+import { useExecution, useDiagramRunner } from './hooks/useExecution';
 import { useConsolidatedUIStore, useDiagramStore } from './stores';
-import { useDiagramRunner } from './hooks/useDiagramRunner';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -45,7 +44,7 @@ function App() {
   }, [setReadOnly]);
 
   // Use realtime execution monitor - it will automatically use WebSocket when available
-  useRealtimeExecution({ enableMonitoring: true });
+  useExecution({ enableMonitoring: true });
   
   // Show WebSocket status when enabled via feature flag
   useEffect(() => {

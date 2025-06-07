@@ -13,8 +13,8 @@ export * from './useCanvasInteractions';
 export * from './useNodeType';
 
 // Execution & Runtime
-export * from './useDiagramRunner';
-export * from './useRealtimeExecution';
+export * from './useExecution';
+export * from './useWebSocket';
 
 // File Operations
 export * from './useFileOperations';
@@ -26,8 +26,8 @@ export * from './usePropertyManager';
 // useApiKeys is exported from useStoreSelectors
 export * from './useConversationData';
 
-// History & State Management
-export * from './useHistoryActions';
 
 // Utility Hooks
 export * from './useEntityById';
+export * from './useEntity';
+export * from './useEntities';

@@ -219,8 +219,7 @@ export class Yaml {
       apiKeys.push({
         id: `APIKEY_${nanoid().slice(0, 4).replace(/-/g, '_').toUpperCase()}`,
         name: key.name,
-        service: key.service as ApiKey['service'],
-        keyReference: name // Use name as keyReference
+        service: key.service as ApiKey['service']
       });
     });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
-import { useDiagramRunner } from '@/hooks/useDiagramRunner';
+import { useDiagramRunner } from '@/hooks/useExecution';
 import { useExecutionSelectors } from '@/hooks/useStoreSelectors';
 
 const ExecutionControls = () => {

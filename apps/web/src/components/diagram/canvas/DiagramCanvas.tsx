@@ -21,7 +21,7 @@ import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText, MessageSquare } from "lucide-react";
 import { useDiagram } from "@/hooks";
-import { useIsReadOnly } from "@/hooks/useStoreSelectors";
+import { useDiagramStore } from "@/stores/diagramStore";
 import { useExecutionStore } from "@/stores/executionStore";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
@@ -183,7 +183,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   } = useDiagram({ enableInteractions: true, enableFileOperations: true });
 
   const isExecuting = useExecutionStore((s) => s.isExecuting);
-  const isReadOnly = useIsReadOnly();
+  const isReadOnly = useDiagramStore((s) => s.isReadOnly);
 
   /** --------------------------------------------------
    * React Flow instance helpers

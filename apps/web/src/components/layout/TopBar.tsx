@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
-import { useApiKeys, useAddApiKey, useLoadApiKeys, useUIState, useSetReadOnly } from '@/hooks/useStoreSelectors';
+import { useUIState } from '@/hooks/useStoreSelectors';
+import { useApiKeyStore } from '@/stores/apiKeyStore';
+import { useDiagramStore } from '@/stores/diagramStore';
 import { useDiagram } from '@/hooks';
-import { useDiagramRunner } from '@/hooks/useDiagramRunner';
+import { useDiagramRunner } from '@/hooks/useExecution';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse } from '@/utils/types';
@@ -14,11 +16,9 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use store selectors
-  const apiKeys = useApiKeys();
-  const addApiKey = useAddApiKey();
-  const loadApiKeys = useLoadApiKeys();
-  const setReadOnly = useSetReadOnly();
+  // Use stores directly
+  const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
+  const { setReadOnly } = useDiagramStore();
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
   // Use the unified diagram hook
@@ -81,8 +81,7 @@ const TopBar = () => {
             backendKeys.forEach((key) => {
               addApiKey({
                 name: key.name,
-                service: key.service,
-                keyReference: key.keyReference
+                service: key.service
               });
             });
           }

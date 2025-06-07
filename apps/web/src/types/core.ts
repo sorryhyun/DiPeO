@@ -50,7 +50,6 @@ export interface ApiKey {
   id: string;
   name: string;
   service: 'openai' | 'anthropic' | 'google' | 'notion' | 'grok'  | 'custom';
-  keyReference: string
 }
 
 export interface Diagram {
