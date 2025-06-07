@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { nanoid } from 'nanoid';
-import { produce } from 'immer';
 
 /**
  * Generic entity type with required id field

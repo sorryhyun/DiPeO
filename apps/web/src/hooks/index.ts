@@ -5,7 +5,6 @@ export * from './useStoreSelectors';
 // ===== MASTER HOOKS =====
 // High-level hooks that combine multiple concerns
 export * from './useDiagram';
-export * from './useDiagramEditor';
 
 // ===== FEATURE HOOKS =====
 // Canvas & Interactions

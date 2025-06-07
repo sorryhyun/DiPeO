@@ -66,8 +66,8 @@ export const useNodeEntities = (): EntityOperations<Node> => {
       update: (id: string, updates: Partial<Node>) => diagramStore.updateNode(id, updates),
       upsert: (node: Node) => {
         if (nodes.find(n => n.id === node.id)) {
-          const { id, ...nodeData } = node;
-          diagramStore.updateNode(id, nodeData.data || {});
+          const { id: _, ...nodeData } = node;
+          diagramStore.updateNode(node.id, nodeData.data || {});
         } else {
           diagramStore.addNode(node.type, node.position);
         }
@@ -127,8 +127,8 @@ export const useArrowEntities = (): EntityOperations<Arrow> => {
       update: (id: string, updates: Partial<Arrow>) => diagramStore.updateArrow(id, updates),
       upsert: (arrow: Arrow) => {
         if (arrows.find(a => a.id === arrow.id)) {
-          const { id, ...arrowData } = arrow;
-          diagramStore.updateArrow(id, arrowData.data || {});
+          const { id: _, ...arrowData } = arrow;
+          diagramStore.updateArrow(arrow.id, arrowData.data || {});
         } else {
           diagramStore.addArrow(
             arrow.source,
@@ -184,10 +184,10 @@ export const usePersonEntities = (): EntityOperations<Person> => {
       update: (id: string, updates: Partial<Person>) => diagramStore.updatePerson(id, updates),
       upsert: (person: Person) => {
         if (persons.find(p => p.id === person.id)) {
-          const { id, ...personData } = person;
-          diagramStore.updatePerson(id, personData);
+          const { id: _, ...personData } = person;
+          diagramStore.updatePerson(person.id, personData);
         } else {
-          const { id, ...personData } = person;
+          const { id: _, ...personData } = person;
           diagramStore.addPerson(personData);
         }
       },
@@ -237,10 +237,10 @@ export const useApiKeyEntities = (): EntityOperations<ApiKey> => {
       update: (id: string, updates: Partial<ApiKey>) => diagramStore.updateApiKey(id, updates),
       upsert: (apiKey: ApiKey) => {
         if (apiKeys.find(k => k.id === apiKey.id)) {
-          const { id, ...apiKeyData } = apiKey;
-          diagramStore.updateApiKey(id, apiKeyData);
+          const { id: _, ...apiKeyData } = apiKey;
+          diagramStore.updateApiKey(apiKey.id, apiKeyData);
         } else {
-          const { id, ...apiKeyData } = apiKey;
+          const { id: _, ...apiKeyData } = apiKey;
           diagramStore.addApiKey(apiKeyData);
         }
       },

@@ -215,7 +215,7 @@ export class Yaml {
     const apiKeys: ApiKey[] = [];
 
     // Convert API keys - generate new IDs
-    Object.entries(yamlDiagram.apiKeys || {}).forEach(([name, key]) => {
+    Object.entries(yamlDiagram.apiKeys || {}).forEach(([_name, key]) => {
       apiKeys.push({
         id: `APIKEY_${nanoid().slice(0, 4).replace(/-/g, '_').toUpperCase()}`,
         name: key.name,

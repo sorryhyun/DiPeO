@@ -1,5 +1,4 @@
 // Configuration-specific types
-import type { NodeType } from '@/types';
 
 export interface HandleConfig {
   id: string;

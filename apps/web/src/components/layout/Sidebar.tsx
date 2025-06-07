@@ -53,8 +53,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
-  const [conversationExpanded, setConversationExpanded] = useState(true);
-  const [memoryExpanded, setMemoryExpanded] = useState(true);
+  const [_conversationExpanded, _setConversationExpanded] = useState(true);
+  const [_memoryExpanded, _setMemoryExpanded] = useState(true);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   
   const handlePersonClick = (personId: string) => {

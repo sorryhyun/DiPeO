@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hash, DollarSign } from 'lucide-react';
+import { Hash } from 'lucide-react';
 import { PersonDefinition, ConversationMessage } from '@/types';
 
 interface MessageListProps {
