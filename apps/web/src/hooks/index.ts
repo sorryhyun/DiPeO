@@ -28,3 +28,6 @@ export * from './useConversationData';
 
 // History & State Management
 export * from './useHistoryActions';
+
+// Utility Hooks
+export * from './useEntityById';

@@ -1,10 +1,14 @@
 import React from 'react';
 import { Input, Select, Spinner, Switch } from '../../ui';
 import { FormFieldProps } from '@/types';
+import { 
+  LABEL_TEXT_SMALL, MIN_WIDTH_0, INPUT_BASE, SPACE_Y_4, 
+  ERROR_TEXT, FLEX_CENTER_SPACE, LABEL_TEXT 
+} from '../styles.constants';
 
 export const FormField: React.FC<FormFieldProps> = ({ label, id, children, className = "space-y-1" }) => (
   <div className={className}>
-    <label htmlFor={id} className="text-xs font-medium">{label}</label>
+    <label htmlFor={id} className={LABEL_TEXT_SMALL}>{label}</label>
     {children}
   </div>
 );
@@ -62,7 +66,7 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
       rows={rows}
       placeholder={placeholder}
       disabled={disabled}
-      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      className={INPUT_BASE}
     />
     {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
   </FormField>
@@ -86,7 +90,7 @@ export const InlineTextField: React.FC<InlineTextFieldProps> = ({ label, value, 
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="min-w-0"
+      className={MIN_WIDTH_0}
       disabled={disabled}
     />
   </InlineFormField>
@@ -97,19 +101,19 @@ export const InlineSelectField: React.FC<SelectFieldProps & { className?: string
 }) => (
   <InlineFormField label={label} id={id} className={className}>
     {isLoading ? (
-      <div className="flex items-center space-x-2">
+      <div className={FLEX_CENTER_SPACE}>
         <Spinner size="sm" />
         <span className="text-sm">Loading...</span>
       </div>
     ) : error ? (
-      <p className="text-xs text-red-500">Error: {error}</p>
+      <p className={ERROR_TEXT}>Error: {error}</p>
     ) : (
       <Select
         id={id}
         value={value}
         onValueChange={onChange}
         disabled={isDisabled}
-        className="min-w-0"
+        className={MIN_WIDTH_0}
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
@@ -131,14 +135,14 @@ interface CheckboxFieldProps {
 }
 
 export const CheckboxField: React.FC<CheckboxFieldProps> = ({ label, checked, onChange, id, disabled }) => (
-  <div className="flex items-center space-x-2">
+  <div className={FLEX_CENTER_SPACE}>
     <Switch
       id={id}
       checked={checked}
       onChange={onChange}
       disabled={disabled}
     />
-    <label htmlFor={id} className="text-sm font-medium cursor-pointer">{label}</label>
+    <label htmlFor={id} className={`${LABEL_TEXT} cursor-pointer`}>{label}</label>
   </div>
 );
 
@@ -153,14 +157,14 @@ export const TwoColumnPanelLayout: React.FC<TwoColumnLayoutProps> = ({
   rightColumn 
 }) => (
   <div className="grid grid-cols-2 gap-4">
-    <div className="space-y-4">{leftColumn}</div>
-    <div className="space-y-4">{rightColumn}</div>
+    <div className={SPACE_Y_4}>{leftColumn}</div>
+    <div className={SPACE_Y_4}>{rightColumn}</div>
   </div>
 );
 
 export const SingleColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({ 
   children 
 }) => (
-  <div className="space-y-4">{children}</div>
+  <div className={SPACE_Y_4}>{children}</div>
 );
 

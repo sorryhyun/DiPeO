@@ -1,5 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Input, Select, Switch, Spinner, FileUploadButton } from '../../ui';
+import { 
+  FULL_WIDTH, SPACE_Y_2, TEXTAREA_CLASSES, LABEL_TEXT, 
+  ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT, 
+  REQUIRED_ASTERISK, FLEX_CENTER_GAP 
+} from '../styles.constants';
 
 export interface UnifiedFormFieldProps {
   type: 'text' | 'select' | 'textarea' | 'checkbox' | 'number' | 'file' | 'person-select' | 'iteration-count' | 'variable-textarea';
@@ -26,6 +31,158 @@ export interface UnifiedFormFieldProps {
   onFileUpload?: (file: File) => Promise<void>;
   isLoading?: boolean;
 }
+
+type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layout' | 'error' | 'helperText'> & {
+  fieldId: string;
+  isLoadingState: boolean;
+  setLocalLoading: (loading: boolean) => void;
+};
+
+// Widget lookup table for field types
+const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => React.JSX.Element | null> = {
+  text: (p) => (
+    <Input
+      id={p.fieldId}
+      type="text"
+      value={p.value || ''}
+      onChange={(e) => p.onChange(e.target.value)}
+      placeholder={p.placeholder}
+      disabled={p.disabled}
+      className={FULL_WIDTH}
+      {...p.customProps}
+    />
+  ),
+  
+  number: (p) => (
+    <Input
+      id={p.fieldId}
+      type="number"
+      value={p.value || ''}
+      onChange={(e) => p.onChange(e.target.value ? Number(e.target.value) : '')}
+      placeholder={p.placeholder}
+      disabled={p.disabled}
+      min={p.min}
+      max={p.max}
+      className={FULL_WIDTH}
+      {...p.customProps}
+    />
+  ),
+  
+  'iteration-count': (p) => widgets.number(p),
+  
+  textarea: (p) => (
+    <textarea
+      id={p.fieldId}
+      value={p.value || ''}
+      onChange={(e) => p.onChange(e.target.value)}
+      placeholder={p.placeholder}
+      disabled={p.disabled}
+      rows={p.rows}
+      className={TEXTAREA_CLASSES}
+      {...p.customProps}
+    />
+  ),
+  
+  'variable-textarea': (p) => widgets.textarea(p),
+  
+  select: (p) => (
+    <Select
+      value={p.value || ''}
+      onValueChange={p.onChange}
+      disabled={p.disabled}
+      className={FULL_WIDTH}
+      {...p.customProps}
+    >
+      {p.placeholder && <option value="">{p.placeholder}</option>}
+      {p.options?.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </Select>
+  ),
+  
+  'person-select': (p) => (
+    <Select
+      value={p.value || ''}
+      onValueChange={p.onChange}
+      disabled={p.disabled}
+      className={FULL_WIDTH}
+      {...p.customProps}
+    >
+      <option value="">Select person...</option>
+      {p.persons?.map((person) => (
+        <option key={person.id} value={person.id}>
+          {person.name}
+        </option>
+      ))}
+    </Select>
+  ),
+  
+  checkbox: (p) => (
+    <Switch
+      id={p.fieldId}
+      checked={!!p.value}
+      onChange={p.onChange}
+      disabled={p.disabled}
+      {...p.customProps}
+    />
+  ),
+  
+  file: (p) => {
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      if (p.onFileUpload) {
+        p.setLocalLoading(true);
+        try {
+          await p.onFileUpload(file);
+        } finally {
+          p.setLocalLoading(false);
+        }
+      } else {
+        // Default behavior: read as text
+        const reader = new FileReader();
+        reader.onload = (e) => p.onChange(e.target?.result as string);
+        reader.readAsText(file);
+      }
+    };
+
+    return (
+      <div className={SPACE_Y_2}>
+        <Input
+          id={p.fieldId}
+          value={p.value || ''}
+          onChange={(e) => p.onChange(e.target.value)}
+          placeholder={p.placeholder || "Enter file path or upload below"}
+          disabled={p.isLoadingState}
+          className={FULL_WIDTH}
+        />
+        
+        <div className={FLEX_CENTER_GAP}>
+          <FileUploadButton
+            accept={p.acceptedFileTypes || ".txt,.docx,.doc,.pdf,.csv,.json"}
+            onChange={handleFileUpload}
+            disabled={p.isLoadingState}
+            variant="outline"
+            size="sm"
+            {...p.customProps}
+          >
+            {p.isLoadingState ? "Uploading..." : "Upload File"}
+          </FileUploadButton>
+          
+          {p.isLoadingState && (
+            <div className="flex items-center text-sm text-gray-600">
+              <Spinner size="sm" className="mr-2" />
+              <span>Uploading...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+};
 
 /**
  * Unified form field component that renders the appropriate field type
@@ -67,176 +224,40 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     return hint ? `${hint}\n${variableText}` : variableText;
   }, [detectedVariables, hint]);
   
-  const renderField = () => {
-    switch (type) {
-      case 'text':
-        return (
-          <Input
-            id={fieldId}
-            type="text"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="w-full"
-            {...customProps}
-          />
-        );
-        
-      case 'number':
-      case 'iteration-count':
-        return (
-          <Input
-            id={fieldId}
-            type="number"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')}
-            placeholder={placeholder}
-            disabled={disabled}
-            min={min}
-            max={max}
-            className="w-full"
-            {...customProps}
-          />
-        );
-        
-      case 'textarea':
-      case 'variable-textarea':
-        return (
-          <textarea
-            id={fieldId}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            rows={rows}
-            className="flex w-full rounded-md border border-slate-300 bg-transparent py-1.5 px-2.5 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-            {...customProps}
-          />
-        );
-        
-      case 'select':
-        return (
-          <Select
-            value={value || ''}
-            onValueChange={onChange}
-            disabled={disabled}
-            className="w-full"
-            {...customProps}
-          >
-            {placeholder && <option value="">
-              {placeholder}
-            </option>}
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        );
-        
-      case 'person-select':
-        return (
-          <Select
-            value={value || ''}
-            onValueChange={onChange}
-            disabled={disabled}
-            className="w-full"
-            {...customProps}
-          >
-            <option value="">
-              Select person...
-            </option>
-            {persons.map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name}
-              </option>
-            ))}
-          </Select>
-        );
-        
-      case 'checkbox':
-        return (
-          <Switch
-            id={fieldId}
-            checked={!!value}
-            onChange={onChange}
-            disabled={disabled}
-            {...customProps}
-          />
-        );
-        
-      case 'file': {
-        const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-          const file = event.target.files?.[0];
-          if (!file) return;
-
-          if (onFileUpload) {
-            setLocalLoading(true);
-            try {
-              await onFileUpload(file);
-            } finally {
-              setLocalLoading(false);
-            }
-          } else {
-            // Default behavior: read as text
-            const reader = new FileReader();
-            reader.onload = (e) => onChange(e.target?.result as string);
-            reader.readAsText(file);
-          }
-        };
-
-        return (
-          <div className="space-y-2">
-            <Input
-              id={fieldId}
-              value={value || ''}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={placeholder || "Enter file path or upload below"}
-              disabled={isLoadingState}
-              className="w-full"
-            />
-            
-            <div className="flex items-center gap-2">
-              <FileUploadButton
-                accept={acceptedFileTypes || ".txt,.docx,.doc,.pdf,.csv,.json"}
-                onChange={handleFileUpload}
-                disabled={isLoadingState}
-                variant="outline"
-                size="sm"
-                {...customProps}
-              >
-                {isLoadingState ? "Uploading..." : "Upload File"}
-              </FileUploadButton>
-              
-              {isLoadingState && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Spinner size="sm" className="mr-2" />
-                  <span>Uploading...</span>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      }
-        
-      default:
-        return null;
-    }
+  // Create widget props
+  const widgetProps: WidgetProps = {
+    value,
+    onChange,
+    placeholder,
+    options,
+    disabled,
+    min,
+    max,
+    persons,
+    acceptedFileTypes,
+    customProps,
+    rows,
+    hint,
+    detectedVariables,
+    onFileUpload,
+    isLoading,
+    fieldId,
+    isLoadingState,
+    setLocalLoading
   };
   
-  const fieldElement = renderField();
+  const fieldElement = widgets[type]?.(widgetProps) ?? null;
   
   if (layout === 'vertical') {
     return (
-      <div className={`space-y-2 ${className}`}>
-        <label htmlFor={fieldId} className="block text-sm font-medium text-text-primary">
+      <div className={`${SPACE_Y_2} ${className}`}>
+        <label htmlFor={fieldId} className={`block ${LABEL_TEXT}`}>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className={REQUIRED_ASTERISK}>*</span>}
         </label>
         {fieldElement}
-        {(helperText || variableHint) && <p className="text-xs text-gray-600">{variableHint || helperText}</p>}
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {(helperText || variableHint) && <p className={HELPER_TEXT}>{variableHint || helperText}</p>}
+        {error && <p className={ERROR_TEXT}>{error}</p>}
       </div>
     );
   }
@@ -244,20 +265,15 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   // Inline layout (default)
   return (
     <div className={`flex items-center gap-4 ${className}`}>
-      <label htmlFor={fieldId} className="text-sm font-medium text-text-primary min-w-[120px]">
+      <label htmlFor={fieldId} className={`${LABEL_TEXT} min-w-[120px]`}>
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className={REQUIRED_ASTERISK}>*</span>}
       </label>
       <div className="flex-1">
         {fieldElement}
-        {(helperText || variableHint) && <p className="text-xs text-gray-600 mt-1">{variableHint || helperText}</p>}
-        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        {(helperText || variableHint) && <p className={HELPER_TEXT_MT}>{variableHint || helperText}</p>}
+        {error && <p className={ERROR_TEXT_MT}>{error}</p>}
       </div>
     </div>
   );
-};
-
-// Factory function for creating form fields based on configuration
-export const createFormField = (config: UnifiedFormFieldProps) => {
-  return <UnifiedFormField {...config} />;
 };
