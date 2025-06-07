@@ -13,11 +13,15 @@ class CompactEngine:
 
     async def run(self, diagram:Dict[str,Any], *,
                   send:Callable[[dict],None]|None=None,
-                  execution_id:str|None=None):
+                  execution_id:str|None=None,
+                  interactive_handler:Callable|None=None):
 
         async with self.lock:
             g   = build_graph(diagram)
             ctx = Ctx(g)
+            ctx.execution_id = execution_id
+            ctx.interactive_handler = interactive_handler
+            ctx.persons = diagram.get("persons", {})
             loops = LoopBook()
             send = send or (lambda *_:None)
             send({"type":"execution_started","order":g.order})

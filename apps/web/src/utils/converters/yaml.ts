@@ -1,13 +1,8 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
-import {
-  Diagram,
-  Person,
-  Arrow,
-  ApiKey,
-  Node
-} from '@/types';
+import { Diagram, Person, Arrow, ApiKey, Node } from '@/types';
 import { nanoid } from 'nanoid';
+import { buildNode, NodeInfo, detectVariables } from './nodeBuilders';
 
 interface YamlDiagram {
   version: '1.0';
@@ -16,29 +11,27 @@ interface YamlDiagram {
     description?: string;
   };
 
-  // API Keys section - NEW
+  // API Keys section - labels only
   apiKeys: Record<string, {
     service: string;
     name: string;
   }>;
 
-  // Enhanced persons with full details
+  // Enhanced persons with full details - label-based
   persons: Record<string, {
-    id: string;  // Original ID preserved
     model: string;
     service: string;
-    apiKeyId?: string;
+    apiKeyLabel?: string;  // Reference by label
     system?: string;
     temperature?: number;
   }>;
 
-  // Enhanced workflow with positions
+  // Enhanced workflow with positions - label-based
   workflow: {
-    id: string;  // Original node ID
+    label: string;  // Use label as primary identifier
     type: string;
-    label?: string;
     position: { x: number; y: number };  // Preserved positions
-    person?: string;
+    person?: string;  // Person label reference
 
     // All node-specific fields preserved
     prompt?: string;
@@ -95,21 +88,29 @@ export class Yaml {
     const persons: YamlDiagram['persons'] = {};
     const workflow: YamlDiagram['workflow'] = [];
 
-    // Convert API keys
+    // Convert API keys - use name as key
     diagram.apiKeys.forEach(key => {
-      apiKeys[key.id] = {
+      apiKeys[key.name] = {
         service: key.service,
         name: key.name
       };
     });
 
-    // Convert persons to agents with full details
+    // Convert persons to agents with full details - use label as key
     diagram.persons.forEach(person => {
-      persons[person.id] = {
-        id: person.id,
+      // Find API key label by ID
+      let apiKeyLabel: string | undefined;
+      if (person.apiKeyId) {
+        const apiKey = diagram.apiKeys.find(k => k.id === person.apiKeyId);
+        if (apiKey) {
+          apiKeyLabel = apiKey.name;
+        }
+      }
+      
+      persons[person.label] = {
         model: person.modelName || 'gpt-4.1-nano',
         service: person.service || 'chatgpt',
-        ...(person.apiKeyId && { apiKeyId: person.apiKeyId }),
+        ...(apiKeyLabel && { apiKeyLabel }),
         ...(person.systemPrompt && { system: person.systemPrompt })
       };
     });
@@ -148,17 +149,16 @@ export class Yaml {
   private static nodeToEnhancedStep(
     node: Node,
     connections: Arrow[],
-    _persons: Person[]
+    persons: Person[]
   ): YamlDiagram['workflow'][0] | null {
     const data = node.data;
     const baseStep: YamlDiagram['workflow'][0] = {
-      id: node.id,
+      label: data.label || node.id,
       type: node.type as string,
       position: {
         x: Math.round(node.position.x),
         y: Math.round(node.position.y)
-      },
-      ...(data.label && { label: data.label })
+      }
     };
 
     // Add connections if any
@@ -166,7 +166,6 @@ export class Yaml {
       baseStep.connections = connections.map(arrow => ({
         to: arrow.target,
         ...(arrow.data?.label && { label: arrow.data.label }),
-        // Prioritize edge's direct handle properties, fallback to data
         ...((arrow.data?.controlPointOffsetX !== undefined || arrow.data?.controlPointOffsetY !== undefined) && {
           control_offset: {
             x: Math.round(arrow.data?.controlPointOffsetX || 0),
@@ -176,58 +175,34 @@ export class Yaml {
       }));
     }
 
-    // Add type-specific fields
-    switch (node.type) {
-      case 'start':
-        return baseStep;
-
-      case 'person_job': {
-        return {
-          ...baseStep,
-          ...(data.personId && { person: data.personId }),
-          ...(data.defaultPrompt && { prompt: data.defaultPrompt }),
-          ...(data.firstOnlyPrompt && { first_prompt: data.firstOnlyPrompt }),
-          ...(data.contextCleaningRule && { forget: data.contextCleaningRule }),
-          ...(data.iterationCount && { max_iterations: data.iterationCount })
-        };
+    // Find person label if needed
+    if (data.personId) {
+      const person = persons.find(p => p.id === data.personId);
+      if (person) {
+        baseStep.person = person.label;
       }
-
-      case 'condition': {
-        return {
-          ...baseStep,
-          ...(data.conditionType && { condition_type: data.conditionType }),
-          ...(data.expression && { expression: data.expression }),
-          ...(data.maxIterations && { max_iterations: data.maxIterations })
-        };
-      }
-
-      case 'db': {
-        return {
-          ...baseStep,
-          ...(data.subType && { sub_type: data.subType }),
-          ...(data.sourceDetails && { source: data.sourceDetails })
-        };
-      }
-
-      case 'job': {
-        return {
-          ...baseStep,
-          ...(data.subType && { sub_type: data.subType }),
-          ...(data.sourceDetails && { code: data.sourceDetails })
-        };
-      }
-
-      case 'endpoint': {
-        return {
-          ...baseStep,
-          ...(data.saveToFile && data.filePath && { file: data.filePath }),
-          ...(data.fileFormat && { file_format: data.fileFormat })
-        };
-      }
-
-      default:
-        return baseStep;
     }
+
+    // Add all non-null fields from data based on node type
+    const fieldMappings: Record<string, string> = {
+      defaultPrompt: 'prompt',
+      firstOnlyPrompt: 'first_prompt',
+      contextCleaningRule: 'forget',
+      iterationCount: 'max_iterations',
+      conditionType: 'condition_type',
+      sourceDetails: node.type === 'db' ? 'source' : 'code',
+      filePath: 'file',
+      fileFormat: 'file_format',
+      subType: 'sub_type'
+    };
+    
+    Object.entries(fieldMappings).forEach(([dataKey, yamlKey]) => {
+      if (data[dataKey] !== undefined && data[dataKey] !== null && data[dataKey] !== '') {
+        (baseStep as any)[yamlKey] = data[dataKey];
+      }
+    });
+
+    return baseStep;
   }
 
   /**
@@ -239,58 +214,87 @@ export class Yaml {
     const persons: Person[] = [];
     const apiKeys: ApiKey[] = [];
 
-    // Convert API keys
-    Object.entries(yamlDiagram.apiKeys || {}).forEach(([id, key]) => {
+    // Convert API keys - generate new IDs
+    Object.entries(yamlDiagram.apiKeys || {}).forEach(([name, key]) => {
       apiKeys.push({
-        id,
+        id: `APIKEY_${nanoid().slice(0, 4).replace(/-/g, '_').toUpperCase()}`,
         name: key.name,
         service: key.service as ApiKey['service'],
-        keyReference: id // Use id as keyReference
+        keyReference: name // Use name as keyReference
       });
     });
 
 
-    Object.entries(yamlDiagram.persons || {}).forEach(([id, person]) => {
+    // Create label-to-ID mappings for references
+    const apiKeyLabelToId = new Map<string, string>();
+    apiKeys.forEach(key => {
+      apiKeyLabelToId.set(key.name, key.id);
+    });
+    
+    Object.entries(yamlDiagram.persons || {}).forEach(([label, person]) => {
+      // Resolve API key reference
+      let apiKeyId: string | undefined;
+      if (person.apiKeyLabel && apiKeyLabelToId.has(person.apiKeyLabel)) {
+        apiKeyId = apiKeyLabelToId.get(person.apiKeyLabel);
+      }
+      
       persons.push({
-        id: person.id || id,
-        label: this.extractLabelFromId(person.id || id),
+        id: `person-${nanoid(4)}`,  // Generate fresh ID
+        label,  // Use the key as label
         modelName: person.model,
         service: person.service as ApiKey['service'],
-        apiKeyId: person.apiKeyId,
+        apiKeyId,
         systemPrompt: person.system
       });
     });
 
-    // Convert workflow to nodes and arrows
+    // Create label-to-ID mappings for node references
+    const nodeLabelToId = new Map<string, string>();
+    const personLabelToId = new Map<string, string>();
+    persons.forEach(person => {
+      personLabelToId.set(person.label, person.id);
+    });
+    
+    // First pass: create nodes and build label-to-ID mapping
     yamlDiagram.workflow.forEach(step => {
-      const node = this.enhancedStepToNode(step, persons);
+      const node = this.enhancedStepToNode(step, persons, personLabelToId);
       if (node) {
         nodes.push(node);
+        nodeLabelToId.set(step.label, node.id);
 
-        // Create arrows from connections
-        if (step.connections) {
+      }
+    });
+    
+    // Second pass: create arrows using label-to-ID mapping
+    yamlDiagram.workflow.forEach(step => {
+      if (step.connections) {
+        const sourceId = nodeLabelToId.get(step.label);
+        if (sourceId) {
           step.connections.forEach(conn => {
-            const arrowId = `arrow-${nanoid(6)}`;
-            arrows.push({
-              id: arrowId,
-              source: step.id,
-              target: conn.to,
-              type: 'customArrow',
-              sourceHandle: conn.source_handle,
-              targetHandle: conn.target_handle,
-              data: {
+            const targetId = nodeLabelToId.get(conn.to);
+            if (targetId) {
+              const arrowId = `arrow-${nanoid(4)}`;
+              arrows.push({
                 id: arrowId,
-                sourceBlockId: step.id,
-                targetBlockId: conn.to,
-                sourceHandleId: conn.source_handle,
-                targetHandleId: conn.target_handle,
-                label: conn.label || 'flow',
-                contentType: conn.content_type || 'raw_text',
-                branch: conn.branch as 'true' | 'false' | undefined,
-                controlPointOffsetX: conn.control_offset?.x,
-                controlPointOffsetY: conn.control_offset?.y
-              }
-            });
+                source: sourceId,
+                target: targetId,
+                type: 'customArrow',
+                sourceHandle: conn.source_handle,
+                targetHandle: conn.target_handle,
+                data: {
+                  id: arrowId,
+                  sourceBlockId: sourceId,
+                  targetBlockId: targetId,
+                  sourceHandleId: conn.source_handle,
+                  targetHandleId: conn.target_handle,
+                  label: conn.label || 'flow',
+                  contentType: conn.content_type || 'raw_text',
+                  branch: conn.branch as 'true' | 'false' | undefined,
+                  controlPointOffsetX: conn.control_offset?.x,
+                  controlPointOffsetY: conn.control_offset?.y
+                }
+              });
+            }
           });
         }
       }
@@ -309,129 +313,34 @@ export class Yaml {
    */
   private static enhancedStepToNode(
     step: YamlDiagram['workflow'][0],
-    _persons: Person[]
+    _persons: Person[],
+    personLabelToId: Map<string, string>
   ): Node | null {
-    const baseData = {
-      id: step.id,
-      label: step.label || this.extractLabelFromId(step.id)
+    const nodeInfo: NodeInfo = {
+      name: step.label,
+      type: step.type as any,
+      position: step.position,
+      // Common fields
+      personId: step.person ? personLabelToId.get(step.person) : undefined,
+      prompt: step.prompt,
+      firstPrompt: step.first_prompt,
+      contextCleaningRule: step.forget || 'upon_request',
+      maxIterations: step.max_iterations,
+      mode: step.mode,
+      // Condition fields
+      conditionType: step.condition_type,
+      expression: step.expression,
+      // DB fields
+      subType: step.sub_type,
+      sourceDetails: step.source,
+      // Job fields
+      code: step.code,
+      // Endpoint fields
+      filePath: step.file,
+      fileFormat: step.file_format
     };
-
-    const position = {
-      x: step.position.x,
-      y: step.position.y
-    };
-
-    switch (step.type) {
-      case 'start':
-        return {
-          id: step.id,
-          type: 'start',
-          position,
-          data: {
-            ...baseData,
-            type: 'start'
-          }
-        };
-
-      case 'person_job':
-        return {
-          id: step.id,
-          type: 'person_job',
-          position,
-          data: {
-            ...baseData,
-            type: 'person_job',
-            personId: step.person,
-            defaultPrompt: step.prompt || '',
-            firstOnlyPrompt: step.first_prompt || '',
-            contextCleaningRule: step.forget || 'uponRequest',
-            maxIterations: step.max_iterations || 1,
-            mode: step.mode || 'sync',
-            detectedVariables: this.detectVariables(step.prompt || '', step.first_prompt || '')
-          }
-        };
-
-      case 'condition':
-        return {
-          id: step.id,
-          type: 'condition',
-          position,
-          data: {
-            ...baseData,
-            type: 'condition',
-            conditionType: step.condition_type || 'expression',
-            expression: step.expression || '',
-            maxIterations: step.max_iterations
-          }
-        };
-
-      case 'db':
-        return {
-          id: step.id,
-          type: 'db',
-          position,
-          data: {
-            ...baseData,
-            type: 'db',
-            subType: step.sub_type || 'fixed_prompt',
-            sourceDetails: step.source || ''
-          }
-        };
-
-      case 'job':
-        return {
-          id: step.id,
-          type: 'job',
-          position,
-          data: {
-            ...baseData,
-            type: 'job',
-            subType: step.sub_type || 'code',
-            sourceDetails: step.code || ''
-          }
-        };
-
-      case 'endpoint':
-        return {
-          id: step.id,
-          type: 'endpoint',
-          position,
-          data: {
-            ...baseData,
-            type: 'endpoint',
-            saveToFile: !!step.file,
-            filePath: step.file || '',
-            fileFormat: step.file_format || 'text'
-          }
-        };
-
-      default:
-        return null;
-    }
+    
+    return buildNode(nodeInfo);
   }
 
-  /**
-   * Utility functions
-   */
-
-  private static extractLabelFromId(id: string): string {
-    // Extract meaningful label from IDs like "PERSON_ABC123" -> "Person ABC123"
-    return id.replace(/_/g, ' ').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  }
-
-  private static detectVariables(...prompts: string[]): string[] {
-    const vars = new Set<string>();
-    const varPattern = /{{(\w+)}}/g;
-
-    prompts.forEach(prompt => {
-      if (prompt) {
-        const matches = prompt.matchAll(varPattern);
-        for (const match of matches) {
-          vars.add(match[1] || '');
-        }
-      }
-    });
-
-    return Array.from(vars);
-  }
 }

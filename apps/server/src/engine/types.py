@@ -2,7 +2,7 @@
 from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Set
+from typing import Any, Callable, Dict, Iterable, List, Set, Optional
 
 
 @dataclass(slots=True)
@@ -48,5 +48,10 @@ class Ctx:
     cond_val : Dict[str,bool]= field(default_factory=dict)
     skipped  : Dict[str,str] = field(default_factory=dict)   # nid → reason
     order    : List[str] = field(default_factory=list)
+    
+    # Additional properties for compatibility with executors
+    persons: Dict[str, Any] = field(default_factory=dict)
+    execution_id: Optional[str] = None
+    interactive_handler: Optional[Callable] = None
 
     def skip(self,nid,r): self.skipped[nid]=r

@@ -8,10 +8,10 @@ import re
 # Validation functions have been moved to validator.py
 
 if TYPE_CHECKING:
-    from ..engine import ExecutionContext
+    from ..types import Ctx
 
 
-def get_input_values(node: Dict[str, Any], context: 'ExecutionContext', target_handle_filter: str = None) -> Dict[str, Any]:
+def get_input_values(node: Dict[str, Any], context: 'Ctx', target_handle_filter: str = None) -> Dict[str, Any]:
     """
     Get input values for a node from incoming arrows.
     
@@ -25,7 +25,7 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext', target_h
     """
     inputs = {}
     node_id = node["id"]
-    incoming = context.incoming_arrows.get(node_id, [])
+    incoming = context.graph.incoming.get(node_id, [])
     
     # Import OutputProcessor here to avoid circular imports
     from ...utils.output_processor import OutputProcessor
@@ -33,27 +33,23 @@ def get_input_values(node: Dict[str, Any], context: 'ExecutionContext', target_h
     for arrow in incoming:
         # If we have a handle filter, check if this arrow matches
         if target_handle_filter:
-            target_handle = arrow.get("targetHandle", "")
+            target_handle = arrow.t_handle
             # Check if handle ends with the filter value (e.g., "-first" or "-default")
             # or matches exactly (for backwards compatibility)
             if not (target_handle.endswith(f"-{target_handle_filter}") or 
                     target_handle == target_handle_filter):
                 continue
         
-        source_id = arrow["source"]
-        # Handle both direct label and nested data.label structure
-        label = arrow.get("label", "")
-        if not label and "data" in arrow:
-            label = arrow["data"].get("label", "")
+        source_id = arrow.source
+        # Arrow label is directly on the Arrow object
+        label = arrow.label
         
         # Get the output from the source node
-        if source_id in context.node_outputs and label:
-            output = context.node_outputs[source_id]
+        if source_id in context.outputs and label:
+            output = context.outputs[source_id]
             
-            # Check arrow content type
-            content_type = arrow.get("contentType")
-            if not content_type and "data" in arrow:
-                content_type = arrow["data"].get("contentType")
+            # Check arrow content type from label or handle
+            content_type = "conversation_state" if "conversation" in arrow.label.lower() else None
 
             # Handle content type
             if content_type == "conversation_state":
@@ -124,38 +120,38 @@ def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: 
     return re.sub(pattern, replace_var, text)
 
 
-def has_incoming_connection(node: Dict[str, Any], context: 'ExecutionContext') -> bool:
+def has_incoming_connection(node: Dict[str, Any], context: 'Ctx') -> bool:
     """Check if node has any incoming connections"""
     node_id = node["id"]
-    return node_id in context.incoming_arrows and len(context.incoming_arrows[node_id]) > 0
+    return node_id in context.graph.incoming and len(context.graph.incoming[node_id]) > 0
 
 
-def has_outgoing_connection(node: Dict[str, Any], context: 'ExecutionContext') -> bool:
+def has_outgoing_connection(node: Dict[str, Any], context: 'Ctx') -> bool:
     """Check if node has any outgoing connections"""
     node_id = node["id"]
-    return node_id in context.outgoing_arrows and len(context.outgoing_arrows[node_id]) > 0
+    return node_id in context.graph.outgoing and len(context.graph.outgoing[node_id]) > 0
 
 
-def get_upstream_nodes(node: Dict[str, Any], context: 'ExecutionContext') -> List[str]:
+def get_upstream_nodes(node: Dict[str, Any], context: 'Ctx') -> List[str]:
     """Get IDs of all upstream (source) nodes"""
     node_id = node["id"]
     upstream = []
     
-    for arrow in context.incoming_arrows.get(node_id, []):
-        source_id = arrow["source"]
+    for arrow in context.graph.incoming.get(node_id, []):
+        source_id = arrow.source
         if source_id not in upstream:
             upstream.append(source_id)
     
     return upstream
 
 
-def get_downstream_nodes(node: Dict[str, Any], context: 'ExecutionContext') -> List[str]:
+def get_downstream_nodes(node: Dict[str, Any], context: 'Ctx') -> List[str]:
     """Get IDs of all downstream (target) nodes"""
     node_id = node["id"]
     downstream = []
     
-    for arrow in context.outgoing_arrows.get(node_id, []):
-        target_id = arrow["target"]
+    for arrow in context.graph.outgoing.get(node_id, []):
+        target_id = arrow.target
         if target_id not in downstream:
             downstream.append(target_id)
     

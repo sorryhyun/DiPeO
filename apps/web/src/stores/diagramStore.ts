@@ -66,6 +66,10 @@ export interface DiagramStore {
   clear: () => void;
   loadDiagram: (data: { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys?: ApiKey[] }) => void;
   exportDiagram: () => { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys: ApiKey[] };
+  
+  // Label-based persistence
+  exportDiagramWithLabels: () => { nodes: any[]; arrows: any[]; persons: any[]; apiKeys: any[] };
+  loadDiagramFromLabels: (data: { nodes?: any[]; arrows?: any[]; persons?: any[]; apiKeys?: any[] }) => void;
 
   // Compatibility properties
   isReadOnly?: boolean;
@@ -346,20 +350,68 @@ export const useDiagramStore = create<DiagramStore>()(
                 apiKeys: new Map()
               }),
 
-            loadDiagram: (data) =>
-              set({
-                nodes: toMap(data.nodes || []),
-                arrows: toMap(data.arrows || []),
-                persons: toMap(data.persons || []),
-                apiKeys: toMap(data.apiKeys || [])
-              }),
+            loadDiagram: (data) => {
+              // Check if this is the new label-based format
+              if (data.nodes && data.nodes.length > 0 && data.nodes[0] && !data.nodes[0].id) {
+                // New format - use label-based loader
+                get().loadDiagramFromLabels(data);
+              } else {
+                // Old format - direct load
+                set({
+                  nodes: toMap(data.nodes || []),
+                  arrows: toMap(data.arrows || []),
+                  persons: toMap(data.persons || []),
+                  apiKeys: toMap(data.apiKeys || [])
+                });
+              }
+            },
 
-            exportDiagram: () => ({
-              nodes: get().nodeList().map(node => {
-                // Filter out UI state properties that React Flow adds
+            exportDiagram: () => {
+              // Use label-based export
+              return get().exportDiagramWithLabels();
+            },
+            
+            exportDiagramWithLabels: () => {
+              const state = get();
+              const nodes = state.nodeList();
+              const arrows = state.arrowList();
+              const persons = state.personList();
+              const apiKeys = state.apiKeyList();
+              
+              // Create ID to label mappings
+              const nodeIdToLabel = new Map<string, string>();
+              const personIdToLabel = new Map<string, string>();
+              const apiKeyIdToLabel = new Map<string, string>();
+              
+              // Build mappings
+              nodes.forEach(node => {
+                nodeIdToLabel.set(node.id, node.data.label || node.id);
+              });
+              persons.forEach(person => {
+                personIdToLabel.set(person.id, person.label || person.id);
+              });
+              apiKeys.forEach(apiKey => {
+                apiKeyIdToLabel.set(apiKey.id, apiKey.name || apiKey.id);
+              });
+              
+              // Export nodes without IDs, using labels for references
+              const exportedNodes = nodes.map(node => {
                 const nodeData = { ...node } as Record<string, any>;
+                delete nodeData.id;
                 delete nodeData.selected;
                 delete nodeData.dragging;
+                
+                // Remove id from data property by creating a new object
+                if (nodeData.data?.id) {
+                  const { id: _, ...dataWithoutId } = nodeData.data;
+                  nodeData.data = dataWithoutId;
+                }
+                
+                // Replace ID references with labels
+                if (nodeData.data.personId && personIdToLabel.has(nodeData.data.personId)) {
+                  nodeData.data.personLabel = personIdToLabel.get(nodeData.data.personId);
+                  delete nodeData.data.personId;
+                }
                 
                 // Round position values
                 if (nodeData.position) {
@@ -369,19 +421,233 @@ export const useDiagramStore = create<DiagramStore>()(
                   };
                 }
                 
-                return nodeData as Node;
-              }),
-              arrows: get().arrowList().map(arrow => {
-                // Filter out UI state properties from arrows
+                // Add label as top-level property
+                nodeData.label = node.data.label || node.id;
+                
+                return nodeData;
+              });
+              
+              // Export arrows without IDs, using labels for source/target
+              const exportedArrows = arrows.map(arrow => {
                 const arrowData = { ...arrow } as Record<string, any>;
+                delete arrowData.id;
                 delete arrowData.selected;
                 delete arrowData.dragging;
                 
-                return arrowData as Arrow;
-              }),
-              persons: get().personList(),
-              apiKeys: get().apiKeyList()
-            }),
+                // Clean up data property - remove id
+                if (arrowData.data?.id) {
+                  const { id: _, ...dataWithoutId } = arrowData.data;
+                  arrowData.data = dataWithoutId;
+                }
+                
+                // Replace source/target IDs with labels
+                arrowData.sourceLabel = nodeIdToLabel.get(arrow.source) || arrow.source;
+                arrowData.targetLabel = nodeIdToLabel.get(arrow.target) || arrow.target;
+                delete arrowData.source;
+                delete arrowData.target;
+                
+                // Replace handle IDs with label-based handles
+                if (arrowData.sourceHandle) {
+                  // Extract the handle type from the original handle ID (e.g., "start-DDTmx8-output-default" -> "output-default")
+                  const handleParts = arrowData.sourceHandle.split('-');
+                  const handleType = handleParts.slice(2).join('-');
+                  arrowData.sourceHandle = `${arrowData.sourceLabel}-${handleType}`;
+                }
+                
+                if (arrowData.targetHandle) {
+                  // Extract the handle type from the original handle ID
+                  const handleParts = arrowData.targetHandle.split('-');
+                  const handleType = handleParts.slice(2).join('-');
+                  arrowData.targetHandle = `${arrowData.targetLabel}-${handleType}`;
+                }
+                
+                return arrowData;
+              });
+              
+              // Export persons without IDs, using labels for API key references
+              const exportedPersons = persons.map(person => {
+                const personData = { ...person } as Record<string, any>;
+                delete personData.id;
+                
+                // Replace API key ID with label
+                if (personData.apiKeyId && apiKeyIdToLabel.has(personData.apiKeyId)) {
+                  personData.apiKeyLabel = apiKeyIdToLabel.get(personData.apiKeyId);
+                  delete personData.apiKeyId;
+                }
+                
+                // Use label as name if not already set
+                personData.name = person.label || person.id;
+                
+                return personData;
+              });
+              
+              // Export API keys without IDs
+              const exportedApiKeys = apiKeys.map(apiKey => {
+                const apiKeyData = { ...apiKey } as Record<string, any>;
+                delete apiKeyData.id;
+                return apiKeyData;
+              });
+              
+              return {
+                nodes: exportedNodes,
+                arrows: exportedArrows,
+                persons: exportedPersons,
+                apiKeys: exportedApiKeys
+              };
+            },
+            
+            loadDiagramFromLabels: (data: { 
+              nodes?: Array<Partial<Node> & { label?: string; type: Node['type']; data?: any }>; 
+              arrows?: Array<Partial<Arrow> & { sourceLabel?: string; targetLabel?: string; data?: any }>; 
+              persons?: Array<Partial<Person> & { name?: string; apiKeyLabel?: string }>; 
+              apiKeys?: Array<Partial<ApiKey> & { name: string }> 
+            }) => {
+              // Handle duplicate labels by appending suffixes
+              const ensureUniqueLabel = (label: string, existingLabels: Set<string>): string => {
+                if (!existingLabels.has(label)) {
+                  existingLabels.add(label);
+                  return label;
+                }
+                
+                // Try appending numbers
+                let counter = 2;
+                while (existingLabels.has(`${label}_${counter}`)) {
+                  counter++;
+                }
+                const uniqueLabel = `${label}_${counter}`;
+                existingLabels.add(uniqueLabel);
+                return uniqueLabel;
+              };
+              
+              // Track used labels
+              const usedNodeLabels = new Set<string>();
+              const usedPersonLabels = new Set<string>();
+              const usedApiKeyLabels = new Set<string>();
+              
+              // Create label to ID mappings
+              const nodeLabelToId = new Map<string, string>();
+              const personLabelToId = new Map<string, string>();
+              const apiKeyLabelToId = new Map<string, string>();
+              
+              // Process API keys first
+              const apiKeys: ApiKey[] = (data.apiKeys || []).map((apiKeyData) => {
+                const id = `APIKEY_${nanoid(4).replace(/-/g, '_').toUpperCase()}`;
+                const label = ensureUniqueLabel(apiKeyData.name || 'API Key', usedApiKeyLabels);
+                apiKeyLabelToId.set(label, id);
+                
+                return {
+                  ...apiKeyData,
+                  id,
+                  name: label,
+                  service: apiKeyData.service || 'custom',
+                  keyReference: apiKeyData.keyReference || ''
+                } as ApiKey;
+              });
+              
+              // Process persons
+              const persons: Person[] = (data.persons || []).map((personData) => {
+                const id = `person-${nanoid(4)}`;
+                const label = ensureUniqueLabel(personData.name || personData.label || 'Person', usedPersonLabels);
+                personLabelToId.set(label, id);
+                
+                // Resolve API key reference
+                let apiKeyId = personData.apiKeyId;
+                if (personData.apiKeyLabel && apiKeyLabelToId.has(personData.apiKeyLabel)) {
+                  apiKeyId = apiKeyLabelToId.get(personData.apiKeyLabel);
+                }
+                
+                return {
+                  ...personData,
+                  id,
+                  label,
+                  apiKeyId
+                };
+              });
+              
+              // Process nodes
+              const nodes: Node[] = (data.nodes || []).map((nodeData) => {
+                const id = `${nodeData.type}-${nanoid(4)}`;
+                const label = ensureUniqueLabel(nodeData.label || nodeData.data?.label || nodeData.type, usedNodeLabels);
+                nodeLabelToId.set(label, id);
+                
+                // Resolve person reference
+                let personId = nodeData.data?.personId;
+                if (nodeData.data?.personLabel && personLabelToId.has(nodeData.data.personLabel)) {
+                  personId = personLabelToId.get(nodeData.data.personLabel);
+                }
+                
+                return {
+                  ...nodeData,
+                  id,
+                  type: nodeData.type,
+                  position: nodeData.position || { x: 0, y: 0 },
+                  data: {
+                    ...nodeData.data,
+                    id,
+                    label,
+                    personId
+                  }
+                } as Node;
+              });
+              
+              // Process arrows
+              const arrows: Arrow[] = (data.arrows || []).map((arrowData) => {
+                const id = `arrow-${nanoid(4)}`;
+                
+                // Resolve source/target references
+                const source = (arrowData.sourceLabel && nodeLabelToId.get(arrowData.sourceLabel)) || arrowData.source || '';
+                const target = (arrowData.targetLabel && nodeLabelToId.get(arrowData.targetLabel)) || arrowData.target || '';
+                
+                // Reconstruct handle IDs from labels
+                let sourceHandle = arrowData.sourceHandle;
+                let targetHandle = arrowData.targetHandle;
+                
+                if (sourceHandle && arrowData.sourceLabel) {
+                  // Find the source node to get its ID
+                  const sourceNodeId = nodeLabelToId.get(arrowData.sourceLabel);
+                  if (sourceNodeId) {
+                    // Replace label with node ID in handle
+                    // e.g., "aa-output-default" -> "start-DDTmx8-output-default"
+                    const handleParts = sourceHandle.split('-');
+                    const handleType = handleParts.slice(1).join('-'); // "output-default"
+                    sourceHandle = `${sourceNodeId}-${handleType}`;
+                  }
+                }
+                
+                if (targetHandle && arrowData.targetLabel) {
+                  // Find the target node to get its ID
+                  const targetNodeId = nodeLabelToId.get(arrowData.targetLabel);
+                  if (targetNodeId) {
+                    // Replace label with node ID in handle
+                    // e.g., "bb-input-first" -> "person_job-xyz123-input-first"
+                    const handleParts = targetHandle.split('-');
+                    const handleType = handleParts.slice(1).join('-'); // "input-first"
+                    targetHandle = `${targetNodeId}-${handleType}`;
+                  }
+                }
+                
+                return {
+                  ...arrowData,
+                  id,
+                  source,
+                  target,
+                  sourceHandle,
+                  targetHandle,
+                  data: {
+                    ...arrowData.data,
+                    id
+                  }
+                };
+              });
+              
+              // Set all data
+              set({
+                nodes: toMap(nodes),
+                arrows: toMap(arrows),
+                persons: toMap(persons),
+                apiKeys: toMap(apiKeys)
+              });
+            },
 
             // Compatibility
             isReadOnly: false,
@@ -390,13 +656,8 @@ export const useDiagramStore = create<DiagramStore>()(
         },
         {
           name: 'dipeo-diagram-v2',
-          // Serialize Maps to arrays for localStorage
-          partialize: (state) => ({
-            nodes: state.nodeList(),
-            arrows: state.arrowList(),
-            persons: state.personList(),
-            apiKeys: state.apiKeyList()
-          }),
+          // Serialize Maps to arrays for localStorage using label-based format
+          partialize: (state) => state.exportDiagramWithLabels(),
           // Restore arrays back to Maps on load
           merge: (persistedState: unknown, currentState: DiagramStore) => {
             if (!persistedState) return currentState;

@@ -82,7 +82,8 @@ class ExecutionService(BaseService):
 
         # Kick-off engine in background
         engine_task = asyncio.create_task(
-            engine.run(diagram, send=_send, execution_id=execution_id)
+            engine.run(diagram, send=_send, execution_id=execution_id, 
+                      interactive_handler=interactive_handler)
         )
 
         # 6️⃣ Stream updates until the engine finishes

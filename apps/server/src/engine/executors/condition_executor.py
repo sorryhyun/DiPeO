@@ -2,7 +2,7 @@
 Condition node executor - handles boolean logic and branching
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 import time
 import re
 import logging
@@ -10,6 +10,9 @@ import logging
 from .base_executor import BaseExecutor, ExecutorResult
 from .utils import get_input_values
 from .validator import ValidationResult, validate_required_fields, validate_enum_field
+
+if TYPE_CHECKING:
+    from ..types import Ctx
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,7 @@ class ConditionExecutor(BaseExecutor):
     - max_iterations: Checks if all nodes with max iterations have reached their limit
     """
     
-    async def validate(self, node: Dict[str, Any], context: 'ExecutionContext') -> ValidationResult:
+    async def validate(self, node: Dict[str, Any], context: 'Ctx') -> ValidationResult:
         """Validate condition node configuration"""
         errors = []
         warnings = []
@@ -64,7 +67,7 @@ class ConditionExecutor(BaseExecutor):
             warnings=warnings
         )
     
-    async def execute(self, node: Dict[str, Any], context: 'ExecutionContext') -> ExecutorResult:
+    async def execute(self, node: Dict[str, Any], context: 'Ctx') -> ExecutorResult:
         """Execute condition node and return boolean result"""
         start_time = time.time()
         
@@ -125,16 +128,16 @@ class ConditionExecutor(BaseExecutor):
                 execution_time=time.time() - start_time
             )
     
-    def _evaluate_condition(self, expression: str, inputs: Dict[str, Any], context: 'ExecutionContext') -> bool:
+    def _evaluate_condition(self, expression: str, inputs: Dict[str, Any], context: 'Ctx') -> bool:
         """Evaluate a condition expression"""
         # Create evaluation context with inputs and flattened node outputs
         evaluation_context = {**inputs}
         
         # Add execution counts
-        evaluation_context["executionCount"] = context.node_execution_counts
+        evaluation_context["executionCount"] = context.exec_cnt
         
         # Flatten node outputs to make their properties directly accessible
-        for node_id, node_output in context.node_outputs.items():
+        for node_id, node_output in context.outputs.items():
             if isinstance(node_output, dict):
                 # Spread object properties to make them accessible
                 evaluation_context.update(node_output)
@@ -194,11 +197,11 @@ class ConditionExecutor(BaseExecutor):
             logger.warning(f"Failed to evaluate expression '{expression}': {e}")
             return False
     
-    def _check_preceding_nodes_max_iterations(self, node: Dict[str, Any], context: 'ExecutionContext') -> bool:
+    def _check_preceding_nodes_max_iterations(self, node: Dict[str, Any], context: 'Ctx') -> bool:
         """Check if all nodes with max iterations have reached their limit"""
         # Get all incoming nodes
         node_id = node["id"]
-        incoming_arrows = context.incoming_arrows.get(node_id, [])
+        incoming_arrows = context.graph.incoming.get(node_id, [])
         
         # Track if all nodes that have max iterations defined have reached them
         has_nodes_with_max_iterations = False
@@ -206,23 +209,22 @@ class ConditionExecutor(BaseExecutor):
         
         # Check all directly connected source nodes
         for arrow in incoming_arrows:
-            source_node_id = arrow.get("source")
+            source_node_id = arrow.source
             if not source_node_id:
                 continue
             
-            source_node = context.nodes_by_id.get(source_node_id)
+            source_node = context.graph.nodes.get(source_node_id)
             if not source_node:
                 continue
             
             # Check if this node has max iterations defined
-            execution_count = context.node_execution_counts.get(source_node_id, 0)
-            node_properties = source_node.get("properties", {})
-            max_iterations = node_properties.get("maxIteration")
+            execution_count = context.exec_cnt.get(source_node_id, 0)
+            max_iterations = source_node.max_iter
             
             if max_iterations:
                 has_nodes_with_max_iterations = True
                 # Check if node was skipped due to max iterations
-                if source_node_id in context.skipped_nodes and context.skip_reasons.get(source_node_id) == "max_iterations_reached":
+                if source_node_id in context.skipped and context.skipped.get(source_node_id) == "max_iterations":
                     logger.debug(f"[ConditionExecutor] Node {source_node_id} was skipped due to max iterations ({execution_count}/{max_iterations})")
                 elif execution_count < max_iterations:
                     all_max_iterations_reached = False
@@ -231,34 +233,33 @@ class ConditionExecutor(BaseExecutor):
                     logger.debug(f"[ConditionExecutor] Node {source_node_id} has reached max iterations ({execution_count}/{max_iterations})")
         
         # Also check for any nodes that might be in a cycle with this condition node
-        outgoing_arrows = context.outgoing_arrows.get(node_id, [])
+        outgoing_arrows = context.graph.outgoing.get(node_id, [])
         for out_arrow in outgoing_arrows:
-            target_node_id = out_arrow.get("target")
+            target_node_id = out_arrow.target
             if not target_node_id:
                 continue
             
             # Find nodes that connect to this same target (potential loop participants)
-            for check_node_id, node_arrows in context.outgoing_arrows.items():
+            for check_node_id, node_arrows in context.graph.outgoing.items():
                 if check_node_id == node_id:
                     continue  # Skip self
                 
                 node_connects_to_same_target = any(
-                    arrow.get("target") == target_node_id for arrow in node_arrows
+                    arrow.target == target_node_id for arrow in node_arrows
                 )
                 
                 if node_connects_to_same_target:
-                    loop_node = context.nodes_by_id.get(check_node_id)
+                    loop_node = context.graph.nodes.get(check_node_id)
                     if not loop_node:
                         continue
                     
-                    execution_count = context.node_execution_counts.get(check_node_id, 0)
-                    node_properties = loop_node.get("properties", {})
-                    max_iterations = node_properties.get("maxIteration")
+                    execution_count = context.exec_cnt.get(check_node_id, 0)
+                    max_iterations = loop_node.max_iter
                     
                     if max_iterations:
                         has_nodes_with_max_iterations = True
                         # Check if node was skipped due to max iterations
-                        if check_node_id in context.skipped_nodes and context.skip_reasons.get(check_node_id) == "max_iterations_reached":
+                        if check_node_id in context.skipped and context.skipped.get(check_node_id) == "max_iterations":
                             logger.debug(f"[ConditionExecutor] Loop participant {check_node_id} was skipped due to max iterations ({execution_count}/{max_iterations})")
                         elif execution_count < max_iterations:
                             all_max_iterations_reached = False
