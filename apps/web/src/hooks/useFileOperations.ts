@@ -205,7 +205,7 @@ export const useFileOperations = () => {
       switch (format) {
         case 'json':
           content = JSON.stringify(diagramData, null, 2);
-          defaultFilename = 'diagram.json';
+          defaultFilename = 'example.json';
           break;
           
         case 'yaml':

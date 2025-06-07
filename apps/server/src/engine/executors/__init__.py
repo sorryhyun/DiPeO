@@ -35,13 +35,14 @@ from .validator import (
 )
 
 
-def create_executors(llm_service=None, file_service=None, notion_service=None) -> Dict[str, BaseExecutor]:
+def create_executors(llm_service=None, file_service=None, memory_service=None, notion_service=None) -> Dict[str, BaseExecutor]:
     """
     Create executor instances based on available services.
     
     Args:
         llm_service: LLMService instance for LLM-based executors
         file_service: FileService instance for file operations
+        memory_service
         notion_service: NotionService instance for Notion API operations
         
     Returns:

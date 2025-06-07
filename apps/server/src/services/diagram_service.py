@@ -97,7 +97,7 @@ class DiagramService(BaseService):
         
         Note: This is a basic implementation. For sophisticated LLM YAML export,
         use the CLI tool which leverages the frontend TypeScript converters:
-        `python tool.py convert diagram.json output.llm-yaml`
+        `python tool.py convert example.json output.llm-yaml`
         """
         try:
             # Basic LLM-friendly format export
