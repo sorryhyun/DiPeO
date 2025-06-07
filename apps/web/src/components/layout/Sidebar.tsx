@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   if (position === 'right') {
     // Find the selected element and its data
     let selectedId: string | null = null;
-    let selectedData: any = null;
+    let selectedData: Record<string, unknown> | null = null;
     
     if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);

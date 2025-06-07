@@ -1,17 +1,13 @@
 /**
- * WebSocket Execution Client - WebSocket-based execution for real-time control
+ * WebSocket Execution Client v2 - Refactored to use Event Bus pattern
  * 
- * Replaces SSE-based execution with WebSocket for bidirectional communication,
- * enabling pause/resume/skip/abort capabilities.
+ * Provides WebSocket-based execution with bidirectional communication,
+ * using the centralized event bus for better separation of concerns.
  */
 
 import { produce } from 'immer';
-import { getWebSocketClient, Client } from './client';
+import { wsEventBus, sendWebSocketMessage, waitForWebSocketConnection } from './event-bus';
 import type { 
-  Node, 
-  Arrow, 
-  Person, 
-  ApiKey, 
   WSMessage,
   InteractivePromptData
 } from '@/types';
@@ -23,10 +19,9 @@ import type {
 } from '@/types/api';
 
 /**
- * WebSocket-based execution client with real-time control capabilities
+ * WebSocket-based execution client using Event Bus pattern
  */
-export class ExecutionClient {
-  private wsClient: Client;
+export class ExecutionClientV2 {
   private currentExecutionId: string | null = null;
   private executionResolvers = new Map<string, {
     resolve: (result: ExecutionResult) => void;
@@ -35,33 +30,35 @@ export class ExecutionClient {
   private executionContext = new Map<string, Record<string, unknown>>();
   private executionTokens = new Map<string, number>();
   private interactivePromptHandler: ((prompt: InteractivePromptData) => void) | null = null;
+  private unsubscribeFunctions: Array<() => void> = [];
   
-  constructor(wsClient?: Client) {
-    this.wsClient = wsClient || getWebSocketClient({ debug: true });
+  constructor() {
     this.setupHandlers();
   }
   
   private setupHandlers(): void {
     // Handle execution updates
-    this.wsClient.on('execution_started', this.handleExecutionStarted.bind(this));
-    this.wsClient.on('node_start', this.handleNodeUpdate.bind(this));
-    this.wsClient.on('node_complete', this.handleNodeUpdate.bind(this));
-    this.wsClient.on('node_skipped', this.handleNodeUpdate.bind(this));
-    this.wsClient.on('node_error', this.handleNodeUpdate.bind(this));
-    this.wsClient.on('execution_complete', this.handleExecutionComplete.bind(this));
-    this.wsClient.on('execution_error', this.handleExecutionError.bind(this));
-    this.wsClient.on('execution_aborted', this.handleExecutionAborted.bind(this));
-    
-    // Control response handlers
-    this.wsClient.on('node_paused', this.handleControlResponse.bind(this));
-    this.wsClient.on('node_resumed', this.handleControlResponse.bind(this));
-    this.wsClient.on('node_skip_requested', this.handleControlResponse.bind(this));
-    this.wsClient.on('execution_abort_requested', this.handleControlResponse.bind(this));
-    
-    // Interactive prompt handlers
-    this.wsClient.on('interactive_prompt', this.handleInteractivePrompt.bind(this));
-    this.wsClient.on('interactive_response_received', this.handleControlResponse.bind(this));
-    this.wsClient.on('interactive_prompt_timeout', this.handleControlResponse.bind(this));
+    this.unsubscribeFunctions.push(
+      wsEventBus.on('execution_started', this.handleExecutionStarted.bind(this)),
+      wsEventBus.on('node_start', this.handleNodeUpdate.bind(this)),
+      wsEventBus.on('node_complete', this.handleNodeUpdate.bind(this)),
+      wsEventBus.on('node_skipped', this.handleNodeUpdate.bind(this)),
+      wsEventBus.on('node_error', this.handleNodeUpdate.bind(this)),
+      wsEventBus.on('execution_complete', this.handleExecutionComplete.bind(this)),
+      wsEventBus.on('execution_error', this.handleExecutionError.bind(this)),
+      wsEventBus.on('execution_aborted', this.handleExecutionAborted.bind(this)),
+      
+      // Control response handlers
+      wsEventBus.on('node_paused', this.handleControlResponse.bind(this)),
+      wsEventBus.on('node_resumed', this.handleControlResponse.bind(this)),
+      wsEventBus.on('node_skip_requested', this.handleControlResponse.bind(this)),
+      wsEventBus.on('execution_abort_requested', this.handleControlResponse.bind(this)),
+      
+      // Interactive prompt handlers
+      wsEventBus.on('interactive_prompt', this.handleInteractivePrompt.bind(this)),
+      wsEventBus.on('interactive_response_received', this.handleControlResponse.bind(this)),
+      wsEventBus.on('interactive_prompt_timeout', this.handleControlResponse.bind(this))
+    );
   }
   
   private handleExecutionStarted(message: WSMessage): void {
@@ -82,8 +79,8 @@ export class ExecutionClient {
       this.executionContext.set(executionId, { ...currentContext, ...message.context as Record<string, unknown> });
     }
     
-    // Update cost if provided
-    if (typeof message.cost === 'number') {
+    // Update token count if provided
+    if (typeof message.token_count === 'number') {
       const currentTokens = this.executionTokens.get(executionId) || 0;
       this.executionTokens.set(executionId, currentTokens + message.token_count);
     }
@@ -160,7 +157,7 @@ export class ExecutionClient {
       return;
     }
     
-    this.wsClient.send({
+    sendWebSocketMessage({
       type: 'interactive_response',
       nodeId,
       executionId: this.currentExecutionId,
@@ -193,32 +190,13 @@ export class ExecutionClient {
     onUpdate?: (update: ExecutionUpdate) => void
   ): Promise<ExecutionResult> {
     // Ensure WebSocket is connected
-    if (!this.wsClient.isConnected()) {
-      this.wsClient.connect();
-      
-      // Wait for connection
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('WebSocket connection timeout'));
-        }, 5000);
-        
-        const handler = () => {
-          clearTimeout(timeout);
-          this.wsClient.off('connected', handler);
-          resolve();
-        };
-        
-        this.wsClient.on('connected', handler);
-      });
-    }
+    await waitForWebSocketConnection(5000);
     
     // Set up update handler if provided
-    let messageHandler: ((event: Event) => void) | null = null;
+    let updateUnsubscribe: (() => void) | null = null;
     if (onUpdate) {
-      messageHandler = ((event: Event) => {
-        const customEvent = event as CustomEvent;
-        const message = customEvent.detail as WSMessage;
-        
+      // Subscribe to all execution-related events
+      updateUnsubscribe = wsEventBus.onPattern(/^(node_|execution_)/, (message) => {
         // Convert WebSocket message to ExecutionUpdate format
         const update: ExecutionUpdate = {
           type: message.type,
@@ -236,19 +214,8 @@ export class ExecutionClient {
           message: message.message
         };
         
-        // Map backend event types to frontend expectations
-        if (update.type === 'node_start' && update.nodeId) {
-          update.type = 'node_start';
-          onUpdate(update);
-        } else if (update.type === 'node_complete' && update.nodeId) {
-          update.type = 'node_complete';
-          onUpdate(update);
-        } else {
-          onUpdate(update);
-        }
+        onUpdate(update);
       });
-      
-      this.wsClient.addEventListener('message', messageHandler);
     }
     
     try {
@@ -268,7 +235,7 @@ export class ExecutionClient {
       });
       
       // Send execution request
-      this.wsClient.send({
+      sendWebSocketMessage({
         type: 'execute_diagram',
         diagram: requestPayload.diagram,
         options: requestPayload.options
@@ -283,8 +250,8 @@ export class ExecutionClient {
         this.executionResolvers.set(tempId, { resolve, reject });
         
         // Set up handler to catch execution_started and update ID
-        const startHandler = (message: WSMessage) => {
-          if (message.type === 'execution_started' && message.execution_id) {
+        const startUnsubscribe = wsEventBus.on('execution_started', (message) => {
+          if (message.execution_id) {
             const realId = message.execution_id as string;
             
             // Move resolver to real ID
@@ -295,11 +262,9 @@ export class ExecutionClient {
               this.currentExecutionId = realId;
             }
             
-            this.wsClient.off('execution_started', startHandler);
+            startUnsubscribe();
           }
-        };
-        
-        this.wsClient.on('execution_started', startHandler);
+        });
         
         // Set timeout
         setTimeout(() => {
@@ -312,8 +277,8 @@ export class ExecutionClient {
       
     } finally {
       // Clean up update handler
-      if (messageHandler) {
-        this.wsClient.removeEventListener('message', messageHandler);
+      if (updateUnsubscribe) {
+        updateUnsubscribe();
       }
     }
   }
@@ -327,7 +292,7 @@ export class ExecutionClient {
       return;
     }
     
-    this.wsClient.send({
+    sendWebSocketMessage({
       type: 'pause_node',
       nodeId,
       executionId: this.currentExecutionId
@@ -343,7 +308,7 @@ export class ExecutionClient {
       return;
     }
     
-    this.wsClient.send({
+    sendWebSocketMessage({
       type: 'resume_node',
       nodeId,
       executionId: this.currentExecutionId
@@ -359,7 +324,7 @@ export class ExecutionClient {
       return;
     }
     
-    this.wsClient.send({
+    sendWebSocketMessage({
       type: 'skip_node',
       nodeId,
       executionId: this.currentExecutionId
@@ -375,7 +340,7 @@ export class ExecutionClient {
       return;
     }
     
-    this.wsClient.send({
+    sendWebSocketMessage({
       type: 'abort_execution',
       executionId: this.currentExecutionId
     });
@@ -394,11 +359,36 @@ export class ExecutionClient {
   getCurrentExecutionId(): string | null {
     return this.currentExecutionId;
   }
+  
+  /**
+   * Cleanup all subscriptions
+   */
+  destroy(): void {
+    this.unsubscribeFunctions.forEach(fn => fn());
+    this.unsubscribeFunctions = [];
+    this.interactivePromptHandler = null;
+  }
+}
+
+// Singleton instance
+let executionClient: ExecutionClientV2 | null = null;
+
+/**
+ * Get or create WebSocket execution client instance
+ */
+export function getWebSocketExecutionClient(): ExecutionClientV2 {
+  if (!executionClient) {
+    executionClient = new ExecutionClientV2();
+  }
+  return executionClient;
 }
 
 /**
- * Create a new WebSocket execution client instance
+ * Destroy execution client instance
  */
-export function createWebSocketExecutionClient(wsClient?: Client): ExecutionClient {
-  return new ExecutionClient(wsClient);
+export function destroyWebSocketExecutionClient(): void {
+  if (executionClient) {
+    executionClient.destroy();
+    executionClient = null;
+  }
 }

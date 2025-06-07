@@ -15,6 +15,9 @@ import {
   Node,
   ReactFlow,
   ReactFlowInstance,
+  NodeChange,
+  EdgeChange,
+  Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -55,14 +58,14 @@ interface DiagramCanvasProps {
 interface CommonFlowPropsParams {
   nodes: DiagramNode[];
   arrows: Arrow[];
-  onNodesChange: any;
-  onArrowsChange: any;
-  onConnect: any;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onArrowsChange: (changes: EdgeChange[]) => void;
+  onConnect: (connection: Connection) => void;
   onNodeContextMenu?: (event: React.MouseEvent, nodeId: string) => void;
   onEdgeContextMenu?: (event: React.MouseEvent, edgeId: string) => void;
   onPaneContextMenu?: (event: React.MouseEvent) => void;
   onDragOver?: React.DragEventHandler;
-  onDrop: any;
+  onDrop: React.DragEventHandler<HTMLElement>;
   selectNode: (id: string) => void;
   selectArrow: (id: string) => void;
   executionMode: boolean;

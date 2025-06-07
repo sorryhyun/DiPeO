@@ -6,12 +6,12 @@ import {
   useSelectedElement,
   useHistorySelectors,
   usePersons,
+  useArrowDataUpdater,
   exportDiagramState,
   loadDiagram as loadDiagramAction,
   clearDiagram
 } from './useStoreSelectors';
-import { useDiagramStore } from '@/stores';
-import { useExecution } from './useExecution';
+import { useExecutionV2 } from './execution';
 import { useFileOperations } from './useFileOperations';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import { usePropertyManager } from './usePropertyManager';
@@ -53,9 +53,6 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // Canvas state and operations
   const canvas = useCanvasSelectors();
   
-  // Diagram store operations
-  const diagramStore = useDiagramStore();
-  
   // Execution state and operations
   const execution = useExecutionSelectors();
   
@@ -69,8 +66,11 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // Person operations
   const persons = usePersons();
   
+  // Arrow updater
+  const arrowUpdater = useArrowDataUpdater();
+  
   // Realtime execution (WebSocket)
-  const realtime = useExecution({
+  const realtime = useExecutionV2({
     autoConnect,
     enableMonitoring,
     debug
@@ -102,7 +102,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Quick execution - no need for useCallback with stable realtime reference
   const run = (diagram?: DiagramState) => {
-    return realtime.executeDiagram(diagram);
+    return realtime.execute(diagram);
   };
 
   // Quick stop
@@ -160,7 +160,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Arrow operations
   const updateArrow = (arrowId: string, updates: Record<string, unknown>) => {
-    return diagramStore.updateArrow(arrowId, updates);
+    return arrowUpdater(arrowId, updates);
   };
 
   const deleteArrow = (arrowId: string) => {
@@ -260,7 +260,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     isMonitorMode: canvas.isMonitorMode,
     isRunning: realtime.isRunning,
     isConnected: realtime.isConnected,
-    connectionState: realtime.connectionState,
+    connectionState: realtime.isReconnecting ? 'reconnecting' : (realtime.isConnected ? 'connected' : 'disconnected'),
     
     // ===== OPERATIONS =====
     // Diagram operations

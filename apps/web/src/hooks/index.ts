@@ -12,8 +12,9 @@ export * from './useCanvasInteractions';
 export * from './useNodeType';
 
 // Execution & Runtime
-export * from './useExecution';
-export * from './useWebSocket';
+export * from './execution'; // New modular execution hooks
+export * from './useWebSocketV2';
+export * from './useWebSocketEventBus';
 
 // File Operations
 export * from './useFileOperations';
@@ -30,3 +31,4 @@ export * from './useConversationData';
 export * from './useEntityById';
 export * from './useEntity';
 export * from './useEntities';
+export * from './useEvent';

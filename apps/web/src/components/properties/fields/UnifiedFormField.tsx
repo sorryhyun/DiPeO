@@ -6,12 +6,14 @@ import {
   REQUIRED_ASTERISK, FLEX_CENTER_GAP 
 } from '../styles.constants';
 
+export type FieldValue = string | number | boolean | null | undefined;
+
 export interface UnifiedFormFieldProps {
   type: 'text' | 'select' | 'textarea' | 'checkbox' | 'number' | 'file' | 'person-select' | 'iteration-count' | 'variable-textarea';
   name: string;
   label: string;
-  value: any;
-  onChange: (value: any) => void;
+  value: FieldValue;
+  onChange: (value: FieldValue) => void;
   placeholder?: string;
   options?: Array<{ value: string; label: string }>;
   className?: string;
@@ -24,7 +26,7 @@ export interface UnifiedFormFieldProps {
   helperText?: string;
   persons?: Array<{ id: string; name: string }>;
   acceptedFileTypes?: string;
-  customProps?: Record<string, any>;
+  customProps?: Record<string, unknown>;
   rows?: number;
   hint?: string;
   detectedVariables?: string[];
@@ -44,7 +46,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     <Input
       id={p.fieldId}
       type="text"
-      value={p.value || ''}
+      value={String(p.value || '')}
       onChange={(e) => p.onChange(e.target.value)}
       placeholder={p.placeholder}
       disabled={p.disabled}
@@ -57,8 +59,8 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     <Input
       id={p.fieldId}
       type="number"
-      value={p.value || ''}
-      onChange={(e) => p.onChange(e.target.value ? Number(e.target.value) : '')}
+      value={String(p.value || '')}
+      onChange={(e) => p.onChange(e.target.value ? Number(e.target.value) : null)}
       placeholder={p.placeholder}
       disabled={p.disabled}
       min={p.min}
@@ -73,7 +75,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   textarea: (p) => (
     <textarea
       id={p.fieldId}
-      value={p.value || ''}
+      value={String(p.value || '')}
       onChange={(e) => p.onChange(e.target.value)}
       placeholder={p.placeholder}
       disabled={p.disabled}
@@ -87,7 +89,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   
   select: (p) => (
     <Select
-      value={p.value || ''}
+      value={String(p.value || '')}
       onValueChange={p.onChange}
       disabled={p.disabled}
       className={FULL_WIDTH}
@@ -104,7 +106,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   
   'person-select': (p) => (
     <Select
-      value={p.value || ''}
+      value={String(p.value || '')}
       onValueChange={p.onChange}
       disabled={p.disabled}
       className={FULL_WIDTH}
@@ -153,7 +155,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
       <div className={SPACE_Y_2}>
         <Input
           id={p.fieldId}
-          value={p.value || ''}
+          value={String(p.value || '')}
           onChange={(e) => p.onChange(e.target.value)}
           placeholder={p.placeholder || "Enter file path or upload below"}
           disabled={p.isLoadingState}

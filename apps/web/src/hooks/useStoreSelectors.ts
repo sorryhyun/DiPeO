@@ -201,6 +201,67 @@ export const useArrowDataUpdater = () => {
   return useDiagramStore(state => state.updateArrow);
 };
 
+// Person data updater hook
+export const usePersonDataUpdater = () => {
+  return useDiagramStore(state => state.updatePerson);
+};
+
+// API key updater hook
+export const useApiKeyUpdater = () => {
+  return useDiagramStore(state => state.updateApiKey);
+};
+
+// Granular execution actions selector
+export const useExecutionActions = () => {
+  return useExecutionStore(
+    state => ({
+      startExecution: state.startExecution,
+      stopExecution: state.stopExecution,
+      reset: state.reset,
+      addRunningNode: state.addRunningNode,
+      removeRunningNode: state.removeRunningNode,
+      setCurrentRunningNode: state.setCurrentRunningNode,
+      setRunContext: state.setRunContext,
+      addSkippedNode: state.addSkippedNode,
+      setNodeError: state.setNodeError,
+    }),
+    shallow
+  );
+};
+
+// Node position updater
+export const useNodePositionUpdater = () => {
+  return useDiagramStore(state => (id: string, position: { x: number; y: number }) => 
+    state.updateNode(id, { position })
+  );
+};
+
+// Selected element getters
+export const useSelectedNodeId = () => {
+  return useConsolidatedUIStore(state => state.selectedNodeId);
+};
+
+export const useSelectedArrowId = () => {
+  return useConsolidatedUIStore(state => state.selectedArrowId);
+};
+
+// Batch selectors for common operations
+export const useDiagramActions = () => {
+  return useDiagramStore(
+    state => ({
+      addNode: state.addNode,
+      deleteNode: state.deleteNode,
+      addArrow: state.addArrow,
+      deleteArrow: state.deleteArrow,
+      addPerson: state.addPerson,
+      deletePerson: state.deletePerson,
+      addApiKey: state.addApiKey,
+      deleteApiKey: state.deleteApiKey,
+    }),
+    shallow
+  );
+};
+
 // UI selectors (alias for backward compatibility)
 // export const useUISelectors = useUIState; // Removed - use useUIState directly
 

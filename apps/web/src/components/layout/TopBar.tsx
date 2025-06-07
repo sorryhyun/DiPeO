@@ -5,7 +5,7 @@ import { useUIState } from '@/hooks/useStoreSelectors';
 import { useApiKeyStore } from '@/stores/apiKeyStore';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { useDiagram } from '@/hooks';
-import { useDiagramRunner } from '@/hooks/useExecution';
+import { useDiagramRunner } from '@/hooks/execution';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse } from '@/utils/types';
@@ -184,7 +184,7 @@ const TopBar = () => {
                 <Button 
                   variant="outline" 
                   className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-                  onClick={onRunDiagram}
+                  onClick={() => onRunDiagram()}
                 >
                   ▶️ Run Diagram
                 </Button>

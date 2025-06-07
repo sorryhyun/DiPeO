@@ -9,8 +9,7 @@ import {
   createErrorHandlerFactory,
   type ApiKey, 
   type Diagram, 
-  type ApiResponse as ApiResponseType, 
-  type Node 
+  type ApiResponse as ApiResponseType
 } from '@/types';
 
 // Internal HTTP response wrapper

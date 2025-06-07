@@ -6,8 +6,9 @@ import { getNodeConfig } from '@/config/helpers';
 import { createHandleId } from '@/utils/node';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import { useExecution } from '@/hooks/useExecution';
+import { useExecutionV2 } from '@/hooks/execution';
 import { useConsolidatedUIStore } from '@/stores';
+import type { NodeType } from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -15,14 +16,14 @@ interface BaseNodeProps {
   id: string;
   type: string;
   selected?: boolean;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   showFlipButton?: boolean;
   className?: string;
 }
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { nodeStates } = useExecution();
+  const { nodeStates } = useExecutionV2();
   const nodeState = nodeStates?.[nodeId];
   
   return useMemo(() => ({
@@ -37,7 +38,7 @@ function useNodeStatus(nodeId: string) {
 
 // Custom hook for handles generation
 function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
-  const config = getNodeConfig(nodeType as any);
+  const config = getNodeConfig(nodeType as NodeType);
   
   return useMemo(() => {
     const allHandles = [
@@ -141,7 +142,7 @@ const NodeBody = React.memo(({
   data, 
   isExecutionMode 
 }: { 
-  data: Array<[string, any]>;
+  data: Array<[string, unknown]>;
   isExecutionMode: boolean;
 }) => (
   <div className="space-y-1">
@@ -176,7 +177,7 @@ export function BaseNode({
   
   // Use custom hooks
   const status = useNodeStatus(id);
-  const config = getNodeConfig(type as any);
+  const config = getNodeConfig(type as NodeType);
   const isFlipped = data?.flipped === true;
   const handles = useHandles(id, type, isFlipped);
   
@@ -240,7 +241,7 @@ export function BaseNode({
         {/* Header */}
         <NodeHeader 
           icon={config.icon}
-          label={data.label || data.name}
+          label={String(data.label || data.name || '')}
           id={id}
           configLabel={config.label}
           isExecutionMode={isExecutionMode}
@@ -263,7 +264,7 @@ export function BaseNode({
       </div>
 
       {/* Handles */}
-      {handles.map((handle: any) => (
+      {handles.map((handle) => (
         <FlowHandle
           key={handle.id}
           nodeId={id}

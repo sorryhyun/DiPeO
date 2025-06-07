@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { isDraft, current } from 'immer';
 import { useQueries } from '@tanstack/react-query';
-import { useCanvasSelectors } from './useStoreSelectors';
+import { 
+  useCanvasSelectors, 
+  useNodeDataUpdater, 
+  useArrowDataUpdater, 
+  usePersonDataUpdater 
+} from './useStoreSelectors';
+import { useEvent } from './useEvent';
 import { type ApiKey, PanelConfig, PanelFieldConfig, SelectFieldConfig } from '@/types';
-import { useDiagramStore, useApiKeyStore } from "@/stores";
+import { useApiKeyStore } from "@/stores";
 
 // Safe deep comparison using Immer to handle draft states
 function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
@@ -77,8 +83,10 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
   } = options;
 
   // Store selectors
-  const {updateArrow, updatePerson} = useDiagramStore();
-  const { updateNode, isMonitorMode } = useCanvasSelectors();
+  const updateNode = useNodeDataUpdater();
+  const updateArrow = useArrowDataUpdater();
+  const updatePerson = usePersonDataUpdater();
+  const { isMonitorMode } = useCanvasSelectors();
   const { apiKeys } = useApiKeyStore();
 
   // Form state
@@ -130,8 +138,8 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     return newErrors;
   };
 
-  // Auto-save function
-  const autoSaveToStore = useCallback((data: T) => {
+  // Auto-save function - using useEvent for stable reference
+  const autoSaveToStore = useEvent((data: T) => {
     if (isMonitorMode) return; // Don't auto-save in monitor mode
     
     try {
@@ -149,10 +157,10 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
         onError(errorMessage);
       }
     }
-  }, [entityType, entityId, updateNode, updateArrow, updatePerson, isMonitorMode, onError]);
+  });
 
-  // Handle field changes with batched state updates
-  const updateField = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
+  // Handle field changes with batched state updates - using useEvent for stable reference
+  const updateField = useEvent(<K extends keyof T>(field: K, value: T[K]) => {
     // Batch all state updates together
     const newData = { ...formData, [field]: value };
     const fieldError = validateField(field, value, newData);
@@ -183,7 +191,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
         }
       }, autoSaveDelay);
     }
-  }, [formData, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
+  });
 
   // Handle bulk updates
   const updateFormData = useCallback((updates: Partial<T>) => {
@@ -226,8 +234,8 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     });
   }, [errors, validateField, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
 
-  // Handle manual save
-  const handleSave = useCallback(async (dataToSave?: T) => {
+  // Handle manual save - using useEvent for stable reference
+  const handleSave = useEvent(async (dataToSave?: T) => {
     const saveData = dataToSave || formData;
     const formErrors = validateForm(saveData);
     
@@ -260,7 +268,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, onSave, onError, autoSaveToStore]);
+  });
 
   // Handle form reset
   const reset = useCallback(() => {

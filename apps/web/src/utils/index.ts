@@ -1,5 +1,6 @@
 export * from './api';
 export * from './file';
+export * from './id';
 export * from './websocket';
 export * from './converters';
 export * from './canvas';

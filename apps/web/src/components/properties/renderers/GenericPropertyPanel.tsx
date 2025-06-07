@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { PanelConfig, PanelFieldConfig } from '@/types';
 import { usePropertyManager } from '@/hooks/usePropertyManager';
 import { usePersons } from '@/hooks/useStoreSelectors';
-import { UnifiedFormField } from '../fields';
+import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { preInitializeModel } from '@/utils/api';
 
@@ -131,7 +131,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             type="text"
             name="label"
             label="Label"
-            value={formData.label as any}
+            value={formData.label as FieldValue}
             onChange={(v) => handleFieldUpdate('label', v)}
             placeholder={fieldConfig.labelPlaceholder}
             disabled={isReadOnly}
@@ -140,7 +140,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             type="person-select"
             name="personId"
             label="Person"
-            value={formData.personId as any}
+            value={formData.personId as FieldValue}
             onChange={(v) => handleFieldUpdate('personId', v)}
             placeholder={fieldConfig.personPlaceholder}
             disabled={isReadOnly}
@@ -166,16 +166,16 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         type={getFieldType(fieldConfig)}
         name={fieldConfig.name || ''}
         label={fieldConfig.label || ''}
-        value={fieldValue}
+        value={fieldValue as FieldValue}
         onChange={(v) => handleFieldUpdate(fieldConfig.name || '', v)}
         placeholder={'placeholder' in fieldConfig ? fieldConfig.placeholder : undefined}
         options={fieldConfig.type === 'select' ? options : undefined}
         disabled={isReadOnly || ('disabled' in fieldConfig && fieldConfig.disabled) || isLoading}
-        required={'isRequired' in fieldConfig ? (fieldConfig as any).isRequired : undefined}
+        required={false}
         min={fieldConfig.type === 'maxIteration' ? fieldConfig.min : undefined}
         max={fieldConfig.type === 'maxIteration' ? fieldConfig.max : undefined}
-        helperText={'helperText' in fieldConfig ? (fieldConfig as any).helperText : undefined}
-        acceptedFileTypes={'acceptedFileTypes' in fieldConfig ? (fieldConfig as any).acceptedFileTypes : undefined}
+        helperText={undefined}
+        acceptedFileTypes={undefined}
         detectedVariables={formData.detectedVariables as string[] | undefined}
         className={fieldConfig.className}
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}

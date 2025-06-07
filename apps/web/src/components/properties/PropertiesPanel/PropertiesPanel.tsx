@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { DiagramNodeData, ArrowData, PersonDefinition, PanelConfig } from '@/types';
+import { DiagramNodeData, ArrowData, PersonDefinition, PanelConfig, NodeType } from '@/types';
 import { NODE_CONFIGS, getPanelConfig } from '@/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 
@@ -23,7 +23,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
     config: PanelConfig<Record<string, unknown>>;
   }>;
   
-  const panelConfig = getPanelConfig(nodeType as any);
+  const panelConfig = getPanelConfig(nodeType as NodeType | 'arrow' | 'person');
   
   if (!panelConfig) {
     return (

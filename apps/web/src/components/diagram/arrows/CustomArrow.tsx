@@ -11,7 +11,7 @@ export const CustomArrow = React.memo((props: Parameters<typeof CustomArrowBase>
   const updateArrowData = useArrowDataUpdater();
   
   // Create a type-safe wrapper that converts diagram-ui ArrowData to engine-model ArrowData
-  const handleUpdateData = React.useCallback((edgeId: string, data: Partial<Record<string, any> | undefined>) => {
+  const handleUpdateData = React.useCallback((edgeId: string, data: Partial<ArrowData> | undefined) => {
     if (!data || !updateArrowData) return;
     
     // Filter and convert data to match engine-model ArrowData type

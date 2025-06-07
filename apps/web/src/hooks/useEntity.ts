@@ -10,9 +10,16 @@ export interface Entity {
 }
 
 /**
+ * Minimal entity type for flexible usage
+ */
+export interface BaseEntity {
+  id: string;
+}
+
+/**
  * CRUD operations for any entity type
  */
-export interface SingleEntityOperations<T extends Entity> {
+export interface SingleEntityOperations<T extends BaseEntity> {
   // Read operations
   getAll: () => T[];
   getById: (id: string) => T | undefined;
@@ -40,7 +47,7 @@ export interface SingleEntityOperations<T extends Entity> {
 /**
  * Configuration for entity hook
  */
-export interface UseEntityConfig<T extends Entity> {
+export interface UseEntityConfig<T extends Entity | BaseEntity> {
   // Store getters
   getEntities: () => Map<string, T> | T[];
   
@@ -63,8 +70,9 @@ export interface UseEntityConfig<T extends Entity> {
 /**
  * Generic entity management hook factory
  * Creates a hook with CRUD operations for any entity type
+ * Works with both Entity (with index signature) and BaseEntity (without)
  */
-export function createEntityHook<T extends Entity>(
+export function createEntityHook<T extends BaseEntity>(
   config: UseEntityConfig<T>
 ): () => SingleEntityOperations<T> {
   return function useEntity(): SingleEntityOperations<T> {
@@ -258,40 +266,4 @@ export function createEntityHook<T extends Entity>(
   };
 }
 
-/**
- * Create specialized entity hooks for common types
- */
-
-// Example: Node entity hook
-export const createNodeEntityHook = (store: any) =>
-  createEntityHook<any>({
-    getEntities: () => store.nodes,
-    addEntity: (node) => store.addNode(node.type, node.position),
-    updateEntity: store.updateNode,
-    deleteEntity: store.deleteNode,
-    setEntities: store.setNodes,
-    getSelectedId: () => store.selectedNodeId,
-    setSelectedId: store.setSelectedNodeId,
-  });
-
-// Example: Arrow entity hook
-export const createArrowEntityHook = (store: any) =>
-  createEntityHook<any>({
-    getEntities: () => store.arrows,
-    addEntity: (arrow) => store.addArrow(arrow.source, arrow.target, arrow.sourceHandle, arrow.targetHandle),
-    updateEntity: store.updateArrow,
-    deleteEntity: store.deleteArrow,
-    setEntities: store.setArrows,
-    getSelectedId: () => store.selectedArrowId,
-    setSelectedId: store.setSelectedArrowId,
-  });
-
-// Example: Person entity hook  
-export const createPersonEntityHook = (store: any) =>
-  createEntityHook<any>({
-    getEntities: () => store.persons,
-    addEntity: store.addPerson,
-    updateEntity: store.updatePerson,
-    deleteEntity: store.deletePerson,
-    setEntities: store.setPersons,
-  });
+// Example usage is now in useEntities.ts where concrete implementations are defined
