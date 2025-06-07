@@ -1,8 +1,8 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
-import { Diagram, Person, Arrow, ApiKey, Node } from '@/types';
+import { Diagram, Person, Arrow, ApiKey, Node } from '@/types/core';
 import { nanoid } from 'nanoid';
-import { buildNode, NodeInfo, detectVariables } from './nodeBuilders';
+import { buildNode, NodeInfo } from './nodeBuilders';
 
 interface YamlDiagram {
   version: '1.0';

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { Node, NodeType } from '@/types';
+import { Node, NodeType } from '@/types/core';
 
 // Common utilities
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

@@ -1,6 +1,6 @@
 import { parse, stringify } from 'yaml';
 import { nanoid } from 'nanoid';
-import { Diagram, Person, ApiKey, Node, NodeType } from '@/types';
+import { Diagram, Person, ApiKey, Node, NodeType } from '@/types/core';
 import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';
 

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { Diagram, Node, Arrow, Person, ApiKey } from '@/types';
+import { Diagram, Node, Arrow, Person, ApiKey } from '@/types/core';
 
 // Edge type for graph representation
 export interface Edge {

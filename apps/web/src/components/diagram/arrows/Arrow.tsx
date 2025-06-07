@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useConsolidatedUIStore } from '@/stores';
 
@@ -9,6 +9,22 @@ type ArrowData = Arrow['data'];
 export interface CustomArrowProps extends EdgeProps {
   onUpdateData?: (edgeId: string, data: Partial<ArrowData>) => void;
 }
+
+// Helper function to calculate quadratic bezier point at parameter t
+const getQuadraticPoint = (
+  t: number,
+  sourceX: number,
+  sourceY: number,
+  controlX: number,
+  controlY: number,
+  targetX: number,
+  targetY: number
+) => {
+  const oneMinusT = 1 - t;
+  const x = oneMinusT * oneMinusT * sourceX + 2 * oneMinusT * t * controlX + t * t * targetX;
+  const y = oneMinusT * oneMinusT * sourceY + 2 * oneMinusT * t * controlY + t * t * targetY;
+  return { x, y };
+};
 
 export const CustomArrow: React.FC<CustomArrowProps> = ({
   id,
@@ -36,37 +52,40 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   const controlPointOffsetX = arrowData?.controlPointOffsetX ?? 0;
   const controlPointOffsetY = arrowData?.controlPointOffsetY ?? 0;
 
-  let edgePath: string;
-  let labelX: number;
-  let labelY: number;
-  
-  if (source === target) {
-    const x = sourceX;
-    const y = sourceY;
-    const offset = arrowData?.loopRadius ?? 50;
-    edgePath = `M ${x},${y}
-      C ${x + offset},${y - offset} ${x + offset},${y + offset} ${x},${y + offset}
-      C ${x - offset},${y + offset} ${x - offset},${y - offset} ${x},${y}`;
-    labelX = x;
-    labelY = y - offset;
-  } else {
-    const defaultControlX = (sourceX + targetX) / 2;
-    const defaultControlY = (sourceY + targetY) / 2;
+  // Memoize path and label position calculations
+  const { edgePath, labelX, labelY } = useMemo(() => {
+    let path: string;
+    let lx: number;
+    let ly: number;
     
-    // Apply user's control point offset
-    const controlX = defaultControlX + controlPointOffsetX;
-    const controlY = defaultControlY + controlPointOffsetY;
+    if (source === target) {
+      const x = sourceX;
+      const y = sourceY;
+      const offset = arrowData?.loopRadius ?? 50;
+      path = `M ${x},${y}
+        C ${x + offset},${y - offset} ${x + offset},${y + offset} ${x},${y + offset}
+        C ${x - offset},${y + offset} ${x - offset},${y - offset} ${x},${y}`;
+      lx = x;
+      ly = y - offset;
+    } else {
+      const defaultControlX = (sourceX + targetX) / 2;
+      const defaultControlY = (sourceY + targetY) / 2;
+      
+      // Apply user's control point offset
+      const controlX = defaultControlX + controlPointOffsetX;
+      const controlY = defaultControlY + controlPointOffsetY;
+      
+      // Create quadratic bezier path with custom control point
+      path = `M ${sourceX},${sourceY} Q ${controlX},${controlY} ${targetX},${targetY}`;
+      
+      // Calculate point on the bezier curve at t=0.5 (midpoint along the curve)
+      const { x, y } = getQuadraticPoint(0.5, sourceX, sourceY, controlX, controlY, targetX, targetY);
+      lx = x;
+      ly = y;
+    }
     
-    // Create quadratic bezier path with custom control point
-    edgePath = `M ${sourceX},${sourceY} Q ${controlX},${controlY} ${targetX},${targetY}`;
-    
-    // Calculate point on the bezier curve at t=0.5 (midpoint along the curve)
-    // For quadratic bezier: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
-    const t = 0.5;
-    const oneMinusT = 1 - t;
-    labelX = oneMinusT * oneMinusT * sourceX + 2 * oneMinusT * t * controlX + t * t * targetX;
-    labelY = oneMinusT * oneMinusT * sourceY + 2 * oneMinusT * t * controlY + t * t * targetY;
-  }
+    return { edgePath: path, labelX: lx, labelY: ly };
+  }, [source, target, sourceX, sourceY, targetX, targetY, controlPointOffsetX, controlPointOffsetY, arrowData?.loopRadius]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!onUpdateData) return;
@@ -152,7 +171,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [id, source, target, screenToFlowPosition, sourceX, sourceY, targetX, targetY, onUpdateData, controlPointOffsetX, controlPointOffsetY, arrowData]);
+  }, [id, source, target, screenToFlowPosition, sourceX, sourceY, onUpdateData, controlPointOffsetX, controlPointOffsetY, arrowData]);
 
   // Double-click to reset to straight line
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -171,24 +190,54 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
     }
   }, [id, source, target, onUpdateData]);
 
+  // Memoize edge style
+  const edgeStyle = useMemo(() => ({
+    ...(style || {}),
+    strokeWidth: selected ? 3 : 1.5,
+    stroke: selected ? '#3b82f6' : '#6b7280'
+  }), [style, selected]);
+
+  // Memoize label style
+  const labelStyle = useMemo(() => ({
+    position: 'absolute' as const,
+    transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+    fontSize: 14,
+    padding: '4px 8px',
+    borderRadius: '6px',
+    pointerEvents: 'all' as const,
+    color: selected ? '#1d4ed8' : (isExecutionMode ? '#111827' : '#374151'),
+    fontWeight: selected ? '600' : (isExecutionMode ? '600' : '500'),
+    maxWidth: '200px',
+    cursor: isDragging ? 'grabbing' : 'grab',
+    userSelect: 'none' as const,
+  }), [labelX, labelY, selected, isExecutionMode, isDragging]);
+
+  // Memoize label content
+  const labelContent = useMemo(() => {
+    if (arrowData?.branch) {
+      return <span>{arrowData.branch === 'true' ? '✅' : '❌'}</span>;
+    }
+    
+    if (arrowData?.contentType) {
+      const icons: Record<string, string> = {
+        'conversation_state': '💬',
+        'variable_in_object': '📦',
+        'raw_text': '📝',
+        'empty': '⚪',
+        'generic': '🔄',
+      };
+      return <span>{icons[arrowData.contentType] || '📋'}</span>;
+    }
+    
+    return null;
+  }, [arrowData?.branch, arrowData?.contentType]);
+
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={{...(style || {}), strokeWidth: selected ? 3 : 1.5, stroke: selected ? '#3b82f6' : '#6b7280'}} />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={edgeStyle} />
       <EdgeLabelRenderer>
         <div
-          style={{
-            position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            fontSize: 14,
-            padding: '4px 8px',
-            borderRadius: '6px',
-            pointerEvents: 'all',
-            color: selected ? '#1d4ed8' : (isExecutionMode ? '#111827' : '#374151'),
-            fontWeight: selected ? '600' : (isExecutionMode ? '600' : '500'),
-            maxWidth: '200px',
-            cursor: isDragging ? 'grabbing' : 'grab',
-            userSelect: 'none',
-          }}
+          style={labelStyle}
           className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
           onMouseDown={handleMouseDown}
           onDoubleClick={handleDoubleClick}
@@ -196,20 +245,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
         >
           <div className="text-center">
             <div className="font-medium flex items-center justify-center gap-1">
-              {arrowData?.branch ? (
-                <span>
-                  {arrowData.branch === 'true' ? '✅' : '❌'}
-                </span>
-              ) : arrowData?.contentType && (
-                <span>
-                  {arrowData.contentType === 'conversation_state' ? '💬' :
-                   arrowData.contentType === 'variable_in_object' ? '📦' :
-                   arrowData.contentType === 'raw_text' ? '📝' :
-                   arrowData.contentType === 'empty' ? '⚪' :
-                   arrowData.contentType === 'generic' ? '🔄' :
-                   '📋'}
-                </span>
-              )}
+              {labelContent}
               {arrowData?.label && (
                 <span>{arrowData.label}</span>
               )}
