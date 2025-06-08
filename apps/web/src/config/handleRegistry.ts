@@ -4,6 +4,7 @@ export interface HandleDefinition {
   label?: string;
   offset?: { x?: number; y?: number };
   color?: string;
+  // Note: direction is inferred from whether it's in inputs or outputs array
 }
 
 export interface NodeHandleConfig {

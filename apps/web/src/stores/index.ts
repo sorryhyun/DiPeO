@@ -12,3 +12,7 @@ export type { DiagramStore } from './diagramStore';
 export type { ExecutionStore } from './executionStore';
 export type { ApiKeyState } from './apiKeyStore';
 export type { HistoryStore, HistoryState } from './historyStore';
+
+// Phase 8 additions
+export { createTypedActions } from './typed-actions';
+export type { TypedDiagramActions } from './typed-actions';

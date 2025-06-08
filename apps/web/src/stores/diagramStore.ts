@@ -1,13 +1,16 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
-import { generateShortId, entityIdGenerators } from '@/utils/id';
+import { generateShortId, entityIdGenerators, generateArrowId, generatePersonId } from '@/utils/id';
 import { produce, enableMapSet } from 'immer';
 import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
 import { Node, Arrow, Person, ApiKey, Handle, NodeKind } from '@/types';
+import { NodeID, ArrowID, PersonID, HandleID } from '@/types/branded';
 import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 import { canConnect } from '@/utils/connection-validator';
+import { validateConnection } from '@/utils/connections/typed-connection';
+import { convertNodeMap } from '@/utils/connections/diagram-bridge';
 
 // Enable Immer MapSet plugin for Map and Set support
 enableMapSet();
@@ -31,23 +34,44 @@ export interface DiagramStore {
   personList: () => Person[];
   apiKeyList: () => ApiKey[];
 
-  // Node mutators
+  // Node mutators (support both string and branded types)
   addNode: (type: Node['type'], position: { x: number; y: number }) => void;
-  updateNode: (id: string, data: Record<string, unknown>) => void;
-  deleteNode: (id: string) => void;
+  updateNode: {
+    (id: NodeID, data: Record<string, unknown>): void;
+    (id: string, data: Record<string, unknown>): void;
+  };
+  deleteNode: {
+    (id: NodeID): void;
+    (id: string): void;
+  };
   upsertNode: (partial: Partial<Node> & Pick<Node, 'id'>) => void;
 
-  // Arrow mutators
+  // Arrow mutators (support both string and branded types)
   addArrow: (source: string, target: string, sourceHandle?: string, targetHandle?: string) => void;
-  updateArrow: (id: string, data: Record<string, unknown>) => void;
-  deleteArrow: (id: string) => void;
+  updateArrow: {
+    (id: ArrowID, data: Record<string, unknown>): void;
+    (id: string, data: Record<string, unknown>): void;
+  };
+  deleteArrow: {
+    (id: ArrowID): void;
+    (id: string): void;
+  };
   upsertArrow: (partial: Partial<Arrow> & Pick<Arrow, 'id'>) => void;
 
-  // Person mutators
+  // Person mutators (support both string and branded types)
   addPerson: (person: Omit<Person, 'id'>) => void;
-  updatePerson: (id: string, data: Partial<Person>) => void;
-  deletePerson: (id: string) => void;
-  getPersonById: (id: string) => Person | undefined;
+  updatePerson: {
+    (id: PersonID, data: Partial<Person>): void;
+    (id: string, data: Partial<Person>): void;
+  };
+  deletePerson: {
+    (id: PersonID): void;
+    (id: string): void;
+  };
+  getPersonById: {
+    (id: PersonID): Person | undefined;
+    (id: string): Person | undefined;
+  };
 
   // API Key mutators
   addApiKey: (apiKey: Omit<ApiKey, 'id'>) => void;
@@ -76,12 +100,15 @@ export interface DiagramStore {
   exportDiagram: () => { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys: ApiKey[] };
   
   // Label-based persistence
-  exportDiagramWithLabels: () => { nodes: any[]; arrows: any[]; persons: any[]; apiKeys: any[] };
-  loadDiagramFromLabels: (data: { nodes?: any[]; arrows?: any[]; persons?: any[]; apiKeys?: any[] }) => void;
+  exportDiagramWithLabels: () => { nodes: Record<string, unknown>[]; arrows: Record<string, unknown>[]; persons: Record<string, unknown>[]; apiKeys: Record<string, unknown>[] };
+  loadDiagramFromLabels: (data: { nodes?: Record<string, unknown>[]; arrows?: Record<string, unknown>[]; persons?: Record<string, unknown>[]; apiKeys?: Record<string, unknown>[] }) => void;
 
   // Compatibility properties
   isReadOnly?: boolean;
   setReadOnly?: (readOnly: boolean) => void;
+  
+  // Validation methods
+  validateAllConnections: () => { valid: Arrow[]; invalid: Array<{ arrow: Arrow; error: string }> };
 }
 
 // Helpers
@@ -242,12 +269,12 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
 
             // Arrow mutators
             addArrow: (sourceNodeId, targetNodeId, sourceHandleName = 'output', targetHandleName = 'input') => {
-              const id = `arrow-${generateShortId().slice(0, 4)}`;
+              const id = generateArrowId();
               // Create handle IDs from node IDs and handle names
               const sourceHandleId = createHandleId(sourceNodeId, sourceHandleName);
               const targetHandleId = createHandleId(targetNodeId, targetHandleName);
               
-              // Validate connection
+              // Validate connection using legacy system first
               const state = get();
               const validation = canConnect(
                 sourceHandleId,
@@ -259,6 +286,39 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
               if (!validation.valid) {
                 console.warn(`Connection validation failed: ${validation.reason}`);
                 return;
+              }
+              
+              // Enhanced type-safe validation using the typed connection system
+              try {
+                const diagramNodes = convertNodeMap(get().nodes);
+                
+                // Create a temporary arrow object for validation
+                // The validateConnection function expects the new Arrow type from @/types/arrow
+                const tempArrow = {
+                  id: id as ArrowID,
+                  source: sourceHandleId as HandleID,
+                  target: targetHandleId as HandleID
+                };
+                
+                const typedValidation = validateConnection(tempArrow, diagramNodes);
+                if (!typedValidation.valid) {
+                  console.error(`Type-safe validation failed: ${typedValidation.error}`);
+                  // Log detailed information for debugging
+                  console.error('Connection details:', {
+                    source: sourceHandleId,
+                    target: targetHandleId,
+                    error: typedValidation.error,
+                    sourceNode: parseHandleId(sourceHandleId),
+                    targetNode: parseHandleId(targetHandleId)
+                  });
+                  
+                  // Fall back to legacy validation for now
+                  console.warn('Falling back to legacy validation due to type-safe validation failure');
+                }
+              } catch (error) {
+                // If typed validation fails, log the error but don't block the connection
+                console.error('Error during typed validation:', error);
+                console.warn('Continuing with legacy validation only');
               }
               
               const newArrow: Arrow = {
@@ -444,7 +504,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
 
             // Handle registry
             getHandleById: (handleId) => {
-              const { nodeId, handleName } = parseHandleId(handleId);
+              const { nodeId } = parseHandleId(handleId);
               const node = get().nodes.get(nodeId);
               if (!node || !node.handles) return undefined;
               
@@ -804,7 +864,34 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
 
             // Compatibility
             isReadOnly: false,
-            setReadOnly: (readOnly: boolean) => set({ isReadOnly: readOnly })
+            setReadOnly: (readOnly: boolean) => set({ isReadOnly: readOnly }),
+            
+            // Validation methods
+            validateAllConnections: () => {
+              const state = get();
+              const diagramNodes = convertNodeMap(state.nodes);
+              const arrows = state.arrowList();
+              
+              const valid: Arrow[] = [];
+              const invalid: Array<{ arrow: Arrow; error: string }> = [];
+              
+              for (const arrow of arrows) {
+                const typedArrow = {
+                  id: arrow.id as ArrowID,
+                  source: arrow.source as HandleID,
+                  target: arrow.target as HandleID
+                };
+                
+                const result = validateConnection(typedArrow, diagramNodes);
+                if (result.valid) {
+                  valid.push(arrow);
+                } else {
+                  invalid.push({ arrow, error: result.error || 'Unknown error' });
+                }
+              }
+              
+              return { valid, invalid };
+            }
           };
         },
         {

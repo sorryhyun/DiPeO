@@ -1,6 +1,7 @@
 // types/ui.ts - UI-related types
 
-import type { ID, Vec2, Dict } from './primitives';
+import type { Vec2, Dict } from './primitives';
+import type { NodeID, ArrowID, PersonID } from './branded';
 import type { Node, Arrow, Person, ApiKey } from './diagram';
 import type React from 'react';
 
@@ -8,11 +9,11 @@ export const Views = ['diagram','memory','execution','conversation'] as const;
 export type View = typeof Views[number];
 
 export interface UIState {
-  selected?: { id: ID; kind: 'node' | 'arrow' | 'person' };
+  selected?: { id: NodeID | ArrowID | PersonID; kind: 'node' | 'arrow' | 'person' };
   active: View;
   monitorMode: boolean;
   propertyPanelOpen: boolean;
-  contextMenu?: { pos: Vec2; nodeId?: ID };
+  contextMenu?: { pos: Vec2; nodeId?: NodeID };
 }
 
 /* Canvas */

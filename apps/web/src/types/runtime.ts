@@ -1,6 +1,7 @@
 // types/runtime.ts - Runtime/Execution types
 
-import type { ID, Dict } from './primitives';
+import type { Dict } from './primitives';
+import type { NodeID } from './branded';
 
 export type MessageHandler = (message: WSMessage) => void;
 
@@ -14,11 +15,11 @@ export interface ExecutionOptions {
 }
 
 export interface ExecutionState<C = Dict> {
-  id: ID;
-  running: ID[];
-  completed: ID[];
-  skipped: ID[];
-  paused: ID[];
+  id: string;  // Execution ID - TODO: Consider creating ExecutionID branded type
+  running: NodeID[];
+  completed: NodeID[];
+  skipped: NodeID[];
+  paused: NodeID[];
   context: C;
   errors: Dict<string>;
   isRunning: boolean;
@@ -50,16 +51,16 @@ export type EventPayload<T extends string, P = undefined> =
   P extends undefined ? { type: T } : { type: T; payload: P };
 
 export type NodeExecutionEvent =
-  | EventPayload<'node_start', { nodeId: ID }>
-  | EventPayload<'node_progress', { nodeId: ID; message?: string }>
-  | EventPayload<'node_complete', { nodeId: ID; output: unknown }>
-  | EventPayload<'node_error', { nodeId: ID; error: string }>
-  | EventPayload<'node_paused', { nodeId: ID }>
-  | EventPayload<'node_resumed', { nodeId: ID }>
-  | EventPayload<'node_skipped', { nodeId: ID }>;
+  | EventPayload<'node_start', { nodeId: NodeID }>
+  | EventPayload<'node_progress', { nodeId: NodeID; message?: string }>
+  | EventPayload<'node_complete', { nodeId: NodeID; output: unknown }>
+  | EventPayload<'node_error', { nodeId: NodeID; error: string }>
+  | EventPayload<'node_paused', { nodeId: NodeID }>
+  | EventPayload<'node_resumed', { nodeId: NodeID }>
+  | EventPayload<'node_skipped', { nodeId: NodeID }>;
 
 // WebSocket message types
-export type WSMessage = { type: string; [key: string]: any };
+export type WSMessage = { type: string; [key: string]: unknown };  // Replaced 'any' with 'unknown'
 
 /* Execution update types */
 export interface ExecutionUpdate {
@@ -103,7 +104,7 @@ export interface ExecutionResult {
   context?: Record<string, unknown>;
   totalTokens?: number;
   duration?: number;
-  finalContext?: Record<string, any>;
+  finalContext?: Record<string, unknown>;  // Replaced 'any' with 'unknown'
   error?: string;
   metadata?: {
     totalTokens?: number;

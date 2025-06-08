@@ -2,6 +2,14 @@
 
 import type { Handle, Node } from '@/types';
 import { parseHandleId } from './canvas/handle-adapter';
+import { 
+  validateConnection as validateTypedConnection, 
+  findValidTargets as findTypedValidTargets, 
+  findValidSources as findTypedValidSources,
+  areDataTypesCompatible
+} from './connections/typed-connection';
+import type { Arrow } from '@/types/arrow';
+import type { HandleID } from '@/types/branded';
 
 export interface ConnectionRules {
   // Allow multiple connections to/from a handle
@@ -139,17 +147,62 @@ function areTypesCompatible(from: string, to: string): boolean {
   // Same type is always compatible
   if (from === to) return true;
   
-  // Define compatibility rules
-  const compatibilityMap: Record<string, string[]> = {
-    'string': ['any'],
-    'number': ['string', 'any'],
-    'boolean': ['string', 'any'],
-    'object': ['any'],
-    'array': ['object', 'any'],
-  };
-  
-  const compatibleTypes = compatibilityMap[from] || [];
-  return compatibleTypes.includes(to);
+  // Use the typed system's compatibility checker if possible
+  try {
+    return areDataTypesCompatible(from as any, to as any);
+  } catch {
+    // Fallback to legacy compatibility rules
+    const compatibilityMap: Record<string, string[]> = {
+      'string': ['any', 'text'],
+      'number': ['string', 'any', 'float', 'integer'],
+      'boolean': ['string', 'any'],
+      'object': ['any', 'json'],
+      'array': ['object', 'any'],
+    };
+    
+    const compatibleTypes = compatibilityMap[from] || [];
+    return compatibleTypes.includes(to);
+  }
+}
+
+/**
+ * Validate connection using the new typed system
+ * This is a wrapper to integrate with the legacy system
+ */
+export function validateConnectionV2(
+  arrow: { source: string; target: string },
+  nodes: Map<string, Node>
+): { valid: boolean; error?: string } {
+  // Import bridge utilities
+  const { convertNodeMap } = require('./connections/diagram-bridge');
+  const diagramNodes = convertNodeMap(nodes);
+  return validateTypedConnection(arrow as Arrow, diagramNodes);
+}
+
+/**
+ * Find valid targets using the new typed system
+ */
+export function findValidTargetsV2(
+  sourceNodeId: string,
+  sourceHandleName: string,
+  nodes: Map<string, Node>
+): Array<{ nodeId: string; handleName: string; handleId: HandleID }> {
+  const { convertNodeMap } = require('./connections/diagram-bridge');
+  const diagramNodes = convertNodeMap(nodes);
+  return findTypedValidTargets(sourceNodeId, sourceHandleName, diagramNodes);
+}
+
+/**
+ * Find valid sources using the new typed system
+ */
+export function findValidSourcesV2(
+  targetNodeId: string,
+  targetHandleName: string,
+  nodes: Map<string, Node>
+): Array<{ nodeId: string; handleName: string; handleId: HandleID }> {
+  const { convertNodeMap } = require('./connections/diagram-bridge');
+  const diagramNodes = convertNodeMap(nodes);
+  return findTypedValidSources(targetNodeId, targetHandleName, diagramNodes);
 }
 
 /**
@@ -162,12 +215,9 @@ export function getNodeConnectionRules(nodeType: string): ConnectionRules {
       return {
         allowMultiple: true,
         typeCompatibility: 'loose',
-        customValidator: (from, to) => {
+        customValidator: (from, _to) => {
           // Only allow boolean outputs from condition nodes
-          if (from.name === 'true' || from.name === 'false') {
-            return true;
-          }
-          return false;
+          return from.name === 'true' || from.name === 'false';
         },
       };
       

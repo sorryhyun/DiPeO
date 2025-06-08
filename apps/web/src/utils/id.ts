@@ -1,4 +1,12 @@
 import { nanoid } from 'nanoid';
+import { 
+  NodeID, 
+  ArrowID, 
+  PersonID, 
+  nodeId, 
+  arrowId, 
+  personId 
+} from '@/types/branded';
 
 const DEFAULT_ID_LENGTH = 4;
 const SHORT_ID_LENGTH = 4;
@@ -79,12 +87,33 @@ export function generateApiKeyId(): string {
 }
 
 /**
+ * Generate branded node ID
+ */
+export function generateNodeId(): NodeID {
+  return nodeId(generatePrefixedId('node'));
+}
+
+/**
+ * Generate branded arrow ID
+ */
+export function generateArrowId(): ArrowID {
+  return arrowId(generatePrefixedId('arrow'));
+}
+
+/**
+ * Generate branded person ID
+ */
+export function generatePersonId(): PersonID {
+  return personId(generatePrefixedId('person'));
+}
+
+/**
  * Type-safe ID generation for specific entity types
  */
 export const entityIdGenerators = {
-  node: () => generatePrefixedId('node'),
-  arrow: () => generatePrefixedId('arrow'),
-  person: () => generatePrefixedId('person'),
+  node: generateNodeId,
+  arrow: generateArrowId,
+  person: generatePersonId,
   apiKey: () => generateApiKeyId(), // Use custom format
   execution: () => generatePrefixedId('exec'),
   conversation: () => generatePrefixedId('conv'),

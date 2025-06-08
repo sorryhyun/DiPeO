@@ -1,6 +1,6 @@
 // types/api.ts - API layer types
 
-import type { Dict, ID } from './primitives';
+import type { Dict } from './primitives';
 import type { Diagram } from './diagram';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
