@@ -3,7 +3,7 @@ import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { produce, enableMapSet } from 'immer';
 import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
-import { Node, Arrow, Person, ApiKey } from '@/types';
+import { Node, Arrow, Person, ApiKey, Handle } from '@/types';
 import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
@@ -66,6 +66,10 @@ export interface DiagramStore {
   onArrowsChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
 
+  // Handle registry
+  getHandleById: (handleId: string) => { node: Node; handle: Handle } | undefined;
+  getHandlesForNode: (nodeId: string) => Handle[];
+  
   // Utility
   clear: () => void;
   loadDiagram: (data: { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys?: ApiKey[] }) => void;
@@ -402,6 +406,23 @@ export const useDiagramStore = create<DiagramStore>()(
               
               // Use addArrow which now includes validation
               get().addArrow(source, target, sourceHandleName, targetHandleName);
+            },
+
+            // Handle registry
+            getHandleById: (handleId) => {
+              const { nodeId, handleName } = parseHandleId(handleId);
+              const node = get().nodes.get(nodeId);
+              if (!node || !node.handles) return undefined;
+              
+              const handle = node.handles.find(h => h.id === handleId);
+              if (!handle) return undefined;
+              
+              return { node, handle };
+            },
+            
+            getHandlesForNode: (nodeId) => {
+              const node = get().nodes.get(nodeId);
+              return node?.handles || [];
             },
 
             // Utility

@@ -9,17 +9,9 @@ const ExecutionView = () => {
       {/* Execution Controls */}
       <ExecutionControls />
       
-      {/* Main content area with diagram and conversation panel */}
-      <div className="flex-1 flex flex-col">
-        {/* Read-only Diagram Canvas */}
-        <div className="flex-1">
-          <DiagramCanvas executionMode />
-        </div>
-        
-        {/* Conversation Dashboard Panel at bottom */}
-        <div className="h-64 border-t border-gray-700 bg-white overflow-hidden">
-          <ConversationDashboard />
-        </div>
+      {/* Main content area - DiagramCanvas with executionMode will show ConversationDashboard */}
+      <div className="flex-1">
+        <DiagramCanvas executionMode />
       </div>
     </div>
   );

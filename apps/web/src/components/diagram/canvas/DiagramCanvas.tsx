@@ -296,22 +296,20 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   return (
     <div className="h-full flex flex-col">
       {executionMode ? (
-        <div
-          ref={flowWrapperRef}
-          tabIndex={0}
-          className="relative h-full w-full outline-none"
-        >
-          <ReactFlow {...flowProps} onInit={handleInit} />
-          <Controls />
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={12}
-            size={1}
-            color={executionMode ? "#374151" : undefined}
-          />
-          {renderContextMenu()}
+        // During execution mode, show ConversationDashboard as the main view
+        <div className="h-full bg-white">
+          <Suspense
+            fallback={
+              <div className="h-full flex items-center justify-center text-gray-500 animate-pulse">
+                Loading conversation view...
+              </div>
+            }
+          >
+            <ConversationTab />
+          </Suspense>
         </div>
       ) : (
+        // Non-execution mode: Show diagram canvas with properties panel
         <PanelGroup direction="vertical">
           <Panel defaultSize={65} minSize={30}>
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
@@ -322,7 +320,27 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
-          <Panel defaultSize={35} minSize={20}>{renderContentPanel()}</Panel>
+          <Panel defaultSize={35} minSize={20}>
+            {/* Properties panel only shown in non-execution mode */}
+            <div className="h-full bg-white flex flex-col">
+              <div className="flex border-b bg-gray-50">
+                <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border-b-2 border-blue-500 text-blue-600">
+                  <FileText className="w-4 h-4" /> Properties
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <Suspense
+                  fallback={
+                    <div className="h-full flex items-center justify-center text-gray-500 animate-pulse">
+                      Loading…
+                    </div>
+                  }
+                >
+                  <PropertiesTab />
+                </Suspense>
+              </div>
+            </div>
+          </Panel>
         </PanelGroup>
       )}
     </div>
