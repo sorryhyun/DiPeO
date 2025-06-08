@@ -1,6 +1,6 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, DBFormData } from '@/types/ui';
 
-export const dbPanelConfig: PanelConfig<Record<string, any>> = {
+export const dbPanelConfig: TypedPanelConfig<DBFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {
@@ -25,7 +25,17 @@ export const dbPanelConfig: PanelConfig<Record<string, any>> = {
       name: 'sourceDetails',
       label: 'Source Details',
       rows: 5,
-      placeholder: 'For Fixed Prompt: Enter your text content\nFor File: Enter the file path (e.g., data/input.txt)'
+      placeholder: 'For Fixed Prompt: Enter your text content\nFor File: Enter the file path (e.g., data/input.txt)',
+      required: true,
+      validate: (value, formData) => {
+        if (!value || typeof value !== 'string' || value.trim().length === 0) {
+          return { isValid: false, error: 'Source details are required' };
+        }
+        if (formData.subType === 'file' && !value.includes('/') && !value.includes('.')) {
+          return { isValid: false, error: 'Please provide a valid file path' };
+        }
+        return { isValid: true };
+      }
     }
   ]
 };

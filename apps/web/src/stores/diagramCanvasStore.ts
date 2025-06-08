@@ -1,539 +1,334 @@
-import { createWithEqualityFn } from 'zustand/traditional';
-import { devtools, subscribeWithSelector } from 'zustand/middleware';
-import { generateShortId, generateArrowId } from '@/utils/id';
-import { produce, enableMapSet } from 'immer';
-import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
-import { Node, Arrow, Person, ApiKey, Handle, NodeKind } from '@/types';
-import { NodeID, ArrowID, PersonID, HandleID } from '@/types/branded';
-import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
-import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
-import { getNodeConfig } from '@/config/helpers';
-import { canConnect } from '@/utils/connection-validator';
-import { validateConnection } from '@/utils/connections/typed-connection';
-import { convertNodeMap } from '@/utils/connections/diagram-bridge';
+/**
+ * Optimized diagram store with pre-computed lookups for performance
+ */
 
-// Enable Immer MapSet plugin for Map and Set support
-enableMapSet();
+import type { NodeID, HandleID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
+import type { DomainNode, DomainHandle, DomainArrow, DomainPerson, DomainApiKey } from '@/types/domain';
+import type { HandleDirection } from '@/types';
 
-// Type definitions for Maps
-type NodeMap = Map<string, Node>;
-type ArrowMap = Map<string, Arrow>;
-type PersonMap = Map<string, Person>;
-type ApiKeyMap = Map<string, ApiKey>;
-
-export interface DiagramCanvasStore {
-  // Maps for O(1) access
-  nodes: NodeMap;
-  arrows: ArrowMap;
-  persons: PersonMap;
-  apiKeys: ApiKeyMap;
-
-  // Selectors (memoized) - only recompute if underlying Map mutated
-  nodeList: () => Node[];
-  arrowList: () => Arrow[];
-  personList: () => Person[];
-  apiKeyList: () => ApiKey[];
-
-  // Node mutators (support both string and branded types)
-  addNode: (type: Node['type'], position: { x: number; y: number }) => void;
-  updateNode: {
-    (id: NodeID, data: Record<string, unknown>): void;
-    (id: string, data: Record<string, unknown>): void;
-  };
-  deleteNode: {
-    (id: NodeID): void;
-    (id: string): void;
-  };
-  upsertNode: (partial: Partial<Node> & Pick<Node, 'id'>) => void;
-
-  // Arrow mutators (support both string and branded types)
-  addArrow: (source: string, target: string, sourceHandle?: string, targetHandle?: string) => void;
-  updateArrow: {
-    (id: ArrowID, data: Record<string, unknown>): void;
-    (id: string, data: Record<string, unknown>): void;
-  };
-  deleteArrow: {
-    (id: ArrowID): void;
-    (id: string): void;
-  };
-  upsertArrow: (partial: Partial<Arrow> & Pick<Arrow, 'id'>) => void;
-
-  // Person mutators (support both string and branded types)
-  addPerson: (person: Omit<Person, 'id'>) => void;
-  updatePerson: {
-    (id: PersonID, data: Partial<Person>): void;
-    (id: string, data: Partial<Person>): void;
-  };
-  deletePerson: {
-    (id: PersonID): void;
-    (id: string): void;
-  };
-  getPersonById: {
-    (id: PersonID): Person | undefined;
-    (id: string): Person | undefined;
-  };
-
-  // API Key mutators
-  addApiKey: (apiKey: Omit<ApiKey, 'id'>) => void;
-  updateApiKey: (id: string, data: Partial<ApiKey>) => void;
-  deleteApiKey: (id: string) => void;
-  getApiKeyById: (id: string) => ApiKey | undefined;
-
-  // Flow compatibility
-  onNodesChange: (changes: NodeChange[]) => void;
-  onArrowsChange: (changes: EdgeChange[]) => void;
-  onConnect: (connection: Connection) => void;
-
-  // Handle registry
-  getHandleById: (handleId: string) => { node: Node; handle: Handle } | undefined;
-  getHandlesForNode: (nodeId: string) => Handle[];
+export class DiagramCanvasStore {
+  // Primary storage
+  private nodes: Map<NodeID, DomainNode> = new Map();
+  private handles: Map<HandleID, DomainHandle> = new Map();
+  private arrows: Map<ArrowID, DomainArrow> = new Map();
+  private persons: Map<PersonID, DomainPerson> = new Map();
+  private apiKeys: Map<ApiKeyID, DomainApiKey> = new Map();
   
-  // Utility
-  clear: () => void;
+  // Pre-computed lookups for O(1) access
+  private handlesByNode: Map<NodeID, Set<HandleID>> = new Map();
+  private handlesByDirection: Map<HandleDirection, Set<HandleID>> = new Map();
+  private arrowsBySource: Map<HandleID, Set<ArrowID>> = new Map();
+  private arrowsByTarget: Map<HandleID, Set<ArrowID>> = new Map();
+  private nodesByType: Map<string, Set<NodeID>> = new Map();
+  private apiKeysByService: Map<string, Set<ApiKeyID>> = new Map();
   
-  // Compatibility properties
-  isReadOnly?: boolean;
-  setReadOnly?: (readOnly: boolean) => void;
+  constructor() {
+    // Initialize direction maps
+    this.handlesByDirection.set('input', new Set());
+    this.handlesByDirection.set('output', new Set());
+  }
   
-  // Validation methods
-  validateAllConnections: () => { valid: Arrow[]; invalid: Array<{ arrow: Arrow; error: string }> };
-}
-
-// Helpers
-const throttle = <Args extends unknown[], Return>(
-  fn: (...args: Args) => Return, 
-  ms: number
-): (...args: Args) => void => {
-  let last = 0;
-  let tid: ReturnType<typeof setTimeout> | null = null;
-  return (...args: Args) => {
-    const now = performance.now();
-    if (now - last > ms) {
-      last = now;
-      fn(...args);
-    } else {
-      if (tid) clearTimeout(tid);
-      tid = setTimeout(() => {
-        last = performance.now();
-        fn(...args);
-      }, ms);
-    }
-  };
-};
-
-// Store implementation
-export const useDiagramCanvasStore = createWithEqualityFn<DiagramCanvasStore>()(
-  devtools(
-    subscribeWithSelector(
-      (set, get) => {
-        // Throttled commit for drag-move
-        const commitDrag = throttle((changes: NodeChange[]) => {
-          // Filter out dimension changes here as well
-          const filteredChanges = changes.filter(change => change.type !== 'dimensions');
-          const currentNodes = get().nodeList();
-          // Convert our Node[] to NodeBase[] for ReactFlow
-          const rfNodes = currentNodes as any[];
-          const updatedRfNodes = applyNodeChanges(filteredChanges, rfNodes);
-          // Convert back to our Node type
-          const updatedNodes = updatedRfNodes as Node[];
-          set(
-            produce<DiagramCanvasStore>(draft => {
-              updatedNodes.forEach(n => {
-                draft.nodes.set(n.id, n);
-              });
-            })
-          );
-        }, 50);
-
-        return {
-          // State - using Maps for O(1) operations
-          nodes: new Map(),
-          arrows: new Map(),
-          persons: new Map(),
-          apiKeys: new Map(),
-
-          // Selectors - convert Maps to arrays only when needed
-          nodeList: () => Array.from(get().nodes.values()),
-          arrowList: () => Array.from(get().arrows.values()),
-          personList: () => Array.from(get().persons.values()),
-          apiKeyList: () => Array.from(get().apiKeys.values()),
-
-          // Node mutators
-          addNode: (type, position) => {
-            const id = `${type}-${generateShortId().slice(0, 4)}`;
-            const nodeConfig = getNodeConfig(type);
-            const handles = nodeConfig 
-              ? generateNodeHandles(id, nodeConfig, type) 
-              : getDefaultHandles(id, type);
-            
-            const newNode: Node = {
-              id,
-              type,
-              position,
-              data: { type, id },
-              handles,
-              // Add ReactFlow required properties
-              draggable: true,
-              selectable: true,
-              connectable: true
-            } as Node;
-            set(
-              produce(draft => {
-                draft.nodes.set(id, newNode);
-              })
-            );
-          },
-
-          updateNode: (id, data) =>
-            set(
-              produce(draft => {
-                const node = draft.nodes.get(id);
-                if (node) {
-                  node.data = { ...node.data, ...data };
-                }
-              })
-            ),
-
-          deleteNode: (id) =>
-            set(
-              produce(draft => {
-                draft.nodes.delete(id);
-                // Remove connected arrows
-                const arrowsToDelete: string[] = [];
-                draft.arrows.forEach((arrow: Arrow, arrowId: string) => {
-                  // Parse handle IDs to get node IDs
-                  const { nodeId: sourceNodeId } = parseHandleId(arrow.source);
-                  const { nodeId: targetNodeId } = parseHandleId(arrow.target);
-                  // Delete arrow if it connects to/from this node
-                  if (sourceNodeId === id || targetNodeId === id) {
-                    arrowsToDelete.push(arrowId);
-                  }
-                });
-                arrowsToDelete.forEach(arrowId => draft.arrows.delete(arrowId));
-              })
-            ),
-
-          upsertNode: (node) =>
-            set(
-              produce(draft => {
-                const existing = draft.nodes.get(node.id);
-                
-                // Generate handles if not present
-                const nodeId = node.id || existing?.id;
-                if (!nodeId) {
-                  console.error('Cannot upsert node without id');
-                  return;
-                }
-                
-                const nodeType = node.type || existing?.type;
-                if (!nodeType) {
-                  console.error('Cannot upsert node without type');
-                  return;
-                }
-                
-                const handles = node.handles || existing?.handles || (() => {
-                  const nodeConfig = getNodeConfig(nodeType as NodeKind);
-                  return nodeConfig 
-                    ? generateNodeHandles(nodeId, nodeConfig, nodeType) 
-                    : getDefaultHandles(nodeId, nodeType);
-                })();
-                
-                const updatedNode = { 
-                  ...existing, 
-                  ...node,
-                  handles,
-                  // Ensure ReactFlow properties are preserved
-                  draggable: node.draggable ?? existing?.draggable ?? true,
-                  selectable: node.selectable ?? existing?.selectable ?? true,
-                  connectable: node.connectable ?? existing?.connectable ?? true
-                } as Node;
-                draft.nodes.set(node.id, updatedNode);
-              })
-            ),
-
-          // Arrow mutators
-          addArrow: (sourceNodeId, targetNodeId, sourceHandleName = 'output', targetHandleName = 'input') => {
-            const id = generateArrowId();
-            // Create handle IDs from node IDs and handle names
-            const sourceHandleId = createHandleId(sourceNodeId, sourceHandleName);
-            const targetHandleId = createHandleId(targetNodeId, targetHandleName);
-            
-            // Validate connection using legacy system first
-            const state = get();
-            const validation = canConnect(
-              sourceHandleId,
-              targetHandleId,
-              state.nodes,
-              state.arrowList()
-            );
-            
-            if (!validation.valid) {
-              console.warn(`Connection validation failed: ${validation.reason}`);
-              return;
-            }
-            
-            // Enhanced type-safe validation using the typed connection system
-            try {
-              const diagramNodes = convertNodeMap(get().nodes);
-              
-              // Create a temporary arrow object for validation
-              // The validateConnection function expects the new Arrow type from @/types/arrow
-              const tempArrow = {
-                id: id as ArrowID,
-                source: sourceHandleId as HandleID,
-                target: targetHandleId as HandleID
-              };
-              
-              const typedValidation = validateConnection(tempArrow, diagramNodes);
-              if (!typedValidation.valid) {
-                console.error(`Type-safe validation failed: ${typedValidation.error}`);
-                // Log detailed information for debugging
-                console.error('Connection details:', {
-                  source: sourceHandleId,
-                  target: targetHandleId,
-                  error: typedValidation.error,
-                  sourceNode: parseHandleId(sourceHandleId),
-                  targetNode: parseHandleId(targetHandleId)
-                });
-                
-                // Fall back to legacy validation for now
-                console.warn('Falling back to legacy validation due to type-safe validation failure');
-              }
-            } catch (error) {
-              // If typed validation fails, log the error but don't block the connection
-              console.error('Error during typed validation:', error);
-              console.warn('Continuing with legacy validation only');
-            }
-            
-            const newArrow: Arrow = {
-              id,
-              source: sourceHandleId,  // Handle ID
-              target: targetHandleId,  // Handle ID
-              data: {}
-            };
-            set(
-              produce(draft => {
-                draft.arrows.set(id, newArrow);
-              })
-            );
-          },
-
-          updateArrow: (id, data) =>
-            set(
-              produce(draft => {
-                const arrow = draft.arrows.get(id);
-                if (arrow) {
-                  arrow.data = { ...arrow.data, ...data };
-                }
-              })
-            ),
-
-          deleteArrow: (id) =>
-            set(
-              produce(draft => {
-                draft.arrows.delete(id);
-              })
-            ),
-
-          upsertArrow: (arrow) =>
-            set(
-              produce(draft => {
-                const existing = draft.arrows.get(arrow.id);
-                draft.arrows.set(arrow.id, { ...existing, ...arrow } as Arrow);
-              })
-            ),
-
-          // Person mutators
-          addPerson: (person) => {
-            const id = `person-${generateShortId().slice(0, 4)}`;
-            set(
-              produce(draft => {
-                draft.persons.set(id, { ...person, id });
-              })
-            );
-          },
-
-          updatePerson: (id, data) =>
-            set(
-              produce(draft => {
-                const person = draft.persons.get(id);
-                if (person) {
-                  Object.assign(person, data);
-                }
-              })
-            ),
-
-          deletePerson: (id) =>
-            set(
-              produce(draft => {
-                draft.persons.delete(id);
-              })
-            ),
-
-          getPersonById: (id) => get().persons.get(id),
-
-          // API Key mutators
-          addApiKey: (apiKeyData) => {
-            const newApiKey = {
-              ...apiKeyData,
-              id: `APIKEY_${generateShortId().slice(0, 6).toUpperCase()}`
-            } as ApiKey;
-            set(
-              produce(draft => {
-                draft.apiKeys.set(newApiKey.id, newApiKey);
-              })
-            );
-          },
-
-          updateApiKey: (id, data) =>
-            set(
-              produce(draft => {
-                const apiKey = draft.apiKeys.get(id);
-                if (apiKey) {
-                  Object.assign(apiKey, data);
-                }
-              })
-            ),
-
-          deleteApiKey: (id) =>
-            set(
-              produce(draft => {
-                draft.apiKeys.delete(id);
-              })
-            ),
-
-          getApiKeyById: (id) => get().apiKeys.get(id),
-
-          // Flow compatibility
-          onNodesChange: (changes) => {
-            // Filter out dimension changes to prevent width modification
-            const filteredChanges = changes.filter(change => change.type !== 'dimensions');
-            
-            // Separate position changes during drag from other changes
-            const isDragging = filteredChanges.some(
-              change => change.type === 'position' && 'dragging' in change && change.dragging
-            );
-
-            if (isDragging) {
-              commitDrag(filteredChanges);
-            } else {
-              const currentNodes = get().nodeList();
-              // Convert our Node[] to NodeBase[] for ReactFlow
-              const rfNodes = currentNodes as any[];
-              const updatedRfNodes = applyNodeChanges(filteredChanges, rfNodes);
-              // Convert back to our Node type
-              const updatedNodes = updatedRfNodes as Node[];
-              set(
-                produce(draft => {
-                  updatedNodes.forEach(n => {
-                    draft.nodes.set(n.id, n);
-                  });
-                })
-              );
-            }
-          },
-
-          onArrowsChange: (changes) => {
-            const currentArrows = get().arrowList();
-            // Convert our Arrow[] to EdgeBase[] for ReactFlow
-            const rfEdges = currentArrows as any[];
-            const updatedRfEdges = applyEdgeChanges(changes, rfEdges);
-            // Convert back to our Arrow type
-            const updatedArrows = updatedRfEdges as Arrow[];
-            set(
-              produce(draft => {
-                updatedArrows.forEach(a => {
-                  draft.arrows.set(a.id, a);
-                });
-              })
-            );
-          },
-
-          onConnect: ({ source, target, sourceHandle, targetHandle }) => {
-            if (!source || !target) return;
-            // In ReactFlow, source/target are node IDs, sourceHandle/targetHandle are handle names
-            const sourceHandleName = sourceHandle || 'output';
-            const targetHandleName = targetHandle || 'input';
-            
-            // Pre-validate before calling addArrow
-            const sourceHandleId = createHandleId(source, sourceHandleName);
-            const targetHandleId = createHandleId(target, targetHandleName);
-            const state = get();
-            const validation = canConnect(
-              sourceHandleId,
-              targetHandleId,
-              state.nodes,
-              state.arrowList()
-            );
-            
-            if (!validation.valid) {
-              // TODO: Show user-friendly error message
-              console.error(`Cannot connect: ${validation.reason}`);
-              return;
-            }
-            
-            // Use addArrow which now includes validation
-            get().addArrow(source, target, sourceHandleName, targetHandleName);
-          },
-
-          // Handle registry
-          getHandleById: (handleId) => {
-            const { nodeId } = parseHandleId(handleId);
-            const node = get().nodes.get(nodeId);
-            if (!node || !node.handles) return undefined;
-            
-            const handle = node.handles.find(h => h.id === handleId);
-            if (!handle) return undefined;
-            
-            return { node, handle };
-          },
-          
-          getHandlesForNode: (nodeId) => {
-            const node = get().nodes.get(nodeId);
-            return node?.handles || [];
-          },
-
-          // Utility
-          clear: () =>
-            set({
-              nodes: new Map(),
-              arrows: new Map(),
-              persons: new Map(),
-              apiKeys: new Map()
-            }),
-
-          // Compatibility
-          isReadOnly: false,
-          setReadOnly: (readOnly: boolean) => set({ isReadOnly: readOnly }),
-          
-          // Validation methods
-          validateAllConnections: () => {
-            const state = get();
-            const diagramNodes = convertNodeMap(state.nodes);
-            const arrows = state.arrowList();
-            
-            const valid: Arrow[] = [];
-            const invalid: Array<{ arrow: Arrow; error: string }> = [];
-            
-            for (const arrow of arrows) {
-              const typedArrow = {
-                id: arrow.id as ArrowID,
-                source: arrow.source as HandleID,
-                target: arrow.target as HandleID
-              };
-              
-              const result = validateConnection(typedArrow, diagramNodes);
-              if (result.valid) {
-                valid.push(arrow);
-              } else {
-                invalid.push({ arrow, error: result.error || 'Unknown error' });
-              }
-            }
-            
-            return { valid, invalid };
-          }
-        };
+  // Node operations
+  addNode(node: DomainNode): void {
+    this.nodes.set(node.id, node);
+    
+    // Update type lookup
+    const typeNodes = this.nodesByType.get(node.type) || new Set();
+    typeNodes.add(node.id);
+    this.nodesByType.set(node.type, typeNodes);
+    
+    // Initialize handle set for this node
+    this.handlesByNode.set(node.id, new Set());
+  }
+  
+  removeNode(nodeId: NodeID): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) return;
+    
+    // Remove from type lookup
+    const typeNodes = this.nodesByType.get(node.type);
+    if (typeNodes) {
+      typeNodes.delete(nodeId);
+      if (typeNodes.size === 0) {
+        this.nodesByType.delete(node.type);
       }
-    )
-  )
-);
+    }
+    
+    // Remove all handles for this node
+    const nodeHandles = this.handlesByNode.get(nodeId);
+    if (nodeHandles) {
+      for (const handleId of nodeHandles) {
+        this.removeHandle(handleId);
+      }
+    }
+    
+    this.handlesByNode.delete(nodeId);
+    this.nodes.delete(nodeId);
+  }
+  
+  getNode(nodeId: NodeID): DomainNode | undefined {
+    return this.nodes.get(nodeId);
+  }
+  
+  getNodesByType(type: string): DomainNode[] {
+    const nodeIds = this.nodesByType.get(type);
+    if (!nodeIds) return [];
+    
+    return Array.from(nodeIds)
+      .map(id => this.nodes.get(id))
+      .filter((node): node is DomainNode => node !== undefined);
+  }
+  
+  // Handle operations
+  addHandle(handle: DomainHandle): void {
+    this.handles.set(handle.id, handle);
+    
+    // Update node lookup
+    const nodeHandles = this.handlesByNode.get(handle.nodeId) || new Set();
+    nodeHandles.add(handle.id);
+    this.handlesByNode.set(handle.nodeId, nodeHandles);
+    
+    // Update direction lookup
+    const directionHandles = this.handlesByDirection.get(handle.direction) || new Set();
+    directionHandles.add(handle.id);
+    this.handlesByDirection.set(handle.direction, directionHandles);
+  }
+  
+  removeHandle(handleId: HandleID): void {
+    const handle = this.handles.get(handleId);
+    if (!handle) return;
+    
+    // Remove from node lookup
+    const nodeHandles = this.handlesByNode.get(handle.nodeId);
+    if (nodeHandles) {
+      nodeHandles.delete(handleId);
+    }
+    
+    // Remove from direction lookup
+    const directionHandles = this.handlesByDirection.get(handle.direction);
+    if (directionHandles) {
+      directionHandles.delete(handleId);
+    }
+    
+    // Remove all arrows connected to this handle
+    const sourceArrows = this.arrowsBySource.get(handleId);
+    if (sourceArrows) {
+      for (const arrowId of sourceArrows) {
+        this.removeArrow(arrowId);
+      }
+    }
+    
+    const targetArrows = this.arrowsByTarget.get(handleId);
+    if (targetArrows) {
+      for (const arrowId of targetArrows) {
+        this.removeArrow(arrowId);
+      }
+    }
+    
+    this.handles.delete(handleId);
+  }
+  
+  getHandle(handleId: HandleID): DomainHandle | undefined {
+    return this.handles.get(handleId);
+  }
+  
+  getNodeHandles(nodeId: NodeID): DomainHandle[] {
+    const handleIds = this.handlesByNode.get(nodeId) || new Set();
+    return Array.from(handleIds)
+      .map(id => this.handles.get(id))
+      .filter((handle): handle is DomainHandle => handle !== undefined);
+  }
+  
+  getHandlesByDirection(direction: HandleDirection): DomainHandle[] {
+    const handleIds = this.handlesByDirection.get(direction) || new Set();
+    return Array.from(handleIds)
+      .map(id => this.handles.get(id))
+      .filter((handle): handle is DomainHandle => handle !== undefined);
+  }
+  
+  // Arrow operations
+  addArrow(arrow: DomainArrow): void {
+    this.arrows.set(arrow.id, arrow);
+    
+    // Update source lookup
+    const sourceArrows = this.arrowsBySource.get(arrow.source) || new Set();
+    sourceArrows.add(arrow.id);
+    this.arrowsBySource.set(arrow.source, sourceArrows);
+    
+    // Update target lookup
+    const targetArrows = this.arrowsByTarget.get(arrow.target) || new Set();
+    targetArrows.add(arrow.id);
+    this.arrowsByTarget.set(arrow.target, targetArrows);
+  }
+  
+  removeArrow(arrowId: ArrowID): void {
+    const arrow = this.arrows.get(arrowId);
+    if (!arrow) return;
+    
+    // Remove from source lookup
+    const sourceArrows = this.arrowsBySource.get(arrow.source);
+    if (sourceArrows) {
+      sourceArrows.delete(arrowId);
+      if (sourceArrows.size === 0) {
+        this.arrowsBySource.delete(arrow.source);
+      }
+    }
+    
+    // Remove from target lookup
+    const targetArrows = this.arrowsByTarget.get(arrow.target);
+    if (targetArrows) {
+      targetArrows.delete(arrowId);
+      if (targetArrows.size === 0) {
+        this.arrowsByTarget.delete(arrow.target);
+      }
+    }
+    
+    this.arrows.delete(arrowId);
+  }
+  
+  getArrow(arrowId: ArrowID): DomainArrow | undefined {
+    return this.arrows.get(arrowId);
+  }
+  
+  getArrowsFromHandle(handleId: HandleID): DomainArrow[] {
+    const arrowIds = this.arrowsBySource.get(handleId) || new Set();
+    return Array.from(arrowIds)
+      .map(id => this.arrows.get(id))
+      .filter((arrow): arrow is DomainArrow => arrow !== undefined);
+  }
+  
+  getArrowsToHandle(handleId: HandleID): DomainArrow[] {
+    const arrowIds = this.arrowsByTarget.get(handleId) || new Set();
+    return Array.from(arrowIds)
+      .map(id => this.arrows.get(id))
+      .filter((arrow): arrow is DomainArrow => arrow !== undefined);
+  }
+  
+  // Bulk operations
+  getAllNodes(): DomainNode[] {
+    return Array.from(this.nodes.values());
+  }
+  
+  getAllHandles(): DomainHandle[] {
+    return Array.from(this.handles.values());
+  }
+  
+  getAllArrows(): DomainArrow[] {
+    return Array.from(this.arrows.values());
+  }
+  
+  // Person operations
+  addPerson(person: DomainPerson): void {
+    this.persons.set(person.id, person);
+  }
+  
+  removePerson(personId: PersonID): void {
+    this.persons.delete(personId);
+  }
+  
+  getPerson(personId: PersonID): DomainPerson | undefined {
+    return this.persons.get(personId);
+  }
+  
+  getAllPersons(): DomainPerson[] {
+    return Array.from(this.persons.values());
+  }
+  
+  // API Key operations
+  addApiKey(apiKey: DomainApiKey): void {
+    this.apiKeys.set(apiKey.id, apiKey);
+    
+    // Update service lookup
+    const serviceKeys = this.apiKeysByService.get(apiKey.service) || new Set();
+    serviceKeys.add(apiKey.id);
+    this.apiKeysByService.set(apiKey.service, serviceKeys);
+  }
+  
+  removeApiKey(apiKeyId: ApiKeyID): void {
+    const apiKey = this.apiKeys.get(apiKeyId);
+    if (!apiKey) return;
+    
+    // Remove from service lookup
+    const serviceKeys = this.apiKeysByService.get(apiKey.service);
+    if (serviceKeys) {
+      serviceKeys.delete(apiKeyId);
+      if (serviceKeys.size === 0) {
+        this.apiKeysByService.delete(apiKey.service);
+      }
+    }
+    
+    this.apiKeys.delete(apiKeyId);
+  }
+  
+  getApiKey(apiKeyId: ApiKeyID): DomainApiKey | undefined {
+    return this.apiKeys.get(apiKeyId);
+  }
+  
+  getApiKeysByService(service: string): DomainApiKey[] {
+    const keyIds = this.apiKeysByService.get(service) || new Set();
+    return Array.from(keyIds)
+      .map(id => this.apiKeys.get(id))
+      .filter((key): key is DomainApiKey => key !== undefined);
+  }
+  
+  getAllApiKeys(): DomainApiKey[] {
+    return Array.from(this.apiKeys.values());
+  }
+  
+  // Statistics
+  getStats(): {
+    nodeCount: number;
+    handleCount: number;
+    arrowCount: number;
+    personCount: number;
+    apiKeyCount: number;
+    nodesByType: Record<string, number>;
+    handlesByDirection: Record<HandleDirection, number>;
+    apiKeysByService: Record<string, number>;
+  } {
+    const nodesByType: Record<string, number> = {};
+    for (const [type, nodes] of this.nodesByType) {
+      nodesByType[type] = nodes.size;
+    }
+    
+    const handlesByDirection: Record<HandleDirection, number> = {
+      input: this.handlesByDirection.get('input')?.size || 0,
+      output: this.handlesByDirection.get('output')?.size || 0,
+    };
+    
+    const apiKeysByService: Record<string, number> = {};
+    for (const [service, keys] of this.apiKeysByService) {
+      apiKeysByService[service] = keys.size;
+    }
+    
+    return {
+      nodeCount: this.nodes.size,
+      handleCount: this.handles.size,
+      arrowCount: this.arrows.size,
+      personCount: this.persons.size,
+      apiKeyCount: this.apiKeys.size,
+      nodesByType,
+      handlesByDirection,
+      apiKeysByService,
+    };
+  }
+  
+  // Clear all data
+  clear(): void {
+    this.nodes.clear();
+    this.handles.clear();
+    this.arrows.clear();
+    this.persons.clear();
+    this.apiKeys.clear();
+    this.handlesByNode.clear();
+    this.handlesByDirection.clear();
+    this.arrowsBySource.clear();
+    this.arrowsByTarget.clear();
+    this.nodesByType.clear();
+    this.apiKeysByService.clear();
+    
+    // Re-initialize direction maps
+    this.handlesByDirection.set('input', new Set());
+    this.handlesByDirection.set('output', new Set());
+  }
+}

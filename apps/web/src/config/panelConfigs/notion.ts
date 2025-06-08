@@ -1,7 +1,7 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, NotionFormData } from '@/types/ui';
 import { fetchApiKeys } from '@/utils/api';
 
-export const notionPanelConfig: PanelConfig<Record<string, unknown>> = {
+export const notionPanelConfig: TypedPanelConfig<NotionFormData> = {
   layout: 'single',
   fields: [
     {

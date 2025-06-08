@@ -6,6 +6,7 @@ export type ArrowID = Brand<string, 'ArrowID'>;
 export type PersonID = Brand<string, 'PersonID'>;
 export type ApiKeyID = Brand<string, 'ApiKeyID'>;
 
+
 // Helper functions for creating branded types
 export const nodeId = (id: string): NodeID => id as NodeID;
 export const handleId = (nodeId: NodeID, handleName: string): HandleID => 

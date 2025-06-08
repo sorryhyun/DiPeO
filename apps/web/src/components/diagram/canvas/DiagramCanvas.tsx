@@ -26,7 +26,7 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { Arrow } from "@/types";
+import { DomainArrow } from "@/types";
 import { roundPosition, arrowToReactFlowEdge } from "@/utils/canvas";
 
 // Lazy‑loaded tabs
@@ -54,7 +54,7 @@ interface DiagramCanvasProps {
  */
 interface CommonFlowPropsParams {
   nodes: any[];
-  arrows: Arrow[];
+  arrows: DomainArrow[];
   onNodesChange: (changes: NodeChange[]) => void;
   onArrowsChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;

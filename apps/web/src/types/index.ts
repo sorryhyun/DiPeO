@@ -14,21 +14,28 @@ export * from './validation';
 export * from './domain';
 export * from './framework';
 
-// New type system exports
+// New type system exports - types
 export type { 
   Brand,
   NodeID,
   HandleID,
   ArrowID,
   PersonID,
+  ApiKeyID
+} from './branded';
+
+// New type system exports - functions
+export {
   nodeId,
   handleId,
   arrowId,
   personId,
+  apiKeyId,
   isNodeId,
   isHandleId,
   isArrowId,
   isPersonId,
+  isApiKeyId,
   parseHandleId
 } from './branded';
 // Export diagram utilities and types
@@ -58,3 +65,21 @@ export { NODE_CONFIGS } from '../config';
 
 // Re-export commonly used ReactFlow types for convenience
 export type { Connection, Edge, ReactFlowInstance } from '@xyflow/react';
+
+// Backward compatibility exports - old names to new domain types
+export type { 
+  DomainNode as Node,
+  DomainArrow as Arrow,
+  DomainPerson as Person,
+  DomainApiKey as ApiKey,
+  DomainDiagram as Diagram
+} from './domain';
+
+// NodeKind was replaced by NodeType enum
+export { NodeType as NodeKind } from './enums';
+
+// ArrowData type for backward compatibility
+export type ArrowData = {
+  label?: string;
+  style?: React.CSSProperties;
+};

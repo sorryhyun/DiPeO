@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import { NODE_CONFIGS, Node } from '@/types';
+import { NODE_CONFIGS, DomainNode } from '@/types';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -7,7 +7,7 @@ export interface ContextMenuProps {
   selectedNodeId?: string | null;
   selectedArrowId?: string | null;
   containerRef: React.RefObject<HTMLDivElement>;
-  onAddNode: (type: Node['type'], position: { x: number; y: number }) => void;
+  onAddNode: (type: DomainNode['type'], position: { x: number; y: number }) => void;
   onAddPerson: () => void;
   onDeleteNode: (nodeId: string) => void;
   onDeleteArrow: (arrowId: string) => void;
@@ -54,7 +54,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   
   const handleAddNode = useCallback((nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
-    onAddNode(nodeType as Node['type'], pos);
+    onAddNode(nodeType as DomainNode['type'], pos);
     onClose();
   }, [position.x, position.y, projectPosition, onAddNode, onClose]);
 

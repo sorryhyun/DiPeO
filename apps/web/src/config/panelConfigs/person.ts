@@ -1,7 +1,14 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, PersonFormData } from '@/types/ui';
 import { fetchApiKeys, fetchAvailableModels } from '@/utils/api';
 
-export const personPanelConfig: PanelConfig<Record<string, unknown>> = {
+interface ExtendedPersonFormData extends PersonFormData {
+  apiKeyId?: string;
+  modelName?: string;
+  label?: string;
+  systemPrompt?: string;
+}
+
+export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {

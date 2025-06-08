@@ -8,7 +8,7 @@ import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
 import { useExecutionV2 } from '@/hooks/execution';
 import { useConsolidatedUIStore } from '@/stores';
-import type { NodeKind } from '@/types';
+import { NodeType} from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -38,7 +38,7 @@ function useNodeStatus(nodeId: string) {
 
 // Custom hook for handles generation
 function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
-  const config = getNodeConfig(nodeType as NodeKind);
+  const config = getNodeConfig(nodeType as NodeType);
   
   return useMemo(() => {
     const allHandles = [
@@ -190,7 +190,7 @@ export function BaseNode({
   
   // Use custom hooks
   const status = useNodeStatus(id);
-  const config = getNodeConfig(type as NodeKind);
+  const config = getNodeConfig(type as NodeType);
   const isFlipped = data?.flipped === true;
   const handles = useHandles(id, type, isFlipped);
   

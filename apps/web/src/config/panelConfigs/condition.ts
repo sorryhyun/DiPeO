@@ -1,6 +1,6 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, ConditionFormData } from '@/types/ui';
 
-export const conditionPanelConfig: PanelConfig<Record<string, any>> = {
+export const conditionPanelConfig: TypedPanelConfig<ConditionFormData> = {
   layout: 'single',
   fields: [
     {
@@ -28,6 +28,12 @@ export const conditionPanelConfig: PanelConfig<Record<string, any>> = {
         field: 'conditionType',
         values: ['expression'],
         operator: 'equals'
+      },
+      validate: (value, formData) => {
+        if (formData.conditionType === 'expression' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+          return { isValid: false, error: 'Expression is required when type is Expression' };
+        }
+        return { isValid: true };
       }
     }
   ]

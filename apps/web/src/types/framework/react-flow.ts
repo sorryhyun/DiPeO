@@ -1,4 +1,4 @@
-import type { Node, Edge, Connection } from 'reactflow';
+import type { Node, Edge, Connection } from '@xyflow/react';
 import { DomainDiagram, DomainNode, DomainArrow } from '../domain';
 import { NodeID, ArrowID } from '../branded';
 

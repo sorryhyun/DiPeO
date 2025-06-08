@@ -1,4 +1,4 @@
-import { Node as RFNode, Edge as RFEdge } from 'reactflow';
+import { Node as RFNode, Edge as RFEdge } from '@xyflow/react';
 import { 
   DomainNode, 
   DomainArrow, 
@@ -44,10 +44,10 @@ export function arrowToReactFlow(arrow: DomainArrow): DiPeoEdge {
   
   return {
     id: arrow.id,
-    source: sourceNode,
     sourceHandle,
-    target: targetNode,
     targetHandle,
+    source,
+    target,
     type: 'smoothstep',
     data: arrow.data
   };

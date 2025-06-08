@@ -5,3 +5,4 @@
 export * from './state';
 export * from './modes';
 export * from './selection';
+export * from './panel';

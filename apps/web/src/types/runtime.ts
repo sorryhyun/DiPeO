@@ -111,3 +111,12 @@ export interface ExecutionResult {
     executionTime?: number;
   };
 }
+
+export interface ConversationFilters {
+  searchTerm?: string;
+  executionId?: string;
+  showForgotten?: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+

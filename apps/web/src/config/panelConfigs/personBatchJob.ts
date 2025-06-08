@@ -1,6 +1,6 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, PersonBatchJobFormData } from '@/types/ui';
 
-export const personBatchJobPanelConfig: PanelConfig<Record<string, any>> = {
+export const personBatchJobPanelConfig: TypedPanelConfig<PersonBatchJobFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {

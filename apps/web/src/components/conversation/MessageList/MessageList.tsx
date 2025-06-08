@@ -1,11 +1,11 @@
 import React from 'react';
 import { Hash } from 'lucide-react';
-import { Person, ConversationMessage } from '@/types';
+import { DomainPerson, ConversationMessage } from '@/types';
 
 interface MessageListProps {
   messages: ConversationMessage[];
   currentPersonId: string | null;
-  persons: Person[];
+  persons: DomainPerson[];
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   isLoadingMore?: boolean;
@@ -40,7 +40,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         >
           <div className="flex items-center justify-between mb-1">
             <div className="text-xs opacity-75">
-              {isFromSelectedPerson ? 'Wrote' : `Read from ${senderPerson?.label || 'Unknown'}`}
+              {isFromSelectedPerson ? 'Wrote' : `Read from ${senderPerson?.name || 'Unknown'}`}
               {message.nodeLabel && (
                 <span className="ml-2">• {message.nodeLabel}</span>
               )}

@@ -3,13 +3,13 @@ import { Layers } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
 import { useApiKeyStore } from '@/stores/apiKeyStore';
-import { useDiagramStore } from '@/stores/diagramStore';
+import { DiagramCanvasStore } from '@/stores/diagramCanvasStore';
 import { useDiagram } from '@/hooks';
 import { useDiagramRunner } from '@/hooks/execution';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse } from '@/utils';
-import type { ApiKey } from '@/types';
+import type { isDomainApiKey } from '@/types';
 
 
 const TopBar = () => {
@@ -19,7 +19,7 @@ const TopBar = () => {
   
   // Use stores directly
   const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
-  const { setReadOnly } = useDiagramStore();
+  const { setReadOnly } = DiagramCanvasStore();
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
   // Use the unified diagram hook

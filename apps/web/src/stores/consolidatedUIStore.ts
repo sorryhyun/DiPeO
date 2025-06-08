@@ -1,9 +1,17 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
+import { NodeID, ArrowID, PersonID, nodeId, arrowId, personId } from '@/types/branded';
+
+export type SelectionType = 'node' | 'arrow' | 'person';
+
+export interface Selection {
+  id: NodeID | ArrowID | PersonID;
+  type: SelectionType;
+}
 
 export interface ConsolidatedUIState {
   // Selection state (unified from all stores)
-  selection: { id: string; type: 'node' | 'arrow' | 'person' } | null;
+  selection: Selection | null;
   
   // View state
   activeView: 'diagram' | 'execution';
@@ -14,8 +22,10 @@ export interface ConsolidatedUIState {
   showApiKeysModal: boolean;
   showExecutionModal: boolean;
   
-  // Selection actions (unified interface)
-  select: (id: string, type: 'node' | 'arrow' | 'person') => void;
+  // Selection actions (unified interface) - using branded types
+  selectNode: (id: NodeID) => void;
+  selectArrow: (id: ArrowID) => void;
+  selectPerson: (id: PersonID) => void;
   clearSelection: () => void;
   
   // View actions
@@ -32,8 +42,11 @@ export interface ConsolidatedUIState {
   
   // Computed getters
   hasSelection: () => boolean;
-  getSelectedId: () => string | null;
-  getSelectedType: () => 'node' | 'arrow' | 'person' | null;
+  getSelectedId: () => NodeID | ArrowID | PersonID | null;
+  getSelectedType: () => SelectionType | null;
+  isNodeSelected: (id: NodeID) => boolean;
+  isArrowSelected: (id: ArrowID) => boolean;
+  isPersonSelected: (id: PersonID) => boolean;
   
   // Legacy compatibility getters
   selectedNodeId: string | null;
@@ -55,22 +68,41 @@ export const useConsolidatedUIStore = createWithEqualityFn<ConsolidatedUIState>(
       showApiKeysModal: false,
       showExecutionModal: false,
       
-      // Selection actions (unified interface)
-      select: (id, type) => {
-        console.log('[consolidatedUIStore] select:', { id, type });
+      // Selection actions (unified interface) - using branded types
+      selectNode: (id: NodeID) => {
+        console.log('[consolidatedUIStore] selectNode:', id);
         set({ 
-          selection: { id, type },
+          selection: { id, type: 'node' },
           // Update legacy compatibility fields
-          selectedNodeId: type === 'node' ? id : null,
-          selectedArrowId: type === 'arrow' ? id : null,
-          selectedPersonId: type === 'person' ? id : null,
+          selectedNodeId: id as string,
+          selectedArrowId: null,
+          selectedPersonId: null,
+          dashboardTab: 'properties'
         });
-        // Auto-switch dashboard tab based on selection
-        if (type === 'person') {
-          set({ dashboardTab: 'persons' });
-        } else {
-          set({ dashboardTab: 'properties' });
-        }
+      },
+      
+      selectArrow: (id: ArrowID) => {
+        console.log('[consolidatedUIStore] selectArrow:', id);
+        set({ 
+          selection: { id, type: 'arrow' },
+          // Update legacy compatibility fields
+          selectedNodeId: null,
+          selectedArrowId: id as string,
+          selectedPersonId: null,
+          dashboardTab: 'properties'
+        });
+      },
+      
+      selectPerson: (id: PersonID) => {
+        console.log('[consolidatedUIStore] selectPerson:', id);
+        set({ 
+          selection: { id, type: 'person' },
+          // Update legacy compatibility fields
+          selectedNodeId: null,
+          selectedArrowId: null,
+          selectedPersonId: id as string,
+          dashboardTab: 'persons'
+        });
       },
       
       clearSelection: () => set({ 
@@ -96,6 +128,18 @@ export const useConsolidatedUIStore = createWithEqualityFn<ConsolidatedUIState>(
       hasSelection: () => Boolean(get().selection),
       getSelectedId: () => get().selection?.id || null,
       getSelectedType: () => get().selection?.type || null,
+      isNodeSelected: (id: NodeID) => {
+        const selection = get().selection;
+        return selection?.type === 'node' && selection.id === id;
+      },
+      isArrowSelected: (id: ArrowID) => {
+        const selection = get().selection;
+        return selection?.type === 'arrow' && selection.id === id;
+      },
+      isPersonSelected: (id: PersonID) => {
+        const selection = get().selection;
+        return selection?.type === 'person' && selection.id === id;
+      },
       
       // Legacy compatibility - computed as state fields
       selectedNodeId: null,
@@ -105,31 +149,63 @@ export const useConsolidatedUIStore = createWithEqualityFn<ConsolidatedUIState>(
       // Legacy compatibility setters
       setSelectedNodeId: (id) => {
         console.log('[consolidatedUIStore] setSelectedNodeId:', id);
-        set({ 
-          selection: id ? { id, type: 'node' } : null,
-          selectedNodeId: id,
-          selectedArrowId: null,
-          selectedPersonId: null,
-          dashboardTab: id ? 'properties' : get().dashboardTab
-        });
+        if (id) {
+          const brandedId = nodeId(id);
+          set({ 
+            selection: { id: brandedId, type: 'node' },
+            selectedNodeId: id,
+            selectedArrowId: null,
+            selectedPersonId: null,
+            dashboardTab: 'properties'
+          });
+        } else {
+          set({ 
+            selection: null,
+            selectedNodeId: null,
+            selectedArrowId: null,
+            selectedPersonId: null,
+          });
+        }
       },
       setSelectedArrowId: (id) => {
-        set({ 
-          selection: id ? { id, type: 'arrow' } : null,
-          selectedNodeId: null,
-          selectedArrowId: id,
-          selectedPersonId: null,
-          dashboardTab: id ? 'properties' : get().dashboardTab
-        });
+        console.log('[consolidatedUIStore] setSelectedArrowId:', id);
+        if (id) {
+          const brandedId = arrowId(id);
+          set({ 
+            selection: { id: brandedId, type: 'arrow' },
+            selectedNodeId: null,
+            selectedArrowId: id,
+            selectedPersonId: null,
+            dashboardTab: 'properties'
+          });
+        } else {
+          set({ 
+            selection: null,
+            selectedNodeId: null,
+            selectedArrowId: null,
+            selectedPersonId: null,
+          });
+        }
       },
       setSelectedPersonId: (id) => {
-        set({ 
-          selection: id ? { id, type: 'person' } : null,
-          selectedNodeId: null,
-          selectedArrowId: null,
-          selectedPersonId: id,
-          dashboardTab: id ? 'persons' : get().dashboardTab
-        });
+        console.log('[consolidatedUIStore] setSelectedPersonId:', id);
+        if (id) {
+          const brandedId = personId(id);
+          set({ 
+            selection: { id: brandedId, type: 'person' },
+            selectedNodeId: null,
+            selectedArrowId: null,
+            selectedPersonId: id,
+            dashboardTab: 'persons'
+          });
+        } else {
+          set({ 
+            selection: null,
+            selectedNodeId: null,
+            selectedArrowId: null,
+            selectedPersonId: null,
+          });
+        }
       }
     }),
     { name: 'consolidated-ui-store' }

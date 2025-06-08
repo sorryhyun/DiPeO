@@ -1,13 +1,16 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, StartFormData } from '@/types/ui';
 
-export const startPanelConfig: PanelConfig<Record<string, any>> = {
+export const startPanelConfig: TypedPanelConfig<StartFormData> = {
   layout: 'single',
   fields: [
     {
       type: 'text',
       name: 'label',
       label: 'Block Label',
-      placeholder: 'Start'
+      placeholder: 'Start',
+      validate: (_value) => ({
+        isValid: true // Label is optional
+      })
     }
   ]
 };

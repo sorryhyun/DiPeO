@@ -1,19 +1,19 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { entityIdGenerators } from '@/utils/id';
-import { ApiKey } from '@/types';
+import { DomainApiKey } from '@/types';
 import { api } from '@/utils';
 
 export interface ApiKeyState {
-  apiKeys: ApiKey[];
+  apiKeys: DomainApiKey[];
   
-  addApiKey: (apiKey: Omit<ApiKey, 'id'>) => void;
-  updateApiKey: (apiKeyId: string, apiKeyData: Partial<ApiKey>) => void;
+  addApiKey: (apiKey: Omit<DomainApiKey, 'id'>) => void;
+  updateApiKey: (apiKeyId: string, apiKeyData: Partial<DomainApiKey>) => void;
   deleteApiKey: (apiKeyId: string) => void;
-  getApiKeyById: (apiKeyId: string) => ApiKey | undefined;
+  getApiKeyById: (apiKeyId: string) => DomainApiKey | undefined;
   clearApiKeys: () => void;
   loadApiKeys: () => Promise<void>;
-  setApiKeys: (apiKeys: ApiKey[]) => void;
+  setApiKeys: (apiKeys: DomainApiKey[]) => void;
 }
 
 export const useApiKeyStore = createWithEqualityFn<ApiKeyState>()(
@@ -22,15 +22,15 @@ export const useApiKeyStore = createWithEqualityFn<ApiKeyState>()(
       (set, get) => ({
         apiKeys: [],
         
-        addApiKey: (apiKeyData: Omit<ApiKey, 'id'>) => {
+        addApiKey: (apiKeyData: Omit<DomainApiKey, 'id'>) => {
           const newApiKey = {
             ...apiKeyData,
             id: entityIdGenerators.apiKey()
-          } as ApiKey;
+          } as DomainApiKey;
           set(state => ({ apiKeys: [...state.apiKeys, newApiKey] }));
         },
         
-        updateApiKey: (id: string, data: Partial<ApiKey>) => {
+        updateApiKey: (id: string, data: Partial<DomainApiKey>) => {
           set(state => ({
             apiKeys: state.apiKeys.map(key => 
               key.id === id ? { ...key, ...data } : key
@@ -58,7 +58,7 @@ export const useApiKeyStore = createWithEqualityFn<ApiKeyState>()(
             const apiKeys = data.map((key) => ({
               id: key.id,
               name: key.name,
-              service: key.service as ApiKey['service']
+              service: key.service as DomainApiKey['service']
             }));
             
             set({ apiKeys });
@@ -68,7 +68,7 @@ export const useApiKeyStore = createWithEqualityFn<ApiKeyState>()(
           }
         },
         
-        setApiKeys: (apiKeys: ApiKey[]) => {
+        setApiKeys: (apiKeys: DomainApiKey[]) => {
           set({ apiKeys });
         },
       })

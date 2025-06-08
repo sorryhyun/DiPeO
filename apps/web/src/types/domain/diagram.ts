@@ -125,3 +125,13 @@ export function getNodeConnections(
 
   return { incoming, outgoing };
 }
+
+export interface ConversationMessage {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  personId: PersonID;
+  content: string;
+  timestamp?: string;
+  tokenCount?: number;
+  nodeLabel?: string;
+}

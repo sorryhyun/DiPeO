@@ -1,6 +1,6 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, JobFormData } from '@/types/ui';
 
-export const jobPanelConfig: PanelConfig<Record<string, any>> = {
+export const jobPanelConfig: TypedPanelConfig<JobFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {

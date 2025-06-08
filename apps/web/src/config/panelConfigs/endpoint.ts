@@ -1,6 +1,6 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, EndpointFormData } from '@/types/ui';
 
-export const endpointPanelConfig: PanelConfig<Record<string, any>> = {
+export const endpointPanelConfig: TypedPanelConfig<EndpointFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {
@@ -22,6 +22,12 @@ export const endpointPanelConfig: PanelConfig<Record<string, any>> = {
       conditional: {
         field: 'saveToFile',
         values: [true]
+      },
+      validate: (value, formData) => {
+        if (formData.saveToFile && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+          return { isValid: false, error: 'File path is required when saving to file' };
+        }
+        return { isValid: true };
       }
     },
     {

@@ -1,13 +1,13 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
-import { useDiagramStore } from './diagramStore';
-import { Node, Arrow, Person, ApiKey } from '@/types';
+import { DiagramCanvasStore } from './diagramCanvasStore';
+import {DomainNode, DomainArrow, DomainPerson, DomainApiKey} from '@/types';
 
 interface DiagramSnapshot {
-  nodes: Node[];
-  arrows: Arrow[];
-  persons: Person[];
-  apiKeys: ApiKey[];
+  nodes: DomainNode[];
+  arrows: DomainArrow[];
+  persons: DomainPerson[];
+  apiKeys: DomainApiKey[];
   timestamp: number;
 }
 
@@ -35,7 +35,7 @@ export interface HistoryStore extends HistoryState, HistoryActions {}
 const MAX_HISTORY_SIZE = 50;
 
 function createSnapshot(): DiagramSnapshot {
-  const state = useDiagramStore.getState();
+  const state = DiagramCanvasStore.getState();
   return {
     nodes: state.nodeList(),
     arrows: state.arrowList(),
