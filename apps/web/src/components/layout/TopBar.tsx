@@ -8,7 +8,7 @@ import { useDiagram } from '@/hooks';
 import { useDiagramRunner } from '@/hooks/execution';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse } from '@/utils/types';
+import { isApiKey, parseApiArrayResponse } from '@/utils';
 import type { ApiKey } from '@/types';
 
 

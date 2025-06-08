@@ -3,13 +3,11 @@
  * 
  * These hooks provide a clean separation of concerns for execution:
  * - useExecutionState: Pure state management
- * - useExecutionSocket: WebSocket communication
  * - useExecutionUI: UI concerns and formatting
  * - useExecutionV2: Combined hook for easy usage
  */
 
 export * from './useExecutionState';
-export * from './useExecutionSocket';
 export * from './useExecutionUI';
 export * from './useExecutionV2';
 export * from './useDiagramRunner';

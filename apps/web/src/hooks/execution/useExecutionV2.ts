@@ -5,9 +5,9 @@
  * in a clean, modular way.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useExecutionState, type NodeStateV2 } from './useExecutionState';
-import { useExecutionSocket } from './useExecutionSocket';
+import { useWebSocketEventBus } from '../useWebSocketEventBus';
 import { useExecutionUI } from './useExecutionUI';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useCanvasSelectors } from '../useStoreSelectors';
@@ -69,91 +69,117 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
   // Get store actions
   const executionStore = useExecutionStore();
   const { nodes } = useCanvasSelectors();
-
+  
   // Initialize sub-hooks
   const state = useExecutionState();
   const ui = useExecutionUI({ showToasts });
   
-  // Initialize socket with callbacks
-  const socket = useExecutionSocket({
-    autoConnect,
-    debug,
-    onUpdate,
-    
+  // Initialize WebSocket Event Bus
+  const { 
+    isConnected, 
+    isReconnecting, 
+    send, 
+    on, 
+    connect, 
+    disconnect,
+    waitForConnection 
+  } = useWebSocketEventBus({ autoConnect, debug });
+  
+  // Track current execution ID
+  const executionIdRef = useRef<string | null>(null);
+
+  // Register event handlers
+  useEffect(() => {
     // Execution events
-    onExecutionStart: (executionId, totalNodes) => {
-      state.startExecution(executionId, totalNodes);
-      ui.showExecutionStart(executionId, totalNodes);
+    on('execution_started', (data: any) => {
+      executionIdRef.current = data.execution_id;
+      state.startExecution(data.execution_id, data.total_nodes || 0);
+      ui.showExecutionStart(data.execution_id, data.total_nodes || 0);
       executionStore.setRunContext({});
-    },
-    
-    onExecutionComplete: (executionId, totalTokens) => {
+      onUpdate?.({ type: 'execution_started', ...data });
+    });
+
+    on('execution_complete', (data: any) => {
+      executionIdRef.current = null;
       const duration = state.executionState.startTime 
         ? (new Date().getTime() - state.executionState.startTime.getTime()) / 1000
         : 0;
-      state.completeExecution(totalTokens);
-      ui.showExecutionComplete(executionId, duration, totalTokens);
-    },
-    
-    onExecutionError: (_executionId, error) => {
-      state.errorExecution(error);
-      ui.showExecutionError(error);
-    },
-    
-    onExecutionAbort: (_executionId) => {
+      state.completeExecution(data.total_tokens);
+      ui.showExecutionComplete(data.execution_id, duration, data.total_tokens);
+      onUpdate?.({ type: 'execution_complete', ...data });
+    });
+
+    on('execution_error', (data: any) => {
+      executionIdRef.current = null;
+      state.errorExecution(data.error);
+      ui.showExecutionError(data.error);
+      onUpdate?.({ type: 'execution_error', ...data });
+    });
+
+    on('execution_aborted', (data: any) => {
+      executionIdRef.current = null;
       state.abortExecution();
       ui.showExecutionError('Execution aborted');
-    },
-    
+      onUpdate?.({ type: 'execution_aborted', ...data });
+    });
+
     // Node events
-    onNodeStart: (nodeId, nodeType) => {
-      state.startNode(nodeId);
-      ui.showNodeStart(nodeId, nodeType);
-      executionStore.addRunningNode(nodeId);
-      executionStore.setCurrentRunningNode(nodeId);
-    },
-    
-    onNodeProgress: (nodeId, progress) => {
-      state.updateNodeProgress(nodeId, progress);
-    },
-    
-    onNodeComplete: (nodeId, output, tokenCount) => {
-      const nodeType = nodes.find(n => n.id === nodeId)?.type || 'unknown';
-      state.completeNode(nodeId, tokenCount);
-      ui.showNodeComplete(nodeId, nodeType);
-      executionStore.removeRunningNode(nodeId);
+    on('node_start', (data: any) => {
+      state.startNode(data.node_id);
+      ui.showNodeStart(data.node_id, data.node_type);
+      executionStore.addRunningNode(data.node_id);
+      executionStore.setCurrentRunningNode(data.node_id);
+      onUpdate?.({ type: 'node_start', ...data });
+    });
+
+    on('node_progress', (data: any) => {
+      state.updateNodeProgress(data.node_id, data);
+      onUpdate?.({ type: 'node_progress', ...data });
+    });
+
+    on('node_complete', (data: any) => {
+      const nodeType = nodes.find(n => n.id === data.node_id)?.type || 'unknown';
+      state.completeNode(data.node_id, data.token_count);
+      ui.showNodeComplete(data.node_id, nodeType);
+      executionStore.removeRunningNode(data.node_id);
       
       // Update context if output is provided
-      if (output && typeof output === 'object') {
-        executionStore.setRunContext(output as Record<string, unknown>);
+      if (data.output && typeof data.output === 'object') {
+        executionStore.setRunContext(data.output as Record<string, unknown>);
       }
-    },
-    
-    onNodeSkipped: (nodeId, reason) => {
-      state.skipNode(nodeId, reason);
-      ui.showNodeSkipped(nodeId, reason);
-      executionStore.addSkippedNode(nodeId, reason || 'Unknown reason');
-      executionStore.removeRunningNode(nodeId);
-    },
-    
-    onNodeError: (nodeId, error) => {
-      state.errorNode(nodeId, error);
-      ui.showNodeError(nodeId, error);
-      executionStore.removeRunningNode(nodeId);
-    },
-    
-    onNodePaused: (nodeId) => {
-      state.pauseNode(nodeId);
-    },
-    
-    onNodeResumed: (nodeId) => {
-      state.resumeNode(nodeId);
-    },
-    
-    onInteractivePrompt: (prompt) => {
-      ui.setInteractivePrompt(prompt);
-    }
-  });
+      onUpdate?.({ type: 'node_complete', ...data });
+    });
+
+    on('node_skipped', (data: any) => {
+      state.skipNode(data.node_id, data.reason);
+      ui.showNodeSkipped(data.node_id, data.reason);
+      executionStore.addSkippedNode(data.node_id, data.reason || 'Unknown reason');
+      executionStore.removeRunningNode(data.node_id);
+      onUpdate?.({ type: 'node_skipped', ...data });
+    });
+
+    on('node_error', (data: any) => {
+      state.errorNode(data.node_id, data.error);
+      ui.showNodeError(data.node_id, data.error);
+      executionStore.removeRunningNode(data.node_id);
+      onUpdate?.({ type: 'node_error', ...data });
+    });
+
+    on('node_paused', (data: any) => {
+      state.pauseNode(data.node_id);
+      onUpdate?.({ type: 'node_paused', ...data });
+    });
+
+    on('node_resumed', (data: any) => {
+      state.resumeNode(data.node_id);
+      onUpdate?.({ type: 'node_resumed', ...data });
+    });
+
+    on('interactive_prompt_request', (data: any) => {
+      ui.setInteractivePrompt(data);
+      onUpdate?.({ type: 'interactive_prompt_request', ...data });
+    });
+  }, [on, state, ui, executionStore, nodes, onUpdate]);
 
   // Update execution progress
   useEffect(() => {
@@ -163,7 +189,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     }
   }, [state.executionState.completedNodes, state.executionState.totalNodes]);
 
-  // Enhanced execute function
+  // Execute diagram
   const execute = useCallback(async (diagram?: DiagramState, options?: ExecutionOptions) => {
     // Reset state before starting
     state.resetState();
@@ -172,30 +198,64 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     ui.clearInteractivePrompt();
     
     try {
-      await socket.execute(diagram, options);
+      await waitForConnection();
+      send({
+        type: 'execute_diagram',
+        diagram,
+        options
+      });
     } catch (error) {
       console.error('Execution failed:', error);
       throw error;
     }
-  }, [socket, state, executionStore, ui]);
+  }, [send, waitForConnection, state, executionStore, ui]);
 
-  // Enhanced abort function
+  // Control actions
+  const pauseNode = useCallback((nodeId: string) => {
+    send({
+      type: 'pause_node',
+      node_id: nodeId
+    });
+  }, [send]);
+
+  const resumeNode = useCallback((nodeId: string) => {
+    send({
+      type: 'resume_node',
+      node_id: nodeId
+    });
+  }, [send]);
+
+  const skipNode = useCallback((nodeId: string) => {
+    send({
+      type: 'skip_node',
+      node_id: nodeId
+    });
+  }, [send]);
+
   const abort = useCallback(() => {
-    socket.abort();
+    if (executionIdRef.current) {
+      send({
+        type: 'abort_execution',
+        execution_id: executionIdRef.current
+      });
+    }
     state.abortExecution();
     executionStore.runningNodes.forEach(nodeId => executionStore.removeRunningNode(nodeId));
-  }, [socket, state, executionStore]);
+  }, [send, state, executionStore]);
 
-  // Enhanced respond to prompt
   const respondToPrompt = useCallback((nodeId: string, response: string) => {
-    socket.respondToPrompt(nodeId, response);
+    send({
+      type: 'interactive_response',
+      node_id: nodeId,
+      response
+    });
     ui.clearInteractivePrompt();
-  }, [socket, ui]);
+  }, [send, ui]);
 
   return {
     // Connection state
-    isConnected: socket.isConnected,
-    isReconnecting: socket.isReconnecting,
+    isConnected,
+    isReconnecting,
     
     // Execution state
     isRunning: state.executionState.isRunning,
@@ -211,15 +271,15 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     
     // Main actions
     execute,
-    pauseNode: socket.pauseNode,
-    resumeNode: socket.resumeNode,
-    skipNode: socket.skipNode,
+    pauseNode,
+    resumeNode,
+    skipNode,
     abort,
     respondToPrompt,
     
     // Connection actions
-    connect: socket.connect,
-    disconnect: socket.disconnect,
+    connect,
+    disconnect,
     
     // UI helpers
     formatExecutionTime: ui.formatExecutionTime,

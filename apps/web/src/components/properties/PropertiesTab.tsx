@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { useNodes, useArrows, usePersons, useSelectedElement } from '@/hooks/useStoreSelectors';
-import { Skeleton } from '@/components/ui/feedback';
+import { LoadingFallback } from '@/components/ui/feedback';
 
 // Lazy load the properties renderer
 const PropertiesRenderer = React.lazy(() => import('./renderers/PropertiesRenderer'));
@@ -18,7 +18,7 @@ export const PropertiesTab: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Suspense fallback={<Skeleton />}>
+      <Suspense fallback={<LoadingFallback />}>
         <PropertiesRenderer
           selectedNodeId={selectedNodeId}
           selectedArrowId={selectedArrowId}

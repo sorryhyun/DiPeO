@@ -21,10 +21,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { FileText, MessageSquare } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
-import { useDiagramStore } from "@/stores/diagramStore";
-import { useExecutionStore } from "@/stores/executionStore";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
@@ -187,8 +185,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     clearSelection,
   } = useDiagram({ enableInteractions: true, enableFileOperations: true });
 
-  const isExecuting = useExecutionStore((s) => s.isExecuting);
-  const isReadOnly = useDiagramStore((s) => s.isReadOnly);
 
   /** --------------------------------------------------
    * React Flow instance helpers
@@ -242,35 +238,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Render helpers
    * --------------------------------------------------*/
-  const renderContentPanel = () => (
-    <div className="h-full bg-white flex flex-col">
-      <div className="flex border-b bg-gray-50">
-        <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border-b-2 border-blue-500 text-blue-600">
-          {isExecuting || isReadOnly ? (
-            <>
-              <MessageSquare className="w-4 h-4" /> Conversation
-            </>
-          ) : (
-            <>
-              <FileText className="w-4 h-4" /> Properties
-            </>
-          )}
-        </div>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <Suspense
-          fallback={
-            <div className="h-full flex items-center justify-center text-gray-500 animate-pulse">
-              Loading…
-            </div>
-          }
-        >
-          {isExecuting || isReadOnly ? <ConversationTab /> : <PropertiesTab />}
-        </Suspense>
-      </div>
-    </div>
-  );
-
   const renderContextMenu = () =>
     showContextMenu && (
       <Suspense fallback={null}>

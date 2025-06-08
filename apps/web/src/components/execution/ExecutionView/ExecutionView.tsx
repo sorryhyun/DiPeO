@@ -1,6 +1,5 @@
 import React from 'react';
 import { DiagramCanvas } from '@/components/diagram/canvas';
-import { ConversationDashboard } from '@/components/conversation';
 import ExecutionControls from './ExecutionControls';
 
 const ExecutionView = () => {
