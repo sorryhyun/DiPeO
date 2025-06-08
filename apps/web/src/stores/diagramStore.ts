@@ -5,8 +5,9 @@ import { produce, enableMapSet } from 'immer';
 import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
 import { Node, Arrow, Person, ApiKey } from '@/types';
 import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
-import { generateNodeHandles } from '@/utils/node';
+import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
+import { canConnect } from '@/utils/connection-validator';
 
 // Enable Immer MapSet plugin for Map and Set support
 enableMapSet();
@@ -115,7 +116,11 @@ export const useDiagramStore = create<DiagramStore>()(
             // Filter out dimension changes here as well
             const filteredChanges = changes.filter(change => change.type !== 'dimensions');
             const currentNodes = get().nodeList();
-            const updatedNodes = applyNodeChanges(filteredChanges, currentNodes) as Node[];
+            // Convert our Node[] to NodeBase[] for ReactFlow
+            const rfNodes = currentNodes as any[];
+            const updatedRfNodes = applyNodeChanges(filteredChanges, rfNodes);
+            // Convert back to our Node type
+            const updatedNodes = updatedRfNodes as Node[];
             set(
               produce<DiagramStore>(draft => {
                 updatedNodes.forEach(n => {
@@ -142,7 +147,9 @@ export const useDiagramStore = create<DiagramStore>()(
             addNode: (type, position) => {
               const id = `${type}-${generateShortId().slice(0, 4)}`;
               const nodeConfig = getNodeConfig(type);
-              const handles = nodeConfig ? generateNodeHandles(id, nodeConfig) : [];
+              const handles = nodeConfig 
+                ? generateNodeHandles(id, nodeConfig) 
+                : getDefaultHandles(id, type);
               
               const newNode: Node = {
                 id,
@@ -201,6 +208,20 @@ export const useDiagramStore = create<DiagramStore>()(
               // Create handle IDs from node IDs and handle names
               const sourceHandleId = createHandleId(sourceNodeId, sourceHandleName);
               const targetHandleId = createHandleId(targetNodeId, targetHandleName);
+              
+              // Validate connection
+              const state = get();
+              const validation = canConnect(
+                sourceHandleId,
+                targetHandleId,
+                state.nodes,
+                state.arrowList()
+              );
+              
+              if (!validation.valid) {
+                console.warn(`Connection validation failed: ${validation.reason}`);
+                return;
+              }
               
               const newArrow: Arrow = {
                 id,
@@ -325,7 +346,11 @@ export const useDiagramStore = create<DiagramStore>()(
                 commitDrag(filteredChanges);
               } else {
                 const currentNodes = get().nodeList();
-                const updatedNodes = applyNodeChanges(filteredChanges, currentNodes) as Node[];
+                // Convert our Node[] to NodeBase[] for ReactFlow
+                const rfNodes = currentNodes as any[];
+                const updatedRfNodes = applyNodeChanges(filteredChanges, rfNodes);
+                // Convert back to our Node type
+                const updatedNodes = updatedRfNodes as Node[];
                 set(
                   produce(draft => {
                     updatedNodes.forEach(n => {
@@ -338,7 +363,11 @@ export const useDiagramStore = create<DiagramStore>()(
 
             onArrowsChange: (changes) => {
               const currentArrows = get().arrowList();
-              const updatedArrows = applyEdgeChanges(changes, currentArrows) as Arrow[];
+              // Convert our Arrow[] to EdgeBase[] for ReactFlow
+              const rfEdges = currentArrows as any[];
+              const updatedRfEdges = applyEdgeChanges(changes, rfEdges);
+              // Convert back to our Arrow type
+              const updatedArrows = updatedRfEdges as Arrow[];
               set(
                 produce(draft => {
                   updatedArrows.forEach(a => {
@@ -353,7 +382,25 @@ export const useDiagramStore = create<DiagramStore>()(
               // In ReactFlow, source/target are node IDs, sourceHandle/targetHandle are handle names
               const sourceHandleName = sourceHandle || 'output';
               const targetHandleName = targetHandle || 'input';
-              // Use addArrow which properly creates handle IDs
+              
+              // Pre-validate before calling addArrow
+              const sourceHandleId = createHandleId(source, sourceHandleName);
+              const targetHandleId = createHandleId(target, targetHandleName);
+              const state = get();
+              const validation = canConnect(
+                sourceHandleId,
+                targetHandleId,
+                state.nodes,
+                state.arrowList()
+              );
+              
+              if (!validation.valid) {
+                // TODO: Show user-friendly error message
+                console.error(`Cannot connect: ${validation.reason}`);
+                return;
+              }
+              
+              // Use addArrow which now includes validation
               get().addArrow(source, target, sourceHandleName, targetHandleName);
             },
 
@@ -401,7 +448,8 @@ export const useDiagramStore = create<DiagramStore>()(
               
               // Build mappings
               nodes.forEach(node => {
-                nodeIdToLabel.set(node.id, node.data.label || node.id);
+                const label = (node.data as any).label || node.id;
+                nodeIdToLabel.set(node.id, label);
               });
               persons.forEach(person => {
                 personIdToLabel.set(person.id, person.label || person.id);
@@ -438,7 +486,7 @@ export const useDiagramStore = create<DiagramStore>()(
                 }
                 
                 // Add label as top-level property
-                nodeData.label = node.data.label || node.id;
+                nodeData.label = (node.data as any).label || node.id;
                 
                 return nodeData;
               });

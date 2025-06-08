@@ -54,9 +54,9 @@ export interface ArrowData {
 
 export interface ApiKey {
   id: ID;
-  service: string;
-  key: string;
-  name?: string;
+  service: 'openai' | 'gemini' | 'claude' | 'grok';
+  key?: string; // Optional - not stored in frontend for security
+  name: string;
 }
 
 export interface Diagram {

@@ -15,6 +15,7 @@ import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
+import type { UniversalData } from '@/components/properties/PropertiesPanel';
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onNodeDragStart } = useCanvasInteractions();
@@ -64,13 +65,13 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   if (position === 'right') {
     // Find the selected element and its data
     let selectedId: string | null = null;
-    let selectedData: Record<string, unknown> | null = null;
+    let selectedData: UniversalData | null = null;
     
     if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         selectedId = node.id;
-        selectedData = node.data;
+        selectedData = { ...node.data, type: node.type };
       }
     } else if (selectedArrowId) {
       const arrow = arrows.find(a => a.id === selectedArrowId);

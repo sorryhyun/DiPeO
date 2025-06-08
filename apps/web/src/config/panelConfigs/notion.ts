@@ -31,9 +31,8 @@ export const notionPanelConfig: PanelConfig<Record<string, unknown>> = {
       options: async () => {
         try {
           const apiKeys = await fetchApiKeys();
-          // Filter for Notion API keys only
+          // Return all API keys (Notion nodes don't use service-specific keys)
           return apiKeys
-            .filter(key => key.service === 'notion')
             .map(key => ({
               value: key.id,
               label: key.name

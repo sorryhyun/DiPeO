@@ -297,7 +297,7 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}): Use
 function convertToExecutionUpdate(message: WSMessage): ExecutionUpdate {
   return {
     type: message.type,
-    execution_id: message.execution_id as string,
+    executionId: message.executionId as string,
     nodeId: message.nodeId as string,
     nodeType: message.node_type as string,
     output: message.output,

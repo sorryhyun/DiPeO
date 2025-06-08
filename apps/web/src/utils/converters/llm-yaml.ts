@@ -163,6 +163,7 @@ export class LlmYaml {
   private static buildPersons(nodeAnalysis: Record<string, NodeAnalysis>, data: LLMYamlFormat, personMap: Map<string, string>): Person[] {
     const persons: Person[] = [];
     const agentsData = data.agents || {};
+    const serviceMap = new Map<string, ApiKey['service']>();
 
     // Default agent for nodes with prompts but no specific agent
     const defaultPersonId = `PERSON_${generateShortId().slice(0, 6)}`;
@@ -186,6 +187,7 @@ export class LlmYaml {
           modelName: 'gpt-4',
           systemPrompt: agentConfig
         });
+        serviceMap.set(personId, 'openai');
       } else {
         // Full format
         const service = (agentConfig.service || 'openai') as ApiKey['service'];
@@ -193,10 +195,9 @@ export class LlmYaml {
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: agentConfig.model || 'gpt-4',
-          systemPrompt: agentConfig.system,
-          // Store service temporarily for API key creation
-          _tempService: service
+          systemPrompt: agentConfig.system
         });
+        serviceMap.set(personId, service);
       }
     });
 
@@ -219,34 +220,40 @@ export class LlmYaml {
     if (needDefault) {
       persons.push(defaultPerson);
       personMap.set('_default', defaultPersonId);
+      serviceMap.set(defaultPersonId, 'openai');
     }
+
+    // Store serviceMap for later use
+    (LlmYaml as any)._serviceMap = serviceMap;
 
     return persons;
   }
 
   private static extractApiKeys(persons: Person[]): ApiKey[] {
     const apiKeys: Record<string, ApiKey> = {};
+    const serviceMap = (LlmYaml as any)._serviceMap as Map<string, ApiKey['service']>;
 
     persons.forEach(person => {
-      // Use _tempService from agent config or default to openai
-      const service = (person as any)._tempService || 'openai';
+      // Get service from our map
+      const service = serviceMap?.get(person.id) || 'openai';
       if (!apiKeys[service]) {
         const apiKeyId = entityIdGenerators.apiKey();
         apiKeys[service] = {
           id: apiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
-          service: service as ApiKey['service'],
-          key: `${service.toUpperCase()}_API_KEY`
+          service: service as ApiKey['service']
         };
       }
     });
 
-    // Update persons with API key IDs and clean up temp field
+    // Update persons with API key IDs
     persons.forEach(person => {
-      const service = (person as any)._tempService || 'openai';
+      const service = serviceMap?.get(person.id) || 'openai';
       person.apiKeyId = apiKeys[service]?.id;
-      delete (person as any)._tempService;
     });
+
+    // Clean up
+    delete (LlmYaml as any)._serviceMap;
 
     return Object.values(apiKeys);
   }
@@ -286,7 +293,7 @@ export class LlmYaml {
     const flow: string[] = [];
     const prompts: Record<string, string> = {};
     const agents: Record<string, unknown> = {};
-    const data: Record<string, string> = {};
+    const data: Record<string, unknown> = {};
 
     // Create reverse mapping from node ID to simple name
     const nodeNameMap: Record<string, string> = {};
@@ -300,7 +307,7 @@ export class LlmYaml {
       } else if (node.type === 'endpoint') {
         nodeName = 'END';
       } else if (node.data.label) {
-        nodeName = node.data.label.replace(/\s+/g, '_').toLowerCase();
+        nodeName = (node.data.label as string).replace(/\s+/g, '_').toLowerCase();
       } else {
         nodeName = `node_${index + 1}`;
       }
@@ -364,7 +371,7 @@ export class LlmYaml {
       
       if (nodeName && node.type === 'person_job' && node.data.type === 'person_job') {
         if (node.data.defaultPrompt) {
-          prompts[nodeName] = node.data.defaultPrompt;
+          prompts[nodeName] = String(node.data.defaultPrompt);
         }
       } else if (nodeName && node.type === 'db' && node.data.type === 'db') {
         if (node.data.sourceDetails) {
@@ -401,7 +408,7 @@ export class LlmYaml {
 
         // Simplify if only system prompt
         if (Object.keys(agent).length === 1 && agent.system) {
-          agents[personName] = agent.system;
+          agents[personName] = agent.system as string;
         } else {
           agents[personName] = agent;
         }

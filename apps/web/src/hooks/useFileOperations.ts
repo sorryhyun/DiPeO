@@ -198,7 +198,12 @@ export const useFileOperations = () => {
   const exportDiagramAs = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagramState();
+      const exportedData = exportDiagramState();
+      const diagramData = {
+        ...exportedData,
+        id: `diagram-${  Date.now()}`,
+        name: 'Untitled Diagram'
+      };
       let content: string;
       let defaultFilename: string;
       
@@ -242,7 +247,12 @@ export const useFileOperations = () => {
   const saveDiagramToServer = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagramState();
+      const exportedData = exportDiagramState();
+      const diagramData = {
+        ...exportedData,
+        id: `diagram-${  Date.now()}`,
+        name: filename?.replace(/\.[^/.]+$/, '') || 'Untitled Diagram'
+      };
       
       const finalFilename = filename || `diagram${getFileExtension(format)}`;
       const result = await saveDiagramToBackend(diagramData, {
@@ -356,11 +366,13 @@ export const useFileOperations = () => {
   const cloneDiagram = useCallback(async (newName: string, format: SupportedFormat = 'json') => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagramState();
+      const exportedData = exportDiagramState();
       
       // Create a cloned diagram with metadata
       const clonedDiagram = {
-        ...diagramData,
+        ...exportedData,
+        id: `diagram-${  Date.now()}`,
+        name: newName,
         metadata: {
           name: newName,
           clonedAt: new Date().toISOString()

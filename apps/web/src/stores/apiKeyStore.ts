@@ -58,7 +58,7 @@ export const useApiKeyStore = create<ApiKeyState>()(
             const apiKeys = data.map((key) => ({
               id: key.id,
               name: key.name,
-              service: key.service as ApiKey['service'],
+              service: key.service as ApiKey['service']
             }));
             
             set({ apiKeys });

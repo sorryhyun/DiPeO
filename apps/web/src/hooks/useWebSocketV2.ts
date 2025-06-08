@@ -23,7 +23,7 @@ export interface WebSocketActions {
   reconnect: () => void;
 }
 
-export interface UseWebSocketOptions extends WebSocketClientOptions {
+export interface UseWebSocketOptions extends Omit<WebSocketClientOptions, 'onError'> {
   autoConnect?: boolean;
   onConnected?: () => void;
   onDisconnected?: () => void;

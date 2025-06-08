@@ -36,7 +36,6 @@ export function sanitizeDiagram(diagram: DiagramState): DiagramState {
     persons: (diagram.persons || []).map(person => ({
       id: person.id,
       label: person.label || 'Unnamed Person',
-      service: person.service || 'chatgpt', // Default service
       apiKeyId: person.apiKeyId || undefined,
       modelName: person.modelName || undefined,
       systemPrompt: person.systemPrompt || undefined

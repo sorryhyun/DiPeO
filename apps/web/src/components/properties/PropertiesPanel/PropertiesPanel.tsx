@@ -6,7 +6,7 @@ import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
-type UniversalData = NodeData | (ArrowData & { type: 'arrow' }) | (Person & { type: 'person' });
+export type UniversalData = NodeData | (ArrowData & { type: 'arrow' }) | (Person & { type: 'person' });
 
 interface UniversalPropertiesPanelProps {
   nodeId: string;

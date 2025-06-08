@@ -112,7 +112,7 @@ export class Yaml {
       
       persons[person.label] = {
         model: person.modelName || 'gpt-4.1-nano',
-        service: service,
+        service,
         ...(apiKeyLabel && { apiKeyLabel }),
         ...(person.systemPrompt && { system: person.systemPrompt })
       };
@@ -156,7 +156,7 @@ export class Yaml {
   ): YamlDiagram['workflow'][0] | null {
     const data = node.data;
     const baseStep: YamlDiagram['workflow'][0] = {
-      label: data.label || node.id,
+      label: String(data.label || node.id),
       type: node.type as string,
       position: {
         x: Math.round(node.position.x),
@@ -233,7 +233,7 @@ export class Yaml {
         id: entityIdGenerators.apiKey(),
         name: key.name,
         service: key.service as ApiKey['service'],
-        key: '' // Will be set by user when configuring
+        // key is optional - not stored in frontend
       });
     });
 
@@ -254,7 +254,7 @@ export class Yaml {
           id: entityIdGenerators.apiKey(),
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
           service,
-          key: `${service.toUpperCase()}_API_KEY`
+          // key is optional - not stored in frontend
         };
         apiKeys.push(newApiKey);
         serviceToApiKey.set(service, newApiKey.id);

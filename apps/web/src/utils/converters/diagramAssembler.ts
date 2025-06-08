@@ -1,7 +1,7 @@
 import { generateShortId } from '@/utils/id';
 import { Diagram, Node, Arrow, Person, ApiKey } from '@/types';
 import { createHandleId } from '@/utils/canvas/handle-adapter';
-import { generateNodeHandles } from '@/utils/node';
+import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 
 // Edge type for graph representation
@@ -107,7 +107,9 @@ export class DiagramAssembler {
       console.error('Diagram assembly error:', error);
       const errorNodeId = 'error-node';
       const errorNodeConfig = getNodeConfig('start');
-      const errorHandles = errorNodeConfig ? generateNodeHandles(errorNodeId, errorNodeConfig) : [];
+      const errorHandles = errorNodeConfig 
+        ? generateNodeHandles(errorNodeId, errorNodeConfig) 
+        : getDefaultHandles(errorNodeId, 'start');
       
       return {
         id: `diagram-${generateShortId().slice(0, 4)}`,
@@ -258,7 +260,9 @@ export class DiagramAssembler {
       
       // Generate handles for the node
       const nodeConfig = getNodeConfig(nodeInfo.type);
-      const handles = nodeConfig ? generateNodeHandles(nodeId, nodeConfig) : [];
+      const handles = nodeConfig 
+        ? generateNodeHandles(nodeId, nodeConfig) 
+        : getDefaultHandles(nodeId, nodeInfo.type);
       
       // Create node
       const node: Node = {

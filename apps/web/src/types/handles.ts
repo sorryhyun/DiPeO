@@ -38,23 +38,8 @@ export interface HandleArrow {
   data?: Record<string, any>;
 }
 
-// Utility functions for handle IDs
-export function parseHandleId(handleId: string): { nodeId: string; type: string; name: string } | null {
-  const parts = handleId.split('-');
-  if (parts.length < 3) return null;
-  
-  // Handle IDs are in format: nodeId-type-name
-  // nodeId might contain dashes, so we need to handle that
-  const type = parts[parts.length - 2];
-  const name = parts[parts.length - 1];
-  const nodeId = parts.slice(0, -2).join('-');
-  
-  return { nodeId, type, name };
-}
-
-export function createHandleId(nodeId: string, type: 'input' | 'output', name: string): string {
-  return `${nodeId}-${type}-${name}`;
-}
+// Note: Handle ID utility functions (parseHandleId, createHandleId) are now in utils/canvas/handle-adapter.ts
+// They use the format "nodeId:handleName" as per the project's handle system
 
 // Type compatibility checking
 export function areTypesCompatible(from: DataType | undefined, to: DataType | undefined): boolean {

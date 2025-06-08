@@ -64,21 +64,24 @@ export type WSMessage = { type: string; [key: string]: any };
 /* Execution update types */
 export interface ExecutionUpdate {
   type: string;
-  execution_id?: string;
+  executionId?: string;
   node_id?: string;
   progress?: string;
   output?: unknown;
+  output_preview?: string;
   error?: string;
   status?: string;
   total_nodes?: number;
   context?: Dict;
-  token_count?: number;
-  total_token_count?: number;
   duration?: number;
   nodeType?: string;
   nodeId?: string;
   message?: string;
   details?: Dict;
+  totalTokens?: number;
+  tokens?: number;
+  timestamp?: string;
+  conversationId?: string;
 }
 
 export interface InteractivePromptData {
@@ -91,7 +94,7 @@ export interface InteractivePromptData {
 
 /* Monitor mode */
 export interface MonitorSubscription {
-  execution_id: string;
+  executionId: string;
 }
 
 export interface ExecutionResult {

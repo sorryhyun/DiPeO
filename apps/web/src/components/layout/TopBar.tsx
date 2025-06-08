@@ -9,6 +9,7 @@ import { useDiagramRunner } from '@/hooks/execution';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse } from '@/utils/types';
+import type { ApiKey } from '@/types';
 
 
 const TopBar = () => {
@@ -80,8 +81,8 @@ const TopBar = () => {
           if (backendKeys.length > 0 && apiKeys.length === 0) {
             backendKeys.forEach((key) => {
               addApiKey({
-                name: key.name,
-                service: key.service
+                name: key.name || 'Unnamed Key',
+                service: key.service as ApiKey['service']
               });
             });
           }

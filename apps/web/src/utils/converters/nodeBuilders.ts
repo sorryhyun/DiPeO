@@ -1,6 +1,6 @@
 import { generateShortId } from '@/utils/id';
 import { Node, NodeKind } from '@/types';
-import { generateNodeHandles } from '@/utils/node';
+import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 
 // Common utilities
@@ -9,7 +9,9 @@ export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c
 // Helper to add handles to a node
 const addHandles = (node: Omit<Node, 'handles'>, nodeType: NodeKind): Node => {
   const nodeConfig = getNodeConfig(nodeType);
-  const handles = nodeConfig ? generateNodeHandles(node.id, nodeConfig) : [];
+  const handles = nodeConfig 
+    ? generateNodeHandles(node.id, nodeConfig) 
+    : getDefaultHandles(node.id, nodeType);
   return { ...node, handles } as Node;
 };
 

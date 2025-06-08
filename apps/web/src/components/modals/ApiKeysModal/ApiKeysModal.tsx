@@ -84,7 +84,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         id: result.id,
         name: result.name || newKeyForm.name.trim(),
         service: result.service || newKeyForm.service || 'claude',
-        // Don't store raw key in frontend
+        // key is optional - not stored in frontend for security
       };
 
       addApiKey(newKey);

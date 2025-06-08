@@ -198,7 +198,7 @@ export class ExecutionClientV2 {
         // Convert WebSocket message to ExecutionUpdate format
         const update: ExecutionUpdate = {
           type: message.type,
-          execution_id: message.execution_id as string,
+          executionId: message.executionId as string,
           nodeId: message.nodeId as string,
           nodeType: message.node_type as string,
           output: message.output,
