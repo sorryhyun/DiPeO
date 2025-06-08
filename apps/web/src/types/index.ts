@@ -8,7 +8,7 @@ export * from './runtime';
 export * from './ui';
 export * from './errors';
 export * from './handles';
-export * from './form';
+export * from './ui/form';
 export * from './validation';
 
 // New type system exports
