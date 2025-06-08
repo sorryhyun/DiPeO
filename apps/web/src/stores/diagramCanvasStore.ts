@@ -21,7 +21,7 @@ type ArrowMap = Map<string, Arrow>;
 type PersonMap = Map<string, Person>;
 type ApiKeyMap = Map<string, ApiKey>;
 
-export interface DiagramStore {
+export interface DiagramCanvasStore {
   // Maps for O(1) access
   nodes: NodeMap;
   arrows: ArrowMap;
@@ -122,7 +122,7 @@ const throttle = <Args extends unknown[], Return>(
 };
 
 // Store implementation
-export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
+export const useDiagramCanvasStore = createWithEqualityFn<DiagramCanvasStore>()(
   devtools(
     subscribeWithSelector(
       (set, get) => {
@@ -137,7 +137,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           // Convert back to our Node type
           const updatedNodes = updatedRfNodes as Node[];
           set(
-            produce<DiagramStore>(draft => {
+            produce<DiagramCanvasStore>(draft => {
               updatedNodes.forEach(n => {
                 draft.nodes.set(n.id, n);
               });
