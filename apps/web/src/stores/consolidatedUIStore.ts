@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 
 export interface ConsolidatedUIState {
@@ -44,7 +44,7 @@ export interface ConsolidatedUIState {
   setSelectedPersonId: (id: string | null) => void;
 }
 
-export const useConsolidatedUIStore = create<ConsolidatedUIState>()(
+export const useConsolidatedUIStore = createWithEqualityFn<ConsolidatedUIState>()(
   devtools(
     (set, get) => ({
       // Initial state

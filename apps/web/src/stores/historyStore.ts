@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useDiagramStore } from './diagramStore';
 import { Node, Arrow, Person, ApiKey } from '@/types';
@@ -53,7 +53,7 @@ function restoreSnapshot(snapshot: DiagramSnapshot) {
   diagramStore.setApiKeys(snapshot.apiKeys);
 }
 
-export const useHistoryStore = create<HistoryStore>()(
+export const useHistoryStore = createWithEqualityFn<HistoryStore>()(
   devtools(
     (set, get) => ({
       // State

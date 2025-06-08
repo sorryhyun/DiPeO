@@ -108,7 +108,7 @@ export class DiagramAssembler {
       const errorNodeId = 'error-node';
       const errorNodeConfig = getNodeConfig('start');
       const errorHandles = errorNodeConfig 
-        ? generateNodeHandles(errorNodeId, errorNodeConfig) 
+        ? generateNodeHandles(errorNodeId, errorNodeConfig, 'start') 
         : getDefaultHandles(errorNodeId, 'start');
       
       return {
@@ -261,7 +261,7 @@ export class DiagramAssembler {
       // Generate handles for the node
       const nodeConfig = getNodeConfig(nodeInfo.type);
       const handles = nodeConfig 
-        ? generateNodeHandles(nodeId, nodeConfig) 
+        ? generateNodeHandles(nodeId, nodeConfig, nodeInfo.type) 
         : getDefaultHandles(nodeId, nodeInfo.type);
       
       // Create node
@@ -270,7 +270,11 @@ export class DiagramAssembler {
         type: nodeInfo.type,
         position: positions[name] || { x: 0, y: 0 },
         data: nodeInfo.data,
-        handles
+        handles,
+        // Add ReactFlow required properties
+        draggable: true,
+        selectable: true,
+        connectable: true
       };
       
       nodes.push(node);

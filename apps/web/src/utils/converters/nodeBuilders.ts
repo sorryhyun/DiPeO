@@ -10,9 +10,16 @@ export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c
 const addHandles = (node: Omit<Node, 'handles'>, nodeType: NodeKind): Node => {
   const nodeConfig = getNodeConfig(nodeType);
   const handles = nodeConfig 
-    ? generateNodeHandles(node.id, nodeConfig) 
+    ? generateNodeHandles(node.id, nodeConfig, nodeType) 
     : getDefaultHandles(node.id, nodeType);
-  return { ...node, handles } as Node;
+  return { 
+    ...node, 
+    handles,
+    // Add ReactFlow required properties
+    draggable: true,
+    selectable: true,
+    connectable: true
+  } as Node;
 };
 
 // Node info type for builder input

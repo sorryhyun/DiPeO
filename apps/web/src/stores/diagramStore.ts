@@ -1,9 +1,9 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { produce, enableMapSet } from 'immer';
 import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
-import { Node, Arrow, Person, ApiKey, Handle } from '@/types';
+import { Node, Arrow, Person, ApiKey, Handle, NodeKind } from '@/types';
 import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
@@ -110,7 +110,7 @@ const toMap = <T extends { id: string }>(arr: T[]): Map<string, T> =>
   new Map(arr.map(obj => [obj.id, obj]));
 
 // Store implementation
-export const useDiagramStore = create<DiagramStore>()(
+export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
   devtools(
     subscribeWithSelector(
       persist(
@@ -152,7 +152,7 @@ export const useDiagramStore = create<DiagramStore>()(
               const id = `${type}-${generateShortId().slice(0, 4)}`;
               const nodeConfig = getNodeConfig(type);
               const handles = nodeConfig 
-                ? generateNodeHandles(id, nodeConfig) 
+                ? generateNodeHandles(id, nodeConfig, type) 
                 : getDefaultHandles(id, type);
               
               const newNode: Node = {
@@ -160,8 +160,12 @@ export const useDiagramStore = create<DiagramStore>()(
                 type,
                 position,
                 data: { type, id },
-                handles
-              };
+                handles,
+                // Add ReactFlow required properties
+                draggable: true,
+                selectable: true,
+                connectable: true
+              } as Node;
               set(
                 produce(draft => {
                   draft.nodes.set(id, newNode);
@@ -202,7 +206,37 @@ export const useDiagramStore = create<DiagramStore>()(
               set(
                 produce(draft => {
                   const existing = draft.nodes.get(node.id);
-                  draft.nodes.set(node.id, { ...existing, ...node } as Node);
+                  
+                  // Generate handles if not present
+                  const nodeId = node.id || existing?.id;
+                  if (!nodeId) {
+                    console.error('Cannot upsert node without id');
+                    return;
+                  }
+                  
+                  const nodeType = node.type || existing?.type;
+                  if (!nodeType) {
+                    console.error('Cannot upsert node without type');
+                    return;
+                  }
+                  
+                  const handles = node.handles || existing?.handles || (() => {
+                    const nodeConfig = getNodeConfig(nodeType as NodeKind);
+                    return nodeConfig 
+                      ? generateNodeHandles(nodeId, nodeConfig, nodeType) 
+                      : getDefaultHandles(nodeId, nodeType);
+                  })();
+                  
+                  const updatedNode = { 
+                    ...existing, 
+                    ...node,
+                    handles,
+                    // Ensure ReactFlow properties are preserved
+                    draggable: node.draggable ?? existing?.draggable ?? true,
+                    selectable: node.selectable ?? existing?.selectable ?? true,
+                    connectable: node.connectable ?? existing?.connectable ?? true
+                  } as Node;
+                  draft.nodes.set(node.id, updatedNode);
                 })
               ),
 
@@ -440,9 +474,27 @@ export const useDiagramStore = create<DiagramStore>()(
                 // New format - use label-based loader
                 get().loadDiagramFromLabels(data);
               } else {
-                // Old format - direct load
+                // Old format - ensure nodes have ReactFlow properties and handles
+                const nodesWithDefaults = (data.nodes || []).map(node => {
+                  // Generate handles if not present
+                  const handles = node.handles || (() => {
+                    const nodeConfig = getNodeConfig(node.type as NodeKind);
+                    return nodeConfig 
+                      ? generateNodeHandles(node.id, nodeConfig, node.type) 
+                      : getDefaultHandles(node.id, node.type);
+                  })();
+                  
+                  return {
+                    ...node,
+                    handles,
+                    draggable: node.draggable ?? true,
+                    selectable: node.selectable ?? true,
+                    connectable: node.connectable ?? true
+                  };
+                });
+                
                 set({
-                  nodes: toMap(data.nodes || []),
+                  nodes: toMap(nodesWithDefaults),
                   arrows: toMap(data.arrows || []),
                   persons: toMap(data.persons || []),
                   apiKeys: toMap(data.apiKeys || [])
@@ -652,6 +704,12 @@ export const useDiagramStore = create<DiagramStore>()(
                   personId = personLabelToId.get(nodeData.data.personLabel);
                 }
                 
+                // Generate handles if not provided
+                const nodeConfig = getNodeConfig(nodeData.type);
+                const handles = nodeData.handles || (nodeConfig 
+                  ? generateNodeHandles(id, nodeConfig, nodeData.type) 
+                  : getDefaultHandles(id, nodeData.type));
+                
                 return {
                   ...nodeData,
                   id,
@@ -662,7 +720,12 @@ export const useDiagramStore = create<DiagramStore>()(
                     id,
                     label,
                     personId
-                  }
+                  },
+                  handles,
+                  // Add ReactFlow required properties
+                  draggable: nodeData.draggable ?? true,
+                  selectable: nodeData.selectable ?? true,
+                  connectable: nodeData.connectable ?? true
                 } as Node;
               });
               

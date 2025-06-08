@@ -10,7 +10,6 @@ export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   position: Position;
   offset?: number;
   color?: string;
-  style?: React.CSSProperties;
   className?: string;
 }
 
@@ -88,14 +87,13 @@ const LABEL_HANDLE_POS = {
   [Position.Right]: { right: `-${HALF_HANDLE_SIZE}px` },
 } as const;
 
-export const FlowHandle: React.FC<FlowHandleProps> = ({
+const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   nodeId,
   type,
   name,
   position,
   offset = 50,
   color,
-  style,
   className,
   ...props
 }) => {
@@ -111,28 +109,12 @@ export const FlowHandle: React.FC<FlowHandleProps> = ({
       backgroundColor: baseColor,
       border: '2px solid white',
       ...HANDLE_POS[position](offset),
-      ...style,
       position: 'absolute' as const,
     };
-  }, [position, offset, color, type, style]);
+  }, [position, offset, color, type]);
 
   // Memoize label style computation
   const labelStyle = useMemo(() => {
-    // Special case for DB nodes
-    if (position === Position.Bottom && style?.left) {
-      const leftValue = parseFloat(String(style.left));
-      const sideStyle = leftValue < 0
-        ? { ...LABEL_BASE_STYLE, left: '-40px', top: '50%', transform: 'translateY(-50%)' }
-        : { ...LABEL_BASE_STYLE, right: '-40px', top: '50%', transform: 'translateY(-50%)' };
-      
-      return {
-        ...sideStyle,
-        position: 'absolute' as const,
-        zIndex: 10,
-        ...LABEL_HANDLE_POS[position],
-      };
-    }
-
     // Regular handles
     return {
       ...LABEL_POS[position],
@@ -140,7 +122,7 @@ export const FlowHandle: React.FC<FlowHandleProps> = ({
       zIndex: 10,
       ...LABEL_HANDLE_POS[position],
     };
-  }, [position, style]);
+  }, [position]);
 
   return (
     <>
@@ -156,3 +138,17 @@ export const FlowHandle: React.FC<FlowHandleProps> = ({
     </>
   );
 };
+
+// Memoized version with custom comparison
+export const FlowHandle = React.memo(FlowHandleComponent, (prevProps, nextProps) => {
+  // Compare only the props that affect rendering
+  return (
+    prevProps.nodeId === nextProps.nodeId &&
+    prevProps.name === nextProps.name &&
+    prevProps.type === nextProps.type &&
+    prevProps.position === nextProps.position &&
+    prevProps.offset === nextProps.offset &&
+    prevProps.color === nextProps.color &&
+    prevProps.className === nextProps.className
+  );
+});

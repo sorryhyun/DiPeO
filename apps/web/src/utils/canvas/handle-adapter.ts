@@ -7,6 +7,11 @@ import type { Arrow, ReactFlowEdge, HandleID } from '@/types';
  * @param handleId Format: "nodeId:handleName"
  */
 export function parseHandleId(handleId: string): { nodeId: string; handleName: string } {
+  // Guard against undefined or empty handleId
+  if (!handleId) {
+    return { nodeId: '', handleName: 'default' };
+  }
+  
   const [nodeId = '', ...handleParts] = handleId.split(':');
   const handleName = handleParts.join(':') || 'default'; // Handle case where handle name contains ':' or is missing
   return { nodeId, handleName };
@@ -28,6 +33,7 @@ export function arrowToReactFlowEdge(arrow: Arrow): ReactFlowEdge {
   
   return {
     id: arrow.id,
+    type: 'customArrow',
     source: sourceNodeId,
     target: targetNodeId,
     sourceHandle: sourceHandleName,

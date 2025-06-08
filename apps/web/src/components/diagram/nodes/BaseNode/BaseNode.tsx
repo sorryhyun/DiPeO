@@ -46,7 +46,10 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
       ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
     ];
     
-    return allHandles.map(handle => {
+    // Track used IDs to ensure uniqueness
+    const usedIds = new Set<string>();
+    
+    return allHandles.map((handle, index) => {
       const isVertical = handle.position === 'top' || handle.position === 'bottom';
       const position = isFlipped && !isVertical
         ? (handle.position === 'left' ? Position.Right : Position.Left)
@@ -59,11 +62,21 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
         ? { left: `${50 + (offset.x / 2)}%`, transform: `translateX(-50%)` }
         : { top: `${50 + (offset.y / 2)}%`, transform: `translateY(-50%)` };
       
+      // Ensure unique handle ID
+      const handleName = handle.id || 'default';
+      let handleId = createHandleId(nodeId || 'unknown', handleName);
+      
+      // If ID already exists, append index to make it unique
+      if (usedIds.has(handleId)) {
+        handleId = createHandleId(nodeId || 'unknown', `${handleName}_${index}`);
+      }
+      usedIds.add(handleId);
+      
       return {
         type: handle.type,
         position,
-        id: createHandleId(nodeId, handle.id),
-        name: handle.id,
+        id: handleId,
+        name: handleName,
         style,
         offset: 50,
         color: handle.color
@@ -273,7 +286,6 @@ export function BaseNode({
           position={handle.position}
           offset={handle.offset}
           color={handle.color}
-          style={handle.style}
           className={status.isRunning ? 'animate-pulse' : ''}
         />
       ))}

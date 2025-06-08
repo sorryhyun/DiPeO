@@ -12,13 +12,11 @@ export type NodeKind = typeof NodeKinds[number];
 // Handle definition for node connection points
 export interface Handle {
   id: ID;  // Globally unique, e.g., "node1:output"
-  nodeId: ID;  // Reference to parent node
   kind: 'source' | 'target';  // More semantic than 'type'
   name: string;  // Handle name for identification
   position?: 'top' | 'right' | 'bottom' | 'left';
   dataType?: string;  // For type-checking connections
   label?: string;
-  style?: Record<string, any>;
 }
 
 // Note: This extends ReactFlow's Node type structure for compatibility
@@ -30,6 +28,10 @@ export interface Node<D = Dict, K extends NodeKind = NodeKind> {
     type: K;
   };
   handles: Handle[];  // Explicitly defined handles (required, not optional)
+  // ReactFlow properties for drag and drop
+  draggable?: boolean;
+  selectable?: boolean;
+  connectable?: boolean;
 }
 
 
@@ -122,6 +124,7 @@ export type HandleID = `${string}:${string}`;  // Format: "nodeId:handleName"
 // Type for ReactFlow edge conversion
 export interface ReactFlowEdge {
   id: string;
+  type?: string;  // Edge type (e.g., 'customArrow')
   source: string;  // Node ID
   target: string;  // Node ID
   sourceHandle?: string;  // Handle name

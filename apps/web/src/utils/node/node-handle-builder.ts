@@ -2,14 +2,22 @@
 
 import type { Handle, NodeConfigItem, HandleConfig } from '@/types';
 import { createHandleId } from '../canvas/handle-adapter';
+import { HANDLE_REGISTRY, getHandleConfig } from '@/config/handleRegistry';
 
 /**
  * Generate handle objects for a node based on its configuration
  */
 export function generateNodeHandles(
   nodeId: string, 
-  nodeConfig: NodeConfigItem
+  nodeConfig: NodeConfigItem,
+  nodeType?: string
 ): Handle[] {
+  // Use centralized registry if available for this node type
+  if (nodeType && HANDLE_REGISTRY[nodeType]) {
+    return generateNodeHandlesFromRegistry(nodeId, nodeType);
+  }
+  
+  // Fallback to config-based generation
   const handles: Handle[] = [];
   
   // Generate input handles
@@ -32,6 +40,47 @@ export function generateNodeHandles(
 }
 
 /**
+ * Generate handles from the centralized registry
+ */
+export function generateNodeHandlesFromRegistry(
+  nodeId: string,
+  nodeType: string
+): Handle[] {
+  const handles: Handle[] = [];
+  const config = getHandleConfig(nodeType);
+  
+  // Generate input handles
+  if (config.inputs) {
+    config.inputs.forEach((handleDef) => {
+      handles.push({
+        id: createHandleId(nodeId, handleDef.id),
+        kind: 'target',
+        name: handleDef.id,
+        position: handleDef.position,
+        label: handleDef.label || handleDef.id,
+        dataType: inferDataType(handleDef.id),
+      });
+    });
+  }
+  
+  // Generate output handles
+  if (config.outputs) {
+    config.outputs.forEach((handleDef) => {
+      handles.push({
+        id: createHandleId(nodeId, handleDef.id),
+        kind: 'source',
+        name: handleDef.id,
+        position: handleDef.position,
+        label: handleDef.label || handleDef.id,
+        dataType: inferDataType(handleDef.id),
+      });
+    });
+  }
+  
+  return handles;
+}
+
+/**
  * Create a Handle object from HandleConfig
  */
 function createHandleFromConfig(
@@ -44,26 +93,18 @@ function createHandleFromConfig(
   
   return {
     id: handleId,
-    nodeId,
     kind,
     name: handleName,
     position: config.position || (kind === 'source' ? 'right' : 'left'),
     label: config.label || handleName,
-    dataType: inferDataType(handleName, kind),
-    style: {
-      ...(config.color && { backgroundColor: config.color }),
-      ...(config.offset && {
-        top: config.offset.y ? `${50 + config.offset.y}%` : '50%',
-        transform: config.offset.y ? 'translateY(-50%)' : undefined,
-      }),
-    },
+    dataType: inferDataType(handleName),
   };
 }
 
 /**
- * Infer data type from handle name and kind
+ * Infer data type from handle name
  */
-function inferDataType(handleName: string, kind: 'source' | 'target'): string {
+function inferDataType(handleName: string): string {
   // Special cases for specific handle names
   if (handleName === 'true' || handleName === 'false') {
     return 'boolean';
@@ -87,7 +128,6 @@ function inferDataType(handleName: string, kind: 'source' | 'target'): string {
 export function getDefaultHandles(nodeId: string, nodeType: string): Handle[] {
   const defaultInputHandle: Handle = {
     id: createHandleId(nodeId, 'input'),
-    nodeId,
     kind: 'target',
     name: 'input',
     position: 'left',
@@ -96,7 +136,6 @@ export function getDefaultHandles(nodeId: string, nodeType: string): Handle[] {
   
   const defaultOutputHandle: Handle = {
     id: createHandleId(nodeId, 'output'),
-    nodeId,
     kind: 'source',
     name: 'output',
     position: 'right',
@@ -118,16 +157,18 @@ export function getDefaultHandles(nodeId: string, nodeType: string): Handle[] {
       return [
         defaultInputHandle,
         {
-          ...defaultOutputHandle,
           id: createHandleId(nodeId, 'true'),
+          kind: 'source',
           name: 'true',
+          position: 'right',
           label: 'True',
           dataType: 'boolean',
         },
         {
-          ...defaultOutputHandle,
           id: createHandleId(nodeId, 'false'),
+          kind: 'source',
           name: 'false',
+          position: 'right',
           label: 'False',
           dataType: 'boolean',
         },

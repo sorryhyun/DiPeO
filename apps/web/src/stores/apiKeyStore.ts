@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { entityIdGenerators } from '@/utils/id';
 import { ApiKey } from '@/types';
@@ -16,7 +16,7 @@ export interface ApiKeyState {
   setApiKeys: (apiKeys: ApiKey[]) => void;
 }
 
-export const useApiKeyStore = create<ApiKeyState>()(
+export const useApiKeyStore = createWithEqualityFn<ApiKeyState>()(
   devtools(
     subscribeWithSelector(
       (set, get) => ({
