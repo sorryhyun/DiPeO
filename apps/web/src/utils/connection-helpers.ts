@@ -4,7 +4,7 @@ import { NodeType, DataType } from '@/types/enums';
 import { DiagramNode } from '@/types/nodes';
 import { OutputHandleNamesOf, InputHandleNamesOf } from '@/types/node-specs';
 import { generateShortId } from '@/utils/id';
-import { getOutputHandle, getInputHandle } from './handle-utils';
+import { getOutputHandle, getInputHandle } from './node/handle-utils';
 
 /**
  * Arrow data structure

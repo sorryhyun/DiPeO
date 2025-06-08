@@ -1,7 +1,4 @@
 import type { NodeID, HandleID, ArrowID, PersonID, ApiKeyID } from './branded';
-import type { Direction } from './direction';
-import type { DataType } from './handles';
-import type { DomainApiKey } from './domain/api-key';
 import {DomainDiagram, DomainHandle, DomainNode} from "@/types/domain";
 
 export type NodeWithHandles = DomainNode & {

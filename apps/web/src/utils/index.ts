@@ -12,5 +12,5 @@ export * from './typeGuards';
 // Phase 8 additions
 export * from './factories';
 export * from './builders';
-export * from './handle-utils';
+export * from './node/handle-utils';
 export * from './connection-helpers';

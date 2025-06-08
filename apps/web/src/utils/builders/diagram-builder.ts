@@ -9,7 +9,7 @@ import { DomainHandle } from '@/types/domain/handle';
 import { DomainArrow } from '@/types/domain/arrow';
 import { createNode } from '@/utils/factories/node-factory';
 import { connect, TypedArrow } from '@/utils/connection-helpers';
-import { getAllHandles } from '@/utils/handle-utils';
+import { getAllHandles } from '@/utils/node/handle-utils';
 import { OutputHandleNamesOf, InputHandleNamesOf } from '@/types/node-specs';
 import { generateShortId } from '@/utils/id';
 
