@@ -1,4 +1,4 @@
-import type { NodeType, PanelConfig } from '@/types';
+import type { NodeKind, PanelConfig } from '@/types';
 import { startPanelConfig } from './start';
 import { conditionPanelConfig } from './condition';
 import { jobPanelConfig } from './job';
@@ -11,7 +11,7 @@ import { notionPanelConfig } from './notion';
 import { arrowPanelConfig } from './arrow';
 import { personPanelConfig } from './person';
 
-export const PANEL_CONFIGS: Record<NodeType | 'arrow' | 'person', PanelConfig<Record<string, any>>> = {
+export const PANEL_CONFIGS: Record<NodeKind | 'arrow' | 'person', PanelConfig<Record<string, any>>> = {
   start: startPanelConfig,
   condition: conditionPanelConfig,
   job: jobPanelConfig,

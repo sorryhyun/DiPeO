@@ -8,6 +8,7 @@ import { useDiagramStore } from '@/stores';
 import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
 import { createEntityHook, SingleEntityOperations } from './useEntity';
 import { generateShortId, entityIdGenerators } from '@/utils/id';
+import { parseHandleId } from '@/utils/canvas/handle-adapter';
 
 // Re-export for backward compatibility
 export type EntityOperations<T extends { id: string }> = SingleEntityOperations<T>;
@@ -58,11 +59,15 @@ export const useArrowEntities = createEntityHook<Arrow>({
   addEntity: (arrow) => {
     const store = useDiagramStore.getState();
     if (arrow.source && arrow.target) {
+      // Parse handle IDs to extract node IDs and handle names
+      const { nodeId: sourceNodeId, handleName: sourceHandleName } = parseHandleId(arrow.source);
+      const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
+      
       store.addArrow(
-        arrow.source,
-        arrow.target,
-        arrow.sourceHandle,
-        arrow.targetHandle
+        sourceNodeId,
+        targetNodeId,
+        sourceHandleName,
+        targetHandleName
       );
     } else {
       throw new Error('Arrow source and target are required');
@@ -70,7 +75,8 @@ export const useArrowEntities = createEntityHook<Arrow>({
   },
   updateEntity: (id, updates) => {
     const store = useDiagramStore.getState();
-    store.updateArrow(id, updates.data || updates);
+    const data = updates.data || updates;
+    store.updateArrow(id, data as Record<string, unknown>);
   },
   deleteEntity: (id) => {
     const store = useDiagramStore.getState();

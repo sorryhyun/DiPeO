@@ -8,8 +8,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useWebSocketEventBus } from '../useWebSocketEventBus';
 import { useEvent } from '../useEvent';
-import type { WSMessage, DiagramState, InteractivePromptData } from '@/types';
-import type { DiagramData, ExecutionOptions, ExecutionUpdate } from '@/types/api';
+import type { WSMessage, DiagramState, InteractivePromptData, DiagramData, ExecutionOptions, ExecutionUpdate } from '@/types';
 import { exportDiagramState } from '../useStoreSelectors';
 
 export interface UseExecutionSocketOptions {
@@ -298,7 +297,7 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}): Use
 function convertToExecutionUpdate(message: WSMessage): ExecutionUpdate {
   return {
     type: message.type,
-    executionId: message.execution_id as string,
+    execution_id: message.execution_id as string,
     nodeId: message.nodeId as string,
     nodeType: message.node_type as string,
     output: message.output,

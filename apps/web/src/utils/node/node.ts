@@ -1,17 +1,18 @@
 import { Node } from '@xyflow/react';
-import type { Node as DiagramNode, DiagramNodeData, NodeType } from '@/types';
+import type { Node as DiagramNode, NodeKind, Dict, ValidationResult } from '@/types';
 import { getNodeConfig, getNodeDefaults, validateNodeData as validateNodeConfig } from '@/config';
+import { entityIdGenerators } from '@/utils/id';
 
 // NODE CREATION & DEFAULTS
 
 
 export const createNodeId = (): string => {
-  return `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return entityIdGenerators.node();
 };
 
-export function createDefaultNodeData(type: string, nodeId: string): DiagramNodeData {
-  // Convert string type to NodeType
-  const nodeType = type as NodeType;
+export function createDefaultNodeData(type: string, nodeId: string): Dict {
+  // Convert string type to NodeKind
+  const nodeType = type as NodeKind;
   const config = getNodeConfig(nodeType);
   
   if (!config) {
@@ -52,7 +53,7 @@ export function createDefaultNodeData(type: string, nodeId: string): DiagramNode
       break;
   }
   
-  return baseData as DiagramNodeData;
+  return baseData as Dict;
 }
 
 
@@ -63,9 +64,6 @@ export const getNodeDisplayName = (node: Node): string => {
   return data?.label || data?.name || node.type || 'Unnamed Node';
 };
 
-export function createHandleId(nodeId: string, type: string, name?: string): string {
-  return name ? `${nodeId}-${type}-${name}` : `${nodeId}-${type}`;
-}
 
 export const getNodeData = (node: DiagramNode, defaults: Record<string, any> = {}): Record<string, any> => {
   return { ...defaults, ...node.data };
@@ -73,12 +71,6 @@ export const getNodeData = (node: DiagramNode, defaults: Record<string, any> = {
 
 
 // NODE VALIDATION
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
 
 export const validateNode = (node: Node): ValidationResult => {
   const errors: string[] = [];
@@ -133,7 +125,7 @@ export const validateNodeData = (nodeType: string, data: unknown): ValidationRes
   }
 
   // Use the new configuration-based validation
-  const validationResult = validateNodeConfig(nodeType as NodeType, data as Record<string, any>);
+  const validationResult = validateNodeConfig(nodeType as NodeKind, data as Record<string, any>);
 
   return {
     isValid: validationResult.valid,

@@ -9,14 +9,12 @@ import { produce } from 'immer';
 import { wsEventBus, sendWebSocketMessage, waitForWebSocketConnection } from './event-bus';
 import type { 
   WSMessage,
-  InteractivePromptData
-} from '@/types';
-import type {
+  InteractivePromptData,
   DiagramData,
   ExecutionOptions,
   ExecutionUpdate,
   ExecutionResult
-} from '@/types/api';
+} from '@/types';
 
 /**
  * WebSocket-based execution client using Event Bus pattern
@@ -200,7 +198,7 @@ export class ExecutionClientV2 {
         // Convert WebSocket message to ExecutionUpdate format
         const update: ExecutionUpdate = {
           type: message.type,
-          executionId: message.execution_id as string,
+          execution_id: message.execution_id as string,
           nodeId: message.nodeId as string,
           nodeType: message.node_type as string,
           output: message.output,

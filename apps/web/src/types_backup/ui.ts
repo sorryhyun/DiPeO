@@ -1,45 +1,101 @@
-// types/ui.ts - UI-related types
+// UI types - State management, component interfaces, and form configurations
+import React from 'react';
 
-import type { ID, Vec2, Dict } from './primitives';
-import type { Node, Arrow, Person, ApiKey } from './diagram';
-import type React from 'react';
-
-export const Views = ['diagram','memory','execution','conversation'] as const;
-export type View = typeof Views[number];
-
+// UI State Types
 export interface UIState {
-  selected?: { id: ID; kind: 'node' | 'arrow' | 'person' };
-  active: View;
-  monitorMode: boolean;
-  propertyPanelOpen: boolean;
-  contextMenu?: { pos: Vec2; nodeId?: ID };
+  selectedId: string | null;
+  selectedType: 'node' | 'arrow' | 'person' | null;
+  activeView: 'diagram' | 'memory' | 'execution' | 'conversation';
+  isMonitorMode: boolean;
+  isPropertyPanelOpen: boolean;
+  contextMenu: {
+    isOpen: boolean;
+    position: { x: number; y: number };
+    nodeId?: string;
+  } | null;
 }
 
-/* Canvas */
+export interface SelectionState {
+  id: string;
+  type: 'node' | 'arrow' | 'person';
+}
+
+export interface ModalState {
+  apiKeys: boolean;
+  interactivePrompt: boolean;
+  fileImport: boolean;
+}
+
+export interface NotificationState {
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  duration?: number;
+}
+
+
+export interface ConversationFilters {
+  searchTerm?: string;
+  executionId?: string;
+  showForgotten?: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+
 export interface CanvasState {
   zoom: number;
-  center: Vec2;
-  dragging: boolean;
-  connecting: boolean;
+  center: { x: number; y: number };
+  isDragging: boolean;
+  isConnecting: boolean;
 }
 
 export interface PropertyPanelState {
-  open: boolean;
-  dirty: boolean;
-  errors: Dict<string>;
+  isOpen: boolean;
+  isDirty: boolean;
+  errors: Record<string, string>;
 }
 
-/* Field Configuration */
+// Component Props Types
+export interface FormFieldProps {
+  label: string;
+  id?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export interface PanelProps {
+  icon?: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}
+
+// Field Configuration Types
+export interface FieldConfig {
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'string' | 'boolean' | 'person' | 'file';
+  placeholder?: string;
+  isRequired?: boolean;
+  required?: boolean;
+  options?: { value: string; label: string }[];
+  rows?: number;
+  hint?: string;
+  helperText?: string;
+  multiline?: boolean;
+  min?: number;
+  max?: number;
+  acceptedFileTypes?: string;
+  customProps?: Record<string, any>;
+  disabled?: boolean;
+}
+
+export type PropertyFieldConfig = FieldConfig;
+
+// Panel Configuration Types
 export type FieldType = 
   | 'text' 
   | 'select' 
   | 'textarea' 
   | 'checkbox' 
-  | 'number'
-  | 'boolean'
-  | 'string'
-  | 'file'
-  | 'person'
   | 'maxIteration'
   | 'personSelect'
   | 'variableTextArea'
@@ -47,29 +103,6 @@ export type FieldType =
   | 'row'
   | 'custom';
 
-export interface FieldConfig<T = unknown> {
-  name: string;
-  label: string;
-  type: FieldType;
-  placeholder?: string;
-  required?: boolean;
-  options?: Array<{ value: string; label: string }> | (() => Array<{ value: string; label: string }>);
-  rows?: number;
-  hint?: string;
-  min?: number;
-  max?: number;
-  acceptedFileTypes?: string;
-  disabled?: boolean;
-  conditional?: {
-    field: string;
-    values: T[];
-    operator?: 'equals' | 'notEquals' | 'includes';
-  };
-  className?: string;
-  dependsOn?: string[];
-}
-
-/* Panel Configuration */
 export interface BaseFieldConfig {
   type: FieldType;
   name?: string;
@@ -170,7 +203,7 @@ export interface ValidationRule<T> {
 
 export type ValidationRules<T> = ValidationRule<T>[];
 
-export interface PanelConfig<T = Dict> {
+export interface PanelConfig<T> {
   layout: 'single' | 'twoColumn';
   fields?: PanelFieldConfig[];
   leftColumn?: PanelFieldConfig[];
@@ -178,53 +211,6 @@ export interface PanelConfig<T = Dict> {
   validation?: ValidationRules<T>;
 }
 
-export type TypedPanelConfig<T extends Dict> = PanelConfig<T> & {
+export type TypedPanelConfig<T extends Record<string, unknown>> = PanelConfig<T> & {
   _phantom?: T;
 };
-
-/* UI Component State */
-export interface SelectionState {
-  id: string;
-  type: 'node' | 'arrow' | 'person';
-}
-
-export interface ModalState {
-  apiKeys: boolean;
-  interactivePrompt: boolean;
-  fileImport: boolean;
-}
-
-export interface NotificationState {
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  duration?: number;
-}
-
-export interface ConversationFilters {
-  searchTerm?: string;
-  executionId?: string;
-  showForgotten?: boolean;
-  startTime?: string;
-  endTime?: string;
-}
-
-/* Store State Types */
-export interface DiagramState {
-  nodes: Node[];
-  arrows: Arrow[];
-  persons: Person[];
-  apiKeys: ApiKey[];
-}
-
-export interface FormFieldProps {
-  label: string;
-  id?: string;
-  children: React.ReactNode;
-  className?: string;
-}
-
-export interface PanelProps {
-  icon?: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}

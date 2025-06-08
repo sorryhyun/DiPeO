@@ -1,22 +1,19 @@
-// Consolidated type exports - avoid duplicate exports
-export * from './core';
+// types/index.ts - Re-export all types for backward compatibility
+
+// Re-export all types from separate modules
+export * from './primitives';
+export * from './api';
+export * from './diagram';
 export * from './runtime';
 export * from './ui';
+export * from './errors';
+export * from './handles';
+export * from './form';
+export * from './validation';
 
-// Only export non-conflicting API types
-export {
-  type ApiClientOptions,
-  type RequestConfig,
-  type DiagramSaveRequest,
-  type DiagramSaveResponse,
-  type ConvertRequest,
-  type ConvertResponse,
-  type HealthResponse,
-  type ExecutionCapabilitiesResponse
-} from './api';
+// Additional exports for backward compatibility
+export { type HandleConfig, type NodeConfigItem } from '../config/types';
+export { NODE_CONFIGS } from '../config';
 
-// Re-export simplified node configurations
-export { NODE_CONFIGS } from '@/config';
-
-// Alias for backward compatibility
-export { NODE_CONFIGS as UNIFIED_NODE_CONFIGS } from '@/config';
+// Re-export commonly used ReactFlow types for convenience
+export type { Connection, Edge, ReactFlowInstance } from '@xyflow/react';

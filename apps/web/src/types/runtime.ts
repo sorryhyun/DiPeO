@@ -1,130 +1,109 @@
-// Runtime types - Execution, WebSocket, and real-time state
+// types/runtime.ts - Runtime/Execution types
 
-export interface ExecutionState {
-  executionId: string;
-  isRunning: boolean;
-  runningNodes: string[];
-  completedNodes: string[];
-  skippedNodes: string[];
-  pausedNodes: string[];
-  context: Record<string, any>;
-  errors: Record<string, string>;
-  totalTokens?: number;
-  startTime?: string;
-  endTime?: string;
-}
+import type { ID, Dict } from './primitives';
+
+export type MessageHandler = (message: WSMessage) => void;
 
 export interface ExecutionOptions {
   mode?: 'monitor' | 'headless' | 'check';
   debug?: boolean;
   delay?: number;
+  continueOnError?: boolean;
+  allowPartial?: boolean;
+  debugMode?: boolean;
 }
 
-export interface WebSocketMessage {
-  type: string;
-  [key: string]: any;
+export interface ExecutionState<C = Dict> {
+  id: ID;
+  running: ID[];
+  completed: ID[];
+  skipped: ID[];
+  paused: ID[];
+  context: C;
+  errors: Dict<string>;
+  isRunning: boolean;
+  startedAt?: string;
+  endedAt?: string;
+  totalTokens?: number;
 }
 
-// Alias for backward compatibility
-export type WSMessage = WebSocketMessage;
-
-export interface MessageHandler {
-  (message: WSMessage): void;
+export interface WebSocketHooks {
+  onOpen?: () => void;
+  onClose?: () => void;
+  onError?: (e: Event) => void;
+  onMessage?: (ev: MessageEvent) => void;
 }
 
-export interface WebSocketClientOptions {
+export interface WebSocketClientOptions extends WebSocketHooks {
   url?: string;
-  debug?: boolean;
-  autoReconnect?: boolean;
-  maxReconnectAttempts?: number;
+  protocols?: string[];
   reconnectInterval?: number;
+  maxReconnect?: number;
+  maxReconnectAttempts?: number;
   maxReconnectInterval?: number;
   reconnectDecay?: number;
+  debug?: boolean;
 }
 
-export interface NodeExecutionEvent {
-  type: 'node_start' | 'node_progress' | 'node_complete' | 'node_error' | 'node_paused' | 'node_resumed' | 'node_skipped';
-  nodeId: string;
-  nodeType?: string;
-  message?: string;
-  output?: any;
+/* Event helpers */
+export type EventPayload<T extends string, P = undefined> =
+  P extends undefined ? { type: T } : { type: T; payload: P };
+
+export type NodeExecutionEvent =
+  | EventPayload<'node_start', { nodeId: ID }>
+  | EventPayload<'node_progress', { nodeId: ID; message?: string }>
+  | EventPayload<'node_complete', { nodeId: ID; output: unknown }>
+  | EventPayload<'node_error', { nodeId: ID; error: string }>
+  | EventPayload<'node_paused', { nodeId: ID }>
+  | EventPayload<'node_resumed', { nodeId: ID }>
+  | EventPayload<'node_skipped', { nodeId: ID }>;
+
+// WebSocket message types
+export type WSMessage = { type: string; [key: string]: any };
+
+/* Execution update types */
+export interface ExecutionUpdate {
+  type: string;
+  execution_id?: string;
+  node_id?: string;
+  progress?: string;
+  output?: unknown;
   error?: string;
-  tokenCount?: number;
-}
-
-export interface ExecutionControlMessage {
-  type: 'pause_node' | 'resume_node' | 'skip_node' | 'abort_execution';
+  status?: string;
+  total_nodes?: number;
+  context?: Dict;
+  token_count?: number;
+  total_token_count?: number;
+  duration?: number;
+  nodeType?: string;
   nodeId?: string;
-  executionId?: string;
-}
-
-export interface InteractivePrompt {
-  nodeId: string;
-  prompt: string;
-  timeout: number;
-  timestamp: string;
+  message?: string;
+  details?: Dict;
 }
 
 export interface InteractivePromptData {
   nodeId: string;
-  executionId: string;
   prompt: string;
   timeout?: number;
-  timeRemaining?: number;
-  isOpen?: boolean;
-  context?: {
-    person_id?: string;
-    person_name?: string;
-    model?: string;
-    service?: string;
-    execution_count?: number;
-    nodeType?: string;
-  };
+  executionId?: string;
+  context?: Dict;
 }
 
-// Execution lifecycle events
-export interface ExecutionStartedEvent {
-  type: 'execution_started';
-  executionId: string;
-  total_nodes: number;
+/* Monitor mode */
+export interface MonitorSubscription {
+  execution_id: string;
 }
 
-export interface ExecutionCompleteEvent {
-  type: 'execution_complete';
-  executionId: string;
+export interface ExecutionResult {
+  success?: boolean;
+  executionId?: string;
+  context?: Record<string, unknown>;
   totalTokens?: number;
   duration?: number;
-}
-
-export interface ExecutionAbortedEvent {
-  type: 'execution_aborted';
-  executionId: string;
-  reason?: string;
-}
-
-// Node control types
-export interface NodeControlState {
-  [nodeId: string]: {
-    status: 'running' | 'paused' | 'completed' | 'skipped' | 'error';
-    canPause: boolean;
-    canResume: boolean;
-    canSkip: boolean;
-  };
-}
-
-// Monitoring types
-export interface MonitoringData {
-  executionId: string;
-  startTime: string;
-  currentNode?: string;
-  progress: {
-    completed: number;
-    total: number;
-    percentage: number;
-  };
-  performance: {
-    averageNodeTime: number;
-    totalTokens: number;
-    memoryUsage?: number;
+  finalContext?: Record<string, any>;
+  error?: string;
+  metadata?: {
+    totalTokens?: number;
+    executionTime?: number;
   };
 }

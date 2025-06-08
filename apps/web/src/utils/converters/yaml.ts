@@ -1,8 +1,9 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
-import { Diagram, Person, Arrow, ApiKey, Node } from '@/types/core';
+import { Diagram, Person, Arrow, ApiKey, Node, NodeKind } from '@/types';
 import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { buildNode, NodeInfo } from './nodeBuilders';
+import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
 
 interface YamlDiagram {
   version: '1.0';
@@ -98,18 +99,20 @@ export class Yaml {
 
     // Convert persons to agents with full details - use label as key
     diagram.persons.forEach(person => {
-      // Find API key label by ID
+      // Find API key label and service by ID
       let apiKeyLabel: string | undefined;
+      let service = 'chatgpt'; // default
       if (person.apiKeyId) {
         const apiKey = diagram.apiKeys.find(k => k.id === person.apiKeyId);
         if (apiKey) {
           apiKeyLabel = apiKey.name;
+          service = apiKey.service;
         }
       }
       
       persons[person.label] = {
         model: person.modelName || 'gpt-4.1-nano',
-        service: person.service || 'chatgpt',
+        service: service,
         ...(apiKeyLabel && { apiKeyLabel }),
         ...(person.systemPrompt && { system: person.systemPrompt })
       };
@@ -163,16 +166,26 @@ export class Yaml {
 
     // Add connections if any
     if (connections.length > 0) {
-      baseStep.connections = connections.map(arrow => ({
-        to: arrow.target,
-        ...(arrow.data?.label && { label: arrow.data.label }),
-        ...((arrow.data?.controlPointOffsetX !== undefined || arrow.data?.controlPointOffsetY !== undefined) && {
-          control_offset: {
-            x: Math.round(arrow.data?.controlPointOffsetX || 0),
-            y: Math.round(arrow.data?.controlPointOffsetY || 0)
-          }
-        })
-      }));
+      baseStep.connections = connections.map(arrow => {
+        // Parse target handle ID to get node ID and handle name
+        const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
+        const { handleName: sourceHandleName } = parseHandleId(arrow.source);
+        
+        return {
+          to: targetNodeId,
+          source_handle: sourceHandleName,
+          target_handle: targetHandleName,
+          ...(arrow.data?.label && { label: arrow.data.label }),
+          ...(arrow.data?.contentType && { content_type: arrow.data.contentType }),
+          ...(arrow.data?.branch && { branch: arrow.data.branch }),
+          ...((arrow.data?.controlPointOffsetX !== undefined || arrow.data?.controlPointOffsetY !== undefined) && {
+            control_offset: {
+              x: Math.round(arrow.data?.controlPointOffsetX || 0),
+              y: Math.round(arrow.data?.controlPointOffsetY || 0)
+            }
+          })
+        };
+      });
     }
 
     // Find person label if needed
@@ -219,7 +232,8 @@ export class Yaml {
       apiKeys.push({
         id: entityIdGenerators.apiKey(),
         name: key.name,
-        service: key.service as ApiKey['service']
+        service: key.service as ApiKey['service'],
+        key: '' // Will be set by user when configuring
       });
     });
 
@@ -230,18 +244,38 @@ export class Yaml {
       apiKeyLabelToId.set(key.name, key.id);
     });
     
+    // Create API keys for services found in persons
+    const serviceToApiKey = new Map<string, string>();
+    Object.entries(yamlDiagram.persons || {}).forEach(([_label, person]) => {
+      const service = (person.service || 'chatgpt') as ApiKey['service'];
+      if (!serviceToApiKey.has(service) && !person.apiKeyLabel) {
+        // Create API key for this service if not using explicit apiKeyLabel
+        const newApiKey = {
+          id: entityIdGenerators.apiKey(),
+          name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
+          service,
+          key: `${service.toUpperCase()}_API_KEY`
+        };
+        apiKeys.push(newApiKey);
+        serviceToApiKey.set(service, newApiKey.id);
+      }
+    });
+
     Object.entries(yamlDiagram.persons || {}).forEach(([label, person]) => {
       // Resolve API key reference
       let apiKeyId: string | undefined;
       if (person.apiKeyLabel && apiKeyLabelToId.has(person.apiKeyLabel)) {
         apiKeyId = apiKeyLabelToId.get(person.apiKeyLabel);
+      } else {
+        // Use the API key created for this service
+        const service = (person.service || 'chatgpt') as ApiKey['service'];
+        apiKeyId = serviceToApiKey.get(service);
       }
       
       persons.push({
         id: `person-${generateShortId().slice(0, 4)}`,  // Generate fresh ID
         label,  // Use the key as label
         modelName: person.model,
-        service: person.service as ApiKey['service'],
         apiKeyId,
         systemPrompt: person.system
       });
@@ -273,19 +307,16 @@ export class Yaml {
             const targetId = nodeLabelToId.get(conn.to);
             if (targetId) {
               const arrowId = `arrow-${generateShortId().slice(0, 4)}`;
+              
+              // Create handle IDs from node IDs and handle names
+              const sourceHandleId = createHandleId(sourceId, conn.source_handle || 'output');
+              const targetHandleId = createHandleId(targetId, conn.target_handle || 'input');
+              
               arrows.push({
                 id: arrowId,
-                source: sourceId,
-                target: targetId,
-                type: 'customArrow',
-                sourceHandle: conn.source_handle,
-                targetHandle: conn.target_handle,
+                source: sourceHandleId,
+                target: targetHandleId,
                 data: {
-                  id: arrowId,
-                  sourceBlockId: sourceId,
-                  targetBlockId: targetId,
-                  sourceHandleId: conn.source_handle,
-                  targetHandleId: conn.target_handle,
                   label: conn.label || 'flow',
                   contentType: conn.content_type || 'raw_text',
                   branch: conn.branch as 'true' | 'false' | undefined,
@@ -300,6 +331,9 @@ export class Yaml {
     });
 
     return {
+      id: `diagram-${generateShortId().slice(0, 4)}`,
+      name: yamlDiagram.title || 'Imported Diagram',
+      description: yamlDiagram.metadata?.description,
       nodes,
       arrows,
       persons,
@@ -317,7 +351,7 @@ export class Yaml {
   ): Node | null {
     const nodeInfo: NodeInfo = {
       name: step.label,
-      type: step.type as any,
+      type: step.type as NodeKind,
       position: step.position,
       // Common fields
       personId: step.person ? personLabelToId.get(step.person) : undefined,

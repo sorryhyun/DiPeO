@@ -174,7 +174,6 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                     <span className="text-base">🤖</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-xs truncate">{person.label}</p>
-                      <p className="text-xs text-gray-500 truncate">{person.service || 'No service'}</p>
                     </div>
                   </div>
                 </div>
@@ -186,7 +185,6 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               size="sm"
               onClick={() => addPerson({
                 label: `Person ${persons.length + 1}`,
-                service: 'openai',
                 modelName: 'gpt-4.1-nano',
                 apiKeyId: '',
                 systemPrompt: '',

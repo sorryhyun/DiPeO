@@ -77,11 +77,21 @@ class PersonJobExecutor(BaseExecutor):
 
         # person config
         person = props.get("person") or getattr(context, 'persons', {}).get(props.get("personId"), {})
-        svc = person.get("service", "openai")
         model = person.get("modelName") or person.get("model")
         key = person.get("apiKeyId")
         sys_p = person.get("systemPrompt", "")
         pid = person.get("id", nid)
+        
+        # Get service from API key
+        svc = "openai"  # default service
+        if key:
+            try:
+                from ...utils.app_context import app_context
+                api_key_info = app_context.api_key_service.get_api_key(key)
+                svc = api_key_info.get("service", "openai")
+            except Exception as e:
+                logger.warning(f"Failed to get API key info for {key}: {e}")
+                # Fall back to default service
 
         # memory cleanup
         mem = get_memory_service()

@@ -49,14 +49,18 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     (arrow, nodes) => {
       if (!arrow.data) return null;
       
+      // Parse handle ID to get source node ID
+      const [sourceNodeId, ...sourceHandleParts] = arrow.source.split(':');
+      const sourceHandleName = sourceHandleParts.join(':');
+      
       // Find source node to determine if this is a special arrow
-      const sourceNode = nodes?.find(n => n.id === arrow.source);
-      const isFromConditionBranch = arrow.sourceHandle === 'true' || arrow.sourceHandle === 'false';
+      const sourceNode = nodes?.find(n => n.id === sourceNodeId);
+      const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
       
       // Ensure we have a valid id from arrow data
       return { 
         ...arrow.data,
-        id: arrow.data.id || arrow.id, // Ensure id is always present
+        id: arrow.id, // Use arrow's id directly
         type: 'arrow' as const,
         _sourceNodeType: sourceNode?.data.type,
         _isFromConditionBranch: isFromConditionBranch

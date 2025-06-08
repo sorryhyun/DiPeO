@@ -1,11 +1,11 @@
 import React from 'react';
 import { Hash } from 'lucide-react';
-import { PersonDefinition, ConversationMessage } from '@/types';
+import { Person, ConversationMessage } from '@/types';
 
 interface MessageListProps {
   messages: ConversationMessage[];
   currentPersonId: string | null;
-  persons: PersonDefinition[];
+  persons: Person[];
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   isLoadingMore?: boolean;

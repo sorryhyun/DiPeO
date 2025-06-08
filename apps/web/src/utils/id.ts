@@ -75,7 +75,7 @@ export function extractPrefix(id: string, separator: string = '_'): string | nul
 
 
 export function generateApiKeyId(): string {
-  return `APIKEY_${nanoid().slice(0, 4).replace(/-/g, '_').toUpperCase()}`;
+  return `APIKEY_${nanoid(4).replace(/-/g, '_').toUpperCase()}`;
 }
 
 /**

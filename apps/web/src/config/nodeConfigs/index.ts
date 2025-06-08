@@ -1,4 +1,4 @@
-import type { NodeType } from '@/types';
+import type { NodeKind } from '@/types';
 import type { NodeConfigItem } from '../types';
 import { startNodeConfig } from './start';
 import { conditionNodeConfig } from './condition';
@@ -10,7 +10,7 @@ import { dbNodeConfig } from './db';
 import { userResponseNodeConfig } from './userResponse';
 import { notionNodeConfig } from './notion';
 
-export const NODE_CONFIGS: Record<NodeType, NodeConfigItem> = {
+export const NODE_CONFIGS: Record<NodeKind, NodeConfigItem> = {
   start: startNodeConfig,
   condition: conditionNodeConfig,
   job: jobNodeConfig,

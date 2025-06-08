@@ -9,8 +9,7 @@ import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '@/hooks/useStoreSelectors';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
-import { ConversationMessage } from '@/types/core';
-import { ConversationFilters } from '@/types/ui';
+import { ConversationMessage, ConversationFilters } from '@/types';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<string | null>(null);

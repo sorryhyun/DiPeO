@@ -1,5 +1,5 @@
 // apps/web/src/utils/sanitizer.ts
-import { DiagramState, PersonDefinition } from '@/types';
+import { DiagramState, Person } from '@/types';
 import {roundPosition} from './layout';
 
 export function sanitizeDiagram(diagram: DiagramState): DiagramState {
@@ -40,6 +40,6 @@ export function sanitizeDiagram(diagram: DiagramState): DiagramState {
       apiKeyId: person.apiKeyId || undefined,
       modelName: person.modelName || undefined,
       systemPrompt: person.systemPrompt || undefined
-    } as PersonDefinition))
+    } as Person))
   };
 }

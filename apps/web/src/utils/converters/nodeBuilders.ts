@@ -1,13 +1,22 @@
 import { generateShortId } from '@/utils/id';
-import { Node, NodeType } from '@/types/core';
+import { Node, NodeKind } from '@/types';
+import { generateNodeHandles } from '@/utils/node';
+import { getNodeConfig } from '@/config/helpers';
 
 // Common utilities
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+// Helper to add handles to a node
+const addHandles = (node: Omit<Node, 'handles'>, nodeType: NodeKind): Node => {
+  const nodeConfig = getNodeConfig(nodeType);
+  const handles = nodeConfig ? generateNodeHandles(node.id, nodeConfig) : [];
+  return { ...node, handles } as Node;
+};
+
 // Node info type for builder input
 export interface NodeInfo {
   name: string;
-  type: NodeType | 'generic';
+  type: NodeKind | 'generic';
   position: { x: number; y: number };
   hasPrompt?: boolean;
   hasAgent?: boolean;
@@ -28,8 +37,8 @@ type NodeBuilder<T extends Node = Node> = (info: NodeInfo) => T;
 // Unified node builders lookup map
 export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   start: (info) => {
-    const id = `st-${generateShortId().slice(0, 4)}`;
-    return {
+    const id = `st-${generateShortId()}`;
+    return addHandles({
       id,
       type: 'start' as const,
       position: info.position,
@@ -38,124 +47,148 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
         label: capitalize(info.name),
         type: 'start'
       }
-    };
+    }, 'start');
   },
 
-  person_job: (info) => ({
-    id: `pj-${generateShortId().slice(0, 4)}`,
-    type: 'person_job',
-    position: info.position,
-    data: {
-      id: `pj-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
+  person_job: (info) => {
+    const id = `pj-${generateShortId()}`;
+    return addHandles({
+      id,
       type: 'person_job',
-      personId: info.personId,
-      defaultPrompt: info.prompt || '',
-      firstOnlyPrompt: info.firstPrompt || '',
-      contextCleaningRule: info.contextCleaningRule || 'upon_request',
-      maxIterations: info.maxIterations || 1,
-      mode: info.mode || 'sync',
-      detectedVariables: detectVariables(info.prompt || '', info.firstPrompt || '')
-    }
-  }),
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'person_job',
+        personId: info.personId,
+        defaultPrompt: info.prompt || '',
+        firstOnlyPrompt: info.firstPrompt || '',
+        contextCleaningRule: info.contextCleaningRule || 'upon_request',
+        maxIterations: info.maxIterations || 1,
+        mode: info.mode || 'sync',
+        detectedVariables: detectVariables(info.prompt || '', info.firstPrompt || '')
+      }
+    }, 'person_job');
+  },
 
-  condition: (info) => ({
-    id: `cd-${generateShortId().slice(0, 4)}`,
-    type: 'condition',
-    position: info.position,
-    data: {
-      id: `cd-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'condition',
-      conditionType: info.conditionType || 'expression',
-      expression: info.condition || info.expression || '',
-      maxIterations: info.maxIterations
-    }
-  }),
+  condition: (info) => {
+    const id = `cd-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'condition' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'condition',
+        conditionType: info.conditionType || 'expression',
+        expression: info.condition || info.expression || '',
+        maxIterations: info.maxIterations
+      }
+    }, 'condition');
+  },
 
-  db: (info) => ({
-    id: `db-${generateShortId().slice(0, 4)}`,
-    type: 'db',
-    position: info.position,
-    data: {
-      id: `db-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'db',
-      subType: info.subType || (info.dataSource?.match(/\.(txt|json|csv)$/) ? 'file' : 'fixed_prompt'),
-      sourceDetails: info.dataSource || info.sourceDetails || ''
-    }
-  }),
+  db: (info) => {
+    const id = `db-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'db' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'db',
+        subType: info.subType || (info.dataSource?.match(/\.(txt|json|csv)$/) ? 'file' : 'fixed_prompt'),
+        sourceDetails: info.dataSource || info.sourceDetails || ''
+      }
+    }, 'db');
+  },
 
-  job: (info) => ({
-    id: `jb-${generateShortId().slice(0, 4)}`,
-    type: 'job',
-    position: info.position,
-    data: {
-      id: `jb-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'job',
-      subType: info.subType || 'code',
-      sourceDetails: info.code || info.sourceDetails || ''
-    }
-  }),
+  job: (info) => {
+    const id = `jb-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'job' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'job',
+        subType: info.subType || 'code',
+        sourceDetails: info.code || info.sourceDetails || ''
+      }
+    }, 'job');
+  },
 
-  endpoint: (info) => ({
-    id: `ep-${generateShortId().slice(0, 4)}`,
-    type: 'endpoint',
-    position: info.position,
-    data: {
-      id: `ep-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'endpoint',
-      saveToFile: !!info.filePath,
-      filePath: info.filePath || '',
-      fileFormat: info.fileFormat || 'text'
-    }
-  }),
+  endpoint: (info) => {
+    const id = `ep-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'endpoint' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'endpoint',
+        saveToFile: !!info.filePath,
+        filePath: info.filePath || '',
+        fileFormat: info.fileFormat || 'text'
+      }
+    }, 'endpoint');
+  },
 
-  notion: (info) => ({
-    id: `nt-${generateShortId().slice(0, 4)}`,
-    type: 'notion',
-    position: info.position,
-    data: {
-      id: `nt-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'notion',
-      subType: info.subType || 'read',
-      pageId: info.pageId || '',
-      properties: info.properties || {}
-    }
-  }),
+  notion: (info) => {
+    const id = `nt-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'notion' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'notion',
+        subType: info.subType || 'read',
+        pageId: info.pageId || '',
+        properties: info.properties || {}
+      }
+    }, 'notion');
+  },
 
-  person_batch_job: (info) => ({
-    id: `pb-${generateShortId().slice(0, 4)}`,
-    type: 'person_batch_job',
-    position: info.position,
-    data: {
-      id: `pb-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'person_batch_job',
-      personId: info.personId,
-      defaultPrompt: info.prompt || '',
-      firstOnlyPrompt: info.firstPrompt || '',
-      contextCleaningRule: info.contextCleaningRule || 'upon_request',
-      mode: info.mode || 'sync',
-      detectedVariables: detectVariables(info.prompt || '', info.firstPrompt || '')
-    }
-  }),
+  person_batch_job: (info) => {
+    const id = `pb-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'person_batch_job' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'person_batch_job',
+        personId: info.personId,
+        defaultPrompt: info.prompt || '',
+        firstOnlyPrompt: info.firstPrompt || '',
+        contextCleaningRule: info.contextCleaningRule || 'upon_request',
+        mode: info.mode || 'sync',
+        detectedVariables: detectVariables(info.prompt || '', info.firstPrompt || '')
+      }
+    }, 'person_batch_job');
+  },
 
-  user_response: (info) => ({
-    id: `ur-${generateShortId().slice(0, 4)}`,
-    type: 'user_response',
-    position: info.position,
-    data: {
-      id: `ur-${generateShortId().slice(0, 4)}`,
-      label: capitalize(info.name),
-      type: 'user_response',
-      promptMessage: info.promptMessage || 'Please provide input',
-      timeoutSeconds: info.timeoutSeconds || 10
-    }
-  }),
+  user_response: (info) => {
+    const id = `ur-${generateShortId()}`;
+    return addHandles({
+      id,
+      type: 'user_response' as const,
+      position: info.position,
+      data: {
+        id,
+        label: capitalize(info.name),
+        type: 'user_response',
+        promptMessage: info.promptMessage || 'Please provide input',
+        timeoutSeconds: info.timeoutSeconds || 10
+      }
+    }, 'user_response');
+  },
 
   // Generic fallback
   generic: (info) => {
@@ -164,12 +197,13 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
       return personJobBuilder(info);
     }
     // Ultimate fallback
-    return {
-      id: `nd-${generateShortId().slice(0, 4)}`,
+    const id = `nd-${generateShortId()}`;
+    return addHandles({
+      id,
       type: 'person_job' as const,
       position: info.position,
       data: {
-        id: `nd-${generateShortId().slice(0, 4)}`,
+        id,
         label: capitalize(info.name),
         type: 'person_job',
         defaultPrompt: '',
@@ -179,7 +213,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
         mode: 'sync',
         detectedVariables: []
       }
-    };
+    }, 'person_job');
   }
 };
 

@@ -11,8 +11,7 @@ import { useExecutionSocket } from './useExecutionSocket';
 import { useExecutionUI } from './useExecutionUI';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useCanvasSelectors } from '../useStoreSelectors';
-import type { DiagramState, InteractivePromptData } from '@/types';
-import type { ExecutionOptions, ExecutionUpdate } from '@/types/api';
+import type { DiagramState, InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types';
 
 export interface UseExecutionV2Options {
   autoConnect?: boolean;

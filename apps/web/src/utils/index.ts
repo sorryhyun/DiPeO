@@ -5,6 +5,6 @@ export * from './websocket';
 export * from './converters';
 export * from './canvas';
 export * from './node';
-export * from './property';
+export * from './form';
 export * from './types';
 export * from './trpc';

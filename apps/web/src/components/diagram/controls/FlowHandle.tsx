@@ -1,7 +1,7 @@
 // packages/diagram-ui/src/components/FlowHandle.tsx
 import React, { useMemo } from 'react';
 import { Handle, Position, HandleProps } from '@xyflow/react';
-import { createHandleId } from '@/utils/node';
+import { createHandleId } from '@/utils/canvas/handle-adapter';
 
 export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   nodeId: string;
@@ -100,7 +100,7 @@ export const FlowHandle: React.FC<FlowHandleProps> = ({
   ...props
 }) => {
   const rfType = type === 'output' ? 'source' : 'target';
-  const handleId = createHandleId(nodeId, type, name);
+  const handleId = createHandleId(nodeId, name);
 
   // Memoize computed styles
   const handleStyle = useMemo(() => {

@@ -1,7 +1,7 @@
 // Component for Person nodes (LLM instances)
 import React from 'react';
 import { Position, NodeProps } from '@xyflow/react';
-import { PersonDefinition } from '@/types';
+import { Person } from '@/types';
 import { User } from 'lucide-react';
 import { FlowHandle } from '../controls/FlowHandle';
 
@@ -10,7 +10,7 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
   
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'copy';
-    const personData = data as unknown as PersonDefinition;
+    const personData = data as unknown as Person;
     e.dataTransfer.setData('application/person', personData.id || nodeId);
     setIsDragging(true);
   };
@@ -56,12 +56,11 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
       />
       <div className="flex items-center space-x-2 mb-1">
         <User className="h-5 w-5 text-green-600 flex-shrink-0" />
-        <strong className="text-sm truncate" title={(data as unknown as PersonDefinition).label || 'Person'}>
-          {(data as unknown as PersonDefinition).label || 'Person'}
+        <strong className="text-sm truncate" title={(data as unknown as Person).label || 'Person'}>
+          {(data as unknown as Person).label || 'Person'}
         </strong>
       </div>
-      <p className="text-xs text-gray-500 truncate">Service: {(data as unknown as PersonDefinition).service || 'Not set'}</p>
-      <p className="text-xs text-gray-500 truncate">Model: {(data as unknown as PersonDefinition).modelName || 'Not set'}</p>
+      <p className="text-xs text-gray-500 truncate">Model: {(data as unknown as Person).modelName || 'Not set'}</p>
     </div>
   );
 };

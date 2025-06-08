@@ -4,6 +4,9 @@ import { generateShortId, entityIdGenerators } from '@/utils/id';
 import { produce, enableMapSet } from 'immer';
 import { applyNodeChanges, applyEdgeChanges, Connection, NodeChange, EdgeChange } from '@xyflow/react';
 import { Node, Arrow, Person, ApiKey } from '@/types';
+import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
+import { generateNodeHandles } from '@/utils/node';
+import { getNodeConfig } from '@/config/helpers';
 
 // Enable Immer MapSet plugin for Map and Set support
 enableMapSet();
@@ -138,11 +141,15 @@ export const useDiagramStore = create<DiagramStore>()(
             // Node mutators
             addNode: (type, position) => {
               const id = `${type}-${generateShortId().slice(0, 4)}`;
+              const nodeConfig = getNodeConfig(type);
+              const handles = nodeConfig ? generateNodeHandles(id, nodeConfig) : [];
+              
               const newNode: Node = {
                 id,
                 type,
                 position,
-                data: { type, id }
+                data: { type, id },
+                handles
               };
               set(
                 produce(draft => {
@@ -168,7 +175,11 @@ export const useDiagramStore = create<DiagramStore>()(
                   // Remove connected arrows
                   const arrowsToDelete: string[] = [];
                   draft.arrows.forEach((arrow: Arrow, arrowId: string) => {
-                    if (arrow.source === id || arrow.target === id) {
+                    // Parse handle IDs to get node IDs
+                    const { nodeId: sourceNodeId } = parseHandleId(arrow.source);
+                    const { nodeId: targetNodeId } = parseHandleId(arrow.target);
+                    // Delete arrow if it connects to/from this node
+                    if (sourceNodeId === id || targetNodeId === id) {
                       arrowsToDelete.push(arrowId);
                     }
                   });
@@ -185,14 +196,16 @@ export const useDiagramStore = create<DiagramStore>()(
               ),
 
             // Arrow mutators
-            addArrow: (source, target, sourceHandle, targetHandle) => {
+            addArrow: (sourceNodeId, targetNodeId, sourceHandleName = 'output', targetHandleName = 'input') => {
               const id = `arrow-${generateShortId().slice(0, 4)}`;
+              // Create handle IDs from node IDs and handle names
+              const sourceHandleId = createHandleId(sourceNodeId, sourceHandleName);
+              const targetHandleId = createHandleId(targetNodeId, targetHandleName);
+              
               const newArrow: Arrow = {
                 id,
-                source,
-                target,
-                sourceHandle,
-                targetHandle,
+                source: sourceHandleId,  // Handle ID
+                target: targetHandleId,  // Handle ID
                 data: {}
               };
               set(
@@ -337,8 +350,11 @@ export const useDiagramStore = create<DiagramStore>()(
 
             onConnect: ({ source, target, sourceHandle, targetHandle }) => {
               if (!source || !target) return;
-              const id = `arrow-${generateShortId().slice(0, 4)}`;
-              get().upsertArrow({ id, source, target, sourceHandle, targetHandle, data: {} } as Arrow);
+              // In ReactFlow, source/target are node IDs, sourceHandle/targetHandle are handle names
+              const sourceHandleName = sourceHandle || 'output';
+              const targetHandleName = targetHandle || 'input';
+              // Use addArrow which properly creates handle IDs
+              get().addArrow(source, target, sourceHandleName, targetHandleName);
             },
 
             // Utility
@@ -440,26 +456,18 @@ export const useDiagramStore = create<DiagramStore>()(
                   arrowData.data = dataWithoutId;
                 }
                 
-                // Replace source/target IDs with labels
-                arrowData.sourceLabel = nodeIdToLabel.get(arrow.source) || arrow.source;
-                arrowData.targetLabel = nodeIdToLabel.get(arrow.target) || arrow.target;
+                // Parse handle IDs to extract node IDs and handle names
+                const { nodeId: sourceNodeId, handleName: sourceHandleName } = parseHandleId(arrow.source);
+                const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
+                
+                // Replace node IDs with labels
+                arrowData.sourceLabel = nodeIdToLabel.get(sourceNodeId) || sourceNodeId;
+                arrowData.targetLabel = nodeIdToLabel.get(targetNodeId) || targetNodeId;
+                arrowData.sourceHandle = `${arrowData.sourceLabel}-${sourceHandleName}`;
+                arrowData.targetHandle = `${arrowData.targetLabel}-${targetHandleName}`;
+                
                 delete arrowData.source;
                 delete arrowData.target;
-                
-                // Replace handle IDs with label-based handles
-                if (arrowData.sourceHandle) {
-                  // Extract the handle type from the original handle ID (e.g., "start-DDTmx8-output-default" -> "output-default")
-                  const handleParts = arrowData.sourceHandle.split('-');
-                  const handleType = handleParts.slice(2).join('-');
-                  arrowData.sourceHandle = `${arrowData.sourceLabel}-${handleType}`;
-                }
-                
-                if (arrowData.targetHandle) {
-                  // Extract the handle type from the original handle ID
-                  const handleParts = arrowData.targetHandle.split('-');
-                  const handleType = handleParts.slice(2).join('-');
-                  arrowData.targetHandle = `${arrowData.targetLabel}-${handleType}`;
-                }
                 
                 return arrowData;
               });
@@ -498,7 +506,7 @@ export const useDiagramStore = create<DiagramStore>()(
             
             loadDiagramFromLabels: (data: { 
               nodes?: Array<Partial<Node> & { label?: string; type: Node['type']; data?: any }>; 
-              arrows?: Array<Partial<Arrow> & { sourceLabel?: string; targetLabel?: string; data?: any }>; 
+              arrows?: Array<{ sourceLabel?: string; targetLabel?: string; sourceHandle?: string; targetHandle?: string; data?: any }>; 
               persons?: Array<Partial<Person> & { name?: string; apiKeyLabel?: string }>; 
               apiKeys?: Array<Partial<ApiKey> & { name: string }> 
             }) => {
@@ -590,54 +598,68 @@ export const useDiagramStore = create<DiagramStore>()(
               });
               
               // Process arrows
-              const arrows: Arrow[] = (data.arrows || []).map((arrowData) => {
+              const arrows: Arrow[] = (data.arrows || [])
+                .map((arrowData) => {
                 const id = `arrow-${generateShortId().slice(0, 4)}`;
                 
-                // Resolve source/target references
-                const source = (arrowData.sourceLabel && nodeLabelToId.get(arrowData.sourceLabel)) || arrowData.source || '';
-                const target = (arrowData.targetLabel && nodeLabelToId.get(arrowData.targetLabel)) || arrowData.target || '';
+                // Resolve source/target node IDs from labels
+                let sourceNodeId = arrowData.sourceLabel ? nodeLabelToId.get(arrowData.sourceLabel) : undefined;
+                let targetNodeId = arrowData.targetLabel ? nodeLabelToId.get(arrowData.targetLabel) : undefined;
                 
-                // Reconstruct handle IDs from labels
-                let sourceHandle = arrowData.sourceHandle;
-                let targetHandle = arrowData.targetHandle;
-                
-                if (sourceHandle && arrowData.sourceLabel) {
-                  // Find the source node to get its ID
-                  const sourceNodeId = nodeLabelToId.get(arrowData.sourceLabel);
-                  if (sourceNodeId) {
-                    // Replace label with node ID in handle
-                    // e.g., "aa-output-default" -> "start-DDTmx8-output-default"
-                    const handleParts = sourceHandle.split('-');
-                    const handleType = handleParts.slice(1).join('-'); // "output-default"
-                    sourceHandle = `${sourceNodeId}-${handleType}`;
-                  }
+                // If no mapping found, try to use the label as is (might be an ID)
+                if (!sourceNodeId && arrowData.sourceLabel) {
+                  sourceNodeId = arrowData.sourceLabel;
+                }
+                if (!targetNodeId && arrowData.targetLabel) {
+                  targetNodeId = arrowData.targetLabel;
                 }
                 
-                if (targetHandle && arrowData.targetLabel) {
-                  // Find the target node to get its ID
-                  const targetNodeId = nodeLabelToId.get(arrowData.targetLabel);
-                  if (targetNodeId) {
-                    // Replace label with node ID in handle
-                    // e.g., "bb-input-first" -> "person_job-xyz123-input-first"
-                    const handleParts = targetHandle.split('-');
-                    const handleType = handleParts.slice(1).join('-'); // "input-first"
-                    targetHandle = `${targetNodeId}-${handleType}`;
-                  }
+                // Construct handle IDs from node IDs and handle names
+                let sourceHandleId = '';
+                let targetHandleId = '';
+                
+                if (sourceNodeId && arrowData.sourceHandle) {
+                  // Extract handle name from label-based handle
+                  // e.g., "aa-output-default" -> "output-default"
+                  const handleParts = arrowData.sourceHandle.split('-');
+                  const handleName = handleParts.slice(1).join('-');
+                  sourceHandleId = createHandleId(sourceNodeId, handleName);
+                }
+                
+                if (targetNodeId && arrowData.targetHandle) {
+                  // Extract handle name from label-based handle
+                  // e.g., "bb-input-first" -> "input-first"
+                  const handleParts = arrowData.targetHandle.split('-');
+                  const handleName = handleParts.slice(1).join('-');
+                  targetHandleId = createHandleId(targetNodeId, handleName);
+                }
+                
+                // Fallback if no handle information
+                if (!sourceHandleId && sourceNodeId) {
+                  sourceHandleId = createHandleId(sourceNodeId, 'output');
+                }
+                if (!targetHandleId && targetNodeId) {
+                  targetHandleId = createHandleId(targetNodeId, 'input');
+                }
+                
+                // Skip arrow if we couldn't resolve both handle IDs
+                if (!sourceHandleId || !targetHandleId) {
+                  console.warn(`Cannot create arrow: missing handle IDs`, arrowData);
+                  return null;
                 }
                 
                 return {
                   ...arrowData,
                   id,
-                  source,
-                  target,
-                  sourceHandle,
-                  targetHandle,
+                  source: sourceHandleId,
+                  target: targetHandleId,
                   data: {
                     ...arrowData.data,
                     id
                   }
                 };
-              });
+              })
+              .filter((arrow) => arrow !== null) as Arrow[];
               
               // Set all data
               set({

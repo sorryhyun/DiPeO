@@ -12,9 +12,8 @@ import {
   Edge,
   EdgeTypes,
   MarkerType,
-  Node,
+  Node as ReactFlowNode,
   ReactFlow,
-  ReactFlowInstance,
   NodeChange,
   EdgeChange,
   Connection,
@@ -29,8 +28,8 @@ import { useExecutionStore } from "@/stores/executionStore";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DiagramNode, Arrow } from "@/types";
-import { roundPosition } from "@/utils/canvas";
+import { Arrow } from "@/types";
+import { roundPosition, arrowToReactFlowEdge } from "@/utils/canvas";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -56,7 +55,7 @@ interface DiagramCanvasProps {
  * ReactFlow instances that used to live in this file.
  */
 interface CommonFlowPropsParams {
-  nodes: DiagramNode[];
+  nodes: any[];
   arrows: Arrow[];
   onNodesChange: (changes: NodeChange[]) => void;
   onArrowsChange: (changes: EdgeChange[]) => void;
@@ -89,10 +88,13 @@ function useCommonFlowProps({
   clearSelection,
 }: CommonFlowPropsParams) {
   return useMemo(() => {
+    // Convert handle-based arrows to ReactFlow edges
+    const edges = arrows.map(arrow => arrowToReactFlowEdge(arrow)) as Edge[];
+    
     const baseProps = {
       fitView: true,
       nodes,
-      edges: arrows,
+      edges,
       connectionLineStyle: { stroke: "#3b82f6", strokeWidth: 2 },
       defaultEdgeOptions: {
         type: "customArrow" as const,
@@ -112,11 +114,11 @@ function useCommonFlowProps({
 
     return {
       ...baseProps,
-      onNodeClick: (_: React.MouseEvent, n: Node) => selectNode(n.id),
+      onNodeClick: (_: React.MouseEvent, n: ReactFlowNode) => selectNode(n.id),
       onEdgeClick: (_: React.MouseEvent, e: Edge) => selectArrow(e.id),
       onNodeContextMenu: (
         event: React.MouseEvent,
-        node: Node
+        node: ReactFlowNode
       ) => {
         selectNode(node.id);
         onNodeContextMenu?.(event, node.id);
@@ -192,11 +194,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * React Flow instance helpers
    * --------------------------------------------------*/
   const flowWrapperRef = useRef<HTMLDivElement>(null);
-  const [rfInstance, setRfInstance] = useState<
-    ReactFlowInstance<DiagramNode, Arrow> | null
-  >(null);
-  const handleInit = (inst: ReactFlowInstance<DiagramNode, Arrow>) =>
-    setRfInstance(inst);
+  const [rfInstance, setRfInstance] = useState<any>(null);
+  const handleInit = (inst: any) => setRfInstance(inst);
 
   const projectPosition = useCallback(
     (x: number, y: number) => {

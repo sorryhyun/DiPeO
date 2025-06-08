@@ -3,14 +3,7 @@
  * API operations should be imported directly from apiClient
  */
 
-/**
- * Field validation result interface
- */
-export interface FieldValidationResult {
-  isValid: boolean;
-  error?: string;
-  warning?: string;
-}
+import type { FieldValidationResult } from '@/types';
 
 export const formatPropertyValue = (value: unknown, type: string): string => {
   if (value === null || value === undefined) {

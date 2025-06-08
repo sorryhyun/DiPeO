@@ -3,12 +3,12 @@ import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
-import { createHandleId } from '@/utils/node';
+import { createHandleId } from '@/utils/canvas/handle-adapter';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
 import { useExecutionV2 } from '@/hooks/execution';
 import { useConsolidatedUIStore } from '@/stores';
-import type { NodeType } from '@/types';
+import type { NodeKind } from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -38,7 +38,7 @@ function useNodeStatus(nodeId: string) {
 
 // Custom hook for handles generation
 function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
-  const config = getNodeConfig(nodeType as NodeType);
+  const config = getNodeConfig(nodeType as NodeKind);
   
   return useMemo(() => {
     const allHandles = [
@@ -62,7 +62,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
       return {
         type: handle.type,
         position,
-        id: createHandleId(nodeId, handle.type, handle.id),
+        id: createHandleId(nodeId, handle.id),
         name: handle.id,
         style,
         offset: 50,
@@ -177,7 +177,7 @@ export function BaseNode({
   
   // Use custom hooks
   const status = useNodeStatus(id);
-  const config = getNodeConfig(type as NodeType);
+  const config = getNodeConfig(type as NodeKind);
   const isFlipped = data?.flipped === true;
   const handles = useHandles(id, type, isFlipped);
   

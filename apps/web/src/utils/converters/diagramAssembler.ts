@@ -1,5 +1,8 @@
 import { generateShortId } from '@/utils/id';
-import { Diagram, Node, Arrow, Person, ApiKey } from '@/types/core';
+import { Diagram, Node, Arrow, Person, ApiKey } from '@/types';
+import { createHandleId } from '@/utils/canvas/handle-adapter';
+import { generateNodeHandles } from '@/utils/node';
+import { getNodeConfig } from '@/config/helpers';
 
 // Edge type for graph representation
 export interface Edge {
@@ -92,6 +95,8 @@ export class DiagramAssembler {
       }
       
       return {
+        id: `diagram-${generateShortId().slice(0, 4)}`,
+        name: 'Imported Diagram',
         nodes,
         arrows,
         persons,
@@ -100,16 +105,23 @@ export class DiagramAssembler {
     } catch (error) {
       // Return minimal valid diagram on error
       console.error('Diagram assembly error:', error);
+      const errorNodeId = 'error-node';
+      const errorNodeConfig = getNodeConfig('start');
+      const errorHandles = errorNodeConfig ? generateNodeHandles(errorNodeId, errorNodeConfig) : [];
+      
       return {
+        id: `diagram-${generateShortId().slice(0, 4)}`,
+        name: 'Import Error',
         nodes: [{
-          id: 'error-node',
+          id: errorNodeId,
           type: 'start',
           position: { x: 0, y: 0 },
           data: {
-            id: 'error-node',
+            id: errorNodeId,
             label: `Import Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
             type: 'start'
-          }
+          },
+          handles: errorHandles
         }],
         arrows: [],
         persons: [],
@@ -244,12 +256,17 @@ export class DiagramAssembler {
       // Store mapping
       this.nodeMap.set(name, nodeId);
       
+      // Generate handles for the node
+      const nodeConfig = getNodeConfig(nodeInfo.type);
+      const handles = nodeConfig ? generateNodeHandles(nodeId, nodeConfig) : [];
+      
       // Create node
       const node: Node = {
         id: nodeId,
         type: nodeInfo.type,
         position: positions[name] || { x: 0, y: 0 },
-        data: nodeInfo.data
+        data: nodeInfo.data,
+        handles
       };
       
       nodes.push(node);
@@ -271,15 +288,22 @@ export class DiagramAssembler {
       if (!sourceId || !targetId) return;
       
       const arrowId = `arrow-${generateShortId().slice(0, 4)}`;
+      
+      // Determine handle names based on edge properties
+      const sourceHandleName = edge.condition ? 
+        (edge.condition.includes('not') || edge.condition.startsWith('!') ? 'false' : 'true')
+        : 'output';
+      const targetHandleName = 'input';
+      
+      // Create handle IDs
+      const sourceHandleId = createHandleId(sourceId, sourceHandleName);
+      const targetHandleId = createHandleId(targetId, targetHandleName);
+      
       const arrow: Arrow = {
         id: arrowId,
-        source: sourceId,
-        target: targetId,
-        type: 'customArrow',
+        source: sourceHandleId,
+        target: targetHandleId,
         data: {
-          id: arrowId,
-          sourceBlockId: sourceId,
-          targetBlockId: targetId,
           label: edge.variable || 'flow',
           contentType: edge.variable ? 'variable_in_object' : 'raw_text',
           branch: edge.condition ? 

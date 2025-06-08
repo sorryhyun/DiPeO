@@ -1,6 +1,6 @@
 import { parse, stringify } from 'yaml';
 import { generateShortId, entityIdGenerators } from '@/utils/id';
-import { Diagram, Person, ApiKey, Node, NodeType } from '@/types/core';
+import { Diagram, Person, ApiKey, Node, NodeKind } from '@/types';
 import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';
 
@@ -32,7 +32,7 @@ export class LlmYaml {
       createNodeInfo: (name, analysis, context) => {
         const nodeInfo: NodeInfo = {
           name,
-          type: analysis.type as NodeType,
+          type: analysis.type as NodeKind,
           position: { x: 0, y: 0 }, // Will be set by assembler
           hasPrompt: !!context.prompts?.[name],
           hasAgent: !!context.agents?.[name],
@@ -170,7 +170,6 @@ export class LlmYaml {
       id: defaultPersonId,
       label: 'Default Assistant',
       modelName: 'gpt-4.1-nano',
-      service: 'openai'
     };
     let needDefault = false;
 
@@ -185,17 +184,18 @@ export class LlmYaml {
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: 'gpt-4',
-          service: 'openai',
           systemPrompt: agentConfig
         });
       } else {
         // Full format
+        const service = (agentConfig.service || 'openai') as ApiKey['service'];
         persons.push({
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           modelName: agentConfig.model || 'gpt-4',
-          service: (agentConfig.service || 'openai') as ApiKey['service'],
-          systemPrompt: agentConfig.system
+          systemPrompt: agentConfig.system,
+          // Store service temporarily for API key creation
+          _tempService: service
         });
       }
     });
@@ -228,21 +228,24 @@ export class LlmYaml {
     const apiKeys: Record<string, ApiKey> = {};
 
     persons.forEach(person => {
-      const service = person.service || 'openai';
+      // Use _tempService from agent config or default to openai
+      const service = (person as any)._tempService || 'openai';
       if (!apiKeys[service]) {
         const apiKeyId = entityIdGenerators.apiKey();
         apiKeys[service] = {
           id: apiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
-          service: service as ApiKey['service']
+          service: service as ApiKey['service'],
+          key: `${service.toUpperCase()}_API_KEY`
         };
       }
     });
 
-    // Update persons with API key IDs
+    // Update persons with API key IDs and clean up temp field
     persons.forEach(person => {
-      const service = person.service || 'openai';
+      const service = (person as any)._tempService || 'openai';
       person.apiKeyId = apiKeys[service]?.id;
+      delete (person as any)._tempService;
     });
 
     return Object.values(apiKeys);
@@ -374,14 +377,23 @@ export class LlmYaml {
     diagram.persons.forEach(person => {
       const personName = personNameMap[person.id];
       
-      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'openai')) {
+      // Find service from API key
+      let service = 'openai'; // default
+      if (person.apiKeyId) {
+        const apiKey = diagram.apiKeys?.find(k => k.id === person.apiKeyId);
+        if (apiKey) {
+          service = apiKey.service;
+        }
+      }
+      
+      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || service !== 'openai')) {
         const agent: Record<string, unknown> = {};
         
         if (person.modelName && person.modelName !== 'gpt-4') {
           agent.model = person.modelName;
         }
-        if (person.service && person.service !== 'openai') {
-          agent.service = person.service;
+        if (service && service !== 'openai') {
+          agent.service = service;
         }
         if (person.systemPrompt) {
           agent.system = person.systemPrompt;

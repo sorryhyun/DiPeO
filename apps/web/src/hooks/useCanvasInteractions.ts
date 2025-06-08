@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { Node } from '@/types/core';
+import { Node } from '@/types';
 import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
 // TYPES
