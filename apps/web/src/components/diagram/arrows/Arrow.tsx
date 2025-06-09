@@ -2,9 +2,13 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useConsolidatedUIStore } from '@/stores';
 
-import { Arrow } from '@/types';
-
-type ArrowData = Arrow['data'];
+interface ArrowData {
+  label?: string;
+  style?: React.CSSProperties;
+  controlPointOffsetX?: number;
+  controlPointOffsetY?: number;
+  loopRadius?: number;
+}
 
 export interface CustomArrowProps extends EdgeProps {
   onUpdateData?: (edgeId: string, data: Partial<ArrowData>) => void;
@@ -49,8 +53,8 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   const isExecutionMode = activeCanvas === 'execution';
   
   const arrowData = data as ArrowData;
-  const controlPointOffsetX = arrowData?.controlPointOffsetX ?? 0;
-  const controlPointOffsetY = arrowData?.controlPointOffsetY ?? 0;
+  const controlPointOffsetX = Number(arrowData?.controlPointOffsetX ?? 0);
+  const controlPointOffsetY = Number(arrowData?.controlPointOffsetY ?? 0);
 
   // Memoize path and label position calculations
   const { edgePath, labelX, labelY } = useMemo(() => {
@@ -61,7 +65,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
     if (source === target) {
       const x = sourceX;
       const y = sourceY;
-      const offset = arrowData?.loopRadius ?? 50;
+      const offset = Number(arrowData?.loopRadius ?? 50);
       path = `M ${x},${y}
         C ${x + offset},${y - offset} ${x + offset},${y + offset} ${x},${y + offset}
         C ${x - offset},${y + offset} ${x - offset},${y - offset} ${x},${y}`;

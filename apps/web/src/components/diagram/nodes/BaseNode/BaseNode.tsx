@@ -7,7 +7,7 @@ import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
 import { useExecutionV2 } from '@/hooks/execution';
 import { useConsolidatedUIStore } from '@/stores';
-import {NodeKind, createHandleId, NodeID} from '@/types';
+import {NodeKind, NodeID, nodeId} from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -188,16 +188,17 @@ export function BaseNode({
   const isExecutionMode = activeCanvas === 'execution';
   
   // Use custom hooks
+  const nId = nodeId(id);
   const status = useNodeStatus(id);
   const config = getNodeConfig(type as NodeKind);
   const isFlipped = data?.flipped === true;
-  const handles = useHandles(id, type, isFlipped);
+  const handles = useHandles(nId, type, isFlipped);
   
   // Handle flip
   const handleFlip = useCallback(() => {
-    updateNode(id, { ...data, flipped: !isFlipped });
+    updateNode(nId, { ...data, flipped: !isFlipped });
     updateNodeInternals(id);
-  }, [id, data, isFlipped, updateNode, updateNodeInternals]);
+  }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
   
   // Determine node appearance based on state using data attributes
   const nodeClassNames = useMemo(() => {
@@ -279,7 +280,7 @@ export function BaseNode({
       {handles.map((handle) => (
         <FlowHandle
           key={handle.id}
-          nodeId={id}
+          nodeId={nId}
           type={handle.type}
           name={handle.name}
           position={handle.position}

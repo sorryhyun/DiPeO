@@ -1,17 +1,17 @@
 import React, { useMemo, useCallback } from 'react';
-import { DomainNode } from '@/types';
+import { DomainNode, NodeID, ArrowID } from '@/types';
 import { NODE_CONFIGS } from '@/config';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
   target: 'pane' | 'node' | 'edge';
-  selectedNodeId?: string | null;
-  selectedArrowId?: string | null;
+  selectedNodeId?: NodeID | null;
+  selectedArrowId?: ArrowID | null;
   containerRef: React.RefObject<HTMLDivElement>;
   onAddNode: (type: DomainNode['type'], position: { x: number; y: number }) => void;
   onAddPerson: () => void;
-  onDeleteNode: (nodeId: string) => void;
-  onDeleteArrow: (arrowId: string) => void;
+  onDeleteNode: (nodeId: NodeID) => void;
+  onDeleteArrow: (arrowId: ArrowID) => void;
   onClose: () => void;
   projectPosition: (x: number, y: number) => { x: number; y: number };
   nodeTypes?: Record<string, string>;

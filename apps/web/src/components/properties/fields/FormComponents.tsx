@@ -1,6 +1,12 @@
 import React from 'react';
 import { Input, Select, Spinner, Switch } from '../../ui';
-import { FormFieldProps } from '@/types';
+
+interface FormFieldProps {
+  label: string;
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}
 import { 
   LABEL_TEXT_SMALL, MIN_WIDTH_0, INPUT_BASE, SPACE_Y_4, 
   ERROR_TEXT, FLEX_CENTER_SPACE, LABEL_TEXT 

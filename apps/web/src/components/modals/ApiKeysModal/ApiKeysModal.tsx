@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/components/ui';
-import { ApiKey, createErrorHandlerFactory } from '@/types';
+import { DomainApiKey, apiKeyId, createErrorHandlerFactory } from '@/types';
 import { useApiKeyStore } from '@/stores/apiKeyStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
@@ -21,7 +21,7 @@ const API_SERVICES = [
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useApiKeyStore();
-  const [newKeyForm, setNewKeyForm] = useState<Partial<ApiKey> & { key?: string }>({
+  const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
     name: '',
     service: 'openai',
     key: '',
@@ -118,7 +118,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         }
 
         // Remove from local store
-        deleteApiKey(id);
+        deleteApiKey(apiKeyId(id));
       } catch (error) {
         createErrorHandler(error);
       }

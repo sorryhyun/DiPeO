@@ -9,13 +9,13 @@ import { toast } from 'sonner';
 import { usePersons, useSelectedElement, useExecutionStatus } from '@/hooks/useStoreSelectors';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
-import {ConversationFilters, ConversationMessage} from '@/types';
+import {ConversationFilters, ConversationMessage, PersonID, ExecutionID, executionId, personId} from '@/types';
 
 const ConversationDashboard: React.FC = () => {
-  const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<string | null>(null);
+  const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
   const [filters, setFilters] = useState<ConversationFilters>({
     searchTerm: '',
-    executionId: '',
+    executionId: executionId(''),
     showForgotten: false,
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -35,7 +35,7 @@ const ConversationDashboard: React.FC = () => {
     fetchMore
   } = useConversationData({
     filters,
-    personId: dashboardSelectedPerson,
+    personId: dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' ? dashboardSelectedPerson : undefined,
     enableRealtimeUpdates: true
   });
 
@@ -63,9 +63,9 @@ const ConversationDashboard: React.FC = () => {
   // Handle person selection from sidebar
   useEffect(() => {
     if (selectedPersonId && selectedPersonId !== dashboardSelectedPerson) {
-      setDashboardSelectedPerson(selectedPersonId);
+      setDashboardSelectedPerson(personId(selectedPersonId));
       if (!conversationData[selectedPersonId]) {
-        void fetchConversationData(selectedPersonId);
+        void fetchConversationData(personId(selectedPersonId));
       }
     }
   }, [selectedPersonId, dashboardSelectedPerson, conversationData, fetchConversationData]);
@@ -77,7 +77,7 @@ const ConversationDashboard: React.FC = () => {
 
     if (
       element.scrollTop + element.clientHeight >= element.scrollHeight - threshold &&
-      dashboardSelectedPerson &&
+      dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' &&
       conversationData[dashboardSelectedPerson]?.hasMore &&
       !isLoadingMore
     ) {
@@ -92,21 +92,19 @@ const ConversationDashboard: React.FC = () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
 
     const data = conversationData[dashboardSelectedPerson];
-    const person = persons.find(p => p.id === dashboardSelectedPerson);
+    const person = dashboardSelectedPerson !== 'whole' ? persons.find(p => p.id === dashboardSelectedPerson) : null;
 
     const exportData = {
-      person: person?.label,
+      person: person?.name,
       personId: dashboardSelectedPerson,
       exportDate: new Date().toISOString(),
       messages: data.messages,
       stats: {
-        total: data.totalMessages,
         visible: data.visibleMessages,
-        forgotten: data.forgottenMessages,
       }
     };
 
-    void downloadJSON(exportData, `conversation-${person?.label || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
+    void downloadJSON(exportData, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
     toast.success('Conversation exported');
   };
 
@@ -146,7 +144,7 @@ const ConversationDashboard: React.FC = () => {
           {selectedPerson && (
             <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
               <User className="h-4 w-4" />
-              <span className="text-sm font-medium">{selectedPerson.label}</span>
+              <span className="text-sm font-medium">{selectedPerson.name}</span>
               {conversationData[selectedPerson.id] && (
                 <div className="flex items-center space-x-1 text-xs">
                   <span className="opacity-70">•</span>
@@ -195,7 +193,7 @@ const ConversationDashboard: React.FC = () => {
       </div>
       <Select
         value={filters.executionId}
-        onValueChange={(value) => setFilters(prev => ({ ...prev, executionId: value }))}
+        onValueChange={(value) => setFilters(prev => ({ ...prev, executionId: executionId(value) }))}
       >
         <option value="">All Executions</option>
       </Select>
@@ -211,7 +209,7 @@ const ConversationDashboard: React.FC = () => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => void fetchConversationData(dashboardSelectedPerson || undefined)}
+        onClick={() => void fetchConversationData(dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' ? dashboardSelectedPerson : undefined)}
       >
         Apply
       </Button>
@@ -227,7 +225,17 @@ const ConversationDashboard: React.FC = () => {
       const { allMessages, totalTokens } = useMemo(() => {
         const messages: ConversationMessage[] = [];
         Object.values(conversationData).forEach(personData => {
-          messages.push(...personData.messages);
+          // Add personId to each message
+          const messagesWithPersonId = personData.messages.map(msg => {
+            const personIdFromData = Object.keys(conversationData).find(key => 
+              conversationData[key] === personData
+            );
+            return {
+              ...msg,
+              personId: personId(personIdFromData || '')
+            } as ConversationMessage;
+          });
+          messages.push(...messagesWithPersonId);
         });
         
         // Sort messages by timestamp
@@ -269,7 +277,7 @@ const ConversationDashboard: React.FC = () => {
     }
 
     // Handle individual person view
-    if (!conversationData[dashboardSelectedPerson]) return null;
+    if (dashboardSelectedPerson === 'whole' || !conversationData[dashboardSelectedPerson]) return null;
     
     const personMemory = conversationData[dashboardSelectedPerson];
     const totalTokens = calculateTotalTokens();
@@ -278,7 +286,7 @@ const ConversationDashboard: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
           <h3 className="font-medium text-sm text-gray-700">
-            Conversation for {persons.find(p => p.id === dashboardSelectedPerson)?.label}
+            Conversation for {persons.find(p => p.id === dashboardSelectedPerson)?.name}
           </h3>
           <div className="flex items-center space-x-4 text-xs text-gray-600">
             <span>{personMemory.visibleMessages} messages</span>

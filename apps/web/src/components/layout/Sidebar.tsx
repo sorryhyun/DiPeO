@@ -187,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               onClick={() => addPerson({
                 name: `Person ${persons.length + 1}`,
                 model: 'gpt-4.1-nano',
-                apiKeyId: '',
+                service: 'openai',
                 systemPrompt: '',
               })}
             >

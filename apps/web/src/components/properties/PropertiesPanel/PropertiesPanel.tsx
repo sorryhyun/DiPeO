@@ -52,7 +52,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
         <GenericPanel
           nodeId={nodeId}
           data={data as Record<string, unknown>}
-          config={panelConfig}
+          config={panelConfig as PanelConfig<Record<string, unknown>>}
         />
       </div>
     </div>
