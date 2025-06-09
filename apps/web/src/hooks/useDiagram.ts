@@ -2,19 +2,31 @@ import { useCallback } from 'react';
 import { 
   useCanvasSelectors, 
   useExecutionSelectors, 
-  useUISelectors, 
+  useUIState, 
+  useSelectedElement,
   useHistorySelectors,
   usePersons,
+  useArrowDataUpdater,
   exportDiagramState,
   loadDiagram as loadDiagramAction,
   clearDiagram
 } from './useStoreSelectors';
-import { useDiagramStore } from '@/stores';
-import { useRealtimeExecution } from './useRealtimeExecution';
+import { useExecutionV2 } from './execution';
 import { useFileOperations } from './useFileOperations';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import { usePropertyManager } from './usePropertyManager';
-import { DiagramState, Node, Arrow, Person } from '@/types';
+import type { DomainNode, DomainArrow, DomainPerson } from '@/types/domain';
+import type { DomainDiagram } from '@/types/domain/diagram';
+import type { NodeID, ArrowID, PersonID } from '@/types/branded';
+import type { NodeKind } from '@/types/primitives/enums';
+
+// Maybe-hook helper
+function useMaybe<T>(enabled: boolean, useHook: () => T): T | null {
+  // Call the hook unconditionally to satisfy Rules of Hooks
+  const hookResult = useHook();
+  // Return null if not enabled, but the hook is still called
+  return enabled ? hookResult : null;
+}
 
 export interface UseDiagramOptions {
   autoConnect?: boolean;
@@ -44,14 +56,12 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // Canvas state and operations
   const canvas = useCanvasSelectors();
   
-  // Diagram store operations
-  const diagramStore = useDiagramStore();
-  
   // Execution state and operations
   const execution = useExecutionSelectors();
   
   // UI state
-  const ui = useUISelectors();
+  const ui = useUIState();
+  const selection = useSelectedElement();
   
   // History operations
   const history = useHistorySelectors();
@@ -59,22 +69,25 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // Person operations
   const persons = usePersons();
   
+  // Arrow updater
+  const arrowUpdater = useArrowDataUpdater();
+  
   // Realtime execution (WebSocket)
-  const realtime = useRealtimeExecution({
+  const realtime = useExecutionV2({
     autoConnect,
     enableMonitoring,
     debug
   });
   
-  // File operations (conditional)
-  const fileOps = enableFileOperations ? useFileOperations() : null;
+  // File operations (conditional via maybe-hook)
+  const fileOps = useMaybe(enableFileOperations, useFileOperations);
   
-  // Canvas interactions (conditional)
-  const interactions = enableInteractions ? useCanvasInteractions({
+  // Canvas interactions (conditional via maybe-hook)
+  const interactions = useMaybe(enableInteractions, () => useCanvasInteractions({
     onSave: fileOps?.exportJSON,
     onExport: fileOps?.exportJSON,
     onImport: fileOps?.importWithDialog,
-  }) : null;
+  }));
 
   // =====================
   // CONVENIENCE METHODS
@@ -82,7 +95,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Property manager factory
   const createPropertyManager = useCallback(<T extends Record<string, unknown>>(
-    entityId: string,
+    entityId: NodeID | ArrowID | PersonID,
     entityType: 'node' | 'arrow' | 'person',
     initialData: T,
     options?: Parameters<typeof usePropertyManager>[3]
@@ -90,163 +103,137 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     return usePropertyManager(entityId, entityType, initialData, options);
   }, []);
 
-  // Quick execution
-  const run = useCallback(async (diagram?: DiagramState) => {
-    return realtime.executeDiagram(diagram);
-  }, [realtime]);
+  // Quick execution - no need for useCallback with stable realtime reference
+  const run = (diagram?: DomainDiagram) => {
+    return realtime.execute(diagram);
+  };
 
   // Quick stop
-  const stop = useCallback(() => {
+  const stop = () => {
     return realtime.abort();
-  }, [realtime]);
+  };
 
   // Quick save
-  const save = useCallback(async (filename?: string) => {
+  const save = async (filename?: string) => {
     if (!fileOps) {
       console.warn('File operations not enabled');
       return;
     }
     return fileOps.saveJSON(filename);
-  }, [fileOps]);
+  };
 
   // Quick load
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!fileOps) {
       console.warn('File operations not enabled');
       return;
     }
     return fileOps.importWithDialog();
-  }, [fileOps]);
+  };
 
-  // Get diagram state
-  const getDiagramState = useCallback((): DiagramState => {
-    return exportDiagramState();
-  }, []);
+  // Get diagram state - direct export, no wrapper needed
+  const getDiagramState = exportDiagramState;
 
-  // Load diagram state
-  const loadDiagramState = useCallback((diagram: DiagramState, source?: string) => {
-    loadDiagramAction(diagram);
-  }, []);
+  // Load diagram state - direct action, no wrapper needed
+  const loadDiagramState = loadDiagramAction;
 
   // =====================
   // ELEMENT OPERATIONS
   // =====================
 
-  // Node operations
-  const addNode = useCallback((type: Node['type'], position: { x: number; y: number }) => {
+  // Node operations - stable store references, no useCallback needed
+  const addNode = (type: NodeKind, position: { x: number; y: number }) => {
     return canvas.addNode(type, position);
-  }, [canvas]);
+  };
 
-  const updateNode = useCallback((nodeId: string, updates: Record<string, unknown>) => {
+  const updateNode = (nodeId: NodeID, updates: Record<string, unknown>) => {
     return canvas.updateNode(nodeId, updates);
-  }, [canvas]);
+  };
 
-  const deleteNode = useCallback((nodeId: string) => {
+  const deleteNode = (nodeId: NodeID) => {
     canvas.deleteNode(nodeId);
-    if (ui.selectedNodeId === nodeId) {
-      ui.clearSelection();
+    if (selection.selectedNodeId === nodeId) {
+      selection.clearSelection();
     }
-  }, [canvas, ui]);
+  };
 
-  const getNode = useCallback((nodeId: string): Node | undefined => {
-    return canvas.nodes.find(n => n.id === nodeId);
-  }, [canvas.nodes]);
+  const getNode = (nodeId: NodeID): DomainNode | undefined => {
+    return canvas.nodes.find(n => n.id === nodeId) as DomainNode | undefined;
+  };
 
   // Arrow operations
-  const updateArrow = useCallback((arrowId: string, updates: Record<string, unknown>) => {
-    return diagramStore.updateArrow(arrowId, updates);
-  }, [diagramStore]);
+  const updateArrow = (arrowId: ArrowID, updates: Record<string, unknown>) => {
+    return arrowUpdater(arrowId, updates);
+  };
 
-  const deleteArrow = useCallback((arrowId: string) => {
+  const deleteArrow = (arrowId: ArrowID) => {
     canvas.deleteArrow(arrowId);
-    if (ui.selectedArrowId === arrowId) {
-      ui.clearSelection();
+    if (selection.selectedArrowId === arrowId) {
+      selection.clearSelection();
     }
-  }, [canvas, ui]);
+  };
 
-  const getArrow = useCallback((arrowId: string): Arrow | undefined => {
+  const getArrow = (arrowId: ArrowID): DomainArrow | undefined => {
     return canvas.arrows.find(a => a.id === arrowId);
-  }, [canvas.arrows]);
+  };
 
   // Person operations
-  const addPerson = useCallback((person: Omit<Person, 'id'>) => {
+  const addPerson = (person: Omit<DomainPerson, 'id'>) => {
     return persons.addPerson(person);
-  }, [persons]);
+  };
 
-  const updatePerson = useCallback((personId: string, updates: Record<string, unknown>) => {
+  const updatePerson = (personId: PersonID, updates: Record<string, unknown>) => {
     return persons.updatePerson(personId, updates);
-  }, [persons]);
+  };
 
-  const deletePerson = useCallback((personId: string) => {
+  const deletePerson = (personId: PersonID) => {
     persons.deletePerson(personId);
-    if (ui.selectedPersonId === personId) {
-      ui.clearSelection();
+    if (selection.selectedPersonId === personId) {
+      selection.clearSelection();
     }
-  }, [persons, ui]);
+  };
 
-  const getPerson = useCallback((personId: string): Person | undefined => {
+  const getPerson = (personId: PersonID): DomainPerson | undefined => {
     return persons.getPersonById(personId);
-  }, [persons]);
+  };
 
   // =====================
   // EXECUTION CONTROL
   // =====================
 
-  const pauseNode = useCallback((nodeId: string) => {
-    realtime.pauseNode(nodeId);
-  }, [realtime]);
+  // Direct delegation - realtime methods are stable
+  const pauseNode = realtime.pauseNode;
+  const resumeNode = realtime.resumeNode;
+  const skipNode = realtime.skipNode;
+  const respondToPrompt = realtime.respondToPrompt;
 
-  const resumeNode = useCallback((nodeId: string) => {
-    realtime.resumeNode(nodeId);
-  }, [realtime]);
-
-  const skipNode = useCallback((nodeId: string) => {
-    realtime.skipNode(nodeId);
-  }, [realtime]);
-
-  const respondToPrompt = useCallback((nodeId: string, response: string) => {
-    realtime.respondToPrompt(nodeId, response);
-  }, [realtime]);
-
-  // SELECTION OPERATIONS
-
-  const selectNode = useCallback((nodeId: string) => {
-    ui.setSelectedNodeId(nodeId);
-  }, [ui]);
-
-  const selectArrow = useCallback((arrowId: string) => {
-    ui.setSelectedArrowId(arrowId);
-  }, [ui]);
-
-  const selectPerson = useCallback((personId: string) => {
-    ui.setSelectedPersonId(personId);
-  }, [ui]);
-
-  const clearSelection = useCallback(() => {
-    ui.clearSelection();
-  }, [ui]);
+  // SELECTION OPERATIONS - selection methods are stable
+  const selectNode = selection.setSelectedNodeId;
+  const selectArrow = selection.setSelectedArrowId;
+  const selectPerson = selection.setSelectedPersonId;
+  const clearSelection = selection.clearSelection;
 
   // =====================
   // STATE QUERIES
   // =====================
 
-  const isNodeRunning = useCallback((nodeId: string): boolean => {
+  const isNodeRunning = (nodeId: NodeID): boolean => {
     return execution.runningNodes.includes(nodeId);
-  }, [execution.runningNodes]);
+  };
 
-  const isNodeSkipped = useCallback((nodeId: string): boolean => {
+  const isNodeSkipped = (nodeId: NodeID): boolean => {
     return Boolean(execution.skippedNodes[nodeId]);
-  }, [execution.skippedNodes]);
+  };
 
-  const getNodeExecutionState = useCallback((nodeId: string) => {
+  const getNodeExecutionState = (nodeId: NodeID) => {
     return {
-      isRunning: isNodeRunning(nodeId),
+      isRunning: execution.runningNodes.includes(nodeId),
       isCurrentlyRunning: execution.currentRunningNode === nodeId,
-      isSkipped: isNodeSkipped(nodeId),
+      isSkipped: Boolean(execution.skippedNodes[nodeId]),
       skipReason: execution.skippedNodes[nodeId]?.reason,
       runningState: execution.nodeRunningStates[nodeId] || false
     };
-  }, [execution, isNodeRunning, isNodeSkipped]);
+  };
 
   // =====================
   // RETURN INTERFACE
@@ -267,16 +254,16 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     runContext: execution.runContext,
     
     // UI data
-    selectedNodeId: ui.selectedNodeId,
-    selectedArrowId: ui.selectedArrowId,
-    selectedPersonId: ui.selectedPersonId,
-    hasSelection: !!(ui.selectedNodeId || ui.selectedArrowId || ui.selectedPersonId),
+    selectedNodeId: selection.selectedNodeId,
+    selectedArrowId: selection.selectedArrowId,
+    selectedPersonId: selection.selectedPersonId,
+    hasSelection: !!(selection.selectedNodeId || selection.selectedArrowId || selection.selectedPersonId),
     
     // State flags
     isMonitorMode: canvas.isMonitorMode,
     isRunning: realtime.isRunning,
     isConnected: realtime.isConnected,
-    connectionState: realtime.connectionState,
+    connectionState: realtime.isReconnecting ? 'reconnecting' : (realtime.isConnected ? 'connected' : 'disconnected'),
     
     // ===== OPERATIONS =====
     // Diagram operations

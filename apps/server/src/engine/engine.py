@@ -1,562 +1,108 @@
-from typing import Dict, List, Set, Optional, Any, AsyncIterator
-import asyncio
-import logging
-import time
-from collections import defaultdict
-from dataclasses import dataclass, field
-from ..utils.token_usage import TokenUsage
-from ..exceptions import DiagramExecutionError
-from .resolver import DependencyResolver
-from .planner import ExecutionPlanner
-from .controllers import LoopController, SkipManager
-from .executors import create_executors
-
-logger = logging.getLogger(__name__)
+from __future__ import annotations
+import asyncio, logging, time
+from typing import Any, Callable, Dict, Iterable, List, Set
+from .types import Node, Graph, Arrow, Ctx
+from .controllers import build_graph, LoopBook, should_skip
 
 
-async def broadcast_event(event_data: Dict[str, Any]):
-    """Broadcast an event to all WebSocket connections if available."""
-    try:
-        from ..api.routers.websocket import get_connection_manager
-        ws_manager = get_connection_manager()
-        # Broadcast to all WebSocket clients
-        await ws_manager.broadcast(event_data)
-    except Exception as e:
-        # If WebSocket module is not available or error occurs, log and continue
-        logger.debug(f"WebSocket broadcast skipped: {e}")
 
+class CompactEngine:
+    def __init__(self, executors:Dict[str,Any], *, logger=None):
+        self.execs, self.log = executors, logger or logging.getLogger(__name__)
+        self.lock = asyncio.Lock()
 
-@dataclass
-class ExecutionContext:
-    """Execution context maintaining state throughout diagram execution"""
-    nodes_by_id: Dict[str, Dict] = field(default_factory=dict)
-    incoming_arrows: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
-    outgoing_arrows: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
-    node_outputs: Dict[str, Any] = field(default_factory=dict)
-    node_execution_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    condition_values: Dict[str, bool] = field(default_factory=dict)
-    first_only_consumed: Dict[str, bool] = field(default_factory=dict)
-    execution_order: List[str] = field(default_factory=list)
-    total_tokens: TokenUsage = field(default_factory=TokenUsage)
-    skipped_nodes: Set[str] = field(default_factory=set)
-    skip_reasons: Dict[str, str] = field(default_factory=dict)
-    api_keys: Dict[str, str] = field(default_factory=dict)
-    persons: Dict[str, Dict] = field(default_factory=dict)
-    execution_id: Optional[str] = None
-    interactive_handler: Optional[Any] = None  # Callback for interactive prompts
+    async def run(self, diagram:Dict[str,Any], *,
+                  send:Callable[[dict],None]|None=None,
+                  execution_id:str|None=None,
+                  interactive_handler:Callable|None=None):
 
+        async with self.lock:
+            g   = build_graph(diagram)
+            ctx = Ctx(g)
+            ctx.execution_id = execution_id
+            ctx.interactive_handler = interactive_handler
+            ctx.persons = diagram.get("persons", {})
+            loops = LoopBook()
+            send = send or (lambda *_:None)
+            send({"type":"execution_started","order":g.order})
 
-class UnifiedExecutionEngine:
-    """
-    Unified execution engine that consolidates all diagram execution logic.
-    Manages the complete execution lifecycle including dependency resolution,
-    loop control, skip management, and node execution.
-    """
-    
-    def __init__(self, llm_service=None, file_service=None, memory_service=None, notion_service=None, state_manager=None):
-        self.dependency_resolver = DependencyResolver()
-        self.execution_planner = ExecutionPlanner()
-        self.loop_controller = LoopController()
-        self.skip_manager = SkipManager()
-        self.llm_service = llm_service
-        self.file_service = file_service
-        self.memory_service = memory_service
-        self.notion_service = notion_service
-        self.state_manager = state_manager
-        self.executors = create_executors(
-            llm_service=self.llm_service,
-            file_service=self.file_service,
-            notion_service=self.notion_service
-        )
-        self._execution_lock = asyncio.Lock()
+            pending: Set[str] = set(g.order)
+            while pending:
+                ready = [nid for nid in list(pending)
+                         if self._deps_met(g.nodes[nid], ctx)]
+                if not ready:
+                    raise RuntimeError(f"Dead-lock, remaining: {pending}")
+                #  start events
+                for nid in ready: send({"type":"node_start","node_id":nid})
 
-    def _find_loop_nodes(self, condition_node_id: str, context: ExecutionContext) -> Set[str]:
-        """
-        Find all nodes that are part of a loop cycle containing the condition node.
-        Uses bidirectional graph traversal to identify loop participants.
-        """
-        loop_nodes = set()
-
-        # Method 1: Find nodes that can reach back to themselves through the condition
-        visited_forward = set()
-        visited_backward = set()
-
-        # Forward pass: Find all nodes reachable from condition
-        def traverse_forward(node_id: str, visited: Set[str]):
-            if node_id in visited:
-                return
-            visited.add(node_id)
-
-            for arrow in context.outgoing_arrows.get(node_id, []):
-                target_id = arrow["target"]
-                if target_id in context.nodes_by_id:
-                    traverse_forward(target_id, visited)
-
-        # Backward pass: Find all nodes that can reach the condition
-        def traverse_backward(node_id: str, visited: Set[str]):
-            if node_id in visited:
-                return
-            visited.add(node_id)
-
-            for arrow in context.incoming_arrows.get(node_id, []):
-                source_id = arrow["source"]
-                if source_id in context.nodes_by_id:
-                    traverse_backward(source_id, visited)
-
-        traverse_forward(condition_node_id, visited_forward)
-        traverse_backward(condition_node_id, visited_backward)
-
-        # Nodes in a loop with the condition are in both sets
-        loop_candidates = visited_forward.intersection(visited_backward)
-
-        # Verify these nodes can actually form a cycle
-        for node_id in loop_candidates:
-            if self._can_reach_from_node(node_id, condition_node_id, context):
-                loop_nodes.add(node_id)
-
-        return loop_nodes
-
-    def _can_reach_from_node(self, start_node: str, target_node: str, context: ExecutionContext) -> bool:
-        """Check if we can reach target_node from start_node following arrows."""
-        visited = set()
-        queue = [start_node]
-
-        while queue:
-            current = queue.pop(0)
-            if current == target_node:
-                return True
-
-            if current in visited:
-                continue
-            visited.add(current)
-
-            for arrow in context.outgoing_arrows.get(current, []):
-                next_node = arrow["target"]
-                if next_node not in visited and next_node in context.nodes_by_id:
-                    queue.append(next_node)
-
-        return False
-
-    async def execute_diagram(
-        self, 
-        diagram: Dict[str, Any], 
-        options: Optional[Dict[str, Any]] = None
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """
-        Execute a diagram with streaming updates.
-        
-        Args:
-            diagram: The diagram definition containing nodes and arrows
-            options: Execution options (debug mode, etc.)
-            
-        Yields:
-            Execution updates with node status, outputs, and metadata
-        """
-        options = options or {}
-        async with self._execution_lock:
-            try:
-                # Initialize execution context
-                context = self._build_execution_context(diagram)
-                
-                # Set execution_id from options if provided
-                context.execution_id = options.get("execution_id", f"exec_{int(time.time() * 1000)}")
-                
-                # Set interactive handler if provided
-                context.interactive_handler = options.get("interactive_handler")
-                
-                # Create execution plan
-                plan = self.execution_planner.create_execution_plan(
-                    context.nodes_by_id,
-                    context.incoming_arrows,
-                    context.outgoing_arrows
+                #  run in parallel
+                results = await asyncio.gather(
+                    *[self._do(nid,g.nodes[nid],ctx,loops,send) for nid in ready]
                 )
-                
-                # Yield initial plan
-                event = {
-                    "type": "execution_started",
-                    "plan": {
-                        "execution_order": plan.execution_order,
-                        "parallel_groups": plan.parallel_groups,
-                        "estimated_cost": plan.estimated_cost
-                    }
-                }
-                yield event
-                # Broadcast to monitors
-                await broadcast_event(event)
-                
-                # Execute nodes according to plan
-                pending_nodes = set(plan.execution_order)
-                
-                while pending_nodes:
-                    # Find nodes ready to execute
-                    ready_nodes = []
-                    for node_id in pending_nodes:
-                        can_exec = self._can_execute_node(node_id, context, pending_nodes)
-                        node_type = context.nodes_by_id[node_id]["type"]
-                        
-                        # Additional debug for condition nodes
-                        if node_type == "condition":
-                            node = context.nodes_by_id[node_id]
-                            properties = node.get("properties", {})
-                            condition_type = properties.get("conditionType", "expression")
-                            incoming = context.incoming_arrows.get(node_id, [])
-                            logger.debug(f"Condition node {node_id} (type: {condition_type}) has {len(incoming)} incoming arrows")
-                            for arrow in incoming:
-                                source_id = arrow["source"]
-                                source_executed = source_id in context.node_outputs
-                                logger.debug(f"  - Source {source_id}: executed={source_executed}")
-                        
-                        logger.debug(f"Checking node {node_id} (type: {node_type}): can_execute={can_exec}")
-                        if can_exec:
-                            ready_nodes.append(node_id)
-                    
-                    if not ready_nodes:
-                        # Log detailed state before failing
-                        logger.error(f"No nodes ready to execute. Pending nodes: {pending_nodes}")
-                        logger.error(f"Executed nodes: {context.execution_order}")
-                        logger.error(f"Skipped nodes: {context.skipped_nodes}")
-                        logger.error(f"Node outputs: {list(context.node_outputs.keys())}")
-                        logger.error(f"Condition values: {context.condition_values}")
-                        
-                        # Check for cycles or unmet dependencies
-                        if options.get("allow_partial", False):
-                            # In debug mode, skip remaining nodes
-                            for node_id in pending_nodes:
-                                context.skipped_nodes.add(node_id)
-                                context.skip_reasons[node_id] = "unmet_dependencies"
-                            break
-                        else:
-                            raise DiagramExecutionError(f"No nodes ready to execute. Pending: {pending_nodes}")
-                    
-                    # Emit node_start events for all ready nodes
-                    for node_id in ready_nodes:
-                        node = context.nodes_by_id[node_id]
-                        properties = node.get("properties", {})
-                        node_type = properties.get("type", node["type"])
-                        
-                        start_event = {
-                            "type": "node_start",
-                            "node_id": node_id,
-                            "node_type": node_type
-                        }
-                        yield start_event
-                        # Broadcast to monitors
-                        await broadcast_event(start_event)
-                    
-                    # Execute ready nodes (potentially in parallel)
-                    execution_tasks = []
-                    for node_id in ready_nodes:
-                        task = self._execute_node(node_id, context, options)
-                        execution_tasks.append(task)
-                    
-                    # Wait for all parallel executions
-                    results = await asyncio.gather(*execution_tasks, return_exceptions=True)
-                    
-                    # Process results and yield updates
-                    for node_id, result in zip(ready_nodes, results):
-                        pending_nodes.remove(node_id)
-                        
-                        if isinstance(result, Exception):
-                            error_msg = str(result)
-                            event = {
-                                "type": "node_error",
-                                "node_id": node_id,
-                                "error": error_msg
-                            }
-                            yield event
-                            # Broadcast to monitors
-                            await broadcast_event(event)
-                            
-                            if not options.get("continue_on_error", False):
-                                raise result
-                        else:
-                            yield result
-                            # Broadcast to monitors
-                            await broadcast_event(result)
-                            
-                            # Handle conditional re-queuing for loops
-                            if node_id in context.condition_values:
-                                condition_result = context.condition_values[node_id]
-                                logger.debug(f"Condition node {node_id} evaluated to: {condition_result}")
-                                requeued_nodes = self._handle_condition_requeuing(
-                                    node_id, condition_result, context, pending_nodes
-                                )
-                                if requeued_nodes:
-                                    logger.debug(f"Re-queuing nodes after condition: {requeued_nodes}")
-                                pending_nodes.update(requeued_nodes)
-                
-                # Save conversation logs if we have an execution_id and memory service
-                if context.execution_id and self.memory_service:
-                    try:
-                        from pathlib import Path
-                        log_dir = Path("files/conversation_logs")
-                        log_path = await self.memory_service.save_conversation_log(
-                            execution_id=context.execution_id,
-                            log_dir=log_dir
-                        )
-                        logger.info(f"Conversation log saved to: {log_path}")
-                    except Exception as e:
-                        logger.error(f"Failed to save conversation log: {e}")
-                
-                # Yield completion
-                event = {
-                    "type": "execution_complete",
-                    "data": {
-                        "context": {
-                            "node_outputs": context.node_outputs,
-                            "node_execution_counts": context.node_execution_counts,
-                            "condition_values": context.condition_values,
-                            "execution_order": context.execution_order,
-                            "tokens": context.total_tokens.to_dict(),
-                        },
-                        "total_token_count": context.total_tokens.total
-                    }
-                }
-                yield event
-                # Broadcast to monitors
-                await broadcast_event(event)
-                
-            except Exception as e:
-                logger.error(f"Diagram execution failed: {str(e)}")
-                event = {
-                    "type": "execution_failed",
-                    "error": str(e)
-                }
-                yield event
-                # Broadcast to monitors
-                await broadcast_event(event)
-                raise
-    
-    def _build_execution_context(self, diagram: Dict[str, Any]) -> ExecutionContext:
-        """Build execution context from diagram definition"""
-        context = ExecutionContext()
-        
-        # Index nodes by ID, transforming frontend format to backend format
-        for node in diagram.get("nodes", []):
-            # Transform node: map 'data' field to 'properties' for backend executors
-            transformed_node = {
-                **node,
-                "properties": node.get("data", {})  # Map frontend 'data' to backend 'properties'
-            }
-            context.nodes_by_id[node["id"]] = transformed_node
-        
-        # Index arrows by source and target
-        for arrow in diagram.get("arrows", []):
-            source = arrow["source"]
-            target = arrow["target"]
-            context.outgoing_arrows[source].append(arrow)
-            context.incoming_arrows[target].append(arrow)
-        
-        # Add persons to context
-        for person in diagram.get("persons", []):
-            context.persons[person["id"]] = person
-        
-        # Add API keys to context
-        for api_key in diagram.get("apiKeys", []):
-            context.api_keys[api_key["id"]] = api_key
-        
-        return context
-    
-    def _can_execute_node(
-        self, 
-        node_id: str, 
-        context: ExecutionContext,
-        pending_nodes: Set[str]
-    ) -> bool:
-        """Check if a node can be executed given current context"""
-        # For nodes with iteration count, allow re-execution up to the limit
-        node = context.nodes_by_id.get(node_id)
-        if node:
-            properties = node.get("properties", {})
-            max_iterations = properties.get("maxIteration")
-            if max_iterations:
-                current_count = context.node_execution_counts.get(node_id, 0)
-                if current_count >= max_iterations:
-                    logger.debug(f"Node {node_id} reached max iterations: {current_count}/{max_iterations}")
-                    return False
-        
-        # Check if dependencies are met
-        can_execute, valid_arrows = self.dependency_resolver.check_dependencies_met(
-            node_id, context
-        )
-        
-        logger.debug(f"Node {node_id} dependencies check: can_execute={can_execute}, valid_arrows={len(valid_arrows)}")
-        return can_execute
-    
-    async def _execute_node(
-        self,
-        node_id: str,
-        context: ExecutionContext,
-        options: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Execute a single node and update context"""
-        node = context.nodes_by_id[node_id]
-        # Get type from node properties (data) which contains the actual node type
-        # Frontend sends: {type: "startNode", data: {type: "start", ...}}
-        properties = node.get("properties", {})
-        node_type = properties.get("type", node["type"])
-        
-        # Check if node is marked for skip via WebSocket control
-        if self.state_manager and context.execution_id:
-            if self.state_manager.is_node_skipped(context.execution_id, node_id):
-                context.skipped_nodes.add(node_id)
-                context.skip_reasons[node_id] = "user_skipped"
-                
-                event = {
-                    "type": "node_skipped",
-                    "node_id": node_id,
-                    "reason": "user_skipped"
-                }
-                # Broadcast to monitors
-                await broadcast_event(event)
-                return event
-                
-            # Check if node is paused - wait until resumed
-            while self.state_manager.is_node_paused(context.execution_id, node_id):
-                await asyncio.sleep(0.1)  # Check every 100ms
-                # Check if execution was aborted while paused
-                if self.state_manager.is_execution_aborted(context.execution_id):
-                    raise DiagramExecutionError("Execution aborted while node was paused")
-        
-        # Check if should skip based on skip manager rules
-        if self.skip_manager.should_skip(node, context):
-            reason = self.skip_manager.get_skip_reason(node_id)
-            context.skipped_nodes.add(node_id)
-            context.skip_reasons[node_id] = reason
-            
-            event = {
-                "type": "node_skipped",
-                "node_id": node_id,
-                "reason": reason
-            }
-            # Broadcast to monitors
-            await broadcast_event(event)
-            return event
-        
-        # Get executor for node type
-        executor = self.executors.get(node_type)
-        if not executor:
-            raise DiagramExecutionError(f"No executor found for node type: {node_type}")
-        
-        # Validate node
-        validation = await executor.validate(node, context)
-        if not validation.is_valid:
-            raise DiagramExecutionError(f"Node validation failed: {validation.errors}")
-        
-        # Execute node
-        try:
-            result = await executor.execute(node, context)
-            
-            # Check if the executor returned a skip result
-            if result.metadata and result.metadata.get("skipped"):
-                # Handle skipped execution
-                context.skipped_nodes.add(node_id)
-                context.skip_reasons[node_id] = result.metadata.get("reason", "executor_skipped")
-                
-                # If the skip includes a passthrough output, update node outputs
-                if result.metadata.get("passthrough") and result.output is not None:
-                    context.node_outputs[node_id] = result.output
-                    logger.debug(f"Node {node_id} skipped but passed through output: {str(result.output)[:50]}...")
-                
-                # Don't increment execution count or add to execution order for skipped nodes
-                event = {
-                    "type": "node_skipped",
-                    "node_id": node_id,
-                    "reason": result.metadata.get("reason", "executor_skipped"),
-                    "metadata": result.metadata,
-                    "output": result.output
-                }
-                # Broadcast to monitors
-                await broadcast_event(event)
-                return event
-            
-            # Update context for successful execution
-            context.node_outputs[node_id] = result.output
-            context.node_execution_counts[node_id] += 1
-            context.execution_order.append(node_id)
-            context.total_tokens.input += result.tokens.input
-            context.total_tokens.output += result.tokens.output
-            context.total_tokens.cached += result.tokens.cached
-            
-            # Handle condition nodes
-            if node_type == "condition":
-                # Get condition result from metadata (for new format) or output (for backward compatibility)
-                condition_result = result.metadata.get("conditionResult")
-                if condition_result is not None:
-                    context.condition_values[node_id] = condition_result
-                elif isinstance(result.output, bool):
-                    # Backward compatibility: if output is still a boolean
-                    context.condition_values[node_id] = result.output
-            
-            # Mark iteration complete for loop control
-            self.loop_controller.mark_iteration_complete(node_id)
-            
-            event = {
-                "type": "node_complete",
-                "node_id": node_id,
-                "output": result.output,
-                "metadata": result.metadata,
-                "token_count": result.tokens.input + result.tokens.output
-            }
-            # Broadcast to monitors
-            await broadcast_event(event)
-            return event
-            
-        except Exception as e:
-            logger.error(f"Node execution failed: {node_id} - {str(e)}")
-            raise
+                pending.difference_update(ready)
+                #  handle loop re-queues (false condition → run again)
+                for nid,r in zip(ready,results):
+                    if g.nodes[nid].is_cond and ctx.cond_val.get(nid) is False:
+                        # re-queue the whole strongly-connected loop members
+                        pend = self._loop_members(nid,g)
+                        pending.update(pend)
+            send({"type":"execution_complete",
+                  "order":ctx.order,"outputs":ctx.outputs,"skipped":ctx.skipped})
 
+    # ------------------------------------------------------------------ helpers
+    def _deps_met(self, node:Node, ctx:Ctx)->bool:
+        if node.is_start: return True
+        for ar in node.in_arrows:
+            sid = ar.source
+            if sid in ctx.skipped and sid not in ctx.outputs: return False
+            if sid not in ctx.outputs:                        return False
+            if self._branch_mismatch(ar, ctx.cond_val.get(sid)): return False
+        return True
 
-    def _handle_condition_requeuing(
-        self,
-        condition_node_id: str,
-        condition_result: bool,
-        context: ExecutionContext,
-        current_pending: Set[str]
-    ) -> Set[str]:
-        """Handle conditional re-queuing of nodes for loop execution."""
-        requeued_nodes = set()
+    @staticmethod
+    def _branch_mismatch(ar:Arrow, cond_val:bool|None)->bool:
+        if cond_val is None:            return False
+        if ar.label.lower() in {"true","yes","1"}:  return cond_val is not True
+        if ar.label.lower() in {"false","no","0"}:  return cond_val is not False
+        return False                         # unlabeled ⇒ always OK
 
-        # Only re-queue if condition says to continue (false = continue loop)
-        if not condition_result:
-            # Find all nodes in the loop
-            loop_nodes = self._find_loop_nodes(condition_node_id, context)
-            logger.debug(f"Found {len(loop_nodes)} nodes in loop with condition {condition_node_id}")
+    async def _do(self, nid:str, node:Node, ctx:Ctx,
+                  loops:LoopBook, send:Callable[[dict],None]):
+        if should_skip(node,ctx,loops):
+            send({"type":"node_skipped","node_id":nid,"reason":ctx.skipped[nid]})
+            return None
 
-            for node_id in loop_nodes:
-                # Skip the condition node itself
-                if node_id == condition_node_id:
-                    continue
+        ex = self.execs.get(node.type)
+        if not ex: raise RuntimeError(f"No executor for {node.type}")
 
-                node = context.nodes_by_id.get(node_id)
-                if not node:
-                    continue
+        #  run the executor (validate inside executor if needed)
+        result = await ex.execute(node, ctx)                  # your API
+        ctx.outputs[nid] = result.output
+        ctx.exec_cnt [nid]+=1
+        ctx.order.append(nid)
 
-                # Check if node can be re-executed
-                properties = node.get("properties", {})
-                max_iterations = properties.get("maxIteration")
+        if node.is_cond:
+            ctx.cond_val[nid]=result.metadata.get("conditionResult",
+                                                  bool(result.output))
+        # loop accounting
+        if node.is_pj and node.props.get("firstOnlyPrompt"):
+            loops.first_used.add(nid)
+        if node.max_iter:
+            if not loops.bump(nid,node.max_iter):
+                ctx.skip(nid,"max_iterations")
 
-                if max_iterations:
-                    current_count = context.node_execution_counts.get(node_id, 0)
-                    if current_count < max_iterations:
-                        requeued_nodes.add(node_id)
-                        logger.debug(
-                            f"Re-queuing {node_id} for iteration {current_count + 1}/{max_iterations}"
-                        )
-                    else:
-                        logger.debug(
-                            f"Not re-queuing {node_id}: reached max iterations {max_iterations}"
-                        )
-                else:
-                    # Nodes without maxIteration can also be re-queued if part of loop
-                    node_type = node.get("type", "").lower()
-                    if node_type not in ["condition", "conditionnode"]:
-                        requeued_nodes.add(node_id)
-                        logger.debug(f"Re-queuing {node_id} (no iteration limit)")
-        
-        # Also re-queue the condition node itself so it can check again after nodes execute
-        if not condition_result:
-            requeued_nodes.add(condition_node_id)
-            logger.debug(f"Re-queuing condition node {condition_node_id} for next iteration check")
+        send({"type":"node_complete","node_id":nid,
+              "output":result.output,"meta":result.metadata})
+        return result
 
-        return requeued_nodes
+    # get (very) cheap strongly-connected set containing nid
+    def _loop_members(self, cid:str, g:Graph)->Set[str]:
+        fwd, rev=set(),set()
+        def walk(start,edges,acc):
+            todo=[start]
+            while todo:
+                cur=todo.pop()
+                acc.add(cur)
+                todo.extend([e.target for e in edges[cur] if e.target not in acc])
+        walk(cid,g.outgoing,fwd); walk(cid,g.incoming,rev)
+        return fwd&rev

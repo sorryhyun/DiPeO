@@ -1,6 +1,12 @@
-import type { NodeConfigItem } from '../types';
+import type { ConditionFormData } from '@/types/ui';
+import { createUnifiedConfig } from '../unifiedConfig';
 
-export const conditionNodeConfig: NodeConfigItem = {
+/**
+ * Unified configuration for Condition node
+ * This replaces both the node config and panel config
+ */
+export const conditionConfig = createUnifiedConfig<ConditionFormData>({
+  // Node configuration
   label: 'Condition',
   icon: '🔀',
   color: 'purple',
@@ -15,7 +21,7 @@ export const conditionNodeConfig: NodeConfigItem = {
     { 
       name: 'conditionType', 
       type: 'select', 
-      label: 'Condition Type', 
+      label: 'Type', 
       required: true,
       options: [
         { value: 'simple', label: 'Simple Condition' },
@@ -25,5 +31,46 @@ export const conditionNodeConfig: NodeConfigItem = {
     },
     { name: 'condition', type: 'string', label: 'Condition', required: true, placeholder: 'e.g., {{value}} > 10' }
   ],
-  defaults: { conditionType: 'simple', condition: '' }
-};
+  defaults: { conditionType: 'simple', condition: '', label: '' },
+  
+  // Panel configuration overrides
+  panelLayout: 'single',
+  panelFieldOrder: ['label', 'conditionType', 'expression'],
+  panelFieldOverrides: {
+    conditionType: {
+      options: [
+        { value: 'expression', label: 'Expression' },
+        { value: 'detect_max_iterations', label: 'Max Iterations' }
+      ]
+    }
+  },
+  panelCustomFields: [
+    {
+      type: 'text',
+      name: 'label',
+      label: 'Block Label',
+      placeholder: 'Condition',
+      validate: (_value) => ({
+        isValid: true // Label is optional
+      })
+    },
+    {
+      type: 'variableTextArea',
+      name: 'expression',
+      label: 'Expression',
+      placeholder: "e.g., x > 10 and y == 'yes' (Python syntax)",
+      rows: 3,
+      conditional: {
+        field: 'conditionType',
+        values: ['expression'],
+        operator: 'equals'
+      },
+      validate: (value, formData) => {
+        if (formData?.conditionType === 'expression' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+          return { isValid: false, error: 'Expression is required' };
+        }
+        return { isValid: true };
+      }
+    }
+  ]
+});

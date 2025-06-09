@@ -53,7 +53,6 @@ apps/web/dist/
 files/
 
 pnpm-lock.yaml
-pnpm-workspace.yaml
 .claude
 example.yaml
 TODO.md

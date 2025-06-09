@@ -1,13 +1,18 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
-import {
-  Diagram,
-  Person,
-  Arrow,
-  ApiKey,
-  Node
-} from '@/types';
-import { nanoid } from 'nanoid';
+import { NodeKind } from '@/types/primitives/enums';
+import { generateShortId, entityIdGenerators } from '@/types/primitives/id-generation';
+import { createHandleId, parseHandleId } from '@/types/domain/handle';
+import { 
+  DomainNode,
+  DomainArrow,
+  DomainPerson,
+  DomainApiKey,
+  DomainDiagram
+} from '@/types/domain';
+import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
+import { buildNode, NodeInfo } from './nodeBuilders';
+import { ConverterDiagram, NodeWithHandles } from './diagramAssembler';
 
 interface YamlDiagram {
   version: '1.0';
@@ -16,29 +21,27 @@ interface YamlDiagram {
     description?: string;
   };
 
-  // API Keys section - NEW
+  // API Keys section - labels only
   apiKeys: Record<string, {
     service: string;
     name: string;
   }>;
 
-  // Enhanced persons with full details
+  // Enhanced persons with full details - label-based
   persons: Record<string, {
-    id: string;  // Original ID preserved
     model: string;
     service: string;
-    apiKeyId?: string;
+    apiKeyLabel?: string;  // Reference by label
     system?: string;
     temperature?: number;
   }>;
 
-  // Enhanced workflow with positions
+  // Enhanced workflow with positions - label-based
   workflow: {
-    id: string;  // Original node ID
+    label: string;  // Use label as primary identifier
     type: string;
-    label?: string;
     position: { x: number; y: number };  // Preserved positions
-    person?: string;
+    person?: string;  // Person label reference
 
     // All node-specific fields preserved
     prompt?: string;
@@ -72,7 +75,7 @@ export class Yaml {
   /**
    * Convert DiagramState to enhanced YAML format with full data preservation
    */
-  static toYAML(diagram: Diagram): string {
+  static toYAML(diagram: ConverterDiagram): string {
     const yamlDiagram = this.toYamlFormat(diagram);
 
     return stringify(yamlDiagram, {
@@ -83,39 +86,41 @@ export class Yaml {
     });
   }
 
-  static fromYAML(yamlString: string): Diagram {
+  static fromYAML(yamlString: string): ConverterDiagram {
     const yamlDiagram = parse(yamlString);
     return this.fromYamlFormat(yamlDiagram as YamlDiagram);
   }
   /**
    * Convert DiagramState to YAML format
    */
-  private static toYamlFormat(diagram: Diagram): YamlDiagram {
+  private static toYamlFormat(diagram: ConverterDiagram): YamlDiagram {
     const apiKeys: Record<string, { service: string; name: string }> = {};
     const persons: YamlDiagram['persons'] = {};
     const workflow: YamlDiagram['workflow'] = [];
 
-    // Convert API keys
+    // Convert API keys - use name as key
     diagram.apiKeys.forEach(key => {
-      apiKeys[key.id] = {
+      apiKeys[key.name] = {
         service: key.service,
         name: key.name
       };
     });
 
-    // Convert persons to agents with full details
+    // Convert persons with full details - use label as key
     diagram.persons.forEach(person => {
-      persons[person.id] = {
-        id: person.id,
-        model: person.modelName || 'gpt-4.1-nano',
-        service: person.service || 'chatgpt',
-        ...(person.apiKeyId && { apiKeyId: person.apiKeyId }),
+      // Use service from person
+      let apiKeyLabel: string | undefined;
+      const service = person.service || 'openai'; // default
+      
+      persons[person.name] = {
+        model: person.model || 'gpt-4.1-nano',
+        service,
         ...(person.systemPrompt && { system: person.systemPrompt })
       };
     });
 
     // Build adjacency map for connections
-    const connectionMap = new Map<string, Arrow[]>();
+    const connectionMap = new Map<string, DomainArrow[]>();
     diagram.arrows.forEach(arrow => {
       const arrows = connectionMap.get(arrow.source) || [];
       arrows.push(arrow);
@@ -134,7 +139,7 @@ export class Yaml {
     return {
       version: '1.0',
       metadata: {
-        description: 'AgentDiagram workflow export'
+        description: 'DiPeO workflow export'
       },
       apiKeys,
       persons,
@@ -146,157 +151,189 @@ export class Yaml {
    * Convert node to enhanced workflow step
    */
   private static nodeToEnhancedStep(
-    node: Node,
-    connections: Arrow[],
-    _persons: Person[]
+    node: NodeWithHandles,
+    connections: DomainArrow[],
+    persons: DomainPerson[]
   ): YamlDiagram['workflow'][0] | null {
     const data = node.data;
     const baseStep: YamlDiagram['workflow'][0] = {
-      id: node.id,
+      label: String(data.label || node.id),
       type: node.type as string,
       position: {
         x: Math.round(node.position.x),
         y: Math.round(node.position.y)
-      },
-      ...(data.label && { label: data.label })
+      }
     };
 
     // Add connections if any
     if (connections.length > 0) {
-      baseStep.connections = connections.map(arrow => ({
-        to: arrow.target,
-        ...(arrow.data?.label && { label: arrow.data.label }),
-        // Prioritize edge's direct handle properties, fallback to data
-        ...((arrow.data?.controlPointOffsetX !== undefined || arrow.data?.controlPointOffsetY !== undefined) && {
-          control_offset: {
-            x: Math.round(arrow.data?.controlPointOffsetX || 0),
-            y: Math.round(arrow.data?.controlPointOffsetY || 0)
+      baseStep.connections = connections.map(arrow => {
+        // Parse target handle ID to get node ID and handle name
+        const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
+        const { handleName: sourceHandleName } = parseHandleId(arrow.source);
+        
+        const connection: any = {
+          to: targetNodeId,
+          source_handle: sourceHandleName,
+          target_handle: targetHandleName,
+        };
+        
+        if (arrow.data) {
+          if (arrow.data.label) connection.label = arrow.data.label;
+          if (arrow.data.contentType) connection.content_type = arrow.data.contentType;
+          if (arrow.data.branch) connection.branch = arrow.data.branch;
+          if (arrow.data.controlPointOffsetX !== undefined && arrow.data.controlPointOffsetY !== undefined) {
+            connection.control_offset = {
+              x: Math.round(Number(arrow.data.controlPointOffsetX)),
+              y: Math.round(Number(arrow.data.controlPointOffsetY))
+            };
           }
-        })
-      }));
+        }
+        
+        return connection;
+      });
     }
 
-    // Add type-specific fields
-    switch (node.type) {
-      case 'start':
-        return baseStep;
-
-      case 'person_job': {
-        return {
-          ...baseStep,
-          ...(data.personId && { person: data.personId }),
-          ...(data.defaultPrompt && { prompt: data.defaultPrompt }),
-          ...(data.firstOnlyPrompt && { first_prompt: data.firstOnlyPrompt }),
-          ...(data.contextCleaningRule && { forget: data.contextCleaningRule }),
-          ...(data.iterationCount && { max_iterations: data.iterationCount })
-        };
+    // Find person label if needed
+    if (data.personId) {
+      const person = persons.find(p => p.id === data.personId);
+      if (person) {
+        baseStep.person = person.name;
       }
-
-      case 'condition': {
-        return {
-          ...baseStep,
-          ...(data.conditionType && { condition_type: data.conditionType }),
-          ...(data.expression && { expression: data.expression }),
-          ...(data.maxIterations && { max_iterations: data.maxIterations })
-        };
-      }
-
-      case 'db': {
-        return {
-          ...baseStep,
-          ...(data.subType && { sub_type: data.subType }),
-          ...(data.sourceDetails && { source: data.sourceDetails })
-        };
-      }
-
-      case 'job': {
-        return {
-          ...baseStep,
-          ...(data.subType && { sub_type: data.subType }),
-          ...(data.sourceDetails && { code: data.sourceDetails })
-        };
-      }
-
-      case 'endpoint': {
-        return {
-          ...baseStep,
-          ...(data.saveToFile && data.filePath && { file: data.filePath }),
-          ...(data.fileFormat && { file_format: data.fileFormat })
-        };
-      }
-
-      default:
-        return baseStep;
     }
+
+    // Add all non-null fields from data based on node type
+    const fieldMappings: Record<string, string> = {
+      defaultPrompt: 'prompt',
+      firstOnlyPrompt: 'first_prompt',
+      contextCleaningRule: 'forget',
+      iterationCount: 'max_iterations',
+      conditionType: 'condition_type',
+      sourceDetails: node.type === 'db' ? 'source' : 'code',
+      filePath: 'file',
+      fileFormat: 'file_format',
+      subType: 'sub_type'
+    };
+    
+    Object.entries(fieldMappings).forEach(([dataKey, yamlKey]) => {
+      if (data[dataKey] !== undefined && data[dataKey] !== null && data[dataKey] !== '') {
+        (baseStep as any)[yamlKey] = data[dataKey];
+      }
+    });
+
+    return baseStep;
   }
 
   /**
    * Convert enhanced YAML format back to DiagramState
    */
-  private static fromYamlFormat(yamlDiagram: YamlDiagram): Diagram {
-    const nodes: Node[] = [];
-    const arrows: Arrow[] = [];
-    const persons: Person[] = [];
-    const apiKeys: ApiKey[] = [];
+  private static fromYamlFormat(yamlDiagram: YamlDiagram): ConverterDiagram {
+    const nodes: NodeWithHandles[] = [];
+    const arrows: DomainArrow[] = [];
+    const persons: DomainPerson[] = [];
+    const apiKeys: DomainApiKey[] = [];
 
-    // Convert API keys
-    Object.entries(yamlDiagram.apiKeys || {}).forEach(([id, key]) => {
+    // Convert API keys - generate new IDs
+    Object.entries(yamlDiagram.apiKeys || {}).forEach(([_name, key]) => {
+      const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
       apiKeys.push({
-        id,
+        id: apiKeyIdValue,
         name: key.name,
-        service: key.service as ApiKey['service'],
-        keyReference: id // Use id as keyReference
+        service: key.service as DomainApiKey['service'],
+        // key is optional - not stored in frontend
       });
     });
 
 
-    Object.entries(yamlDiagram.persons || {}).forEach(([id, person]) => {
+    // Create label-to-ID mappings for references
+    const apiKeyLabelToId = new Map<string, string>();
+    apiKeys.forEach(key => {
+      apiKeyLabelToId.set(key.name, key.id);
+    });
+    
+    // Create API keys for services found in persons
+    const serviceToApiKey = new Map<string, string>();
+    Object.entries(yamlDiagram.persons || {}).forEach(([_label, person]) => {
+      const service = (person.service || 'chatgpt') as DomainApiKey['service'];
+      if (!serviceToApiKey.has(service) && !person.apiKeyLabel) {
+        // Create API key for this service if not using explicit apiKeyLabel
+        const newApiKeyId = apiKeyId(entityIdGenerators.apiKey());
+        const newApiKey = {
+          id: newApiKeyId,
+          name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
+          service,
+          // key is optional - not stored in frontend
+        };
+        apiKeys.push(newApiKey);
+        serviceToApiKey.set(service, newApiKeyId);
+      }
+    });
+
+    Object.entries(yamlDiagram.persons || {}).forEach(([label, person]) => {
+      // Skip API key resolution - not part of DomainPerson
+      
       persons.push({
-        id: person.id || id,
-        label: this.extractLabelFromId(person.id || id),
-        modelName: person.model,
-        service: person.service as ApiKey['service'],
-        apiKeyId: person.apiKeyId,
+        id: personId(`person-${generateShortId().slice(0, 4)}`),  // Generate fresh ID
+        name: label,  // Use the key as label
+        model: person.model,
+        service: (person.service || 'openai') as DomainPerson['service'],
         systemPrompt: person.system
       });
     });
 
-    // Convert workflow to nodes and arrows
+    // Create label-to-ID mappings for node references
+    const nodeLabelToId = new Map<string, string>();
+    const personNameToId = new Map<string, PersonID>();
+    persons.forEach(person => {
+      personNameToId.set(person.name, person.id);
+    });
+    
+    // First pass: create nodes and build label-to-ID mapping
     yamlDiagram.workflow.forEach(step => {
-      const node = this.enhancedStepToNode(step, persons);
+      const node = this.enhancedStepToNode(step, persons, personNameToId);
       if (node) {
         nodes.push(node);
+        nodeLabelToId.set(step.label, node.id);
 
-        // Create arrows from connections
-        if (step.connections) {
+      }
+    });
+    
+    // Second pass: create arrows using label-to-ID mapping
+    yamlDiagram.workflow.forEach(step => {
+      if (step.connections) {
+        const sourceId = nodeLabelToId.get(step.label);
+        if (sourceId) {
           step.connections.forEach(conn => {
-            const arrowId = `arrow-${nanoid(6)}`;
-            arrows.push({
-              id: arrowId,
-              source: step.id,
-              target: conn.to,
-              type: 'customArrow',
-              sourceHandle: conn.source_handle,
-              targetHandle: conn.target_handle,
-              data: {
-                id: arrowId,
-                sourceBlockId: step.id,
-                targetBlockId: conn.to,
-                sourceHandleId: conn.source_handle,
-                targetHandleId: conn.target_handle,
-                label: conn.label || 'flow',
-                contentType: conn.content_type || 'raw_text',
-                branch: conn.branch as 'true' | 'false' | undefined,
-                controlPointOffsetX: conn.control_offset?.x,
-                controlPointOffsetY: conn.control_offset?.y
-              }
-            });
+            const targetId = nodeLabelToId.get(conn.to);
+            if (targetId) {
+              const arrowIdValue = arrowId(`arrow-${generateShortId()}`);
+              
+              // Create handle IDs from node IDs and handle names
+              const sourceHandleId = createHandleId(sourceId as NodeID, conn.source_handle || 'output');
+              const targetHandleId = createHandleId(targetId as NodeID, conn.target_handle || 'input');
+              
+              arrows.push({
+                id: arrowIdValue,
+                source: sourceHandleId,
+                target: targetHandleId,
+                data: {
+                  label: conn.label || 'flow',
+                  contentType: conn.content_type || 'raw_text',
+                  branch: conn.branch as 'true' | 'false' | undefined,
+                  controlPointOffsetX: conn.control_offset?.x,
+                  controlPointOffsetY: conn.control_offset?.y
+                }
+              });
+            }
           });
         }
       }
     });
 
     return {
+      id: `diagram-${generateShortId()}`,
+      name: yamlDiagram.title || 'Imported Diagram',
+      description: yamlDiagram.metadata?.description,
       nodes,
       arrows,
       persons,
@@ -309,129 +346,34 @@ export class Yaml {
    */
   private static enhancedStepToNode(
     step: YamlDiagram['workflow'][0],
-    _persons: Person[]
-  ): Node | null {
-    const baseData = {
-      id: step.id,
-      label: step.label || this.extractLabelFromId(step.id)
+    _persons: DomainPerson[],
+    personLabelToId: Map<string, PersonID>
+  ): NodeWithHandles | null {
+    const nodeInfo: NodeInfo = {
+      name: step.label,
+      type: step.type as NodeKind,
+      position: step.position,
+      // Common fields
+      personId: step.person ? personLabelToId.get(step.person) : undefined,
+      prompt: step.prompt,
+      firstPrompt: step.first_prompt,
+      contextCleaningRule: step.forget || 'upon_request',
+      maxIterations: step.max_iterations,
+      mode: step.mode,
+      // Condition fields
+      conditionType: step.condition_type,
+      expression: step.expression,
+      // DB fields
+      subType: step.sub_type,
+      sourceDetails: step.source,
+      // Job fields
+      code: step.code,
+      // Endpoint fields
+      filePath: step.file,
+      fileFormat: step.file_format
     };
-
-    const position = {
-      x: step.position.x,
-      y: step.position.y
-    };
-
-    switch (step.type) {
-      case 'start':
-        return {
-          id: step.id,
-          type: 'start',
-          position,
-          data: {
-            ...baseData,
-            type: 'start'
-          }
-        };
-
-      case 'person_job':
-        return {
-          id: step.id,
-          type: 'person_job',
-          position,
-          data: {
-            ...baseData,
-            type: 'person_job',
-            personId: step.person,
-            defaultPrompt: step.prompt || '',
-            firstOnlyPrompt: step.first_prompt || '',
-            contextCleaningRule: step.forget || 'uponRequest',
-            maxIterations: step.max_iterations || 1,
-            mode: step.mode || 'sync',
-            detectedVariables: this.detectVariables(step.prompt || '', step.first_prompt || '')
-          }
-        };
-
-      case 'condition':
-        return {
-          id: step.id,
-          type: 'condition',
-          position,
-          data: {
-            ...baseData,
-            type: 'condition',
-            conditionType: step.condition_type || 'expression',
-            expression: step.expression || '',
-            maxIterations: step.max_iterations
-          }
-        };
-
-      case 'db':
-        return {
-          id: step.id,
-          type: 'db',
-          position,
-          data: {
-            ...baseData,
-            type: 'db',
-            subType: step.sub_type || 'fixed_prompt',
-            sourceDetails: step.source || ''
-          }
-        };
-
-      case 'job':
-        return {
-          id: step.id,
-          type: 'job',
-          position,
-          data: {
-            ...baseData,
-            type: 'job',
-            subType: step.sub_type || 'code',
-            sourceDetails: step.code || ''
-          }
-        };
-
-      case 'endpoint':
-        return {
-          id: step.id,
-          type: 'endpoint',
-          position,
-          data: {
-            ...baseData,
-            type: 'endpoint',
-            saveToFile: !!step.file,
-            filePath: step.file || '',
-            fileFormat: step.file_format || 'text'
-          }
-        };
-
-      default:
-        return null;
-    }
+    
+    return buildNode(nodeInfo);
   }
 
-  /**
-   * Utility functions
-   */
-
-  private static extractLabelFromId(id: string): string {
-    // Extract meaningful label from IDs like "PERSON_ABC123" -> "Person ABC123"
-    return id.replace(/_/g, ' ').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  }
-
-  private static detectVariables(...prompts: string[]): string[] {
-    const vars = new Set<string>();
-    const varPattern = /{{(\w+)}}/g;
-
-    prompts.forEach(prompt => {
-      if (prompt) {
-        const matches = prompt.matchAll(varPattern);
-        for (const match of matches) {
-          vars.add(match[1] || '');
-        }
-      }
-    });
-
-    return Array.from(vars);
-  }
 }

@@ -2,9 +2,9 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useRealtimeExecution } from './hooks/useRealtimeExecution';
+import { useExecutionV2, useDiagramRunner } from './hooks/execution';
 import { useConsolidatedUIStore, useDiagramStore } from './stores';
-import { useDiagramRunner } from './hooks/useDiagramRunner';
+import { useHistoryStore } from './stores/historyStore';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -19,6 +19,21 @@ function App() {
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
   
+  // Initialize history store with diagram store on mount
+  useEffect(() => {
+    const diagramStore = useDiagramStore.getState();
+    const historyStore = useHistoryStore.getState();
+    
+    // Set the diagram store reference in history store
+    historyStore.setDiagramStore(diagramStore._store);
+    
+    // Set global reference for saveHistory to access
+    (window as unknown as { __historyStore?: typeof historyStore }).__historyStore = historyStore;
+    
+    // Initialize history with current state
+    historyStore.initializeHistory();
+  }, []);
+  
   useEffect(() => {
     const checkMonitorMode = () => {
       const params = new URLSearchParams(window.location.search);
@@ -26,9 +41,9 @@ function App() {
       setReadOnly?.(monitorParam);
 
       if (monitorParam) {
-        document.title = 'AgentDiagram - Monitor Mode';
+        document.title = 'DiPeO - Monitor Mode';
       } else {
-        document.title = 'AgentDiagram';
+        document.title = 'DiPeO';
       }
     };
 
@@ -45,7 +60,7 @@ function App() {
   }, [setReadOnly]);
 
   // Use realtime execution monitor - it will automatically use WebSocket when available
-  useRealtimeExecution({ enableMonitoring: true });
+  useExecutionV2({ enableMonitoring: true });
   
   // Show WebSocket status when enabled via feature flag
   useEffect(() => {

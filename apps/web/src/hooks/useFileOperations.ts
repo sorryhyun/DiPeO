@@ -1,9 +1,10 @@
-import { useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback, type ChangeEvent } from 'react';
 import { loadDiagram, exportDiagramState } from './useStoreSelectors';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/utils/api/config';
 import { Yaml } from '@/utils/converters/yaml';
 import { LlmYaml } from '@/utils/converters/llm-yaml';
+import type { DomainDiagram } from '@/types/domain/diagram';
 import {
   readFileAsText,
   detectFileFormat,
@@ -131,7 +132,7 @@ export const useFileOperations = () => {
         case 'llm-yaml': {
           // Use LLM YAML importer
           const diagram = LlmYaml.fromLLMYAML(content);
-          loadDiagram(diagram);
+          loadDiagram(diagram as any); // loadDiagram handles the conversion
           toast.success('LLM-YAML file imported successfully');
           break;
         }
@@ -198,23 +199,28 @@ export const useFileOperations = () => {
   const exportDiagramAs = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagramState();
+      const exportedData = exportDiagramState();
+      const diagramData = {
+        ...exportedData,
+        id: `diagram-${  Date.now()}`,
+        name: 'Untitled Diagram'
+      };
       let content: string;
       let defaultFilename: string;
       
       switch (format) {
         case 'json':
           content = JSON.stringify(diagramData, null, 2);
-          defaultFilename = 'diagram.json';
+          defaultFilename = 'example.json';
           break;
           
         case 'yaml':
-          content = Yaml.toYAML(diagramData);
+          content = Yaml.toYAML(diagramData as any);
           defaultFilename = 'diagram.yaml';
           break;
           
         case 'llm-yaml':
-          content = LlmYaml.toLLMYAML(diagramData);
+          content = LlmYaml.toLLMYAML(diagramData as any);
           defaultFilename = 'diagram.llm-yaml';
           break;
           
@@ -242,10 +248,15 @@ export const useFileOperations = () => {
   const saveDiagramToServer = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagramState();
+      const exportedData = exportDiagramState();
+      const diagramData = {
+        ...exportedData,
+        id: `diagram-${  Date.now()}`,
+        name: filename?.replace(/\.[^/.]+$/, '') || 'Untitled Diagram'
+      };
       
       const finalFilename = filename || `diagram${getFileExtension(format)}`;
-      const result = await saveDiagramToBackend(diagramData, {
+      const result = await saveDiagramToBackend(diagramData as any, {
         filename: finalFilename,
         format: format as FileFormat
       });
@@ -305,7 +316,7 @@ export const useFileOperations = () => {
       const content = await readFileAsText(file);
       const diagram = JSON.parse(content);
       
-      const yamlContent = Yaml.toYAML(diagram);
+      const yamlContent = Yaml.toYAML(diagram as any);
       
       // Download the converted file
       const filename = file.name.replace('.json', '.yaml');
@@ -356,18 +367,20 @@ export const useFileOperations = () => {
   const cloneDiagram = useCallback(async (newName: string, format: SupportedFormat = 'json') => {
     setIsProcessing(true);
     try {
-      const diagramData = exportDiagramState();
+      const exportedData = exportDiagramState();
       
       // Create a cloned diagram with metadata
       const clonedDiagram = {
-        ...diagramData,
+        ...exportedData,
+        id: `diagram-${  Date.now()}`,
+        name: newName,
         metadata: {
           name: newName,
           clonedAt: new Date().toISOString()
         }
       };
       
-      const result = await saveDiagramToBackend(clonedDiagram, {
+      const result = await saveDiagramToBackend(clonedDiagram as any, {
         filename: `${newName}${getFileExtension(format)}`,
         format: format as FileFormat
       });

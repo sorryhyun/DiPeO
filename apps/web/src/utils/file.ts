@@ -4,7 +4,7 @@
  */
 
 import { toast } from 'react-hot-toast';
-import type { ApiResponse, Diagram } from '@/types';
+import type { DomainDiagram } from '@/types';
 import { getApiUrl, API_ENDPOINTS } from './api/config';
 
 export type FileFormat = 'json' | 'yaml' | 'llm-yaml';
@@ -120,7 +120,7 @@ export const downloadEnhanced = async (
  * Save diagram to backend
  */
 export const saveDiagramToBackend = async (
-  diagram: Diagram,
+  diagram: DomainDiagram,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
   try {
@@ -163,7 +163,7 @@ export const detectFileFormat = (content: string, filename?: string): FileFormat
       return { format: 'json', isLLMFormat: false };
     }
     if (ext === 'yaml' || ext === 'yml') {
-      if (content.includes('flow:') && (content.includes('prompts:') || content.includes('agents:'))) {
+      if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
         return { format: 'llm-yaml', isLLMFormat: true };
       }
       return { format: 'yaml', isLLMFormat: false };
@@ -174,7 +174,7 @@ export const detectFileFormat = (content: string, filename?: string): FileFormat
     JSON.parse(content);
     return { format: 'json', isLLMFormat: false };
   } catch {
-    if (content.includes('flow:') && (content.includes('prompts:') || content.includes('agents:'))) {
+    if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
       return { format: 'llm-yaml', isLLMFormat: true };
     }
     if (content.includes(':') && (content.includes('-') || content.includes('  '))) {

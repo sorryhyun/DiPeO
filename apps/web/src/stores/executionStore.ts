@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 
 export interface ExecutionStore {
@@ -38,7 +38,7 @@ export interface ExecutionStore {
   getNodeError: (nodeId: string) => string | null;
 }
 
-export const useExecutionStore = create<ExecutionStore>()(
+export const useExecutionStore = createWithEqualityFn<ExecutionStore>()(
   devtools(
     (set, get) => ({
       // Initial state

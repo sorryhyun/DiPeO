@@ -1,2 +1,2 @@
 export * from './client';
-export * from './execution-client';
+export * from './event-bus';

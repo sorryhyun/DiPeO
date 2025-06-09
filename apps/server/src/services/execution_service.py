@@ -1,20 +1,26 @@
-"""Service for handling diagram execution with WebSocket support."""
+# services/execution_service.py
+"""Service for running a diagram through the CompactEngine and
+streaming execution updates to the caller (e.g. a WebSocket)."""
+from __future__ import annotations
+
+import asyncio
 import logging
-from typing import Dict, Any, AsyncIterator, Optional, Set, Callable, TYPE_CHECKING
+from collections.abc import AsyncIterator, Callable
+from typing import Any, Dict, Optional, Set, TYPE_CHECKING
 
 from ..utils.base_service import BaseService
 from ..exceptions import ValidationError
 
-if TYPE_CHECKING:
-    pass
+if TYPE_CHECKING:  # Only for static checkers, never at runtime
+    from ..state.websocket_state import WebSocketState  # noqa: F401
 
-
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class ExecutionService(BaseService):
-    """Service for handling diagram execution with WebSocket support."""
-    
+    """Run a diagram and stream node-level updates back to the client."""
+
+    # --------------------------------------------------------------------- init
     def __init__(
         self,
         llm_service,
@@ -22,8 +28,8 @@ class ExecutionService(BaseService):
         memory_service,
         file_service,
         diagram_service,
-        notion_service=None
-    ):
+        notion_service=None,
+    ) -> None:
         super().__init__()
         self.llm_service = llm_service
         self.api_key_service = api_key_service
@@ -31,138 +37,118 @@ class ExecutionService(BaseService):
         self.file_service = file_service
         self.diagram_service = diagram_service
         self.notion_service = notion_service
-        
-    async def validate_diagram_for_execution(self, diagram: Dict[str, Any]) -> None:
-        """Validate diagram structure for execution."""
-        if not isinstance(diagram, dict):
-            raise ValidationError("Diagram must be a dictionary")
-            
-        nodes = diagram.get("nodes", [])
-        if not nodes:
-            raise ValidationError("Diagram must contain at least one node")
-            
-        # Check for start nodes
-        start_nodes = [
-            node for node in nodes 
-            if node.get("type", "") == "start" or 
-               node.get("data", {}).get("type", "") == "start"
-        ]
-        if not start_nodes:
-            raise ValidationError("Diagram must contain at least one start node")
-            
-    def prepare_execution_options(
-        self, 
-        options: Dict[str, Any], 
-        execution_id: str,
-        interactive_handler: Optional[Callable] = None
-    ) -> Dict[str, Any]:
-        """Prepare execution options with defaults."""
-        execution_options = {
-            "continue_on_error": options.get("continueOnError", False),
-            "allow_partial": options.get("allowPartial", False),
-            "debug_mode": options.get("debugMode", False),
-            "execution_id": execution_id,
-            **options
-        }
-        
-        if interactive_handler:
-            execution_options["interactive_handler"] = interactive_handler
-            
-        return execution_options
-        
-    async def pre_initialize_models(self, diagram: Dict[str, Any]) -> Set[str]:
-        """Pre-initialize LLM models for faster execution."""
-        pre_initialized = set()
-        persons = diagram.get("persons", [])
-        
-        for person in persons:
-            model = person.get("model", "")
-            service = person.get("service", "")
-            api_key_id = person.get("apiKeyId", "")
-            
-            if model and service and api_key_id:
-                config_key = f"{service}:{model}:{api_key_id}"
-                if config_key not in pre_initialized:
-                    try:
-                        self.llm_service.pre_initialize_model(
-                            service=service,
-                            model=model,
-                            api_key_id=api_key_id
-                        )
-                        pre_initialized.add(config_key)
-                    except Exception as e:
-                        logger.warning(f"Failed to pre-initialize {config_key}: {e}")
-                        
-        return pre_initialized
-        
-    def enhance_diagram_with_api_keys(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Add API keys to diagram for execution."""
-        api_keys_list = self.api_key_service.list_api_keys()
-        api_keys_dict = {}
-        
-        for key_info in api_keys_list:
-            full_key_data = self.api_key_service.get_api_key(key_info["id"])
-            api_keys_dict[key_info["id"]] = full_key_data["key"]
-            
-        return {
-            **diagram,
-            "api_keys": api_keys_dict
-        }
-        
+
+    # ------------------------------------------------ public entry-point
     async def execute_diagram(
         self,
         diagram: Dict[str, Any],
         options: Dict[str, Any],
         execution_id: str,
-        interactive_handler: Optional[Callable] = None,
-        state_manager: Optional[Any] = None
+        interactive_handler: Optional[Callable[[Dict[str, Any]], Any]] = None,
+        state_manager: "Optional[WebSocketState]" = None,
     ) -> AsyncIterator[Dict[str, Any]]:
-        """Execute a diagram and yield updates.
-        
-        Args:
-            diagram: The diagram to execute
-            options: Execution options
-            execution_id: Unique execution identifier
-            interactive_handler: Optional handler for interactive prompts
-            state_manager: Optional WebSocket state manager for pause/resume control
-            
-        Yields:
-            Dict containing execution updates
-            
-        Raises:
-            ValidationError: If diagram structure is invalid
-            DiagramExecutionError: If execution fails
         """
-        # Validate diagram
-        await self.validate_diagram_for_execution(diagram)
-        
-        # Pre-initialize models
-        await self.pre_initialize_models(diagram)
-        
-        # Enhance diagram with API keys
-        enhanced_diagram = self.enhance_diagram_with_api_keys(diagram)
-        
-        # Prepare execution options
-        execution_options = self.prepare_execution_options(
-            options, execution_id, interactive_handler
-        )
-        
-        # Import here to avoid circular dependency
-        from ..engine.engine import UnifiedExecutionEngine
-        
-        # Create execution engine
-        execution_engine = UnifiedExecutionEngine(
+        Validate → warm-up → enrich → run the CompactEngine.
+        Yields node / engine updates as they happen.
+        """
+        # 1️⃣ Validate + warm-up
+        await self._validate_diagram(diagram)
+        await self._warm_up_models(diagram)
+
+        # 2️⃣ Enrich with API-keys + merge exec-options
+        diagram = self._inject_api_keys(diagram)
+        exec_opts = self._merge_options(options, execution_id, interactive_handler)
+
+        # 3️⃣ Build executor registry *only* when needed
+        from ..engine.executors import create_executors  # lazy import
+        executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service,
             memory_service=self.memory_service,
             notion_service=self.notion_service,
-            state_manager=state_manager
         )
-        
-        # Execute and yield updates
-        async for update in execution_engine.execute_diagram(
-            enhanced_diagram, 
-            execution_options
+
+        # 4️⃣ Instantiate compact engine
+        from ..engine.engine import CompactEngine
+
+        engine = CompactEngine(executors, logger=log)
+
+        # 5️⃣ Bridge engine→service via asyncio.Queue
+        queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
+
+        async def _send(msg: Dict[str, Any]) -> None:
+            msg["execution_id"] = execution_id
+            await queue.put(msg)
+
+        # Kick-off engine in background
+        engine_task = asyncio.create_task(
+            engine.run(diagram, send=_send, execution_id=execution_id, 
+                      interactive_handler=interactive_handler)
+        )
+
+        # 6️⃣ Stream updates until the engine finishes
+        try:
+            while True:
+                update = await queue.get()
+                yield update
+                if update.get("type") == "execution_complete":
+                    break
+        finally:
+            # Propagate exceptions if the engine errored out
+            await engine_task
+
+    # ----------------------------------------------------------------- helpers
+    @staticmethod
+    async def _validate_diagram(diagram: Dict[str, Any]) -> None:
+        """Cheap structural sanity-check before running the engine."""
+        if not isinstance(diagram, dict):
+            raise ValidationError("Diagram must be a dictionary")
+        nodes = diagram.get("nodes") or []
+        if not nodes:
+            raise ValidationError("Diagram must contain at least one node")
+        if not any(
+            n.get("type") == "start" or n.get("data", {}).get("type") == "start"
+            for n in nodes
         ):
-            update["execution_id"] = execution_id
-            yield update
+            raise ValidationError("Diagram must contain at least one start node")
+
+    async def _warm_up_models(self, diagram: Dict[str, Any]) -> None:
+        """Pre-load each unique (service, model, api_key_id) once to cut latency."""
+        seen: Set[str] = set()
+        for p in diagram.get("persons", []):
+            key = f'{p.get("service")}:{p.get("model")}:{p.get("apiKeyId")}'
+            if key in seen or not all(key.split(":")):
+                continue
+            seen.add(key)
+            try:
+                self.llm_service.pre_initialize_model(
+                    service=p["service"], model=p["model"], api_key_id=p["apiKeyId"]
+                )
+            except Exception as exc:  # pragma: no-cover
+                log.warning("Warm-up failed for %s – %s", key, exc)
+
+    def _inject_api_keys(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
+        """Attach full API-key strings into the diagram (look-up is once)."""
+        keys = {
+            info["id"]: self.api_key_service.get_api_key(info["id"])["key"]
+            for info in self.api_key_service.list_api_keys()
+        }
+        return {**diagram, "api_keys": keys}
+
+    @staticmethod
+    def _merge_options(
+        opts: Dict[str, Any],
+        execution_id: str,
+        interactive_handler: Optional[Callable],
+    ) -> Dict[str, Any]:
+        """Flatten CamelCase → snake_case and inject defaults."""
+        merged = {
+            "continue_on_error": opts.get("continueOnError", False),
+            "allow_partial": opts.get("allowPartial", False),
+            "debug_mode": opts.get("debugMode", False),
+            "execution_id": execution_id,
+            **opts,
+        }
+        if interactive_handler:
+            merged["interactive_handler"] = interactive_handler
+        return merged

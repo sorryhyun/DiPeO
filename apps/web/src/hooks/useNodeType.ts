@@ -1,54 +1,60 @@
-import { useCallback, useMemo } from 'react';
-import { NODE_CONFIGS } from '@/types';
+import { useMemo } from 'react';
+import { UNIFIED_NODE_CONFIGS } from '@/config';
+import type { NodeKind } from '@/types/primitives/enums';
 
-export const useNodeType = (nodeType: string) => {
-  const config = useMemo(() => NODE_CONFIGS[nodeType as keyof typeof NODE_CONFIGS], [nodeType]);
+export const useNodeType = (nodeType: NodeKind) => {
+  const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS], [nodeType]);
 
-  // Get handle configurations based on flip state
-  const getHandles = useCallback((isFlipped: boolean = false) => {
+  // Memoize handles once, avoiding multiple map passes per render
+  const handles = useMemo(() => {
     if (!config) return [];
     
-    // Handle configuration logic would go here
-    // This is a simplified version - you may need to expand based on actual handle logic
-    const inputHandles = (config.handles.input || []).map((handle: any) => ({ ...handle, type: 'input' }));
-    const outputHandles = (config.handles.output || []).map((handle: any) => ({ ...handle, type: 'output' }));
-    const allHandles = [...inputHandles, ...outputHandles];
+    const toHandles = (handles: any[] | undefined, type: string) => 
+      handles?.map(h => ({ ...h, type })) ?? [];
     
+    return [
+      ...toHandles(config.handles.input, 'input'),
+      ...toHandles(config.handles.output, 'output')
+    ];
+  }, [config]);
+
+  // Get handle configurations based on flip state
+  const getHandles = (isFlipped: boolean = false) => {
     if (isFlipped) {
       // Flip handle positions if needed
-      return allHandles.map((handle: any) => ({
+      return handles.map((handle: any) => ({
         ...handle,
         position: handle.position === 'left' ? 'right' : 
                  handle.position === 'right' ? 'left' : handle.position
       }));
     }
     
-    return allHandles;
-  }, [config]);
+    return handles;
+  };
 
   // Get default node data
-  const getDefaultData = useCallback(() => {
+  const getDefaultData = () => {
     if (!config) return {};
     
     return {
       type: nodeType,
       label: config.label
     };
-  }, [nodeType, config]);
+  };
 
   // Get node styling information
-  const getNodeStyles = useCallback(() => {
+  const getNodeStyles = () => {
     if (!config) return {};
     
     return {
       borderColor: config.color || '#ccc' // Use color property as border color
     };
-  }, [config]);
+  };
 
   // Check if node has specific capabilities
-  const hasCapability = useCallback((_capability: string) => {
+  const hasCapability = (_capability: string) => {
     return false;
-  }, []);
+  };
 
   return {
     config,

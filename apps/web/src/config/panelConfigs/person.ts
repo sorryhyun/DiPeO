@@ -1,7 +1,14 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, PersonFormData } from '@/types/ui';
 import { fetchApiKeys, fetchAvailableModels } from '@/utils/api';
 
-export const personPanelConfig: PanelConfig<Record<string, unknown>> = {
+interface ExtendedPersonFormData extends PersonFormData {
+  apiKeyId?: string;
+  modelName?: string;
+  label?: string;
+  systemPrompt?: string;
+}
+
+export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {
@@ -9,18 +16,6 @@ export const personPanelConfig: PanelConfig<Record<string, unknown>> = {
       name: 'label',
       label: 'Person Name',
       placeholder: 'Person Name'
-    },
-    {
-      type: 'select',
-      name: 'service',
-      label: 'Service',
-      options: [
-        { value: 'openai', label: 'OpenAI' },
-        { value: 'claude', label: 'Claude' },
-        { value: 'gemini', label: 'Gemini' },
-        { value: 'grok', label: 'Grok' },
-        { value: 'custom', label: 'Custom' }
-      ]
     },
     {
       type: 'select',
@@ -46,17 +41,23 @@ export const personPanelConfig: PanelConfig<Record<string, unknown>> = {
       label: 'Model',
       options: async (formData: unknown) => {
         const data = formData as Record<string, unknown>;
-        if (!data.service || !data.apiKeyId) {
+        if (!data.apiKeyId) {
           return [];
         }
         try {
-          return await fetchAvailableModels(data.service as string, data.apiKeyId as string);
+          // Get service from selected API key
+          const apiKeys = await fetchApiKeys();
+          const selectedKey = apiKeys.find(k => k.id === data.apiKeyId);
+          if (!selectedKey) {
+            return [];
+          }
+          return await fetchAvailableModels(selectedKey.service, data.apiKeyId as string);
         } catch (error) {
           console.error('Failed to fetch models:', error);
           return [];
         }
       },
-      dependsOn: ['service', 'apiKeyId'],
+      dependsOn: ['apiKeyId'],
       placeholder: 'Select Model'
     }
   ],

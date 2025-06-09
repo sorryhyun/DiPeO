@@ -7,10 +7,9 @@ import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl, ApiCache, apiCache } from './config';
 import { 
   createErrorHandlerFactory,
-  type ApiKey, 
-  type Diagram, 
-  type ApiResponse as ApiResponseType, 
-  type Node 
+  type DomainApiKey,
+  type DomainDiagram,
+  type ApiResponse as ApiResponseType
 } from '@/types';
 
 // Internal HTTP response wrapper
@@ -232,8 +231,8 @@ class Client {
 export const apiClient = new Client();
 
 // Legacy functional exports for backward compatibility
-export const fetchApiKeys = async (): Promise<ApiKey[]> => {
-  return apiClient.get<ApiKey[]>(API_ENDPOINTS.API_KEYS, {
+export const fetchApiKeys = async (): Promise<DomainApiKey[]> => {
+  return apiClient.get<DomainApiKey[]>(API_ENDPOINTS.API_KEYS, {
     errorContext: 'Load API Keys',
   });
 };
@@ -241,9 +240,9 @@ export const fetchApiKeys = async (): Promise<ApiKey[]> => {
 export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
   // This should be called from a React component using useApiKeyStore
   // For now, return empty array and let the component handle this
-  const apiKeys: ApiKey[] = [];
+  const apiKeys: DomainApiKey[] = [];
   
-  return apiKeys.map((apiKey: ApiKey) => ({
+  return apiKeys.map((apiKey: DomainApiKey) => ({
     value: apiKey.id,
     label: `${apiKey.name} (${apiKey.service})`
   }));
@@ -298,7 +297,7 @@ export const preInitializeModel = async (
 };
 
 export const saveDiagram = async (
-  diagram: Diagram,
+  diagram: DomainDiagram,
   filename: string
 ): Promise<ApiResponseType<{ path: string }>> => {
   const data = await apiClient.post<{ path: string }>(

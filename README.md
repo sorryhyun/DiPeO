@@ -87,15 +87,15 @@ pytest apps/server/tests/                         # Run backend tests (if using 
 pip install -r requirements-cli.txt
 
 # Execution modes (now using WebSocket)
-python tool.py run files/diagrams/diagram.json --mode=monitor   # Pre-load models, open browser, then run (recommended)
-python tool.py run files/diagrams/diagram.json                  # Standard execution with browser
-python tool.py run files/diagrams/diagram.json --mode=headless  # Backend-only execution
-python tool.py run files/diagrams/diagram.json --mode=check     # Run and analyze conversation logs
-python tool.py run files/diagrams/diagram.json --debug          # Debug mode with verbose output
+python tool.py run files/diagrams/example.json --mode=monitor   # Pre-load models, open browser, then run (recommended)
+python tool.py run files/diagrams/example.json                  # Standard execution with browser
+python tool.py run files/diagrams/example.json --mode=headless  # Backend-only execution
+python tool.py run files/diagrams/example.json --mode=check     # Run and analyze conversation logs
+python tool.py run files/diagrams/example.json --debug          # Debug mode with verbose output
 
 # LLM YAML support
 python tool.py run diagrams/workflow.llm-yaml             # Execute LLM-friendly YAML format
-python tool.py convert workflow.llm-yaml diagram.json      # Convert between formats
+python tool.py convert workflow.llm-yaml example.json      # Convert between formats
 ```
 
 ## Architecture Overview

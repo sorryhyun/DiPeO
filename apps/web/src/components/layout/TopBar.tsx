@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
-import { useApiKeys, useAddApiKey, useLoadApiKeys, useUIState, useSetReadOnly } from '@/hooks/useStoreSelectors';
+import { useUIState } from '@/hooks/useStoreSelectors';
+import { useApiKeyStore } from '@/stores/apiKeyStore';
+import { useDiagramStore } from '@/stores';
 import { useDiagram } from '@/hooks';
-import { useDiagramRunner } from '@/hooks/useDiagramRunner';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse } from '@/utils/types';
+import { isApiKey, parseApiArrayResponse, type DomainApiKey } from '@/types';
 
 
 const TopBar = () => {
@@ -14,11 +15,9 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use store selectors
-  const apiKeys = useApiKeys();
-  const addApiKey = useAddApiKey();
-  const loadApiKeys = useLoadApiKeys();
-  const setReadOnly = useSetReadOnly();
+  // Use stores directly
+  const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
+  const setReadOnly = useDiagramStore(state => state.setReadOnly);
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
   // Use the unified diagram hook
@@ -32,7 +31,6 @@ const TopBar = () => {
   const {
     clear: clearDiagram,
     isMonitorMode: isReadOnly,
-    currentRunningNode,
     saveJSON: onSaveToDirectory,
   } = diagram;
   
@@ -43,16 +41,6 @@ const TopBar = () => {
       diagram.importFile(file);
     }
   };
-  
-  // Still need diagram runner for some execution features
-  const { 
-    runStatus, 
-    onRunDiagram, 
-    stopExecution,
-    pauseNode,
-    resumeNode,
-    skipNode
-  } = useDiagramRunner();
   
   // Load API keys on mount
   useEffect(() => {
@@ -78,11 +66,10 @@ const TopBar = () => {
           const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
           
           if (backendKeys.length > 0 && apiKeys.length === 0) {
-            backendKeys.forEach((key) => {
+            backendKeys.forEach((key: DomainApiKey) => {
               addApiKey({
-                name: key.name,
-                service: key.service,
-                keyReference: key.keyReference
+                name: key.name || 'Unnamed Key',
+                service: key.service as DomainApiKey['service']
               });
             });
           }
@@ -98,7 +85,7 @@ const TopBar = () => {
     };
 
     if (!hasCheckedBackend) {
-      checkBackendApiKeys();
+      checkBackendApiKeys().catch(console.error);
     }
   }, [hasCheckedBackend, apiKeys.length, addApiKey, setReadOnly, setActiveCanvas]);
 
@@ -141,62 +128,7 @@ const TopBar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          {activeCanvas === 'execution' && (
-            <>
-              {runStatus === 'running' ? (
-                <>
-                  <Button 
-                    variant="outline" 
-                    className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
-                    onClick={stopExecution}
-                  >
-                    ⏹️ Stop
-                  </Button>
-                  {currentRunningNode && (
-                    <>
-                      <Button
-                        variant="outline"
-                        className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-none hover:from-yellow-600 hover:to-amber-600 shadow-md hover:shadow-lg transition-all"
-                        onClick={() => pauseNode(currentRunningNode)}
-                        title="Pause current node"
-                      >
-                        ⏸️ Pause
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg transition-all"
-                        onClick={() => resumeNode(currentRunningNode)}
-                        title="Resume current node"
-                      >
-                        ▶️ Resume
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all"
-                        onClick={() => skipNode(currentRunningNode)}
-                        title="Skip current node"
-                      >
-                        ⏭️ Skip
-                      </Button>
-                    </>
-                  )}
-                </>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-                  onClick={onRunDiagram}
-                >
-                  ▶️ Run Diagram
-                </Button>
-              )}
-            </>
-          )}
-          <div className="whitespace-nowrap text-base font-medium">
-            {runStatus === 'running' && <span className="text-blue-600 animate-pulse">⚡ Running...</span>}
-            {runStatus === 'success' && <span className="text-green-600">✅ Success</span>}
-            {runStatus === 'fail' && <span className="text-red-600">❌ Fail</span>}
-          </div>
+          {/* Execution controls moved to ExecutionControls component */}
         </div>
         
         <div className="flex items-center space-x-4">

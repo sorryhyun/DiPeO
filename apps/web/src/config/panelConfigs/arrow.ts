@@ -1,6 +1,12 @@
-import type { PanelConfig } from '@/types';
+import type { TypedPanelConfig, ArrowFormData } from '@/types/ui';
 
-export const arrowPanelConfig: PanelConfig<Record<string, any>> = {
+interface ExtendedArrowFormData extends ArrowFormData {
+  contentType?: string;
+  objectKeyPath?: string;
+  _sourceNodeType?: string;
+}
+
+export const arrowPanelConfig: TypedPanelConfig<ExtendedArrowFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {

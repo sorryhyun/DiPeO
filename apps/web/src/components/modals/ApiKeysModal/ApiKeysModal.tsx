@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/components/ui';
-import { ApiKey, createErrorHandlerFactory } from '@/types';
-import { useApiKeys, useAddApiKey, useDeleteApiKey, useLoadApiKeys } from '@/hooks/useStoreSelectors';
+import { DomainApiKey, apiKeyId, createErrorHandlerFactory } from '@/types';
+import { useApiKeyStore } from '@/stores/apiKeyStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
@@ -20,14 +20,11 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const apiKeys = useApiKeys();
-  const addApiKey = useAddApiKey();
-  const deleteApiKey = useDeleteApiKey();
-  const loadApiKeys = useLoadApiKeys();
-  const [newKeyForm, setNewKeyForm] = useState<Partial<ApiKey>>({
+  const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useApiKeyStore();
+  const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
     name: '',
     service: 'openai',
-    keyReference: '',
+    key: '',
   });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,8 +54,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       return;
     }
     
-    if (!newKeyForm.keyReference?.trim()) {
-      setErrors({ keyReference: 'API key is required' });
+    if (!newKeyForm.key?.trim()) {
+      setErrors({ key: 'API key is required' });
       return;
     }
 
@@ -70,24 +67,24 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         body: JSON.stringify({
           name: newKeyForm.name.trim(),
           service: newKeyForm.service || 'claude',
-          key: newKeyForm.keyReference.trim()
+          key: newKeyForm.key.trim()
         })
       });
 
       if (!response.ok) {
         const error = await response.json();
-        setErrors({ keyReference: error.error || 'Failed to create API key' });
+        setErrors({ key: error.error || 'Failed to create API key' });
         return;
       }
 
       const result = await response.json();
       
       // Add to local store with backend ID
-      const newKey: ApiKey = {
-        id: result.id,
+      const newKey: DomainApiKey = {
+        id: apiKeyId(result.id),
         name: result.name || newKeyForm.name.trim(),
         service: result.service || newKeyForm.service || 'claude',
-        keyReference: '***hidden***', // Don't store raw key in frontend
+        // key is optional - not stored in frontend for security
       };
 
       addApiKey(newKey);
@@ -99,7 +96,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       setNewKeyForm({
         name: '',
         service: 'openai',
-        keyReference: '',
+        key: '',
       });
       
       toast.success(`API key "${newKey.name}" added successfully`);
@@ -121,7 +118,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         }
 
         // Remove from local store
-        deleteApiKey(id);
+        deleteApiKey(apiKeyId(id));
       } catch (error) {
         createErrorHandler(error);
       }
@@ -167,7 +164,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                        {showKeys[key.id] ? key.keyReference : maskApiKey(key.keyReference || '')}
+                        {showKeys[key.id] ? '***hidden***' : maskApiKey('***hidden***')}
                       </code>
                       <button
                         onClick={() => toggleShowKey(key.id)}
@@ -220,7 +217,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               </label>
               <Select
                 value={newKeyForm.service || 'claude'}
-                onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as ApiKey['service'] })}
+                onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as DomainApiKey['service'] })}
               >
                 {API_SERVICES.map((service) => (
                   <option key={service.value} value={service.value}>
@@ -237,17 +234,17 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               <Input
                 type="password"
                 placeholder="sk-..."
-                value={newKeyForm.keyReference || ''}
-                onChange={(e) => setNewKeyForm({ ...newKeyForm, keyReference: e.target.value })}
-                className={errors.keyReference ? 'border-red-500' : ''}
+                value={newKeyForm.key || ''}
+                onChange={(e) => setNewKeyForm({ ...newKeyForm, key: e.target.value })}
+                className={errors.key ? 'border-red-500' : ''}
               />
-              {errors.keyReference && <p className="text-red-500 text-sm mt-1">{errors.keyReference}</p>}
+              {errors.key && <p className="text-red-500 text-sm mt-1">{errors.key}</p>}
             </div>
             
             <Button
               onClick={handleAddKey}
               className="w-full"
-              disabled={!newKeyForm.name || !newKeyForm.keyReference}
+              disabled={!newKeyForm.name || !newKeyForm.key}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add API Key

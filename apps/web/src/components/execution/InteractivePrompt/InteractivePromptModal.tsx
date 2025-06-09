@@ -88,7 +88,7 @@ export const InteractivePromptModal: React.FC<InteractivePromptModalProps> = ({
           </p>
         </div>
 
-        {context?.execution_count !== undefined && (
+        {context && 'execution_count' in context && typeof context.execution_count === 'number' && (
           <div className="text-xs text-gray-500">
             Iteration: {context.execution_count + 1}
           </div>

@@ -1,173 +1,154 @@
 // packages/diagram-ui/src/components/FlowHandle.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position, HandleProps } from '@xyflow/react';
-import { createHandleId } from '@/utils/node';
+import { handleId, nodeId, NodeID } from '@/types';
 
 export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
-  nodeId: string;
+  nodeId: NodeID;
   type: 'input' | 'output';
   name: string;
   position: Position;
   offset?: number;
   color?: string;
-  style?: React.CSSProperties;
   className?: string;
 }
 
-export const FlowHandle: React.FC<FlowHandleProps> = ({
+// Pre-computed constants
+const HANDLE_SIZE = 16;
+const HALF_HANDLE_SIZE = HANDLE_SIZE / 2;
+
+// Pre-computed position lookups
+const HANDLE_POS = {
+  [Position.Top]: (offset: number) => ({
+    left: `${offset}%`,
+    top: `-${HALF_HANDLE_SIZE}px`,
+    transform: 'translateX(-50%)'
+  }),
+  [Position.Bottom]: (offset: number) => ({
+    left: `${offset}%`,
+    bottom: `-${HALF_HANDLE_SIZE}px`,
+    transform: 'translateX(-50%)'
+  }),
+  [Position.Left]: (offset: number) => ({
+    top: `${offset}%`,
+    left: `-${HALF_HANDLE_SIZE}px`,
+    transform: 'translateY(-50%)'
+  }),
+  [Position.Right]: (offset: number) => ({
+    top: `${offset}%`,
+    right: `-${HALF_HANDLE_SIZE}px`,
+    transform: 'translateY(-50%)'
+  })
+} as const;
+
+// Pre-computed label position lookups
+const LABEL_BASE_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  fontSize: '10px',
+  fontWeight: 500,
+  color: '#666',
+  whiteSpace: 'nowrap',
+  pointerEvents: 'none',
+  userSelect: 'none',
+};
+
+const LABEL_POS = {
+  [Position.Top]: {
+    ...LABEL_BASE_STYLE,
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+  },
+  [Position.Bottom]: {
+    ...LABEL_BASE_STYLE,
+    top: '-20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+  },
+  [Position.Left]: {
+    ...LABEL_BASE_STYLE,
+    right: '20px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+  },
+  [Position.Right]: {
+    ...LABEL_BASE_STYLE,
+    left: '20px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+  },
+} as const;
+
+// Label position for handle relative positioning
+const LABEL_HANDLE_POS = {
+  [Position.Top]: { top: `-${HALF_HANDLE_SIZE}px` },
+  [Position.Bottom]: { bottom: `-${HALF_HANDLE_SIZE}px` },
+  [Position.Left]: { left: `-${HALF_HANDLE_SIZE}px` },
+  [Position.Right]: { right: `-${HALF_HANDLE_SIZE}px` },
+} as const;
+
+const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   nodeId,
   type,
   name,
   position,
   offset = 50,
   color,
-  style,
   className,
   ...props
 }) => {
   const rfType = type === 'output' ? 'source' : 'target';
-  const handleId = createHandleId(nodeId, type, name);
+  const handleIdValue = handleId(nodeId, name);
 
-  const isVertical = position === Position.Top || position === Position.Bottom;
-  const positionStyle = isVertical
-    ? { left: `${offset}%` }
-    : { top: `${offset}%` };
-
-  // Position handles exactly on the edge of the node
-  const handleSize = 16; // Handle width/height
-  const halfHandleSize = handleSize / 2;
-  
-  const getEdgePositionStyle = (): React.CSSProperties => {
-    switch (position) {
-      case Position.Top:
-        return { 
-          left: `${offset}%`, 
-          top: `-${halfHandleSize}px`,
-          transform: 'translateX(-50%)'
-        };
-      case Position.Bottom:
-        return { 
-          left: `${offset}%`, 
-          bottom: `-${halfHandleSize}px`,
-          transform: 'translateX(-50%)'
-        };
-      case Position.Left:
-        return { 
-          top: `${offset}%`, 
-          left: `-${halfHandleSize}px`,
-          transform: 'translateY(-50%)'
-        };
-      case Position.Right:
-        return { 
-          top: `${offset}%`, 
-          right: `-${halfHandleSize}px`,
-          transform: 'translateY(-50%)'
-        };
-      default:
-        return positionStyle;
-    }
-  };
-
-  const finalStyle: React.CSSProperties = {
-    width: '16px',
-    height: '16px',
-    backgroundColor: color || (type === 'output' ? '#16a34a' : '#2563eb'),
-    border: '2px solid white',
-    ...getEdgePositionStyle(),
-    ...style,
-    // Override React Flow's default positioning
-    position: 'absolute',
-  };
-
-  // Determine label position based on handle position and type
-  const getLabelStyle = (): React.CSSProperties => {
-    const baseStyle: React.CSSProperties = {
-      position: 'absolute',
-      fontSize: '10px',
-      fontWeight: 500,
-      color: '#666',
-      whiteSpace: 'nowrap',
-      pointerEvents: 'none',
-      userSelect: 'none',
+  // Memoize computed styles
+  const handleStyle = useMemo(() => {
+    const baseColor = color || (type === 'output' ? '#16a34a' : '#2563eb');
+    return {
+      width: '16px',
+      height: '16px',
+      backgroundColor: baseColor,
+      border: '2px solid white',
+      ...HANDLE_POS[position](offset),
+      position: 'absolute' as const,
     };
+  }, [position, offset, color, type]);
 
-    // For DB nodes (bottom position with offset), show labels on sides
-    if (position === Position.Bottom && style?.left) {
-      const leftValue = parseFloat(String(style.left));
-      if (leftValue < 0) {
-        // Left side handle
-        return {
-          ...baseStyle,
-          left: '-40px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-        };
-      } else {
-        // Right side handle
-        return {
-          ...baseStyle,
-          right: '-40px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-        };
-      }
-    }
-
-    // For regular handles, show above
-    switch (position) {
-      case Position.Top:
-        return {
-          ...baseStyle,
-          bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-        };
-      case Position.Bottom:
-        return {
-          ...baseStyle,
-          top: '-20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-        };
-      case Position.Left:
-        return {
-          ...baseStyle,
-          right: '20px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-        };
-      case Position.Right:
-        return {
-          ...baseStyle,
-          left: '20px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-        };
-      default:
-        return baseStyle;
-    }
-  };
+  // Memoize label style computation
+  const labelStyle = useMemo(() => {
+    // Regular handles
+    return {
+      ...LABEL_POS[position],
+      position: 'absolute' as const,
+      zIndex: 10,
+      ...LABEL_HANDLE_POS[position],
+    };
+  }, [position]);
 
   return (
     <>
       <Handle
         type={rfType}
         position={position}
-        id={handleId}
-        style={finalStyle}
+        id={handleIdValue}
+        style={handleStyle}
         className={className}
         {...props}
       />
-      <span style={{
-        ...getLabelStyle(),
-        position: 'absolute',
-        zIndex: 10,
-        // Position label relative to handle position
-        ...(position === Position.Top ? { top: `-${halfHandleSize}px` } : {}),
-        ...(position === Position.Bottom ? { bottom: `-${halfHandleSize}px` } : {}),
-        ...(position === Position.Left ? { left: `-${halfHandleSize}px` } : {}),
-        ...(position === Position.Right ? { right: `-${halfHandleSize}px` } : {}),
-      }}>{name}</span>
+      <span style={labelStyle}>{name}</span>
     </>
   );
 };
+
+// Memoized version with custom comparison
+export const FlowHandle = React.memo(FlowHandleComponent, (prevProps, nextProps) => {
+  // Compare only the props that affect rendering
+  return (
+    prevProps.nodeId === nextProps.nodeId &&
+    prevProps.name === nextProps.name &&
+    prevProps.type === nextProps.type &&
+    prevProps.position === nextProps.position &&
+    prevProps.offset === nextProps.offset &&
+    prevProps.color === nextProps.color &&
+    prevProps.className === nextProps.className
+  );
+});

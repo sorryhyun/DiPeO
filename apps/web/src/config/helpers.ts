@@ -1,12 +1,21 @@
-import type { NodeType } from '@/types';
-import { NODE_CONFIGS } from './nodeConfigs';
+import type { NodeKind } from '@/types';
 import { PANEL_CONFIGS } from './panelConfigs';
+import { derivePanelConfig } from './unifiedConfig';
+import { UNIFIED_NODE_CONFIGS } from './nodeConfigs';
 
-export function getNodeConfig(type: NodeType) {
-  return NODE_CONFIGS[type] || NODE_CONFIGS.start;
+export function getNodeConfig(type: NodeKind) {
+  // Check if unified config exists
+  const unifiedConfig = UNIFIED_NODE_CONFIGS[type];
+  if (unifiedConfig) {
+    // Extract node config properties from unified config
+    const { panelLayout: _panelLayout, panelFieldOverrides: _panelFieldOverrides, panelFieldOrder: _panelFieldOrder, panelCustomFields: _panelCustomFields, ...nodeConfig } = unifiedConfig;
+    return nodeConfig;
+  }
+  
+  return UNIFIED_NODE_CONFIGS[type] || UNIFIED_NODE_CONFIGS.start;
 }
 
-export function validateNodeData(type: NodeType, data: Record<string, any>) {
+export function validateNodeData(type: NodeKind, data: Record<string, any>) {
   const config = getNodeConfig(type);
   const errors: string[] = [];
   
@@ -19,11 +28,11 @@ export function validateNodeData(type: NodeType, data: Record<string, any>) {
   return { valid: errors.length === 0, errors };
 }
 
-export function getNodeDefaults(type: NodeType) {
+export function getNodeDefaults(type: NodeKind) {
   return { ...getNodeConfig(type).defaults };
 }
 
-export function getNodeColorClasses(type: NodeType) {
+export function getNodeColorClasses(type: NodeKind) {
   const color = getNodeConfig(type).color;
   return {
     border: `border-${color}-500`,
@@ -32,6 +41,19 @@ export function getNodeColorClasses(type: NodeType) {
   };
 }
 
-export function getPanelConfig(type: NodeType | 'arrow' | 'person') {
-  return PANEL_CONFIGS[type] || null;
+export function getPanelConfig(type: NodeKind | 'arrow' | 'person') {
+  // Check if unified config exists for node types
+  if (type !== 'arrow' && type !== 'person') {
+    const unifiedConfig = UNIFIED_NODE_CONFIGS[type as NodeKind];
+    if (unifiedConfig) {
+      return derivePanelConfig(unifiedConfig);
+    }
+  }
+  
+  // Only arrow and person remain in PANEL_CONFIGS
+  if (type === 'arrow' || type === 'person') {
+    return PANEL_CONFIGS[type];
+  }
+  
+  return null;
 }

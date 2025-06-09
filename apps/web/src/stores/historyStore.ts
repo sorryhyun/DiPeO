@@ -1,13 +1,13 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
-import { useDiagramStore } from './diagramStore';
-import { Node, Arrow, Person, ApiKey } from '@/types';
+import { DiagramCanvasStore } from './diagramCanvasStore';
+import {DomainNode, DomainArrow, DomainPerson, DomainApiKey} from '@/types';
 
 interface DiagramSnapshot {
-  nodes: Node[];
-  arrows: Arrow[];
-  persons: Person[];
-  apiKeys: ApiKey[];
+  nodes: DomainNode[];
+  arrows: DomainArrow[];
+  persons: DomainPerson[];
+  apiKeys: DomainApiKey[];
   timestamp: number;
 }
 
@@ -19,9 +19,11 @@ export interface HistoryState {
   maxHistorySize: number;
   isHistoryEnabled: boolean;
   lastAction: string | null;
+  diagramStore: DiagramCanvasStore | null;
 }
 
 interface HistoryActions {
+  setDiagramStore: (store: DiagramCanvasStore) => void;
   undo: () => void;
   redo: () => void;
   saveToHistory: (action?: string) => void;
@@ -34,26 +36,28 @@ export interface HistoryStore extends HistoryState, HistoryActions {}
 
 const MAX_HISTORY_SIZE = 50;
 
-function createSnapshot(): DiagramSnapshot {
-  const state = useDiagramStore.getState();
+function createSnapshot(store: DiagramCanvasStore): DiagramSnapshot {
   return {
-    nodes: state.nodeList(),
-    arrows: state.arrowList(),
-    persons: state.personList(),
-    apiKeys: state.apiKeyList(),
+    nodes: store.getAllNodes(),
+    arrows: store.getAllArrows(),
+    persons: store.getAllPersons(),
+    apiKeys: store.getAllApiKeys(),
     timestamp: Date.now()
   };
 }
 
-function restoreSnapshot(snapshot: DiagramSnapshot) {
-  const diagramStore = useDiagramStore.getState();
-  diagramStore.setNodes(snapshot.nodes);
-  diagramStore.setArrows(snapshot.arrows);
-  diagramStore.setPersons(snapshot.persons);
-  diagramStore.setApiKeys(snapshot.apiKeys);
+function restoreSnapshot(snapshot: DiagramSnapshot, store: DiagramCanvasStore) {
+  // Clear existing data
+  store.clear();
+  
+  // Restore entities in order
+  snapshot.apiKeys.forEach(apiKey => store.addApiKey(apiKey));
+  snapshot.persons.forEach(person => store.addPerson(person));
+  snapshot.nodes.forEach(node => store.addNode(node));
+  snapshot.arrows.forEach(arrow => store.addArrow(arrow));
 }
 
-export const useHistoryStore = create<HistoryStore>()(
+export const useHistoryStore = createWithEqualityFn<HistoryStore>()(
   devtools(
     (set, get) => ({
       // State
@@ -64,15 +68,20 @@ export const useHistoryStore = create<HistoryStore>()(
       maxHistorySize: MAX_HISTORY_SIZE,
       isHistoryEnabled: true,
       lastAction: null,
+      diagramStore: null,
 
       // Actions
+      setDiagramStore: (store: DiagramCanvasStore) => {
+        set({ diagramStore: store });
+      },
+
       undo: () => {
-        const { undoStack, redoStack, isHistoryEnabled } = get();
+        const { undoStack, redoStack, isHistoryEnabled, diagramStore } = get();
         
-        if (!isHistoryEnabled || undoStack.length === 0) return;
+        if (!isHistoryEnabled || undoStack.length === 0 || !diagramStore) return;
 
         // Save current state to redo stack before undoing
-        const currentSnapshot = createSnapshot();
+        const currentSnapshot = createSnapshot(diagramStore);
         
         // Pop from undo stack
         const newUndoStack = undoStack.slice(0, -1);
@@ -81,11 +90,10 @@ export const useHistoryStore = create<HistoryStore>()(
         if (newUndoStack.length > 0) {
           const previousSnapshot = newUndoStack[newUndoStack.length - 1];
           if (previousSnapshot) {
-            restoreSnapshot(previousSnapshot);
+            restoreSnapshot(previousSnapshot, diagramStore);
           }
         } else {
           // If no more states in undo stack, restore to empty state
-          const diagramStore = useDiagramStore.getState();
           diagramStore.clear();
         }
         
@@ -100,12 +108,12 @@ export const useHistoryStore = create<HistoryStore>()(
       },
 
       redo: () => {
-        const { undoStack, redoStack, isHistoryEnabled } = get();
+        const { undoStack, redoStack, isHistoryEnabled, diagramStore } = get();
         
-        if (!isHistoryEnabled || redoStack.length === 0) return;
+        if (!isHistoryEnabled || redoStack.length === 0 || !diagramStore) return;
 
         // Save current state to undo stack before redoing
-        const currentSnapshot = createSnapshot();
+        const currentSnapshot = createSnapshot(diagramStore);
         
         // Pop from redo stack
         const nextSnapshot = redoStack[redoStack.length - 1];
@@ -114,7 +122,7 @@ export const useHistoryStore = create<HistoryStore>()(
         const newRedoStack = redoStack.slice(0, -1);
         
         // Restore the next state
-        restoreSnapshot(nextSnapshot);
+        restoreSnapshot(nextSnapshot, diagramStore);
         
         // Update stacks
         set({
@@ -127,9 +135,9 @@ export const useHistoryStore = create<HistoryStore>()(
       },
 
       saveToHistory: (action?: string) => {
-        const { undoStack, maxHistorySize, isHistoryEnabled, lastAction } = get();
+        const { undoStack, maxHistorySize, isHistoryEnabled, lastAction, diagramStore } = get();
         
-        if (!isHistoryEnabled) return;
+        if (!isHistoryEnabled || !diagramStore) return;
         
         // Skip saving if this is called as part of undo/redo
         if (lastAction === 'undo' || lastAction === 'redo') {
@@ -137,7 +145,7 @@ export const useHistoryStore = create<HistoryStore>()(
           return;
         }
 
-        const snapshot = createSnapshot();
+        const snapshot = createSnapshot(diagramStore);
         
         // Don't save if nothing changed
         if (undoStack.length > 0) {
@@ -181,13 +189,15 @@ export const useHistoryStore = create<HistoryStore>()(
       },
 
       initializeHistory: () => {
-        const { saveToHistory, clearHistory } = get();
-        clearHistory();
+        const { saveToHistory, undoStack } = get();
         
-        // Save initial state
-        setTimeout(() => {
-          saveToHistory('initial');
-        }, 100);
+        // Only initialize if history is empty
+        if (undoStack.length === 0) {
+          // Save initial state without clearing
+          setTimeout(() => {
+            saveToHistory('initial');
+          }, 100);
+        }
       },
 
       setHistoryEnabled: (enabled: boolean) => {

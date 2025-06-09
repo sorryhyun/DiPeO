@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
-import { createHandleId } from '@/utils/node';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import { useRealtimeExecution } from '@/hooks/useRealtimeExecution';
+import { useExecutionV2 } from '@/hooks/execution';
 import { useConsolidatedUIStore } from '@/stores';
+import {NodeKind, NodeID, nodeId, handleId} from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -15,45 +15,40 @@ interface BaseNodeProps {
   id: string;
   type: string;
   selected?: boolean;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   showFlipButton?: boolean;
   className?: string;
 }
 
-export function BaseNode({ 
-  id, 
-  type, 
-  selected, 
-  data, 
-  showFlipButton = true,
-  className 
-}: BaseNodeProps) {
-  // Store selectors
-  const updateNode = useNodeDataUpdater();
-  const updateNodeInternals = useUpdateNodeInternals();
-  const { activeCanvas } = useConsolidatedUIStore();
-  const isExecutionMode = activeCanvas === 'execution';
+// Custom hook for node execution status
+function useNodeStatus(nodeId: string) {
+  const { nodeStates } = useExecutionV2();
+  const nodeState = nodeStates?.[nodeId];
   
-  // Get execution state
-  const { nodeStates } = useRealtimeExecution();
-  const nodeState = nodeStates?.[id];
-  const isRunning = nodeState?.status === 'running';
-  const isSkipped = nodeState?.status === 'skipped';
-  const isCompleted = nodeState?.status === 'completed';
-  const hasError = nodeState?.status === 'error';
+  return useMemo(() => ({
+    isRunning: nodeState?.status === 'running',
+    isSkipped: nodeState?.status === 'skipped',
+    isCompleted: nodeState?.status === 'completed',
+    hasError: nodeState?.status === 'error',
+    progress: nodeState?.progress,
+    error: nodeState?.error,
+  }), [nodeState]);
+}
+
+// Custom hook for handles generation
+function useHandles(nodeId: NodeID, nodeType: string, isFlipped: boolean) {
+  const config = getNodeConfig(nodeType as NodeKind);
   
-  // Node configuration
-  const config = getNodeConfig(type as any);
-  const isFlipped = data?.flipped === true;
-  
-  // Generate handles from config
-  const handles = React.useMemo(() => {
+  return useMemo(() => {
     const allHandles = [
       ...(config.handles.output || []).map(handle => ({ ...handle, type: 'output' as const })),
       ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
     ];
     
-    return allHandles.map(handle => {
+    // Track used IDs to ensure uniqueness
+    const usedIds = new Set<string>();
+    
+    return allHandles.map((handle, index) => {
       const isVertical = handle.position === 'top' || handle.position === 'bottom';
       const position = isFlipped && !isVertical
         ? (handle.position === 'left' ? Position.Right : Position.Left)
@@ -66,125 +61,183 @@ export function BaseNode({
         ? { left: `${50 + (offset.x / 2)}%`, transform: `translateX(-50%)` }
         : { top: `${50 + (offset.y / 2)}%`, transform: `translateY(-50%)` };
       
+      // Ensure unique handle ID
+      const handleName = handle.id || 'default';
+      let handleIdentifier = handleId(nodeId, handleName);
+      
+      // If ID already exists, append index to make it unique
+      if (usedIds.has(handleIdentifier)) {
+        handleIdentifier = handleId(nodeId, `${handleName}_${index}`);
+      }
+      usedIds.add(handleIdentifier);
+      
       return {
         type: handle.type,
         position,
-        id: createHandleId(id, handle.type, handle.id),
-        name: handle.id,
+        id: handleIdentifier,
+        name: handleName,
         style,
         offset: 50,
         color: handle.color
       };
     });
-  }, [config, id, isFlipped]);
+  }, [config, nodeId, isFlipped]);
+}
+
+// Memoized status indicator component
+const StatusIndicator = React.memo(({ status }: { status: ReturnType<typeof useNodeStatus> }) => {
+  if (status.isRunning) {
+    return (
+      <>
+        <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full animate-ping" />
+        <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full" />
+      </>
+    );
+  }
+  
+  if (status.hasError) {
+    return (
+      <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full">
+        <span className="absolute inset-0 text-white text-xs flex items-center justify-center">!</span>
+      </div>
+    );
+  }
+  
+  if (status.isCompleted) {
+    return (
+      <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full">
+        <span className="absolute inset-0 text-white text-xs flex items-center justify-center">✓</span>
+      </div>
+    );
+  }
+  
+  if (status.isSkipped) {
+    return (
+      <>
+        <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-500 rounded-full" />
+        <div className="absolute top-1 right-1 text-xs text-yellow-700 font-medium">
+          SKIP
+        </div>
+      </>
+    );
+  }
+  
+  return null;
+});
+StatusIndicator.displayName = 'StatusIndicator';
+
+// Memoized node header component
+const NodeHeader = React.memo(({ 
+  icon, 
+  label, 
+  id, 
+  configLabel,
+  isExecutionMode 
+}: { 
+  icon: string;
+  label?: string;
+  id: string;
+  configLabel: string;
+  isExecutionMode: boolean;
+}) => (
+  <div className="flex items-center gap-2 mb-2">
+    <span className="text-lg">{icon}</span>
+    <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>
+      {label || `${configLabel} ${id}`}
+    </span>
+  </div>
+));
+NodeHeader.displayName = 'NodeHeader';
+
+// Memoized node body component
+const NodeBody = React.memo(({ 
+  data, 
+  isExecutionMode 
+}: { 
+  data: Array<[string, unknown]>;
+  isExecutionMode: boolean;
+}) => (
+  <div className="space-y-1">
+    {data.map(([key, value]) => {
+      const displayValue = typeof value === 'string' && value.length > 20 
+        ? `${value.substring(0, 20)}...` 
+        : String(value);
+      
+      return (
+        <div key={key} className={`text-xs ${isExecutionMode ? 'text-gray-700 font-medium' : 'text-gray-600'}`}>
+          {displayValue}
+        </div>
+      );
+    })}
+  </div>
+));
+NodeBody.displayName = 'NodeBody';
+
+export function BaseNode({ 
+  id,
+  type, 
+  selected, 
+  data, 
+  showFlipButton = true,
+  className 
+}: BaseNodeProps) {
+  // Store selectors
+  const updateNode = useNodeDataUpdater();
+  const updateNodeInternals = useUpdateNodeInternals();
+  const { activeCanvas } = useConsolidatedUIStore();
+  const isExecutionMode = activeCanvas === 'execution';
+  
+  // Use custom hooks
+  const nId = nodeId(id);
+  const status = useNodeStatus(id);
+  const config = getNodeConfig(type as NodeKind);
+  const isFlipped = data?.flipped === true;
+  const handles = useHandles(nId, type, isFlipped);
   
   // Handle flip
-  const handleFlip = React.useCallback(() => {
-    updateNode(id, { ...data, flipped: !isFlipped });
+  const handleFlip = useCallback(() => {
+    updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
-  }, [id, data, isFlipped, updateNode, updateNodeInternals]);
+  }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
   
-  // Determine node appearance based on state
-  const getNodeClasses = () => {
+  // Determine node appearance based on state using data attributes
+  const nodeClassNames = useMemo(() => {
     const baseClasses = 'relative p-3 border-2 rounded-lg transition-all duration-200 min-w-32';
-    let stateClasses = '';
-    let backgroundClass = 'bg-white';
-    let borderClass = `border-${config.color}-500`;
-    let shadowClass = 'shadow-sm';
-    
-    // Apply execution mode styling
-    if (isExecutionMode) {
-      shadowClass = 'shadow-lg';
-      borderClass = `border-${config.color}-600`;
-    }
-    
-    if (isRunning) {
-      stateClasses = 'animate-pulse scale-105';
-      backgroundClass = 'bg-green-50';
-      borderClass = 'border-green-500';
-    } else if (hasError) {
-      backgroundClass = 'bg-red-50';
-      borderClass = 'border-red-500';
-    } else if (isCompleted) {
-      backgroundClass = 'bg-blue-50';
-      borderClass = 'border-blue-500';
-    } else if (isSkipped) {
-      stateClasses = 'opacity-75';
-      backgroundClass = 'bg-yellow-50';
-      borderClass = 'border-yellow-500';
-    } else if (selected) {
-      borderClass = `border-${config.color}-600`;
-      stateClasses = 'ring-2 ring-blue-200';
-    }
-    
-    return `${baseClasses} ${stateClasses} ${backgroundClass} ${borderClass} ${shadowClass} ${className || ''}`;
-  };
-
-  // Get status indicator
-  const getStatusIndicator = () => {
-    if (isRunning) {
-      return (
-        <>
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full animate-ping" />
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full" />
-        </>
-      );
-    }
-    
-    if (hasError) {
-      return (
-        <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full">
-          <span className="absolute inset-0 text-white text-xs flex items-center justify-center">!</span>
-        </div>
-      );
-    }
-    
-    if (isCompleted) {
-      return (
-        <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full">
-          <span className="absolute inset-0 text-white text-xs flex items-center justify-center">✓</span>
-        </div>
-      );
-    }
-    
-    if (isSkipped) {
-      return (
-        <>
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-500 rounded-full" />
-          <div className="absolute top-1 right-1 text-xs text-yellow-700 font-medium">
-            SKIP
-          </div>
-        </>
-      );
-    }
-    
-    return null;
-  };
-
+    const executionClasses = isExecutionMode ? 'shadow-lg' : 'shadow-sm';
+    return `${baseClasses} ${executionClasses} ${className || ''}`;
+  }, [isExecutionMode, className]);
+  
+  // Memoize data attributes for dynamic styling
+  const dataAttributes = useMemo(() => ({
+    'data-running': status.isRunning,
+    'data-error': status.hasError,
+    'data-completed': status.isCompleted,
+    'data-skipped': status.isSkipped,
+    'data-selected': selected,
+    'data-color': config.color,
+    'data-execution': isExecutionMode,
+  }), [status, selected, config.color, isExecutionMode]);
+  
   // Get node display data
-  const getDisplayData = () => {
+  const displayData = useMemo(() => {
     const entries = Object.entries(data).filter(([key]) => 
       !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage', 'label', 'name'].includes(key)
     );
     
-    // Show most important fields first (excluding prompts and labels since they're in header)
-    const importantFields: string[] = [];
-    const important = entries.filter(([key]) => importantFields.includes(key));
-    const others = entries.filter(([key]) => !importantFields.includes(key));
-    
-    return [...important, ...others].slice(0, 3); // Limit to 3 fields for cleaner display
-  };
+    return entries.slice(0, 3); // Limit to 3 fields for cleaner display
+  }, [data]);
 
   return (
     <div
-      className={getNodeClasses()}
-      title={nodeState?.progress || `${config.label} Node`}
+      className={nodeClassNames}
+      title={status.progress || `${config.label} Node`}
+      {...dataAttributes}
     >
       {/* Status indicators */}
-      {getStatusIndicator()}
+      <StatusIndicator status={status} />
       
       {/* Flip button */}
-      {selected && showFlipButton && !isRunning && (
+      {selected && showFlipButton && !status.isRunning && (
         <Button
           onClick={handleFlip}
           variant="outline"
@@ -197,53 +250,43 @@ export function BaseNode({
       )}
 
       {/* Node content */}
-      <div className={isRunning ? 'relative z-10' : ''}>
+      <div className={status.isRunning ? 'relative z-10' : ''}>
         {/* Header */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">{config.icon}</span>
-          <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>{data.label || data.name || `${config.label} ${id}`}</span>
-        </div>
+        <NodeHeader 
+          icon={config.icon}
+          label={String(data.label || data.name || '')}
+          id={id}
+          configLabel={config.label}
+          isExecutionMode={isExecutionMode}
+        />
         
         {/* Node data display */}
-        <div className="space-y-1">
-          {getDisplayData().map(([key, value]) => {
-            const displayValue = typeof value === 'string' && value.length > 20 
-              ? `${value.substring(0, 20)}...` 
-              : String(value);
-            
-            return (
-              <div key={key} className={`text-xs ${isExecutionMode ? 'text-gray-700 font-medium' : 'text-gray-600'}`}>
-                {displayValue}
-              </div>
-            );
-          })}
-        </div>
+        <NodeBody data={displayData} isExecutionMode={isExecutionMode} />
         
         {/* Progress or error message */}
-        {(nodeState?.progress || nodeState?.error) && (
+        {(status.progress || status.error) && (
           <div className="mt-2 text-xs text-gray-500 italic">
-            {nodeState.progress || nodeState.error}
+            {status.progress || status.error}
           </div>
         )}
         
         {/* Progress bar for running state */}
-        {isRunning && (
+        {status.isRunning && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-500 animate-pulse rounded-b" />
         )}
       </div>
 
       {/* Handles */}
-      {handles.map((handle: any) => (
+      {handles.map((handle) => (
         <FlowHandle
           key={handle.id}
-          nodeId={id}
+          nodeId={nId}
           type={handle.type}
           name={handle.name}
           position={handle.position}
           offset={handle.offset}
           color={handle.color}
-          style={handle.style}
-          className={isRunning ? 'animate-pulse' : ''}
+          className={status.isRunning ? 'animate-pulse' : ''}
         />
       ))}
     </div>

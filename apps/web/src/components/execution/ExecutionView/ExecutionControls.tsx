@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
-import { useDiagramRunner } from '@/hooks/useDiagramRunner';
+import { useDiagramRunner } from '@/hooks/execution';
 import { useExecutionSelectors } from '@/hooks/useStoreSelectors';
+import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
   const { 
@@ -31,7 +32,7 @@ const ExecutionControls = () => {
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-none hover:from-yellow-600 hover:to-amber-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => pauseNode(currentRunningNode)}
+                onClick={() => pauseNode(nodeId(currentRunningNode))}
                 title="Pause current node"
               >
                 ⏸️ Pause
@@ -39,7 +40,7 @@ const ExecutionControls = () => {
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => resumeNode(currentRunningNode)}
+                onClick={() => resumeNode(nodeId(currentRunningNode))}
                 title="Resume current node"
               >
                 ▶️ Resume
@@ -47,7 +48,7 @@ const ExecutionControls = () => {
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => skipNode(currentRunningNode)}
+                onClick={() => skipNode(nodeId(currentRunningNode))}
                 title="Skip current node"
               >
                 ⏭️ Skip
@@ -59,7 +60,7 @@ const ExecutionControls = () => {
         <Button 
           variant="outline" 
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-          onClick={onRunDiagram}
+          onClick={() => onRunDiagram()}
         >
           ▶️ Run Diagram
         </Button>

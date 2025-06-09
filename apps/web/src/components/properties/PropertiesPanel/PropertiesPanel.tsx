@@ -1,20 +1,21 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { DiagramNodeData, ArrowData, PersonDefinition, PanelConfig } from '@/types';
-import { NODE_CONFIGS, getPanelConfig } from '@/config';
+import { Dict, ArrowData, DomainPerson, PanelConfig, NodeKind } from '@/types';
+import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 
 // Union type for all possible data types
-type UniversalData = DiagramNodeData | (ArrowData & { type: 'arrow' }) | (PersonDefinition & { type: 'person' });
+type NodeData = Dict & { type: string };
+export type UniversalData = NodeData | (ArrowData & { type: 'arrow' }) | (DomainPerson & { type: 'person' });
 
 interface UniversalPropertiesPanelProps {
   nodeId: string;
   data: UniversalData;
 }
 
-export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = ({ nodeId, data }) => {
+export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = React.memo(({ nodeId, data }) => {
   const nodeType = data.type;
-  const nodeConfig = nodeType in NODE_CONFIGS ? NODE_CONFIGS[nodeType as keyof typeof NODE_CONFIGS] : undefined;
+  const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
   
   // Cast to a more permissive type that accepts the union
   const GenericPanel = GenericPropertyPanel as React.FC<{
@@ -23,7 +24,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
     config: PanelConfig<Record<string, unknown>>;
   }>;
   
-  const panelConfig = getPanelConfig(nodeType as any);
+  const panelConfig = getPanelConfig(nodeType as NodeKind | 'arrow' | 'person');
   
   if (!panelConfig) {
     return (
@@ -51,9 +52,11 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
         <GenericPanel
           nodeId={nodeId}
           data={data as Record<string, unknown>}
-          config={panelConfig}
+          config={panelConfig as PanelConfig<Record<string, unknown>>}
         />
       </div>
     </div>
   );
-};
+});
+
+UniversalPropertiesPanel.displayName = 'UniversalPropertiesPanel';

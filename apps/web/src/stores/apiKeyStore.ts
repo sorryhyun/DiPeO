@@ -1,36 +1,36 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
-import { ApiKey } from '@/types';
+import { entityIdGenerators } from '@/types/primitives';
+import { DomainApiKey, ApiKeyID, apiKeyId } from '@/types';
 import { api } from '@/utils';
 
 export interface ApiKeyState {
-  apiKeys: ApiKey[];
+  apiKeys: DomainApiKey[];
   
-  addApiKey: (apiKey: Omit<ApiKey, 'id'>) => void;
-  updateApiKey: (apiKeyId: string, apiKeyData: Partial<ApiKey>) => void;
-  deleteApiKey: (apiKeyId: string) => void;
-  getApiKeyById: (apiKeyId: string) => ApiKey | undefined;
+  addApiKey: (apiKey: Omit<DomainApiKey, 'id'>) => void;
+  updateApiKey: (apiKeyId: ApiKeyID, apiKeyData: Partial<DomainApiKey>) => void;
+  deleteApiKey: (apiKeyId: ApiKeyID) => void;
+  getApiKeyById: (apiKeyId: ApiKeyID) => DomainApiKey | undefined;
   clearApiKeys: () => void;
   loadApiKeys: () => Promise<void>;
-  setApiKeys: (apiKeys: ApiKey[]) => void;
+  setApiKeys: (apiKeys: DomainApiKey[]) => void;
 }
 
-export const useApiKeyStore = create<ApiKeyState>()(
+export const useApiKeyStore = createWithEqualityFn<ApiKeyState>()(
   devtools(
     subscribeWithSelector(
       (set, get) => ({
         apiKeys: [],
         
-        addApiKey: (apiKeyData: Omit<ApiKey, 'id'>) => {
+        addApiKey: (apiKeyData: Omit<DomainApiKey, 'id'>) => {
           const newApiKey = {
             ...apiKeyData,
-            id: `APIKEY_${nanoid().slice(0, 6).replace(/-/g, '_').toUpperCase()}`
-          } as ApiKey;
+            id: entityIdGenerators.apiKey()
+          } as DomainApiKey;
           set(state => ({ apiKeys: [...state.apiKeys, newApiKey] }));
         },
         
-        updateApiKey: (id: string, data: Partial<ApiKey>) => {
+        updateApiKey: (id: ApiKeyID, data: Partial<DomainApiKey>) => {
           set(state => ({
             apiKeys: state.apiKeys.map(key => 
               key.id === id ? { ...key, ...data } : key
@@ -38,13 +38,13 @@ export const useApiKeyStore = create<ApiKeyState>()(
           }));
         },
         
-        deleteApiKey: (id: string) => {
+        deleteApiKey: (id: ApiKeyID) => {
           set(state => ({
             apiKeys: state.apiKeys.filter(key => key.id !== id)
           }));
         },
         
-        getApiKeyById: (id: string) => {
+        getApiKeyById: (id: ApiKeyID) => {
           return get().apiKeys.find(key => key.id === id);
         },
         
@@ -56,10 +56,9 @@ export const useApiKeyStore = create<ApiKeyState>()(
           try {
             const data = await api.apiKeys.list();
             const apiKeys = data.map((key) => ({
-              id: key.id,
+              id: apiKeyId(key.id),
               name: key.name,
-              service: key.service as ApiKey['service'],
-              keyReference: key.id, // Use id as keyReference since API doesn't return it
+              service: key.service as DomainApiKey['service']
             }));
             
             set({ apiKeys });
@@ -69,7 +68,7 @@ export const useApiKeyStore = create<ApiKeyState>()(
           }
         },
         
-        setApiKeys: (apiKeys: ApiKey[]) => {
+        setApiKeys: (apiKeys: DomainApiKey[]) => {
           set({ apiKeys });
         },
       })

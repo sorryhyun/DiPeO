@@ -1,33 +1,16 @@
 import { parse, stringify } from 'yaml';
-import { nanoid } from 'nanoid';
-import {
-  Diagram,
-  Node,
-  Arrow,
-  Person,
-  ApiKey
-} from '@/types';
+import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks, ConverterDiagram } from './diagramAssembler';
+import { buildNode, NodeInfo } from './nodeBuilders';
+import { generateShortId, entityIdGenerators } from '@/types/primitives/id-generation';
+import type { DomainDiagram, DomainPerson, DomainApiKey, DomainNode } from '@/types/domain';
+import { NodeKind } from '@/types/primitives/enums';
+import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
 
-interface Edge {
-  source: string;
-  target: string;
-  condition: string | null;
-  variable: string | null;
-}
-
-interface NodeInfo {
-  name: string;
-  type: string;
-  hasPrompt: boolean;
-  hasAgent: boolean;
-  incoming: Edge[];
-  outgoing: Edge[];
-}
 
 interface LLMYamlFormat {
   flow: Record<string, string | string[]> | string[];
   prompts?: Record<string, string>;
-  agents?: Record<string, string | {
+  persons?: Record<string, string | {
     model?: string;
     service?: string;
     system?: string;
@@ -37,83 +20,89 @@ interface LLMYamlFormat {
 }
 
 export class LlmYaml {
-  private nodeMap: Record<string, string> = {};
-  private personMap: Record<string, string> = {};
-
   /**
    * Import LLM-friendly YAML and convert to DiagramState format
    */
-  static fromLLMYAML(yamlString: string): Diagram {
-    const importer = new LlmYaml();
-    return importer.importYaml(yamlString);
+  static fromLLMYAML(yamlString: string): ConverterDiagram {
+    const data = parse(yamlString) as LLMYamlFormat;
+    const assembler = new DiagramAssembler();
+    
+    const callbacks: AssemblerCallbacks = {
+      parseFlow: (flowData) => LlmYaml.parseFlow(flowData),
+      
+      inferNodeType: (name, context) => LlmYaml.inferNodeType(name, context),
+      
+      createNodeInfo: (name, analysis, context) => {
+        const nodeInfo: NodeInfo = {
+          name,
+          type: analysis.type as NodeKind,
+          position: { x: 0, y: 0 }, // Will be set by assembler
+          hasPrompt: !!context.prompts?.[name],
+          hasPerson: !!context.persons?.[name],
+          prompt: context.prompts?.[name],
+          dataSource: context.data?.[name]
+        };
+        
+        // Handle condition nodes
+        if (analysis.type === 'condition') {
+          const conditions = analysis.outgoing
+            .map(e => e.condition)
+            .filter(Boolean);
+          nodeInfo.condition = conditions.length > 0 ? `${name}_check` : '';
+        }
+        
+        // Build and return node
+        const node = buildNode(nodeInfo);
+        return {
+          id: node.id,
+          type: node.type,
+          data: node.data
+        };
+      },
+      
+      createArrowData: (edge, sourceId, targetId) => ({
+        id: `arrow-${generateShortId()}`,
+        sourceBlockId: sourceId,
+        targetBlockId: targetId,
+        label: edge.variable || 'flow',
+        contentType: edge.variable ? 'variable_in_object' : 'raw_text',
+        branch: edge.condition ? 
+          (edge.condition.includes('not') || edge.condition.startsWith('!') ? 'false' : 'true') 
+          : undefined
+      }),
+      
+      extractPersons: (nodeAnalysis, context) => LlmYaml.buildPersons(nodeAnalysis, context, assembler.getPersonMap()),
+      
+      extractApiKeys: (persons) => LlmYaml.extractApiKeys(persons),
+      
+      linkPersonsToNodes: (nodes: DomainNode[], nodeAnalysis, context) => {
+        LlmYaml.linkPersonsToNodes(nodes, assembler.getNodeMap(), nodeAnalysis, context, assembler.getPersonMap());
+      }
+    };
+    
+    return assembler.assemble({ source: data, callbacks });
   }
 
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  static toLLMYAML(diagram: Diagram): string {
+  static toLLMYAML(diagram: ConverterDiagram): string {
     const importer = new LlmYaml();
     return importer.exportYaml(diagram);
   }
 
-  private importYaml(yamlContent: string): Diagram {
-    try {
-      const data = parse(yamlContent) as LLMYamlFormat;
-
-      // Parse flow to build graph structure
-      const flowEdges = this.parseFlow(data.flow || {});
-
-      // Extract node names and types
-      const nodeInfo = this.analyzeNodes(flowEdges, data);
-
-      // Build diagram components
-      const nodes = this.buildNodes(nodeInfo, data);
-      const arrows = this.buildArrows(flowEdges);
-      const persons = this.buildPersons(nodeInfo, data);
-      const apiKeys = this.extractApiKeys(persons);
-
-      // Update nodes with person IDs
-      this.linkPersonsToNodes(nodes, nodeInfo, data);
-
-      return {
-        nodes,
-        arrows,
-        persons,
-        apiKeys
-      };
-    } catch (error) {
-      // Return minimal valid diagram on error
-      console.error('LLM YAML import error:', error);
-      return {
-        nodes: [{
-          id: 'error-node',
-          type: 'start',
-          position: { x: 0, y: 0 },
-          data: {
-            id: 'error-node',
-            label: `Import Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            type: 'start'
-          }
-        }],
-        arrows: [],
-        persons: [],
-        apiKeys: []
-      };
-    }
-  }
-
-  private parseFlow(flowData: LLMYamlFormat['flow']): Edge[] {
+  private static parseFlow(flowData: LLMYamlFormat['flow']): Edge[] {
     const edges: Edge[] = [];
 
     if (typeof flowData === 'object' && !Array.isArray(flowData)) {
       // Dictionary format: key -> value
       Object.entries(flowData).forEach(([source, targets]) => {
         if (typeof targets === 'string') {
-          const edge = this.parseEdge(source, targets);
+          const edge = LlmYaml.parseEdge(source, targets);
           if (edge) edges.push(edge);
         } else if (Array.isArray(targets)) {
           targets.forEach(target => {
-            const edge = this.parseEdge(source, String(target));
+            const edge = LlmYaml.parseEdge(source, String(target));
             if (edge) edges.push(edge);
           });
         }
@@ -121,17 +110,15 @@ export class LlmYaml {
     } else if (Array.isArray(flowData)) {
       // List format
       flowData.forEach(item => {
-        if (typeof item === 'string') {
-          const edge = this.parseEdgeString(item);
-          if (edge) edges.push(edge);
-        }
+        const edge = LlmYaml.parseEdgeString(item);
+        if (edge) edges.push(edge);
       });
     }
 
     return edges;
   }
 
-  private parseEdge(source: string, targetStr: string): Edge | null {
+  private static parseEdge(source: string, targetStr: string): Edge | null {
     // Pattern: target [condition]: "variable"
     const match = targetStr.trim().match(/(\w+)(?:\s*\[([^\]]+)\])?(?:\s*:\s*"([^"]+)")?/);
     if (match) {
@@ -146,7 +133,7 @@ export class LlmYaml {
     return null;
   }
 
-  private parseEdgeString(edgeStr: string): Edge | null {
+  private static parseEdgeString(edgeStr: string): Edge | null {
     // Pattern: source -> target [condition]: "variable"
     const match = edgeStr.trim().match(/(\w+)\s*->\s*(\w+)(?:\s*\[([^\]]+)\])?(?:\s*:\s*"([^"]+)")?/);
     if (match) {
@@ -161,50 +148,12 @@ export class LlmYaml {
     return null;
   }
 
-  private analyzeNodes(edges: Edge[], data: LLMYamlFormat): Record<string, NodeInfo> {
-    const nodeInfo: Record<string, NodeInfo> = {};
-
-    // Collect all nodes
-    edges.forEach(edge => {
-      [edge.source, edge.target].forEach(node => {
-        if (!nodeInfo[node]) {
-          nodeInfo[node] = {
-            name: node,
-            type: this.inferNodeType(node, data),
-            hasPrompt: !!data.prompts?.[node],
-            hasAgent: !!data.agents?.[node],
-            incoming: [],
-            outgoing: []
-          };
-        }
-      });
-
-      // Track connections
-      nodeInfo[edge.source]?.outgoing.push(edge);
-      nodeInfo[edge.target]?.incoming.push(edge);
-    });
-
-    // Refine node types based on connections
-    Object.entries(nodeInfo).forEach(([_name, info]) => {
-      // Nodes with conditions become condition nodes
-      if (info.outgoing.some(e => e.condition)) {
-        info.type = 'condition';
-      }
-      // Nodes with prompts become person jobs (unless already typed)
-      else if (info.hasPrompt && info.type === 'generic') {
-        info.type = 'person_job';
-      }
-    });
-
-    return nodeInfo;
-  }
-
-  private inferNodeType(name: string, data: LLMYamlFormat): string {
+  private static inferNodeType(name: string, data: LLMYamlFormat): string {
     const nameLower = name.toLowerCase();
 
     if (nameLower === 'start') return 'start';
     if (nameLower === 'end') return 'endpoint';
-    if (data.prompts?.[name]) return 'personjob';
+    if (data.prompts?.[name]) return 'person_job';
     if (nameLower.includes('condition') || nameLower.includes('check') || nameLower.includes('if')) {
       return 'condition';
     }
@@ -214,344 +163,137 @@ export class LlmYaml {
     return 'generic';
   }
 
-  private buildNodes(nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): Node[] {
-    const nodes: Node[] = [];
-    const positions = this.calculatePositions(nodeInfo);
+  private static buildPersons(nodeAnalysis: Record<string, NodeAnalysis>, data: LLMYamlFormat, personMap: Map<string, PersonID>): DomainPerson[] {
+    const persons: DomainPerson[] = [];
+    const personsData = data.persons || {};
+    const serviceMap = new Map<string, DomainApiKey['service']>();
 
-    Object.entries(nodeInfo).forEach(([name, info]) => {
-      const nodeId = `${this.nodeTypeToId(info.type)}-${nanoid(6)}`;
-      this.nodeMap[name] = nodeId;
-
-      const baseData = {
-        id: nodeId,
-        label: name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-      };
-
-      let nodeData: Record<string, any> = baseData;
-
-      switch (info.type) {
-        case 'start':
-          nodeData = {
-            ...baseData,
-            type: 'start'
-          };
-          break;
-
-        case 'person_job':
-          nodeData = {
-            ...baseData,
-            type: 'person_job',
-            defaultPrompt: data.prompts?.[name] || '',
-            firstOnlyPrompt: '',
-            contextCleaningRule: 'upon_request',
-            iterationCount: 1,
-            mode: 'sync',
-            detectedVariables: this.detectVariables(data.prompts?.[name] || '')
-          };
-          break;
-
-        case 'condition': {
-          // Extract condition expression
-          const conditions = info.outgoing
-            .map(e => e.condition)
-            .filter(Boolean);
-          
-          nodeData = {
-            ...baseData,
-            type: 'condition',
-            conditionType: 'expression',
-            expression: conditions.length > 0 ? `${name}_check` : ''
-          };
-          break;
-        }
-
-        case 'db': {
-          const dataSource = data.data?.[name];
-          nodeData = {
-            ...baseData,
-            type: 'db',
-            subType: dataSource && dataSource.match(/\.(txt|json|csv)$/) ? 'file' : 'fixed_prompt',
-            sourceDetails: dataSource || ''
-          };
-          break;
-        }
-
-        case 'endpoint':
-          nodeData = {
-            ...baseData,
-            type: 'endpoint',
-            saveToFile: false,
-            filePath: '',
-            fileFormat: 'text'
-          };
-          break;
-
-        default:
-          // Default to personjob
-          nodeData = {
-            ...baseData,
-            type: 'person_job',
-            defaultPrompt: '',
-            firstOnlyPrompt: '',
-            contextCleaningRule: 'upon_request',
-            iterationCount: 1,
-            mode: 'sync',
-            detectedVariables: []
-          };
-      }
-
-      const actualNodeType = this.nodeTypeToId(info.type);
-      nodes.push({
-        id: nodeId,
-        type: this.getReactFlowType(actualNodeType), // ReactFlow type
-        position: positions[name] || { x: 0, y: 0 },
-        data: {
-          ...nodeData,
-          type: actualNodeType // Actual node type in data
-        }
-      } as Node);
-    });
-
-    return nodes;
-  }
-
-  private buildArrows(edges: Edge[]): Arrow[] {
-    const arrows: Arrow[] = [];
-
-    edges.forEach(edge => {
-      const sourceId = this.nodeMap[edge.source];
-      const targetId = this.nodeMap[edge.target];
-
-      if (!sourceId || !targetId) return;
-
-      const arrowId = `arrow-${nanoid(6)}`;
-      arrows.push({
-        id: arrowId,
-        source: sourceId,
-        target: targetId,
-        type: 'customArrow',
-        data: {
-          id: arrowId,
-          sourceBlockId: sourceId,
-          targetBlockId: targetId,
-          label: edge.variable || 'flow',
-          contentType: edge.variable ? 'variable_in_object' : 'raw_text',
-          branch: edge.condition ? 
-            (edge.condition.includes('not') || edge.condition.startsWith('!') ? 'false' : 'true') 
-            : undefined
-        }
-      });
-    });
-
-    return arrows;
-  }
-
-  private buildPersons(nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): Person[] {
-    const persons: Person[] = [];
-    const agentsData = data.agents || {};
-
-    // Default agent for nodes with prompts but no specific agent
-    const defaultPersonId = `PERSON_${nanoid(6)}`;
-    const defaultPerson: Person = {
+    // Default person for nodes with prompts but no specific person
+    const defaultPersonId = personId(`PERSON_${generateShortId()}`);
+    const defaultPerson: DomainPerson = {
       id: defaultPersonId,
-      label: 'Default Assistant',
-      modelName: 'gpt-4',
-      service: 'openai'
+      name: 'Default Assistant',
+      model: 'gpt-4.1-nano',
+      service: 'openai',
     };
     let needDefault = false;
 
-    // Create persons from agents section
-    Object.entries(agentsData).forEach(([agentName, agentConfig]) => {
-      const personId = `PERSON_${nanoid(6)}`;
-      this.personMap[agentName] = personId;
+    // Create persons from persons section
+    Object.entries(personsData).forEach(([personName, personConfig]) => {
+      const personIdValue = personId(`PERSON_${generateShortId()}`);
+      personMap.set(personName, personIdValue);
 
-      if (typeof agentConfig === 'string') {
+      if (typeof personConfig === 'string') {
         // Simple format: just system prompt
         persons.push({
-          id: personId,
-          label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          modelName: 'gpt-4',
+          id: personIdValue,
+          name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          model: 'gpt-4.1-nano',
           service: 'openai',
-          systemPrompt: agentConfig
+          systemPrompt: personConfig
         });
+        serviceMap.set(personIdValue, 'openai');
       } else {
         // Full format
+        const service = (personConfig.service || 'openai') as DomainApiKey['service'];
         persons.push({
-          id: personId,
-          label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          modelName: agentConfig.model || 'gpt-4',
-          service: (agentConfig.service || 'openai') as ApiKey['service'],
-          systemPrompt: agentConfig.system
+          id: personIdValue,
+          name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          model: personConfig.model || 'gpt-4.1-nano',
+          service,
+          systemPrompt: personConfig.system
         });
+        serviceMap.set(personIdValue, service);
       }
     });
 
     // Check if we need default person
-    const hasPromptNodes = Object.values(nodeInfo).some(info => info.hasPrompt);
+    const hasPromptNodes = Object.values(nodeAnalysis).some((analysis: NodeAnalysis) => {
+      // Check if this node has prompts based on context
+      return Object.keys(data.prompts || {}).includes(analysis.name);
+    });
     if (hasPromptNodes && !persons.length) {
       needDefault = true;
     }
 
-    // Check if any prompt nodes don't have matching agents
-    Object.entries(nodeInfo).forEach(([name, info]) => {
-      if (info.hasPrompt && !agentsData[name]) {
+    // Check if any prompt nodes don't have matching persons
+    Object.entries(nodeAnalysis).forEach(([name, _analysis]) => {
+      if (data.prompts?.[name] && !personsData[name]) {
         needDefault = true;
       }
     });
 
     if (needDefault) {
       persons.push(defaultPerson);
-      this.personMap['_default'] = defaultPersonId;
+      personMap.set('_default', defaultPersonId);
+      serviceMap.set(defaultPersonId, 'openai');
     }
+
+    // Store serviceMap for later use
+    (LlmYaml as any)._serviceMap = serviceMap;
 
     return persons;
   }
 
-  private extractApiKeys(persons: Person[]): ApiKey[] {
-    const apiKeys: Record<string, ApiKey> = {};
+  private static extractApiKeys(persons: DomainPerson[]): DomainApiKey[] {
+    const apiKeys: Record<string, DomainApiKey> = {};
+    const serviceMap = (LlmYaml as any)._serviceMap as Map<string, DomainApiKey['service']>;
 
     persons.forEach(person => {
-      const service = person.service || 'openai';
+      // Get service from our map
+      const service = serviceMap?.get(person.id) || 'openai';
       if (!apiKeys[service]) {
-        const apiKeyId = `APIKEY_${nanoid(6)}`;
+        const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
         apiKeys[service] = {
-          id: apiKeyId,
+          id: apiKeyIdValue,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
-          service: service as ApiKey['service'],
-          keyReference: apiKeyId // Use id as keyReference
+          service: service as DomainApiKey['service']
         };
       }
     });
 
-    // Update persons with API key IDs
-    persons.forEach(person => {
-      const service = person.service || 'openai';
-      person.apiKeyId = apiKeys[service]?.id;
-    });
+    // Clean up
+    delete (LlmYaml as any)._serviceMap;
 
     return Object.values(apiKeys);
   }
 
-  private linkPersonsToNodes(nodes: Node[], nodeInfo: Record<string, NodeInfo>, data: LLMYamlFormat): void {
+  private static linkPersonsToNodes(
+    nodes: DomainNode[],
+    nodeMap: Map<string, NodeID>, 
+    nodeAnalysis: Record<string, NodeAnalysis>, 
+    data: LLMYamlFormat, 
+    personMap: Map<string, string>
+  ): void {
     nodes.forEach(node => {
       // Find original name from nodeMap
-      const originalName = Object.entries(this.nodeMap).find(([, id]) => id === node.id)?.[0];
+      const originalName = Array.from(nodeMap.entries()).find(([, id]) => id === node.id)?.[0];
       if (!originalName) return;
 
-      const info = nodeInfo[originalName];
-      if (info?.type === 'person_job' && node.data.type === 'person_job') {
+      const analysis = nodeAnalysis[originalName];
+      if (analysis && node.data.type === 'person_job') {
         const nodeData = node.data;
         
-        // Check if this node has a specific agent
-        if (data.agents?.[originalName]) {
-          nodeData.personId = this.personMap[originalName];
-        } else if (info.hasPrompt) {
+        // Check if this node has a specific person
+        if (data.persons?.[originalName]) {
+          nodeData.personId = personMap.get(originalName);
+        } else if (data.prompts?.[originalName]) {
           // Use default person
-          nodeData.personId = this.personMap['_default'];
+          nodeData.personId = personMap.get('_default');
         }
       }
     });
   }
 
-  private calculatePositions(nodeInfo: Record<string, NodeInfo>): Record<string, { x: number; y: number }> {
-    const positions: Record<string, { x: number; y: number }> = {};
-
-    // Find start nodes or nodes with no incoming edges
-    const startNodes = Object.entries(nodeInfo)
-      .filter(([_name, info]) => info.type === 'start' || info.incoming.length === 0)
-      .map(([name]) => name);
-
-    if (startNodes.length === 0 && Object.keys(nodeInfo).length > 0) {
-      startNodes.push(Object.keys(nodeInfo)[0] || '');
-    }
-
-    // BFS layout
-    const visited = new Set<string>();
-    const queue: Array<{ node: string; level: number; index: number }> = 
-      startNodes.map((node, i) => ({ node, level: 0, index: i }));
-    const levelCounts: Record<number, number> = {};
-
-    while (queue.length > 0) {
-      const { node, level, index } = queue.shift()!;
-      if (visited.has(node)) continue;
-
-      visited.add(node);
-
-      // Position calculation
-      positions[node] = {
-        x: level * 250,
-        y: index * 150
-      };
-
-      // Queue children
-      const info = nodeInfo[node];
-      if (info) {
-        const children = info.outgoing.map(e => e.target);
-        children.forEach(child => {
-          if (!visited.has(child)) {
-            const nextLevel = level + 1;
-            levelCounts[nextLevel] = (levelCounts[nextLevel] || 0) + 1;
-            queue.push({
-              node: child,
-              level: nextLevel,
-              index: levelCounts[nextLevel] - 1
-            });
-          }
-        });
-      }
-    }
-
-    return positions;
-  }
-
-  private nodeTypeToId(nodeType: string): string {
-    const mapping: Record<string, string> = {
-      start: 'start',
-      endpoint: 'endpoint',
-      personjob: 'person_job',
-      condition: 'condition',
-      db: 'db',
-      job: 'job',
-      generic: 'person_job'
-    };
-    return mapping[nodeType] || 'person_job';
-  }
-
-  private getReactFlowType(nodeType: string): string {
-    // Map node types to ReactFlow types (usually the same)
-    const mapping: Record<string, string> = {
-      start: 'start',
-      endpoint: 'endpoint',
-      personjob: 'person_job',
-      person_job: 'person_job',
-      condition: 'condition',
-      db: 'db',
-      job: 'job',
-      generic: 'person_job'
-    };
-    return mapping[nodeType] || 'person_job';
-  }
-
-  private detectVariables(prompt: string): string[] {
-    const vars = new Set<string>();
-    const varPattern = /{{(\w+)}}/g;
-    
-    const matches = prompt.matchAll(varPattern);
-    for (const match of matches) {
-      vars.add(match[1] || '');
-    }
-    
-    return Array.from(vars);
-  }
 
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  private exportYaml(diagram: Diagram): string {
+  private exportYaml(diagram: ConverterDiagram): string {
     const flow: string[] = [];
     const prompts: Record<string, string> = {};
-    const agents: Record<string, unknown> = {};
-    const data: Record<string, string> = {};
+    const persons: Record<string, unknown> = {};
+    const data: Record<string, unknown> = {};
 
     // Create reverse mapping from node ID to simple name
     const nodeNameMap: Record<string, string> = {};
@@ -565,7 +307,7 @@ export class LlmYaml {
       } else if (node.type === 'endpoint') {
         nodeName = 'END';
       } else if (node.data.label) {
-        nodeName = node.data.label.replace(/\s+/g, '_').toLowerCase();
+        nodeName = (node.data.label as string).replace(/\s+/g, '_').toLowerCase();
       } else {
         nodeName = `node_${index + 1}`;
       }
@@ -582,7 +324,7 @@ export class LlmYaml {
 
     // Map persons to names
     diagram.persons.forEach((person, index) => {
-      const personName = person.label?.replace(/\s+/g, '_').toLowerCase() || `agent_${index + 1}`;
+      const personName = person.name?.replace(/\s+/g, '_').toLowerCase() || `person_${index + 1}`;
       personNameMap[person.id] = personName;
     });
 
@@ -629,7 +371,7 @@ export class LlmYaml {
       
       if (nodeName && node.type === 'person_job' && node.data.type === 'person_job') {
         if (node.data.defaultPrompt) {
-          prompts[nodeName] = node.data.defaultPrompt;
+          prompts[nodeName] = String(node.data.defaultPrompt);
         }
       } else if (nodeName && node.type === 'db' && node.data.type === 'db') {
         if (node.data.sourceDetails) {
@@ -638,28 +380,31 @@ export class LlmYaml {
       }
     });
 
-    // Extract agents from persons
+    // Extract persons from diagram persons
     diagram.persons.forEach(person => {
       const personName = personNameMap[person.id];
       
-      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || person.service !== 'openai')) {
-        const agent: Record<string, unknown> = {};
+      // Use service from person
+      const service = person.service || 'openai'; // default
+      
+      if (personName && (person.systemPrompt || person.model !== 'gpt-4' || service !== 'openai')) {
+        const personData: Record<string, unknown> = {};
         
-        if (person.modelName && person.modelName !== 'gpt-4') {
-          agent.model = person.modelName;
+        if (person.model && person.model !== 'gpt-4') {
+          personData.model = person.model;
         }
-        if (person.service && person.service !== 'openai') {
-          agent.service = person.service;
+        if (service && service !== 'openai') {
+          personData.service = service;
         }
         if (person.systemPrompt) {
-          agent.system = person.systemPrompt;
+          personData.system = person.systemPrompt;
         }
 
         // Simplify if only system prompt
-        if (Object.keys(agent).length === 1 && agent.system) {
-          agents[personName] = agent.system;
+        if (Object.keys(personData).length === 1 && personData.system) {
+          persons[personName] = personData.system as string;
         } else {
-          agents[personName] = agent;
+          persons[personName] = personData;
         }
       }
     });
@@ -673,8 +418,8 @@ export class LlmYaml {
       yamlData.prompts = prompts;
     }
 
-    if (Object.keys(agents).length > 0) {
-      yamlData.agents = agents;
+    if (Object.keys(persons).length > 0) {
+      yamlData.persons = persons;
     }
 
     if (Object.keys(data).length > 0) {

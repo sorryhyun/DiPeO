@@ -2,7 +2,7 @@
 import React, { useState, Suspense } from 'react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { NODE_CONFIGS } from '@/types';
+import { getNodeConfig } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
 import { 
@@ -15,6 +15,7 @@ import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
+import type { UniversalData } from '@/components/properties/PropertiesPanel';
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
   const { onNodeDragStart } = useCanvasInteractions();
@@ -53,8 +54,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
-  const [conversationExpanded, setConversationExpanded] = useState(true);
-  const [memoryExpanded, setMemoryExpanded] = useState(true);
+  const [_conversationExpanded, _setConversationExpanded] = useState(true);
+  const [_memoryExpanded, _setMemoryExpanded] = useState(true);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   
   const handlePersonClick = (personId: string) => {
@@ -64,13 +65,13 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   if (position === 'right') {
     // Find the selected element and its data
     let selectedId: string | null = null;
-    let selectedData: any = null;
+    let selectedData: UniversalData | null = null;
     
     if (selectedNodeId) {
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         selectedId = node.id;
-        selectedData = node.data;
+        selectedData = { ...node.data, type: node.type || 'unknown' };
       }
     } else if (selectedArrowId) {
       const arrow = arrows.find(a => a.id === selectedArrowId);
@@ -118,17 +119,17 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
           <div className="mt-3">
             <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="start" label={`${NODE_CONFIGS.start?.icon || '🚀'} ${NODE_CONFIGS.start?.label || 'Start'}`} />
-              <DraggableBlock type="person_job" label={`${NODE_CONFIGS.person_job?.icon || '🤖'} ${NODE_CONFIGS.person_job?.label || 'Person Job'}`} />
-              <DraggableBlock type="person_batch_job" label={`${NODE_CONFIGS.person_batch_job?.icon || '🤖📦'} ${NODE_CONFIGS.person_batch_job?.label || 'Person Batch Job'}`} />
-              <DraggableBlock type="condition" label={`${NODE_CONFIGS.condition?.icon || '🔀'} ${NODE_CONFIGS.condition?.label || 'Condition'}`} />
-              <DraggableBlock type="job" label={`${NODE_CONFIGS.job?.icon || '⚙️'} ${NODE_CONFIGS.job?.label || 'Job'}`} />
-              <DraggableBlock type="user_response" label={`${NODE_CONFIGS.user_response?.icon || '💬'} ${NODE_CONFIGS.user_response?.label || 'User Response'}`} />
-              <DraggableBlock type="endpoint" label={`${NODE_CONFIGS.endpoint?.icon || '🎯'} ${NODE_CONFIGS.endpoint?.label || 'Endpoint'}`} />
+              <DraggableBlock type="start" label={`${getNodeConfig('start').icon || '🚀'} ${getNodeConfig('start')?.label || 'Start'}`} />
+              <DraggableBlock type="person_job" label={`${getNodeConfig('person_job')?.icon || '🤖'} ${getNodeConfig('person_job').label || 'Person Job'}`} />
+              <DraggableBlock type="person_batch_job" label={`${getNodeConfig('person_batch_job').icon || '🤖📦'} ${getNodeConfig('person_batch_job').label || 'Person Batch Job'}`} />
+              <DraggableBlock type="condition" label={`${getNodeConfig('condition').icon || '🔀'} ${getNodeConfig('condition').label || 'Condition'}`} />
+              <DraggableBlock type="job" label={`${getNodeConfig('job').icon || '⚙️'} ${getNodeConfig('job').label || 'Job'}`} />
+              <DraggableBlock type="user_response" label={`${getNodeConfig('user_response').icon || '💬'} ${getNodeConfig('user_response').label || 'User Response'}`} />
+              <DraggableBlock type="endpoint" label={`${getNodeConfig('endpoint').icon || '🎯'} ${getNodeConfig('endpoint').label || 'Endpoint'}`} />
             </div>
             <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="db" label={`${NODE_CONFIGS.db?.icon || '📊'} ${NODE_CONFIGS.db?.label || 'DB Source'} Block`} />
+              <DraggableBlock type="db" label={`${getNodeConfig('db').icon || '📊'} ${getNodeConfig('db').label || 'DB Source'} Block`} />
             </div>
           </div>
         )}
@@ -173,8 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                   <div className="flex items-center gap-2">
                     <span className="text-base">🤖</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs truncate">{person.label}</p>
-                      <p className="text-xs text-gray-500 truncate">{person.service || 'No service'}</p>
+                      <p className="font-medium text-xs truncate">{person.name}</p>
                     </div>
                   </div>
                 </div>
@@ -185,10 +185,9 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               size="sm"
               onClick={() => addPerson({
-                label: `Person ${persons.length + 1}`,
+                name: `Person ${persons.length + 1}`,
+                model: 'gpt-4.1-nano',
                 service: 'openai',
-                modelName: 'gpt-4.1-nano',
-                apiKeyId: '',
                 systemPrompt: '',
               })}
             >

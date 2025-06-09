@@ -1,22 +1,47 @@
-// Consolidated type exports - avoid duplicate exports
-export * from './core';
+// types/index.ts - Central export point for all types
+
+// Re-export all types from separate modules
+export * from './primitives';
+export * from './api';
 export * from './runtime';
+export * from './errors';
+export * from './domain';
+export * from './framework';
 export * from './ui';
+export * from './config';
+export * from './validation';
 
-// Only export non-conflicting API types
+// Re-export branded types
+export type { 
+  Brand,
+  NodeID,
+  HandleID,
+  ArrowID,
+  PersonID,
+  ApiKeyID,
+  ExecutionID,
+  MessageID
+} from './branded';
+
 export {
-  type ApiClientOptions,
-  type RequestConfig,
-  type DiagramSaveRequest,
-  type DiagramSaveResponse,
-  type ConvertRequest,
-  type ConvertResponse,
-  type HealthResponse,
-  type ExecutionCapabilitiesResponse
-} from './api';
+  nodeId,
+  handleId,
+  arrowId,
+  personId,
+  apiKeyId,
+  executionId,
+  messageId,
+  isNodeId,
+  isHandleId,
+  isArrowId,
+  isPersonId,
+  isApiKeyId,
+  isExecutionId,
+  isMessageId,
+} from './branded';
 
-// Re-export simplified node configurations
-export { NODE_CONFIGS } from '@/config';
+// Legacy exports for backward compatibility
+export * from './legacy';
 
-// Alias for backward compatibility
-export { NODE_CONFIGS as UNIFIED_NODE_CONFIGS } from '@/config';
+// Export type guards
+export * from './typeGuards';

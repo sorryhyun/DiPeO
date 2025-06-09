@@ -1,344 +1,364 @@
-import React from 'react';
+import { shallow } from 'zustand/shallow';
 import { useDiagramStore } from '@/stores';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
 import { useHistoryStore } from '@/stores/historyStore';
-import { useApiKeyStore } from '@/stores/apiKeyStore';
-import { Node, Arrow, Person, ApiKey } from '@/types';
+import type { DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle, DomainDiagram } from '@/types/domain';
+import type { NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@/types/branded';
+import { nodeToReact } from '@/types/framework/adapters';
 
 // ===== Key Optimized Selectors =====
 
 // Execution state for specific node - avoids subscribing to entire execution store
-export const useNodeExecutionState = (nodeId: string) => {
-  // Subscribe to lastUpdate to force re-renders when execution state changes
-  const lastUpdate = useExecutionStore(state => state.lastUpdate);
-  const runningNodes = useExecutionStore(state => state.runningNodes);
-  const isRunning = runningNodes.includes(nodeId);
-  const isCurrentRunning = useExecutionStore(state => state.currentRunningNode === nodeId);
-  const nodeRunningState = useExecutionStore(state => state.nodeRunningStates[nodeId] || false);
-  const skippedNodeInfo = useExecutionStore(state => state.skippedNodes[nodeId]);
-  const isSkipped = Boolean(skippedNodeInfo);
-  
-  // Debug logging for node execution state
-  React.useEffect(() => {
-    if (isRunning || nodeRunningState || isSkipped) {
-      console.log(`[useNodeExecutionState] Node ${nodeId} state:`, {
-        nodeId,
+export const useNodeExecutionState = (nodeId: NodeID) => {
+  return useExecutionStore(
+    state => {
+      const isRunning = state.runningNodes.includes(nodeId);
+      const isCurrentRunning = state.currentRunningNode === nodeId;
+      const nodeRunningState = state.nodeRunningStates[nodeId] || false;
+      const skippedNodeInfo = state.skippedNodes[nodeId];
+      const isSkipped = Boolean(skippedNodeInfo);
+      
+      // Debug logging for node execution state
+      if (isRunning || nodeRunningState || isSkipped) {
+        console.log(`[useNodeExecutionState] Node ${nodeId} state:`, {
+          nodeId,
+          isRunning,
+          isCurrentRunning,
+          nodeRunningState,
+          isSkipped,
+          skipReason: skippedNodeInfo?.reason,
+          runningNodes: state.runningNodes,
+          lastUpdate: state.lastUpdate
+        });
+      }
+      
+      return {
         isRunning,
         isCurrentRunning,
         nodeRunningState,
         isSkipped,
         skipReason: skippedNodeInfo?.reason,
-        runningNodes,
-        lastUpdate
-      });
-    }
-  }, [nodeId, isRunning, isCurrentRunning, nodeRunningState, isSkipped, skippedNodeInfo, runningNodes, lastUpdate]);
-  
-  // Memoize the return object to prevent unnecessary re-renders
-  return React.useMemo(() => ({
-    isRunning,
-    isCurrentRunning,
-    nodeRunningState,
-    isSkipped,
-    skipReason: skippedNodeInfo?.reason,
-  }), [isRunning, isCurrentRunning, nodeRunningState, isSkipped, skippedNodeInfo?.reason, lastUpdate]);
-};
-
-// Single function selectors for common operations to avoid re-renders
-export const useNodeDataUpdater = () => {
-  return useDiagramStore(state => state.updateNode);
-};
-
-export const useArrowDataUpdater = () => {
-  return useDiagramStore(state => state.updateArrow);
+      };
+    },
+    shallow
+  );
 };
 
 // Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
-  const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const nodes = useDiagramStore(state => state.nodeList());
-  const arrows = useDiagramStore(state => state.arrowList());
-  const onNodesChange = useDiagramStore(state => state.onNodesChange);
-  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
-  const onConnect = useDiagramStore(state => state.onConnect);
-  const addNode = useDiagramStore(state => state.addNode);
-  const deleteNode = useDiagramStore(state => state.deleteNode);
-  const deleteArrow = useDiagramStore(state => state.deleteArrow);
-  
-  // Memoize functions and object to prevent unnecessary re-renders
-  return React.useMemo(() => ({
-    nodes,
-    arrows,
-    isMonitorMode: isReadOnly,
-    onNodesChange,
-    onArrowsChange,
-    onConnect,
-    addNode,
-    deleteNode,
-    deleteArrow,
-  }), [nodes, arrows, isReadOnly, onNodesChange, onArrowsChange, onConnect, addNode, deleteNode, deleteArrow]);
+  return useDiagramStore(
+    state => {
+      // Convert domain nodes to React Flow format with handles
+      const domainNodes = state.nodeList();
+      const nodes = domainNodes.map(node => {
+        const handles = state.getNodeHandles(node.id);
+        return nodeToReact(node, handles);
+      });
+      
+      return {
+        nodes,
+        arrows: state.arrowList(),
+        isMonitorMode: state.isReadOnly,
+        onNodesChange: state.onNodesChange,
+        onArrowsChange: state.onArrowsChange,
+        onConnect: state.onConnect,
+        addNode: state.addNodeByType,
+        deleteNode: state.deleteNode,
+        deleteArrow: state.deleteArrow,
+      };
+    },
+    shallow
+  );
 };
 
 // Person operations with monitor support
 export const usePersons = () => {
-  const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const persons = useDiagramStore(state => state.personList());
-  const addPerson = useDiagramStore(state => state.addPerson);
-  const updatePerson = useDiagramStore(state => state.updatePerson);
-  const deletePerson = useDiagramStore(state => state.deletePerson);
-  const getPersonById = useDiagramStore(state => state.getPersonById);
-  
-  return React.useMemo(() => ({
-    persons,
-    isMonitorMode: isReadOnly,
-    addPerson,
-    updatePerson,
-    deletePerson,
-    getPersonById,
-  }), [persons, isReadOnly, addPerson, updatePerson, deletePerson, getPersonById]);
+  return useDiagramStore(
+    state => ({
+      persons: state.personList(),
+      isMonitorMode: state.isReadOnly,
+      addPerson: state.createPerson,
+      updatePerson: state.updatePerson,
+      deletePerson: state.deletePerson,
+      getPersonById: state.getPersonById,
+    }),
+    shallow
+  );
 };
 
 // Node operations with monitor support
 export const useNodes = () => {
-  const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const nodes = useDiagramStore(state => state.nodeList());
-  const onNodesChange = useDiagramStore(state => state.onNodesChange);
-  const addNode = useDiagramStore(state => state.addNode);
-  const deleteNode = useDiagramStore(state => state.deleteNode);
-  
-  return {
-    nodes,
-    isMonitorMode: isReadOnly,
-    onNodesChange,
-    addNode,
-    deleteNode,
-  };
+  return useDiagramStore(
+    state => {
+      // Convert domain nodes to React Flow format with handles
+      const domainNodes = state.nodeList();
+      const nodes = domainNodes.map(node => {
+        const handles = state.getNodeHandles(node.id);
+        return nodeToReact(node, handles);
+      });
+      
+      return {
+        nodes,
+        isMonitorMode: state.isReadOnly,
+        onNodesChange: state.onNodesChange,
+        addNode: state.addNodeByType,
+        deleteNode: state.deleteNode,
+      };
+    },
+    shallow
+  );
 };
 
 // Arrow operations with monitor support
 export const useArrows = () => {
-  const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const arrows = useDiagramStore(state => state.arrowList());
-  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
-  const onConnect = useDiagramStore(state => state.onConnect);
-  const deleteArrow = useDiagramStore(state => state.deleteArrow);
-  
-  return {
-    arrows,
-    isMonitorMode: isReadOnly,
-    onArrowsChange,
-    onConnect,
-    deleteArrow,
-  };
+  return useDiagramStore(
+    state => ({
+      arrows: state.arrowList(),
+      isMonitorMode: state.isReadOnly,
+      onArrowsChange: state.onArrowsChange,
+      onConnect: state.onConnect,
+      deleteArrow: state.deleteArrow,
+    }),
+    shallow
+  );
 };
 
 // UI state selectors
 export const useSelectedElement = () => {
-  const selectedNodeId = useConsolidatedUIStore(state => state.selectedNodeId);
-  const selectedArrowId = useConsolidatedUIStore(state => state.selectedArrowId);
-  const selectedPersonId = useConsolidatedUIStore(state => state.selectedPersonId);
-  const setSelectedNodeId = useConsolidatedUIStore(state => state.setSelectedNodeId);
-  const setSelectedArrowId = useConsolidatedUIStore(state => state.setSelectedArrowId);
-  const setSelectedPersonId = useConsolidatedUIStore(state => state.setSelectedPersonId);
-  const clearSelection = useConsolidatedUIStore(state => state.clearSelection);
-  
-  return {
-    selectedNodeId,
-    selectedArrowId,
-    selectedPersonId,
-    setSelectedNodeId,
-    setSelectedArrowId,
-    setSelectedPersonId,
-    clearSelection,
-  };
+  return useConsolidatedUIStore(
+    state => ({
+      selectedNodeId: state.selectedNodeId,
+      selectedArrowId: state.selectedArrowId,
+      selectedPersonId: state.selectedPersonId,
+      setSelectedNodeId: state.setSelectedNodeId,
+      setSelectedArrowId: state.setSelectedArrowId,
+      setSelectedPersonId: state.setSelectedPersonId,
+      clearSelection: state.clearSelection,
+    }),
+    shallow
+  );
 };
 
 export const useUIState = () => {
-  const dashboardTab = useConsolidatedUIStore(state => state.dashboardTab);
-  const setDashboardTab = useConsolidatedUIStore(state => state.setDashboardTab);
-  
-  // Canvas state
-  const activeCanvas = useConsolidatedUIStore(state => state.activeCanvas);
-  const setActiveCanvas = useConsolidatedUIStore(state => state.setActiveCanvas);
-  const toggleCanvas = useConsolidatedUIStore(state => state.toggleCanvas);
-  
-  // View state
-  const activeView = useConsolidatedUIStore(state => state.activeView);
-  const setActiveView = useConsolidatedUIStore(state => state.setActiveView);
-  
-  // Modal state
-  const showApiKeysModal = useConsolidatedUIStore(state => state.showApiKeysModal);
-  const showExecutionModal = useConsolidatedUIStore(state => state.showExecutionModal);
-  const openApiKeysModal = useConsolidatedUIStore(state => state.openApiKeysModal);
-  const closeApiKeysModal = useConsolidatedUIStore(state => state.closeApiKeysModal);
-  const openExecutionModal = useConsolidatedUIStore(state => state.openExecutionModal);
-  const closeExecutionModal = useConsolidatedUIStore(state => state.closeExecutionModal);
-  
-  const hasSelection = useConsolidatedUIStore(state => state.hasSelection);
-  
-  return {
-    dashboardTab,
-    setDashboardTab,
-    activeCanvas,
-    setActiveCanvas,
-    toggleCanvas,
-    activeView,
-    setActiveView,
-    showApiKeysModal,
-    showExecutionModal,
-    openApiKeysModal,
-    closeApiKeysModal,
-    openExecutionModal,
-    closeExecutionModal,
-    hasSelection,
-  };
+  return useConsolidatedUIStore(
+    state => ({
+      dashboardTab: state.dashboardTab,
+      setDashboardTab: state.setDashboardTab,
+      activeCanvas: state.activeCanvas,
+      setActiveCanvas: state.setActiveCanvas,
+      toggleCanvas: state.toggleCanvas,
+      activeView: state.activeView,
+      setActiveView: state.setActiveView,
+      showApiKeysModal: state.showApiKeysModal,
+      showExecutionModal: state.showExecutionModal,
+      openApiKeysModal: state.openApiKeysModal,
+      closeApiKeysModal: state.closeApiKeysModal,
+      openExecutionModal: state.openExecutionModal,
+      closeExecutionModal: state.closeExecutionModal,
+      hasSelection: state.hasSelection,
+    }),
+    shallow
+  );
 };
 
 // Execution status
 export const useExecutionStatus = () => {
-  const runContext = useExecutionStore(state => state.runContext);
-  const runningNodes = useExecutionStore(state => state.runningNodes);
-  const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
-  const nodeRunningStates = useExecutionStore(state => state.nodeRunningStates);
-  
-  return {
-    runContext,
-    runningNodes,
-    currentRunningNode,
-    nodeRunningStates,
-  };
+  return useExecutionStore(
+    state => ({
+      runContext: state.runContext,
+      runningNodes: state.runningNodes,
+      currentRunningNode: state.currentRunningNode,
+      nodeRunningStates: state.nodeRunningStates,
+    }),
+    shallow
+  );
 };
 
-// API Key selectors
-export const useApiKeys = () => useApiKeyStore(state => state.apiKeys);
-export const useAddApiKey = () => useApiKeyStore(state => state.addApiKey);
-export const useUpdateApiKey = () => useApiKeyStore(state => state.updateApiKey);
-export const useDeleteApiKey = () => useApiKeyStore(state => state.deleteApiKey);
-export const useLoadApiKeys = () => useApiKeyStore(state => state.loadApiKeys);
-export const useClearApiKeys = () => useApiKeyStore(state => state.clearApiKeys);
 
-// Missing exports for backward compatibility
-export const getApiKeys = () => useApiKeyStore.getState().apiKeys;
+// Utility functions that add logic
 
-// History actions
-export const useUndo = () => useHistoryStore(state => state.undo);
-export const useRedo = () => useHistoryStore(state => state.redo);
-export const useCanUndo = () => useHistoryStore(state => state.canUndo);
-export const useCanRedo = () => useHistoryStore(state => state.canRedo);
-
-// Execution actions  
-export const useAddRunningNode = () => useExecutionStore(state => state.addRunningNode);
-export const useRemoveRunningNode = () => useExecutionStore(state => state.removeRunningNode);
-export const useSetCurrentRunningNode = () => useExecutionStore(state => state.setCurrentRunningNode);
-export const useSetRunContext = () => useExecutionStore(state => state.setRunContext);
-export const useAddSkippedNode = () => useExecutionStore(state => state.addSkippedNode);
-
-// Diagram actions
-export const useLoadDiagram = () => useDiagramStore(state => state.loadDiagram);
-export const exportDiagramState = () => useDiagramStore.getState().exportDiagram();
-
-// More store selectors
-export const useSkippedNodes = () => useExecutionStore(state => state.skippedNodes);
-export const useExecutions = () => useExecutionStore(state => state);
-export const clearDiagram = () => useDiagramStore.getState().clear();
-
-// Missing exports for compatibility
-export const loadDiagram = (diagram: { nodes: Node[]; arrows: Arrow[]; persons: Person[]; apiKeys?: ApiKey[] }) => useDiagramStore.getState().loadDiagram(diagram);
-export const useSelectedPersonId = () => useConsolidatedUIStore(state => state.selectedPersonId);
-export const useSetSelectedPersonId = () => useConsolidatedUIStore(state => state.setSelectedPersonId);
-export const useClearRunContext = () => {
-  const setRunContext = useExecutionStore(state => state.setRunContext);
-  return () => setRunContext({});
-};
-export const useClearRunningNodes = () => {
-  const store = useExecutionStore.getState();
-  return () => {
-    store.runningNodes.forEach(nodeId => store.removeRunningNode(nodeId));
-    store.setCurrentRunningNode(null);
-  };
-};
-
-// Missing exports for backward compatibility
-export const useUpdateNodeData = () => useDiagramStore(state => state.updateNode);
-export const useUpdateArrowData = () => useDiagramStore(state => state.updateArrow);
-export const useUpdatePerson = () => useDiagramStore(state => state.updatePerson);
-export const useSetReadOnly = () => useDiagramStore(state => state.setReadOnly);
-export const useIsReadOnly = () => useDiagramStore(state => state.isReadOnly);
-
-// Grouped selectors for compatibility
-export const useUISelectors = () => {
-  const selectedNodeId = useConsolidatedUIStore(state => state.selectedNodeId);
-  const selectedArrowId = useConsolidatedUIStore(state => state.selectedArrowId);
-  const selectedPersonId = useConsolidatedUIStore(state => state.selectedPersonId);
-  const setSelectedNodeId = useConsolidatedUIStore(state => state.setSelectedNodeId);
-  const setSelectedArrowId = useConsolidatedUIStore(state => state.setSelectedArrowId);
-  const setSelectedPersonId = useConsolidatedUIStore(state => state.setSelectedPersonId);
-  const clearSelection = useConsolidatedUIStore(state => state.clearSelection);
-  
-  return {
-    selectedNodeId,
-    selectedArrowId,
-    selectedPersonId,
-    setSelectedNodeId,
-    setSelectedArrowId,
-    setSelectedPersonId,
-    clearSelection,
-  };
-};
-
+// Grouped selectors for major components
 export const useCanvasSelectors = () => {
-  const isReadOnly = useDiagramStore(state => state.isReadOnly);
-  const nodes = useDiagramStore(state => state.nodeList());
-  const arrows = useDiagramStore(state => state.arrowList());
-  const onNodesChange = useDiagramStore(state => state.onNodesChange);
-  const onArrowsChange = useDiagramStore(state => state.onArrowsChange);
-  const onConnect = useDiagramStore(state => state.onConnect);
-  const addNode = useDiagramStore(state => state.addNode);
-  const deleteNode = useDiagramStore(state => state.deleteNode);
-  const deleteArrow = useDiagramStore(state => state.deleteArrow);
-  const updateNode = useDiagramStore(state => state.updateNode);
-  
-  return {
-    nodes,
-    arrows,
-    isMonitorMode: isReadOnly,
-    onNodesChange,
-    onArrowsChange,
-    onConnect,
-    addNode,
-    deleteNode,
-    deleteArrow,
-    updateNode,
-  };
+  return useDiagramStore(
+    state => {
+      // Convert domain nodes to React Flow format with handles
+      const domainNodes = state.nodeList();
+      const nodes = domainNodes.map(node => {
+        const handles = state.getNodeHandles(node.id);
+        return nodeToReact(node, handles);
+      });
+      
+      return {
+        nodes,
+        arrows: state.arrowList(),
+        isMonitorMode: state.isReadOnly,
+        onNodesChange: state.onNodesChange,
+        onArrowsChange: state.onArrowsChange,
+        onConnect: state.onConnect,
+        addNode: state.addNodeByType,
+        deleteNode: state.deleteNode,
+        deleteArrow: state.deleteArrow,
+        updateNode: state.updateNode,
+      };
+    },
+    shallow
+  );
 };
 
 export const useExecutionSelectors = () => {
-  const runContext = useExecutionStore(state => state.runContext);
-  const runningNodes = useExecutionStore(state => state.runningNodes);
-  const currentRunningNode = useExecutionStore(state => state.currentRunningNode);
-  const nodeRunningStates = useExecutionStore(state => state.nodeRunningStates);
-  const skippedNodes = useExecutionStore(state => state.skippedNodes);
-  
-  return {
-    runContext,
-    runningNodes,
-    currentRunningNode,
-    nodeRunningStates,
-    skippedNodes,
-  };
+  return useExecutionStore(
+    state => ({
+      runContext: state.runContext,
+      runningNodes: state.runningNodes,
+      currentRunningNode: state.currentRunningNode,
+      nodeRunningStates: state.nodeRunningStates,
+      skippedNodes: state.skippedNodes,
+    }),
+    shallow
+  );
 };
 
-export const useHistorySelectors = () => {
-  const undo = useHistoryStore(state => state.undo);
-  const redo = useHistoryStore(state => state.redo);
-  const canUndo = useHistoryStore(state => state.canUndo);
-  const canRedo = useHistoryStore(state => state.canRedo);
-  
-  return {
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-  };
+// ===== Missing exports that were removed =====
+
+// Node data updater hook
+export const useNodeDataUpdater = () => {
+  return useDiagramStore(state => state.updateNode);
 };
+
+// Arrow data updater hook
+export const useArrowDataUpdater = () => {
+  return useDiagramStore(state => state.updateArrow);
+};
+
+// Person data updater hook
+export const usePersonDataUpdater = () => {
+  return useDiagramStore(state => state.updatePerson);
+};
+
+// API key updater hook
+export const useApiKeyUpdater = () => {
+  return useDiagramStore(state => state.updateApiKey);
+};
+
+// Granular execution actions selector
+export const useExecutionActions = () => {
+  return useExecutionStore(
+    state => ({
+      startExecution: state.startExecution,
+      stopExecution: state.stopExecution,
+      reset: state.reset,
+      addRunningNode: state.addRunningNode,
+      removeRunningNode: state.removeRunningNode,
+      setCurrentRunningNode: state.setCurrentRunningNode,
+      setRunContext: state.setRunContext,
+      addSkippedNode: state.addSkippedNode,
+      setNodeError: state.setNodeError,
+    }),
+    shallow
+  );
+};
+
+// Node position updater
+export const useNodePositionUpdater = () => {
+  return useDiagramStore(state => (id: NodeID, position: { x: number; y: number }) => 
+    state.updateNode(id, { position })
+  );
+};
+
+// Selected element getters
+export const useSelectedNodeId = () => {
+  return useConsolidatedUIStore(state => state.selectedNodeId);
+};
+
+export const useSelectedArrowId = () => {
+  return useConsolidatedUIStore(state => state.selectedArrowId);
+};
+
+// Batch selectors for common operations
+export const useDiagramActions = () => {
+  return useDiagramStore(
+    state => ({
+      addNode: state.addNode,
+      addNodeByType: state.addNodeByType,
+      deleteNode: state.deleteNode,
+      addArrow: state.addArrow,
+      deleteArrow: state.deleteArrow,
+      addPerson: state.addPerson,
+      deletePerson: state.deletePerson,
+      addApiKey: state.addApiKey,
+      deleteApiKey: state.deleteApiKey,
+    }),
+    shallow
+  );
+};
+
+// UI selectors (alias for backward compatibility)
+// export const useUISelectors = useUIState; // Removed - use useUIState directly
+
+// History selectors
+export const useHistorySelectors = () => {
+  return useHistoryStore(
+    (state) => ({
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      undo: state.undo,
+      redo: state.redo,
+    }),
+    shallow
+  );
+};
+
+// Diagram operations as direct exports
+export const exportDiagramState = () => {
+  return useDiagramStore.getState().exportDiagram();
+};
+
+export const loadDiagram = (data: any) => {
+  // Convert old array format to new Record format if needed
+  let diagramData: DomainDiagram;
+  
+  if (Array.isArray(data.nodes)) {
+    // Old format with arrays - convert to Records
+    const nodes: Record<NodeID, DomainNode> = {};
+    const handles: Record<HandleID, DomainHandle> = {};
+    const arrows: Record<ArrowID, DomainArrow> = {};
+    const persons: Record<PersonID, DomainPerson> = {};
+    const apiKeys: Record<ApiKeyID, DomainApiKey> = {};
+    
+    (data.nodes || []).forEach((node: DomainNode) => {
+      nodes[node.id] = node;
+    });
+    
+    (data.arrows || []).forEach((arrow: DomainArrow) => {
+      arrows[arrow.id] = arrow;
+    });
+    
+    (data.persons || []).forEach((person: DomainPerson) => {
+      persons[person.id] = person;
+    });
+    
+    (data.apiKeys || []).forEach((apiKey: DomainApiKey) => {
+      apiKeys[apiKey.id] = apiKey;
+    });
+    
+    diagramData = {
+      nodes,
+      handles,
+      arrows,
+      persons,
+      apiKeys
+    };
+  } else {
+    // New format with Records
+    diagramData = data as DomainDiagram;
+  }
+  
+  return useDiagramStore.getState().loadDiagram(diagramData);
+};
+
+export const clearDiagram = () => {
+  return useDiagramStore.getState().clear();
+};
+
+
