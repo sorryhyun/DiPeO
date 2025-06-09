@@ -11,7 +11,7 @@ export type LLMService = 'openai' | 'claude' | 'gemini' | 'groq' | 'grok';
 export type ForgettingMode = 'no_forget' | 'on_every_turn' | 'upon_request';
 
 /**
- * Pure domain person - represents an AI agent
+ * Pure domain person - represents a configured LLM instance with memory
  */
 export interface DomainPerson {
   id: PersonID;

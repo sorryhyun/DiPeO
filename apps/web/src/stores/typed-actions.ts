@@ -214,7 +214,7 @@ export function createTypedActions(store: any) {
     },
 
     /**
-     * Add a person (AI agent)
+     * Add a person (configured LLM instance)
      */
     addPerson(
       name: string,

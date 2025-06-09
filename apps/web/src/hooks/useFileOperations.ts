@@ -1,4 +1,4 @@
-import { useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback, type ChangeEvent } from 'react';
 import { loadDiagram, exportDiagramState } from './useStoreSelectors';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/utils/api/config';
@@ -132,7 +132,7 @@ export const useFileOperations = () => {
         case 'llm-yaml': {
           // Use LLM YAML importer
           const diagram = LlmYaml.fromLLMYAML(content);
-          loadDiagram(diagram);
+          loadDiagram(diagram as any); // loadDiagram handles the conversion
           toast.success('LLM-YAML file imported successfully');
           break;
         }
@@ -215,12 +215,12 @@ export const useFileOperations = () => {
           break;
           
         case 'yaml':
-          content = Yaml.toYAML(diagramData);
+          content = Yaml.toYAML(diagramData as any);
           defaultFilename = 'diagram.yaml';
           break;
           
         case 'llm-yaml':
-          content = LlmYaml.toLLMYAML(diagramData);
+          content = LlmYaml.toLLMYAML(diagramData as any);
           defaultFilename = 'diagram.llm-yaml';
           break;
           
@@ -256,7 +256,7 @@ export const useFileOperations = () => {
       };
       
       const finalFilename = filename || `diagram${getFileExtension(format)}`;
-      const result = await saveDiagramToBackend(diagramData, {
+      const result = await saveDiagramToBackend(diagramData as any, {
         filename: finalFilename,
         format: format as FileFormat
       });
@@ -316,7 +316,7 @@ export const useFileOperations = () => {
       const content = await readFileAsText(file);
       const diagram = JSON.parse(content);
       
-      const yamlContent = Yaml.toYAML(diagram);
+      const yamlContent = Yaml.toYAML(diagram as any);
       
       // Download the converted file
       const filename = file.name.replace('.json', '.yaml');
@@ -380,7 +380,7 @@ export const useFileOperations = () => {
         }
       };
       
-      const result = await saveDiagramToBackend(clonedDiagram, {
+      const result = await saveDiagramToBackend(clonedDiagram as any, {
         filename: `${newName}${getFileExtension(format)}`,
         format: format as FileFormat
       });

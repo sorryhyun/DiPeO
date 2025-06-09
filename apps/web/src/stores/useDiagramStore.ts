@@ -261,7 +261,10 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             if (get().isReadOnly) return;
             
             // Convert current nodes to React Flow format
-            const currentNodes = get().getAllNodes().map(nodeToReact);
+            const currentNodes = get().getAllNodes().map(node => {
+              const handles = get().getNodeHandles(node.id);
+              return nodeToReact(node, handles);
+            });
             
             // Apply changes
             const updatedNodes = applyNodeChanges(changes, currentNodes);

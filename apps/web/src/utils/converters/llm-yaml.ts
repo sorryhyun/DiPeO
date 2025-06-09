@@ -10,7 +10,7 @@ import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyI
 interface LLMYamlFormat {
   flow: Record<string, string | string[]> | string[];
   prompts?: Record<string, string>;
-  agents?: Record<string, string | {
+  persons?: Record<string, string | {
     model?: string;
     service?: string;
     system?: string;
@@ -38,7 +38,7 @@ export class LlmYaml {
           type: analysis.type as NodeKind,
           position: { x: 0, y: 0 }, // Will be set by assembler
           hasPrompt: !!context.prompts?.[name],
-          hasAgent: !!context.agents?.[name],
+          hasPerson: !!context.persons?.[name],
           prompt: context.prompts?.[name],
           dataSource: context.data?.[name]
         };
@@ -165,10 +165,10 @@ export class LlmYaml {
 
   private static buildPersons(nodeAnalysis: Record<string, NodeAnalysis>, data: LLMYamlFormat, personMap: Map<string, PersonID>): DomainPerson[] {
     const persons: DomainPerson[] = [];
-    const agentsData = data.agents || {};
+    const personsData = data.persons || {};
     const serviceMap = new Map<string, DomainApiKey['service']>();
 
-    // Default agent for nodes with prompts but no specific agent
+    // Default person for nodes with prompts but no specific person
     const defaultPersonId = personId(`PERSON_${generateShortId()}`);
     const defaultPerson: DomainPerson = {
       id: defaultPersonId,
@@ -178,30 +178,30 @@ export class LlmYaml {
     };
     let needDefault = false;
 
-    // Create persons from agents section
-    Object.entries(agentsData).forEach(([agentName, agentConfig]) => {
+    // Create persons from persons section
+    Object.entries(personsData).forEach(([personName, personConfig]) => {
       const personIdValue = personId(`PERSON_${generateShortId()}`);
-      personMap.set(agentName, personIdValue);
+      personMap.set(personName, personIdValue);
 
-      if (typeof agentConfig === 'string') {
+      if (typeof personConfig === 'string') {
         // Simple format: just system prompt
         persons.push({
           id: personIdValue,
-          name: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           model: 'gpt-4.1-nano',
           service: 'openai',
-          systemPrompt: agentConfig
+          systemPrompt: personConfig
         });
         serviceMap.set(personIdValue, 'openai');
       } else {
         // Full format
-        const service = (agentConfig.service || 'openai') as DomainApiKey['service'];
+        const service = (personConfig.service || 'openai') as DomainApiKey['service'];
         persons.push({
           id: personIdValue,
-          name: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          model: agentConfig.model || 'gpt-4.1-nano',
+          name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          model: personConfig.model || 'gpt-4.1-nano',
           service: service,
-          systemPrompt: agentConfig.system
+          systemPrompt: personConfig.system
         });
         serviceMap.set(personIdValue, service);
       }
@@ -216,9 +216,9 @@ export class LlmYaml {
       needDefault = true;
     }
 
-    // Check if any prompt nodes don't have matching agents
+    // Check if any prompt nodes don't have matching persons
     Object.entries(nodeAnalysis).forEach(([name, _analysis]) => {
-      if (data.prompts?.[name] && !agentsData[name]) {
+      if (data.prompts?.[name] && !personsData[name]) {
         needDefault = true;
       }
     });
@@ -274,8 +274,8 @@ export class LlmYaml {
       if (analysis && node.data.type === 'person_job') {
         const nodeData = node.data;
         
-        // Check if this node has a specific agent
-        if (data.agents?.[originalName]) {
+        // Check if this node has a specific person
+        if (data.persons?.[originalName]) {
           nodeData.personId = personMap.get(originalName);
         } else if (data.prompts?.[originalName]) {
           // Use default person
@@ -292,7 +292,7 @@ export class LlmYaml {
   private exportYaml(diagram: ConverterDiagram): string {
     const flow: string[] = [];
     const prompts: Record<string, string> = {};
-    const agents: Record<string, unknown> = {};
+    const persons: Record<string, unknown> = {};
     const data: Record<string, unknown> = {};
 
     // Create reverse mapping from node ID to simple name
@@ -324,7 +324,7 @@ export class LlmYaml {
 
     // Map persons to names
     diagram.persons.forEach((person, index) => {
-      const personName = person.name?.replace(/\s+/g, '_').toLowerCase() || `agent_${index + 1}`;
+      const personName = person.name?.replace(/\s+/g, '_').toLowerCase() || `person_${index + 1}`;
       personNameMap[person.id] = personName;
     });
 
@@ -380,7 +380,7 @@ export class LlmYaml {
       }
     });
 
-    // Extract agents from persons
+    // Extract persons from diagram persons
     diagram.persons.forEach(person => {
       const personName = personNameMap[person.id];
       
@@ -388,23 +388,23 @@ export class LlmYaml {
       let service = person.service || 'openai'; // default
       
       if (personName && (person.systemPrompt || person.model !== 'gpt-4' || service !== 'openai')) {
-        const agent: Record<string, unknown> = {};
+        const personData: Record<string, unknown> = {};
         
         if (person.model && person.model !== 'gpt-4') {
-          agent.model = person.model;
+          personData.model = person.model;
         }
         if (service && service !== 'openai') {
-          agent.service = service;
+          personData.service = service;
         }
         if (person.systemPrompt) {
-          agent.system = person.systemPrompt;
+          personData.system = person.systemPrompt;
         }
 
         // Simplify if only system prompt
-        if (Object.keys(agent).length === 1 && agent.system) {
-          agents[personName] = agent.system as string;
+        if (Object.keys(personData).length === 1 && personData.system) {
+          persons[personName] = personData.system as string;
         } else {
-          agents[personName] = agent;
+          persons[personName] = personData;
         }
       }
     });
@@ -418,8 +418,8 @@ export class LlmYaml {
       yamlData.prompts = prompts;
     }
 
-    if (Object.keys(agents).length > 0) {
-      yamlData.agents = agents;
+    if (Object.keys(persons).length > 0) {
+      yamlData.persons = persons;
     }
 
     if (Object.keys(data).length > 0) {

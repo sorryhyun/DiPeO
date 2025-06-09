@@ -1,6 +1,5 @@
 // apps/web/src/utils/canvas/sanitizer.ts
-import { DomainDiagram, DomainPerson } from '@/types/domain';
-import { DomainNode, DomainArrow } from '@/types/domain';
+import { DomainDiagram, DomainPerson, DomainNode, DomainArrow } from '@/types/domain';
 import { NodeID, ArrowID, PersonID } from '@/types/branded';
 import { roundPosition } from './layout';
 

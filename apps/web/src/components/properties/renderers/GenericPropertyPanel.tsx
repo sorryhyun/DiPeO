@@ -20,7 +20,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const { persons } = usePersons();
 
   // Convert persons to the format expected by UnifiedFormField
-  const personsForSelect = persons.map(person => ({ id: person.id, name: person.label }));
+  const personsForSelect = persons.map(person => ({ id: person.id, name: person.name }));
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {

@@ -8,9 +8,10 @@ import {
   usePersonDataUpdater 
 } from './useStoreSelectors';
 import { useEvent } from './useEvent';
-import type { DomainApiKey } from '@/types/domain';
+import type { DomainApiKey } from '@/types/domain/api-key';
 import type { PanelConfig, PanelFieldConfig } from '@/types/ui/panel';
 import type { NodeID, ArrowID, PersonID } from '@/types/branded';
+import { nodeId, arrowId, personId } from '@/types/branded';
 import { useApiKeyStore } from "@/stores";
 
 // Safe deep comparison using Immer to handle draft states
@@ -49,7 +50,7 @@ function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
   return true;
 }
 
-interface ValidationRule<T> {
+interface ValidationRule<T extends Record<string, unknown> = Record<string, unknown>> {
   field: keyof T;
   validator: (value: unknown, formData: T) => string | null;
 }
@@ -61,7 +62,7 @@ interface ProcessedField {
   error?: Error | null;
 }
 
-interface UsePropertyManagerOptions<T> {
+interface UsePropertyManagerOptions<T extends Record<string, unknown> = Record<string, unknown>> {
   validationRules?: ValidationRule<T>[];
   autoSave?: boolean;
   autoSaveDelay?: number;
@@ -70,8 +71,8 @@ interface UsePropertyManagerOptions<T> {
   panelConfig?: PanelConfig<T>;
 }
 
-export const usePropertyManager = <T extends Record<string, unknown>>(
-  entityId: NodeID | ArrowID | PersonID,
+export const usePropertyManager = <T extends Record<string, unknown> = Record<string, unknown>>(
+  entityId: string,
   entityType: 'node' | 'arrow' | 'person',
   initialData: T,
   options: UsePropertyManagerOptions<T> = {}
@@ -146,11 +147,11 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
     
     try {
       if (entityType === 'node') {
-        updateNode(entityId, data as Record<string, unknown>);
+        updateNode(nodeId(entityId), data as Record<string, unknown>);
       } else if (entityType === 'arrow') {
-        updateArrow(entityId, data);
+        updateArrow(arrowId(entityId), data);
       } else {
-        updatePerson(entityId, data);
+        updatePerson(personId(entityId), data);
       }
       setLastSaved(new Date());
     } catch (error) {

@@ -106,7 +106,7 @@ export class Yaml {
       };
     });
 
-    // Convert persons to agents with full details - use label as key
+    // Convert persons with full details - use label as key
     diagram.persons.forEach(person => {
       // Use service from person
       let apiKeyLabel: string | undefined;
@@ -139,7 +139,7 @@ export class Yaml {
     return {
       version: '1.0',
       metadata: {
-        description: 'AgentDiagram workflow export'
+        description: 'DiPeO workflow export'
       },
       apiKeys,
       persons,

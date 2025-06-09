@@ -31,7 +31,7 @@ export interface NodeInfo {
   type: NodeKind | 'generic';
   position: { x: number; y: number };
   hasPrompt?: boolean;
-  hasAgent?: boolean;
+  hasPerson?: boolean;
   prompt?: string;
   firstPrompt?: string;
   condition?: string;

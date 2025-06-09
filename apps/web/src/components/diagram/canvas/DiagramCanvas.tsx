@@ -26,7 +26,7 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow, arrowToReactFlow } from "@/types";
+import { DomainArrow, arrowToReact } from "@/types";
 import { roundPosition } from "@/utils/canvas";
 
 // Lazy‑loaded tabs
@@ -87,7 +87,7 @@ function useCommonFlowProps({
 }: CommonFlowPropsParams) {
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
-    const edges = arrows.map(arrow => arrowToReactFlow(arrow)) as Edge[];
+    const edges = arrows.map(arrow => arrowToReact(arrow)) as Edge[];
     
     const baseProps = {
       fitView: true,

@@ -1,6 +1,6 @@
 import type { Dict } from '../primitives';
 import type { NodeID, ExecutionID, PersonID } from '../branded';
-import {PersonMemoryConfig} from '../domain/person'
+import type {PersonMemoryConfig} from '../domain/person';
 
 export interface ExecutionOptions {
   mode?: 'monitor' | 'headless' | 'check';
@@ -84,3 +84,6 @@ export interface PersonMemoryState {
   hasMore?: boolean;
   config?: PersonMemoryConfig;
 }
+
+// Re-export PersonMemoryConfig from domain/person
+export type { PersonMemoryConfig } from '../domain/person';

@@ -143,7 +143,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     on('node_complete', (data: any) => {
       const nodeType = nodes.find((n: DomainNode) => n.id === data.node_id)?.type || 'unknown';
       state.completeNode(data.node_id, data.token_count);
-      ui.showNodeComplete(data.node_id, nodeType);
+      ui.showNodeComplete(data.node_id, nodeType as NodeKind);
       executionStore.removeRunningNode(data.node_id);
       
       // Update context if output is provided
@@ -197,7 +197,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     // Reset state before starting
     state.resetState();
     executionStore.setRunContext({});
-    executionStore.runningNodes.forEach((nodeId: NodeID) => executionStore.removeRunningNode(nodeId));
+    executionStore.runningNodes.forEach((nodeId) => executionStore.removeRunningNode(nodeId));
     ui.clearInteractivePrompt();
     
     try {
@@ -243,7 +243,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       });
     }
     state.abortExecution();
-    executionStore.runningNodes.forEach((nodeId: NodeID) => executionStore.removeRunningNode(nodeId));
+    executionStore.runningNodes.forEach((nodeId) => executionStore.removeRunningNode(nodeId));
   }, [send, state, executionStore]);
 
   const respondToPrompt = useCallback((nodeId: NodeID, response: string) => {

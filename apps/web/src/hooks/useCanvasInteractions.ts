@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import type { DomainNode } from '@/types/domain';
+import type { DomainNode } from '@/types/domain/node';
 import type { NodeID } from '@/types/branded';
-import { nodeId } from '@/types/branded';
+import {nodeId, arrowId, personId} from '@/types/branded';
 import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
 // TYPES
@@ -96,10 +96,10 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     if (isMonitorMode) return;
     
     if (selectedNodeId) {
-      deleteNode(selectedNodeId);
+      deleteNode(nodeId(selectedNodeId));
       clearSelection();
     } else if (selectedArrowId) {
-      deleteArrow(selectedArrowId);
+      deleteArrow(arrowId(selectedArrowId));
       clearSelection();
     }
     closeContextMenu();
@@ -195,9 +195,10 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     if (isMonitorMode) return;
     
     event.preventDefault();
-    const personId = event.dataTransfer.getData('application/person');
-    if (personId) {
-      updateNode(nodeId, { personId });
+    const personIdStr = event.dataTransfer.getData('application/person');
+    if (personIdStr) {
+      // Update the data property with the person ID
+      updateNode(nodeId, { data: { person: personId(personIdStr) } });
     }
 
     setDragState({

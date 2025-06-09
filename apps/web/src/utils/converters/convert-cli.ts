@@ -38,7 +38,7 @@ async function main() {
       const yamlData = parseYaml(inputContent);
       
       // Detect if this is LLM YAML format
-      if (yamlData.flow && (yamlData.prompts || yamlData.agents)) {
+      if (yamlData.flow && (yamlData.prompts || yamlData.persons)) {
         // LLM YAML format - convert to DiagramState
         diagram = LlmYaml.fromLLMYAML(inputContent);
       } else {

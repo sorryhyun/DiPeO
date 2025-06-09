@@ -3,7 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecutionV2, useDiagramRunner } from './hooks/execution';
-import { useConsolidatedUIStore, useDiagramExportStore } from './stores';
+import { useConsolidatedUIStore, useDiagramStore } from './stores';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -13,7 +13,7 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 
 function App() {
   const { activeCanvas } = useConsolidatedUIStore();
-  const { setReadOnly } = useDiagramExportStore();
+  const { setReadOnly } = useDiagramStore();
   const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
@@ -25,9 +25,9 @@ function App() {
       setReadOnly?.(monitorParam);
 
       if (monitorParam) {
-        document.title = 'AgentDiagram - Monitor Mode';
+        document.title = 'DiPeO - Monitor Mode';
       } else {
-        document.title = 'AgentDiagram';
+        document.title = 'DiPeO';
       }
     };
 

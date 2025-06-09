@@ -423,16 +423,38 @@ export class DiagramExporter {
           const inputHandles = nodeConfig.handles.input || [];
           const outputHandles = nodeConfig.handles.output || [];
           
-          [...inputHandles, ...outputHandles].forEach(handleData => {
+          // Process input handles
+          inputHandles.forEach(handleConfig => {
             const handle: DomainHandle = {
-              id: handleId(id, handleData.name),
+              id: handleId(id, handleConfig.id),
               nodeId: id,
-              name: handleData.name,
-              direction: handleData.type === 'input' ? 'input' : 'output',
-              dataType: handleData.dataType,
-              position: handleData.position,
-              label: handleData.label,
-              maxConnections: handleData.maxConnections
+              name: handleConfig.id,
+              direction: 'input',
+              dataType: 'any' as DataType, // Default data type
+              position: handleConfig.position as HandlePosition,
+              label: handleConfig.label,
+              offset: handleConfig.offset ? 
+                (typeof handleConfig.offset.x === 'number' || typeof handleConfig.offset.y === 'number' ? 
+                  (handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0) : undefined) 
+                : undefined
+            };
+            this.domainStore.addHandle(handle);
+          });
+          
+          // Process output handles
+          outputHandles.forEach(handleConfig => {
+            const handle: DomainHandle = {
+              id: handleId(id, handleConfig.id),
+              nodeId: id,
+              name: handleConfig.id,
+              direction: 'output',
+              dataType: 'any' as DataType, // Default data type
+              position: handleConfig.position as HandlePosition,
+              label: handleConfig.label,
+              offset: handleConfig.offset ? 
+                (typeof handleConfig.offset.x === 'number' || typeof handleConfig.offset.y === 'number' ? 
+                  (handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0) : undefined) 
+                : undefined
             };
             this.domainStore.addHandle(handle);
           });

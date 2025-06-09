@@ -1,4 +1,4 @@
-import { NodeID } from '../branded';
+import {NodeID, PersonID} from '../branded';
 import { Vec2, NodeKind, ConditionType, PersonForgettingStrategy, JobLanguage, DBOperation, DBSubType, NotionOperation, ProcessType } from '../primitives';
 
 /**
@@ -52,7 +52,7 @@ export type ConditionNode = TypedDomainNode<NodeKind, ConditionNodeData> & { typ
  */
 export interface PersonJobNodeData {
   label?: string;
-  agent?: string;
+  person?: PersonID;
   firstOnlyPrompt: string;
   defaultPrompt?: string;
   maxIterations?: number;
@@ -135,7 +135,7 @@ export type NotionNode = TypedDomainNode<NodeKind, NotionNodeData> & { type: 'no
  */
 export interface PersonBatchJobNodeData {
   label?: string;
-  agent?: string;
+  person?: string;
   process_type: ProcessType;
   basePrompt: string;
   outputStructure: Record<string, string>;
