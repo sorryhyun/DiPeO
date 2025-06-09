@@ -1,12 +1,12 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { Dict, ArrowData, Person, PanelConfig, NodeKind } from '@/types';
+import { Dict, ArrowData, DomainPerson, PanelConfig, NodeKind } from '@/types';
 import { NODE_CONFIGS, getPanelConfig } from '@/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
-export type UniversalData = NodeData | (ArrowData & { type: 'arrow' }) | (Person & { type: 'person' });
+export type UniversalData = NodeData | (ArrowData & { type: 'arrow' }) | (DomainPerson & { type: 'person' });
 
 interface UniversalPropertiesPanelProps {
   nodeId: string;

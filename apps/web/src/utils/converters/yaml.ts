@@ -110,7 +110,7 @@ export class Yaml {
     diagram.persons.forEach(person => {
       // Use service from person
       let apiKeyLabel: string | undefined;
-      let service = person.service || 'openai'; // default
+      const service = person.service || 'openai'; // default
       
       persons[person.name] = {
         model: person.model || 'gpt-4.1-nano',

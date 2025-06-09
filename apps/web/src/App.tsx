@@ -4,6 +4,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecutionV2, useDiagramRunner } from './hooks/execution';
 import { useConsolidatedUIStore, useDiagramStore } from './stores';
+import { useHistoryStore } from './stores/historyStore';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -17,6 +18,21 @@ function App() {
   const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
+  
+  // Initialize history store with diagram store on mount
+  useEffect(() => {
+    const diagramStore = useDiagramStore.getState();
+    const historyStore = useHistoryStore.getState();
+    
+    // Set the diagram store reference in history store
+    historyStore.setDiagramStore(diagramStore._store);
+    
+    // Set global reference for saveHistory to access
+    (window as unknown as { __historyStore?: typeof historyStore }).__historyStore = historyStore;
+    
+    // Initialize history with current state
+    historyStore.initializeHistory();
+  }, []);
   
   useEffect(() => {
     const checkMonitorMode = () => {

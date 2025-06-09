@@ -1,6 +1,6 @@
 // Reusable component for rendering property panels based on selection
 import React, { Suspense, useCallback } from 'react';
-import { Node, Arrow, Person } from '@/types';
+import { DomainNode, DomainArrow, DomainPerson } from '@/types';
 import { LoadingFallback } from '@/components/ui/feedback';
 
 // Lazy load PropertiesPanel as it's a heavy component
@@ -15,9 +15,9 @@ interface PropertiesRendererProps {
   selectedNodeId?: string | null;
   selectedArrowId?: string | null;
   selectedPersonId?: string | null;
-  nodes?: Node[];
-  arrows?: Arrow[];
-  persons?: Person[];
+  nodes?: DomainNode[];
+  arrows?: DomainArrow[];
+  persons?: DomainPerson[];
 }
 
 interface PropertiesResult {
@@ -49,7 +49,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     const sourceHandleName = sourceHandleParts.join(':');
     
     // Find source node to determine if this is a special arrow
-    const sourceNode = nodes?.find((n: Node) => n.id === sourceNodeId);
+    const sourceNode = nodes?.find((n: DomainNode) => n.id === sourceNodeId);
     const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
     
     // Ensure we have a valid id from arrow data

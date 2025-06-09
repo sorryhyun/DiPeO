@@ -2,6 +2,7 @@ import { shallow } from 'zustand/shallow';
 import { useDiagramStore } from '@/stores';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
+import { useHistoryStore } from '@/stores/historyStore';
 import type { DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle, DomainDiagram } from '@/types/domain';
 import type { NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@/types/branded';
 
@@ -267,15 +268,17 @@ export const useDiagramActions = () => {
 // UI selectors (alias for backward compatibility)
 // export const useUISelectors = useUIState; // Removed - use useUIState directly
 
-// History selectors (if needed, can be extended later)
+// History selectors
 export const useHistorySelectors = () => {
-  // Placeholder for history functionality
-  return {
-    canUndo: false,
-    canRedo: false,
-    undo: () => {},
-    redo: () => {},
-  };
+  return useHistoryStore(
+    (state) => ({
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      undo: state.undo,
+      redo: state.redo,
+    }),
+    shallow
+  );
 };
 
 // Diagram operations as direct exports

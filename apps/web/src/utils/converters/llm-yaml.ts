@@ -200,7 +200,7 @@ export class LlmYaml {
           id: personIdValue,
           name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           model: personConfig.model || 'gpt-4.1-nano',
-          service: service,
+          service,
           systemPrompt: personConfig.system
         });
         serviceMap.set(personIdValue, service);
@@ -385,7 +385,7 @@ export class LlmYaml {
       const personName = personNameMap[person.id];
       
       // Use service from person
-      let service = person.service || 'openai'; // default
+      const service = person.service || 'openai'; // default
       
       if (personName && (person.systemPrompt || person.model !== 'gpt-4' || service !== 'openai')) {
         const personData: Record<string, unknown> = {};

@@ -114,6 +114,17 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
         // Create internal store instance
         const store = new DiagramCanvasStore();
         
+        // Helper to save to history after modifications
+        const saveHistory = (action?: string) => {
+          // Use setTimeout to ensure state is updated before saving
+          setTimeout(() => {
+            const historyStore = (window as unknown as { __historyStore?: { saveToHistory: (action?: string) => void } }).__historyStore;
+            if (historyStore) {
+              historyStore.saveToHistory(action);
+            }
+          }, 0);
+        };
+        
         return {
           _store: store,
           isReadOnly: false,
@@ -127,6 +138,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           addNode: (node: DomainNode) => {
             store.addNode(node);
             set({});
+            saveHistory('addNode');
           },
           
           addNodeByType: (type: NodeKind, position: { x: number; y: number }) => {
@@ -145,6 +157,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             };
             store.addNode(node);
             set({});
+            saveHistory('addNodeByType');
             return id;
           },
           
@@ -155,17 +168,20 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
               store.removeNode(id);
               store.addNode(updated);
               set({});
+              saveHistory('updateNode');
             }
           },
           
           deleteNode: (id: NodeID) => {
             store.removeNode(id);
             set({});
+            saveHistory('deleteNode');
           },
           
           removeNode: (id: NodeID) => {
             store.removeNode(id);
             set({});
+            saveHistory('removeNode');
           },
           
           // Arrow methods
@@ -177,6 +193,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           addArrow: (arrow: DomainArrow) => {
             store.addArrow(arrow);
             set({});
+            saveHistory('addArrow');
           },
           
           updateArrow: (id: ArrowID, updates: Partial<DomainArrow>) => {
@@ -186,17 +203,20 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
               store.removeArrow(id);
               store.addArrow(updated);
               set({});
+              saveHistory('updateArrow');
             }
           },
           
           deleteArrow: (id: ArrowID) => {
             store.removeArrow(id);
             set({});
+            saveHistory('deleteArrow');
           },
           
           removeArrow: (id: ArrowID) => {
             store.removeArrow(id);
             set({});
+            saveHistory('removeArrow');
           },
           
           // Person methods
@@ -208,6 +228,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           addPerson: (person: DomainPerson) => {
             store.addPerson(person);
             set({});
+            saveHistory('addPerson');
           },
           
           createPerson: (data: Omit<DomainPerson, 'id'>) => {
@@ -217,6 +238,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             };
             store.addPerson(person);
             set({});
+            saveHistory('createPerson');
             return person;
           },
           
@@ -227,12 +249,14 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
               store.removePerson(id);
               store.addPerson(updated);
               set({});
+              saveHistory('updatePerson');
             }
           },
           
           deletePerson: (id: PersonID) => {
             store.removePerson(id);
             set({});
+            saveHistory('deletePerson');
           },
           
           // Handle methods
@@ -247,6 +271,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           addApiKey: (apiKey: DomainApiKey) => {
             store.addApiKey(apiKey);
             set({});
+            saveHistory('addApiKey');
           },
           
           updateApiKey: (id: ApiKeyID, updates: Partial<DomainApiKey>) => {
@@ -256,12 +281,14 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
               store.removeApiKey(id);
               store.addApiKey(updated);
               set({});
+              saveHistory('updateApiKey');
             }
           },
           
           deleteApiKey: (id: ApiKeyID) => {
             store.removeApiKey(id);
             set({});
+            saveHistory('deleteApiKey');
           },
           
           // React Flow handlers
@@ -288,6 +315,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             });
             
             set({});
+            saveHistory('onNodesChange');
           },
           
           onArrowsChange: (changes: EdgeChange[]) => {
@@ -310,6 +338,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             });
             
             set({});
+            saveHistory('onArrowsChange');
           },
           
           onConnect: (connection: Connection) => {
@@ -379,12 +408,14 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             Object.values(diagram.apiKeys).forEach(apiKey => _store.addApiKey(apiKey));
             
             set({});
+            saveHistory('loadDiagram');
           },
           
           clear: () => {
             const { _store } = get();
             _store.clear();
             set({});
+            saveHistory('clear');
           },
           
           // Mode control

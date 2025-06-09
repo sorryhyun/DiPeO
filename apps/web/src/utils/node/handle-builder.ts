@@ -125,7 +125,7 @@ function createHandleFromConfig(
     id: handleId,
     nodeId: nodeId as NodeID,
     name: handleName,
-    direction: direction,
+    direction,
     dataType: mapToDataType(inferDataType(handleName)),
     position: mapToHandlePosition(config.position || (direction === 'input' ? 'left' : 'right')),
     label: config.label || handleName,
