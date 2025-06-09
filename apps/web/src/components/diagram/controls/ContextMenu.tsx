@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
-import { NODE_CONFIGS, DomainNode } from '@/types';
+import { DomainNode } from '@/types';
+import { NODE_CONFIGS } from '@/config';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };

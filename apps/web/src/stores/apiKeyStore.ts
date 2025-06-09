@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
-import { entityIdGenerators } from '@/utils/id';
+import { entityIdGenerators } from '@/types/primitives';
 import { DomainApiKey } from '@/types';
 import { api } from '@/utils';
 

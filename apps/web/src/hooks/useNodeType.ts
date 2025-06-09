@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { NODE_CONFIGS } from '@/types';
+import { NODE_CONFIGS } from '@/config';
 
 export const useNodeType = (nodeType: string) => {
   const config = useMemo(() => NODE_CONFIGS[nodeType as keyof typeof NODE_CONFIGS], [nodeType]);

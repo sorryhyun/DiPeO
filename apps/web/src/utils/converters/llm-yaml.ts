@@ -1,5 +1,5 @@
 import { parse, stringify } from 'yaml';
-import { generateShortId, entityIdGenerators } from '@/utils/id';
+import { generateShortId, entityIdGenerators } from '@/types/primitives';
 import { Diagram, Person, ApiKey, Node, NodeKind } from '@/types';
 import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';

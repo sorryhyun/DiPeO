@@ -1,5 +1,5 @@
 import type { NodeKind } from '@/types';
-import type { NodeConfigItem } from '../types';
+import type { NodeConfigItem } from '@/types/config';
 import { startNodeConfig } from './start';
 import { conditionNodeConfig } from './condition';
 import { jobNodeConfig } from './job';

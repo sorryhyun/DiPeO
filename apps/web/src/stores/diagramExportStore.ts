@@ -19,10 +19,10 @@ import {
   personId,
   apiKeyId,
   handleId,
-  parseHandleId
-} from '@/types/branded';
-import { NodeType, DataType, HandlePosition } from '@/types/enums';
-import { generateShortId, generateArrowId } from '@/utils/id';
+  parseHandleId,
+} from '@/types';
+import { NodeKind, DataType, HandlePosition } from '@/types/primitives';
+import { generateShortId, generateArrowId } from '@/types/primitives';
 import { getNodeConfig } from '@/config/helpers';
 
 // Export format types
@@ -418,21 +418,21 @@ export class DiagramExporter {
         });
       } else {
         // Generate default handles if not provided
-        const nodeConfig = getNodeConfig(nodeData.type as NodeType);
+        const nodeConfig = getNodeConfig(nodeData.type as NodeKind);
         if (nodeConfig?.handles) {
           const inputHandles = nodeConfig.handles.input || [];
           const outputHandles = nodeConfig.handles.output || [];
           
-          [...inputHandles, ...outputHandles].forEach(handleConfig => {
+          [...inputHandles, ...outputHandles].forEach(handleData => {
             const handle: DomainHandle = {
-              id: handleId(`${id}:${handleConfig.name}`),
+              id: handleId(id, handleData.name),
               nodeId: id,
-              name: handleConfig.name,
-              direction: handleConfig.type === 'input' ? 'input' : 'output',
-              dataType: handleConfig.dataType,
-              position: handleConfig.position,
-              label: handleConfig.label,
-              maxConnections: handleConfig.maxConnections
+              name: handleData.name,
+              direction: handleData.type === 'input' ? 'input' : 'output',
+              dataType: handleData.dataType,
+              position: handleData.position,
+              label: handleData.label,
+              maxConnections: handleData.maxConnections
             };
             this.domainStore.addHandle(handle);
           });
@@ -461,8 +461,8 @@ export class DiagramExporter {
       const targetHandleName = targetHandleParts.slice(1).join('-') || 'input';
 
       // Create handle IDs
-      const sourceHandleId = handleId(`${sourceNodeId}:${sourceHandleName}`);
-      const targetHandleId = handleId(`${targetNodeId}:${targetHandleName}`);
+      const sourceHandleId = handleId(sourceNodeId, sourceHandleName);
+      const targetHandleId = handleId(targetNodeId, targetHandleName);
 
       // Verify handles exist
       if (!this.domainStore.getHandle(sourceHandleId) || !this.domainStore.getHandle(targetHandleId)) {

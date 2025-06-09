@@ -1,4 +1,4 @@
-import type { NodeConfigItem } from '../types';
+import type { NodeConfigItem } from '@/types/config';
 
 export const conditionNodeConfig: NodeConfigItem = {
   label: 'Condition',

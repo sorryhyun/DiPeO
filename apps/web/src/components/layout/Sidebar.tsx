@@ -2,7 +2,7 @@
 import React, { useState, Suspense } from 'react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { NODE_CONFIGS } from '@/types';
+import { NODE_CONFIGS } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
 import { 

@@ -1,6 +1,5 @@
 import { NodeID } from '../branded';
-import { Vec2 } from '../primitives';
-import { NodeType } from '../enums';
+import { Vec2, NodeKind } from '../primitives';
 
 /**
  * Pure domain node - framework-agnostic representation
@@ -8,7 +7,7 @@ import { NodeType } from '../enums';
  */
 export interface DomainNode {
   id: NodeID;
-  type: NodeType;
+  type: NodeKind;
   position: Vec2;
   data: Record<string, unknown>;
 }
@@ -16,7 +15,7 @@ export interface DomainNode {
 /**
  * Node with typed data for specific node types
  */
-export interface TypedDomainNode<T extends NodeType, D extends Record<string, unknown> = Record<string, unknown>> 
+export interface TypedDomainNode<T extends NodeKind, D extends Record<string, unknown> = Record<string, unknown>>
   extends DomainNode {
   type: T;
   data: D;
@@ -32,7 +31,7 @@ export interface StartNodeData {
   [key: string]: unknown;
 }
 
-export type StartNode = TypedDomainNode<NodeType.Start, StartNodeData>;
+export type StartNode = TypedDomainNode<NodeKind.Start, StartNodeData>;
 
 /**
  * Condition node domain model
@@ -45,7 +44,7 @@ export interface ConditionNodeData {
   [key: string]: unknown;
 }
 
-export type ConditionNode = TypedDomainNode<NodeType.Condition, ConditionNodeData>;
+export type ConditionNode = TypedDomainNode<NodeKind.Condition, ConditionNodeData>;
 
 /**
  * Person job node domain model
@@ -62,7 +61,7 @@ export interface PersonJobNodeData {
   [key: string]: unknown;
 }
 
-export type PersonJobNode = TypedDomainNode<NodeType.PersonJob, PersonJobNodeData>;
+export type PersonJobNode = TypedDomainNode<NodeKind.PersonJob, PersonJobNodeData>;
 
 /**
  * Endpoint node domain model
@@ -74,7 +73,7 @@ export interface EndpointNodeData {
   [key: string]: unknown;
 }
 
-export type EndpointNode = TypedDomainNode<NodeType.Endpoint, EndpointNodeData>;
+export type EndpointNode = TypedDomainNode<NodeKind.Endpoint, EndpointNodeData>;
 
 /**
  * DB node domain model
@@ -89,7 +88,7 @@ export interface DBNodeData {
   [key: string]: unknown;
 }
 
-export type DBNode = TypedDomainNode<NodeType.DB, DBNodeData>;
+export type DBNode = TypedDomainNode<NodeKind.DB, DBNodeData>;
 
 /**
  * Job node domain model
@@ -101,7 +100,7 @@ export interface JobNodeData {
   [key: string]: unknown;
 }
 
-export type JobNode = TypedDomainNode<NodeType.Job, JobNodeData>;
+export type JobNode = TypedDomainNode<NodeKind.Job, JobNodeData>;
 
 /**
  * User response node domain model
@@ -113,7 +112,7 @@ export interface UserResponseNodeData {
   [key: string]: unknown;
 }
 
-export type UserResponseNode = TypedDomainNode<NodeType.UserResponse, UserResponseNodeData>;
+export type UserResponseNode = TypedDomainNode<NodeKind.UserResponse, UserResponseNodeData>;
 
 /**
  * Notion node domain model
@@ -129,7 +128,7 @@ export interface NotionNodeData {
   [key: string]: unknown;
 }
 
-export type NotionNode = TypedDomainNode<NodeType.Notion, NotionNodeData>;
+export type NotionNode = TypedDomainNode<NodeKind.Notion, NotionNodeData>;
 
 /**
  * Person batch job node domain model
@@ -144,7 +143,7 @@ export interface PersonBatchJobNodeData {
   [key: string]: unknown;
 }
 
-export type PersonBatchJobNode = TypedDomainNode<NodeType.PersonBatchJob, PersonBatchJobNodeData>;
+export type PersonBatchJobNode = TypedDomainNode<NodeKind.PersonBatchJob, PersonBatchJobNodeData>;
 
 /**
  * Union of all domain node types
@@ -177,7 +176,7 @@ export function isDomainNode(obj: unknown): obj is DomainNode {
 /**
  * Type guard for specific node types
  */
-export function isNodeOfType<T extends NodeType>(
+export function isNodeOfKind<T extends NodeKind>(
   node: DomainNode,
   type: T
 ): node is Extract<DiagramNode, { type: T }> {

@@ -1,5 +1,5 @@
 import { HandleID, NodeID } from '../branded';
-import { DataType, HandlePosition } from '../enums';
+import { DataType, HandlePosition } from '../primitives';
 
 /**
  * Handle direction - aligned terminology
@@ -39,29 +39,6 @@ export interface OutputHandle extends DomainHandle {
 }
 
 /**
- * Type guards
- */
-export function isDomainHandle(obj: unknown): obj is DomainHandle {
-  return (
-    obj !== null &&
-    typeof obj === 'object' &&
-    'id' in obj &&
-    'nodeId' in obj &&
-    'name' in obj &&
-    'direction' in obj &&
-    'dataType' in obj
-  );
-}
-
-export function isInputHandle(handle: DomainHandle): handle is InputHandle {
-  return handle.direction === 'input';
-}
-
-export function isOutputHandle(handle: DomainHandle): handle is OutputHandle {
-  return handle.direction === 'output';
-}
-
-/**
  * Handle compatibility checker
  */
 export function areHandlesCompatible(
@@ -69,7 +46,7 @@ export function areHandlesCompatible(
   target: DomainHandle
 ): boolean {
   // Source must be output, target must be input
-  if (!isOutputHandle(source) || !isInputHandle(target)) {
+  if (source.direction !== 'output' || target.direction !== 'input') {
     return false;
   }
 
@@ -88,4 +65,29 @@ export function areHandlesCompatible(
  */
 export function createHandleId(nodeId: NodeID, handleName: string): HandleID {
   return `${nodeId}:${handleName}` as HandleID;
+}
+
+/**
+ * Parse handle ID into node ID and handle name
+ */
+export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
+  const [nodeId, ...handleNameParts] = handleId.split(':');
+  return {
+    nodeId: nodeId as NodeID,
+    handleName: handleNameParts.join(':')
+  };
+}
+
+/**
+ * Validate handle ID format
+ */
+export function isValidHandleIdFormat(value: string): boolean {
+  return /^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$/.test(value);
+}
+
+/**
+ * Validate node ID format
+ */
+export function isValidNodeIdFormat(value: string): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(value);
 }

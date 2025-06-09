@@ -1,4 +1,4 @@
-import { generateShortId } from '@/utils/id';
+import { generateShortId } from '@/types/primitives';
 import { Node, NodeKind } from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';

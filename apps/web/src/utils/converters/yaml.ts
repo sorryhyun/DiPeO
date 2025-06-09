@@ -1,9 +1,8 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
-import { Diagram, Person, Arrow, ApiKey, Node, NodeKind } from '@/types';
-import { generateShortId, entityIdGenerators } from '@/utils/id';
+import { Diagram, Person, Arrow, ApiKey, Node, NodeKind, createHandleId, parseHandleId } from '@/types';
+import { generateShortId, entityIdGenerators } from '@/types/primitives';
 import { buildNode, NodeInfo } from './nodeBuilders';
-import { createHandleId, parseHandleId } from '@/utils/canvas/handle-adapter';
 
 interface YamlDiagram {
   version: '1.0';

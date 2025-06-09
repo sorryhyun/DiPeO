@@ -102,6 +102,32 @@ export function getNodeHandles(
 }
 
 /**
+ * Get a handle by its ID
+ */
+export function getHandleById(diagram: DomainDiagram, handleId: HandleID): DomainHandle | undefined {
+  return diagram.handles[handleId];
+}
+
+/**
+ * Get connected handles
+ */
+export function getConnectedHandles(diagram: DomainDiagram, handleId: HandleID): DomainHandle[] {
+  const connectedHandleIds = new Set<HandleID>();
+  
+  Object.values(diagram.arrows).forEach(arrow => {
+    if (arrow.source === handleId) {
+      connectedHandleIds.add(arrow.target);
+    } else if (arrow.target === handleId) {
+      connectedHandleIds.add(arrow.source);
+    }
+  });
+  
+  return Array.from(connectedHandleIds)
+    .map(id => diagram.handles[id])
+    .filter(Boolean) as DomainHandle[];
+}
+
+/**
  * Get all arrows connected to a node
  */
 export function getNodeConnections(
@@ -126,12 +152,3 @@ export function getNodeConnections(
   return { incoming, outgoing };
 }
 
-export interface ConversationMessage {
-  id?: string;
-  role: 'user' | 'assistant' | 'system';
-  personId: PersonID;
-  content: string;
-  timestamp?: string;
-  tokenCount?: number;
-  nodeLabel?: string;
-}

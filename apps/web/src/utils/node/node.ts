@@ -1,7 +1,7 @@
 import { Node } from '@xyflow/react';
 import type { Node as DiagramNode, NodeKind, Dict, ValidationResult } from '@/types';
 import { getNodeConfig, getNodeDefaults, validateNodeData as validateNodeConfig } from '@/config';
-import { entityIdGenerators } from '@/utils/id';
+import { entityIdGenerators } from '@/types/primitives';
 
 // NODE CREATION & DEFAULTS
 

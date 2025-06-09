@@ -3,9 +3,8 @@
  * Simplified typed actions for the diagram store
  * This provides a cleaner API without complex type gymnastics
  */
-import { NodeID, ArrowID, PersonID, nodeId, arrowId, personId } from '@/types/branded';
-import { NodeType } from '@/types/enums';
-import { Vec2 } from '@/types/primitives';
+import { NodeID, ArrowID, PersonID, personId } from '@/types/branded';
+import { NodeKind, Vec2 } from '@/types';
 import { 
   createStartNode,
   createConditionNode,
@@ -25,15 +24,15 @@ import type { DomainPerson } from '@/types/domain/person';
  */
 export function createTypedActions(store: any) {
   const nodeFactories = {
-    [NodeType.Start]: createStartNode,
-    [NodeType.Condition]: createConditionNode,
-    [NodeType.PersonJob]: createPersonJobNode,
-    [NodeType.Endpoint]: createEndpointNode,
-    [NodeType.DB]: createDBNode,
-    [NodeType.Job]: createJobNode,
-    [NodeType.UserResponse]: createUserResponseNode,
-    [NodeType.Notion]: createNotionNode,
-    [NodeType.PersonBatchJob]: createPersonBatchJobNode
+    [NodeKind.Start]: createStartNode,
+    [NodeKind.Condition]: createConditionNode,
+    [NodeKind.PersonJob]: createPersonJobNode,
+    [NodeKind.Endpoint]: createEndpointNode,
+    [NodeKind.DB]: createDBNode,
+    [NodeKind.Job]: createJobNode,
+    [NodeKind.UserResponse]: createUserResponseNode,
+    [NodeKind.Notion]: createNotionNode,
+    [NodeKind.PersonBatchJob]: createPersonBatchJobNode
   };
 
   return {
@@ -134,7 +133,7 @@ export function createTypedActions(store: any) {
       }
 
       // Add arrow to store
-      const arrowId = arrowId(`ar-${Date.now()}`);
+      const arrowId = ArrowId(`ar-${Date.now()}`);
       store.addArrow({
         id: arrowId,
         source: fromNodeId as string,

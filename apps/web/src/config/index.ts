@@ -1,5 +1,4 @@
 // Main export file that maintains the existing API
-export * from './types';
 export * from './helpers';
 export { NODE_CONFIGS } from './nodeConfigs';
 export { PANEL_CONFIGS } from './panelConfigs';

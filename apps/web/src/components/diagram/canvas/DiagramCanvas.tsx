@@ -26,8 +26,8 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow } from "@/types";
-import { roundPosition, arrowToReactFlowEdge } from "@/utils/canvas";
+import { DomainArrow, arrowToReactFlow } from "@/types";
+import { roundPosition } from "@/utils/canvas";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -87,7 +87,7 @@ function useCommonFlowProps({
 }: CommonFlowPropsParams) {
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
-    const edges = arrows.map(arrow => arrowToReactFlowEdge(arrow)) as Edge[];
+    const edges = arrows.map(arrow => arrowToReactFlow(arrow)) as Edge[];
     
     const baseProps = {
       fitView: true,
@@ -232,7 +232,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Context‑menu helpers
    * --------------------------------------------------*/
-  const handleAddPerson = () => addPerson({ label: "New Person" });
+  const handleAddPerson = () => addPerson({ id: "New Person" });
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
   /** --------------------------------------------------

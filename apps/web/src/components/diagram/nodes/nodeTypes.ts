@@ -1,5 +1,5 @@
 // Node types mapping for React Flow
-import { NODE_CONFIGS } from '@/types';
+import { NODE_CONFIGS } from '@/config';
 import ConfigurableNode from './ConfigurableNode';
 
 // Create node types object for React Flow using NODE_CONFIGS

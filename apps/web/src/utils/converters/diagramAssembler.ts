@@ -1,8 +1,28 @@
-import { generateShortId } from '@/utils/id';
-import { Diagram, Node, Arrow, Person, ApiKey } from '@/types';
-import { createHandleId } from '@/utils/canvas/handle-adapter';
+import { generateShortId } from '@/types/primitives';
+import { Node, Arrow, Person, ApiKey, createHandleId, NodeKind, nodeId, arrowId, DomainHandle } from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
+import { buildNode as buildNodeFromInfo, NodeInfo as NodeBuilderInfo } from './nodeBuilders';
+
+// Extended Node type with handles for converters
+export interface NodeWithHandles extends Node {
+  handles: DomainHandle[];
+  // ReactFlow properties
+  draggable?: boolean;
+  selectable?: boolean;
+  connectable?: boolean;
+}
+
+// Legacy diagram format with arrays (for converters)
+export interface LegacyDiagram {
+  id: string;
+  name: string;
+  description?: string;
+  nodes: NodeWithHandles[];
+  arrows: Arrow[];
+  persons: Person[];
+  apiKeys: ApiKey[];
+}
 
 // Edge type for graph representation
 export interface Edge {
@@ -28,6 +48,9 @@ export interface NodePosition {
 }
 
 // Callbacks for format-specific logic
+// Use NodeInfo from nodeBuilders
+export type NodeInfo = NodeBuilderInfo;
+
 export interface AssemblerCallbacks {
   // Parse edges from format-specific flow structure
   parseFlow: (flowData: any) => Edge[];
@@ -48,7 +71,7 @@ export interface AssemblerCallbacks {
   extractApiKeys: (persons: Person[]) => ApiKey[];
   
   // Link persons to nodes
-  linkPersonsToNodes?: (nodes: Node[], nodeAnalysis: Record<string, NodeAnalysis>, context: any) => void;
+  linkPersonsToNodes?: (nodes: NodeWithHandles[], nodeAnalysis: Record<string, NodeAnalysis>, context: any) => void;
 }
 
 export interface AssemblerOptions {
@@ -66,7 +89,7 @@ export class DiagramAssembler {
   /**
    * Assemble a diagram from source data using provided callbacks
    */
-  assemble(options: AssemblerOptions): Diagram {
+  assemble(options: AssemblerOptions): LegacyDiagram {
     const { source, callbacks } = options;
     
     try {
@@ -101,22 +124,22 @@ export class DiagramAssembler {
         arrows,
         persons,
         apiKeys
-      };
+      } as LegacyDiagram;
     } catch (error) {
       // Return minimal valid diagram on error
       console.error('Diagram assembly error:', error);
-      const errorNodeId = 'error-node';
-      const errorNodeConfig = getNodeConfig('start');
+      const errorNodeId = nodeId('error-node');
+      const errorNodeConfig = getNodeConfig('start' as NodeKind);
       const errorHandles = errorNodeConfig 
-        ? generateNodeHandles(errorNodeId, errorNodeConfig, 'start') 
-        : getDefaultHandles(errorNodeId, 'start');
+        ? generateNodeHandles(errorNodeId, errorNodeConfig, 'start' as NodeKind) 
+        : getDefaultHandles(errorNodeId, 'start' as NodeKind);
       
       return {
         id: `diagram-${generateShortId().slice(0, 4)}`,
         name: 'Import Error',
         nodes: [{
           id: errorNodeId,
-          type: 'start',
+          type: 'start' as NodeKind,
           position: { x: 0, y: 0 },
           data: {
             id: errorNodeId,
@@ -128,7 +151,7 @@ export class DiagramAssembler {
         arrows: [],
         persons: [],
         apiKeys: []
-      };
+      } as LegacyDiagram;
     }
   }
   
@@ -248,8 +271,8 @@ export class DiagramAssembler {
     positions: Record<string, NodePosition>,
     source: any,
     callbacks: AssemblerCallbacks
-  ): Node[] {
-    const nodes: Node[] = [];
+  ): NodeWithHandles[] {
+    const nodes: NodeWithHandles[] = [];
     
     Object.entries(nodeAnalysis).forEach(([name, analysis]) => {
       const nodeInfo = callbacks.createNodeInfo(name, analysis, source);
@@ -265,7 +288,7 @@ export class DiagramAssembler {
         : getDefaultHandles(nodeId, nodeInfo.type);
       
       // Create node
-      const node: Node = {
+      const node: NodeWithHandles = {
         id: nodeId,
         type: nodeInfo.type,
         position: positions[name] || { x: 0, y: 0 },
@@ -295,7 +318,7 @@ export class DiagramAssembler {
       
       if (!sourceId || !targetId) return;
       
-      const arrowId = `arrow-${generateShortId().slice(0, 4)}`;
+      const id = arrowId(`arrow-${generateShortId().slice(0, 4)}`);
       
       // Determine handle names based on edge properties
       const sourceHandleName = edge.condition ? 
@@ -304,11 +327,11 @@ export class DiagramAssembler {
       const targetHandleName = 'input';
       
       // Create handle IDs
-      const sourceHandleId = createHandleId(sourceId, sourceHandleName);
-      const targetHandleId = createHandleId(targetId, targetHandleName);
+      const sourceHandleId = createHandleId(nodeId(sourceId), sourceHandleName);
+      const targetHandleId = createHandleId(nodeId(targetId), targetHandleName);
       
       const arrow: Arrow = {
-        id: arrowId,
+        id,
         source: sourceHandleId,
         target: targetHandleId,
         data: {
@@ -346,4 +369,22 @@ export class DiagramAssembler {
   setPersonMap(map: Map<string, string>): void {
     this.personMap = map;
   }
+  
+  /**
+   * Build a node using the unified builder system
+   */
+  static buildNode(info: NodeInfo): NodeWithHandles {
+    // Use the imported buildNode function and ensure it has handles
+    const node = buildNodeFromInfo(info) as NodeWithHandles;
+    // The node from nodeBuilders already has handles, draggable, selectable, connectable
+    return node;
+  }
+  
+  /**
+   * Build multiple nodes from a record of node infos
+   */
+  static buildNodes(nodeInfos: Record<string, NodeInfo>): NodeWithHandles[] {
+    return Object.values(nodeInfos).map(info => DiagramAssembler.buildNode(info));
+  }
+  
 }

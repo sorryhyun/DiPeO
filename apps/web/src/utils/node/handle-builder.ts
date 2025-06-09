@@ -1,8 +1,36 @@
 // Utility for building node handles from configuration
 
-import type { Handle, NodeConfigItem, HandleConfig } from '@/types';
-import { createHandleId } from '../canvas/handle-adapter';
+import { createHandleId, nodeId, type NodeConfigItem, type HandleConfig, type DomainHandle, type NodeID } from '@/types';
+import { DataType, HandlePosition } from '@/types/primitives';
 import { HANDLE_REGISTRY, getHandleConfig } from '@/config/handleRegistry';
+
+/**
+ * Map string position to HandlePosition enum
+ */
+function mapToHandlePosition(position: string): HandlePosition {
+  switch (position) {
+    case 'top': return HandlePosition.Top;
+    case 'right': return HandlePosition.Right;
+    case 'bottom': return HandlePosition.Bottom;
+    case 'left': return HandlePosition.Left;
+    default: return HandlePosition.Left;
+  }
+}
+
+/**
+ * Map string data type to DataType enum
+ */
+function mapToDataType(dataType: string): DataType {
+  switch (dataType) {
+    case 'string': return DataType.String;
+    case 'number': return DataType.Number;
+    case 'boolean': return DataType.Boolean;
+    case 'object': return DataType.Object;
+    case 'array': return DataType.Array;
+    case 'any': return DataType.Any;
+    default: return DataType.Any;
+  }
+}
 
 /**
  * Generate handle objects for a node based on its configuration
@@ -11,19 +39,19 @@ export function generateNodeHandles(
   nodeId: string, 
   nodeConfig: NodeConfigItem,
   nodeType?: string
-): Handle[] {
+): DomainHandle[] {
   // Use centralized registry if available for this node type
   if (nodeType && HANDLE_REGISTRY[nodeType]) {
     return generateNodeHandlesFromRegistry(nodeId, nodeType);
   }
   
   // Fallback to config-based generation
-  const handles: Handle[] = [];
+  const handles: DomainHandle[] = [];
   
   // Generate input handles
   if (nodeConfig.handles.input) {
     nodeConfig.handles.input.forEach((handleConfig) => {
-      const handle = createHandleFromConfig(nodeId, handleConfig, 'target');
+      const handle = createHandleFromConfig(nodeId, handleConfig, 'input');
       handles.push(handle);
     });
   }
@@ -31,7 +59,7 @@ export function generateNodeHandles(
   // Generate output handles
   if (nodeConfig.handles.output) {
     nodeConfig.handles.output.forEach((handleConfig) => {
-      const handle = createHandleFromConfig(nodeId, handleConfig, 'source');
+      const handle = createHandleFromConfig(nodeId, handleConfig, 'output');
       handles.push(handle);
     });
   }
@@ -45,20 +73,21 @@ export function generateNodeHandles(
 export function generateNodeHandlesFromRegistry(
   nodeId: string,
   nodeType: string
-): Handle[] {
-  const handles: Handle[] = [];
+): DomainHandle[] {
+  const handles: DomainHandle[] = [];
   const config = getHandleConfig(nodeType);
   
   // Generate input handles
   if (config.inputs) {
     config.inputs.forEach((handleDef) => {
       handles.push({
-        id: createHandleId(nodeId, handleDef.id),
-        kind: 'target',
+        id: createHandleId(nodeId as NodeID, handleDef.id),
+        nodeId: nodeId as NodeID,
         name: handleDef.id,
-        position: handleDef.position,
+        direction: 'input',
+        dataType: mapToDataType(inferDataType(handleDef.id)),
+        position: mapToHandlePosition(handleDef.position),
         label: handleDef.label || handleDef.id,
-        dataType: inferDataType(handleDef.id),
       });
     });
   }
@@ -67,12 +96,13 @@ export function generateNodeHandlesFromRegistry(
   if (config.outputs) {
     config.outputs.forEach((handleDef) => {
       handles.push({
-        id: createHandleId(nodeId, handleDef.id),
-        kind: 'source',
+        id: createHandleId(nodeId as NodeID, handleDef.id),
+        nodeId: nodeId as NodeID,
         name: handleDef.id,
-        position: handleDef.position,
+        direction: 'output',
+        dataType: mapToDataType(inferDataType(handleDef.id)),
+        position: mapToHandlePosition(handleDef.position),
         label: handleDef.label || handleDef.id,
-        dataType: inferDataType(handleDef.id),
       });
     });
   }
@@ -86,18 +116,19 @@ export function generateNodeHandlesFromRegistry(
 function createHandleFromConfig(
   nodeId: string, 
   config: HandleConfig, 
-  kind: 'source' | 'target'
-): Handle {
-  const handleName = config.id || (kind === 'source' ? 'output' : 'input');
-  const handleId = createHandleId(nodeId, handleName);
+  direction: 'input' | 'output'
+): DomainHandle {
+  const handleName = config.id || (direction === 'input' ? 'input' : 'output');
+  const handleId = createHandleId(nodeId as NodeID, handleName);
   
   return {
     id: handleId,
-    kind,
+    nodeId: nodeId as NodeID,
     name: handleName,
-    position: config.position || (kind === 'source' ? 'right' : 'left'),
+    direction: direction,
+    dataType: mapToDataType(inferDataType(handleName)),
+    position: mapToHandlePosition(config.position || (direction === 'input' ? 'left' : 'right')),
     label: config.label || handleName,
-    dataType: inferDataType(handleName),
   };
 }
 
@@ -125,21 +156,23 @@ function inferDataType(handleName: string): string {
 /**
  * Get default handles for a node type when no configuration is provided
  */
-export function getDefaultHandles(nodeId: string, nodeType: string): Handle[] {
-  const defaultInputHandle: Handle = {
-    id: createHandleId(nodeId, 'input'),
-    kind: 'target',
+export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandle[] {
+  const defaultInputHandle: DomainHandle = {
+    id: createHandleId(nodeId as NodeID, 'input'),
+    nodeId: nodeId as NodeID,
     name: 'input',
-    position: 'left',
-    dataType: 'any',
+    direction: 'input',
+    dataType: DataType.Any,
+    position: HandlePosition.Left,
   };
   
-  const defaultOutputHandle: Handle = {
-    id: createHandleId(nodeId, 'output'),
-    kind: 'source',
+  const defaultOutputHandle: DomainHandle = {
+    id: createHandleId(nodeId as NodeID, 'output'),
+    nodeId: nodeId as NodeID,
     name: 'output',
-    position: 'right',
-    dataType: 'any',
+    direction: 'output',
+    dataType: DataType.Any,
+    position: HandlePosition.Right,
   };
   
   // Special cases for specific node types
@@ -157,20 +190,22 @@ export function getDefaultHandles(nodeId: string, nodeType: string): Handle[] {
       return [
         defaultInputHandle,
         {
-          id: createHandleId(nodeId, 'true'),
-          kind: 'source',
+          id: createHandleId(nodeId as NodeID, 'true'),
+          nodeId: nodeId as NodeID,
           name: 'true',
-          position: 'right',
+          direction: 'output',
+          position: HandlePosition.Right,
           label: 'True',
-          dataType: 'boolean',
+          dataType: DataType.Boolean,
         },
         {
-          id: createHandleId(nodeId, 'false'),
-          kind: 'source',
+          id: createHandleId(nodeId as NodeID, 'false'),
+          nodeId: nodeId as NodeID,
           name: 'false',
-          position: 'right',
+          direction: 'output',
+          position: HandlePosition.Right,
           label: 'False',
-          dataType: 'boolean',
+          dataType: DataType.Boolean,
         },
       ];
       
