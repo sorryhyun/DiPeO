@@ -13,7 +13,6 @@ export * from './useNodeType';
 
 // Execution & Runtime
 export * from './execution'; // New modular execution hooks
-export * from './useWebSocketV2';
 export * from './useWebSocketEventBus';
 
 // File Operations

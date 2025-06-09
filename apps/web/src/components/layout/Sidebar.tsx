@@ -71,7 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
       const node = nodes.find(n => n.id === selectedNodeId);
       if (node) {
         selectedId = node.id;
-        selectedData = { ...node.data, type: node.type };
+        selectedData = { ...node.data, type: node.type || 'unknown' };
       }
     } else if (selectedArrowId) {
       const arrow = arrows.find(a => a.id === selectedArrowId);

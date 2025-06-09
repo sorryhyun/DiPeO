@@ -5,6 +5,7 @@ import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import type { DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle, DomainDiagram } from '@/types/domain';
 import type { NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@/types/branded';
+import { nodeToReact } from '@/types/framework/adapters';
 
 // ===== Key Optimized Selectors =====
 
@@ -47,17 +48,26 @@ export const useNodeExecutionState = (nodeId: NodeID) => {
 // Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
   return useDiagramStore(
-    state => ({
-      nodes: state.nodeList(),
-      arrows: state.arrowList(),
-      isMonitorMode: state.isReadOnly,
-      onNodesChange: state.onNodesChange,
-      onArrowsChange: state.onArrowsChange,
-      onConnect: state.onConnect,
-      addNode: state.addNodeByType,
-      deleteNode: state.deleteNode,
-      deleteArrow: state.deleteArrow,
-    }),
+    state => {
+      // Convert domain nodes to React Flow format with handles
+      const domainNodes = state.nodeList();
+      const nodes = domainNodes.map(node => {
+        const handles = state.getNodeHandles(node.id);
+        return nodeToReact(node, handles);
+      });
+      
+      return {
+        nodes,
+        arrows: state.arrowList(),
+        isMonitorMode: state.isReadOnly,
+        onNodesChange: state.onNodesChange,
+        onArrowsChange: state.onArrowsChange,
+        onConnect: state.onConnect,
+        addNode: state.addNodeByType,
+        deleteNode: state.deleteNode,
+        deleteArrow: state.deleteArrow,
+      };
+    },
     shallow
   );
 };
@@ -80,13 +90,22 @@ export const usePersons = () => {
 // Node operations with monitor support
 export const useNodes = () => {
   return useDiagramStore(
-    state => ({
-      nodes: state.nodeList(),
-      isMonitorMode: state.isReadOnly,
-      onNodesChange: state.onNodesChange,
-      addNode: state.addNodeByType,
-      deleteNode: state.deleteNode,
-    }),
+    state => {
+      // Convert domain nodes to React Flow format with handles
+      const domainNodes = state.nodeList();
+      const nodes = domainNodes.map(node => {
+        const handles = state.getNodeHandles(node.id);
+        return nodeToReact(node, handles);
+      });
+      
+      return {
+        nodes,
+        isMonitorMode: state.isReadOnly,
+        onNodesChange: state.onNodesChange,
+        addNode: state.addNodeByType,
+        deleteNode: state.deleteNode,
+      };
+    },
     shallow
   );
 };
@@ -162,18 +181,27 @@ export const useExecutionStatus = () => {
 // Grouped selectors for major components
 export const useCanvasSelectors = () => {
   return useDiagramStore(
-    state => ({
-      nodes: state.nodeList(),
-      arrows: state.arrowList(),
-      isMonitorMode: state.isReadOnly,
-      onNodesChange: state.onNodesChange,
-      onArrowsChange: state.onArrowsChange,
-      onConnect: state.onConnect,
-      addNode: state.addNodeByType,
-      deleteNode: state.deleteNode,
-      deleteArrow: state.deleteArrow,
-      updateNode: state.updateNode,
-    }),
+    state => {
+      // Convert domain nodes to React Flow format with handles
+      const domainNodes = state.nodeList();
+      const nodes = domainNodes.map(node => {
+        const handles = state.getNodeHandles(node.id);
+        return nodeToReact(node, handles);
+      });
+      
+      return {
+        nodes,
+        arrows: state.arrowList(),
+        isMonitorMode: state.isReadOnly,
+        onNodesChange: state.onNodesChange,
+        onArrowsChange: state.onArrowsChange,
+        onConnect: state.onConnect,
+        addNode: state.addNodeByType,
+        deleteNode: state.deleteNode,
+        deleteArrow: state.deleteArrow,
+        updateNode: state.updateNode,
+      };
+    },
     shallow
   );
 };

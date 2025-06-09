@@ -11,7 +11,7 @@ import { useWebSocketEventBus } from '../useWebSocketEventBus';
 import { useExecutionUI } from './useExecutionUI';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useCanvasSelectors } from '../useStoreSelectors';
-import type { DomainDiagram, DomainNode } from '@/types/domain';
+import type { DomainDiagram } from '@/types/domain';
 import type { InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types/runtime';
 import type { NodeID } from '@/types/branded';
 import {NodeKind} from "@/types";
@@ -141,7 +141,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     });
 
     on('node_complete', (data: any) => {
-      const nodeType = nodes.find((n: DomainNode) => n.id === data.node_id)?.type || 'unknown';
+      const nodeType = nodes.find(n => n.id === data.node_id)?.type || 'unknown';
       state.completeNode(data.node_id, data.token_count);
       ui.showNodeComplete(data.node_id, nodeType as NodeKind);
       executionStore.removeRunningNode(data.node_id);

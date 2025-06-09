@@ -158,7 +158,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
 
   const getNode = (nodeId: NodeID): DomainNode | undefined => {
-    return canvas.nodes.find((n: DomainNode) => n.id === nodeId);
+    return canvas.nodes.find(n => n.id === nodeId) as DomainNode | undefined;
   };
 
   // Arrow operations
@@ -174,7 +174,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
 
   const getArrow = (arrowId: ArrowID): DomainArrow | undefined => {
-    return canvas.arrows.find((a: DomainArrow) => a.id === arrowId);
+    return canvas.arrows.find(a => a.id === arrowId);
   };
 
   // Person operations

@@ -189,13 +189,15 @@ export const useHistoryStore = createWithEqualityFn<HistoryStore>()(
       },
 
       initializeHistory: () => {
-        const { saveToHistory, clearHistory } = get();
-        clearHistory();
+        const { saveToHistory, undoStack } = get();
         
-        // Save initial state
-        setTimeout(() => {
-          saveToHistory('initial');
-        }, 100);
+        // Only initialize if history is empty
+        if (undoStack.length === 0) {
+          // Save initial state without clearing
+          setTimeout(() => {
+            saveToHistory('initial');
+          }, 100);
+        }
       },
 
       setHistoryEnabled: (enabled: boolean) => {

@@ -1,6 +1,7 @@
 // Reusable component for rendering property panels based on selection
 import React, { Suspense, useCallback } from 'react';
-import { DomainNode, DomainArrow, DomainPerson } from '@/types';
+import { DomainArrow, DomainPerson } from '@/types';
+import { DiPeoNode } from '@/types/framework/reactUtils';
 import { LoadingFallback } from '@/components/ui/feedback';
 
 // Lazy load PropertiesPanel as it's a heavy component
@@ -15,7 +16,7 @@ interface PropertiesRendererProps {
   selectedNodeId?: string | null;
   selectedArrowId?: string | null;
   selectedPersonId?: string | null;
-  nodes?: DomainNode[];
+  nodes?: DiPeoNode[];
   arrows?: DomainArrow[];
   persons?: DomainPerson[];
 }
@@ -49,7 +50,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     const sourceHandleName = sourceHandleParts.join(':');
     
     // Find source node to determine if this is a special arrow
-    const sourceNode = nodes?.find((n: DomainNode) => n.id === sourceNodeId);
+    const sourceNode = nodes?.find(n => n.id === sourceNodeId);
     const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
     
     // Ensure we have a valid id from arrow data
@@ -57,7 +58,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       ...arrow.data,
       id: arrow.id, // Use arrow's id directly
       type: 'arrow' as const,
-      _sourceNodeType: sourceNode?.data.type,
+      _sourceNodeType: (sourceNode?.data?.properties as any)?.type || sourceNode?.type,
       _isFromConditionBranch: isFromConditionBranch
     };
   })();
@@ -79,7 +80,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
         title = `${node.data.label || 'Block'} Properties`;
         content = (
           <Suspense fallback={<LoadingFallback />}>
-            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...node.data, type: node.type } as any} />
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...node.data.properties, type: node.type || 'unknown' } as any} />
           </Suspense>
         );
       }

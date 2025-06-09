@@ -46,6 +46,7 @@ import {
 } from '@/types/framework/adapters';
 import { NODE_CONFIGS } from '@/config';
 import { capitalize } from '@/utils/converters/nodeBuilders';
+import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
 
 interface DiagramStore {
   // Internal store instance
@@ -137,6 +138,14 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           
           addNode: (node: DomainNode) => {
             store.addNode(node);
+            
+            // Generate and add handles if not already present
+            const existingHandles = store.getNodeHandles(node.id);
+            if (existingHandles.length === 0) {
+              const handles = generateNodeHandlesFromRegistry(node.id, node.type);
+              handles.forEach(handle => store.addHandle(handle));
+            }
+            
             set({});
             saveHistory('addNode');
           },
@@ -156,6 +165,11 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
               }
             };
             store.addNode(node);
+            
+            // Generate and add handles for the node
+            const handles = generateNodeHandlesFromRegistry(id, type);
+            handles.forEach(handle => store.addHandle(handle));
+            
             set({});
             saveHistory('addNodeByType');
             return id;
@@ -400,9 +414,22 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
             // Clear all existing data
             _store.clear();
             
-            // Load new data from Records
+            // Load nodes first
             Object.values(diagram.nodes).forEach(node => _store.addNode(node));
-            Object.values(diagram.handles).forEach(handle => _store.addHandle(handle));
+            
+            // Load handles, but generate them if missing
+            if (Object.keys(diagram.handles).length === 0 && Object.keys(diagram.nodes).length > 0) {
+              // No handles in the diagram, generate them for all nodes
+              Object.values(diagram.nodes).forEach(node => {
+                const handles = generateNodeHandlesFromRegistry(node.id, node.type);
+                handles.forEach(handle => _store.addHandle(handle));
+              });
+            } else {
+              // Load existing handles
+              Object.values(diagram.handles).forEach(handle => _store.addHandle(handle));
+            }
+            
+            // Load remaining data
             Object.values(diagram.arrows).forEach(arrow => _store.addArrow(arrow));
             Object.values(diagram.persons).forEach(person => _store.addPerson(person));
             Object.values(diagram.apiKeys).forEach(apiKey => _store.addApiKey(apiKey));
