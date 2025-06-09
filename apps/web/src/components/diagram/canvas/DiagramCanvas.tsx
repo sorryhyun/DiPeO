@@ -17,6 +17,7 @@ import {
   NodeChange,
   EdgeChange,
   Connection,
+  ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -26,10 +27,8 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow, arrowToReact, NodeKind, nodeId, arrowId } from "@/types";
+import { DomainArrow, arrowToReact, nodeId, arrowId } from "@/types";
 import { roundPosition } from "@/utils/canvas";
-import { createTypedActions } from "@/stores/typed-actions";
-import { useDiagramStore } from "@/stores";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -55,7 +54,7 @@ interface DiagramCanvasProps {
  * ReactFlow instances that used to live in this file.
  */
 interface CommonFlowPropsParams {
-  nodes: any[];
+  nodes: ReactFlowNode[];
   arrows: DomainArrow[];
   onNodesChange: (changes: NodeChange[]) => void;
   onArrowsChange: (changes: EdgeChange[]) => void;
@@ -192,8 +191,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * React Flow instance helpers
    * --------------------------------------------------*/
   const flowWrapperRef = useRef<HTMLDivElement>(null);
-  const [rfInstance, setRfInstance] = useState<any>(null);
-  const handleInit = (inst: any) => setRfInstance(inst);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const handleInit = (inst: ReactFlowInstance) => setRfInstance(inst);
 
   const projectPosition = useCallback(
     (x: number, y: number) => {
@@ -269,18 +268,33 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   return (
     <div className="h-full flex flex-col">
       {executionMode ? (
-        // During execution mode, show ConversationDashboard as the main view
-        <div className="h-full bg-white">
-          <Suspense
-            fallback={
-              <div className="h-full flex items-center justify-center text-gray-500 animate-pulse">
-                Loading conversation view...
-              </div>
-            }
-          >
-            <ConversationTab />
-          </Suspense>
-        </div>
+        // Execution mode: Split view with diagram and conversation
+        <PanelGroup direction="vertical">
+          <Panel defaultSize={40} minSize={20}>
+            {/* Diagram view in execution mode */}
+            <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
+              <ReactFlow {...flowProps} onInit={handleInit} />
+              <Controls />
+              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              {renderContextMenu()}
+            </div>
+          </Panel>
+          <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
+          <Panel defaultSize={60} minSize={30}>
+            {/* Conversation view */}
+            <div className="h-full bg-white">
+              <Suspense
+                fallback={
+                  <div className="h-full flex items-center justify-center text-gray-500 animate-pulse">
+                    Loading conversation view...
+                  </div>
+                }
+              >
+                <ConversationTab />
+              </Suspense>
+            </div>
+          </Panel>
+        </PanelGroup>
       ) : (
         // Non-execution mode: Show diagram canvas with properties panel
         <PanelGroup direction="vertical">

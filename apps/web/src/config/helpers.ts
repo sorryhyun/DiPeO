@@ -1,8 +1,18 @@
 import type { NodeKind } from '@/types';
 import { NODE_CONFIGS } from './nodeConfigs';
 import { PANEL_CONFIGS } from './panelConfigs';
+import { derivePanelConfig } from './unifiedConfig';
+import { UNIFIED_NODE_CONFIGS } from './nodeConfigs/unifiedIndex';
 
 export function getNodeConfig(type: NodeKind) {
+  // Check if unified config exists
+  const unifiedConfig = UNIFIED_NODE_CONFIGS[type];
+  if (unifiedConfig) {
+    // Extract node config properties from unified config
+    const { panelLayout, panelFieldOverrides, panelFieldOrder, panelCustomFields, ...nodeConfig } = unifiedConfig;
+    return nodeConfig;
+  }
+  
   return NODE_CONFIGS[type] || NODE_CONFIGS.start;
 }
 
@@ -33,5 +43,18 @@ export function getNodeColorClasses(type: NodeKind) {
 }
 
 export function getPanelConfig(type: NodeKind | 'arrow' | 'person') {
-  return PANEL_CONFIGS[type] || null;
+  // Check if unified config exists for node types
+  if (type !== 'arrow' && type !== 'person') {
+    const unifiedConfig = UNIFIED_NODE_CONFIGS[type as NodeKind];
+    if (unifiedConfig) {
+      return derivePanelConfig(unifiedConfig);
+    }
+  }
+  
+  // Only arrow and person remain in PANEL_CONFIGS
+  if (type === 'arrow' || type === 'person') {
+    return PANEL_CONFIGS[type];
+  }
+  
+  return null;
 }
