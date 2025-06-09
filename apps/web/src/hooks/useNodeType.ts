@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { NODE_CONFIGS } from '@/config';
+import { UNIFIED_NODE_CONFIGS } from '@/config';
 import type { NodeKind } from '@/types/primitives/enums';
 
 export const useNodeType = (nodeType: NodeKind) => {
-  const config = useMemo(() => NODE_CONFIGS[nodeType as keyof typeof NODE_CONFIGS], [nodeType]);
+  const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS], [nodeType]);
 
   // Memoize handles once, avoiding multiple map passes per render
   const handles = useMemo(() => {

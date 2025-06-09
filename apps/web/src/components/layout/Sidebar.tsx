@@ -2,7 +2,7 @@
 import React, { useState, Suspense } from 'react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { NODE_CONFIGS } from '@/config';
+import { getNodeConfig } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
 import { 
@@ -119,17 +119,17 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
           <div className="mt-3">
             <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="start" label={`${NODE_CONFIGS.start?.icon || '🚀'} ${NODE_CONFIGS.start?.label || 'Start'}`} />
-              <DraggableBlock type="person_job" label={`${NODE_CONFIGS.person_job?.icon || '🤖'} ${NODE_CONFIGS.person_job?.label || 'Person Job'}`} />
-              <DraggableBlock type="person_batch_job" label={`${NODE_CONFIGS.person_batch_job?.icon || '🤖📦'} ${NODE_CONFIGS.person_batch_job?.label || 'Person Batch Job'}`} />
-              <DraggableBlock type="condition" label={`${NODE_CONFIGS.condition?.icon || '🔀'} ${NODE_CONFIGS.condition?.label || 'Condition'}`} />
-              <DraggableBlock type="job" label={`${NODE_CONFIGS.job?.icon || '⚙️'} ${NODE_CONFIGS.job?.label || 'Job'}`} />
-              <DraggableBlock type="user_response" label={`${NODE_CONFIGS.user_response?.icon || '💬'} ${NODE_CONFIGS.user_response?.label || 'User Response'}`} />
-              <DraggableBlock type="endpoint" label={`${NODE_CONFIGS.endpoint?.icon || '🎯'} ${NODE_CONFIGS.endpoint?.label || 'Endpoint'}`} />
+              <DraggableBlock type="start" label={`${getNodeConfig('start').icon || '🚀'} ${getNodeConfig('start')?.label || 'Start'}`} />
+              <DraggableBlock type="person_job" label={`${getNodeConfig('person_job')?.icon || '🤖'} ${getNodeConfig('person_job').label || 'Person Job'}`} />
+              <DraggableBlock type="person_batch_job" label={`${getNodeConfig('person_batch_job').icon || '🤖📦'} ${getNodeConfig('person_batch_job').label || 'Person Batch Job'}`} />
+              <DraggableBlock type="condition" label={`${getNodeConfig('condition').icon || '🔀'} ${getNodeConfig('condition').label || 'Condition'}`} />
+              <DraggableBlock type="job" label={`${getNodeConfig('job').icon || '⚙️'} ${getNodeConfig('job').label || 'Job'}`} />
+              <DraggableBlock type="user_response" label={`${getNodeConfig('user_response').icon || '💬'} ${getNodeConfig('user_response').label || 'User Response'}`} />
+              <DraggableBlock type="endpoint" label={`${getNodeConfig('endpoint').icon || '🎯'} ${getNodeConfig('endpoint').label || 'Endpoint'}`} />
             </div>
             <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
-              <DraggableBlock type="db" label={`${NODE_CONFIGS.db?.icon || '📊'} ${NODE_CONFIGS.db?.label || 'DB Source'} Block`} />
+              <DraggableBlock type="db" label={`${getNodeConfig('db').icon || '📊'} ${getNodeConfig('db').label || 'DB Source'} Block`} />
             </div>
           </div>
         )}

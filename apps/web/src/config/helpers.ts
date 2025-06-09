@@ -1,19 +1,18 @@
 import type { NodeKind } from '@/types';
-import { NODE_CONFIGS } from './nodeConfigs';
 import { PANEL_CONFIGS } from './panelConfigs';
 import { derivePanelConfig } from './unifiedConfig';
-import { UNIFIED_NODE_CONFIGS } from './nodeConfigs/unifiedIndex';
+import { UNIFIED_NODE_CONFIGS } from './nodeConfigs';
 
 export function getNodeConfig(type: NodeKind) {
   // Check if unified config exists
   const unifiedConfig = UNIFIED_NODE_CONFIGS[type];
   if (unifiedConfig) {
     // Extract node config properties from unified config
-    const { panelLayout, panelFieldOverrides, panelFieldOrder, panelCustomFields, ...nodeConfig } = unifiedConfig;
+    const { panelLayout: _panelLayout, panelFieldOverrides: _panelFieldOverrides, panelFieldOrder: _panelFieldOrder, panelCustomFields: _panelCustomFields, ...nodeConfig } = unifiedConfig;
     return nodeConfig;
   }
   
-  return NODE_CONFIGS[type] || NODE_CONFIGS.start;
+  return UNIFIED_NODE_CONFIGS[type] || UNIFIED_NODE_CONFIGS.start;
 }
 
 export function validateNodeData(type: NodeKind, data: Record<string, any>) {

@@ -1,33 +1,40 @@
+/**
+ * Unified node configurations that combine both node and panel configs
+ */
+
 import type { NodeKind } from '@/types';
-import type { NodeConfigItem } from '@/types/config';
-import { startNodeConfig } from './start';
-import { conditionNodeConfig } from './condition';
-import { jobNodeConfig } from './job';
-import { endpointNodeConfig } from './endpoint';
-import { personJobNodeConfig } from './personJob';
-import { personBatchJobNodeConfig } from './personBatchJob';
-import { dbNodeConfig } from './db';
-import { userResponseNodeConfig } from './userResponse';
-import { notionNodeConfig } from './notion';
+import type { UnifiedNodeConfig } from '../unifiedConfig';
 
-export const NODE_CONFIGS: Record<NodeKind, NodeConfigItem> = {
-  start: startNodeConfig,
-  condition: conditionNodeConfig,
-  job: jobNodeConfig,
-  endpoint: endpointNodeConfig,
-  person_job: personJobNodeConfig,
-  person_batch_job: personBatchJobNodeConfig,
-  db: dbNodeConfig,
-  user_response: userResponseNodeConfig,
-  notion: notionNodeConfig
-} as const;
+// Import all unified configs
+import { startConfig } from './start';
+import { conditionConfig } from './condition';
+import { jobConfig } from './job';
+import { endpointConfig } from './endpoint';
+import { personJobConfig } from './personJob';
+import { personBatchJobConfig } from './personBatchJob';
+import { dbConfig } from './db';
+import { userResponseConfig } from './userResponse';
+import { notionConfig } from './notion';
 
-export * from './start';
-export * from './condition';
-export * from './job';
-export * from './endpoint';
-export * from './personJob';
-export * from './personBatchJob';
-export * from './db';
-export * from './userResponse';
-export * from './notion';
+export const UNIFIED_NODE_CONFIGS: Record<NodeKind, UnifiedNodeConfig<any>> = {
+  start: startConfig,
+  condition: conditionConfig,
+  job: jobConfig,
+  endpoint: endpointConfig,
+  person_job: personJobConfig,
+  person_batch_job: personBatchJobConfig,
+  db: dbConfig,
+  user_response: userResponseConfig,
+  notion: notionConfig
+};
+
+// Export individual configs
+export { startConfig } from './start';
+export { conditionConfig } from './condition';
+export { jobConfig } from './job';
+export { endpointConfig } from './endpoint';
+export { personJobConfig } from './personJob';
+export { personBatchJobConfig } from './personBatchJob';
+export { dbConfig } from './db';
+export { userResponseConfig } from './userResponse';
+export { notionConfig } from './notion';

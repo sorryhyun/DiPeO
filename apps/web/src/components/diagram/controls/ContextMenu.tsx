@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { DomainNode, NodeID, ArrowID } from '@/types';
-import { NODE_CONFIGS } from '@/config';
+import { UNIFIED_NODE_CONFIGS } from '@/config';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -19,7 +19,7 @@ export interface ContextMenuProps {
 }
 
 // Pre-compute default node types and labels at module level
-const DEFAULT_NODE_TYPES = Object.keys(NODE_CONFIGS);
+const DEFAULT_NODE_TYPES = Object.keys(UNIFIED_NODE_CONFIGS);
 const DEFAULT_NODE_LABELS = Object.fromEntries(
   DEFAULT_NODE_TYPES.map(key => [
     key, 

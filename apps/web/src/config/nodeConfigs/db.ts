@@ -1,6 +1,12 @@
-import type { NodeConfigItem } from '@/types/config';
+import type { DBFormData } from '@/types/ui';
+import { createUnifiedConfig } from '../unifiedConfig';
 
-export const dbNodeConfig: NodeConfigItem = {
+/**
+ * Unified configuration for Database node
+ * This replaces both the node config and panel config
+ */
+export const dbConfig = createUnifiedConfig<DBFormData>({
+  // Node configuration
   label: 'Database',
   icon: '💾',
   color: 'yellow',
@@ -20,7 +26,7 @@ export const dbNodeConfig: NodeConfigItem = {
         { value: 'query', label: 'Query Database' }
       ]
     },
-    { name: 'path', type: 'string', label: 'File Path', required: true, placeholder: 'data/file.json' },
+    { name: 'path', type: 'string', label: 'Path', required: true, placeholder: 'files/data.json' },
     { 
       name: 'format', 
       type: 'select', 
@@ -33,5 +39,42 @@ export const dbNodeConfig: NodeConfigItem = {
       ]
     }
   ],
-  defaults: { operation: 'read', path: '', format: 'json' }
-};
+  defaults: { operation: 'read', path: '', format: 'json', label: '', subType: 'fixed_prompt', sourceDetails: '' },
+  
+  // Panel configuration overrides
+  panelLayout: 'twoColumn',
+  panelFieldOrder: ['label', 'subType', 'sourceDetails'],
+  panelCustomFields: [
+    {
+      type: 'text',
+      name: 'label',
+      label: 'Block Label',
+      placeholder: 'Database'
+    },
+    {
+      type: 'select',
+      name: 'subType',
+      label: 'Source Type',
+      options: [
+        { value: 'fixed_prompt', label: 'Fixed Prompt' },
+        { value: 'file', label: 'File' }
+      ]
+    },
+    {
+      type: 'variableTextArea',
+      name: 'sourceDetails',
+      label: 'Source Details',
+      rows: 6,
+      placeholder: 'Enter content or file path...',
+      validate: (value, formData) => {
+        if (!value || typeof value !== 'string' || value.trim().length === 0) {
+          return { isValid: false, error: 'Source details are required' };
+        }
+        if (formData?.subType === 'file' && !value.includes('.')) {
+          return { isValid: false, error: 'Please provide a valid file path with extension' };
+        }
+        return { isValid: true };
+      }
+    }
+  ]
+});

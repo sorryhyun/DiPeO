@@ -1,6 +1,12 @@
-import type { NodeConfigItem } from '@/types/config';
+import type { PersonJobFormData } from '@/types/ui';
+import { createUnifiedConfig } from '../unifiedConfig';
 
-export const personJobNodeConfig: NodeConfigItem = {
+/**
+ * Unified configuration for PersonJob node
+ * This replaces both the node config and panel config
+ */
+export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
+  // Node configuration
   label: 'Person Job',
   icon: '🤖',
   color: 'indigo',
@@ -28,5 +34,55 @@ export const personJobNodeConfig: NodeConfigItem = {
       ]
     }
   ],
-  defaults: { personId: '', maxIteration: 1, firstOnlyPrompt: '', defaultPrompt: '', contextCleaningRule: 'no_forget' }
-};
+  defaults: { 
+    personId: '', 
+    maxIteration: 1, 
+    firstOnlyPrompt: '', 
+    defaultPrompt: '', 
+    contextCleaningRule: 'no_forget' 
+  },
+  
+  // Panel configuration overrides
+  panelLayout: 'twoColumn',
+  panelFieldOrder: ['labelPersonRow', 'contextCleaningRule', 'maxIteration', 'defaultPrompt', 'firstOnlyPrompt'],
+  panelFieldOverrides: {
+    maxIteration: {
+      type: 'maxIteration' // Use the special maxIteration component
+    },
+    contextCleaningRule: {
+      label: 'Forget',
+      options: [
+        { value: 'upon_request', label: 'Upon This Request' },
+        { value: 'no_forget', label: 'Do Not Forget' },
+        { value: 'on_every_turn', label: 'On Every Turn' }
+      ]
+    },
+    defaultPrompt: {
+      rows: 6,
+      placeholder: 'Enter default prompt. Use {{variable_name}} for variables.',
+      validate: (value) => {
+        if (!value && typeof value !== 'string') {
+          return { isValid: false, error: 'Default prompt is recommended' };
+        }
+        return { isValid: true };
+      }
+    },
+    firstOnlyPrompt: {
+      label: 'First-Only Prompt',
+      rows: 4,
+      placeholder: 'Prompt to use only on first execution.',
+      validate: (value) => {
+        if (!value || typeof value !== 'string' || value.trim().length === 0) {
+          return { isValid: false, error: 'First-only prompt is required' };
+        }
+        return { isValid: true };
+      }
+    }
+  },
+  panelCustomFields: [
+    {
+      type: 'labelPersonRow',
+      labelPlaceholder: 'Person Job'
+    }
+  ]
+});

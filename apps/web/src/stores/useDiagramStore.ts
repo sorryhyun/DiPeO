@@ -22,10 +22,6 @@ import {
   PersonID,
   HandleID,
   ApiKeyID,
-  nodeId,
-  arrowId,
-  personId,
-  apiKeyId,
   DomainDiagram,
   DomainApiKey,
   NodeKind,
@@ -44,7 +40,7 @@ import {
   reactToArrow,
   connectionToArrow
 } from '@/types/framework/adapters';
-import { NODE_CONFIGS } from '@/config';
+import { getNodeConfig } from '@/config';
 import { capitalize } from '@/utils/converters/nodeBuilders';
 import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
 
@@ -152,7 +148,7 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           
           addNodeByType: (type: NodeKind, position: { x: number; y: number }) => {
             const id = generateNodeId();
-            const nodeConfig = NODE_CONFIGS[type];
+            const nodeConfig = getNodeConfig(type);
             const defaults = nodeConfig?.defaults || {};
             
             const node: DomainNode = {
