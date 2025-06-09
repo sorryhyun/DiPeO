@@ -1,11 +1,21 @@
-import { generateShortId } from '@/types/primitives';
-import { Node, Arrow, Person, ApiKey, createHandleId, NodeKind, nodeId, arrowId, DomainHandle } from '@/types';
+import { generateShortId } from '@/types/primitives/id-generation';
+import { NodeKind } from '@/types/primitives/enums';
+import { 
+  DomainNode, 
+  DomainArrow, 
+  DomainPerson, 
+  DomainApiKey, 
+  DomainHandle,
+  DomainDiagram,
+  createHandleId 
+} from '@/types/domain';
+import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 import { buildNode as buildNodeFromInfo, NodeInfo as NodeBuilderInfo } from './nodeBuilders';
 
 // Extended Node type with handles for converters
-export interface NodeWithHandles extends Node {
+export interface NodeWithHandles extends DomainNode {
   handles: DomainHandle[];
   // ReactFlow properties
   draggable?: boolean;
@@ -13,15 +23,15 @@ export interface NodeWithHandles extends Node {
   connectable?: boolean;
 }
 
-// Legacy diagram format with arrays (for converters)
-export interface LegacyDiagram {
+// Converter diagram format with arrays
+export interface ConverterDiagram {
   id: string;
   name: string;
   description?: string;
   nodes: NodeWithHandles[];
-  arrows: Arrow[];
-  persons: Person[];
-  apiKeys: ApiKey[];
+  arrows: DomainArrow[];
+  persons: DomainPerson[];
+  apiKeys: DomainApiKey[];
 }
 
 // Edge type for graph representation
@@ -65,10 +75,10 @@ export interface AssemblerCallbacks {
   createArrowData: (edge: Edge, sourceId: string, targetId: string) => any;
   
   // Extract persons from context
-  extractPersons: (nodeAnalysis: Record<string, NodeAnalysis>, context: any) => Person[];
+  extractPersons: (nodeAnalysis: Record<string, NodeAnalysis>, context: any) => DomainPerson[];
   
   // Extract API keys from persons
-  extractApiKeys: (persons: Person[]) => ApiKey[];
+  extractApiKeys: (persons: DomainPerson[]) => DomainApiKey[];
   
   // Link persons to nodes
   linkPersonsToNodes?: (nodes: NodeWithHandles[], nodeAnalysis: Record<string, NodeAnalysis>, context: any) => void;
@@ -83,13 +93,13 @@ export interface AssemblerOptions {
  * Common diagram assembler that unifies conversion logic
  */
 export class DiagramAssembler {
-  private nodeMap: Map<string, string> = new Map();
-  private personMap: Map<string, string> = new Map();
+  private nodeMap: Map<string, NodeID> = new Map();
+  private personMap: Map<string, PersonID> = new Map();
   
   /**
    * Assemble a diagram from source data using provided callbacks
    */
-  assemble(options: AssemblerOptions): LegacyDiagram {
+  assemble(options: AssemblerOptions): ConverterDiagram {
     const { source, callbacks } = options;
     
     try {
@@ -124,7 +134,7 @@ export class DiagramAssembler {
         arrows,
         persons,
         apiKeys
-      } as LegacyDiagram;
+      } as ConverterDiagram;
     } catch (error) {
       // Return minimal valid diagram on error
       console.error('Diagram assembly error:', error);
@@ -151,7 +161,7 @@ export class DiagramAssembler {
         arrows: [],
         persons: [],
         apiKeys: []
-      } as LegacyDiagram;
+      } as ConverterDiagram;
     }
   }
   
@@ -276,20 +286,20 @@ export class DiagramAssembler {
     
     Object.entries(nodeAnalysis).forEach(([name, analysis]) => {
       const nodeInfo = callbacks.createNodeInfo(name, analysis, source);
-      const nodeId = nodeInfo.id;
+      const nodeIdValue = nodeId(nodeInfo.id);
       
       // Store mapping
-      this.nodeMap.set(name, nodeId);
+      this.nodeMap.set(name, nodeIdValue);
       
       // Generate handles for the node
       const nodeConfig = getNodeConfig(nodeInfo.type);
       const handles = nodeConfig 
-        ? generateNodeHandles(nodeId, nodeConfig, nodeInfo.type) 
-        : getDefaultHandles(nodeId, nodeInfo.type);
+        ? generateNodeHandles(nodeIdValue, nodeConfig, nodeInfo.type) 
+        : getDefaultHandles(nodeIdValue, nodeInfo.type);
       
       // Create node
       const node: NodeWithHandles = {
-        id: nodeId,
+        id: nodeIdValue,
         type: nodeInfo.type,
         position: positions[name] || { x: 0, y: 0 },
         data: nodeInfo.data,
@@ -309,8 +319,8 @@ export class DiagramAssembler {
   /**
    * Build arrows from edges
    */
-  private buildArrows(edges: Edge[]): Arrow[] {
-    const arrows: Arrow[] = [];
+  private buildArrows(edges: Edge[]): DomainArrow[] {
+    const arrows: DomainArrow[] = [];
     
     edges.forEach(edge => {
       const sourceId = this.nodeMap.get(edge.source);
@@ -327,10 +337,10 @@ export class DiagramAssembler {
       const targetHandleName = 'input';
       
       // Create handle IDs
-      const sourceHandleId = createHandleId(nodeId(sourceId), sourceHandleName);
-      const targetHandleId = createHandleId(nodeId(targetId), targetHandleName);
+      const sourceHandleId = createHandleId(sourceId, sourceHandleName);
+      const targetHandleId = createHandleId(targetId, targetHandleName);
       
-      const arrow: Arrow = {
+      const arrow: DomainArrow = {
         id,
         source: sourceHandleId,
         target: targetHandleId,
@@ -352,21 +362,21 @@ export class DiagramAssembler {
   /**
    * Get node map for external use
    */
-  getNodeMap(): Map<string, string> {
+  getNodeMap(): Map<string, NodeID> {
     return this.nodeMap;
   }
   
   /**
    * Get person map for external use
    */
-  getPersonMap(): Map<string, string> {
+  getPersonMap(): Map<string, PersonID> {
     return this.personMap;
   }
   
   /**
    * Set person map for external use
    */
-  setPersonMap(map: Map<string, string>): void {
+  setPersonMap(map: Map<string, PersonID>): void {
     this.personMap = map;
   }
   

@@ -5,30 +5,30 @@ import { DataType, HandlePosition } from '@/types/primitives';
 import { HANDLE_REGISTRY, getHandleConfig } from '@/config/handleRegistry';
 
 /**
- * Map string position to HandlePosition enum
+ * Map string position to HandlePosition type
  */
 function mapToHandlePosition(position: string): HandlePosition {
   switch (position) {
-    case 'top': return HandlePosition.Top;
-    case 'right': return HandlePosition.Right;
-    case 'bottom': return HandlePosition.Bottom;
-    case 'left': return HandlePosition.Left;
-    default: return HandlePosition.Left;
+    case 'top': return 'top';
+    case 'right': return 'right';
+    case 'bottom': return 'bottom';
+    case 'left': return 'left';
+    default: return 'left';
   }
 }
 
 /**
- * Map string data type to DataType enum
+ * Map string data type to DataType type
  */
 function mapToDataType(dataType: string): DataType {
   switch (dataType) {
-    case 'string': return DataType.String;
-    case 'number': return DataType.Number;
-    case 'boolean': return DataType.Boolean;
-    case 'object': return DataType.Object;
-    case 'array': return DataType.Array;
-    case 'any': return DataType.Any;
-    default: return DataType.Any;
+    case 'string': return 'string';
+    case 'number': return 'number';
+    case 'boolean': return 'boolean';
+    case 'object': return 'object';
+    case 'array': return 'array';
+    case 'any': return 'any';
+    default: return 'any';
   }
 }
 
@@ -162,8 +162,8 @@ export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandl
     nodeId: nodeId as NodeID,
     name: 'input',
     direction: 'input',
-    dataType: DataType.Any,
-    position: HandlePosition.Left,
+    dataType: 'any',
+    position: 'left',
   };
   
   const defaultOutputHandle: DomainHandle = {
@@ -171,8 +171,8 @@ export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandl
     nodeId: nodeId as NodeID,
     name: 'output',
     direction: 'output',
-    dataType: DataType.Any,
-    position: HandlePosition.Right,
+    dataType: 'any',
+    position: 'right',
   };
   
   // Special cases for specific node types
@@ -194,18 +194,18 @@ export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandl
           nodeId: nodeId as NodeID,
           name: 'true',
           direction: 'output',
-          position: HandlePosition.Right,
+          position: 'right',
           label: 'True',
-          dataType: DataType.Boolean,
+          dataType: 'boolean',
         },
         {
           id: createHandleId(nodeId as NodeID, 'false'),
           nodeId: nodeId as NodeID,
           name: 'false',
           direction: 'output',
-          position: HandlePosition.Right,
+          position: 'right',
           label: 'False',
-          dataType: DataType.Boolean,
+          dataType: 'boolean',
         },
       ];
       

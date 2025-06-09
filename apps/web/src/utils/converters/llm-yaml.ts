@@ -1,9 +1,10 @@
 import { parse, stringify } from 'yaml';
-import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
+import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks, ConverterDiagram } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';
 import { generateShortId, entityIdGenerators } from '@/types/primitives/id-generation';
 import type { DomainDiagram, DomainPerson, DomainApiKey, DomainNode } from '@/types/domain';
 import { NodeKind } from '@/types/primitives/enums';
+import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
 
 
 interface LLMYamlFormat {
@@ -22,7 +23,7 @@ export class LlmYaml {
   /**
    * Import LLM-friendly YAML and convert to DiagramState format
    */
-  static fromLLMYAML(yamlString: string): DomainDiagram {
+  static fromLLMYAML(yamlString: string): ConverterDiagram {
     const data = parse(yamlString) as LLMYamlFormat;
     const assembler = new DiagramAssembler();
     
@@ -60,7 +61,7 @@ export class LlmYaml {
       },
       
       createArrowData: (edge, sourceId, targetId) => ({
-        id: `arrow-${generateShortId().slice(0, 6)}`,
+        id: `arrow-${generateShortId()}`,
         sourceBlockId: sourceId,
         targetBlockId: targetId,
         label: edge.variable || 'flow',
@@ -85,7 +86,7 @@ export class LlmYaml {
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  static toLLMYAML(diagram: DomainDiagram): string {
+  static toLLMYAML(diagram: ConverterDiagram): string {
     const importer = new LlmYaml();
     return importer.exportYaml(diagram);
   }
@@ -162,13 +163,13 @@ export class LlmYaml {
     return 'generic';
   }
 
-  private static buildPersons(nodeAnalysis: Record<string, NodeAnalysis>, data: LLMYamlFormat, personMap: Map<string, string>): Person[] {
+  private static buildPersons(nodeAnalysis: Record<string, NodeAnalysis>, data: LLMYamlFormat, personMap: Map<string, PersonID>): DomainPerson[] {
     const persons: DomainPerson[] = [];
     const agentsData = data.agents || {};
     const serviceMap = new Map<string, DomainApiKey['service']>();
 
     // Default agent for nodes with prompts but no specific agent
-    const defaultPersonId = `PERSON_${generateShortId().slice(0, 6)}`;
+    const defaultPersonId = personId(`PERSON_${generateShortId()}`);
     const defaultPerson: DomainPerson = {
       id: defaultPersonId,
       label: 'Default Assistant',
@@ -178,28 +179,28 @@ export class LlmYaml {
 
     // Create persons from agents section
     Object.entries(agentsData).forEach(([agentName, agentConfig]) => {
-      const personId = `PERSON_${generateShortId().slice(0, 6)}`;
-      personMap.set(agentName, personId);
+      const personIdValue = personId(`PERSON_${generateShortId()}`);
+      personMap.set(agentName, personIdValue);
 
       if (typeof agentConfig === 'string') {
         // Simple format: just system prompt
         persons.push({
-          id: personId,
-          label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          modelName: 'gpt-4',
+          id: personIdValue,
+          name: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          model: modelName,
           systemPrompt: agentConfig
         });
-        serviceMap.set(personId, 'openai');
+        serviceMap.set(personIdValue, 'openai');
       } else {
         // Full format
         const service = (agentConfig.service || 'openai') as DomainApiKey['service'];
         persons.push({
-          id: personId,
-          label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          modelName: agentConfig.model || 'gpt-4',
+          id: personIdValue,
+          name: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          model: agentConfig.model || 'gpt-4',
           systemPrompt: agentConfig.system
         });
-        serviceMap.set(personId, service);
+        serviceMap.set(personIdValue, service);
       }
     });
 
@@ -262,7 +263,7 @@ export class LlmYaml {
 
   private static linkPersonsToNodes(
     nodes: DomainNode[],
-    nodeMap: Map<string, string>, 
+    nodeMap: Map<string, NodeID>, 
     nodeAnalysis: Record<string, NodeAnalysis>, 
     data: LLMYamlFormat, 
     personMap: Map<string, string>
@@ -291,7 +292,7 @@ export class LlmYaml {
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  private exportYaml(diagram: Diagram): string {
+  private exportYaml(diagram: ConverterDiagram): string {
     const flow: string[] = [];
     const prompts: Record<string, string> = {};
     const agents: Record<string, unknown> = {};
@@ -326,7 +327,7 @@ export class LlmYaml {
 
     // Map persons to names
     diagram.persons.forEach((person, index) => {
-      const personName = person.label?.replace(/\s+/g, '_').toLowerCase() || `agent_${index + 1}`;
+      const personName = person.name?.replace(/\s+/g, '_').toLowerCase() || `agent_${index + 1}`;
       personNameMap[person.id] = personName;
     });
 
@@ -395,11 +396,11 @@ export class LlmYaml {
         }
       }
       
-      if (personName && (person.systemPrompt || person.modelName !== 'gpt-4' || service !== 'openai')) {
+      if (personName && (person.systemPrompt || person.model !== 'gpt-4' || service !== 'openai')) {
         const agent: Record<string, unknown> = {};
         
-        if (person.modelName && person.modelName !== 'gpt-4') {
-          agent.model = person.modelName;
+        if (person.model && person.model !== 'gpt-4') {
+          agent.model = person.model;
         }
         if (service && service !== 'openai') {
           agent.service = service;

@@ -1,5 +1,5 @@
 import { NodeID } from '../branded';
-import { Vec2, NodeKind } from '../primitives';
+import { Vec2, NodeKind, ConditionType, PersonForgettingStrategy, JobLanguage, DBOperation, DBSubType, NotionOperation, ProcessType } from '../primitives';
 
 /**
  * Pure domain node - framework-agnostic representation
@@ -31,20 +31,21 @@ export interface StartNodeData {
   [key: string]: unknown;
 }
 
-export type StartNode = TypedDomainNode<NodeKind.Start, StartNodeData>;
+export type StartNode = TypedDomainNode<NodeKind, StartNodeData> & { type: 'start' };
 
 /**
  * Condition node domain model
  */
 export interface ConditionNodeData {
   label?: string;
-  condition: string;
+  conditionType?: ConditionType;
   detect_max_iterations?: boolean;
+  expression?: string;
   _node_indices?: string[];
   [key: string]: unknown;
 }
 
-export type ConditionNode = TypedDomainNode<NodeKind.Condition, ConditionNodeData>;
+export type ConditionNode = TypedDomainNode<NodeKind, ConditionNodeData> & { type: 'condition' };
 
 /**
  * Person job node domain model
@@ -55,13 +56,11 @@ export interface PersonJobNodeData {
   firstOnlyPrompt: string;
   defaultPrompt?: string;
   maxIterations?: number;
-  no_forget?: boolean;
-  forget_on_every_turn?: boolean;
-  forget_upon_request?: boolean;
+  contextCleaningRule?: PersonForgettingStrategy;
   [key: string]: unknown;
 }
 
-export type PersonJobNode = TypedDomainNode<NodeKind.PersonJob, PersonJobNodeData>;
+export type PersonJobNode = TypedDomainNode<NodeKind, PersonJobNodeData> & { type: 'person_job' };
 
 /**
  * Endpoint node domain model
@@ -73,7 +72,7 @@ export interface EndpointNodeData {
   [key: string]: unknown;
 }
 
-export type EndpointNode = TypedDomainNode<NodeKind.Endpoint, EndpointNodeData>;
+export type EndpointNode = TypedDomainNode<NodeKind, EndpointNodeData> & { type: 'endpoint' };
 
 /**
  * DB node domain model
@@ -82,25 +81,26 @@ export interface DBNodeData {
   label?: string;
   file?: string;
   collection?: string;
-  operation?: 'query' | 'write' | 'update' | 'delete';
+  subType?: DBSubType;
+  operation?: DBOperation;
   query?: string;
   data?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-export type DBNode = TypedDomainNode<NodeKind.DB, DBNodeData>;
+export type DBNode = TypedDomainNode<NodeKind, DBNodeData> & { type: 'db' };
 
 /**
  * Job node domain model
  */
 export interface JobNodeData {
   label?: string;
-  codeType: 'python' | 'javascript' | 'bash';
+  codeType: JobLanguage;
   code: string;
   [key: string]: unknown;
 }
 
-export type JobNode = TypedDomainNode<NodeKind.Job, JobNodeData>;
+export type JobNode = TypedDomainNode<NodeKind, JobNodeData> & { type: 'job' };
 
 /**
  * User response node domain model
@@ -112,14 +112,14 @@ export interface UserResponseNodeData {
   [key: string]: unknown;
 }
 
-export type UserResponseNode = TypedDomainNode<NodeKind.UserResponse, UserResponseNodeData>;
+export type UserResponseNode = TypedDomainNode<NodeKind, UserResponseNodeData> & { type: 'user_response' };
 
 /**
  * Notion node domain model
  */
 export interface NotionNodeData {
   label?: string;
-  operation: 'create' | 'read' | 'update';
+  operation: NotionOperation | 'create' | 'update';
   pageId?: string;
   databaseId?: string;
   title?: string;
@@ -128,7 +128,7 @@ export interface NotionNodeData {
   [key: string]: unknown;
 }
 
-export type NotionNode = TypedDomainNode<NodeKind.Notion, NotionNodeData>;
+export type NotionNode = TypedDomainNode<NodeKind, NotionNodeData> & { type: 'notion' };
 
 /**
  * Person batch job node domain model
@@ -136,14 +136,15 @@ export type NotionNode = TypedDomainNode<NodeKind.Notion, NotionNodeData>;
 export interface PersonBatchJobNodeData {
   label?: string;
   agent?: string;
-  process_type: 'batch' | 'sequential';
+  process_type: ProcessType;
   basePrompt: string;
   outputStructure: Record<string, string>;
+  contextCleaningRule?: PersonForgettingStrategy;
   parallelism?: number;
   [key: string]: unknown;
 }
 
-export type PersonBatchJobNode = TypedDomainNode<NodeKind.PersonBatchJob, PersonBatchJobNodeData>;
+export type PersonBatchJobNode = TypedDomainNode<NodeKind, PersonBatchJobNodeData> & { type: 'person_batch_job' };
 
 /**
  * Union of all domain node types

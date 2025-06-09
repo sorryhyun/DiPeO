@@ -87,7 +87,7 @@ export function diagramToReact(diagram: DomainDiagram): {
 export function reactToNode(rfNode: RFNode): DomainNode {
   return {
     id: rfNode.id as NodeID,
-    type: (rfNode.type as NodeKind) || NodeKind.Start,
+    type: (rfNode.type as NodeKind) || 'start',
     position: rfNode.position,
     data: (rfNode.data as any)?.properties || rfNode.data || {}
   };

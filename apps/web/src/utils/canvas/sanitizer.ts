@@ -1,44 +1,66 @@
-// apps/web/src/utils/sanitizer.ts
-import { DiagramState, Person } from '@/types';
-import {roundPosition} from './layout';
+// apps/web/src/utils/canvas/sanitizer.ts
+import { DomainDiagram, DomainPerson } from '@/types/domain';
+import { DomainNode, DomainArrow } from '@/types/domain';
+import { NodeID, ArrowID, PersonID } from '@/types/branded';
+import { roundPosition } from './layout';
 
-export function sanitizeDiagram(diagram: DiagramState): DiagramState {
-  return {
-    ...diagram,
-    // Sanitize nodes
-    nodes: diagram.nodes.map(node => ({
+export function sanitizeDiagram(diagram: DomainDiagram): DomainDiagram {
+  // Sanitize nodes
+  const sanitizedNodes: Record<NodeID, DomainNode> = {};
+  for (const [nodeId, node] of Object.entries(diagram.nodes)) {
+    sanitizedNodes[nodeId as NodeID] = {
       ...node,
       // Round position to 1 decimal place
       position: roundPosition(node.position),
       data: node.data
-    })),
+    };
+  }
 
-    // Sanitize arrows
-    arrows: diagram.arrows.map(arrow => ({
+  // Sanitize arrows
+  const sanitizedArrows: Record<ArrowID, DomainArrow> = {};
+  for (const [arrowId, arrow] of Object.entries(diagram.arrows)) {
+    const arrowData = arrow.data as any;
+    sanitizedArrows[arrowId as ArrowID] = {
       ...arrow,
-      data: arrow.data ? {
-        ...arrow.data,
+      data: arrowData ? {
+        ...arrowData,
         // Round control point offsets to 1 decimal place
-        ...(arrow.data.controlPointOffsetX !== undefined && {
-          controlPointOffsetX: Math.round(arrow.data.controlPointOffsetX * 10) / 10
+        ...(arrowData.controlPointOffsetX !== undefined && {
+          controlPointOffsetX: Math.round(arrowData.controlPointOffsetX * 10) / 10
         }),
-        ...(arrow.data.controlPointOffsetY !== undefined && {
-          controlPointOffsetY: Math.round(arrow.data.controlPointOffsetY * 10) / 10
+        ...(arrowData.controlPointOffsetY !== undefined && {
+          controlPointOffsetY: Math.round(arrowData.controlPointOffsetY * 10) / 10
         }),
         // Round loop radius to 1 decimal place
-        ...(arrow.data.loopRadius !== undefined && {
-          loopRadius: Math.round(arrow.data.loopRadius * 10) / 10
+        ...(arrowData.loopRadius !== undefined && {
+          loopRadius: Math.round(arrowData.loopRadius * 10) / 10
         })
       } : undefined
-    })),
+    };
+  }
 
-    // Sanitize persons - ensure all fields exist with default values
-    persons: (diagram.persons || []).map(person => ({
+  // Sanitize persons - ensure all fields exist with default values
+  const sanitizedPersons: Record<PersonID, DomainPerson> = {};
+  for (const [personId, person] of Object.entries(diagram.persons || {})) {
+    sanitizedPersons[personId as PersonID] = {
       id: person.id,
-      label: person.label || 'Unnamed Person',
-      apiKeyId: person.apiKeyId || undefined,
-      modelName: person.modelName || undefined,
-      systemPrompt: person.systemPrompt || undefined
-    } as Person))
+      name: person.name || 'Unnamed Person',
+      model: person.model || 'gpt-4.1-nano',
+      service: person.service || 'openai',
+      systemPrompt: person.systemPrompt,
+      temperature: person.temperature,
+      maxTokens: person.maxTokens,
+      topP: person.topP,
+      frequencyPenalty: person.frequencyPenalty,
+      presencePenalty: person.presencePenalty,
+      forgettingMode: person.forgettingMode
+    };
+  }
+
+  return {
+    ...diagram,
+    nodes: sanitizedNodes,
+    arrows: sanitizedArrows,
+    persons: sanitizedPersons
   };
 }

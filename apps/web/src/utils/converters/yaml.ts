@@ -10,8 +10,9 @@ import {
   DomainApiKey,
   DomainDiagram
 } from '@/types/domain';
-import { NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
+import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
 import { buildNode, NodeInfo } from './nodeBuilders';
+import { ConverterDiagram, NodeWithHandles } from './diagramAssembler';
 
 interface YamlDiagram {
   version: '1.0';
@@ -74,7 +75,7 @@ export class Yaml {
   /**
    * Convert DiagramState to enhanced YAML format with full data preservation
    */
-  static toYAML(diagram: DomainDiagram): string {
+  static toYAML(diagram: ConverterDiagram): string {
     const yamlDiagram = this.toYamlFormat(diagram);
 
     return stringify(yamlDiagram, {
@@ -85,14 +86,14 @@ export class Yaml {
     });
   }
 
-  static fromYAML(yamlString: string): DomainDiagram {
+  static fromYAML(yamlString: string): ConverterDiagram {
     const yamlDiagram = parse(yamlString);
     return this.fromYamlFormat(yamlDiagram as YamlDiagram);
   }
   /**
    * Convert DiagramState to YAML format
    */
-  private static toYamlFormat(diagram: DomainDiagram): YamlDiagram {
+  private static toYamlFormat(diagram: ConverterDiagram): YamlDiagram {
     const apiKeys: Record<string, { service: string; name: string }> = {};
     const persons: YamlDiagram['persons'] = {};
     const workflow: YamlDiagram['workflow'] = [];
@@ -110,7 +111,7 @@ export class Yaml {
       // Find API key label and service by ID
       let apiKeyLabel: string | undefined;
       let service = 'chatgpt'; // default
-      if (person.apiKeyId) {
+      if (person) {
         const apiKey = diagram.apiKeys.find(k => k.id === person.apiKeyId);
         if (apiKey) {
           apiKeyLabel = apiKey.name;
@@ -158,9 +159,9 @@ export class Yaml {
    * Convert node to enhanced workflow step
    */
   private static nodeToEnhancedStep(
-    node: Node,
-    connections: Arrow[],
-    persons: Person[]
+    node: NodeWithHandles,
+    connections: DomainArrow[],
+    persons: DomainPerson[]
   ): YamlDiagram['workflow'][0] | null {
     const data = node.data;
     const baseStep: YamlDiagram['workflow'][0] = {
@@ -200,7 +201,7 @@ export class Yaml {
     if (data.personId) {
       const person = persons.find(p => p.id === data.personId);
       if (person) {
-        baseStep.person = person.label;
+        baseStep.person = person.name;
       }
     }
 
@@ -229,7 +230,7 @@ export class Yaml {
   /**
    * Convert enhanced YAML format back to DiagramState
    */
-  private static fromYamlFormat(yamlDiagram: YamlDiagram): Diagram {
+  private static fromYamlFormat(yamlDiagram: YamlDiagram): ConverterDiagram {
     const nodes: DomainNode[] = [];
     const arrows: DomainArrow[] = [];
     const persons: DomainPerson[] = [];
@@ -281,7 +282,7 @@ export class Yaml {
       }
       
       persons.push({
-        id: `person-${generateShortId().slice(0, 4)}`,  // Generate fresh ID
+        id: personId(`person-${generateShortId().slice(0, 4)}`),  // Generate fresh ID
         label,  // Use the key as label
         modelName: person.model,
         apiKeyId,
@@ -291,14 +292,14 @@ export class Yaml {
 
     // Create label-to-ID mappings for node references
     const nodeLabelToId = new Map<string, string>();
-    const personLabelToId = new Map<string, string>();
+    const personNameToId = new Map<string, PersonID>();
     persons.forEach(person => {
-      personLabelToId.set(person.name, person.id);
+      personNameToId.set(person.name, person.id);
     });
     
     // First pass: create nodes and build label-to-ID mapping
     yamlDiagram.workflow.forEach(step => {
-      const node = this.enhancedStepToNode(step, persons, personLabelToId);
+      const node = this.enhancedStepToNode(step, persons, personNameToId);
       if (node) {
         nodes.push(node);
         nodeLabelToId.set(step.label, node.id);
@@ -314,14 +315,14 @@ export class Yaml {
           step.connections.forEach(conn => {
             const targetId = nodeLabelToId.get(conn.to);
             if (targetId) {
-              const arrowId = `arrow-${generateShortId().slice(0, 4)}`;
+              const arrowIdValue = arrowId(`arrow-${generateShortId()}`);
               
               // Create handle IDs from node IDs and handle names
-              const sourceHandleId = createHandleId(sourceId, conn.source_handle || 'output');
-              const targetHandleId = createHandleId(targetId, conn.target_handle || 'input');
+              const sourceHandleId = createHandleId(sourceId as NodeID, conn.source_handle || 'output');
+              const targetHandleId = createHandleId(targetId as NodeID, conn.target_handle || 'input');
               
               arrows.push({
-                id: arrowId,
+                id: arrowIdValue,
                 source: sourceHandleId,
                 target: targetHandleId,
                 data: {
@@ -339,7 +340,7 @@ export class Yaml {
     });
 
     return {
-      id: `diagram-${generateShortId().slice(0, 4)}`,
+      id: `diagram-${generateShortId()}`,
       name: yamlDiagram.title || 'Imported Diagram',
       description: yamlDiagram.metadata?.description,
       nodes,
@@ -354,9 +355,9 @@ export class Yaml {
    */
   private static enhancedStepToNode(
     step: YamlDiagram['workflow'][0],
-    _persons: Person[],
-    personLabelToId: Map<string, string>
-  ): Node | null {
+    _persons: DomainPerson[],
+    personLabelToId: Map<string, PersonID>
+  ): DomainNode | null {
     const nodeInfo: NodeInfo = {
       name: step.label,
       type: step.type as NodeKind,

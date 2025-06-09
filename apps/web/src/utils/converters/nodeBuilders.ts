@@ -1,6 +1,7 @@
 import { generateShortId } from '@/types/primitives/id-generation';
-import type { DomainNode } from '@/types/domain';
+import type { DomainNode, DomainHandle } from '@/types/domain';
 import { NodeKind } from '@/types/primitives/enums';
+import { nodeId, NodeID } from '@/types/branded';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 
@@ -8,7 +9,7 @@ import { getNodeConfig } from '@/config/helpers';
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // Helper to add handles to a node
-const addHandles = (node: Omit<DomainNode, 'handles'>, nodeType: NodeKind): Node => {
+const addHandles = (node: Omit<DomainNode, 'handles'>, nodeType: NodeKind): DomainNode => {
   const nodeConfig = getNodeConfig(nodeType);
   const handles = nodeConfig 
     ? generateNodeHandles(node.id, nodeConfig, nodeType) 
@@ -20,7 +21,7 @@ const addHandles = (node: Omit<DomainNode, 'handles'>, nodeType: NodeKind): Node
     draggable: true,
     selectable: true,
     connectable: true
-  } as Node;
+  } as DomainNode;
 };
 
 // Node info type for builder input
@@ -42,12 +43,12 @@ export interface NodeInfo {
 }
 
 // Type for node builder functions
-type NodeBuilder<T extends DomainNode = DomainNode> = (info: NodeInfo) => T;
+type NodeBuilder = (info: NodeInfo) => DomainNode;
 
 // Unified node builders lookup map
 export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   start: (info) => {
-    const id = `st-${generateShortId()}`;
+    const id = nodeId(`st-${generateShortId()}`);
     return addHandles({
       id,
       type: 'start' as const,
@@ -61,7 +62,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   person_job: (info) => {
-    const id = `pj-${generateShortId()}`;
+    const id = nodeId(`pj-${generateShortId()}`);
     return addHandles({
       id,
       type: 'person_job',
@@ -82,7 +83,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   condition: (info) => {
-    const id = `cd-${generateShortId()}`;
+    const id = nodeId(`cd-${generateShortId()}`);
     return addHandles({
       id,
       type: 'condition' as const,
@@ -99,7 +100,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   db: (info) => {
-    const id = `db-${generateShortId()}`;
+    const id = nodeId(`db-${generateShortId()}`);
     return addHandles({
       id,
       type: 'db' as const,
@@ -115,7 +116,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   job: (info) => {
-    const id = `jb-${generateShortId()}`;
+    const id = nodeId(`jb-${generateShortId()}`);
     return addHandles({
       id,
       type: 'job' as const,
@@ -131,7 +132,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   endpoint: (info) => {
-    const id = `ep-${generateShortId()}`;
+    const id = nodeId(`ep-${generateShortId()}`);
     return addHandles({
       id,
       type: 'endpoint' as const,
@@ -148,7 +149,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   notion: (info) => {
-    const id = `nt-${generateShortId()}`;
+    const id = nodeId(`nt-${generateShortId()}`);
     return addHandles({
       id,
       type: 'notion' as const,
@@ -165,7 +166,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   person_batch_job: (info) => {
-    const id = `pb-${generateShortId()}`;
+    const id = nodeId(`pb-${generateShortId()}`);
     return addHandles({
       id,
       type: 'person_batch_job' as const,
@@ -185,7 +186,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   user_response: (info) => {
-    const id = `ur-${generateShortId()}`;
+    const id = nodeId(`ur-${generateShortId()}`);
     return addHandles({
       id,
       type: 'user_response' as const,
@@ -207,7 +208,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
       return personJobBuilder(info);
     }
     // Ultimate fallback
-    const id = `nd-${generateShortId()}`;
+    const id = nodeId(`nd-${generateShortId()}`);
     return addHandles({
       id,
       type: 'person_job' as const,

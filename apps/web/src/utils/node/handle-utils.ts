@@ -1,9 +1,17 @@
-// apps/web/src/utils/handle-utils.ts
-import { NodeID, HandleID, handleId } from '@/types/branded';
-import { NodeType } from '@/types/enums';
-import { NodeSpecs, HandleNamesOf, InputHandleNamesOf, OutputHandleNamesOf } from '@/types/node-specs';
-import { DiagramNode } from '@/types/nodes';
-import { InputHandle, OutputHandle } from '@/types/node-base';
+/**
+ * Handle utility functions for working with the domain model
+ * 
+ * In the new architecture, handles are stored separately in the diagram,
+ * not directly on nodes. All functions now require a DomainDiagram parameter
+ * to access handle information.
+ */
+
+import { NodeID, HandleID } from '@/types/branded';
+import { NodeKind } from '@/types/primitives';
+import { DomainDiagram, DomainHandle, InputHandle, OutputHandle } from '@/types/domain';
+import { createHandleId } from '@/types/domain/handle';
+import { getNodeHandles as getDiagramNodeHandles } from '@/types/domain/diagram';
+import { getHandleConfig } from '@/config/handleRegistry';
 
 /**
  * Error thrown when a handle is not found
@@ -18,134 +26,128 @@ export class HandleNotFoundError extends Error {
 /**
  * Get a specific input handle from a node
  */
-export function getInputHandle<
-  N extends DiagramNode,
-  H extends InputHandleNamesOf<N['type']>
->(
-  node: N,
-  handleName: H
-): InputHandle<H> {
-  const handle = node.inputs[handleName as keyof N['inputs']];
-  if (!handle) {
-    throw new HandleNotFoundError(node.id, handleName);
+export function getInputHandle(
+  diagram: DomainDiagram,
+  nodeId: NodeID,
+  handleName: string
+): InputHandle {
+  const handleId = createHandleId(nodeId, handleName);
+  const handle = diagram.handles[handleId];
+  
+  if (!handle || handle.direction !== 'input') {
+    throw new HandleNotFoundError(nodeId, handleName);
   }
-  return handle as InputHandle<H>;
+  
+  return handle as InputHandle;
 }
 
 /**
  * Get a specific output handle from a node
  */
-export function getOutputHandle<
-  N extends DiagramNode,
-  H extends OutputHandleNamesOf<N['type']>
->(
-  node: N,
-  handleName: H
-): OutputHandle<H> {
-  const handle = node.outputs[handleName as keyof N['outputs']];
-  if (!handle) {
-    throw new HandleNotFoundError(node.id, handleName);
+export function getOutputHandle(
+  diagram: DomainDiagram,
+  nodeId: NodeID,
+  handleName: string
+): OutputHandle {
+  const handleId = createHandleId(nodeId, handleName);
+  const handle = diagram.handles[handleId];
+  
+  if (!handle || handle.direction !== 'output') {
+    throw new HandleNotFoundError(nodeId, handleName);
   }
-  return handle as OutputHandle<H>;
+  
+  return handle as OutputHandle;
 }
 
 /**
  * Get all input handles from a node
  */
-export function getInputHandles<N extends DiagramNode>(
-  node: N
-): InputHandle<InputHandleNamesOf<N['type']>>[] {
-  return Object.values(node.inputs) as InputHandle<InputHandleNamesOf<N['type']>>[];
+export function getInputHandles(
+  diagram: DomainDiagram,
+  nodeId: NodeID
+): InputHandle[] {
+  const handles = getDiagramNodeHandles(diagram, nodeId);
+  return handles.filter((h): h is InputHandle => h.direction === 'input');
 }
 
 /**
  * Get all output handles from a node
  */
-export function getOutputHandles<N extends DiagramNode>(
-  node: N
-): OutputHandle<OutputHandleNamesOf<N['type']>>[] {
-  return Object.values(node.outputs) as OutputHandle<OutputHandleNamesOf<N['type']>>[];
+export function getOutputHandles(
+  diagram: DomainDiagram,
+  nodeId: NodeID
+): OutputHandle[] {
+  const handles = getDiagramNodeHandles(diagram, nodeId);
+  return handles.filter((h): h is OutputHandle => h.direction === 'output');
 }
 
 /**
  * Check if a node has a specific input handle
  */
-export function hasInputHandle<
-  N extends DiagramNode,
-  H extends string
->(
-  node: N,
-  handleName: H
-): handleName is InputHandleNamesOf<N['type']> {
-  return handleName in node.inputs;
+export function hasInputHandle(
+  diagram: DomainDiagram,
+  nodeId: NodeID,
+  handleName: string
+): boolean {
+  const handleId = createHandleId(nodeId, handleName);
+  const handle = diagram.handles[handleId];
+  return handle !== undefined && handle.direction === 'input';
 }
 
 /**
  * Check if a node has a specific output handle
  */
-export function hasOutputHandle<
-  N extends DiagramNode,
-  H extends string
->(
-  node: N,
-  handleName: H
-): handleName is OutputHandleNamesOf<N['type']> {
-  return handleName in node.outputs;
+export function hasOutputHandle(
+  diagram: DomainDiagram,
+  nodeId: NodeID,
+  handleName: string
+): boolean {
+  const handleId = createHandleId(nodeId, handleName);
+  const handle = diagram.handles[handleId];
+  return handle !== undefined && handle.direction === 'output';
 }
 
 /**
  * Get handle ID from node and handle name
  */
 export function getHandleId(nodeId: NodeID, handleName: string): HandleID {
-  return handleId(nodeId, handleName);
+  return createHandleId(nodeId, handleName);
 }
 
 /**
- * Find handle by ID in a node
+ * Find handle by ID in a diagram
  */
-export function findHandleById<N extends DiagramNode>(
-  node: N,
+export function findHandleById(
+  diagram: DomainDiagram,
   handleId: HandleID
-): InputHandle<string> | OutputHandle<string> | undefined {
-  // Check inputs
-  for (const handle of Object.values(node.inputs)) {
-    if (handle.id === handleId) {
-      return handle as InputHandle<string>;
-    }
-  }
-  
-  // Check outputs
-  for (const handle of Object.values(node.outputs)) {
-    if (handle.id === handleId) {
-      return handle as OutputHandle<string>;
-    }
-  }
-  
-  return undefined;
+): DomainHandle | undefined {
+  return diagram.handles[handleId];
 }
 
 /**
  * Get all handles (both input and output) from a node
  */
-export function getAllHandles<N extends DiagramNode>(
-  node: N
-): Array<InputHandle<string> | OutputHandle<string>> {
-  return [
-    ...getInputHandles(node),
-    ...getOutputHandles(node)
-  ];
+export function getAllHandles(
+  diagram: DomainDiagram,
+  nodeId: NodeID
+): DomainHandle[] {
+  return getDiagramNodeHandles(diagram, nodeId);
 }
 
 /**
  * Count handles on a node
  */
-export function countHandles(node: DiagramNode): {
+export function countHandles(
+  diagram: DomainDiagram,
+  nodeId: NodeID
+): {
   inputs: number;
   outputs: number;
   total: number;
 } {
-  const inputCount = Object.keys(node.inputs).length;
-  const outputCount = Object.keys(node.outputs).length;
+  const handles = getDiagramNodeHandles(diagram, nodeId);
+  const inputCount = handles.filter(h => h.direction === 'input').length;
+  const outputCount = handles.filter(h => h.direction === 'output').length;
   
   return {
     inputs: inputCount,
@@ -157,27 +159,16 @@ export function countHandles(node: DiagramNode): {
 /**
  * Get handle names for a specific node type
  */
-export function getHandleNamesForType<K extends NodeType>(
-  nodeType: K
+export function getHandleNamesForType(
+  nodeType: NodeKind
 ): {
-  inputs: InputHandleNamesOf<K>[];
-  outputs: OutputHandleNamesOf<K>[];
+  inputs: string[];
+  outputs: string[];
 } {
-  const spec = NodeSpecs[nodeType];
-  if (!spec) {
-    return { inputs: [], outputs: [] };
-  }
+  const config = getHandleConfig(nodeType);
   
-  const inputs: InputHandleNamesOf<K>[] = [];
-  const outputs: OutputHandleNamesOf<K>[] = [];
-  
-  for (const [name, handle] of Object.entries(spec.handles)) {
-    if (handle.direction === 'input') {
-      inputs.push(name as InputHandleNamesOf<K>);
-    } else {
-      outputs.push(name as OutputHandleNamesOf<K>);
-    }
-  }
+  const inputs = config.inputs?.map(h => h.id) || [];
+  const outputs = config.outputs?.map(h => h.id) || [];
   
   return { inputs, outputs };
 }
@@ -186,35 +177,33 @@ export function getHandleNamesForType<K extends NodeType>(
  * Validate if a handle name is valid for a node type
  */
 export function isValidHandleName(
-  nodeType: NodeType,
+  nodeType: NodeKind,
   handleName: string,
   direction: 'input' | 'output'
 ): boolean {
-  const spec = NodeSpecs[nodeType];
-  if (!spec) return false;
-  
-  const handle = spec.handles[handleName as keyof typeof spec.handles];
-  return handle !== undefined && handle.direction === direction;
+  const config = getHandleConfig(nodeType);
+  const handles = direction === 'input' ? config.inputs : config.outputs;
+  return handles?.some(h => h.id === handleName) || false;
 }
 
 /**
  * Get handle position offset for visual alignment
+ * This information is now stored in the handle registry
  */
 export function getHandleOffset(
-  nodeType: NodeType,
+  nodeType: NodeKind,
   handleName: string
 ): { x: number; y: number } | undefined {
-  // Special offsets for specific handles
-  const offsetMap: Record<string, Record<string, { x: number; y: number }>> = {
-    [NodeType.Condition]: {
-      'true': { x: 0, y: -20 },
-      'false': { x: 0, y: 20 }
-    },
-    [NodeType.PersonJob]: {
-      'first': { x: 0, y: -20 },
-      'default': { x: 0, y: 20 }
-    }
-  };
+  const config = getHandleConfig(nodeType);
+  const allHandles = [...(config.inputs || []), ...(config.outputs || [])];
+  const handle = allHandles.find(h => h.id === handleName);
   
-  return offsetMap[nodeType]?.[handleName];
+  if (handle?.offset) {
+    return {
+      x: handle.offset.x || 0,
+      y: handle.offset.y || 0
+    };
+  }
+  
+  return undefined;
 }

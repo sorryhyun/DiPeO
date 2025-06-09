@@ -52,7 +52,7 @@ export function areHandlesCompatible(
 
   // Check data type compatibility
   // 'any' type is compatible with everything
-  if (source.dataType === DataType.Any || target.dataType === DataType.Any) {
+  if (source.dataType === 'any' || target.dataType === 'any') {
     return true;
   }
 

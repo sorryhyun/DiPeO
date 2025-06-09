@@ -3,7 +3,7 @@
  * API operations should be imported directly from apiClient
  */
 
-import type { FieldValidationResult } from '@/types';
+import type { ValidationResult } from '@/types';
 
 export const formatPropertyValue = (value: unknown, type: string): string => {
   if (value === null || value === undefined) {
@@ -74,7 +74,7 @@ export const shouldShowProperty = (key: string, value: unknown): boolean => {
 /**
  * Field validation functions
  */
-export const validateTextField = (value: string, required = false): FieldValidationResult => {
+export const validateTextField = (value: string, required = false): ValidationResult => {
   if (required && (!value || value.trim().length === 0)) {
     return { isValid: false, error: 'This field is required' };
   }
@@ -86,7 +86,7 @@ export const validateTextField = (value: string, required = false): FieldValidat
   return { isValid: true };
 };
 
-export const validateNumberField = (value: string, min?: number, max?: number): FieldValidationResult => {
+export const validateNumberField = (value: string, min?: number, max?: number): ValidationResult => {
   if (!value) {
     return { isValid: true };
   }
@@ -107,9 +107,9 @@ export const validateNumberField = (value: string, min?: number, max?: number): 
   return { isValid: true };
 };
 
-export const validateEmailField = (value: string): FieldValidationResult => {
+export const validateEmailField = (value: string): ValidationResult => {
   if (!value) {
-    return { isValid: true };
+    return { isValid: false, error: 'Must be a valid email address' };
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -120,7 +120,7 @@ export const validateEmailField = (value: string): FieldValidationResult => {
   return { isValid: true };
 };
 
-export const validateUrlField = (value: string): FieldValidationResult => {
+export const validateUrlField = (value: string): ValidationResult => {
   if (!value) {
     return { isValid: true };
   }
@@ -133,7 +133,7 @@ export const validateUrlField = (value: string): FieldValidationResult => {
   }
 };
 
-export const validateJsonField = (value: string): FieldValidationResult => {
+export const validateJsonField = (value: string): ValidationResult => {
   if (!value) {
     return { isValid: true };
   }

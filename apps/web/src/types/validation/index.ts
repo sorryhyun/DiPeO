@@ -9,6 +9,6 @@
  */
 export interface ValidationResult {
   isValid: boolean;
-  errors: string[];
+  error?: string;
   warnings?: string[];
 }

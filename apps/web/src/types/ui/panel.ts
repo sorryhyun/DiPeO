@@ -1,6 +1,42 @@
+/**
+ * Extended field types for property panels
+ * These map to specific UI components in the property panel
+ */
+export type PanelFieldType = 
+  | 'text' 
+  | 'select' 
+  | 'textarea' 
+  | 'variableTextArea' 
+  | 'checkbox'
+  | 'maxIteration' 
+  | 'personSelect' 
+  | 'labelPersonRow' 
+  | 'row' 
+  | 'custom';
+
+/**
+ * Conditional rendering configuration
+ */
+export interface ConditionalConfig {
+  field: string;
+  values: unknown[];
+  operator?: 'equals' | 'notEquals' | 'includes';
+}
+
+/**
+ * Options configuration for select fields
+ */
+export type OptionsConfig<T = unknown> = 
+  | Array<{ value: string; label: string }>
+  | (() => Promise<Array<{ value: string; label: string }>>)
+  | ((formData: T) => Promise<Array<{ value: string; label: string }>>);
+
+/**
+ * Panel-specific field configuration
+ * This is a UI-specific configuration that maps to domain field properties
+ */
 export interface PanelFieldConfig {
-  type: 'text' | 'select' | 'textarea' | 'variableTextArea' | 'checkbox' | 
-        'maxIteration' | 'personSelect' | 'labelPersonRow' | 'row' | 'custom';
+  type: PanelFieldType;
   name?: string;
   label?: string;
   placeholder?: string;
@@ -10,16 +46,12 @@ export interface PanelFieldConfig {
   min?: number;
   max?: number;
   className?: string;
-  options?: Array<{ value: string; label: string }> | (() => Promise<Array<{ value: string; label: string }>>) | ((formData: unknown) => Promise<Array<{ value: string; label: string }>>);
+  options?: OptionsConfig;
   dependsOn?: string[];
-  conditional?: {
-    field: string;
-    values: unknown[];
-    operator?: 'equals' | 'notEquals' | 'includes';
-  };
-  // For row type
+  conditional?: ConditionalConfig;
+  // For row type - allows nested field groups
   fields?: PanelFieldConfig[];
-  // For labelPersonRow type
+  // For labelPersonRow type - special placeholders
   labelPlaceholder?: string;
   personPlaceholder?: string;
 }
@@ -51,74 +83,39 @@ import type {
 } from '../domain';
 
 /**
- * Form data type that extends domain data with UI-specific fields
+ * Generic form data wrapper that allows UI-specific extensions
+ * while maintaining type safety with domain types
  */
 export type PanelFormData<T extends Record<string, unknown>> = T & {
-  // Allow additional UI-specific fields
+  // Allow additional UI-specific fields for runtime flexibility
   [key: string]: unknown;
 };
 
-/**
- * Start node form data
- */
+// Node form data types - directly map to domain node data
 export type StartFormData = PanelFormData<StartNodeData>;
+export type PersonJobFormData = PanelFormData<PersonJobNodeData>;
+export type ConditionFormData = PanelFormData<ConditionNodeData>;
+export type EndpointFormData = PanelFormData<EndpointNodeData>;
+export type JobFormData = PanelFormData<JobNodeData>;
+export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
+export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;
 
 /**
- * Person job form data with UI fields
+ * DB form data with UI-specific field mapping
  */
-export interface PersonJobFormData extends PersonJobNodeData {
-  contextCleaningRule?: 'upon_request' | 'no_forget' | 'on_every_turn';
-  maxIteration?: number; // UI uses different name than domain
-}
-
-/**
- * Condition node form data with UI fields
- */
-export interface ConditionFormData extends ConditionNodeData {
-  conditionType?: 'expression' | 'detect_max_iterations';
-  expression?: string; // Maps to 'condition' in domain
-}
-
-/**
- * DB node form data with UI fields
- */
-export interface DBFormData extends DBNodeData {
-  subType?: 'fixed_prompt' | 'file';
+export interface DBFormData extends PanelFormData<DBNodeData> {
   sourceDetails?: string; // Maps to different fields based on subType
 }
 
 /**
- * Endpoint node form data
+ * Notion form data with UI-specific fields
  */
-export type EndpointFormData = PanelFormData<EndpointNodeData>;
-
-/**
- * Job node form data
- */
-export type JobFormData = PanelFormData<JobNodeData>;
-
-/**
- * Notion node form data with UI fields
- */
-export interface NotionFormData extends NotionNodeData {
+export interface NotionFormData extends PanelFormData<NotionNodeData> {
   pageId?: string;
   content?: string;
 }
-
 /**
- * User response form data
- */
-export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
-
-/**
- * Person batch job form data
- */
-export interface PersonBatchJobFormData extends PersonBatchJobNodeData {
-  contextCleaningRule?: 'upon_request' | 'no_forget' | 'on_every_turn';
-}
-
-/**
- * Arrow form data
+ * Arrow form data - extends domain arrow with UI fields
  */
 export interface ArrowFormData extends Record<string, unknown> {
   label?: string;
@@ -126,11 +123,11 @@ export interface ArrowFormData extends Record<string, unknown> {
 }
 
 /**
- * Person form data
+ * Person form data - maps to DomainPerson properties
  */
 export interface PersonFormData extends Record<string, unknown> {
   name: string;
-  service: 'openai' | 'anthropic' | 'gemini' | 'groq' | 'xai';
+  service: 'openai' | 'anthropic' | 'gemini' | 'xai';
   model: string;
   temperature?: number;
   maxTokens?: number;
@@ -138,46 +135,36 @@ export interface PersonFormData extends Record<string, unknown> {
 }
 
 /**
- * Type-safe options loader
+ * Type-safe options loader - reuses OptionsConfig pattern
  */
-export type OptionsLoader<T = unknown> =
-  | Array<{ value: string; label: string }>
-  | (() => Promise<Array<{ value: string; label: string }>>)
-  | ((formData: T) => Promise<Array<{ value: string; label: string }>>);
+export type OptionsLoader<T = unknown> = OptionsConfig<T>;
 
 /**
- * Enhanced panel field config with better typing
+ * Type-safe conditional configuration
  */
-export interface TypedPanelFieldConfig<T = unknown> {
-  type: 'text' | 'select' | 'textarea' | 'variableTextArea' | 'checkbox' |
-        'maxIteration' | 'personSelect' | 'labelPersonRow' | 'row' | 'custom';
+export interface TypedConditionalConfig<T> {
+  field: keyof T & string;
+  values: unknown[];
+  operator?: 'equals' | 'notEquals' | 'includes';
+}
+
+/**
+ * Enhanced panel field config with generic type safety
+ */
+export interface TypedPanelFieldConfig<T = unknown> extends Omit<PanelFieldConfig, 'name' | 'dependsOn' | 'conditional' | 'options' | 'fields' | 'disabled'> {
   name?: keyof T & string;
-  label?: string;
-  placeholder?: string;
   disabled?: boolean | ((formData: T) => boolean);
-  required?: boolean;
-  rows?: number;
-  min?: number;
-  max?: number;
-  className?: string;
   options?: OptionsLoader<T>;
   dependsOn?: Array<keyof T & string>;
-  conditional?: {
-    field: keyof T & string;
-    values: unknown[];
-    operator?: 'equals' | 'notEquals' | 'includes';
-  };
-  // For row type
+  conditional?: TypedConditionalConfig<T>;
+  // For row type - typed nested fields
   fields?: Array<TypedPanelFieldConfig<T>>;
-  // For labelPersonRow type
-  labelPlaceholder?: string;
-  personPlaceholder?: string;
   // Validation
   validate?: (value: unknown, formData: T) => { isValid: boolean; error?: string };
 }
 
 /**
- * Enhanced panel config with better typing
+ * Enhanced panel config with type safety
  */
 export interface TypedPanelConfig<T extends Record<string, unknown> = Record<string, unknown>> {
   layout: 'single' | 'twoColumn';

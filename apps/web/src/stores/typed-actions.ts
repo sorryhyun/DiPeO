@@ -4,7 +4,7 @@
  * This provides a cleaner API without complex type gymnastics
  */
 import { NodeID, ArrowID, PersonID, personId } from '@/types/branded';
-import { NodeKind, Vec2 } from '@/types';
+import { Vec2 } from '@/types';
 import { 
   createStartNode,
   createConditionNode,
@@ -24,15 +24,15 @@ import type { DomainPerson } from '@/types/domain/person';
  */
 export function createTypedActions(store: any) {
   const nodeFactories = {
-    [NodeKind.Start]: createStartNode,
-    [NodeKind.Condition]: createConditionNode,
-    [NodeKind.PersonJob]: createPersonJobNode,
-    [NodeKind.Endpoint]: createEndpointNode,
-    [NodeKind.DB]: createDBNode,
-    [NodeKind.Job]: createJobNode,
-    [NodeKind.UserResponse]: createUserResponseNode,
-    [NodeKind.Notion]: createNotionNode,
-    [NodeKind.PersonBatchJob]: createPersonBatchJobNode
+    'start': createStartNode,
+    'condition': createConditionNode,
+    'person_job': createPersonJobNode,
+    'endpoint': createEndpointNode,
+    'db': createDBNode,
+    'job': createJobNode,
+    'user_response': createUserResponseNode,
+    'notion': createNotionNode,
+    'person_batch_job': createPersonBatchJobNode
   };
 
   return {
