@@ -3,7 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecutionV2, useDiagramRunner } from './hooks/execution';
-import { useConsolidatedUIStore, useDiagramStore } from './stores';
+import { useConsolidatedUIStore, useDiagramExportStore } from './stores';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -13,7 +13,7 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 
 function App() {
   const { activeCanvas } = useConsolidatedUIStore();
-  const { setReadOnly } = useDiagramStore();
+  const { setReadOnly } = useDiagramExportStore();
   const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';

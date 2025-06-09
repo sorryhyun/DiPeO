@@ -3,5 +3,5 @@
  */
 
 // Re-export all node utilities
-export * from './node';
+export * from './handle-utils';
 export * from './handle-builder';

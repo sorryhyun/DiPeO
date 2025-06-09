@@ -19,10 +19,10 @@ import {
   personId,
   apiKeyId,
   handleId,
-  parseHandleId,
 } from '@/types';
-import { NodeKind, DataType, HandlePosition } from '@/types/primitives';
-import { generateShortId, generateArrowId } from '@/types/primitives';
+import { parseHandleId } from '@/types/domain/handle';
+import { NodeKind, DataType, HandlePosition } from '@/types/primitives/enums';
+import { generateShortId, generateArrowId } from '@/types/primitives/id-generation';
 import { getNodeConfig } from '@/config/helpers';
 
 // Export format types
@@ -390,7 +390,7 @@ export class DiagramExporter {
       // Create domain node
       const domainNode: DomainNode = {
         id,
-        type: nodeData.type as NodeType,
+        type: nodeData.type as NodeKind,
         position: nodeData.position,
         data: {
           ...nodeData.data,
@@ -405,7 +405,7 @@ export class DiagramExporter {
       if (nodeData.handles) {
         nodeData.handles.forEach(handleData => {
           const handle: DomainHandle = {
-            id: handleId(`${id}:${handleData.name}`),
+            id: handleId(id, handleData.name),
             nodeId: id,
             name: handleData.name,
             direction: handleData.direction,
@@ -535,8 +535,9 @@ export const useDiagramExportStore = createWithEqualityFn<DiagramExportStore>()(
           setLastExport: (data) => set({ lastExport: data }),
 
           exportDiagram: (domainStore) => {
-            if (!cachedExporter || cachedExporter['domainStore'] !== domainStore) {
+            if (!cachedExporter || (cachedExporter as any).domainStore !== domainStore) {
               cachedExporter = new DiagramExporter(domainStore);
+              (cachedExporter as any).domainStore = domainStore;
             }
             const exportData = cachedExporter.exportDiagram();
             set({ lastExport: exportData });
@@ -544,15 +545,17 @@ export const useDiagramExportStore = createWithEqualityFn<DiagramExportStore>()(
           },
 
           exportAsJSON: (domainStore) => {
-            if (!cachedExporter || cachedExporter['domainStore'] !== domainStore) {
+            if (!cachedExporter || (cachedExporter as any).domainStore !== domainStore) {
               cachedExporter = new DiagramExporter(domainStore);
+              (cachedExporter as any).domainStore = domainStore;
             }
             return cachedExporter.exportAsJSON();
           },
 
           importDiagram: (data, domainStore) => {
-            if (!cachedExporter || cachedExporter['domainStore'] !== domainStore) {
+            if (!cachedExporter || (cachedExporter as any).domainStore !== domainStore) {
               cachedExporter = new DiagramExporter(domainStore);
+              (cachedExporter as any).domainStore = domainStore;
             }
             cachedExporter.importDiagram(data);
           },

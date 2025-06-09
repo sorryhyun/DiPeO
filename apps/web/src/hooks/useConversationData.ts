@@ -1,14 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
-import { ConversationFilters, ConversationMessage } from '@/types'
-import { PersonMemoryConfig } from "@/types";
+import type { ConversationFilters, ConversationMessage } from '@/types/runtime/message';
+import type { PersonMemoryConfig, PersonMemoryState } from '@/types/runtime/execution';
+import type { PersonID } from '@/types/branded';
 
 const MESSAGES_PER_PAGE = 50;
 
 export interface UseConversationDataOptions {
   filters: ConversationFilters;
-  personId?: string | null;
+  personId?: PersonID | null;
   enableRealtimeUpdates?: boolean;
 }
 
@@ -26,7 +27,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
 
   // Main fetch function
   const fetchConversationData = useCallback(async (
-    personId?: string,
+    personId?: PersonID,
     append: boolean = false,
     since?: string
   ) => {
@@ -103,7 +104,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   }, [filters]);
 
   // Add new message to conversation data
-  const addMessage = useCallback((personId: string, message: ConversationMessage) => {
+  const addMessage = useCallback((personId: PersonID, message: ConversationMessage) => {
     setConversationData(prev => {
       const personData = prev[personId];
       if (!personData) return prev;
@@ -123,12 +124,12 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   }, []);
 
   // Refresh data for a specific person or all
-  const refresh = useCallback((personId?: string) => {
+  const refresh = useCallback((personId?: PersonID) => {
     return fetchConversationData(personId);
   }, [fetchConversationData]);
 
   // Load more messages for pagination
-  const fetchMore = useCallback((personId: string) => {
+  const fetchMore = useCallback((personId: PersonID) => {
     const personData = conversationData[personId];
     if (personData?.hasMore && !isLoadingMore) {
       return fetchConversationData(personId, true);

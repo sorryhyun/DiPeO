@@ -2,12 +2,13 @@ import { shallow } from 'zustand/shallow';
 import { useDiagramStore } from '@/stores';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
-import type { Node, Arrow, Person, ApiKey } from '@/types';
+import type { DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle, DomainDiagram } from '@/types/domain';
+import type { NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@/types/branded';
 
 // ===== Key Optimized Selectors =====
 
 // Execution state for specific node - avoids subscribing to entire execution store
-export const useNodeExecutionState = (nodeId: string) => {
+export const useNodeExecutionState = (nodeId: NodeID) => {
   return useExecutionStore(
     state => {
       const isRunning = state.runningNodes.includes(nodeId);
@@ -52,7 +53,7 @@ export const useCanvasState = () => {
       onNodesChange: state.onNodesChange,
       onArrowsChange: state.onArrowsChange,
       onConnect: state.onConnect,
-      addNode: state.addNode,
+      addNode: state.addNodeByType,
       deleteNode: state.deleteNode,
       deleteArrow: state.deleteArrow,
     }),
@@ -66,7 +67,7 @@ export const usePersons = () => {
     state => ({
       persons: state.personList(),
       isMonitorMode: state.isReadOnly,
-      addPerson: state.addPerson,
+      addPerson: state.createPerson,
       updatePerson: state.updatePerson,
       deletePerson: state.deletePerson,
       getPersonById: state.getPersonById,
@@ -82,7 +83,7 @@ export const useNodes = () => {
       nodes: state.nodeList(),
       isMonitorMode: state.isReadOnly,
       onNodesChange: state.onNodesChange,
-      addNode: state.addNode,
+      addNode: state.addNodeByType,
       deleteNode: state.deleteNode,
     }),
     shallow
@@ -167,7 +168,7 @@ export const useCanvasSelectors = () => {
       onNodesChange: state.onNodesChange,
       onArrowsChange: state.onArrowsChange,
       onConnect: state.onConnect,
-      addNode: state.addNode,
+      addNode: state.addNodeByType,
       deleteNode: state.deleteNode,
       deleteArrow: state.deleteArrow,
       updateNode: state.updateNode,
@@ -231,7 +232,7 @@ export const useExecutionActions = () => {
 
 // Node position updater
 export const useNodePositionUpdater = () => {
-  return useDiagramStore(state => (id: string, position: { x: number; y: number }) => 
+  return useDiagramStore(state => (id: NodeID, position: { x: number; y: number }) => 
     state.updateNode(id, { position })
   );
 };
@@ -250,6 +251,7 @@ export const useDiagramActions = () => {
   return useDiagramStore(
     state => ({
       addNode: state.addNode,
+      addNodeByType: state.addNodeByType,
       deleteNode: state.deleteNode,
       addArrow: state.addArrow,
       deleteArrow: state.deleteArrow,
@@ -281,21 +283,46 @@ export const exportDiagramState = () => {
   return useDiagramStore.getState().exportDiagram();
 };
 
-interface DiagramData {
-  nodes?: Node[];
-  arrows?: Arrow[];
-  persons?: Person[];
-  apiKeys?: ApiKey[];
-}
-
-export const loadDiagram = (data: DiagramData) => {
-  // Ensure required fields have default values
-  const diagramData = {
-    nodes: data.nodes || [],
-    arrows: data.arrows || [],
-    persons: data.persons || [],
-    apiKeys: data.apiKeys
-  };
+export const loadDiagram = (data: any) => {
+  // Convert old array format to new Record format if needed
+  let diagramData: DomainDiagram;
+  
+  if (Array.isArray(data.nodes)) {
+    // Old format with arrays - convert to Records
+    const nodes: Record<NodeID, DomainNode> = {};
+    const handles: Record<HandleID, DomainHandle> = {};
+    const arrows: Record<ArrowID, DomainArrow> = {};
+    const persons: Record<PersonID, DomainPerson> = {};
+    const apiKeys: Record<ApiKeyID, DomainApiKey> = {};
+    
+    (data.nodes || []).forEach((node: DomainNode) => {
+      nodes[node.id] = node;
+    });
+    
+    (data.arrows || []).forEach((arrow: DomainArrow) => {
+      arrows[arrow.id] = arrow;
+    });
+    
+    (data.persons || []).forEach((person: DomainPerson) => {
+      persons[person.id] = person;
+    });
+    
+    (data.apiKeys || []).forEach((apiKey: DomainApiKey) => {
+      apiKeys[apiKey.id] = apiKey;
+    });
+    
+    diagramData = {
+      nodes,
+      handles,
+      arrows,
+      persons,
+      apiKeys
+    };
+  } else {
+    // New format with Records
+    diagramData = data as DomainDiagram;
+  }
+  
   return useDiagramStore.getState().loadDiagram(diagramData);
 };
 

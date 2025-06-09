@@ -1,47 +1,32 @@
-// apps/web/src/stores/typed-actions-simple.ts
+// apps/web/src/stores/typed-actions.ts
 /**
  * Simplified typed actions for the diagram store
  * This provides a cleaner API without complex type gymnastics
  */
-import { NodeID, ArrowID, PersonID, personId } from '@/types/branded';
+import { NodeID, ArrowID, PersonID, personId, arrowId, handleId } from '@/types/branded';
 import { Vec2 } from '@/types';
-import { 
-  createStartNode,
-  createConditionNode,
-  createPersonJobNode,
-  createEndpointNode,
-  createDBNode,
-  createJobNode,
-  createUserResponseNode,
-  createNotionNode,
-  createPersonBatchJobNode
-} from '@/utils/factories/node-factory';
-import { connect } from '@/utils/connection-helpers';
+import { NodeKind } from '@/types/primitives/enums';
+import { generateArrowId } from '@/types/primitives/id-generation';
+import { buildNode, type NodeInfo } from '@/utils/converters/nodeBuilders';
 import type { DomainPerson } from '@/types/domain/person';
+import type { DomainArrow } from '@/types/domain/arrow';
 
 /**
  * Create typed actions for any store-like object
  */
 export function createTypedActions(store: any) {
-  const nodeFactories = {
-    'start': createStartNode,
-    'condition': createConditionNode,
-    'person_job': createPersonJobNode,
-    'endpoint': createEndpointNode,
-    'db': createDBNode,
-    'job': createJobNode,
-    'user_response': createUserResponseNode,
-    'notion': createNotionNode,
-    'person_batch_job': createPersonBatchJobNode
-  };
-
   return {
     /**
      * Add a start node
      */
     addStartNode(output: string, position?: Vec2, label?: string): NodeID {
-      const node = createStartNode(output, position, label);
-      store.addNode(node as any);
+      const nodeInfo: NodeInfo = {
+        name: label || 'Start',
+        type: 'start',
+        position: position || { x: 100, y: 100 }
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
       return node.id;
     },
 
@@ -50,12 +35,19 @@ export function createTypedActions(store: any) {
      */
     addConditionNode(
       condition: string,
-      type: 'simple' | 'complex' | 'detect_max_iterations' = 'simple',
+      conditionType: 'expression' | 'detect_max_iterations' = 'expression',
       position?: Vec2,
       label?: string
     ): NodeID {
-      const node = createConditionNode(condition, type, position, label);
-      store.addNode(node as any);
+      const nodeInfo: NodeInfo = {
+        name: label || 'Condition',
+        type: 'condition',
+        position: position || { x: 100, y: 100 },
+        condition,
+        conditionType
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
       return node.id;
     },
 
@@ -67,18 +59,24 @@ export function createTypedActions(store: any) {
       firstOnlyPrompt: string,
       defaultPrompt: string,
       options?: {
-        maxIteration?: number;
+        maxIterations?: number;
         contextCleaningRule?: 'no_forget' | 'on_every_turn' | 'upon_request';
         position?: Vec2;
         label?: string;
       }
     ): NodeID {
-      const node = createPersonJobNode(
-        personId as string,
-        { firstOnlyPrompt, defaultPrompt },
-        options
-      );
-      store.addNode(node as any);
+      const nodeInfo: NodeInfo = {
+        name: options?.label || 'Person Job',
+        type: 'person_job',
+        position: options?.position || { x: 100, y: 100 },
+        personId: personId as string,
+        firstPrompt: firstOnlyPrompt,
+        prompt: defaultPrompt,
+        maxIterations: options?.maxIterations,
+        contextCleaningRule: options?.contextCleaningRule
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
       return node.id;
     },
 
@@ -91,8 +89,127 @@ export function createTypedActions(store: any) {
       position?: Vec2,
       label?: string
     ): NodeID {
-      const node = createEndpointNode(action, filename, position, label);
-      store.addNode(node as any);
+      const nodeInfo: NodeInfo = {
+        name: label || 'Endpoint',
+        type: 'endpoint',
+        position: position || { x: 100, y: 100 },
+        filePath: action === 'save' ? filename : undefined,
+        saveToFile: action === 'save'
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
+      return node.id;
+    },
+
+    /**
+     * Add a DB node
+     */
+    addDBNode(
+      subType: 'fixed_prompt' | 'file',
+      sourceDetails: string,
+      position?: Vec2,
+      label?: string
+    ): NodeID {
+      const nodeInfo: NodeInfo = {
+        name: label || 'Database',
+        type: 'db',
+        position: position || { x: 100, y: 100 },
+        subType,
+        sourceDetails
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
+      return node.id;
+    },
+
+    /**
+     * Add a job node
+     */
+    addJobNode(
+      code: string,
+      language: 'python' | 'javascript' | 'bash' = 'python',
+      position?: Vec2,
+      label?: string
+    ): NodeID {
+      const nodeInfo: NodeInfo = {
+        name: label || 'Job',
+        type: 'job',
+        position: position || { x: 100, y: 100 },
+        code,
+        subType: 'code',
+        language
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
+      return node.id;
+    },
+
+    /**
+     * Add a user response node
+     */
+    addUserResponseNode(
+      promptMessage: string,
+      timeoutSeconds: number = 30,
+      position?: Vec2,
+      label?: string
+    ): NodeID {
+      const nodeInfo: NodeInfo = {
+        name: label || 'User Response',
+        type: 'user_response',
+        position: position || { x: 100, y: 100 },
+        promptMessage,
+        timeoutSeconds
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
+      return node.id;
+    },
+
+    /**
+     * Add a notion node
+     */
+    addNotionNode(
+      operation: 'read' | 'write',
+      pageId: string,
+      position?: Vec2,
+      label?: string
+    ): NodeID {
+      const nodeInfo: NodeInfo = {
+        name: label || 'Notion',
+        type: 'notion',
+        position: position || { x: 100, y: 100 },
+        subType: operation,
+        pageId
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
+      return node.id;
+    },
+
+    /**
+     * Add a person batch job node
+     */
+    addPersonBatchJobNode(
+      personId: PersonID,
+      firstOnlyPrompt: string,
+      defaultPrompt: string,
+      options?: {
+        position?: Vec2;
+        label?: string;
+        contextCleaningRule?: 'no_forget' | 'on_every_turn' | 'upon_request';
+      }
+    ): NodeID {
+      const nodeInfo: NodeInfo = {
+        name: options?.label || 'Person Batch Job',
+        type: 'person_batch_job',
+        position: options?.position || { x: 100, y: 100 },
+        personId: personId as string,
+        firstPrompt: firstOnlyPrompt,
+        prompt: defaultPrompt,
+        contextCleaningRule: options?.contextCleaningRule
+      };
+      const node = buildNode(nodeInfo);
+      store.addNode(node);
       return node.id;
     },
 
@@ -123,29 +240,21 @@ export function createTypedActions(store: any) {
         label?: string;
       }
     ): ArrowID {
-      // Get nodes from store
-      const nodes = store.nodes || store.getState?.()?.nodes || [];
-      const fromNode = nodes.find((n: any) => n.id === fromNodeId);
-      const toNode = nodes.find((n: any) => n.id === toNodeId);
-      
-      if (!fromNode || !toNode) {
-        throw new Error(`Nodes not found: ${!fromNode ? fromNodeId : toNodeId}`);
-      }
+      // Create handle IDs
+      const sourceHandleId = handleId(fromNodeId, fromHandle);
+      const targetHandleId = handleId(toNodeId, toHandle);
 
-      // Add arrow to store
-      const arrowId = ArrowId(`ar-${Date.now()}`);
-      store.addArrow({
-        id: arrowId,
-        source: fromNodeId as string,
-        sourceHandle: fromHandle,
-        target: toNodeId as string,
-        targetHandle: toHandle,
-        type: 'smoothstep',
-        animated: options?.animated,
-        label: options?.label
-      });
+      // Create arrow
+      const newArrowId = arrowId(generateArrowId());
+      const arrow: DomainArrow = {
+        id: newArrowId,
+        source: sourceHandleId,
+        target: targetHandleId,
+        data: options?.label ? { label: options.label } : {}
+      };
       
-      return arrowId;
+      store.addArrow(arrow);
+      return newArrowId;
     },
 
     /**
@@ -160,12 +269,17 @@ export function createTypedActions(store: any) {
      */
     removeNode(nodeId: NodeID): void {
       // Remove connected arrows
-      const arrows = store.arrows || store.getState?.()?.arrows || [];
-      const connectedArrows = arrows.filter(
-        (a: any) => a.source === nodeId || a.target === nodeId
-      );
+      const arrows = store.getAllArrows ? store.getAllArrows() : [];
+      const nodeHandles = store.getNodeHandles ? store.getNodeHandles(nodeId) : [];
       
-      connectedArrows.forEach((arrow: any) => {
+      // Filter arrows connected to any of this node's handles
+      const connectedArrows = arrows.filter((arrow: DomainArrow) => {
+        return nodeHandles.some((handle: any) => 
+          arrow.source === handle.id || arrow.target === handle.id
+        );
+      });
+      
+      connectedArrows.forEach((arrow: DomainArrow) => {
         store.removeArrow(arrow.id);
       });
       
@@ -177,27 +291,32 @@ export function createTypedActions(store: any) {
      * Validate diagram
      */
     validateDiagram(): { valid: boolean; errors: string[] } {
-      const nodes = store.nodes || store.getState?.()?.nodes || [];
-      const arrows = store.arrows || store.getState?.()?.arrows || [];
-      const persons = store.persons || store.getState?.()?.persons || [];
+      const nodes = store.getAllNodes ? store.getAllNodes() : [];
+      const arrows = store.getAllArrows ? store.getAllArrows() : [];
       const errors: string[] = [];
       
       // Check for start nodes
-      const startNodes = nodes.filter((n: any) => n.type === NodeType.Start);
+      const startNodes = nodes.filter((n: any) => n.type === 'start');
       if (startNodes.length === 0) {
         errors.push('Diagram must have at least one start node');
       }
       
       // Check for endpoint nodes
-      const endpointNodes = nodes.filter((n: any) => n.type === NodeType.Endpoint);
+      const endpointNodes = nodes.filter((n: any) => n.type === 'endpoint');
       if (endpointNodes.length === 0) {
         errors.push('Diagram must have at least one endpoint node');
       }
       
       // Check for orphaned nodes
       nodes.forEach((node: any) => {
-        if (node.type !== NodeType.Start) {
-          const hasIncoming = arrows.some((a: any) => a.target === node.id);
+        if (node.type !== 'start') {
+          const nodeHandles = store.getNodeHandles ? store.getNodeHandles(node.id) : [];
+          const inputHandles = nodeHandles.filter((h: any) => h.direction === 'input');
+          
+          const hasIncoming = inputHandles.some((handle: any) =>
+            arrows.some((a: DomainArrow) => a.target === handle.id)
+          );
+          
           if (!hasIncoming) {
             errors.push(`Node "${node.data?.label || node.id}" has no incoming connections`);
           }

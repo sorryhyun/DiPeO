@@ -11,7 +11,10 @@ import { useWebSocketEventBus } from '../useWebSocketEventBus';
 import { useExecutionUI } from './useExecutionUI';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useCanvasSelectors } from '../useStoreSelectors';
-import type { DiagramState, InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types';
+import type { DomainDiagram, DomainNode } from '@/types/domain';
+import type { InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types/runtime';
+import type { NodeID } from '@/types/branded';
+import {NodeKind} from "@/types";
 
 export interface UseExecutionV2Options {
   autoConnect?: boolean;
@@ -39,12 +42,12 @@ export interface UseExecutionV2Return {
   interactivePrompt: InteractivePromptData | null;
   
   // Main actions
-  execute: (diagram?: DiagramState, options?: ExecutionOptions) => Promise<void>;
-  pauseNode: (nodeId: string) => void;
-  resumeNode: (nodeId: string) => void;
-  skipNode: (nodeId: string) => void;
+  execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
+  pauseNode: (nodeId: NodeID) => void;
+  resumeNode: (nodeId: NodeID) => void;
+  skipNode: (nodeId: NodeID) => void;
   abort: () => void;
-  respondToPrompt: (nodeId: string, response: string) => void;
+  respondToPrompt: (nodeId: NodeID, response: string) => void;
   
   // Connection actions
   connect: () => void;
@@ -138,7 +141,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     });
 
     on('node_complete', (data: any) => {
-      const nodeType = nodes.find(n => n.id === data.node_id)?.type || 'unknown';
+      const nodeType = nodes.find((n: DomainNode) => n.id === data.node_id)?.type || 'unknown';
       state.completeNode(data.node_id, data.token_count);
       ui.showNodeComplete(data.node_id, nodeType);
       executionStore.removeRunningNode(data.node_id);
@@ -190,11 +193,11 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
   }, [state.executionState.completedNodes, state.executionState.totalNodes]);
 
   // Execute diagram
-  const execute = useCallback(async (diagram?: DiagramState, options?: ExecutionOptions) => {
+  const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
     // Reset state before starting
     state.resetState();
     executionStore.setRunContext({});
-    executionStore.runningNodes.forEach(nodeId => executionStore.removeRunningNode(nodeId));
+    executionStore.runningNodes.forEach((nodeId: NodeID) => executionStore.removeRunningNode(nodeId));
     ui.clearInteractivePrompt();
     
     try {
@@ -211,21 +214,21 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
   }, [send, waitForConnection, state, executionStore, ui]);
 
   // Control actions
-  const pauseNode = useCallback((nodeId: string) => {
+  const pauseNode = useCallback((nodeId: NodeID) => {
     send({
       type: 'pause_node',
       node_id: nodeId
     });
   }, [send]);
 
-  const resumeNode = useCallback((nodeId: string) => {
+  const resumeNode = useCallback((nodeId: NodeID) => {
     send({
       type: 'resume_node',
       node_id: nodeId
     });
   }, [send]);
 
-  const skipNode = useCallback((nodeId: string) => {
+  const skipNode = useCallback((nodeId: NodeID) => {
     send({
       type: 'skip_node',
       node_id: nodeId
@@ -240,10 +243,10 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       });
     }
     state.abortExecution();
-    executionStore.runningNodes.forEach(nodeId => executionStore.removeRunningNode(nodeId));
+    executionStore.runningNodes.forEach((nodeId: NodeID) => executionStore.removeRunningNode(nodeId));
   }, [send, state, executionStore]);
 
-  const respondToPrompt = useCallback((nodeId: string, response: string) => {
+  const respondToPrompt = useCallback((nodeId: NodeID, response: string) => {
     send({
       type: 'interactive_response',
       node_id: nodeId,

@@ -3,15 +3,15 @@ import { DomainDiagram, DomainNode, DomainArrow } from '../domain';
 import { NodeID, ArrowID } from '../branded';
 
 /**
- * React Flow specific diagram representation
+ * React specific diagram representation
  */
-export interface ReactFlowDiagram {
+export interface ReactDiagram {
   nodes: Node[];
   edges: Edge[];
 }
 
 /**
- * React Flow node with DiPeO data
+ * React node with DiPeO data
  */
 export interface DiPeoNode extends Node {
   data: {
@@ -23,7 +23,7 @@ export interface DiPeoNode extends Node {
 }
 
 /**
- * React Flow edge with DiPeO data
+ * React edge with DiPeO data
  */
 export interface DiPeoEdge extends Edge {
   data?: {
@@ -42,9 +42,9 @@ export interface ValidatedConnection extends Connection {
 }
 
 /**
- * React Flow instance wrapper
+ * React instance wrapper
  */
-export interface DiPeoReactFlowInstance {
+export interface DiPeoReactInstance {
   nodes: DiPeoNode[];
   edges: DiPeoEdge[];
   getNode: (id: string) => DiPeoNode | undefined;

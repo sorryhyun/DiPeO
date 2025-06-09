@@ -6,7 +6,7 @@ import {
   disconnectWebSocket,
   wsEventBus
 } from '@/utils/websocket/event-bus';
-import { WSMessage, WebSocketClientOptions } from '@/types';
+import type { WSMessage, WebSocketClientOptions } from '@/types/runtime/websocket';
 
 export interface WebSocketState {
   isConnected: boolean;
@@ -23,7 +23,7 @@ export interface WebSocketActions {
   reconnect: () => void;
 }
 
-export interface UseWebSocketOptions extends Omit<WebSocketClientOptions, 'onError'> {
+export interface UseWebSocketOptions extends Omit<WebSocketClientOptions, 'onError' | 'onMessage' | 'onOpen' | 'onClose'> {
   autoConnect?: boolean;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -91,7 +91,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): [WebSocketState
     }));
 
     return () => {
-      unsubscribes.forEach(fn => fn());
+      unsubscribes.forEach((fn: () => void) => fn());
     };
   }, [onConnected, onDisconnected, onError, onReconnectFailed]);
 
@@ -104,7 +104,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): [WebSocketState
       // Call registered handlers for this message type
       const handlers = messageHandlersRef.current.get(message.type);
       if (handlers) {
-        handlers.forEach(handler => {
+        handlers.forEach((handler: (message: WSMessage) => void) => {
           try {
             handler(message);
           } catch (error) {
@@ -194,4 +194,4 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): [WebSocketState
 };
 
 // Re-export for convenience
-export type { WSMessage } from '@/types';
+export type { WSMessage } from '@/types/runtime/websocket';

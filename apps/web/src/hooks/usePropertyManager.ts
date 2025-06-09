@@ -8,7 +8,9 @@ import {
   usePersonDataUpdater 
 } from './useStoreSelectors';
 import { useEvent } from './useEvent';
-import { type ApiKey, PanelConfig, PanelFieldConfig, SelectFieldConfig } from '@/types';
+import type { DomainApiKey } from '@/types/domain';
+import type { PanelConfig, PanelFieldConfig } from '@/types/ui/panel';
+import type { NodeID, ArrowID, PersonID } from '@/types/branded';
 import { useApiKeyStore } from "@/stores";
 
 // Safe deep comparison using Immer to handle draft states
@@ -69,7 +71,7 @@ interface UsePropertyManagerOptions<T> {
 }
 
 export const usePropertyManager = <T extends Record<string, unknown>>(
-  entityId: string,
+  entityId: NodeID | ArrowID | PersonID,
   entityType: 'node' | 'arrow' | 'person',
   initialData: T,
   options: UsePropertyManagerOptions<T> = {}
@@ -282,7 +284,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
 
   // API key options for dropdowns - memoize instead of useCallback
   const apiKeyOptions = useMemo(() => {
-    return apiKeys.map((key: ApiKey) => ({
+    return apiKeys.map((key: DomainApiKey) => ({
       value: key.id,
       label: `${key.service}: ${key.name}`,
       service: key.service
@@ -327,7 +329,7 @@ export const usePropertyManager = <T extends Record<string, unknown>>(
   const asyncFields = useMemo(() => {
     return fields.filter(
       field => field.type === 'select' && typeof field.options === 'function'
-    ) as SelectFieldConfig[];
+    ) as Array<PanelFieldConfig & { type: 'select'; options: (formData?: any) => Promise<Array<{ value: string; label: string }>> }>;
   }, [fields]);
 
   // Create queries for async fields

@@ -108,21 +108,13 @@ export class Yaml {
 
     // Convert persons to agents with full details - use label as key
     diagram.persons.forEach(person => {
-      // Find API key label and service by ID
+      // Use service from person
       let apiKeyLabel: string | undefined;
-      let service = 'chatgpt'; // default
-      if (person) {
-        const apiKey = diagram.apiKeys.find(k => k.id === person.apiKeyId);
-        if (apiKey) {
-          apiKeyLabel = apiKey.name;
-          service = apiKey.service;
-        }
-      }
+      let service = person.service || 'openai'; // default
       
       persons[person.name] = {
         model: person.model || 'gpt-4.1-nano',
         service,
-        ...(apiKeyLabel && { apiKeyLabel }),
         ...(person.systemPrompt && { system: person.systemPrompt })
       };
     });
@@ -180,20 +172,25 @@ export class Yaml {
         const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
         const { handleName: sourceHandleName } = parseHandleId(arrow.source);
         
-        return {
+        const connection: any = {
           to: targetNodeId,
           source_handle: sourceHandleName,
           target_handle: targetHandleName,
-          ...(arrow.data?.label && { label: arrow.data.label }),
-          ...(arrow.data?.contentType && { content_type: arrow.data.contentType }),
-          ...(arrow.data?.branch && { branch: arrow.data.branch }),
-          ...((arrow.data?.controlPointOffsetX !== undefined || arrow.data?.controlPointOffsetY !== undefined) && {
-            control_offset: {
-              x: Math.round(arrow.data?.controlPointOffsetX || 0),
-              y: Math.round(arrow.data?.controlPointOffsetY || 0)
-            }
-          })
         };
+        
+        if (arrow.data) {
+          if (arrow.data.label) connection.label = arrow.data.label;
+          if (arrow.data.contentType) connection.content_type = arrow.data.contentType;
+          if (arrow.data.branch) connection.branch = arrow.data.branch;
+          if (arrow.data.controlPointOffsetX !== undefined && arrow.data.controlPointOffsetY !== undefined) {
+            connection.control_offset = {
+              x: Math.round(Number(arrow.data.controlPointOffsetX)),
+              y: Math.round(Number(arrow.data.controlPointOffsetY))
+            };
+          }
+        }
+        
+        return connection;
       });
     }
 
@@ -231,15 +228,16 @@ export class Yaml {
    * Convert enhanced YAML format back to DiagramState
    */
   private static fromYamlFormat(yamlDiagram: YamlDiagram): ConverterDiagram {
-    const nodes: DomainNode[] = [];
+    const nodes: NodeWithHandles[] = [];
     const arrows: DomainArrow[] = [];
     const persons: DomainPerson[] = [];
     const apiKeys: DomainApiKey[] = [];
 
     // Convert API keys - generate new IDs
     Object.entries(yamlDiagram.apiKeys || {}).forEach(([_name, key]) => {
+      const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
       apiKeys.push({
-        id: entityIdGenerators.apiKey(),
+        id: apiKeyIdValue,
         name: key.name,
         service: key.service as DomainApiKey['service'],
         // key is optional - not stored in frontend
@@ -259,33 +257,26 @@ export class Yaml {
       const service = (person.service || 'chatgpt') as DomainApiKey['service'];
       if (!serviceToApiKey.has(service) && !person.apiKeyLabel) {
         // Create API key for this service if not using explicit apiKeyLabel
+        const newApiKeyId = apiKeyId(entityIdGenerators.apiKey());
         const newApiKey = {
-          id: entityIdGenerators.apiKey(),
+          id: newApiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
           service,
           // key is optional - not stored in frontend
         };
         apiKeys.push(newApiKey);
-        serviceToApiKey.set(service, newApiKey.id);
+        serviceToApiKey.set(service, newApiKeyId);
       }
     });
 
     Object.entries(yamlDiagram.persons || {}).forEach(([label, person]) => {
-      // Resolve API key reference
-      let apiKeyId: string | undefined;
-      if (person.apiKeyLabel && apiKeyLabelToId.has(person.apiKeyLabel)) {
-        apiKeyId = apiKeyLabelToId.get(person.apiKeyLabel);
-      } else {
-        // Use the API key created for this service
-        const service = (person.service || 'openai') as DomainApiKey['service'];
-        apiKeyId = serviceToApiKey.get(service);
-      }
+      // Skip API key resolution - not part of DomainPerson
       
       persons.push({
         id: personId(`person-${generateShortId().slice(0, 4)}`),  // Generate fresh ID
-        label,  // Use the key as label
-        modelName: person.model,
-        apiKeyId,
+        name: label,  // Use the key as label
+        model: person.model,
+        service: (person.service || 'openai') as DomainPerson['service'],
         systemPrompt: person.system
       });
     });
@@ -357,7 +348,7 @@ export class Yaml {
     step: YamlDiagram['workflow'][0],
     _persons: DomainPerson[],
     personLabelToId: Map<string, PersonID>
-  ): DomainNode | null {
+  ): NodeWithHandles | null {
     const nodeInfo: NodeInfo = {
       name: step.label,
       type: step.type as NodeKind,

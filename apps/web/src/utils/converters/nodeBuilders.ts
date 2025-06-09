@@ -1,5 +1,6 @@
 import { generateShortId } from '@/types/primitives/id-generation';
 import type { DomainNode, DomainHandle } from '@/types/domain';
+import type { NodeWithHandles } from './diagramAssembler';
 import { NodeKind } from '@/types/primitives/enums';
 import { nodeId, NodeID } from '@/types/branded';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
@@ -9,7 +10,7 @@ import { getNodeConfig } from '@/config/helpers';
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // Helper to add handles to a node
-const addHandles = (node: Omit<DomainNode, 'handles'>, nodeType: NodeKind): DomainNode => {
+const addHandles = (node: DomainNode, nodeType: NodeKind): NodeWithHandles => {
   const nodeConfig = getNodeConfig(nodeType);
   const handles = nodeConfig 
     ? generateNodeHandles(node.id, nodeConfig, nodeType) 
@@ -21,7 +22,7 @@ const addHandles = (node: Omit<DomainNode, 'handles'>, nodeType: NodeKind): Doma
     draggable: true,
     selectable: true,
     connectable: true
-  } as DomainNode;
+  } as NodeWithHandles;
 };
 
 // Node info type for builder input
@@ -43,7 +44,7 @@ export interface NodeInfo {
 }
 
 // Type for node builder functions
-type NodeBuilder = (info: NodeInfo) => DomainNode;
+type NodeBuilder = (info: NodeInfo) => NodeWithHandles;
 
 // Unified node builders lookup map
 export const NODE_BUILDERS: Record<string, NodeBuilder> = {
@@ -231,7 +232,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
 /**
  * Build a node using the unified builder system
  */
-export function buildNode(info: NodeInfo): DomainNode {
+export function buildNode(info: NodeInfo): NodeWithHandles {
   const nodeType = info.type || 'generic';
   const builder = NODE_BUILDERS[nodeType] || NODE_BUILDERS.generic;
   if (!builder) {

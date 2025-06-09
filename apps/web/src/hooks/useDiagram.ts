@@ -15,7 +15,10 @@ import { useExecutionV2 } from './execution';
 import { useFileOperations } from './useFileOperations';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import { usePropertyManager } from './usePropertyManager';
-import { DiagramState, Node, Arrow, Person } from '@/types';
+import type { DomainNode, DomainArrow, DomainPerson } from '@/types/domain';
+import type { DomainDiagram } from '@/types/domain/diagram';
+import type { NodeID, ArrowID, PersonID } from '@/types/branded';
+import type { NodeKind } from '@/types/primitives/enums';
 
 // Maybe-hook helper
 function useMaybe<T>(enabled: boolean, useHook: () => T): T | null {
@@ -92,7 +95,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Property manager factory
   const createPropertyManager = useCallback(<T extends Record<string, unknown>>(
-    entityId: string,
+    entityId: NodeID | ArrowID | PersonID,
     entityType: 'node' | 'arrow' | 'person',
     initialData: T,
     options?: Parameters<typeof usePropertyManager>[3]
@@ -101,7 +104,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   }, []);
 
   // Quick execution - no need for useCallback with stable realtime reference
-  const run = (diagram?: DiagramState) => {
+  const run = (diagram?: DomainDiagram) => {
     return realtime.execute(diagram);
   };
 
@@ -139,58 +142,58 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // =====================
 
   // Node operations - stable store references, no useCallback needed
-  const addNode = (type: Node['type'], position: { x: number; y: number }) => {
+  const addNode = (type: NodeKind, position: { x: number; y: number }) => {
     return canvas.addNode(type, position);
   };
 
-  const updateNode = (nodeId: string, updates: Record<string, unknown>) => {
+  const updateNode = (nodeId: NodeID, updates: Record<string, unknown>) => {
     return canvas.updateNode(nodeId, updates);
   };
 
-  const deleteNode = (nodeId: string) => {
+  const deleteNode = (nodeId: NodeID) => {
     canvas.deleteNode(nodeId);
     if (selection.selectedNodeId === nodeId) {
       selection.clearSelection();
     }
   };
 
-  const getNode = (nodeId: string): Node | undefined => {
-    return canvas.nodes.find(n => n.id === nodeId);
+  const getNode = (nodeId: NodeID): DomainNode | undefined => {
+    return canvas.nodes.find((n: DomainNode) => n.id === nodeId);
   };
 
   // Arrow operations
-  const updateArrow = (arrowId: string, updates: Record<string, unknown>) => {
+  const updateArrow = (arrowId: ArrowID, updates: Record<string, unknown>) => {
     return arrowUpdater(arrowId, updates);
   };
 
-  const deleteArrow = (arrowId: string) => {
+  const deleteArrow = (arrowId: ArrowID) => {
     canvas.deleteArrow(arrowId);
     if (selection.selectedArrowId === arrowId) {
       selection.clearSelection();
     }
   };
 
-  const getArrow = (arrowId: string): Arrow | undefined => {
-    return canvas.arrows.find(a => a.id === arrowId);
+  const getArrow = (arrowId: ArrowID): DomainArrow | undefined => {
+    return canvas.arrows.find((a: DomainArrow) => a.id === arrowId);
   };
 
   // Person operations
-  const addPerson = (person: Omit<Person, 'id'>) => {
+  const addPerson = (person: Omit<DomainPerson, 'id'>) => {
     return persons.addPerson(person);
   };
 
-  const updatePerson = (personId: string, updates: Record<string, unknown>) => {
+  const updatePerson = (personId: PersonID, updates: Record<string, unknown>) => {
     return persons.updatePerson(personId, updates);
   };
 
-  const deletePerson = (personId: string) => {
+  const deletePerson = (personId: PersonID) => {
     persons.deletePerson(personId);
     if (selection.selectedPersonId === personId) {
       selection.clearSelection();
     }
   };
 
-  const getPerson = (personId: string): Person | undefined => {
+  const getPerson = (personId: PersonID): DomainPerson | undefined => {
     return persons.getPersonById(personId);
   };
 
@@ -214,15 +217,15 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // STATE QUERIES
   // =====================
 
-  const isNodeRunning = (nodeId: string): boolean => {
+  const isNodeRunning = (nodeId: NodeID): boolean => {
     return execution.runningNodes.includes(nodeId);
   };
 
-  const isNodeSkipped = (nodeId: string): boolean => {
+  const isNodeSkipped = (nodeId: NodeID): boolean => {
     return Boolean(execution.skippedNodes[nodeId]);
   };
 
-  const getNodeExecutionState = (nodeId: string) => {
+  const getNodeExecutionState = (nodeId: NodeID) => {
     return {
       isRunning: execution.runningNodes.includes(nodeId),
       isCurrentlyRunning: execution.currentRunningNode === nodeId,

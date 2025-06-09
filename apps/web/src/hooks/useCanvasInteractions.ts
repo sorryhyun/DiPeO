@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { Node } from '@/types';
+import type { DomainNode } from '@/types/domain';
+import type { NodeID } from '@/types/branded';
+import { nodeId } from '@/types/branded';
 import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
 // TYPES
@@ -9,7 +11,7 @@ import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hoo
 export interface ContextMenuState {
   position: { x: number; y: number } | null;
   target: 'pane' | 'node' | 'edge';
-  targetId?: string;
+  targetId?: NodeID;
 }
 
 export interface DragState {
@@ -74,7 +76,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     x: number, 
     y: number, 
     target: 'pane' | 'node' | 'edge',
-    targetId?: string
+    targetId?: NodeID
   ) => {
     if (isMonitorMode) return; // No context menu in monitor mode
     
@@ -103,7 +105,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     closeContextMenu();
   }, [selectedNodeId, selectedArrowId, deleteNode, deleteArrow, clearSelection, closeContextMenu, isMonitorMode]);
 
-  const handleDuplicateNode = useCallback((nodeId: string) => {
+  const handleDuplicateNode = useCallback((nodeId: NodeID) => {
     if (isMonitorMode) return;
     
     // Implementation would need access to the actual node data
@@ -177,7 +179,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
     );
     
     // Add the node at the drop position
-    addNode(type as Node['type'], dropPosition);
+    addNode(type as DomainNode['type'], dropPosition);
 
     setDragState({
       isDragging: false,
@@ -188,7 +190,7 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
   // Handle person drop on nodes (for PersonJob nodes)
   const onPersonDrop = useCallback((
     event: DragEvent,
-    nodeId: string
+    nodeId: NodeID
   ) => {
     if (isMonitorMode) return;
     
@@ -352,17 +354,17 @@ export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
   }, [openContextMenu]);
 
   // Handle node context menu
-  const onNodeContextMenu = useCallback((event: React.MouseEvent, nodeId: string) => {
+  const onNodeContextMenu = useCallback((event: React.MouseEvent, nodeIdStr: string) => {
     event.preventDefault();
     event.stopPropagation();
-    openContextMenu(event.clientX, event.clientY, 'node', nodeId);
+    openContextMenu(event.clientX, event.clientY, 'node', nodeId(nodeIdStr));
   }, [openContextMenu]);
 
   // Handle edge context menu
-  const onEdgeContextMenu = useCallback((event: React.MouseEvent, edgeId: string) => {
+  const onEdgeContextMenu = useCallback((event: React.MouseEvent, edgeIdStr: string) => {
     event.preventDefault();
     event.stopPropagation();
-    openContextMenu(event.clientX, event.clientY, 'edge', edgeId);
+    openContextMenu(event.clientX, event.clientY, 'edge', nodeId(edgeIdStr));
   }, [openContextMenu]);
 
   // =====================

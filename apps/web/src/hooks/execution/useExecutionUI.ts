@@ -8,7 +8,9 @@
 import { useCallback, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { NodeStateV2 } from './useExecutionState';
-import type { InteractivePromptData } from '@/types';
+import type { InteractivePromptData } from '@/types/runtime/execution';
+import type { NodeID } from '@/types/branded';
+import type { NodeKind } from '@/types/primitives/enums';
 
 export interface UseExecutionUIOptions {
   showToasts?: boolean;
@@ -26,10 +28,10 @@ export interface UseExecutionUIReturn {
   showExecutionStart: (executionId: string, totalNodes: number) => void;
   showExecutionComplete: (executionId: string, duration: number, totalTokens?: number) => void;
   showExecutionError: (error: string) => void;
-  showNodeStart: (nodeId: string, nodeType: string) => void;
-  showNodeComplete: (nodeId: string, nodeType: string) => void;
-  showNodeError: (nodeId: string, error: string) => void;
-  showNodeSkipped: (nodeId: string, reason?: string) => void;
+  showNodeStart: (nodeId: NodeID, nodeType: NodeKind) => void;
+  showNodeComplete: (nodeId: NodeID, nodeType: NodeKind) => void;
+  showNodeError: (nodeId: NodeID, error: string) => void;
+  showNodeSkipped: (nodeId: NodeID, reason?: string) => void;
   setInteractivePrompt: (prompt: InteractivePromptData | null) => void;
   clearInteractivePrompt: () => void;
   
@@ -89,26 +91,26 @@ export function useExecutionUI(options: UseExecutionUIOptions = {}): UseExecutio
     }
   }, [showToasts]);
 
-  const showNodeStart = useCallback((nodeId: string, nodeType: string) => {
+  const showNodeStart = useCallback((nodeId: NodeID, nodeType: NodeKind) => {
     setCurrentNodeName(`${nodeType} (${nodeId.slice(0, 8)}...)`);
     if (showToasts && nodeType === 'user_response') {
       toast.info('Waiting for user input...');
     }
   }, [showToasts]);
 
-  const showNodeComplete = useCallback((nodeId: string, _nodeType: string) => {
+  const showNodeComplete = useCallback((nodeId: NodeID, _nodeType: NodeKind) => {
     if (currentNodeName?.includes(nodeId.slice(0, 8))) {
       setCurrentNodeName(null);
     }
   }, [currentNodeName]);
 
-  const showNodeError = useCallback((nodeId: string, error: string) => {
+  const showNodeError = useCallback((nodeId: NodeID, error: string) => {
     if (showToasts) {
       toast.error(`Node ${nodeId.slice(0, 8)}... failed: ${error}`);
     }
   }, [showToasts]);
 
-  const showNodeSkipped = useCallback((nodeId: string, reason?: string) => {
+  const showNodeSkipped = useCallback((nodeId: NodeID, reason?: string) => {
     if (showToasts && reason) {
       toast.warning(`Node ${nodeId.slice(0, 8)}... skipped: ${reason}`);
     }

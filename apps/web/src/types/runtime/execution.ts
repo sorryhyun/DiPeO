@@ -1,5 +1,6 @@
 import type { Dict } from '../primitives';
-import type { NodeID, ExecutionID } from '../branded';
+import type { NodeID, ExecutionID, PersonID } from '../branded';
+import {PersonMemoryConfig} from '../domain/person'
 
 export interface ExecutionOptions {
   mode?: 'monitor' | 'headless' | 'check';
@@ -58,4 +59,28 @@ export interface ExecutionResult {
     totalTokens?: number;
     executionTime?: number;
   };
+}
+
+// Re-export from message for convenience
+export type { InteractivePromptData } from './message';
+
+// Memory types
+export interface ExecutionPersonMemoryConfig {
+  forgetMode?: 'no_forget' | 'on_every_turn' | 'upon_request';
+  maxMessages?: number;
+  temperature?: number;
+}
+
+export interface PersonMemoryState {
+  personId: PersonID;
+  messages: Array<{
+    id?: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp?: string;
+    tokenCount?: number;
+  }>;
+  visibleMessages: number;
+  hasMore?: boolean;
+  config?: PersonMemoryConfig;
 }

@@ -15,7 +15,7 @@ import {
   type EventCallback,
   type UnsubscribeFunction,
 } from '@/utils/websocket/event-bus';
-import type { WSMessage } from '@/types';
+import type { WSMessage } from '@/types/runtime';
 import { useEvent } from './useEvent';
 
 interface UseWebSocketEventBusOptions {

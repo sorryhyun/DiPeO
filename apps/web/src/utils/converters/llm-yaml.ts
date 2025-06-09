@@ -172,8 +172,9 @@ export class LlmYaml {
     const defaultPersonId = personId(`PERSON_${generateShortId()}`);
     const defaultPerson: DomainPerson = {
       id: defaultPersonId,
-      label: 'Default Assistant',
-      modelName: 'gpt-4.1-nano',
+      name: 'Default Assistant',
+      model: 'gpt-4.1-nano',
+      service: 'openai',
     };
     let needDefault = false;
 
@@ -187,7 +188,8 @@ export class LlmYaml {
         persons.push({
           id: personIdValue,
           name: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          model: modelName,
+          model: 'gpt-4.1-nano',
+          service: 'openai',
           systemPrompt: agentConfig
         });
         serviceMap.set(personIdValue, 'openai');
@@ -197,7 +199,8 @@ export class LlmYaml {
         persons.push({
           id: personIdValue,
           name: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          model: agentConfig.model || 'gpt-4',
+          model: agentConfig.model || 'gpt-4.1-nano',
+          service: service,
           systemPrompt: agentConfig.system
         });
         serviceMap.set(personIdValue, service);
@@ -240,19 +243,13 @@ export class LlmYaml {
       // Get service from our map
       const service = serviceMap?.get(person.id) || 'openai';
       if (!apiKeys[service]) {
-        const apiKeyId = entityIdGenerators.apiKey();
+        const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
         apiKeys[service] = {
-          id: apiKeyId,
+          id: apiKeyIdValue,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
           service: service as DomainApiKey['service']
         };
       }
-    });
-
-    // Update persons with API key IDs
-    persons.forEach(person => {
-      const service = serviceMap?.get(person.id) || 'openai';
-      person.apiKeyId = apiKeys[service]?.id;
     });
 
     // Clean up
@@ -387,14 +384,8 @@ export class LlmYaml {
     diagram.persons.forEach(person => {
       const personName = personNameMap[person.id];
       
-      // Find service from API key
-      let service = 'openai'; // default
-      if (person.apiKeyId) {
-        const apiKey = diagram.apiKeys?.find(k => k.id === person.apiKeyId);
-        if (apiKey) {
-          service = apiKey.service;
-        }
-      }
+      // Use service from person
+      let service = person.service || 'openai'; // default
       
       if (personName && (person.systemPrompt || person.model !== 'gpt-4' || service !== 'openai')) {
         const agent: Record<string, unknown> = {};

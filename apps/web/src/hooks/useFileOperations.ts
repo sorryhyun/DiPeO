@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/utils/api/config';
 import { Yaml } from '@/utils/converters/yaml';
 import { LlmYaml } from '@/utils/converters/llm-yaml';
+import type { DomainDiagram } from '@/types/domain/diagram';
 import {
   readFileAsText,
   detectFileFormat,

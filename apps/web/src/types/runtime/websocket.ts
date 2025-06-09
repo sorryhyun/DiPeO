@@ -21,3 +21,6 @@ export interface WebSocketClientOptions extends WebSocketHooks {
 export interface MonitorSubscription {
   executionId: ExecutionID;
 }
+
+// Re-export from message for convenience
+export type { WSMessage } from './message';
