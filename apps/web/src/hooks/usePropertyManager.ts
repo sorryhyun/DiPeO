@@ -10,7 +10,6 @@ import {
 import { useEvent } from './useEvent';
 import type { DomainApiKey } from '@/types/domain/api-key';
 import type { PanelConfig, PanelFieldConfig } from '@/types/ui/panel';
-import type { NodeID, ArrowID, PersonID } from '@/types/branded';
 import { nodeId, arrowId, personId } from '@/types/branded';
 import { useUnifiedStore } from "@/stores/useUnifiedStore";
 

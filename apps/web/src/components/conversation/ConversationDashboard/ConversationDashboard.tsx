@@ -116,6 +116,38 @@ const ConversationDashboard: React.FC = () => {
       .reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
   }, [dashboardSelectedPerson, conversationData]);
 
+  // Memoize whole conversation data
+  const wholeConversationData = useMemo(() => {
+    if (dashboardSelectedPerson !== 'whole') {
+      return { allMessages: [], totalTokens: 0 };
+    }
+
+    const messages: ConversationMessage[] = [];
+    Object.values(conversationData).forEach(personData => {
+      // Add personId to each message
+      const messagesWithPersonId = personData.messages.map(msg => {
+        const personIdFromData = Object.keys(conversationData).find(key => 
+          conversationData[key] === personData
+        );
+        return {
+          ...msg,
+          personId: personId(personIdFromData || '')
+        } as ConversationMessage;
+      });
+      messages.push(...messagesWithPersonId);
+    });
+    
+    // Sort messages by timestamp
+    messages.sort((a, b) => {
+      const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return aTime - bTime;
+    });
+    
+    const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
+    return { allMessages: messages, totalTokens: tokens };
+  }, [dashboardSelectedPerson, conversationData]);
+
   // Handle whole conversation button click
   const handleWholeConversation = () => {
     setDashboardSelectedPerson('whole');
@@ -222,33 +254,6 @@ const ConversationDashboard: React.FC = () => {
 
     // Handle whole conversation view
     if (dashboardSelectedPerson === 'whole') {
-      const { allMessages, totalTokens } = useMemo(() => {
-        const messages: ConversationMessage[] = [];
-        Object.values(conversationData).forEach(personData => {
-          // Add personId to each message
-          const messagesWithPersonId = personData.messages.map(msg => {
-            const personIdFromData = Object.keys(conversationData).find(key => 
-              conversationData[key] === personData
-            );
-            return {
-              ...msg,
-              personId: personId(personIdFromData || '')
-            } as ConversationMessage;
-          });
-          messages.push(...messagesWithPersonId);
-        });
-        
-        // Sort messages by timestamp
-        messages.sort((a, b) => {
-          const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          return aTime - bTime;
-        });
-        
-        const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
-        return { allMessages: messages, totalTokens: tokens };
-      }, [conversationData]);
-      
       return (
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
@@ -256,18 +261,18 @@ const ConversationDashboard: React.FC = () => {
               Whole Conversation Timeline
             </h3>
             <div className="flex items-center space-x-4 text-xs text-gray-600">
-              <span>{allMessages.length} messages</span>
-              {totalTokens > 0 && (
+              <span>{wholeConversationData.allMessages.length} messages</span>
+              {wholeConversationData.totalTokens > 0 && (
                 <span className="flex items-center">
                   <DollarSign className="h-3 w-3 mr-1" />
-                  Total Tokens: {totalTokens.toFixed(2)}
+                  Total Tokens: {wholeConversationData.totalTokens.toFixed(2)}
                 </span>
               )}
             </div>
           </div>
 
           <MessageList
-            messages={allMessages}
+            messages={wholeConversationData.allMessages}
             currentPersonId={dashboardSelectedPerson}
             persons={persons}
             messagesEndRef={messagesEndRef}

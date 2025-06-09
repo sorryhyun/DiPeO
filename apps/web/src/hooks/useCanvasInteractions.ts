@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import type { DomainNode } from '@/types/domain/node';
-import type { NodeID } from '@/types/branded';
-import {nodeId, arrowId, personId} from '@/types/branded';
+import { type NodeID, nodeId, arrowId, personId } from '@/types/branded';
 import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
 // =====================
 // TYPES

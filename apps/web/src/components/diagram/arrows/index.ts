@@ -1,2 +1,2 @@
 export { CustomArrow } from './CustomArrow';
-export { CustomArrow as Arrow } from './Arrow';
+export type { CustomArrowProps, ArrowData } from './CustomArrow';
