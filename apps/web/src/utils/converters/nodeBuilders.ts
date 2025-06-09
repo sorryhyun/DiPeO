@@ -1,5 +1,6 @@
-import { generateShortId } from '@/types/primitives';
-import { Node, NodeKind } from '@/types';
+import { generateShortId } from '@/types/primitives/id-generation';
+import type { DomainNode } from '@/types/domain';
+import { NodeKind } from '@/types/primitives/enums';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 
@@ -7,7 +8,7 @@ import { getNodeConfig } from '@/config/helpers';
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // Helper to add handles to a node
-const addHandles = (node: Omit<Node, 'handles'>, nodeType: NodeKind): Node => {
+const addHandles = (node: Omit<DomainNode, 'handles'>, nodeType: NodeKind): Node => {
   const nodeConfig = getNodeConfig(nodeType);
   const handles = nodeConfig 
     ? generateNodeHandles(node.id, nodeConfig, nodeType) 
@@ -41,7 +42,7 @@ export interface NodeInfo {
 }
 
 // Type for node builder functions
-type NodeBuilder<T extends Node = Node> = (info: NodeInfo) => T;
+type NodeBuilder<T extends DomainNode = DomainNode> = (info: NodeInfo) => T;
 
 // Unified node builders lookup map
 export const NODE_BUILDERS: Record<string, NodeBuilder> = {
@@ -229,7 +230,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
 /**
  * Build a node using the unified builder system
  */
-export function buildNode(info: NodeInfo): Node {
+export function buildNode(info: NodeInfo): DomainNode {
   const nodeType = info.type || 'generic';
   const builder = NODE_BUILDERS[nodeType] || NODE_BUILDERS.generic;
   if (!builder) {
@@ -241,7 +242,7 @@ export function buildNode(info: NodeInfo): Node {
 /**
  * Build multiple nodes from a record of node infos
  */
-export function buildNodes(nodeInfos: Record<string, NodeInfo>): Node[] {
+export function buildNodes(nodeInfos: Record<string, NodeInfo>): DomainNode[] {
   return Object.values(nodeInfos).map(info => buildNode(info));
 }
 

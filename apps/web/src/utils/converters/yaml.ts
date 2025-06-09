@@ -1,7 +1,16 @@
 // apps/web/src/utils/yaml.ts
 import { stringify, parse } from 'yaml';
-import { Diagram, Person, Arrow, ApiKey, Node, NodeKind, createHandleId, parseHandleId } from '@/types';
-import { generateShortId, entityIdGenerators } from '@/types/primitives';
+import { NodeKind } from '@/types/primitives/enums';
+import { generateShortId, entityIdGenerators } from '@/types/primitives/id-generation';
+import { createHandleId, parseHandleId } from '@/types/domain/handle';
+import { 
+  DomainNode,
+  DomainArrow,
+  DomainPerson,
+  DomainApiKey,
+  DomainDiagram
+} from '@/types/domain';
+import { NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
 import { buildNode, NodeInfo } from './nodeBuilders';
 
 interface YamlDiagram {
@@ -65,7 +74,7 @@ export class Yaml {
   /**
    * Convert DiagramState to enhanced YAML format with full data preservation
    */
-  static toYAML(diagram: Diagram): string {
+  static toYAML(diagram: DomainDiagram): string {
     const yamlDiagram = this.toYamlFormat(diagram);
 
     return stringify(yamlDiagram, {
@@ -76,14 +85,14 @@ export class Yaml {
     });
   }
 
-  static fromYAML(yamlString: string): Diagram {
+  static fromYAML(yamlString: string): DomainDiagram {
     const yamlDiagram = parse(yamlString);
     return this.fromYamlFormat(yamlDiagram as YamlDiagram);
   }
   /**
    * Convert DiagramState to YAML format
    */
-  private static toYamlFormat(diagram: Diagram): YamlDiagram {
+  private static toYamlFormat(diagram: DomainDiagram): YamlDiagram {
     const apiKeys: Record<string, { service: string; name: string }> = {};
     const persons: YamlDiagram['persons'] = {};
     const workflow: YamlDiagram['workflow'] = [];
@@ -109,8 +118,8 @@ export class Yaml {
         }
       }
       
-      persons[person.label] = {
-        model: person.modelName || 'gpt-4.1-nano',
+      persons[person.name] = {
+        model: person.model || 'gpt-4.1-nano',
         service,
         ...(apiKeyLabel && { apiKeyLabel }),
         ...(person.systemPrompt && { system: person.systemPrompt })
@@ -118,7 +127,7 @@ export class Yaml {
     });
 
     // Build adjacency map for connections
-    const connectionMap = new Map<string, Arrow[]>();
+    const connectionMap = new Map<string, DomainArrow[]>();
     diagram.arrows.forEach(arrow => {
       const arrows = connectionMap.get(arrow.source) || [];
       arrows.push(arrow);
@@ -221,17 +230,17 @@ export class Yaml {
    * Convert enhanced YAML format back to DiagramState
    */
   private static fromYamlFormat(yamlDiagram: YamlDiagram): Diagram {
-    const nodes: Node[] = [];
-    const arrows: Arrow[] = [];
-    const persons: Person[] = [];
-    const apiKeys: ApiKey[] = [];
+    const nodes: DomainNode[] = [];
+    const arrows: DomainArrow[] = [];
+    const persons: DomainPerson[] = [];
+    const apiKeys: DomainApiKey[] = [];
 
     // Convert API keys - generate new IDs
     Object.entries(yamlDiagram.apiKeys || {}).forEach(([_name, key]) => {
       apiKeys.push({
         id: entityIdGenerators.apiKey(),
         name: key.name,
-        service: key.service as ApiKey['service'],
+        service: key.service as DomainApiKey['service'],
         // key is optional - not stored in frontend
       });
     });
@@ -246,7 +255,7 @@ export class Yaml {
     // Create API keys for services found in persons
     const serviceToApiKey = new Map<string, string>();
     Object.entries(yamlDiagram.persons || {}).forEach(([_label, person]) => {
-      const service = (person.service || 'chatgpt') as ApiKey['service'];
+      const service = (person.service || 'chatgpt') as DomainApiKey['service'];
       if (!serviceToApiKey.has(service) && !person.apiKeyLabel) {
         // Create API key for this service if not using explicit apiKeyLabel
         const newApiKey = {
@@ -267,7 +276,7 @@ export class Yaml {
         apiKeyId = apiKeyLabelToId.get(person.apiKeyLabel);
       } else {
         // Use the API key created for this service
-        const service = (person.service || 'chatgpt') as ApiKey['service'];
+        const service = (person.service || 'openai') as DomainApiKey['service'];
         apiKeyId = serviceToApiKey.get(service);
       }
       
@@ -284,7 +293,7 @@ export class Yaml {
     const nodeLabelToId = new Map<string, string>();
     const personLabelToId = new Map<string, string>();
     persons.forEach(person => {
-      personLabelToId.set(person.label, person.id);
+      personLabelToId.set(person.name, person.id);
     });
     
     // First pass: create nodes and build label-to-ID mapping

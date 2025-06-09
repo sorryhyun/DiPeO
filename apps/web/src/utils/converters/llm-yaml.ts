@@ -1,8 +1,10 @@
 import { parse, stringify } from 'yaml';
-import { generateShortId, entityIdGenerators } from '@/types/primitives';
-import { Diagram, Person, ApiKey, Node, NodeKind } from '@/types';
 import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';
+import { generateShortId, entityIdGenerators } from '@/types/primitives/id-generation';
+import type { DomainDiagram, DomainPerson, DomainApiKey, DomainNode } from '@/types/domain';
+import { NodeKind } from '@/types/primitives/enums';
+
 
 interface LLMYamlFormat {
   flow: Record<string, string | string[]> | string[];
@@ -20,7 +22,7 @@ export class LlmYaml {
   /**
    * Import LLM-friendly YAML and convert to DiagramState format
    */
-  static fromLLMYAML(yamlString: string): Diagram {
+  static fromLLMYAML(yamlString: string): DomainDiagram {
     const data = parse(yamlString) as LLMYamlFormat;
     const assembler = new DiagramAssembler();
     
@@ -72,7 +74,7 @@ export class LlmYaml {
       
       extractApiKeys: (persons) => LlmYaml.extractApiKeys(persons),
       
-      linkPersonsToNodes: (nodes: Node[], nodeAnalysis, context) => {
+      linkPersonsToNodes: (nodes: DomainNode[], nodeAnalysis, context) => {
         LlmYaml.linkPersonsToNodes(nodes, assembler.getNodeMap(), nodeAnalysis, context, assembler.getPersonMap());
       }
     };
@@ -83,7 +85,7 @@ export class LlmYaml {
   /**
    * Export DiagramState to LLM-friendly YAML format
    */
-  static toLLMYAML(diagram: Diagram): string {
+  static toLLMYAML(diagram: DomainDiagram): string {
     const importer = new LlmYaml();
     return importer.exportYaml(diagram);
   }
@@ -161,13 +163,13 @@ export class LlmYaml {
   }
 
   private static buildPersons(nodeAnalysis: Record<string, NodeAnalysis>, data: LLMYamlFormat, personMap: Map<string, string>): Person[] {
-    const persons: Person[] = [];
+    const persons: DomainPerson[] = [];
     const agentsData = data.agents || {};
-    const serviceMap = new Map<string, ApiKey['service']>();
+    const serviceMap = new Map<string, DomainApiKey['service']>();
 
     // Default agent for nodes with prompts but no specific agent
     const defaultPersonId = `PERSON_${generateShortId().slice(0, 6)}`;
-    const defaultPerson: Person = {
+    const defaultPerson: DomainPerson = {
       id: defaultPersonId,
       label: 'Default Assistant',
       modelName: 'gpt-4.1-nano',
@@ -190,7 +192,7 @@ export class LlmYaml {
         serviceMap.set(personId, 'openai');
       } else {
         // Full format
-        const service = (agentConfig.service || 'openai') as ApiKey['service'];
+        const service = (agentConfig.service || 'openai') as DomainApiKey['service'];
         persons.push({
           id: personId,
           label: agentName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
@@ -229,9 +231,9 @@ export class LlmYaml {
     return persons;
   }
 
-  private static extractApiKeys(persons: Person[]): ApiKey[] {
-    const apiKeys: Record<string, ApiKey> = {};
-    const serviceMap = (LlmYaml as any)._serviceMap as Map<string, ApiKey['service']>;
+  private static extractApiKeys(persons: DomainPerson[]): DomainApiKey[] {
+    const apiKeys: Record<string, DomainApiKey> = {};
+    const serviceMap = (LlmYaml as any)._serviceMap as Map<string, DomainApiKey['service']>;
 
     persons.forEach(person => {
       // Get service from our map
@@ -241,7 +243,7 @@ export class LlmYaml {
         apiKeys[service] = {
           id: apiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
-          service: service as ApiKey['service']
+          service: service as DomainApiKey['service']
         };
       }
     });
@@ -259,7 +261,7 @@ export class LlmYaml {
   }
 
   private static linkPersonsToNodes(
-    nodes: Node[], 
+    nodes: DomainNode[],
     nodeMap: Map<string, string>, 
     nodeAnalysis: Record<string, NodeAnalysis>, 
     data: LLMYamlFormat, 

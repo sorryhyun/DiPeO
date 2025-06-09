@@ -19,9 +19,9 @@ export type ViewMode =
   | 'preview';    // Preview mode (read-only)
 
 /**
- * Execution states
+ * Execution status values
  */
-export type ExecutionState = 
+export type ExecutionStatus = 
   | 'idle'
   | 'running'
   | 'paused'
@@ -35,7 +35,7 @@ export type ExecutionState =
 export interface ModeState {
   interaction: InteractionMode;
   view: ViewMode;
-  execution: ExecutionState;
+  execution: ExecutionStatus;
   readonly: boolean;
 }
 

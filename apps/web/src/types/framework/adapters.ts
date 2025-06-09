@@ -10,7 +10,7 @@ import {
 } from '../domain';
 import { NodeID, ArrowID, HandleID, handleId } from '../branded';
 import { DiPeoNode, DiPeoEdge, ValidatedConnection } from './reactUtils';
-import { generateId, Vec2, Rect } from '../primitives';
+import { Vec2, Rect, NodeKind, generateId } from '../primitives';
 
 // ============================================================================
 // Domain to React Conversions
@@ -67,12 +67,12 @@ export function diagramToReact(diagram: DomainDiagram): {
   nodes: DiPeoNode[];
   edges: DiPeoEdge[];
 } {
-  const nodes = diagram.nodes.map(node => {
+  const nodes = Object.values(diagram.nodes).map(node => {
     const handles = getNodeHandles(diagram, node.id);
     return nodeToReact(node, handles);
   });
 
-  const edges = diagram.arrows.map(arrow => arrowToReact(arrow));
+  const edges = Object.values(diagram.arrows).map(arrow => arrowToReact(arrow));
 
   return { nodes, edges };
 }
@@ -87,7 +87,7 @@ export function diagramToReact(diagram: DomainDiagram): {
 export function reactToNode(rfNode: RFNode): DomainNode {
   return {
     id: rfNode.id as NodeID,
-    type: rfNode.type || 'unknown',
+    type: (rfNode.type as NodeKind) || NodeKind.Start,
     position: rfNode.position,
     data: (rfNode.data as any)?.properties || rfNode.data || {}
   };
@@ -167,8 +167,8 @@ export function validateConnection(
   );
 
   // Find the actual handles
-  const sourceHandle = diagram.handles.find(h => h.id === sourceHandleId);
-  const targetHandle = diagram.handles.find(h => h.id === targetHandleId);
+  const sourceHandle = diagram.handles[sourceHandleId];
+  const targetHandle = diagram.handles[targetHandleId];
 
   if (!sourceHandle || !targetHandle) {
     validated.isValid = false;
