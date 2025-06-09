@@ -12,7 +12,7 @@ import type { DomainApiKey } from '@/types/domain/api-key';
 import type { PanelConfig, PanelFieldConfig } from '@/types/ui/panel';
 import type { NodeID, ArrowID, PersonID } from '@/types/branded';
 import { nodeId, arrowId, personId } from '@/types/branded';
-import { useApiKeyStore } from "@/stores";
+import { useUnifiedStore } from "@/stores/useUnifiedStore";
 
 // Safe deep comparison using Immer to handle draft states
 function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
@@ -90,7 +90,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const updateArrow = useArrowDataUpdater();
   const updatePerson = usePersonDataUpdater();
   const { isMonitorMode } = useCanvasSelectors();
-  const { apiKeys } = useApiKeyStore();
+  const { apiKeys } = useUnifiedStore();
 
   // Form state
   const [formData, setFormData] = useState<T>(initialData);
@@ -285,7 +285,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
 
   // API key options for dropdowns - memoize instead of useCallback
   const apiKeyOptions = useMemo(() => {
-    return apiKeys.map((key: DomainApiKey) => ({
+    return Array.from(apiKeys.values()).map((key: DomainApiKey) => ({
       value: key.id,
       label: `${key.service}: ${key.name}`,
       service: key.service

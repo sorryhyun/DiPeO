@@ -1,44 +1,38 @@
 import { shallow } from 'zustand/shallow';
-import { useDiagramStore } from '@/stores';
-import { useExecutionStore } from '@/stores/executionStore';
-import { useConsolidatedUIStore } from '@/stores/consolidatedUIStore';
-import { useHistoryStore } from '@/stores/historyStore';
-import type { DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle, DomainDiagram } from '@/types/domain';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import type { DomainNode, DomainArrow, DomainPerson, DomainHandle, DomainApiKey, DomainDiagram, LLMService } from '@/types/domain';
 import type { NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@/types/branded';
 import { nodeToReact } from '@/types/framework/adapters';
+import type { NodeChange, EdgeChange, Connection } from '@xyflow/react';
+import type { NodeKind, Vec2 } from '@/types/primitives';
 
 // ===== Key Optimized Selectors =====
 
 // Execution state for specific node - avoids subscribing to entire execution store
 export const useNodeExecutionState = (nodeId: NodeID) => {
-  return useExecutionStore(
+  return useUnifiedStore(
     state => {
-      const isRunning = state.runningNodes.includes(nodeId);
-      const isCurrentRunning = state.currentRunningNode === nodeId;
-      const nodeRunningState = state.nodeRunningStates[nodeId] || false;
-      const skippedNodeInfo = state.skippedNodes[nodeId];
-      const isSkipped = Boolean(skippedNodeInfo);
+      const isRunning = state.execution.runningNodes.has(nodeId);
+      const nodeState = state.execution.nodeStates.get(nodeId);
+      const isSkipped = nodeState?.status === 'skipped';
       
       // Debug logging for node execution state
-      if (isRunning || nodeRunningState || isSkipped) {
+      if (isRunning || isSkipped) {
         console.log(`[useNodeExecutionState] Node ${nodeId} state:`, {
           nodeId,
           isRunning,
-          isCurrentRunning,
-          nodeRunningState,
+          nodeState,
           isSkipped,
-          skipReason: skippedNodeInfo?.reason,
-          runningNodes: state.runningNodes,
-          lastUpdate: state.lastUpdate
+          runningNodes: Array.from(state.execution.runningNodes),
         });
       }
       
       return {
         isRunning,
-        isCurrentRunning,
-        nodeRunningState,
+        isCurrentRunning: isRunning, // In unified store, running means current
+        nodeRunningState: isRunning,
         isSkipped,
-        skipReason: skippedNodeInfo?.reason,
+        skipReason: nodeState?.error,
       };
     },
     shallow
@@ -47,23 +41,45 @@ export const useNodeExecutionState = (nodeId: NodeID) => {
 
 // Canvas state - combines multiple related selectors with monitor support
 export const useCanvasState = () => {
-  return useDiagramStore(
+  return useUnifiedStore(
     state => {
       // Convert domain nodes to React Flow format with handles
-      const domainNodes = state.nodeList();
+      const domainNodes = Array.from(state.nodes.values());
       const nodes = domainNodes.map(node => {
-        const handles = state.getNodeHandles(node.id);
-        return nodeToReact(node, handles);
+        const nodeHandles = Array.from(state.handles.values()).filter(h => h.nodeId === node.id);
+        return nodeToReact(node, nodeHandles);
       });
       
       return {
         nodes,
-        arrows: state.arrowList(),
-        isMonitorMode: state.isReadOnly,
-        onNodesChange: state.onNodesChange,
-        onArrowsChange: state.onArrowsChange,
-        onConnect: state.onConnect,
-        addNode: state.addNodeByType,
+        arrows: Array.from(state.arrows.values()),
+        isMonitorMode: state.readOnly,
+        onNodesChange: (changes: NodeChange[]) => {
+          // Handle node changes (position updates, etc.)
+          changes.forEach((change) => {
+            if (change.type === 'position' && change.position) {
+              state.updateNode(change.id as NodeID, { position: change.position });
+            }
+          });
+        },
+        onArrowsChange: (changes: EdgeChange[]) => {
+          // Handle arrow changes
+          changes.forEach((change) => {
+            if (change.type === 'remove') {
+              state.deleteArrow(change.id as ArrowID);
+            }
+          });
+        },
+        onConnect: (connection: Connection) => {
+          if (connection.source && connection.target && connection.sourceHandle && connection.targetHandle) {
+            state.addArrow(
+              connection.sourceHandle as HandleID,
+              connection.targetHandle as HandleID
+            );
+          }
+        },
+        addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
+          state.addNode(type as NodeKind, position, data),
         deleteNode: state.deleteNode,
         deleteArrow: state.deleteArrow,
       };
@@ -74,14 +90,15 @@ export const useCanvasState = () => {
 
 // Person operations with monitor support
 export const usePersons = () => {
-  return useDiagramStore(
+  return useUnifiedStore(
     state => ({
-      persons: state.personList(),
-      isMonitorMode: state.isReadOnly,
-      addPerson: state.createPerson,
+      persons: Array.from(state.persons.values()),
+      isMonitorMode: state.readOnly,
+      addPerson: (person: { name: string; service: string; model: string }) => 
+        state.addPerson(person.name, person.service as LLMService, person.model),
       updatePerson: state.updatePerson,
       deletePerson: state.deletePerson,
-      getPersonById: state.getPersonById,
+      getPersonById: (id: PersonID) => state.persons.get(id),
     }),
     shallow
   );
@@ -89,20 +106,27 @@ export const usePersons = () => {
 
 // Node operations with monitor support
 export const useNodes = () => {
-  return useDiagramStore(
+  return useUnifiedStore(
     state => {
       // Convert domain nodes to React Flow format with handles
-      const domainNodes = state.nodeList();
+      const domainNodes = Array.from(state.nodes.values());
       const nodes = domainNodes.map(node => {
-        const handles = state.getNodeHandles(node.id);
-        return nodeToReact(node, handles);
+        const nodeHandles = Array.from(state.handles.values()).filter(h => h.nodeId === node.id);
+        return nodeToReact(node, nodeHandles);
       });
       
       return {
         nodes,
-        isMonitorMode: state.isReadOnly,
-        onNodesChange: state.onNodesChange,
-        addNode: state.addNodeByType,
+        isMonitorMode: state.readOnly,
+        onNodesChange: (changes: NodeChange[]) => {
+          changes.forEach((change) => {
+            if (change.type === 'position' && change.position) {
+              state.updateNode(change.id as NodeID, { position: change.position });
+            }
+          });
+        },
+        addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
+          state.addNode(type as NodeKind, position, data),
         deleteNode: state.deleteNode,
       };
     },
@@ -112,12 +136,25 @@ export const useNodes = () => {
 
 // Arrow operations with monitor support
 export const useArrows = () => {
-  return useDiagramStore(
+  return useUnifiedStore(
     state => ({
-      arrows: state.arrowList(),
-      isMonitorMode: state.isReadOnly,
-      onArrowsChange: state.onArrowsChange,
-      onConnect: state.onConnect,
+      arrows: Array.from(state.arrows.values()),
+      isMonitorMode: state.readOnly,
+      onArrowsChange: (changes: EdgeChange[]) => {
+        changes.forEach((change) => {
+          if (change.type === 'remove') {
+            state.deleteArrow(change.id as ArrowID);
+          }
+        });
+      },
+      onConnect: (connection: Connection) => {
+        if (connection.source && connection.target && connection.sourceHandle && connection.targetHandle) {
+          state.addArrow(
+            connection.sourceHandle as HandleID,
+            connection.targetHandle as HandleID
+          );
+        }
+      },
       deleteArrow: state.deleteArrow,
     }),
     shallow
@@ -126,14 +163,23 @@ export const useArrows = () => {
 
 // UI state selectors
 export const useSelectedElement = () => {
-  return useConsolidatedUIStore(
+  return useUnifiedStore(
     state => ({
-      selectedNodeId: state.selectedNodeId,
-      selectedArrowId: state.selectedArrowId,
-      selectedPersonId: state.selectedPersonId,
-      setSelectedNodeId: state.setSelectedNodeId,
-      setSelectedArrowId: state.setSelectedArrowId,
-      setSelectedPersonId: state.setSelectedPersonId,
+      selectedNodeId: state.selectedType === 'node' ? state.selectedId as NodeID : null,
+      selectedArrowId: state.selectedType === 'arrow' ? state.selectedId as ArrowID : null,
+      selectedPersonId: state.selectedType === 'person' ? state.selectedId as PersonID : null,
+      setSelectedNodeId: (id: NodeID | null) => {
+        if (id) state.select(id, 'node');
+        else state.clearSelection();
+      },
+      setSelectedArrowId: (id: ArrowID | null) => {
+        if (id) state.select(id, 'arrow');
+        else state.clearSelection();
+      },
+      setSelectedPersonId: (id: PersonID | null) => {
+        if (id) state.select(id, 'person');
+        else state.clearSelection();
+      },
       clearSelection: state.clearSelection,
     }),
     shallow
@@ -141,62 +187,91 @@ export const useSelectedElement = () => {
 };
 
 export const useUIState = () => {
-  return useConsolidatedUIStore(
-    state => ({
-      dashboardTab: state.dashboardTab,
-      setDashboardTab: state.setDashboardTab,
-      activeCanvas: state.activeCanvas,
-      setActiveCanvas: state.setActiveCanvas,
-      toggleCanvas: state.toggleCanvas,
-      activeView: state.activeView,
-      setActiveView: state.setActiveView,
-      showApiKeysModal: state.showApiKeysModal,
-      showExecutionModal: state.showExecutionModal,
-      openApiKeysModal: state.openApiKeysModal,
-      closeApiKeysModal: state.closeApiKeysModal,
-      openExecutionModal: state.openExecutionModal,
-      closeExecutionModal: state.closeExecutionModal,
-      hasSelection: state.hasSelection,
-    }),
-    shallow
-  );
+  const store = useUnifiedStore();
+  
+  return {
+    dashboardTab: store.dashboardTab,
+    setDashboardTab: store.setDashboardTab,
+    activeCanvas: store.activeCanvas as 'main' | 'execution' | 'memory',
+    setActiveCanvas: store.setActiveCanvas,
+    toggleCanvas: () => {
+      const canvases: ('main' | 'execution' | 'memory')[] = ['main', 'execution', 'memory'];
+      const currentCanvas = store.activeCanvas || 'main';
+      const currentIndex = canvases.indexOf(currentCanvas);
+      const nextIndex = (currentIndex + 1) % canvases.length;
+      store.setActiveCanvas(canvases[nextIndex] as 'main' | 'execution' | 'memory');
+    },
+    activeView: store.activeView,
+    setActiveView: (view: 'diagram' | 'execution') => {
+      // Update activeView in the store directly
+      useUnifiedStore.setState((state) => ({ ...state, activeView: view }));
+    },
+    showApiKeysModal: store.showApiKeysModal,
+    showExecutionModal: store.showExecutionModal,
+    openApiKeysModal: store.openApiKeysModal,
+    closeApiKeysModal: store.closeApiKeysModal,
+    openExecutionModal: store.openExecutionModal,
+    closeExecutionModal: store.closeExecutionModal,
+    hasSelection: store.selectedId !== null,
+  };
 };
 
 // Execution status
 export const useExecutionStatus = () => {
-  return useExecutionStore(
+  return useUnifiedStore(
     state => ({
-      runContext: state.runContext,
-      runningNodes: state.runningNodes,
-      currentRunningNode: state.currentRunningNode,
-      nodeRunningStates: state.nodeRunningStates,
+      runContext: state.execution.context,
+      runningNodes: Array.from(state.execution.runningNodes),
+      currentRunningNode: Array.from(state.execution.runningNodes)[0] || null,
+      nodeRunningStates: Object.fromEntries(
+        Array.from(state.execution.nodeStates.entries()).map(([id, state]) => [id, state.status === 'running'])
+      ),
     }),
     shallow
   );
 };
-
 
 // Utility functions that add logic
 
 // Grouped selectors for major components
 export const useCanvasSelectors = () => {
-  return useDiagramStore(
+  return useUnifiedStore(
     state => {
       // Convert domain nodes to React Flow format with handles
-      const domainNodes = state.nodeList();
+      const domainNodes = Array.from(state.nodes.values());
       const nodes = domainNodes.map(node => {
-        const handles = state.getNodeHandles(node.id);
-        return nodeToReact(node, handles);
+        const nodeHandles = Array.from(state.handles.values()).filter(h => h.nodeId === node.id);
+        return nodeToReact(node, nodeHandles);
       });
       
       return {
         nodes,
-        arrows: state.arrowList(),
-        isMonitorMode: state.isReadOnly,
-        onNodesChange: state.onNodesChange,
-        onArrowsChange: state.onArrowsChange,
-        onConnect: state.onConnect,
-        addNode: state.addNodeByType,
+        arrows: Array.from(state.arrows.values()),
+        isMonitorMode: state.readOnly,
+        onNodesChange: (changes: NodeChange[]) => {
+          changes.forEach((change) => {
+            if (change.type === 'position' && change.position) {
+              state.updateNode(change.id as NodeID, { position: change.position });
+            }
+          });
+        },
+        onArrowsChange: (changes: EdgeChange[]) => {
+          changes.forEach((change) => {
+            if (change.type === 'remove') {
+              state.deleteArrow(change.id as ArrowID);
+            }
+          });
+        },
+        onConnect: (connection: Connection) => {
+          if (connection.source && connection.target && connection.sourceHandle && connection.targetHandle) {
+            state.addArrow(
+              connection.sourceHandle as HandleID,
+              connection.targetHandle as HandleID
+            );
+          }
+        },
+        addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
+          state.addNode(type as NodeKind, position, data),
         deleteNode: state.deleteNode,
         deleteArrow: state.deleteArrow,
         updateNode: state.updateNode,
@@ -207,13 +282,19 @@ export const useCanvasSelectors = () => {
 };
 
 export const useExecutionSelectors = () => {
-  return useExecutionStore(
+  return useUnifiedStore(
     state => ({
-      runContext: state.runContext,
-      runningNodes: state.runningNodes,
-      currentRunningNode: state.currentRunningNode,
-      nodeRunningStates: state.nodeRunningStates,
-      skippedNodes: state.skippedNodes,
+      runContext: state.execution.context,
+      runningNodes: Array.from(state.execution.runningNodes),
+      currentRunningNode: Array.from(state.execution.runningNodes)[0] || null,
+      nodeRunningStates: Object.fromEntries(
+        Array.from(state.execution.nodeStates.entries()).map(([id, state]) => [id, state.status === 'running'])
+      ),
+      skippedNodes: Object.fromEntries(
+        Array.from(state.execution.nodeStates.entries())
+          .filter(([_, state]) => state.status === 'skipped')
+          .map(([id, state]) => [id, { reason: state.error || 'Skipped' }])
+      ),
     }),
     shallow
   );
@@ -223,37 +304,75 @@ export const useExecutionSelectors = () => {
 
 // Node data updater hook
 export const useNodeDataUpdater = () => {
-  return useDiagramStore(state => state.updateNode);
+  return useUnifiedStore(state => state.updateNode);
 };
 
 // Arrow data updater hook
 export const useArrowDataUpdater = () => {
-  return useDiagramStore(state => state.updateArrow);
+  return useUnifiedStore(state => state.updateArrow);
 };
 
 // Person data updater hook
 export const usePersonDataUpdater = () => {
-  return useDiagramStore(state => state.updatePerson);
+  return useUnifiedStore(state => state.updatePerson);
 };
 
 // API key updater hook
 export const useApiKeyUpdater = () => {
-  return useDiagramStore(state => state.updateApiKey);
+  const apiKeys = useUnifiedStore(state => state.apiKeys);
+  const transaction = useUnifiedStore(state => state.transaction);
+  
+  return (id: ApiKeyID, updates: Partial<DomainApiKey>) => {
+    transaction(() => {
+      const key = apiKeys.get(id);
+      if (key) {
+        Object.assign(key, updates);
+      }
+    });
+  };
 };
 
 // Granular execution actions selector
 export const useExecutionActions = () => {
-  return useExecutionStore(
+  return useUnifiedStore(
     state => ({
       startExecution: state.startExecution,
       stopExecution: state.stopExecution,
-      reset: state.reset,
-      addRunningNode: state.addRunningNode,
-      removeRunningNode: state.removeRunningNode,
-      setCurrentRunningNode: state.setCurrentRunningNode,
-      setRunContext: state.setRunContext,
-      addSkippedNode: state.addSkippedNode,
-      setNodeError: state.setNodeError,
+      reset: () => {
+        state.stopExecution();
+        state.execution.nodeStates.clear();
+        state.execution.context = {};
+      },
+      addRunningNode: (nodeId: NodeID) => {
+        state.execution.runningNodes.add(nodeId);
+      },
+      removeRunningNode: (nodeId: NodeID) => {
+        state.execution.runningNodes.delete(nodeId);
+      },
+      setCurrentRunningNode: (nodeId: NodeID | null) => {
+        // In unified store, running nodes are tracked in a Set
+        if (nodeId) {
+          state.execution.runningNodes.clear();
+          state.execution.runningNodes.add(nodeId);
+        }
+      },
+      setRunContext: (context: Record<string, unknown>) => {
+        state.execution.context = context;
+      },
+      addSkippedNode: (nodeId: NodeID, reason: string) => {
+        state.updateNodeExecution(nodeId, { 
+          status: 'skipped', 
+          error: reason,
+          timestamp: Date.now()
+        });
+      },
+      setNodeError: (nodeId: NodeID, error: string) => {
+        state.updateNodeExecution(nodeId, { 
+          status: 'failed', 
+          error,
+          timestamp: Date.now()
+        });
+      },
     }),
     shallow
   );
@@ -261,104 +380,125 @@ export const useExecutionActions = () => {
 
 // Node position updater
 export const useNodePositionUpdater = () => {
-  return useDiagramStore(state => (id: NodeID, position: { x: number; y: number }) => 
+  return useUnifiedStore(state => (id: NodeID, position: { x: number; y: number }) => 
     state.updateNode(id, { position })
   );
 };
 
 // Selected element getters
 export const useSelectedNodeId = () => {
-  return useConsolidatedUIStore(state => state.selectedNodeId);
+  return useUnifiedStore(state => 
+    state.selectedType === 'node' ? state.selectedId as NodeID : null
+  );
 };
 
 export const useSelectedArrowId = () => {
-  return useConsolidatedUIStore(state => state.selectedArrowId);
+  return useUnifiedStore(state => 
+    state.selectedType === 'arrow' ? state.selectedId as ArrowID : null
+  );
 };
 
 // Batch selectors for common operations
 export const useDiagramActions = () => {
-  return useDiagramStore(
+  return useUnifiedStore(
     state => ({
-      addNode: state.addNode,
-      addNodeByType: state.addNodeByType,
+      addNode: (node: DomainNode) => state.addNode(node.type, node.position, node.data),
+      addNodeByType: (type: NodeKind, position: Vec2, data?: Record<string, unknown>) => 
+        state.addNode(type, position, data),
       deleteNode: state.deleteNode,
-      addArrow: state.addArrow,
+      addArrow: (arrow: DomainArrow) => state.addArrow(arrow.source, arrow.target, arrow.data),
       deleteArrow: state.deleteArrow,
-      addPerson: state.addPerson,
-      deletePerson: state.deletePerson,
-      addApiKey: state.addApiKey,
-      deleteApiKey: state.deleteApiKey,
+      clearDiagram: () => {
+        state.transaction(() => {
+          state.nodes.clear();
+          state.arrows.clear();
+          state.handles.clear();
+          state.persons.clear();
+          state.apiKeys.clear();
+          state.clearSelection();
+        });
+      },
     }),
     shallow
   );
 };
 
-// UI selectors (alias for backward compatibility)
-// export const useUISelectors = useUIState; // Removed - use useUIState directly
-
-// History selectors
+// History operations
 export const useHistorySelectors = () => {
-  return useHistoryStore(
-    (state) => ({
-      canUndo: state.canUndo,
-      canRedo: state.canRedo,
+  return useUnifiedStore(
+    state => ({
       undo: state.undo,
       redo: state.redo,
+      canUndo: state.history.undoStack.length > 0,
+      canRedo: state.history.redoStack.length > 0,
     }),
     shallow
   );
 };
 
-// Diagram operations as direct exports
-export const exportDiagramState = () => {
-  return useDiagramStore.getState().exportDiagram();
+// Diagram export/import operations
+export const exportDiagramState = (): DomainDiagram | null => {
+  const state = useUnifiedStore.getState();
+  
+  if (state.nodes.size === 0) return null;
+  
+  // Convert Maps to Records
+  const nodes: Record<NodeID, DomainNode> = {};
+  const arrows: Record<ArrowID, DomainArrow> = {};
+  const persons: Record<PersonID, DomainPerson> = {};
+  const handles: Record<HandleID, DomainHandle> = {};
+  const apiKeys: Record<ApiKeyID, DomainApiKey> = {};
+  
+  state.nodes.forEach((node, id) => { nodes[id] = node; });
+  state.arrows.forEach((arrow, id) => { arrows[id] = arrow; });
+  state.persons.forEach((person, id) => { persons[id] = person; });
+  state.handles.forEach((handle, id) => { handles[id] = handle; });
+  state.apiKeys.forEach((key, id) => { apiKeys[id] = key; });
+  
+  return {
+    nodes,
+    arrows,
+    persons,
+    handles,
+    apiKeys,
+  };
 };
 
-export const loadDiagram = (data: any) => {
-  // Convert old array format to new Record format if needed
-  let diagramData: DomainDiagram;
+export const loadDiagram = (diagram: DomainDiagram) => {
+  const state = useUnifiedStore.getState();
   
-  if (Array.isArray(data.nodes)) {
-    // Old format with arrays - convert to Records
-    const nodes: Record<NodeID, DomainNode> = {};
-    const handles: Record<HandleID, DomainHandle> = {};
-    const arrows: Record<ArrowID, DomainArrow> = {};
-    const persons: Record<PersonID, DomainPerson> = {};
-    const apiKeys: Record<ApiKeyID, DomainApiKey> = {};
+  state.transaction(() => {
+    // Clear existing data
+    state.nodes.clear();
+    state.arrows.clear();
+    state.handles.clear();
+    state.persons.clear();
+    state.apiKeys.clear();
     
-    (data.nodes || []).forEach((node: DomainNode) => {
-      nodes[node.id] = node;
-    });
-    
-    (data.arrows || []).forEach((arrow: DomainArrow) => {
-      arrows[arrow.id] = arrow;
-    });
-    
-    (data.persons || []).forEach((person: DomainPerson) => {
-      persons[person.id] = person;
-    });
-    
-    (data.apiKeys || []).forEach((apiKey: DomainApiKey) => {
-      apiKeys[apiKey.id] = apiKey;
-    });
-    
-    diagramData = {
-      nodes,
-      handles,
-      arrows,
-      persons,
-      apiKeys
-    };
-  } else {
-    // New format with Records
-    diagramData = data as DomainDiagram;
-  }
-  
-  return useDiagramStore.getState().loadDiagram(diagramData);
+    // Load new data from Records
+    Object.entries(diagram.nodes).forEach(([id, node]) => state.nodes.set(id as NodeID, node));
+    Object.entries(diagram.arrows).forEach(([id, arrow]) => state.arrows.set(id as ArrowID, arrow));
+    Object.entries(diagram.handles).forEach(([id, handle]) => state.handles.set(id as HandleID, handle));
+    Object.entries(diagram.persons).forEach(([id, person]) => state.persons.set(id as PersonID, person));
+    if (diagram.apiKeys) {
+      Object.entries(diagram.apiKeys).forEach(([id, key]) => state.apiKeys.set(id as ApiKeyID, key));
+    }
+  });
 };
 
 export const clearDiagram = () => {
-  return useDiagramStore.getState().clear();
+  const state = useUnifiedStore.getState();
+  
+  state.transaction(() => {
+    state.nodes.clear();
+    state.arrows.clear();
+    state.handles.clear();
+    state.persons.clear();
+    state.apiKeys.clear();
+    state.clearSelection();
+  });
 };
 
-
+// For read-only state access (useful for components that just need to read state)
+export const useIsReadOnly = () => useUnifiedStore(state => state.readOnly);
+export const useApiKeys = () => useUnifiedStore(state => Array.from(state.apiKeys.values()));

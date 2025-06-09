@@ -3,8 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecutionV2, useDiagramRunner } from './hooks/execution';
-import { useConsolidatedUIStore, useDiagramStore } from './stores';
-import { useHistoryStore } from './stores/historyStore';
+import { useUnifiedStore } from './stores/useUnifiedStore';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -13,26 +12,11 @@ const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default:
 const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
 
 function App() {
-  const { activeCanvas } = useConsolidatedUIStore();
-  const { setReadOnly } = useDiagramStore();
+  const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
+  const setReadOnly = useUnifiedStore((state) => state.setReadOnly);
   const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
-  
-  // Initialize history store with diagram store on mount
-  useEffect(() => {
-    const diagramStore = useDiagramStore.getState();
-    const historyStore = useHistoryStore.getState();
-    
-    // Set the diagram store reference in history store
-    historyStore.setDiagramStore(diagramStore._store);
-    
-    // Set global reference for saveHistory to access
-    (window as unknown as { __historyStore?: typeof historyStore }).__historyStore = historyStore;
-    
-    // Initialize history with current state
-    historyStore.initializeHistory();
-  }, []);
   
   useEffect(() => {
     const checkMonitorMode = () => {
@@ -58,6 +42,25 @@ function App() {
       window.removeEventListener('popstate', handleUrlChange);
     };
   }, [setReadOnly]);
+  
+  // Set up keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        useUnifiedStore.getState().undo();
+      }
+      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        useUnifiedStore.getState().redo();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Use realtime execution monitor - it will automatically use WebSocket when available
   useExecutionV2({ enableMonitoring: true });

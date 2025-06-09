@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
-import { useConsolidatedUIStore } from '@/stores';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
 
 export interface ArrowData {
   label?: string;
@@ -51,7 +51,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   const { screenToFlowPosition } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
-  const { activeCanvas } = useConsolidatedUIStore();
+  const { activeCanvas } = useUnifiedStore();
   const isExecutionMode = activeCanvas === 'execution';
   
   const arrowData = data as ArrowData | undefined;

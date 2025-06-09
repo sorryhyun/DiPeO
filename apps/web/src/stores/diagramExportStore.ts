@@ -1,6 +1,5 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist } from 'zustand/middleware';
-import { DiagramCanvasStore } from './diagramCanvasStore';
 import {
   DomainNode,
   DomainArrow,
@@ -13,7 +12,6 @@ import {
   ArrowID,
   PersonID,
   ApiKeyID,
-  HandleID,
   nodeId,
   arrowId,
   personId,
@@ -24,6 +22,9 @@ import { parseHandleId } from '@/types/domain/handle';
 import { NodeKind, DataType, HandlePosition } from '@/types/primitives/enums';
 import { generateShortId, generateArrowId } from '@/types/primitives/id-generation';
 import { getNodeConfig } from '@/config/helpers';
+import { useUnifiedStore } from './useUnifiedStore';
+import type { UnifiedStore } from './unifiedStore';
+
 
 // Export format types
 interface ExportedNode {
@@ -91,7 +92,7 @@ export class DiagramExporter {
   private usedPersonLabels: Set<string> = new Set();
   private usedApiKeyLabels: Set<string> = new Set();
 
-  constructor(private domainStore: DiagramCanvasStore) {}
+  constructor(private store: UnifiedStore) {}
 
   // Clear all lookups
   private clearLookups(): void {
@@ -111,7 +112,7 @@ export class DiagramExporter {
     this.clearLookups();
 
     // Build node label mappings
-    const nodes = this.domainStore.getAllNodes();
+    const nodes = Array.from(this.store.nodes.values());
     nodes.forEach(node => {
       const label = (node.data.label as string) || node.id;
       const uniqueLabel = this.ensureUniqueLabel(label, this.usedNodeLabels);
@@ -119,7 +120,7 @@ export class DiagramExporter {
     });
 
     // Build person label mappings
-    const persons = this.domainStore.getAllPersons();
+    const persons = Array.from(this.store.persons.values());
     persons.forEach(person => {
       const label = person.name || person.id;
       const uniqueLabel = this.ensureUniqueLabel(label, this.usedPersonLabels);
@@ -127,7 +128,7 @@ export class DiagramExporter {
     });
 
     // Build API key label mappings
-    const apiKeys = this.domainStore.getAllApiKeys();
+    const apiKeys = Array.from(this.store.apiKeys.values());
     apiKeys.forEach(apiKey => {
       const label = apiKey.name || apiKey.id;
       const uniqueLabel = this.ensureUniqueLabel(label, this.usedApiKeyLabels);
@@ -139,10 +140,10 @@ export class DiagramExporter {
   exportDiagram(): ExportFormat {
     this.buildExportLookups();
 
-    const nodes = this.domainStore.getAllNodes();
-    const arrows = this.domainStore.getAllArrows();
-    const persons = this.domainStore.getAllPersons();
-    const apiKeys = this.domainStore.getAllApiKeys();
+    const nodes = Array.from(this.store.nodes.values());
+    const arrows = Array.from(this.store.arrows.values());
+    const persons = Array.from(this.store.persons.values());
+    const apiKeys = Array.from(this.store.apiKeys.values());
 
     // Export nodes with handles
     const exportedNodes = this.exportNodes(nodes);
@@ -186,14 +187,23 @@ export class DiagramExporter {
     }
 
     // Clear existing data
-    this.domainStore.clear();
+    this.store.transaction(() => {
+      // Clear all collections
+      this.store.nodes.clear();
+      this.store.arrows.clear();
+      this.store.persons.clear();
+      this.store.apiKeys.clear();
+      this.store.handles.clear();
+    });
     this.clearLookups();
 
     // Import in order: API keys -> Persons -> Nodes -> Arrows
-    this.importApiKeys(exportData.apiKeys);
-    this.importPersons(exportData.persons);
-    this.importNodes(exportData.nodes);
-    this.importArrows(exportData.arrows);
+    this.store.transaction(() => {
+      this.importApiKeys(exportData.apiKeys);
+      this.importPersons(exportData.persons);
+      this.importNodes(exportData.nodes);
+      this.importArrows(exportData.arrows);
+    });
   }
 
   // Validation
@@ -205,7 +215,7 @@ export class DiagramExporter {
       return { valid: false, errors };
     }
 
-    const exportData = data as any;
+    const exportData = data as ExportFormat;
 
     // Check version
     if (!exportData.version) {
@@ -228,7 +238,7 @@ export class DiagramExporter {
 
     // Validate nodes
     if (Array.isArray(exportData.nodes)) {
-      exportData.nodes.forEach((node: any, index: number) => {
+      exportData.nodes.forEach((node, index) => {
         if (!node.label) errors.push(`Node ${index} missing label`);
         if (!node.type) errors.push(`Node ${index} missing type`);
         if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
@@ -239,7 +249,7 @@ export class DiagramExporter {
 
     // Validate arrows
     if (Array.isArray(exportData.arrows)) {
-      exportData.arrows.forEach((arrow: any, index: number) => {
+      exportData.arrows.forEach((arrow, index) => {
         if (!arrow.sourceLabel) errors.push(`Arrow ${index} missing sourceLabel`);
         if (!arrow.targetLabel) errors.push(`Arrow ${index} missing targetLabel`);
         if (!arrow.sourceHandle) errors.push(`Arrow ${index} missing sourceHandle`);
@@ -253,7 +263,8 @@ export class DiagramExporter {
   // Private export helpers
   private exportNodes(nodes: DomainNode[]): ExportedNode[] {
     return nodes.map(node => {
-      const nodeHandles = this.domainStore.getNodeHandles(node.id);
+      const nodeHandles = Array.from(this.store.handles.values())
+        .filter(handle => handle.nodeId === node.id);
       const label = this.nodeIdToLabel.get(node.id) || node.id;
 
       // Prepare data without internal properties
@@ -344,7 +355,7 @@ export class DiagramExporter {
       const label = this.ensureUniqueLabel(apiKeyData.name, this.usedApiKeyLabels);
       this.apiKeyLabelToId.set(label, id);
 
-      this.domainStore.addApiKey({
+      this.store.apiKeys.set(id, {
         id,
         name: label,
         service: apiKeyData.service
@@ -361,7 +372,7 @@ export class DiagramExporter {
       // Resolve API key reference
       const apiKeyId = personData.apiKeyLabel ? this.apiKeyLabelToId.get(personData.apiKeyLabel) : undefined;
 
-      this.domainStore.addPerson({
+      this.store.persons.set(id, {
         id,
         name: label,
         model: personData.model,
@@ -399,7 +410,7 @@ export class DiagramExporter {
         }
       };
 
-      this.domainStore.addNode(domainNode);
+      this.store.nodes.set(id, domainNode);
 
       // Add handles
       if (nodeData.handles) {
@@ -414,7 +425,7 @@ export class DiagramExporter {
             label: handleData.label,
             maxConnections: handleData.maxConnections
           };
-          this.domainStore.addHandle(handle);
+          this.store.handles.set(handle.id, handle);
         });
       } else {
         // Generate default handles if not provided
@@ -434,11 +445,10 @@ export class DiagramExporter {
               position: handleConfig.position as HandlePosition,
               label: handleConfig.label,
               offset: handleConfig.offset ? 
-                (typeof handleConfig.offset.x === 'number' || typeof handleConfig.offset.y === 'number' ? 
-                  (handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0) : undefined) 
+                ((handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0)) 
                 : undefined
             };
-            this.domainStore.addHandle(handle);
+            this.store.handles.set(handle.id, handle);
           });
           
           // Process output handles
@@ -452,11 +462,10 @@ export class DiagramExporter {
               position: handleConfig.position as HandlePosition,
               label: handleConfig.label,
               offset: handleConfig.offset ? 
-                (typeof handleConfig.offset.x === 'number' || typeof handleConfig.offset.y === 'number' ? 
-                  (handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0) : undefined) 
+                ((handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0)) 
                 : undefined
             };
-            this.domainStore.addHandle(handle);
+            this.store.handles.set(handle.id, handle);
           });
         }
       }
@@ -487,7 +496,7 @@ export class DiagramExporter {
       const targetHandleId = handleId(targetNodeId, targetHandleName);
 
       // Verify handles exist
-      if (!this.domainStore.getHandle(sourceHandleId) || !this.domainStore.getHandle(targetHandleId)) {
+      if (!this.store.handles.get(sourceHandleId) || !this.store.handles.get(targetHandleId)) {
         console.warn(`Cannot find handles for arrow: ${sourceHandleId} -> ${targetHandleId}`);
         return;
       }
@@ -500,7 +509,7 @@ export class DiagramExporter {
         data: arrowData.data
       };
 
-      this.domainStore.addArrow(arrow);
+      this.store.arrows.set(arrow.id, arrow);
     });
   }
 
@@ -530,11 +539,11 @@ interface DiagramExportStore {
   exporter?: DiagramExporter;
   
   // Export operations
-  exportDiagram: (domainStore: DiagramCanvasStore) => ExportFormat;
-  exportAsJSON: (domainStore: DiagramCanvasStore) => string;
+  exportDiagram: () => ExportFormat;
+  exportAsJSON: () => string;
 
   // Import operations
-  importDiagram: (data: ExportFormat | string, domainStore: DiagramCanvasStore) => void;
+  importDiagram: (data: ExportFormat | string) => void;
 
   // Validation
   validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
@@ -544,11 +553,13 @@ interface DiagramExportStore {
   setLastExport: (data: ExportFormat) => void;
 }
 
+// Export the store for use in the application
 export const useDiagramExportStore = createWithEqualityFn<DiagramExportStore>()(
   devtools(
     persist(
-      (set, get) => {
+      (set) => {
         let cachedExporter: DiagramExporter | undefined;
+        let cachedStore: UnifiedStore | undefined;
 
         return {
           lastExport: undefined,
@@ -556,36 +567,39 @@ export const useDiagramExportStore = createWithEqualityFn<DiagramExportStore>()(
 
           setLastExport: (data) => set({ lastExport: data }),
 
-          exportDiagram: (domainStore) => {
-            if (!cachedExporter || (cachedExporter as any).domainStore !== domainStore) {
-              cachedExporter = new DiagramExporter(domainStore);
-              (cachedExporter as any).domainStore = domainStore;
+          exportDiagram: () => {
+            const store = useUnifiedStore.getState();
+            if (!cachedExporter || cachedStore !== store) {
+              cachedExporter = new DiagramExporter(store);
+              cachedStore = store;
             }
             const exportData = cachedExporter.exportDiagram();
             set({ lastExport: exportData });
             return exportData;
           },
 
-          exportAsJSON: (domainStore) => {
-            if (!cachedExporter || (cachedExporter as any).domainStore !== domainStore) {
-              cachedExporter = new DiagramExporter(domainStore);
-              (cachedExporter as any).domainStore = domainStore;
+          exportAsJSON: () => {
+            const store = useUnifiedStore.getState();
+            if (!cachedExporter || cachedStore !== store) {
+              cachedExporter = new DiagramExporter(store);
+              cachedStore = store;
             }
             return cachedExporter.exportAsJSON();
           },
 
-          importDiagram: (data, domainStore) => {
-            if (!cachedExporter || (cachedExporter as any).domainStore !== domainStore) {
-              cachedExporter = new DiagramExporter(domainStore);
-              (cachedExporter as any).domainStore = domainStore;
+          importDiagram: (data) => {
+            const store = useUnifiedStore.getState();
+            if (!cachedExporter || cachedStore !== store) {
+              cachedExporter = new DiagramExporter(store);
+              cachedStore = store;
             }
             cachedExporter.importDiagram(data);
           },
 
           validateExportData: (data) => {
-            // Use a static exporter instance for validation
-            const tempExporter = new DiagramExporter({} as DiagramCanvasStore);
-            return tempExporter.validateExportData(data);
+            // Create a simple validation function without needing a store instance
+            const exporter = new DiagramExporter({} as UnifiedStore);
+            return exporter.validateExportData(data);
           }
         };
       },

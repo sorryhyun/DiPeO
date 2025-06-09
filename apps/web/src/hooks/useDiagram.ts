@@ -207,10 +207,31 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   const skipNode = realtime.skipNode;
   const respondToPrompt = realtime.respondToPrompt;
 
-  // SELECTION OPERATIONS - selection methods are stable
-  const selectNode = selection.setSelectedNodeId;
-  const selectArrow = selection.setSelectedArrowId;
-  const selectPerson = selection.setSelectedPersonId;
+  // SELECTION OPERATIONS - wrap to handle string -> branded type conversion
+  const selectNode = useCallback((id: string | NodeID | null) => {
+    if (typeof id === 'string') {
+      selection.setSelectedNodeId(id as NodeID);
+    } else {
+      selection.setSelectedNodeId(id);
+    }
+  }, [selection]);
+  
+  const selectArrow = useCallback((id: string | ArrowID | null) => {
+    if (typeof id === 'string') {
+      selection.setSelectedArrowId(id as ArrowID);
+    } else {
+      selection.setSelectedArrowId(id);
+    }
+  }, [selection]);
+  
+  const selectPerson = useCallback((id: string | PersonID | null) => {
+    if (typeof id === 'string') {
+      selection.setSelectedPersonId(id as PersonID);
+    } else {
+      selection.setSelectedPersonId(id);
+    }
+  }, [selection]);
+  
   const clearSelection = selection.clearSelection;
 
   // =====================

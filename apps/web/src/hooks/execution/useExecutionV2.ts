@@ -9,8 +9,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useExecutionState, type NodeStateV2 } from './useExecutionState';
 import { useWebSocketEventBus } from '../useWebSocketEventBus';
 import { useExecutionUI } from './useExecutionUI';
-import { useExecutionStore } from '@/stores/executionStore';
-import { useCanvasSelectors } from '../useStoreSelectors';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useCanvasSelectors, useExecutionActions } from '../useStoreSelectors';
 import type { DomainDiagram } from '@/types/domain';
 import type { InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types/runtime';
 import type { NodeID } from '@/types/branded';
@@ -70,8 +70,8 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
   } = options;
 
   // Get store actions
-  const executionStore = useExecutionStore();
   const { nodes } = useCanvasSelectors();
+  const executionActions = useExecutionActions();
   
   // Initialize sub-hooks
   const state = useExecutionState();
@@ -98,7 +98,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       executionIdRef.current = data.execution_id;
       state.startExecution(data.execution_id, data.total_nodes || 0);
       ui.showExecutionStart(data.execution_id, data.total_nodes || 0);
-      executionStore.setRunContext({});
+      executionActions.setRunContext({});
       onUpdate?.({ type: 'execution_started', ...data });
     });
 
@@ -130,8 +130,8 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     on('node_start', (data: any) => {
       state.startNode(data.node_id);
       ui.showNodeStart(data.node_id, data.node_type);
-      executionStore.addRunningNode(data.node_id);
-      executionStore.setCurrentRunningNode(data.node_id);
+      executionActions.addRunningNode(data.node_id);
+      executionActions.setCurrentRunningNode(data.node_id);
       onUpdate?.({ type: 'node_start', ...data });
     });
 
@@ -144,11 +144,11 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       const nodeType = nodes.find(n => n.id === data.node_id)?.type || 'unknown';
       state.completeNode(data.node_id, data.token_count);
       ui.showNodeComplete(data.node_id, nodeType as NodeKind);
-      executionStore.removeRunningNode(data.node_id);
+      executionActions.removeRunningNode(data.node_id);
       
       // Update context if output is provided
       if (data.output && typeof data.output === 'object') {
-        executionStore.setRunContext(data.output as Record<string, unknown>);
+        executionActions.setRunContext(data.output as Record<string, unknown>);
       }
       onUpdate?.({ type: 'node_complete', ...data });
     });
@@ -156,15 +156,15 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     on('node_skipped', (data: any) => {
       state.skipNode(data.node_id, data.reason);
       ui.showNodeSkipped(data.node_id, data.reason);
-      executionStore.addSkippedNode(data.node_id, data.reason || 'Unknown reason');
-      executionStore.removeRunningNode(data.node_id);
+      executionActions.addSkippedNode(data.node_id, data.reason || 'Unknown reason');
+      executionActions.removeRunningNode(data.node_id);
       onUpdate?.({ type: 'node_skipped', ...data });
     });
 
     on('node_error', (data: any) => {
       state.errorNode(data.node_id, data.error);
       ui.showNodeError(data.node_id, data.error);
-      executionStore.removeRunningNode(data.node_id);
+      executionActions.removeRunningNode(data.node_id);
       onUpdate?.({ type: 'node_error', ...data });
     });
 
@@ -182,7 +182,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       ui.setInteractivePrompt(data);
       onUpdate?.({ type: 'interactive_prompt_request', ...data });
     });
-  }, [on, state, ui, executionStore, nodes, onUpdate]);
+  }, [on, state, ui, executionActions, nodes, onUpdate]);
 
   // Update execution progress
   useEffect(() => {
@@ -196,8 +196,8 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
   const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
     // Reset state before starting
     state.resetState();
-    executionStore.setRunContext({});
-    executionStore.runningNodes.forEach((nodeId) => executionStore.removeRunningNode(nodeId));
+    executionActions.setRunContext({});
+    executionActions.reset();
     ui.clearInteractivePrompt();
     
     try {
@@ -211,7 +211,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       console.error('Execution failed:', error);
       throw error;
     }
-  }, [send, waitForConnection, state, executionStore, ui]);
+  }, [send, waitForConnection, state, executionActions, ui]);
 
   // Control actions
   const pauseNode = useCallback((nodeId: NodeID) => {
@@ -243,8 +243,8 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
       });
     }
     state.abortExecution();
-    executionStore.runningNodes.forEach((nodeId) => executionStore.removeRunningNode(nodeId));
-  }, [send, state, executionStore]);
+    executionActions.reset();
+  }, [send, state, executionActions]);
 
   const respondToPrompt = useCallback((nodeId: NodeID, response: string) => {
     send({

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
-import { useApiKeyStore } from '@/stores/apiKeyStore';
-import { useDiagramStore } from '@/stores';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
 import { useDiagram } from '@/hooks';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
@@ -15,9 +14,10 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use stores directly
-  const { apiKeys, addApiKey, loadApiKeys } = useApiKeyStore();
-  const setReadOnly = useDiagramStore(state => state.setReadOnly);
+  // Use unified store
+  const store = useUnifiedStore();
+  const apiKeys = Array.from(store.apiKeys.values());
+  const setReadOnly = store.setReadOnly;
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
   // Use the unified diagram hook
@@ -44,10 +44,9 @@ const TopBar = () => {
   
   // Load API keys on mount
   useEffect(() => {
-    loadApiKeys().catch(error => {
-      console.error('Failed to load API keys on mount:', error);
-    });
-  }, [loadApiKeys]);
+    // TODO: Implement API key loading from backend
+    // For now, API keys are managed directly through the store
+  }, []);
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -66,12 +65,9 @@ const TopBar = () => {
           const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
           
           if (backendKeys.length > 0 && apiKeys.length === 0) {
-            backendKeys.forEach((key: DomainApiKey) => {
-              addApiKey({
-                name: key.name || 'Unnamed Key',
-                service: key.service as DomainApiKey['service']
-              });
-            });
+            // TODO: Implement adding API keys to unified store
+            // For now, API keys need to be added through the API keys modal
+            console.log('Found backend API keys:', backendKeys);
           }
           
           // API keys modal is now in the sidebar
@@ -87,7 +83,7 @@ const TopBar = () => {
     if (!hasCheckedBackend) {
       checkBackendApiKeys().catch(console.error);
     }
-  }, [hasCheckedBackend, apiKeys.length, addApiKey, setReadOnly, setActiveCanvas]);
+  }, [hasCheckedBackend, apiKeys.length, setReadOnly, setActiveCanvas]);
 
   // Keyboard shortcuts could be added here if needed
 

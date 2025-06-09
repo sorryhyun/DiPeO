@@ -12,6 +12,7 @@ import {
   useSelectedElement 
 } from '@/hooks/useStoreSelectors';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
+import type { PersonID } from '@/types/branded';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
@@ -59,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   
   const handlePersonClick = (personId: string) => {
-    setSelectedPersonId(personId);
+    setSelectedPersonId(personId as PersonID);
   };
 
   if (position === 'right') {
@@ -188,7 +189,6 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                 name: `Person ${persons.length + 1}`,
                 model: 'gpt-4.1-nano',
                 service: 'openai',
-                systemPrompt: '',
               })}
             >
               <span className="mr-1">➕</span> Add Person

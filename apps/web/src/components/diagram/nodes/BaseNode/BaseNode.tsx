@@ -6,7 +6,7 @@ import { getNodeConfig } from '@/config/helpers';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
 import { useExecutionV2 } from '@/hooks/execution';
-import { useConsolidatedUIStore } from '@/stores';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
 import {NodeKind, NodeID, nodeId, handleId} from '@/types';
 import './BaseNode.css';
 
@@ -184,7 +184,7 @@ export function BaseNode({
   // Store selectors
   const updateNode = useNodeDataUpdater();
   const updateNodeInternals = useUpdateNodeInternals();
-  const { activeCanvas } = useConsolidatedUIStore();
+  const { activeCanvas } = useUnifiedStore();
   const isExecutionMode = activeCanvas === 'execution';
   
   // Use custom hooks

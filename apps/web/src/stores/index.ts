@@ -1,19 +1,20 @@
-// Main stores
-export { DiagramCanvasStore } from './diagramCanvasStore';
-export { useExecutionStore } from './executionStore';
-export { useConsolidatedUIStore } from './consolidatedUIStore';
-export { useDiagramExportStore } from './diagramExportStore';
-export { useDiagramStore, useNodes, useArrows, usePersons, useApiKeys, useIsReadOnly } from './useDiagramStore';
+// Unified store (new architecture)
+export { 
+  useUnifiedStore,
+  useNodeById,
+  useArrowById,
+  usePersonById,
+  useSelectedEntity,
+  useIsExecuting,
+  useNodeExecutionState
+} from './useUnifiedStore';
+export type { UnifiedStore } from './unifiedStore';
 
-// Supporting stores
-export { useApiKeyStore } from './apiKeyStore';
-export { useHistoryStore } from './historyStore';
 
-// Types
-export type { ExecutionStore } from './executionStore';
-export type { ApiKeyState } from './apiKeyStore';
-export type { HistoryStore, HistoryState } from './historyStore';
 
-// Phase 8 additions
+// Typed actions from Phase 8
 export { createTypedActions } from './typed-actions';
 export type { TypedDiagramActions } from './typed-actions';
+
+// Export store (temporarily kept until refactored to use unified store)
+export { useDiagramExportStore } from './diagramExportStore';
