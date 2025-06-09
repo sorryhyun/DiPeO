@@ -44,6 +44,8 @@ import {
   reactToArrow,
   connectionToArrow
 } from '@/types/framework/adapters';
+import { NODE_CONFIGS } from '@/config';
+import { capitalize } from '@/utils/converters/nodeBuilders';
 
 interface DiagramStore {
   // Internal store instance
@@ -129,11 +131,17 @@ export const useDiagramStore = createWithEqualityFn<DiagramStore>()(
           
           addNodeByType: (type: NodeKind, position: { x: number; y: number }) => {
             const id = generateNodeId();
+            const nodeConfig = NODE_CONFIGS[type];
+            const defaults = nodeConfig?.defaults || {};
+            
             const node: DomainNode = {
               id,
               type,
               position,
-              data: {}
+              data: {
+                label: nodeConfig?.label || capitalize(type),
+                ...defaults
+              }
             };
             store.addNode(node);
             set({});

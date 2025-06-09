@@ -26,8 +26,10 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow, arrowToReact } from "@/types";
+import { DomainArrow, arrowToReact, NodeKind } from "@/types";
 import { roundPosition } from "@/utils/canvas";
+import { createTypedActions } from "@/stores/typed-actions";
+import { useDiagramStore } from "@/stores";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(

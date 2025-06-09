@@ -2,7 +2,7 @@ import React from 'react';
 import { DiagramCanvas } from '@/components/diagram/canvas';
 import ExecutionControls from './ExecutionControls';
 
-const ExecutionView = () => {
+const ExecutionView = React.memo(() => {
   return (
     <div className="h-full flex flex-col bg-gray-900">
       {/* Execution Controls */}
@@ -14,6 +14,8 @@ const ExecutionView = () => {
       </div>
     </div>
   );
-};
+});
+
+ExecutionView.displayName = 'ExecutionView';
 
 export default ExecutionView;

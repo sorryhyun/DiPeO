@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign
@@ -111,12 +111,12 @@ const ConversationDashboard: React.FC = () => {
   };
 
   // Calculate total tokens for selected person
-  const calculateTotalTokens = () => {
+  const calculateTotalTokens = useCallback(() => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return 0;
 
     return conversationData[dashboardSelectedPerson].messages
       .reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
-  };
+  }, [dashboardSelectedPerson, conversationData]);
 
   // Handle whole conversation button click
   const handleWholeConversation = () => {
@@ -224,19 +224,22 @@ const ConversationDashboard: React.FC = () => {
 
     // Handle whole conversation view
     if (dashboardSelectedPerson === 'whole') {
-      const allMessages: ConversationMessage[] = [];
-      Object.values(conversationData).forEach(personData => {
-        allMessages.push(...personData.messages);
-      });
-      
-      // Sort messages by timestamp
-      allMessages.sort((a, b) => {
-        const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return aTime - bTime;
-      });
-      
-      const totalTokens = allMessages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
+      const { allMessages, totalTokens } = useMemo(() => {
+        const messages: ConversationMessage[] = [];
+        Object.values(conversationData).forEach(personData => {
+          messages.push(...personData.messages);
+        });
+        
+        // Sort messages by timestamp
+        messages.sort((a, b) => {
+          const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return aTime - bTime;
+        });
+        
+        const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
+        return { allMessages: messages, totalTokens: tokens };
+      }, [conversationData]);
       
       return (
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -329,4 +332,4 @@ const ConversationDashboard: React.FC = () => {
   }
 };
 
-export default ConversationDashboard;
+export default React.memo(ConversationDashboard);

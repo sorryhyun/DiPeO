@@ -13,7 +13,7 @@ interface UniversalPropertiesPanelProps {
   data: UniversalData;
 }
 
-export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = ({ nodeId, data }) => {
+export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = React.memo(({ nodeId, data }) => {
   const nodeType = data.type;
   const nodeConfig = nodeType in NODE_CONFIGS ? NODE_CONFIGS[nodeType as keyof typeof NODE_CONFIGS] : undefined;
   
@@ -57,4 +57,6 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
       </div>
     </div>
   );
-};
+});
+
+UniversalPropertiesPanel.displayName = 'UniversalPropertiesPanel';
