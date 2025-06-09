@@ -7,7 +7,7 @@ import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
 import { useExecutionV2 } from '@/hooks/execution';
 import { useConsolidatedUIStore } from '@/stores';
-import {NodeKind, NodeID, nodeId} from '@/types';
+import {NodeKind, NodeID, nodeId, handleId} from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -63,18 +63,18 @@ function useHandles(nodeId: NodeID, nodeType: string, isFlipped: boolean) {
       
       // Ensure unique handle ID
       const handleName = handle.id || 'default';
-      let handleId = createHandleId(nodeId, handleName);
+      let handleIdentifier = handleId(nodeId, handleName);
       
       // If ID already exists, append index to make it unique
-      if (usedIds.has(handleId)) {
-        handleId = createHandleId(nodeId, `${handleName}_${index}`);
+      if (usedIds.has(handleIdentifier)) {
+        handleIdentifier = handleId(nodeId, `${handleName}_${index}`);
       }
-      usedIds.add(handleId);
+      usedIds.add(handleIdentifier);
       
       return {
         type: handle.type,
         position,
-        id: handleId,
+        id: handleIdentifier,
         name: handleName,
         style,
         offset: 50,
@@ -196,7 +196,7 @@ export function BaseNode({
   
   // Handle flip
   const handleFlip = useCallback(() => {
-    updateNode(nId, { ...data, flipped: !isFlipped });
+    updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
   }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
   

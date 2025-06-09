@@ -26,7 +26,7 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow, arrowToReact, NodeKind } from "@/types";
+import { DomainArrow, arrowToReact, NodeKind, nodeId, arrowId } from "@/types";
 import { roundPosition } from "@/utils/canvas";
 import { createTypedActions } from "@/stores/typed-actions";
 import { useDiagramStore } from "@/stores";
@@ -234,7 +234,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Context‑menu helpers
    * --------------------------------------------------*/
-  const handleAddPerson = () => addPerson({ id: "New Person" });
+  const handleAddPerson = () => addPerson({ 
+    name: "New Person",
+    model: "gpt-4.1-nano",
+    service: "openai"
+  });
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
   /** --------------------------------------------------
@@ -246,8 +250,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         <ContextMenu
           position={contextMenu!.position!}
           target={contextMenu!.target || "pane"}
-          selectedNodeId={selectedNodeId}
-          selectedArrowId={selectedArrowId}
+          selectedNodeId={selectedNodeId ? nodeId(selectedNodeId) : null}
+          selectedArrowId={selectedArrowId ? arrowId(selectedArrowId) : null}
           containerRef={flowWrapperRef as React.RefObject<HTMLDivElement>}
           onAddNode={addNode}
           onAddPerson={handleAddPerson}

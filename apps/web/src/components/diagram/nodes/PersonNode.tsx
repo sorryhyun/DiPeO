@@ -1,17 +1,17 @@
 // Component for Person nodes (LLM instances)
 import React from 'react';
 import { Position, NodeProps } from '@xyflow/react';
-import { DomainPerson } from '@/types';
+import { DomainPerson, nodeId as createNodeId } from '@/types';
 import { User } from 'lucide-react';
 import { FlowHandle } from '../controls/FlowHandle';
 
-const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
+const PersonClass: React.FC<NodeProps> = ({ data, selected, id }) => {
   const [isDragging, setIsDragging] = React.useState(false);
   
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'copy';
     const personData = data as unknown as DomainPerson;
-    e.dataTransfer.setData('application/person', personData.id || nodeId);
+    e.dataTransfer.setData('application/person', personData.id || id);
     setIsDragging(true);
   };
   
@@ -32,7 +32,7 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
       <FlowHandle
         type="output"
         position={Position.Right}
-        nodeId={nodeId}
+        nodeId={createNodeId(id)}
         name="context"
         color="#16a34a"
       />
@@ -40,7 +40,7 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
       <FlowHandle
         type="output"
         position={Position.Left}
-        nodeId={nodeId}
+        nodeId={createNodeId(id)}
         name="memory-tool"
         offset={25}
         color="#2563eb"
@@ -49,7 +49,7 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id: nodeId }) => {
       <FlowHandle
         type="output"
         position={Position.Left}
-        nodeId={nodeId}
+        nodeId={createNodeId(id)}
         name="api-tool"
         offset={75}
         color="#2563eb"

@@ -64,10 +64,10 @@ interface TextAreaFieldProps {
 export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   label, value, onChange, placeholder, rows = 4, id, hint, disabled
 }) => (
-  <FormField label={label} id={id}>
+  <FormField label={label} id={id || ''}>
     <textarea
       id={id}
-      value={value}
+      value={value || ''}
       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
       rows={rows}
       placeholder={placeholder}
@@ -90,10 +90,10 @@ interface InlineTextFieldProps {
 }
 
 export const InlineTextField: React.FC<InlineTextFieldProps> = ({ label, value, onChange, placeholder, id, className, disabled }) => (
-  <InlineFormField label={label} id={id} className={className}>
+  <InlineFormField label={label} id={id || ''} className={className}>
     <Input
       id={id}
-      value={value}
+      value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={MIN_WIDTH_0}
@@ -105,7 +105,7 @@ export const InlineTextField: React.FC<InlineTextFieldProps> = ({ label, value, 
 export const InlineSelectField: React.FC<SelectFieldProps & { className?: string }> = ({
   label, value, onChange, options, placeholder = "Select", id, isDisabled, isLoading, error, className
 }) => (
-  <InlineFormField label={label} id={id} className={className}>
+  <InlineFormField label={label} id={id || ''} className={className}>
     {isLoading ? (
       <div className={FLEX_CENTER_SPACE}>
         <Spinner size="sm" />

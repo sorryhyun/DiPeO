@@ -80,8 +80,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       const result = await response.json();
       
       // Add to local store with backend ID
-      const newKey: ApiKey = {
-        id: result.id,
+      const newKey: DomainApiKey = {
+        id: apiKeyId(result.id),
         name: result.name || newKeyForm.name.trim(),
         service: result.service || newKeyForm.service || 'claude',
         // key is optional - not stored in frontend for security
@@ -217,7 +217,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               </label>
               <Select
                 value={newKeyForm.service || 'claude'}
-                onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as ApiKey['service'] })}
+                onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as DomainApiKey['service'] })}
               >
                 {API_SERVICES.map((service) => (
                   <option key={service.value} value={service.value}>

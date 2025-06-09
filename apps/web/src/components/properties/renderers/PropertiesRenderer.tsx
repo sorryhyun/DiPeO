@@ -79,7 +79,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
         title = `${node.data.label || 'Block'} Properties`;
         content = (
           <Suspense fallback={<LoadingFallback />}>
-            <UniversalPropertiesPanel nodeId={selectedNodeId} data={node.data} />
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...node.data, type: node.type } as any} />
           </Suspense>
         );
       }

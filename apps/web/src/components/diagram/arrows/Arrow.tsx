@@ -2,12 +2,14 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useConsolidatedUIStore } from '@/stores';
 
-interface ArrowData {
+export interface ArrowData {
   label?: string;
   style?: React.CSSProperties;
   controlPointOffsetX?: number;
   controlPointOffsetY?: number;
   loopRadius?: number;
+  branch?: 'true' | 'false';
+  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'empty' | 'generic';
 }
 
 export interface CustomArrowProps extends EdgeProps {
@@ -43,7 +45,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   style = {},
   data,
   markerEnd,
-  selected,
+  selected = false,
   onUpdateData,
 }) => {
   const { screenToFlowPosition } = useReactFlow();
@@ -52,7 +54,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
   const { activeCanvas } = useConsolidatedUIStore();
   const isExecutionMode = activeCanvas === 'execution';
   
-  const arrowData = data as ArrowData;
+  const arrowData = data as ArrowData | undefined;
   const controlPointOffsetX = Number(arrowData?.controlPointOffsetX ?? 0);
   const controlPointOffsetY = Number(arrowData?.controlPointOffsetY ?? 0);
 
@@ -147,7 +149,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
           Math.pow(newY - nodeY, 2)
         );
         
-        onUpdateData(id, {
+        onUpdateData(id as string, {
           loopRadius: Math.max(30, Math.min(100, distance)),
         });
       } else {
@@ -159,7 +161,7 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
         const newControlX = dragRef.current.controlX + deltaX;
         const newControlY = dragRef.current.controlY + deltaY;
         
-        onUpdateData(id, {
+        onUpdateData(id as string, {
           controlPointOffsetX: Math.round(newControlX * 10) / 10,
           controlPointOffsetY: Math.round(newControlY * 10) / 10,
         });
@@ -183,11 +185,11 @@ export const CustomArrow: React.FC<CustomArrowProps> = ({
     
     e.stopPropagation();
     if (source === target) {
-      onUpdateData(id, {
+      onUpdateData(id as string, {
         loopRadius: 50, // Reset to default loop radius
       });
     } else {
-      onUpdateData(id, {
+      onUpdateData(id as string, {
         controlPointOffsetX: 0,
         controlPointOffsetY: 0,
       });

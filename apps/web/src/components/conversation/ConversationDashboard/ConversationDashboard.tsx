@@ -300,7 +300,10 @@ const ConversationDashboard: React.FC = () => {
         </div>
 
         <MessageList
-          messages={personMemory.messages}
+          messages={personMemory.messages.map(msg => ({
+            ...msg,
+            personId: dashboardSelectedPerson
+          }))}
           currentPersonId={dashboardSelectedPerson}
           persons={persons}
           onScroll={handleScroll}
