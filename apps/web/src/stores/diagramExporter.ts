@@ -1,67 +1,14 @@
-import { createWithEqualityFn } from 'zustand/traditional';
-import { devtools, persist } from 'zustand/middleware';
 import {
   DomainNode,  DomainArrow,  DomainHandle,  DomainPerson, DomainApiKey,  NodeID,
   ArrowID,  PersonID,  ApiKeyID,  nodeId,  arrowId,
   personId,  apiKeyId,  handleId,  parseHandleId,  NodeKind,
-  DataType,  HandlePosition,  generateShortId,  generateArrowId} from '@/types';
+  DataType,  HandlePosition,  generateShortId,  generateArrowId,
+  LLMService,  ForgettingMode
+} from '@/types';
 import { getNodeConfig } from '@/config/helpers';
-import { useUnifiedStore } from './useUnifiedStore';
-import type { UnifiedStore } from './unifiedStore';
+import type { UnifiedStore, ExportFormat, ExportedNode, ExportedArrow, ExportedPerson, ExportedApiKey } from './unifiedStore';
 
-
-// Export format types
-interface ExportedNode {
-  label: string;
-  type: string;
-  position: { x: number; y: number };
-  data: Record<string, unknown>;
-  handles?: Array<{
-    name: string;
-    direction: 'input' | 'output';
-    dataType: string;
-    position?: string;
-    label?: string;
-    maxConnections?: number;
-  }>;
-}
-
-interface ExportedArrow {
-  sourceLabel: string;
-  targetLabel: string;
-  sourceHandle: string;
-  targetHandle: string;
-  data?: Record<string, unknown>;
-}
-
-interface ExportedPerson {
-  name: string;
-  model: string;
-  service: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  apiKeyLabel?: string;
-}
-
-interface ExportedApiKey {
-  name: string;
-  service: string;
-}
-
-interface ExportFormat {
-  version: string;
-  nodes: ExportedNode[];
-  arrows: ExportedArrow[];
-  persons: ExportedPerson[];
-  apiKeys: ExportedApiKey[];
-  metadata?: {
-    exported: string;
-    description?: string;
-  };
-}
-
-// Optimized export class following DiagramCanvasStore patterns
+// Optimized export class
 export class DiagramExporter {
   // Pre-computed lookups for efficient export/import
   private nodeIdToLabel: Map<NodeID, string> = new Map();
@@ -342,8 +289,8 @@ export class DiagramExporter {
       this.store.apiKeys.set(id, {
         id,
         name: label,
-        service: apiKeyData.service
-      } as DomainApiKey);
+        service: apiKeyData.service as LLMService
+      });
     });
   }
 
@@ -360,12 +307,13 @@ export class DiagramExporter {
         id,
         name: label,
         model: personData.model,
-        service: personData.service,
+        service: personData.service as LLMService,
         systemPrompt: personData.systemPrompt,
         temperature: personData.temperature,
         maxTokens: personData.maxTokens,
+        forgettingMode: 'no_forget' as ForgettingMode,
         ...(apiKeyId && { apiKeyId })
-      } as DomainPerson);
+      });
     });
   }
 
@@ -517,83 +465,3 @@ export class DiagramExporter {
     return Math.round(value * 10) / 10;
   }
 }
-
-interface DiagramExportStore {
-  // Cached exporter instance
-  exporter?: DiagramExporter;
-  
-  // Export operations
-  exportDiagram: () => ExportFormat;
-  exportAsJSON: () => string;
-
-  // Import operations
-  importDiagram: (data: ExportFormat | string) => void;
-
-  // Validation
-  validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
-
-  // Persistence
-  lastExport?: ExportFormat;
-  setLastExport: (data: ExportFormat) => void;
-}
-
-// Export the store for use in the application
-export const useDiagramExportStore = createWithEqualityFn<DiagramExportStore>()(
-  devtools(
-    persist(
-      (set) => {
-        let cachedExporter: DiagramExporter | undefined;
-        let cachedStore: UnifiedStore | undefined;
-
-        return {
-          lastExport: undefined,
-          exporter: undefined,
-
-          setLastExport: (data) => set({ lastExport: data }),
-
-          exportDiagram: () => {
-            const store = useUnifiedStore.getState();
-            if (!cachedExporter || cachedStore !== store) {
-              cachedExporter = new DiagramExporter(store);
-              cachedStore = store;
-            }
-            const exportData = cachedExporter.exportDiagram();
-            set({ lastExport: exportData });
-            return exportData;
-          },
-
-          exportAsJSON: () => {
-            const store = useUnifiedStore.getState();
-            if (!cachedExporter || cachedStore !== store) {
-              cachedExporter = new DiagramExporter(store);
-              cachedStore = store;
-            }
-            return cachedExporter.exportAsJSON();
-          },
-
-          importDiagram: (data) => {
-            const store = useUnifiedStore.getState();
-            if (!cachedExporter || cachedStore !== store) {
-              cachedExporter = new DiagramExporter(store);
-              cachedStore = store;
-            }
-            cachedExporter.importDiagram(data);
-          },
-
-          validateExportData: (data) => {
-            // Create a simple validation function without needing a store instance
-            const exporter = new DiagramExporter({} as UnifiedStore);
-            return exporter.validateExportData(data);
-          }
-        };
-      },
-      {
-        name: 'diagram-export-store-v3',
-        partialize: (state) => ({ lastExport: state.lastExport })
-      }
-    ),
-    {
-      name: 'diagram-export-store'
-    }
-  )
-);

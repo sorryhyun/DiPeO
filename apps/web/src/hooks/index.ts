@@ -17,6 +17,7 @@ export * from './useWebSocketEventBus';
 
 // File Operations
 export * from './useFileOperations';
+export * from './useExport';
 
 // Property Management
 export * from './usePropertyManager';

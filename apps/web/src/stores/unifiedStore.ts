@@ -10,6 +10,57 @@ export interface NodeState {
   timestamp: number;
 }
 
+// Export format types
+export interface ExportedNode {
+  label: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+  handles?: Array<{
+    name: string;
+    direction: 'input' | 'output';
+    dataType: string;
+    position?: string;
+    label?: string;
+    maxConnections?: number;
+  }>;
+}
+
+export interface ExportedArrow {
+  sourceLabel: string;
+  targetLabel: string;
+  sourceHandle: string;
+  targetHandle: string;
+  data?: Record<string, unknown>;
+}
+
+export interface ExportedPerson {
+  name: string;
+  model: string;
+  service: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  apiKeyLabel?: string;
+}
+
+export interface ExportedApiKey {
+  name: string;
+  service: string;
+}
+
+export interface ExportFormat {
+  version: string;
+  nodes: ExportedNode[];
+  arrows: ExportedArrow[];
+  persons: ExportedPerson[];
+  apiKeys: ExportedApiKey[];
+  metadata?: {
+    exported: string;
+    description?: string;
+  };
+}
+
 // History types
 export interface Snapshot {
   nodes: Map<NodeID, DomainNode>;
@@ -110,4 +161,10 @@ export interface UnifiedStore {
   // Utilities
   createSnapshot: () => Snapshot;
   restoreSnapshot: (snapshot: Snapshot) => void;
+  
+  // Export/Import operations
+  exportDiagram: () => ExportFormat;
+  exportAsJSON: () => string;
+  importDiagram: (data: ExportFormat | string) => void;
+  validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
 }

@@ -12,7 +12,8 @@ import {
     generatePersonId, type NodeID, type NodeKind, type PersonID, type Vec2
 } from "@/types";
 import {generateNodeHandlesFromRegistry} from "@/utils";
-import {UnifiedStore, Snapshot} from "@/stores/unifiedStore";
+import {UnifiedStore, Snapshot, ExportFormat} from "@/stores/unifiedStore";
+import {DiagramExporter} from "@/stores/diagramExporter";
 
 // Helper function to create a snapshot
 function createSnapshot(state: Partial<UnifiedStore>): Snapshot {
@@ -543,6 +544,27 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.handles = new Map(snapshot.handles);
             state.apiKeys = new Map(snapshot.apiKeys);
           }),
+
+        // Export/Import operations
+        exportDiagram: () => {
+          const exporter = new DiagramExporter(get());
+          return exporter.exportDiagram();
+        },
+
+        exportAsJSON: () => {
+          const exporter = new DiagramExporter(get());
+          return exporter.exportAsJSON();
+        },
+
+        importDiagram: (data: ExportFormat | string) => {
+          const exporter = new DiagramExporter(get());
+          exporter.importDiagram(data);
+        },
+
+        validateExportData: (data: unknown) => {
+          const exporter = new DiagramExporter(get());
+          return exporter.validateExportData(data);
+        },
       }))
     )
   )

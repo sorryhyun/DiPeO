@@ -1,4 +1,13 @@
-import { shallow } from 'zustand/shallow';
+/**
+ * useStoreSelectors - Legacy store selector functions
+ * 
+ * This file contains utility functions for working with the unified store.
+ * For new code, prefer using specific hooks like useExport for diagram operations.
+ * 
+ * The export/import functions here work with DomainDiagram format (Records),
+ * while the new export system (useExport hook) works with ExportFormat (arrays with labels).
+ */
+
 import { useUnifiedStore } from '@/stores/useUnifiedStore';
 import type { DomainNode, DomainArrow, DomainPerson, DomainHandle, DomainApiKey, DomainDiagram } from '@/types/domain';
 import type { NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@/types/branded';
@@ -33,12 +42,15 @@ export const useUIState = () => {
 
 
 // Diagram export/import operations
+// Note: These functions provide a simpler Record-based format for compatibility.
+// For full export/import with label resolution, use the useExport hook instead.
+
 export const exportDiagramState = (): DomainDiagram | null => {
   const state = useUnifiedStore.getState();
   
   if (state.nodes.size === 0) return null;
   
-  // Convert Maps to Records
+  // Convert Maps to Records - simple direct conversion
   const nodes: Record<NodeID, DomainNode> = {};
   const arrows: Record<ArrowID, DomainArrow> = {};
   const persons: Record<PersonID, DomainPerson> = {};

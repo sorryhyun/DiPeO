@@ -1,6 +1,6 @@
 import { PersonID } from '../branded';
 
-export type LLMService = 'openai' | 'claude' | 'gemini' | 'groq' | 'grok';
+export type LLMService = 'openai' | 'claude' | 'gemini'  | 'grok';
 
 export type ForgettingMode = 'no_forget' | 'on_every_turn' | 'upon_request';
 
