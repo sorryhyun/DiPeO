@@ -10,8 +10,11 @@ import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useExecution } from './useExecution';
 import { useFileOperations } from './useFileOperations';
-import { exportDiagramState, clearDiagram } from './useStoreSelectors';
-import type { DomainDiagram, ExecutionOptions } from '@/types';
+import { clearDiagram } from './useDiagramOperations';
+import { useExport } from './useExport';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
+import type { ExecutionOptions } from '@/types';
+import type { ExportFormat } from '@/stores';
 
 // =====================
 // TYPES
@@ -84,48 +87,46 @@ export interface UseDiagramManagerReturn {
 // HELPERS
 // =====================
 
-function validateDiagramStructure(diagram: DomainDiagram): { isValid: boolean; errors: string[] } {
+function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
   // Check for empty diagram
-  if (Object.keys(diagram.nodes).length === 0) {
+  if (exportFormat.nodes.length === 0) {
     errors.push('Diagram has no nodes');
     return { isValid: false, errors };
   }
   
   // Check for start node
-  const hasStartNode = Object.values(diagram.nodes).some(node => node.type === 'start');
+  const hasStartNode = exportFormat.nodes.some(node => node.type === 'start');
   if (!hasStartNode) {
     errors.push('Diagram must have at least one start node');
   }
   
   // Check for endpoint node
-  const hasEndpoint = Object.values(diagram.nodes).some(node => node.type === 'endpoint');
+  const hasEndpoint = exportFormat.nodes.some(node => node.type === 'endpoint');
   if (!hasEndpoint) {
     errors.push('Diagram should have at least one endpoint node');
   }
   
   // Check for unconnected nodes
   const connectedNodes = new Set<string>();
-  Object.values(diagram.arrows).forEach(arrow => {
-    const sourceNodeId = arrow.source.split(':')[0];
-    const targetNodeId = arrow.target.split(':')[0];
-    if (sourceNodeId) connectedNodes.add(sourceNodeId);
-    if (targetNodeId) connectedNodes.add(targetNodeId);
+  exportFormat.arrows.forEach(arrow => {
+    connectedNodes.add(arrow.sourceLabel);
+    connectedNodes.add(arrow.targetLabel);
   });
   
-  const unconnectedNodes = Object.entries(diagram.nodes).filter(
-    ([nodeId, node]) => !connectedNodes.has(nodeId) && node.type !== 'start'
-  ).map(([nodeId]) => nodeId);
+  const unconnectedNodes = exportFormat.nodes.filter(
+    node => !connectedNodes.has(node.label) && node.type !== 'start'
+  ).map(node => node.label);
   
   if (unconnectedNodes.length > 0) {
     errors.push(`${unconnectedNodes.length} node(s) are not connected`);
   }
   
   // Check for person nodes without assigned persons
-  Object.entries(diagram.nodes).forEach(([nodeId, node]) => {
+  exportFormat.nodes.forEach(node => {
     if ((node.type === 'person_job' || node.type === 'person_batch_job') && !node.data?.person) {
-      errors.push(`Node ${nodeId} requires a person to be assigned`);
+      errors.push(`Node ${node.label} requires a person to be assigned`);
     }
   });
   
@@ -151,6 +152,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const canvas = useCanvasOperations();
   const execution = useExecution();
   const fileOps = useFileOperations();
+  const exportHook = useExport();
   
   // Track dirty state locally since store doesn't have it
   
@@ -210,8 +212,9 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [confirmOnNew, isDirty]);
   
   const saveDiagram = useCallback(async (filename?: string) => {
-    const diagram = exportDiagramState();
-    if (!diagram) {
+    // Check if there's anything to save
+    const store = useUnifiedStore.getState();
+    if (store.nodes.size === 0) {
       toast.error('No diagram to save');
       return;
     }
@@ -268,7 +271,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
   }, [confirmOnLoad, isDirty, fileOps]);
   
-  const exportDiagram = useCallback(async (format: 'json' | 'yaml' | 'llm-yaml') => {
+  const exportDiagramAs = useCallback(async (format: 'json' | 'yaml' | 'llm-yaml') => {
     try {
       // Use appropriate export method based on format
       switch (format) {
@@ -289,7 +292,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
   }, [fileOps]);
   
-  const importDiagram = useCallback(async () => {
+  const importDiagramFile = useCallback(async () => {
     try {
       await fileOps.importWithDialog();
       setMetadata({
@@ -304,8 +307,9 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [fileOps]);
   
   const executeDiagram = useCallback(async (options?: ExecutionOptions) => {
-    const diagram = exportDiagramState();
-    if (!diagram) {
+    // Get diagram in new export format
+    const diagram = exportHook.exportDiagram();
+    if (!diagram || diagram.nodes.length === 0) {
       toast.error('No diagram to execute');
       return;
     }
@@ -318,25 +322,37 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
     
     try {
-      await execution.execute(diagram, options);
+      // Get store state and convert to DomainDiagram format
+      const store = useUnifiedStore.getState();
+      const domainDiagram = {
+        nodes: Object.fromEntries(store.nodes),
+        arrows: Object.fromEntries(store.arrows),
+        persons: Object.fromEntries(store.persons),
+        handles: Object.fromEntries(store.handles),
+        apiKeys: Object.fromEntries(store.apiKeys)
+      };
+      
+      // Execute with DomainDiagram format - the execute function will convert to backend format
+      await execution.execute(domainDiagram, options);
     } catch (error) {
       console.error('Failed to execute diagram:', error);
       toast.error('Failed to execute diagram');
     }
-  }, [execution]);
+  }, [execution, exportHook]);
   
   const stopExecution = useCallback(() => {
     execution.abort();
   }, [execution]);
   
   const validateDiagram = useCallback(() => {
-    const diagram = exportDiagramState();
-    if (!diagram) {
+    // Use new export format for validation
+    const diagram = exportHook.exportDiagram();
+    if (!diagram || diagram.nodes.length === 0) {
       return { isValid: false, errors: ['No diagram to validate'] };
     }
     
     return validateDiagramStructure(diagram);
-  }, []);
+  }, [exportHook]);
   
   const updateMetadata = useCallback((updates: Partial<DiagramMetadata>) => {
     setMetadata(prev => ({ ...prev, ...updates, modifiedAt: new Date() }));
@@ -344,8 +360,10 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, []);
   
   const getDiagramStats = useCallback(() => {
-    const diagram = exportDiagramState();
-    if (!diagram) {
+    // Work directly with store Maps for better performance
+    const store = useUnifiedStore.getState();
+    
+    if (store.nodes.size === 0) {
       return {
         totalNodes: 0,
         nodesByType: {},
@@ -356,27 +374,30 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     
     // Count nodes by type
     const nodesByType: Record<string, number> = {};
-    Object.values(diagram.nodes).forEach(node => {
+    store.nodes.forEach(node => {
       nodesByType[node.type] = (nodesByType[node.type] || 0) + 1;
     });
     
     // Find unconnected nodes
     const connectedNodes = new Set<string>();
-    Object.values(diagram.arrows).forEach(arrow => {
+    store.arrows.forEach(arrow => {
       const sourceNodeId = arrow.source.split(':')[0];
       const targetNodeId = arrow.target.split(':')[0];
       if (sourceNodeId) connectedNodes.add(sourceNodeId);
       if (targetNodeId) connectedNodes.add(targetNodeId);
     });
     
-    const unconnectedNodes = Object.keys(diagram.nodes).filter(
-      nodeId => !connectedNodes.has(nodeId)
-    ).length;
+    let unconnectedNodes = 0;
+    store.nodes.forEach((_node, nodeId) => {
+      if (!connectedNodes.has(nodeId)) {
+        unconnectedNodes++;
+      }
+    });
     
     return {
-      totalNodes: Object.keys(diagram.nodes).length,
+      totalNodes: store.nodes.size,
       nodesByType,
-      totalConnections: Object.keys(diagram.arrows).length,
+      totalConnections: store.arrows.size,
       unconnectedNodes
     };
   }, []);
@@ -401,8 +422,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     saveDiagram,
     loadDiagramFromFile,
     loadDiagramFromUrl,
-    exportDiagram,
-    importDiagram,
+    exportDiagram: exportDiagramAs,
+    importDiagram: importDiagramFile,
     
     // Execution
     executeDiagram,

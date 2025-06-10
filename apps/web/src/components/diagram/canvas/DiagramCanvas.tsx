@@ -24,7 +24,7 @@ import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
-import { useUnifiedStore } from "@/stores/useUnifiedStore";
+import { useUnifiedStore } from "@/hooks/useUnifiedStore";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";

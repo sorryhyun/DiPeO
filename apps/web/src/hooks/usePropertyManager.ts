@@ -3,7 +3,7 @@ import { isDraft, current } from 'immer';
 import { useQueries } from '@tanstack/react-query';
 import { useCanvasOperations } from './useCanvasOperations';
 import { nodeId, arrowId, personId, type DomainApiKey, type PanelConfig, type PanelFieldConfig } from '@/types';
-import { useUnifiedStore } from "@/stores/useUnifiedStore";
+import { useUnifiedStore } from "@/hooks/useUnifiedStore";
 
 /**
  * Returns a stable callback that always calls the latest version of the provided function.

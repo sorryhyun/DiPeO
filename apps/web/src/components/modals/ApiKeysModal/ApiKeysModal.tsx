@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/components/ui';
 import { DomainApiKey, apiKeyId, createErrorHandlerFactory, ApiKeyID } from '@/types';
-import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
-import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useCanvasOperations } from '@/hooks';
 import { arrowId } from '@/types';
 

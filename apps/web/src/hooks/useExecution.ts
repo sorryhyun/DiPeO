@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { shallow } from 'zustand/shallow';
 import { useWebSocketEventBus } from './useWebSocketEventBus';
 import { useCanvasOperations } from './useCanvasOperations';
-import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
 import { NodeKind } from '@/types/primitives/enums';
 
@@ -500,9 +500,23 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     try {
       await waitForConnection();
+      
+      // Convert DomainDiagram to backend format if provided
+      let backendDiagram = diagram;
+      if (diagram) {
+        // Backend expects nodes and arrows as arrays, but persons as object
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        backendDiagram = {
+          nodes: Object.values(diagram.nodes || {}),
+          arrows: Object.values(diagram.arrows || {}),
+          persons: diagram.persons || {},  // Keep as object
+          api_keys: diagram.apiKeys || {}   // Backend expects snake_case
+        } as any;
+      }
+      
       send({
         type: 'execute_diagram',
-        diagram,
+        diagram: backendDiagram,
         options
       });
     } catch (error) {

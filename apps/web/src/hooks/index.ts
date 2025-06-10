@@ -1,6 +1,12 @@
 
-// Domain-specific store selectors replace useStoreSelectors
+// UI state selectors
 export * from './useStoreSelectors';
+
+// Unified store
+export * from './useUnifiedStore';
+
+// Diagram operations
+export * from './useDiagramOperations';
 
 // High-level hooks that combine multiple concerns
 export * from './useDiagram';

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useCanvasOperations, useExecution } from '@/hooks';
-import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import {NodeKind, NodeID, nodeId, handleId} from '@/types';
 import './BaseNode.css';
 

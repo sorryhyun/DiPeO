@@ -2,8 +2,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useExecution } from './hooks';
-import { useUnifiedStore } from './stores/useUnifiedStore';
+import { useExecution, useUnifiedStore } from './hooks';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));

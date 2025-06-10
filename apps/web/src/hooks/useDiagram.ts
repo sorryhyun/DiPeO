@@ -1,11 +1,8 @@
 import { useCallback } from 'react';
 import { useCanvasOperations } from './useCanvasOperations';
-import { 
-  useUIState,
-  exportDiagramState,
-  loadDiagram as loadDiagramAction,
-  clearDiagram
-} from './useStoreSelectors';
+import { useUIState } from './useStoreSelectors';
+import { clearDiagram } from './useDiagramOperations';
+import { useExport } from './useExport';
 import { useDiagramManager } from './useDiagramManager';
 import { useExecution } from './useExecution';
 import { usePropertyManager } from './usePropertyManager';
@@ -128,11 +125,14 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     return usePropertyManager(entityId, entityType, initialData, options);
   }, []);
 
-  // Get diagram state - direct export, no wrapper needed
-  const getDiagramState = exportDiagramState;
+  // Get the export hook for diagram operations
+  const exportHook = useExport();
+  
+  // Get diagram state - uses new export format
+  const getDiagramState = exportHook.exportDiagram;
 
-  // Load diagram state - direct action, no wrapper needed
-  const loadDiagramState = loadDiagramAction;
+  // Load diagram state - uses new import format
+  const loadDiagramState = exportHook.importDiagram;
 
   // =====================
   // ELEMENT OPERATIONS
@@ -294,7 +294,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     // Diagram operations
     getDiagramState,
     loadDiagramState,
-    clear: clearDiagram,
+    clear: clearDiagram, // Note: clearDiagram is still valid to use
     
     // Node operations
     addNode,

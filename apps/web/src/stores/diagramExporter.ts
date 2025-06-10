@@ -6,7 +6,7 @@ import {
   LLMService,  ForgettingMode
 } from '@/types';
 import { getNodeConfig } from '@/config/helpers';
-import type { UnifiedStore, ExportFormat, ExportedNode, ExportedArrow, ExportedPerson, ExportedApiKey } from './unifiedStore';
+import type { UnifiedStore, ExportFormat, ExportedNode, ExportedArrow, ExportedPerson, ExportedApiKey } from './unifiedStore.types';
 
 // Optimized export class
 export class DiagramExporter {

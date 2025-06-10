@@ -8,7 +8,7 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useReactFlow, type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
-import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { nodeToReact } from '@/types/framework/adapters';
 import { type NodeID, type ArrowID, type HandleID, type PersonID, nodeId, personId } from '@/types/branded';
 import type { NodeKind } from '@/types/primitives/enums';

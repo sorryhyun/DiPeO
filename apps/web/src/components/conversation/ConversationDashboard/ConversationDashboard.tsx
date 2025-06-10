@@ -7,7 +7,7 @@ import { Button, Input, Select } from '@/components/ui';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks';
-import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
 import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
