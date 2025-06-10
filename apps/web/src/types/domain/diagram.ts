@@ -1,7 +1,7 @@
 import { NodeID, HandleID, ArrowID, PersonID, ApiKeyID } from '../branded';
 import { DomainNode } from './node';
 import { DomainArrow } from './arrow';
-import { DomainHandle } from './handle';
+import { DomainHandle, parseHandleId } from './handle';
 import { DomainPerson } from './person';
 import { DomainApiKey } from './api-key';
 
@@ -109,14 +109,15 @@ export function getNodeConnections(
   const incoming: DomainArrow[] = [];
   const outgoing: DomainArrow[] = [];
 
+  // We still need to check direction separately, so can't use connectsToNode here
   for (const arrow of Object.values(diagram.arrows)) {
-    const [sourceNodeId] = arrow.source.split(':');
-    const [targetNodeId] = arrow.target.split(':');
+    const source = parseHandleId(arrow.source);
+    const target = parseHandleId(arrow.target);
 
-    if (targetNodeId === nodeId) {
+    if (target.nodeId === nodeId) {
       incoming.push(arrow);
     }
-    if (sourceNodeId === nodeId) {
+    if (source.nodeId === nodeId) {
       outgoing.push(arrow);
     }
   }

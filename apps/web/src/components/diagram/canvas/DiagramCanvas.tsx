@@ -110,6 +110,16 @@ function useCommonFlowProps({
       },
       onDragOver: onDragOver ?? undefined,
       onDrop,
+      // Ensure nodes are draggable and selectable
+      nodesDraggable: true,
+      nodesConnectable: true,
+      nodesFocusable: true,
+      elementsSelectable: true,
+      panOnDrag: true,
+      panOnScroll: false,
+      zoomOnScroll: true,
+      zoomOnPinch: true,
+      zoomOnDoubleClick: true,
     } as const;
 
     return {

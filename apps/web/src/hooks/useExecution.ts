@@ -150,9 +150,12 @@ function formatTimeInternal(startTime: Date | null, endTime: Date | null, format
 
 // ========== Main Hook ==========
 
+// Track if WebSocket connection has been initialized globally
+let globalConnectionInitialized = false;
+
 export function useExecution(options: UseExecutionOptions = {}): UseExecutionReturn {
   const { 
-    autoConnect = true, 
+    autoConnect = false, // Changed default to false 
     debug = false,
     showToasts = true,
     formatDuration = true,
@@ -212,7 +215,12 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   const executionIdRef = useRef<string | null>(null);
   const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // WebSocket
+  // WebSocket - only auto-connect if not already initialized
+  const shouldAutoConnect = autoConnect && !globalConnectionInitialized;
+  if (shouldAutoConnect) {
+    globalConnectionInitialized = true;
+  }
+  
   const { 
     isConnected, 
     isReconnecting, 
@@ -221,7 +229,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     connect, 
     disconnect,
     waitForConnection 
-  } = useWebSocketEventBus({ autoConnect, debug });
+  } = useWebSocketEventBus({ autoConnect: shouldAutoConnect, debug });
 
   // ========== Execution Actions ==========
 

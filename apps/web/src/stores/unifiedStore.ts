@@ -9,7 +9,8 @@ import {
     type DomainPerson, entityIdGenerators,
     generateArrowId,
     generateNodeId,
-    generatePersonId, type NodeID, type NodeKind, type PersonID, type Vec2
+    generatePersonId, type NodeID, type NodeKind, type PersonID, type Vec2,
+    connectsToNode
 } from "@/types";
 import {generateNodeHandlesFromRegistry} from "@/utils";
 import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
@@ -33,7 +34,10 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
   const baseNode: DomainNode = {
     id,
     type,
-    position,
+    position: {
+      x: position?.x ?? 0,
+      y: position?.y ?? 0
+    },
     data: {
       label: initialData?.label || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} ${id.split('-').pop()}`,
       ...(initialData || {})
@@ -218,9 +222,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
 
             // Delete connected arrows
             Array.from(state.arrows.values()).forEach((arrow) => {
-              const [sourceNodeId] = arrow.source.split(':');
-              const [targetNodeId] = arrow.target.split(':');
-              if (sourceNodeId === id || targetNodeId === id) {
+              if (connectsToNode(arrow, id)) {
                 state.arrows.delete(arrow.id);
               }
             });

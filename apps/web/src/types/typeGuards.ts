@@ -11,7 +11,7 @@ export function isApiKey(obj: unknown): obj is DomainApiKey {
     typeof apiKey.id === 'string' &&
     typeof apiKey.name === 'string' &&
     typeof apiKey.service === 'string' &&
-    ['openai', 'claude', 'google', 'grok'].includes(apiKey.service as string)
+    ['openai', 'claude', 'gemini', 'grok'].includes(apiKey.service as string)
   );
 }
 

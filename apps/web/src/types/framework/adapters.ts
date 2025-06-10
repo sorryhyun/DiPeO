@@ -36,7 +36,13 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
       properties: node.data,
       inputs,
       outputs
-    }
+    },
+    // Add default React Flow properties required for proper node initialization
+    draggable: true,
+    selectable: true,
+    connectable: true,
+    focusable: true,
+    deletable: true
   };
 }
 

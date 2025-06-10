@@ -14,6 +14,7 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 function AppContent() {
   const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
   const setReadOnly = useUnifiedStore((state) => state.setReadOnly);
+  // Create the main WebSocket connection only once at the app level
   const execution = useExecution({ autoConnect: true });
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
@@ -43,8 +44,7 @@ function AppContent() {
     };
   }, [setReadOnly]);
 
-  // Use realtime execution monitor - it will automatically use WebSocket when available
-  useExecution({ enableMonitoring: true });
+  // Don't create another connection - use the existing execution instance
   
   // Show WebSocket status when enabled via feature flag
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useExecution } from '@/hooks';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
-  const execution = useExecution({ autoConnect: true });
+  const execution = useExecution();
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 

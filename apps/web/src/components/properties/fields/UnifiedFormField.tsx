@@ -90,6 +90,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   
   select: (p) => (
     <Select
+      id={p.fieldId}
       value={String(p.value || '')}
       onValueChange={p.onChange}
       disabled={p.disabled}
@@ -107,6 +108,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   
   'person-select': (p) => (
     <Select
+      id={p.fieldId}
       value={String(p.value || '')}
       onValueChange={p.onChange}
       disabled={p.disabled}

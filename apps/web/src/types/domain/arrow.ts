@@ -21,6 +21,14 @@ export type ArrowData = {
   style?: React.CSSProperties;
 };
 
+export function connectsHandles(
+  arrow: DomainArrow,
+  sourceHandle: HandleID,
+  targetHandle: HandleID
+): boolean {
+  return arrow.source === sourceHandle && arrow.target === targetHandle;
+}
+
 export function connectsNodes(
   arrow: DomainArrow,
   sourceNodeId: string,
@@ -29,4 +37,13 @@ export function connectsNodes(
   const source = parseHandleId(arrow.source);
   const target = parseHandleId(arrow.target);
   return source.nodeId === sourceNodeId && target.nodeId === targetNodeId;
+}
+
+export function connectsToNode(
+  arrow: DomainArrow,
+  nodeId: string
+): boolean {
+  const source = parseHandleId(arrow.source);
+  const target = parseHandleId(arrow.target);
+  return source.nodeId === nodeId || target.nodeId === nodeId;
 }

@@ -7,13 +7,22 @@
 
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { shallow } from 'zustand/shallow';
-import { useReactFlow, type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
+import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { nodeToReact } from '@/types/framework/adapters';
-import { type NodeID, type ArrowID, type HandleID, type PersonID, nodeId, personId } from '@/types/branded';
-import type { NodeKind } from '@/types/primitives/enums';
-import type { Vec2 } from '@/types/primitives/geometry';
-import type { LLMService, DomainNode } from '@/types';
+import { 
+  nodeToReact,
+  type NodeID, 
+  type ArrowID, 
+  type HandleID, 
+  type PersonID, 
+  nodeId, 
+  personId, 
+  handleId,
+  type NodeKind,
+  type Vec2,
+  type LLMService, 
+  type DomainNode 
+} from '@/types';
 
 // =====================
 // TYPES
@@ -141,9 +150,6 @@ export interface UseCanvasOperationsReturn {
 export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): UseCanvasOperationsReturn {
   const { shortcuts = {}, enableInteractions = true } = options;
   
-  // Get React Flow instance
-  const { getViewport } = useReactFlow();
-  
   // Store state
   const storeState = useUnifiedStore(
     state => {
@@ -201,10 +207,38 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
           if (state.readOnly) return;
           
           changes.forEach((change) => {
-            if (change.type === 'position' && change.position && change.dragging !== false) {
-              state.updateNode(change.id as NodeID, { position: change.position });
-            } else if (change.type === 'remove') {
-              state.deleteNode(change.id as NodeID);
+            switch (change.type) {
+              case 'position':
+                if (change.position) {
+                  // Update position for any position change
+                  state.updateNode(change.id as NodeID, { position: change.position });
+                }
+                break;
+              case 'dimensions':
+                // Dimensions are handled by React Flow internally
+                // We don't need to store them in our domain model
+                break;
+              case 'replace':
+                // Handle node replacement if needed
+                // This is typically used when React Flow updates internal state
+                break;
+              case 'remove':
+                state.deleteNode(change.id as NodeID);
+                break;
+              case 'select':
+                // Handle selection changes if needed
+                if (change.selected) {
+                  state.select(change.id, 'node');
+                }
+                break;
+              case 'add':
+                // React Flow is initializing the node - no action needed as node already exists in store
+                break;
+              default: {
+                // Type-safe exhaustive check
+                const _exhaustiveCheck: never = change;
+                break;
+              }
             }
           });
         },
@@ -224,10 +258,17 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
           
           if (connection.source && connection.target && 
               connection.sourceHandle && connection.targetHandle) {
-            state.addArrow(
-              connection.sourceHandle as HandleID,
-              connection.targetHandle as HandleID
+            // Create proper handle IDs from node IDs and handle names
+            const sourceHandleId = handleId(
+              nodeId(connection.source),
+              connection.sourceHandle
             );
+            const targetHandleId = handleId(
+              nodeId(connection.target),
+              connection.targetHandle
+            );
+            
+            state.addArrow(sourceHandleId, targetHandleId);
           }
         },
         
@@ -335,12 +376,11 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
     
-    // Calculate offset from element center and scale by current zoom
+    // Calculate offset from element center
     const rect = (event.target as HTMLElement).getBoundingClientRect();
-    const { zoom } = getViewport();
     dragOffset.current = {
-      x: (event.clientX - (rect.left + rect.width / 2)) / zoom,
-      y: (event.clientY - (rect.top + rect.height / 2)) / zoom
+      x: event.clientX - (rect.left + rect.width / 2),
+      y: event.clientY - (rect.top + rect.height / 2)
     };
     
     setDragState({
@@ -348,7 +388,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       dragType: 'node',
       dragData: nodeType
     });
-  }, [enableInteractions, storeState.isMonitorMode, getViewport]);
+  }, [enableInteractions, storeState.isMonitorMode]);
   
   // Handle drag start for persons from sidebar
   const onPersonDragStart = useCallback((event: DragEvent, personId: string) => {
@@ -381,11 +421,10 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     const type = event.dataTransfer.getData('application/reactflow');
     if (!type) return;
     
-    // Get the drop position adjusted by the drag offset (scaled by current zoom)
-    const { zoom } = getViewport();
+    // Get the drop position adjusted by the drag offset
     const dropPosition = projectPosition(
-      event.clientX - dragOffset.current.x * zoom, 
-      event.clientY - dragOffset.current.y * zoom
+      event.clientX - dragOffset.current.x, 
+      event.clientY - dragOffset.current.y
     );
     
     // Add the node at the drop position
@@ -395,7 +434,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       isDragging: false,
       dragType: null,
     });
-  }, [enableInteractions, storeState, getViewport]);
+  }, [enableInteractions, storeState]);
   
   // Handle person drop on nodes (for PersonJob nodes)
   const onPersonDrop = useCallback((

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
-import { useUIState, useDiagram } from '@/hooks';
+import { useUIState } from '@/hooks/useStoreSelectors';
+import { useDiagramManager } from '@/hooks/useDiagramManager';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
@@ -13,40 +14,61 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use unified store
-  const store = useUnifiedStore();
-  const apiKeys = Array.from(store.apiKeys.values());
-  const setReadOnly = store.setReadOnly;
+  // Use unified store with specific selectors to avoid unnecessary re-renders
+  const apiKeysLength = useUnifiedStore(state => state.apiKeys.size);
+  const setReadOnly = useUnifiedStore(state => state.setReadOnly);
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
-  // Use the unified diagram hook
-  const diagram = useDiagram({
-    enableFileOperations: true,
-    enableInteractions: false,
-    enableMonitoring: true
+  // Use only the diagram manager for file operations - much lighter weight
+  const diagramManager = useDiagramManager({
+    confirmOnNew: true,
+    confirmOnLoad: false
   });
   
-  // Extract what we need from diagram
+  // Extract what we need
   const {
-    clear: clearDiagram,
-    isMonitorMode: isReadOnly,
-    saveJSON: onSaveToDirectory,
-  } = diagram;
+    newDiagram: clearDiagram,
+    saveDiagram: onSaveToDirectory,
+    loadDiagramFromFile: importFile
+  } = diagramManager;
   
   // Create onChange handler for FileUploadButton
   const onImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && diagram.importFile) {
-      diagram.importFile(file);
+    if (file && importFile) {
+      void importFile(file);
     }
   };
   
   // Load API keys on mount
   useEffect(() => {
-    // TODO: Implement API key loading from backend
-    // For now, API keys are managed directly through the store
+    const loadApiKeys = async () => {
+      try {
+        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
+        if (response.ok) {
+          const data = await response.json();
+          const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
+          
+          // Add each API key to the store
+          const { addApiKey } = useUnifiedStore.getState();
+          backendKeys.forEach(key => {
+            addApiKey(key.name, key.service);
+          });
+          
+          if (backendKeys.length > 0) {
+            toast.success(`Loaded ${backendKeys.length} API keys from backend`);
+          }
+        }
+      } catch (error) {
+        console.error('[Load API Keys]', error);
+        toast.error(`Failed to load API keys: ${(error as Error).message}`);
+      }
+    };
+
+    loadApiKeys().catch(console.error);
   }, []);
   
+  // Handle monitor mode separately
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isMonitor = params.get('monitor') === 'true';
@@ -56,33 +78,55 @@ const TopBar = () => {
     if (isMonitor) {
       setReadOnly?.(true);
     }
-    const checkBackendApiKeys = async () => {
-      try {
-        const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
-        if (res.ok) {
-          const data = await res.json();
-          const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
-          
-          if (backendKeys.length > 0 && apiKeys.length === 0) {
-            // TODO: Implement adding API keys to unified store
-            // For now, API keys need to be added through the API keys modal
-            console.log('Found backend API keys:', backendKeys);
-          }
-          
-          // API keys modal is now in the sidebar
-        }
-      } catch (error) {
-        console.error('[Check Backend API Keys]', error);
-        toast.error(`Check Backend API Keys: ${(error as Error).message}`);
-      } finally {
-        setHasCheckedBackend(true);
-      }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
-    if (!hasCheckedBackend) {
-      checkBackendApiKeys().catch(console.error);
-    }
-  }, [hasCheckedBackend, apiKeys.length, setReadOnly, setActiveCanvas]);
+  // Check backend API keys after initial render to avoid blocking
+  useEffect(() => {
+    if (hasCheckedBackend) return;
+
+    let cancelled = false;
+    
+    // Defer the API check to avoid blocking the initial render
+    const timeoutId = setTimeout(() => {
+      const checkBackendApiKeys = async () => {
+        try {
+          const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
+          if (!cancelled && res.ok) {
+            const data = await res.json();
+            const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
+            
+            if (backendKeys.length > 0 && apiKeysLength === 0) {
+              // API keys are already loaded in the mount effect above
+              // This check is kept for compatibility but keys are not re-added
+            }
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error('[Check Backend API Keys]', error);
+            toast.error(`Check Backend API Keys: ${(error as Error).message}`);
+          }
+        } finally {
+          if (!cancelled) {
+            setHasCheckedBackend(true);
+          }
+        }
+      };
+
+      checkBackendApiKeys().catch(error => {
+        if (!cancelled) {
+          console.error('[Check Backend API Keys - Unhandled]', error);
+        }
+      });
+    }, 100); // Small delay to let the UI render first
+
+    // Cleanup function
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Keyboard shortcuts could be added here if needed
 
@@ -157,7 +201,7 @@ const TopBar = () => {
             {activeCanvas === 'execution' ? 'Exit Execution Mode' : 'Execution Mode'}
           </Button>
           
-          {(isMonitorMode || isReadOnly) ? (
+          {isMonitorMode ? (
             <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
