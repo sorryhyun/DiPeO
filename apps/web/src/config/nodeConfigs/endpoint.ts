@@ -13,20 +13,8 @@ export const endpointConfig = createUnifiedConfig<EndpointFormData>({
   handles: {
     input: [{ id: 'default', position: 'left' }]
   },
-  fields: [
-    { 
-      name: 'action', 
-      type: 'select', 
-      label: 'Action', 
-      required: true,
-      options: [
-        { value: 'save', label: 'Save to File' },
-        { value: 'output', label: 'Output Result' }
-      ]
-    },
-    { name: 'filename', type: 'string', label: 'Filename', required: false, placeholder: 'output.txt' }
-  ],
-  defaults: { action: 'output', filename: '', label: '', saveToFile: false, filePath: '', fileFormat: 'text' },
+  fields: [], // Fields are defined in panelCustomFields to match backend expectations
+  defaults: { label: '', saveToFile: false, filePath: '', fileFormat: 'text' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',

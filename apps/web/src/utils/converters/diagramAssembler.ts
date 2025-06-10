@@ -132,7 +132,7 @@ export class DiagramAssembler {
       }
       
       return {
-        id: `diagram-${generateShortId().slice(0, 4)}`,
+        id: `diagram-${generateShortId()}`,
         name: 'Imported Diagram',
         nodes,
         arrows,
@@ -330,7 +330,7 @@ export class DiagramAssembler {
       
       if (!sourceId || !targetId) return;
       
-      const id = arrowId(`arrow-${generateShortId().slice(0, 4)}`);
+      const id = arrowId(`arrow-${generateShortId()}`);
       
       // Determine handle names based on edge properties
       const sourceHandleName = edge.condition ? 

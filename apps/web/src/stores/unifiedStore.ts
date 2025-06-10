@@ -15,6 +15,7 @@ import {
 import {generateNodeHandlesFromRegistry} from "@/utils";
 import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
 import {DiagramExporter} from "./diagramExporter";
+import {getNodeDefaults} from "@/config";
 
 // Helper function to create a snapshot
 function createSnapshot(state: Partial<UnifiedStore>): Snapshot {
@@ -31,6 +32,10 @@ function createSnapshot(state: Partial<UnifiedStore>): Snapshot {
 // Helper function to create a node
 function createNode(type: NodeKind, position: Vec2, initialData?: Record<string, unknown>): DomainNode {
   const id = generateNodeId();
+  
+  // Get defaults from the node configuration
+  const configDefaults = getNodeDefaults(type);
+  
   const baseNode: DomainNode = {
     id,
     type,
@@ -39,80 +44,14 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
       y: position?.y ?? 0
     },
     data: {
-      label: initialData?.label || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} ${id.split('-').pop()}`,
-      ...(initialData || {})
+      ...configDefaults,
+      ...initialData,
+      // Ensure label is always set
+      label: initialData?.label || configDefaults.label || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} ${id.split('-').pop()}`,
     },
   };
 
-  // Type-specific initialization
-  switch (type) {
-    case 'start':
-      return { ...baseNode, data: { ...baseNode.data, data: initialData?.data || '' } };
-    case 'condition':
-      return { ...baseNode, data: { ...baseNode.data, condition: initialData?.condition || '' } };
-    case 'job':
-      return { ...baseNode, data: { ...baseNode.data, code: initialData?.code || '', language: 'python' } };
-    case 'person_job':
-      return {
-        ...baseNode,
-        data: {
-          ...baseNode.data,
-          personId: initialData?.personId || null,
-          firstOnlyPrompt: initialData?.firstOnlyPrompt || '',
-          defaultPrompt: initialData?.defaultPrompt || '',
-          maxIterations: initialData?.maxIterations || 1,
-        },
-      };
-    case 'db':
-      return {
-        ...baseNode,
-        data: {
-          ...baseNode.data,
-          operation: initialData?.operation || 'create',
-          key: initialData?.key || '',
-          value: initialData?.value || '',
-        },
-      };
-    case 'user_response':
-      return {
-        ...baseNode,
-        data: {
-          ...baseNode.data,
-          prompt: initialData?.prompt || '',
-          timeout: initialData?.timeout || 30,
-        },
-      };
-    case 'notion':
-      return {
-        ...baseNode,
-        data: {
-          ...baseNode.data,
-          operation: initialData?.operation || 'read',
-          pageId: initialData?.pageId || '',
-        },
-      };
-    case 'endpoint':
-      return {
-        ...baseNode,
-        data: {
-          ...baseNode.data,
-          operation: initialData?.operation || 'return',
-          data: initialData?.data || '',
-        },
-      };
-    case 'person_batch_job':
-      return {
-        ...baseNode,
-        data: {
-          ...baseNode.data,
-          personId: initialData?.personId || null,
-          batchSize: initialData?.batchSize || 5,
-          prompt: initialData?.prompt || '',
-        },
-      };
-    default:
-      return baseNode;
-  }
+  return baseNode;
 }
 
 export const useUnifiedStore = create<UnifiedStore>()(
@@ -296,13 +235,13 @@ export const useUnifiedStore = create<UnifiedStore>()(
           }),
 
         // Person operations
-        addPerson: (name, service, model) => {
+        addPerson: (label, service, model) => {
           const personId = generatePersonId();
 
           set((state) => {
             const person: DomainPerson = {
               id: personId,
-              name,
+              label,
               service,
               model,
               maxTokens: undefined,

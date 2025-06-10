@@ -253,7 +253,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * Context‑menu helpers
    * --------------------------------------------------*/
   const handleAddPerson = () => addPerson({ 
-    name: "New Person",
+    label: "New Person",
     model: "gpt-4.1-nano",
     service: "openai"
   });

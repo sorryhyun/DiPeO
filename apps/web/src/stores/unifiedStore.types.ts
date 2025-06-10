@@ -35,7 +35,7 @@ export interface ExportedArrow {
 }
 
 export interface ExportedPerson {
-  name: string;
+  label: string;
   model: string;
   service: string;
   systemPrompt?: string;
@@ -124,7 +124,7 @@ export interface UnifiedStore {
   deleteArrow: (id: ArrowID) => void;
   
   // Person operations
-  addPerson: (name: string, service: LLMService, model: string) => PersonID;
+  addPerson: (label: string, service: LLMService, model: string) => PersonID;
   updatePerson: (id: PersonID, updates: Partial<DomainPerson>) => void;
   deletePerson: (id: PersonID) => void;
   

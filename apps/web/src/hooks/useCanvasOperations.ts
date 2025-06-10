@@ -90,7 +90,7 @@ export interface UseCanvasOperationsReturn {
   deleteArrow: (id: ArrowID) => void;
   
   // === Person Operations ===
-  addPerson: (person: { name: string; service: string; model: string }) => PersonID;
+  addPerson: (person: { label: string; service: string; model: string }) => PersonID;
   updatePerson: (id: PersonID, updates: any) => void;
   deletePerson: (id: PersonID) => void;
   getPersonById: (id: PersonID) => any;
@@ -216,8 +216,8 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
       storeState.addNode(type as NodeKind, position, data),
     
-    addPerson: (person: { name: string; service: string; model: string }) => 
-      storeState.addPerson(person.name, person.service as LLMService, person.model),
+    addPerson: (person: { label: string; service: string; model: string }) =>
+      storeState.addPerson(person.label, person.service as LLMService, person.model),
     
     getPersonById: (id: PersonID) => storeState.persons.get(id),
     

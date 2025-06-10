@@ -184,7 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                     <div className="flex items-center gap-2">
                       <span className="text-base">🤖</span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-xs truncate">{person.name}</p>
+                        <p className="font-medium text-xs truncate">{person.label}</p>
                       </div>
                     </div>
                   </div>
@@ -196,7 +196,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
               className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               size="sm"
               onClick={() => addPerson({
-                name: `Person ${persons.length + 1}`,
+                label: `Person ${persons.length + 1}`,
                 model: 'gpt-4.1-nano',
                 service: 'openai',
               })}

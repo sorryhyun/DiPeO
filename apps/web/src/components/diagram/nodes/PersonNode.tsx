@@ -56,8 +56,8 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id }) => {
       />
       <div className="flex items-center space-x-2 mb-1">
         <User className="h-5 w-5 text-green-600 flex-shrink-0" />
-        <strong className="text-sm truncate" title={(data as unknown as DomainPerson).name || 'Person'}>
-          {(data as unknown as DomainPerson).name || 'Person'}
+        <strong className="text-sm truncate" title={(data as unknown as DomainPerson).label || 'Person'}>
+          {(data as unknown as DomainPerson).label || 'Person'}
         </strong>
       </div>
       <p className="text-xs text-gray-500 truncate">Model: {(data as unknown as DomainPerson).model || 'Not set'}</p>

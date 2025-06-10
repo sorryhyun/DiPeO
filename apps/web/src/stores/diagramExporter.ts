@@ -53,7 +53,7 @@ export class DiagramExporter {
     // Build person label mappings
     const persons = Array.from(this.store.persons.values());
     persons.forEach(person => {
-      const label = person.name || person.id;
+      const label = person.label || person.id;
       const uniqueLabel = this.ensureUniqueLabel(label, this.usedPersonLabels);
       this.personIdToLabel.set(person.id, uniqueLabel);
     });
@@ -251,8 +251,11 @@ export class DiagramExporter {
 
   private exportPersons(persons: DomainPerson[]): ExportedPerson[] {
     return persons.map(person => {
+      // Get the unique label for this person
+      const label = this.personIdToLabel.get(person.id) || person.label;
+      
       const result: ExportedPerson = {
-        name: person.name,
+        label,
         model: person.model,
         service: person.service,
         systemPrompt: person.systemPrompt,
@@ -297,7 +300,7 @@ export class DiagramExporter {
   private importPersons(persons: ExportedPerson[]): void {
     persons.forEach(personData => {
       const id = personId(`person-${generateShortId().slice(0, 4)}`);
-      const label = this.ensureUniqueLabel(personData.name, this.usedPersonLabels);
+      const label = this.ensureUniqueLabel(personData.label, this.usedPersonLabels);
       this.personLabelToId.set(label, id);
 
       // Resolve API key reference
@@ -305,7 +308,7 @@ export class DiagramExporter {
 
       this.store.persons.set(id, {
         id,
-        name: label,
+        label,
         model: personData.model,
         service: personData.service as LLMService,
         systemPrompt: personData.systemPrompt,

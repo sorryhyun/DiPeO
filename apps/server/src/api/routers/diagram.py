@@ -9,8 +9,7 @@ from datetime import datetime
 
 from ...services.file_service import FileService
 from ...services.diagram_service import DiagramService
-from ...services.llm_service import LLMService
-from ...utils.dependencies import get_file_service, get_diagram_service, get_llm_service
+from ...utils.dependencies import get_file_service, get_diagram_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
 
@@ -88,14 +87,6 @@ class ConvertDiagramRequest(BaseModel):
     to_format: str    # "yaml", "json", "llm-yaml", "uml"
 
 
-class InitializeModelRequest(BaseModel):
-    service: str
-    model: str
-    api_key_id: str
-
-
-class ImportYamlRequest(BaseModel):
-    yaml: str
 
 
 @router.post("/save")
@@ -128,16 +119,27 @@ async def save_diagram(
         dir_path = os.path.join(os.environ.get('BASE_DIR', '.'), directory)
         os.makedirs(dir_path, exist_ok=True)
         
+        # Check if file exists and generate unique filename if needed
+        base_name = os.path.splitext(filename)[0]
+        extension = os.path.splitext(filename)[1]
+        final_filename = filename
+        counter = 1
+        
+        while os.path.exists(os.path.join(dir_path, final_filename)):
+            final_filename = f"{base_name}_{counter}{extension}"
+            counter += 1
+        
         # Save to appropriate directory
         saved_path = await file_service.write(
-            path=f"{directory}/{filename}",
+            path=f"{directory}/{final_filename}",
             content=request.diagram,
             format=request.format
         )
         
         return {
             "success": True,
-            "message": f"Diagram saved to {saved_path}"
+            "message": f"Diagram saved to {saved_path}",
+            "filename": final_filename
         }
         
     except Exception as e:
@@ -201,58 +203,5 @@ async def health_check():
     }
 
 
-@router.post("/../initialize-model")
-@handle_api_errors
-async def initialize_model(
-    request: InitializeModelRequest,
-    llm_service: LLMService = Depends(get_llm_service)
-):
-    """Pre-initialize/warm up a model for faster first execution."""
-    try:
-        # Use LLM service to create adapter and warm it up
-        from ...llm.factory import create_adapter
-        from ...services.api_key_service import APIKeyService
-        
-        # Get API key
-        api_key_service = APIKeyService()
-        api_key = api_key_service.get_api_key(request.api_key_id)
-        
-        # Create adapter to warm up the model
-        adapter = create_adapter(request.service, request.model, api_key['key'])
-        
-        # Optionally make a minimal call to warm up the connection
-        # This helps with cold starts for some providers
-        logger.info(f"Initializing model {request.service}:{request.model}")
-        
-        return {
-            "success": True,
-            "message": f"Model {request.model} initialized successfully",
-            "service": request.service,
-            "model": request.model
-        }
-    except Exception as e:
-        logger.error(f"Failed to initialize model: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/../import-yaml")
-@handle_api_errors
-async def import_yaml(
-    request: ImportYamlRequest,
-    diagram_service: DiagramService = Depends(get_diagram_service)
-):
-    """Import a YAML diagram (LLM-friendly format)."""
-    try:
-        # Import the YAML using diagram service
-        diagram = diagram_service.import_yaml(request.yaml)
-        
-        return {
-            "success": True,
-            "diagram": diagram,
-            "message": "YAML imported successfully"
-        }
-    except Exception as e:
-        logger.error(f"Failed to import YAML: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 

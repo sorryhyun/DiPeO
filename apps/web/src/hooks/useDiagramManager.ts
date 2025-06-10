@@ -220,7 +220,9 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
     
     try {
-      await fileOps.saveJSON(filename || `diagram-${Date.now()}.json`);
+      // Generate a more user-friendly default filename if not provided
+      const defaultFilename = filename || `diagram.json`;
+      await fileOps.saveJSON(defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
       toast.success('Diagram saved successfully');

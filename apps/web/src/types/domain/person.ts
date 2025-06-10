@@ -6,7 +6,7 @@ export type ForgettingMode = 'no_forget' | 'on_every_turn' | 'upon_request';
 
 export interface DomainPerson {
   id: PersonID;
-  name: string;
+  label: string;
   model: string;
   service: LLMService;
   systemPrompt?: string;
@@ -38,7 +38,7 @@ export function isDomainPerson(obj: unknown): obj is DomainPerson {
     obj !== null &&
     typeof obj === 'object' &&
     'id' in obj &&
-    'name' in obj &&
+    'label' in obj &&
     'model' in obj &&
     'service' in obj
   );
@@ -55,7 +55,7 @@ export const DEFAULT_PERSON_CONFIG: Partial<DomainPerson> = {
 
 export function createPerson(
   id: PersonID,
-  name: string,
+  label: string,
   model: string,
   service: LLMService,
   overrides?: Partial<DomainPerson>
@@ -63,7 +63,7 @@ export function createPerson(
   return {
     ...DEFAULT_PERSON_CONFIG,
     id,
-    name,
+    label,
     model,
     service,
     ...overrides

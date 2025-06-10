@@ -180,7 +180,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // Person operations
   const addPerson = (person: Omit<DomainPerson, 'id'>) => {
     return canvas.addPerson({
-      name: person.name,
+      label: person.label,
       service: person.service,
       model: person.model
     });
