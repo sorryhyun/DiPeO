@@ -7,13 +7,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { shallow } from 'zustand/shallow';
 import { useWebSocketEventBus } from './useWebSocketEventBus';
-import { useCanvas } from './useCanvas';
-import { useExecutionActions } from './useStoreSelectors';
-import type { DomainDiagram } from '@/types';
-import type { InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types';
-import type { NodeID } from '@/types';
-import { NodeKind } from '@/types';
+import { useCanvasOperations } from './useCanvasOperations';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
+import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
+import { NodeKind } from '@/types/primitives/enums';
 
 // ========== Types ==========
 
@@ -58,6 +57,22 @@ export interface UseExecutionReturn {
   execution: ExecutionState;
   nodes: Record<string, NodeState>;
   
+  // Node-specific state
+  getNodeExecutionState: (nodeId: NodeID) => {
+    isRunning: boolean;
+    isCurrentRunning: boolean;
+    nodeRunningState: boolean;
+    isSkipped: boolean;
+    skipReason: string | undefined;
+  };
+  
+  // Execution selectors
+  runContext: Record<string, unknown>;
+  runningNodes: NodeID[];
+  currentRunningNode: NodeID | null;
+  nodeRunningStates: Record<string, boolean>;
+  skippedNodes: Record<string, { reason: string }>;
+  
   // UI state
   progress: number;
   duration: string;
@@ -71,6 +86,14 @@ export interface UseExecutionReturn {
   skipNode: (nodeId: NodeID) => void;
   abort: () => void;
   respondToPrompt: (nodeId: NodeID, response: string) => void;
+  
+  // Execution actions
+  addRunningNode: (nodeId: NodeID) => void;
+  removeRunningNode: (nodeId: NodeID) => void;
+  setCurrentRunningNode: (nodeId: NodeID | null) => void;
+  setRunContext: (context: Record<string, unknown>) => void;
+  addSkippedNode: (nodeId: NodeID, reason: string) => void;
+  reset: () => void;
   
   // Connection actions
   connect: () => void;
@@ -137,8 +160,43 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   } = options;
 
   // Store hooks
-  const { nodes: canvasNodes } = useCanvas();
-  const executionActions = useExecutionActions();
+  const { nodes: canvasNodes } = useCanvasOperations();
+  
+  // Get execution actions from store
+  const executionActions = useUnifiedStore(
+    state => ({
+      startExecution: state.startExecution,
+      stopExecution: state.stopExecution,
+      reset: () => {
+        state.stopExecution();
+        state.execution.nodeStates.clear();
+        state.execution.context = {};
+      },
+      addRunningNode: (nodeId: NodeID) => {
+        state.execution.runningNodes.add(nodeId);
+      },
+      removeRunningNode: (nodeId: NodeID) => {
+        state.execution.runningNodes.delete(nodeId);
+      },
+      setCurrentRunningNode: (nodeId: NodeID | null) => {
+        if (nodeId) {
+          state.execution.runningNodes.clear();
+          state.execution.runningNodes.add(nodeId);
+        }
+      },
+      setRunContext: (context: Record<string, unknown>) => {
+        state.execution.context = context;
+      },
+      addSkippedNode: (nodeId: NodeID, reason: string) => {
+        state.updateNodeExecution(nodeId, { 
+          status: 'skipped', 
+          error: reason,
+          timestamp: Date.now()
+        });
+      },
+    }),
+    shallow
+  );
   
   // State
   const [execution, setExecution] = useState<ExecutionState>(initialExecutionState);
@@ -152,7 +210,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   
   // Refs
   const executionIdRef = useRef<string | null>(null);
-  const durationInterval = useRef<NodeJS.Timeout | null>(null);
+  const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // WebSocket
   const { 
@@ -530,6 +588,42 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     };
   }, []);
 
+  // Get store state for selectors
+  const storeState = useUnifiedStore(
+    state => ({
+      runContext: state.execution.context,
+      runningNodes: Array.from(state.execution.runningNodes),
+      nodeStates: state.execution.nodeStates,
+    }),
+    shallow
+  );
+
+  // Helper function to get node execution state
+  const getNodeExecutionState = useCallback((nodeId: NodeID) => {
+    const isRunning = storeState.runningNodes.includes(nodeId);
+    const nodeState = storeState.nodeStates.get(nodeId);
+    const isSkipped = nodeState?.status === 'skipped';
+    
+    return {
+      isRunning,
+      isCurrentRunning: isRunning,
+      nodeRunningState: isRunning,
+      isSkipped,
+      skipReason: nodeState?.error,
+    };
+  }, [storeState.runningNodes, storeState.nodeStates]);
+
+  // Computed values
+  const currentRunningNode = storeState.runningNodes[0] || null;
+  const nodeRunningStates = Object.fromEntries(
+    Array.from(storeState.nodeStates.entries()).map(([id, state]) => [id, state.status === 'running'])
+  );
+  const skippedNodes = Object.fromEntries(
+    Array.from(storeState.nodeStates.entries())
+      .filter(([_, state]) => state.status === 'skipped')
+      .map(([id, state]) => [id, { reason: state.error || 'Skipped' }])
+  );
+
   return {
     // Connection state
     isConnected,
@@ -540,6 +634,16 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     executionId: execution.executionId,
     execution,
     nodes: nodeStates,
+    
+    // Node-specific state
+    getNodeExecutionState,
+    
+    // Execution selectors
+    runContext: storeState.runContext,
+    runningNodes: storeState.runningNodes,
+    currentRunningNode,
+    nodeRunningStates,
+    skippedNodes,
     
     // UI state
     progress,
@@ -554,6 +658,14 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     skipNode,
     abort,
     respondToPrompt,
+    
+    // Execution actions
+    addRunningNode: executionActions.addRunningNode,
+    removeRunningNode: executionActions.removeRunningNode,
+    setCurrentRunningNode: executionActions.setCurrentRunningNode,
+    setRunContext: executionActions.setRunContext,
+    addSkippedNode: executionActions.addSkippedNode,
+    reset: executionActions.reset,
     
     // Connection actions
     connect,

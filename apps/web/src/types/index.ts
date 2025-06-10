@@ -1,4 +1,4 @@
-// types/index.ts - Central export point for all types
+// types/config.ts - Central export point for all types
 
 // Re-export all types from separate modules
 export * from './primitives';

@@ -6,10 +6,11 @@ import {
 import { Button, Input, Select } from '@/components/ui';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { toast } from 'sonner';
-import { usePersons, useSelectedElement, useExecutionStatus } from '@/hooks/useStoreSelectors';
+import { useCanvasOperations } from '@/hooks';
+import { useUnifiedStore } from '@/stores/useUnifiedStore';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
-import {ConversationFilters, ConversationMessage, PersonID, ExecutionID, executionId, personId} from '@/types';
+import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
@@ -20,10 +21,20 @@ const ConversationDashboard: React.FC = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const { persons } = usePersons();
-  const { runContext } = useExecutionStatus();
-  const { selectedPersonId } = useSelectedElement();
+  const canvas = useCanvasOperations();
+  const store = useUnifiedStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Get persons from canvas
+  const persons = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
+  
+  // Get selected person ID if a person is selected
+  const selectedPersonId = (() => {
+    if (!store.selectedId) return null;
+    // Check if the selected ID is a person
+    const person = store.persons.get(store.selectedId as PersonID);
+    return person ? store.selectedId as PersonID : null;
+  })();
   
 
   // Use consolidated conversation data hook with real-time updates
@@ -53,12 +64,10 @@ const ConversationDashboard: React.FC = () => {
     };
   }, []);
 
-  // Initial load when runContext changes
+  // Initial load
   useEffect(() => {
-    if (Object.keys(runContext).length > 0) {
-      void fetchConversationData();
-    }
-  }, [runContext, fetchConversationData]);
+    void fetchConversationData();
+  }, [fetchConversationData]);
 
   // Handle person selection from sidebar
   useEffect(() => {

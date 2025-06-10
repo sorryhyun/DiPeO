@@ -16,7 +16,7 @@ import {
   type UnsubscribeFunction,
 } from '@/utils/websocket/event-bus';
 import type { WSMessage } from '@/types/runtime';
-import { useEvent } from './useEvent';
+import { useEvent } from './usePropertyManager';
 
 interface UseWebSocketEventBusOptions {
   autoConnect?: boolean;

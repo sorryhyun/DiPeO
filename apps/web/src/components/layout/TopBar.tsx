@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
-import { useUIState } from '@/hooks/useStoreSelectors';
+import { useUIState, useDiagram } from '@/hooks';
 import { useUnifiedStore } from '@/stores/useUnifiedStore';
-import { useDiagram } from '@/hooks';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse, type DomainApiKey } from '@/types';
+import { isApiKey, parseApiArrayResponse } from '@/types';
 
 
 const TopBar = () => {

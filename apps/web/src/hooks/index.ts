@@ -1,19 +1,18 @@
-// ===== STORE SELECTORS =====
+
 // Domain-specific store selectors replace useStoreSelectors
 export * from './useStoreSelectors';
 
-// ===== MASTER HOOKS =====
 // High-level hooks that combine multiple concerns
 export * from './useDiagram';
 
-// ===== FEATURE HOOKS =====
-// Canvas & Interactions
-export * from './useCanvas'; // New consolidated canvas hook
-export * from './useCanvasInteractions';
-export * from './useNodeType';
+// New unified hooks that combine multiple concerns
+export * from './useCanvasOperations'; // Combines useCanvas + useCanvasInteractions
+export * from './useExecution'; // Consolidated execution hook
+
+// High-level hooks organized by feature/use-case
+export * from './useDiagramManager'; // Diagram management operations
 
 // Execution & Runtime
-export * from './useExecution'; // Consolidated execution hook
 export * from './useWebSocketEventBus';
 
 // File Operations

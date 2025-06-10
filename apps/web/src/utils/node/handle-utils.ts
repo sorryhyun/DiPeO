@@ -8,9 +8,7 @@
 
 import { NodeID, HandleID } from '@/types/branded';
 import { NodeKind } from '@/types/primitives';
-import { DomainDiagram, DomainHandle, InputHandle, OutputHandle } from '@/types';
-import { createHandleId } from '@/types';
-import { getNodeHandles as getDiagramNodeHandles } from '@/types';
+import { DomainDiagram, DomainHandle, InputHandle, OutputHandle, createHandleId, getNodeHandles as getDiagramNodeHandles } from '@/types';
 import { getHandleConfig } from '@/config/handleRegistry';
 
 /**

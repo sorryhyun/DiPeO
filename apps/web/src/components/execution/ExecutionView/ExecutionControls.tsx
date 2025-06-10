@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
 import { useExecution } from '@/hooks';
-import { useExecutionSelectors } from '@/hooks/useStoreSelectors';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
@@ -12,7 +11,8 @@ const ExecutionControls = () => {
                    execution.execution.error ? 'fail' :
                    execution.execution.endTime ? 'success' : 'idle';
   
-  const { currentRunningNode } = useExecutionSelectors();
+  // Get current running node from execution state
+  const currentRunningNode = execution.execution.currentNode;
 
   return (
     <div className="flex items-center justify-center gap-4 p-4 bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">

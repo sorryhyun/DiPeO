@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useUnifiedStore } from '@/stores/useUnifiedStore';
-import { useArrowDataUpdater } from '@/hooks/useStoreSelectors';
+import { useCanvasOperations } from '@/hooks';
 import { arrowId } from '@/types';
 
 export interface ArrowData {
@@ -51,7 +51,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
   const { activeCanvas } = useUnifiedStore();
-  const updateArrowData = useArrowDataUpdater();
+  const canvas = useCanvasOperations();
   const isExecutionMode = activeCanvas === 'execution';
   
   const arrowData = data as ArrowData | undefined;
@@ -60,13 +60,13 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
 
   // Create a type-safe wrapper that updates arrow data in the store
   const handleUpdateData = useCallback((edgeId: string, data: Partial<ArrowData>) => {
-    if (!data || !updateArrowData) return;
+    if (!data) return;
     
     // Update the arrow's data property with the new ArrowData
-    updateArrowData(arrowId(edgeId), {
+    canvas.updateArrow(arrowId(edgeId), {
       data: data as Record<string, unknown>
     });
-  }, [updateArrowData]);
+  }, [canvas]);
 
   // Memoize path and label position calculations
   const { edgePath, labelX, labelY } = useMemo(() => {

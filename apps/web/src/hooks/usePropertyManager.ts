@@ -1,12 +1,23 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { isDraft, current } from 'immer';
 import { useQueries } from '@tanstack/react-query';
-import { useCanvas } from './useCanvas';
-import { useEvent } from './useEvent';
-import type { DomainApiKey } from '@/types';
-import type { PanelConfig, PanelFieldConfig } from '@/types';
-import { nodeId, arrowId, personId } from '@/types';
+import { useCanvasOperations } from './useCanvasOperations';
+import { nodeId, arrowId, personId, type DomainApiKey, type PanelConfig, type PanelFieldConfig } from '@/types';
 import { useUnifiedStore } from "@/stores/useUnifiedStore";
+
+/**
+ * Returns a stable callback that always calls the latest version of the provided function.
+ * This prevents unnecessary re-renders when passing callbacks to child components.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function useEvent<T extends (...args: any[]) => any>(fn: T): T {
+  const ref = useRef(fn);
+  ref.current = fn;
+
+  return useCallback((...args: Parameters<T>) => {
+    return ref.current(...args);
+  }, []) as T;
+}
 
 // Safe deep comparison using Immer to handle draft states
 function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
@@ -38,7 +49,7 @@ function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
   
   for (const key of keys1) {
     if (!keys2.includes(key)) return false;
-    if (!safeDeepEqual((val1 as any)[key], (val2 as any)[key])) return false;
+    if (!safeDeepEqual((val1 as Record<string, unknown>)[key], (val2 as Record<string, unknown>)[key])) return false;
   }
   
   return true;
@@ -80,7 +91,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   } = options;
 
   // Store selectors
-  const canvas = useCanvas();
+  const canvas = useCanvasOperations();
   const { updateNode, updateArrow, updatePerson, isMonitorMode } = canvas;
   const { apiKeys } = useUnifiedStore();
 
@@ -322,7 +333,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const asyncFields = useMemo(() => {
     return fields.filter(
       field => field.type === 'select' && typeof field.options === 'function'
-    ) as Array<PanelFieldConfig & { type: 'select'; options: (formData?: any) => Promise<Array<{ value: string; label: string }>> }>;
+    ) as Array<PanelFieldConfig & { type: 'select'; options: (formData?: T) => Promise<Array<{ value: string; label: string }>> }>;
   }, [fields]);
 
   // Create queries for async fields
