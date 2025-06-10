@@ -10,7 +10,8 @@ const LazyExecutionView = React.lazy(() => import('./components/execution/Execut
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
 
-function App() {
+// Inner component that uses React Flow hooks
+function AppContent() {
   const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
   const setReadOnly = useUnifiedStore((state) => state.setReadOnly);
   const execution = useExecution({ autoConnect: true });
@@ -41,25 +42,6 @@ function App() {
       window.removeEventListener('popstate', handleUrlChange);
     };
   }, [setReadOnly]);
-  
-  // Set up keyboard shortcuts for undo/redo
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        useUnifiedStore.getState().undo();
-      }
-      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        useUnifiedStore.getState().redo();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Use realtime execution monitor - it will automatically use WebSocket when available
   useExecution({ enableMonitoring: true });
@@ -72,8 +54,7 @@ function App() {
   }, [useWebSocket]);
   
   return (
-    <ReactFlowProvider>
-      <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
         {/* Top Bar */}
         <TopBar />
 
@@ -138,6 +119,33 @@ function App() {
           </Suspense>
         )}
       </div>
+  );
+}
+
+// Main App component that provides ReactFlowProvider
+function App() {
+  // Set up keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        useUnifiedStore.getState().undo();
+      }
+      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        useUnifiedStore.getState().redo();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <ReactFlowProvider>
+      <AppContent />
     </ReactFlowProvider>
   );
 }

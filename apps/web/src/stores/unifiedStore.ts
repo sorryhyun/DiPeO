@@ -34,21 +34,25 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
     id,
     type,
     position,
-    data: initialData || {},
+    data: {
+      label: initialData?.label || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} ${id.split('-').pop()}`,
+      ...(initialData || {})
+    },
   };
 
   // Type-specific initialization
   switch (type) {
     case 'start':
-      return { ...baseNode, data: { data: initialData?.data || '' } };
+      return { ...baseNode, data: { ...baseNode.data, data: initialData?.data || '' } };
     case 'condition':
-      return { ...baseNode, data: { condition: initialData?.condition || '' } };
+      return { ...baseNode, data: { ...baseNode.data, condition: initialData?.condition || '' } };
     case 'job':
-      return { ...baseNode, data: { code: initialData?.code || '', language: 'python' } };
+      return { ...baseNode, data: { ...baseNode.data, code: initialData?.code || '', language: 'python' } };
     case 'person_job':
       return {
         ...baseNode,
         data: {
+          ...baseNode.data,
           personId: initialData?.personId || null,
           firstOnlyPrompt: initialData?.firstOnlyPrompt || '',
           defaultPrompt: initialData?.defaultPrompt || '',
@@ -59,6 +63,7 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
       return {
         ...baseNode,
         data: {
+          ...baseNode.data,
           operation: initialData?.operation || 'create',
           key: initialData?.key || '',
           value: initialData?.value || '',
@@ -68,6 +73,7 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
       return {
         ...baseNode,
         data: {
+          ...baseNode.data,
           prompt: initialData?.prompt || '',
           timeout: initialData?.timeout || 30,
         },
@@ -76,6 +82,7 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
       return {
         ...baseNode,
         data: {
+          ...baseNode.data,
           operation: initialData?.operation || 'read',
           pageId: initialData?.pageId || '',
         },
@@ -84,6 +91,7 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
       return {
         ...baseNode,
         data: {
+          ...baseNode.data,
           operation: initialData?.operation || 'return',
           data: initialData?.data || '',
         },
@@ -92,6 +100,7 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
       return {
         ...baseNode,
         data: {
+          ...baseNode.data,
           personId: initialData?.personId || null,
           batchSize: initialData?.batchSize || 5,
           prompt: initialData?.prompt || '',
@@ -170,6 +179,17 @@ export const useUnifiedStore = create<UnifiedStore>()(
           set((state) => {
             const node = state.nodes.get(id);
             if (!node) return;
+
+            // Deep merge data if provided in updates
+            if (updates.data && node.data) {
+              updates = {
+                ...updates,
+                data: {
+                  ...node.data,
+                  ...updates.data
+                }
+              };
+            }
 
             // Update node
             Object.assign(node, updates);

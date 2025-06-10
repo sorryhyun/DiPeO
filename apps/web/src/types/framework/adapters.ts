@@ -31,6 +31,7 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
     type: node.type,
     position: node.position,
     data: {
+      ...node.data,
       label: (node.data as any).label,
       properties: node.data,
       inputs,

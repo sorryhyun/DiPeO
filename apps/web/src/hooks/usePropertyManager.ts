@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { isDraft, current } from 'immer';
 import { useQueries } from '@tanstack/react-query';
 import { useCanvasOperations } from './useCanvasOperations';
 import { nodeId, arrowId, personId, type DomainApiKey, type PanelConfig, type PanelFieldConfig } from '@/types';
@@ -19,41 +18,6 @@ export function useEvent<T extends (...args: any[]) => any>(fn: T): T {
   }, []) as T;
 }
 
-// Safe deep comparison using Immer to handle draft states
-function safeDeepEqual(obj1: unknown, obj2: unknown): boolean {
-  // Get the current value if it's an Immer draft
-  const val1 = isDraft(obj1) ? current(obj1) : obj1;
-  const val2 = isDraft(obj2) ? current(obj2) : obj2;
-  
-  // Handle primitives and null/undefined
-  if (val1 === val2) return true;
-  if (val1 == null || val2 == null) return false;
-  if (typeof val1 !== 'object' || typeof val2 !== 'object') return false;
-  
-  // Arrays
-  if (Array.isArray(val1) && Array.isArray(val2)) {
-    if (val1.length !== val2.length) return false;
-    for (let i = 0; i < val1.length; i++) {
-      if (!safeDeepEqual(val1[i], val2[i])) return false;
-    }
-    return true;
-  }
-  
-  // Objects
-  if (Array.isArray(val1) || Array.isArray(val2)) return false;
-  
-  const keys1 = Object.keys(val1);
-  const keys2 = Object.keys(val2);
-  
-  if (keys1.length !== keys2.length) return false;
-  
-  for (const key of keys1) {
-    if (!keys2.includes(key)) return false;
-    if (!safeDeepEqual((val1 as Record<string, unknown>)[key], (val2 as Record<string, unknown>)[key])) return false;
-  }
-  
-  return true;
-}
 
 interface ValidationRule<T extends Record<string, unknown> = Record<string, unknown>> {
   field: keyof T;
@@ -105,14 +69,21 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const autoSaveTimeoutRef = useRef<number | undefined>(undefined);
   const initialDataRef = useRef(initialData);
 
+  // Track the entity ID separately to detect entity changes
+  const entityIdRef = useRef(entityId);
+  
   // Combined effect for initialization and cleanup
   useEffect(() => {
-    // Update form data when initial data changes
-    if (!safeDeepEqual(initialData, initialDataRef.current)) {
+    // Only reset form data if the entity ID changes
+    // This prevents the form from resetting when the data is updated via auto-save
+    const hasEntityChanged = entityId !== entityIdRef.current;
+    
+    if (hasEntityChanged) {
       setFormData(initialData);
       setIsDirty(false);
       setErrors({});
       initialDataRef.current = initialData;
+      entityIdRef.current = entityId;
     }
 
     // Cleanup timeout on unmount
@@ -121,7 +92,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [initialData]);
+  }, [entityId, initialData]); // Depend on both but only reset when entityId changes
 
   // Validation function - no need for useCallback since validationRules is stable
   const validateField = (field: keyof T, value: unknown, currentFormData: T): string | null => {
@@ -150,9 +121,10 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     
     try {
       if (entityType === 'node') {
-        updateNode(nodeId(entityId), data as Record<string, unknown>);
+        // updateNode expects Partial<DomainNode>, so we need to wrap the data
+        updateNode(nodeId(entityId), { data: data as Record<string, unknown> });
       } else if (entityType === 'arrow') {
-        updateArrow(arrowId(entityId), data);
+        updateArrow(arrowId(entityId), { data });
       } else {
         updatePerson(personId(entityId), data);
       }
