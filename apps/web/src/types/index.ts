@@ -41,7 +41,7 @@ export {
 } from './branded';
 
 // Legacy exports for backward compatibility
-export * from './legacy';
+
 
 // Export type guards
 export * from './typeGuards';

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import { useExecutionV2 } from '@/hooks/execution';
+import { useExecution } from '@/hooks';
 import { useUnifiedStore } from '@/stores/useUnifiedStore';
 import {NodeKind, NodeID, nodeId, handleId} from '@/types';
 import './BaseNode.css';
@@ -22,7 +22,7 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { nodeStates } = useExecutionV2();
+  const { nodes: nodeStates } = useExecution();
   const nodeState = nodeStates?.[nodeId];
   
   return useMemo(() => ({

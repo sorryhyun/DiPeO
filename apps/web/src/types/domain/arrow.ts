@@ -1,10 +1,8 @@
 import { ArrowID, HandleID } from '../branded';
 import { parseHandleId } from './handle';
+import type React from "react";
 
-/**
- * Pure domain arrow - framework-agnostic connection
- * Connects handles using the format "nodeId:handleName"
- */
+
 export interface DomainArrow {
   id: ArrowID;
   source: HandleID;
@@ -12,17 +10,17 @@ export interface DomainArrow {
   data?: Record<string, unknown>;
 }
 
-/**
- * Arrow with validation metadata
- */
+
 export interface ValidatedArrow extends DomainArrow {
   isValid: boolean;
   validationErrors?: string[];
 }
 
-/**
- * Check if an arrow connects two specific nodes
- */
+export type ArrowData = {
+  label?: string;
+  style?: React.CSSProperties;
+};
+
 export function connectsNodes(
   arrow: DomainArrow,
   sourceNodeId: string,

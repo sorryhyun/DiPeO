@@ -1,18 +1,16 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
-import { useDiagramRunner } from '@/hooks/execution';
+import { useExecution } from '@/hooks';
 import { useExecutionSelectors } from '@/hooks/useStoreSelectors';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
-  const { 
-    runStatus, 
-    onRunDiagram, 
-    stopExecution,
-    pauseNode,
-    resumeNode,
-    skipNode
-  } = useDiagramRunner();
+  const execution = useExecution({ autoConnect: true });
+  
+  // Map execution state to old runStatus format
+  const runStatus = execution.isRunning ? 'running' : 
+                   execution.execution.error ? 'fail' :
+                   execution.execution.endTime ? 'success' : 'idle';
   
   const { currentRunningNode } = useExecutionSelectors();
 
@@ -23,7 +21,7 @@ const ExecutionControls = () => {
           <Button 
             variant="outline" 
             className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
-            onClick={stopExecution}
+            onClick={execution.abort}
           >
             ⏹️ Stop
           </Button>
@@ -32,7 +30,7 @@ const ExecutionControls = () => {
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-none hover:from-yellow-600 hover:to-amber-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => pauseNode(nodeId(currentRunningNode))}
+                onClick={() => execution.pauseNode(nodeId(currentRunningNode))}
                 title="Pause current node"
               >
                 ⏸️ Pause
@@ -40,7 +38,7 @@ const ExecutionControls = () => {
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => resumeNode(nodeId(currentRunningNode))}
+                onClick={() => execution.resumeNode(nodeId(currentRunningNode))}
                 title="Resume current node"
               >
                 ▶️ Resume
@@ -48,7 +46,7 @@ const ExecutionControls = () => {
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all"
-                onClick={() => skipNode(nodeId(currentRunningNode))}
+                onClick={() => execution.skipNode(nodeId(currentRunningNode))}
                 title="Skip current node"
               >
                 ⏭️ Skip
@@ -60,7 +58,7 @@ const ExecutionControls = () => {
         <Button 
           variant="outline" 
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-          onClick={() => onRunDiagram()}
+          onClick={() => execution.execute()}
         >
           ▶️ Run Diagram
         </Button>

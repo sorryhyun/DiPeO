@@ -7,14 +7,14 @@ import {
   loadDiagram as loadDiagramAction,
   clearDiagram
 } from './useStoreSelectors';
-import { useExecutionV2 } from './execution';
+import { useExecution } from './useExecution';
 import { useFileOperations } from './useFileOperations';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import { usePropertyManager } from './usePropertyManager';
-import type { DomainNode, DomainArrow, DomainPerson } from '@/types/domain';
-import type { DomainDiagram } from '@/types/domain/diagram';
-import type { NodeID, ArrowID, PersonID } from '@/types/branded';
-import type { NodeKind } from '@/types/primitives/enums';
+import type { DomainNode, DomainArrow, DomainPerson } from '@/types';
+import type { DomainDiagram } from '@/types';
+import type { NodeID, ArrowID, PersonID } from '@/types';
+import type { NodeKind } from '@/types';
 
 // Maybe-hook helper
 function useMaybe<T>(enabled: boolean, useHook: () => T): T | null {
@@ -79,7 +79,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
   
   // Realtime execution (WebSocket)
-  const realtime = useExecutionV2({
+  const realtime = useExecution({
     autoConnect,
     enableMonitoring,
     debug

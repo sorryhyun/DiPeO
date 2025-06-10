@@ -13,7 +13,7 @@ export * from './useCanvasInteractions';
 export * from './useNodeType';
 
 // Execution & Runtime
-export * from './execution'; // New modular execution hooks
+export * from './useExecution'; // Consolidated execution hook
 export * from './useWebSocketEventBus';
 
 // File Operations

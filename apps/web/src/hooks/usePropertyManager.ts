@@ -3,9 +3,9 @@ import { isDraft, current } from 'immer';
 import { useQueries } from '@tanstack/react-query';
 import { useCanvas } from './useCanvas';
 import { useEvent } from './useEvent';
-import type { DomainApiKey } from '@/types/domain/api-key';
-import type { PanelConfig, PanelFieldConfig } from '@/types/ui/panel';
-import { nodeId, arrowId, personId } from '@/types/branded';
+import type { DomainApiKey } from '@/types';
+import type { PanelConfig, PanelFieldConfig } from '@/types';
+import { nodeId, arrowId, personId } from '@/types';
 import { useUnifiedStore } from "@/stores/useUnifiedStore";
 
 // Safe deep comparison using Immer to handle draft states

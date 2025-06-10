@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useExecutionV2, useDiagramRunner } from './hooks/execution';
+import { useExecution } from './hooks';
 import { useUnifiedStore } from './stores/useUnifiedStore';
 
 // Lazy load heavy components
@@ -14,7 +14,7 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 function App() {
   const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
   const setReadOnly = useUnifiedStore((state) => state.setReadOnly);
-  const { interactivePrompt, sendInteractiveResponse, cancelInteractivePrompt } = useDiagramRunner();
+  const execution = useExecution({ autoConnect: true });
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
   
@@ -63,7 +63,7 @@ function App() {
   }, []);
 
   // Use realtime execution monitor - it will automatically use WebSocket when available
-  useExecutionV2({ enableMonitoring: true });
+  useExecution({ enableMonitoring: true });
   
   // Show WebSocket status when enabled via feature flag
   useEffect(() => {
@@ -121,12 +121,20 @@ function App() {
         
         
         {/* Interactive Prompt Modal */}
-        {interactivePrompt && (
+        {execution.interactivePrompt && (
           <Suspense fallback={null}>
             <LazyInteractivePromptModal
-              prompt={interactivePrompt}
-              onResponse={sendInteractiveResponse}
-              onCancel={cancelInteractivePrompt}
+              prompt={execution.interactivePrompt}
+              onResponse={(response) => {
+                if (execution.interactivePrompt?.nodeId) {
+                  execution.respondToPrompt(execution.interactivePrompt.nodeId, response);
+                }
+              }}
+              onCancel={() => {
+                if (execution.interactivePrompt?.nodeId) {
+                  execution.respondToPrompt(execution.interactivePrompt.nodeId, '');
+                }
+              }}
             />
           </Suspense>
         )}

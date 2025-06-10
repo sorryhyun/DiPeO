@@ -5,10 +5,6 @@ import { DomainHandle } from './handle';
 import { DomainPerson } from './person';
 import { DomainApiKey } from './api-key';
 
-/**
- * Pure domain diagram - the complete workflow representation
- * Uses separated handle storage for better performance and flexibility
- */
 export interface DomainDiagram {
   nodes: Record<NodeID, DomainNode>;
   handles: Record<HandleID, DomainHandle>;
@@ -18,9 +14,6 @@ export interface DomainDiagram {
   metadata?: DiagramMetadata;
 }
 
-/**
- * Diagram metadata
- */
 export interface DiagramMetadata {
   id?: string;
   name?: string;
@@ -32,9 +25,6 @@ export interface DiagramMetadata {
   tags?: string[];
 }
 
-/**
- * Diagram validation result
- */
 export interface DiagramValidation {
   isValid: boolean;
   errors: ValidationError[];
@@ -56,9 +46,6 @@ export interface ValidationWarning {
   handleId?: HandleID;
 }
 
-/**
- * Type guard for domain diagram
- */
 export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
   return (
     obj !== null &&
@@ -71,9 +58,6 @@ export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
   );
 }
 
-/**
- * Create an empty diagram
- */
 export function createEmptyDiagram(): DomainDiagram {
   return {
     nodes: {},
@@ -89,9 +73,6 @@ export function createEmptyDiagram(): DomainDiagram {
   };
 }
 
-/**
- * Get all handles for a specific node
- */
 export function getNodeHandles(
   diagram: DomainDiagram,
   nodeId: NodeID
@@ -101,16 +82,10 @@ export function getNodeHandles(
   );
 }
 
-/**
- * Get a handle by its ID
- */
 export function getHandleById(diagram: DomainDiagram, handleId: HandleID): DomainHandle | undefined {
   return diagram.handles[handleId];
 }
 
-/**
- * Get connected handles
- */
 export function getConnectedHandles(diagram: DomainDiagram, handleId: HandleID): DomainHandle[] {
   const connectedHandleIds = new Set<HandleID>();
   
@@ -127,9 +102,6 @@ export function getConnectedHandles(diagram: DomainDiagram, handleId: HandleID):
     .filter(Boolean) as DomainHandle[];
 }
 
-/**
- * Get all arrows connected to a node
- */
 export function getNodeConnections(
   diagram: DomainDiagram,
   nodeId: NodeID
