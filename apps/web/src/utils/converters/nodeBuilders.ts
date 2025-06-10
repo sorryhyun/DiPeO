@@ -1,10 +1,18 @@
-import { generateShortId } from '@/types/primitives/id-generation';
-import type { DomainNode, DomainHandle } from '@/types/domain';
-import type { NodeWithHandles } from './diagramAssembler';
-import { NodeKind } from '@/types/primitives/enums';
-import { nodeId, NodeID } from '@/types/branded';
+import { 
+  generateShortId,
+  NodeKind,
+  DomainNode,
+  DomainHandle,
+  nodeId,
+  NodeID
+} from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
+
+// Temporary type for nodes with handles
+interface NodeWithHandles extends DomainNode {
+  handles: DomainHandle[];
+}
 
 // Common utilities
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -17,12 +25,8 @@ const addHandles = (node: DomainNode, nodeType: NodeKind): NodeWithHandles => {
     : getDefaultHandles(node.id, nodeType);
   return { 
     ...node, 
-    handles,
-    // Add ReactFlow required properties
-    draggable: true,
-    selectable: true,
-    connectable: true
-  } as NodeWithHandles;
+    handles
+  };
 };
 
 // Node info type for builder input

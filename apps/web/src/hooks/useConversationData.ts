@@ -1,9 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
-import type { ConversationFilters, ConversationMessage } from '@/types/runtime/message';
-import type { PersonMemoryConfig, PersonMemoryState } from '@/types/runtime/execution';
-import type { PersonID } from '@/types/branded';
+import type { ConversationFilters, ConversationMessage, PersonMemoryConfig, PersonMemoryState, PersonID } from '@/types';
 
 const MESSAGES_PER_PAGE = 50;
 

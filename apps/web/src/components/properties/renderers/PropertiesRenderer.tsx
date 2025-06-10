@@ -1,7 +1,6 @@
 // Reusable component for rendering property panels based on selection
 import React, { Suspense, useCallback } from 'react';
-import { DomainArrow, DomainPerson } from '@/types';
-import { DiPeoNode } from '@/types/framework/reactUtils';
+import { DomainArrow, DomainPerson, DiPeoNode, Dict } from '@/types';
 import { LoadingFallback } from '@/components/ui/feedback';
 
 // Lazy load PropertiesPanel as it's a heavy component
@@ -58,7 +57,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       ...arrow.data,
       id: arrow.id, // Use arrow's id directly
       type: 'arrow' as const,
-      _sourceNodeType: (sourceNode?.data?.properties as any)?.type || sourceNode?.type,
+      _sourceNodeType: (sourceNode?.data?.properties as Dict)?.type || sourceNode?.type,
       _isFromConditionBranch: isFromConditionBranch
     };
   })();
@@ -80,7 +79,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
         title = `${node.data.label || 'Block'} Properties`;
         content = (
           <Suspense fallback={<LoadingFallback />}>
-            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...node.data.properties, type: node.type || 'unknown' } as any} />
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...(node.data.properties as Dict), type: node.type || 'unknown' }} />
           </Suspense>
         );
       }

@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import type { DomainNode } from '@/types/domain/node';
-import { type NodeID, nodeId, arrowId, personId } from '@/types/branded';
+import { DomainNode, NodeID, nodeId, arrowId, personId } from '@/types';
 import { useCanvas } from "@/hooks/useCanvas";
 // =====================
 // TYPES

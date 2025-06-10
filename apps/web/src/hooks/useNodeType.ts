@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { UNIFIED_NODE_CONFIGS } from '@/config';
-import type { NodeKind } from '@/types/primitives/enums';
+import type { NodeKind } from '@/types';
 
 export const useNodeType = (nodeType: NodeKind) => {
   const config = useMemo(() => UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS], [nodeType]);

@@ -1,18 +1,7 @@
 import type {
-  NodeID,
-  ArrowID,
-  PersonID,
-  HandleID,
-  ApiKeyID,
-  DomainNode,
-  DomainArrow,
-  DomainPerson,
-  DomainHandle,
-  DomainApiKey,
-  NodeKind,
-  Vec2,
-  LLMService,
-} from '@/types';
+  NodeID,  ArrowID,  PersonID,  HandleID,  ApiKeyID,
+  DomainNode,  DomainArrow,  DomainPerson,  DomainHandle,  DomainApiKey,
+  NodeKind,  Vec2,  LLMService,} from '@/types';
 
 // Define NodeState locally as it's not exported from types
 export interface NodeState {

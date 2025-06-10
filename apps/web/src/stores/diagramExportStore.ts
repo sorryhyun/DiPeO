@@ -1,26 +1,10 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist } from 'zustand/middleware';
 import {
-  DomainNode,
-  DomainArrow,
-  DomainHandle,
-  DomainPerson,
-  DomainApiKey
-} from '@/types/domain';
-import {
-  NodeID,
-  ArrowID,
-  PersonID,
-  ApiKeyID,
-  nodeId,
-  arrowId,
-  personId,
-  apiKeyId,
-  handleId,
-} from '@/types';
-import { parseHandleId } from '@/types/domain/handle';
-import { NodeKind, DataType, HandlePosition } from '@/types/primitives/enums';
-import { generateShortId, generateArrowId } from '@/types/primitives/id-generation';
+  DomainNode,  DomainArrow,  DomainHandle,  DomainPerson, DomainApiKey,  NodeID,
+  ArrowID,  PersonID,  ApiKeyID,  nodeId,  arrowId,
+  personId,  apiKeyId,  handleId,  parseHandleId,  NodeKind,
+  DataType,  HandlePosition,  generateShortId,  generateArrowId} from '@/types';
 import { getNodeConfig } from '@/config/helpers';
 import { useUnifiedStore } from './useUnifiedStore';
 import type { UnifiedStore } from './unifiedStore';
