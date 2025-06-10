@@ -5,7 +5,7 @@
  * split across useExecutionState, useExecutionUI, and useExecutionV2.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useWebSocketEventBus } from './useWebSocketEventBus';
@@ -13,6 +13,7 @@ import { useCanvasOperations } from './useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
 import { NodeKind } from '@/types/primitives/enums';
+import type { UnifiedStore } from '@/stores/unifiedStore.types';
 
 // ========== Types ==========
 
@@ -153,6 +154,24 @@ function formatTimeInternal(startTime: Date | null, endTime: Date | null, format
 // Track if WebSocket connection has been initialized globally
 let globalConnectionInitialized = false;
 
+// Create stable selector for execution actions
+const createExecutionSelector = () => (state: UnifiedStore) => ({
+  // Store methods (these are stable references)
+  startExecution: state.startExecution,
+  stopExecution: state.stopExecution,
+  updateNodeExecution: state.updateNodeExecution,
+  
+  // Direct references to execution state for manual updates
+  execution: state.execution
+});
+
+// Create stable selector for store state
+const createStoreStateSelector = () => (state: UnifiedStore) => ({
+  runContext: state.execution.context,
+  runningNodes: state.execution.runningNodes, // Keep as Set
+  nodeStates: state.execution.nodeStates,
+});
+
 export function useExecution(options: UseExecutionOptions = {}): UseExecutionReturn {
   const { 
     autoConnect = false, // Changed default to false 
@@ -165,40 +184,44 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   // Store hooks
   const { nodes: canvasNodes } = useCanvasOperations();
   
-  // Get execution actions from store
-  const executionActions = useUnifiedStore(
-    useShallow(state => ({
-      startExecution: state.startExecution,
-      stopExecution: state.stopExecution,
-      reset: () => {
-        state.stopExecution();
-        state.execution.nodeStates.clear();
-        state.execution.context = {};
-      },
-      addRunningNode: (nodeId: NodeID) => {
-        state.execution.runningNodes.add(nodeId);
-      },
-      removeRunningNode: (nodeId: NodeID) => {
-        state.execution.runningNodes.delete(nodeId);
-      },
-      setCurrentRunningNode: (nodeId: NodeID | null) => {
-        if (nodeId) {
-          state.execution.runningNodes.clear();
-          state.execution.runningNodes.add(nodeId);
-        }
-      },
-      setRunContext: (context: Record<string, unknown>) => {
-        state.execution.context = context;
-      },
-      addSkippedNode: (nodeId: NodeID, reason: string) => {
-        state.updateNodeExecution(nodeId, { 
-          status: 'skipped', 
-          error: reason,
-          timestamp: Date.now()
-        });
-      },
-    }))
-  );
+  // Create stable selector
+  const executionSelector = React.useMemo(() => createExecutionSelector(), []);
+  
+  // Get execution actions from store using stable selector
+  const storeActions = useUnifiedStore(useShallow(executionSelector));
+  
+  // Create execution actions that work with store state
+  const executionActions = React.useMemo(() => ({
+    startExecution: storeActions.startExecution,
+    stopExecution: storeActions.stopExecution,
+    reset: () => {
+      storeActions.stopExecution();
+      storeActions.execution.nodeStates.clear();
+      storeActions.execution.context = {};
+    },
+    addRunningNode: (nodeId: NodeID) => {
+      storeActions.execution.runningNodes.add(nodeId);
+    },
+    removeRunningNode: (nodeId: NodeID) => {
+      storeActions.execution.runningNodes.delete(nodeId);
+    },
+    setCurrentRunningNode: (nodeId: NodeID | null) => {
+      if (nodeId) {
+        storeActions.execution.runningNodes.clear();
+        storeActions.execution.runningNodes.add(nodeId);
+      }
+    },
+    setRunContext: (context: Record<string, unknown>) => {
+      storeActions.execution.context = context;
+    },
+    addSkippedNode: (nodeId: NodeID, reason: string) => {
+      storeActions.updateNodeExecution(nodeId, { 
+        status: 'skipped', 
+        error: reason,
+        timestamp: Date.now()
+      });
+    },
+  }), [storeActions]);
   
   // State
   const [execution, setExecution] = useState<ExecutionState>(initialExecutionState);
@@ -609,18 +632,15 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     };
   }, []);
 
+  // Create stable selector for store state
+  const storeStateSelector = React.useMemo(() => createStoreStateSelector(), []);
+  
   // Get store state for selectors
-  const storeState = useUnifiedStore(
-    useShallow(state => ({
-      runContext: state.execution.context,
-      runningNodes: Array.from(state.execution.runningNodes),
-      nodeStates: state.execution.nodeStates,
-    }))
-  );
+  const storeState = useUnifiedStore(useShallow(storeStateSelector));
 
   // Helper function to get node execution state
   const getNodeExecutionState = useCallback((nodeId: NodeID) => {
-    const isRunning = storeState.runningNodes.includes(nodeId);
+    const isRunning = storeState.runningNodes.has(nodeId);
     const nodeState = storeState.nodeStates.get(nodeId);
     const isSkipped = nodeState?.status === 'skipped';
     
@@ -634,7 +654,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [storeState.runningNodes, storeState.nodeStates]);
 
   // Computed values
-  const currentRunningNode = storeState.runningNodes[0] || null;
+  const runningNodesArray = Array.from(storeState.runningNodes);
+  const currentRunningNode = runningNodesArray[0] || null;
   const nodeRunningStates = Object.fromEntries(
     Array.from(storeState.nodeStates.entries()).map(([id, state]) => [id, state.status === 'running'])
   );
@@ -660,7 +681,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     // Execution selectors
     runContext: storeState.runContext,
-    runningNodes: storeState.runningNodes,
+    runningNodes: runningNodesArray,
     currentRunningNode,
     nodeRunningStates,
     skippedNodes,
