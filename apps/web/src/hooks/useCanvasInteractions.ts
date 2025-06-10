@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 
 import { useReactFlow } from '@xyflow/react';
 import type { DomainNode } from '@/types/domain/node';
 import { type NodeID, nodeId, arrowId, personId } from '@/types/branded';
-import {useSelectedElement, useHistorySelectors, useCanvasSelectors} from "@/hooks/useStoreSelectors";
+import { useCanvas } from "@/hooks/useCanvas";
 // =====================
 // TYPES
 // =====================
@@ -35,19 +35,25 @@ interface KeyboardShortcutsConfig {
 
 export const useCanvasInteractions = (shortcuts?: KeyboardShortcutsConfig) => {
   // Store selectors
+  const canvas = useCanvas();
   const { 
     addNode, 
     updateNode, 
     deleteNode, 
     deleteArrow, 
-    isMonitorMode 
-  } = useCanvasSelectors();
-  const { 
-    selectedNodeId, 
-    selectedArrowId, 
-    clearSelection 
-  } = useSelectedElement();
-  const { undo, redo, canUndo, canRedo } = useHistorySelectors();
+    isMonitorMode,
+    selectedId,
+    selectedType,
+    clearSelection,
+    undo, 
+    redo, 
+    canUndo, 
+    canRedo
+  } = canvas;
+  
+  // Derive selected IDs based on selectedType
+  const selectedNodeId = selectedType === 'node' ? selectedId : null;
+  const selectedArrowId = selectedType === 'arrow' ? selectedId : null;
   
   // Get React Flow instance for zoom level
   const { getViewport } = useReactFlow();

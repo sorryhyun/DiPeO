@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { isDraft, current } from 'immer';
 import { useQueries } from '@tanstack/react-query';
-import { 
-  useCanvasSelectors, 
-  useNodeDataUpdater, 
-  useArrowDataUpdater, 
-  usePersonDataUpdater 
-} from './useStoreSelectors';
+import { useCanvas } from './useCanvas';
 import { useEvent } from './useEvent';
 import type { DomainApiKey } from '@/types/domain/api-key';
 import type { PanelConfig, PanelFieldConfig } from '@/types/ui/panel';
@@ -85,10 +80,8 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   } = options;
 
   // Store selectors
-  const updateNode = useNodeDataUpdater();
-  const updateArrow = useArrowDataUpdater();
-  const updatePerson = usePersonDataUpdater();
-  const { isMonitorMode } = useCanvasSelectors();
+  const canvas = useCanvas();
+  const { updateNode, updateArrow, updatePerson, isMonitorMode } = canvas;
   const { apiKeys } = useUnifiedStore();
 
   // Form state

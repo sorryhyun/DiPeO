@@ -10,7 +10,8 @@ import { useExecutionState, type NodeStateV2 } from './useExecutionState';
 import { useWebSocketEventBus } from '../useWebSocketEventBus';
 import { useExecutionUI } from './useExecutionUI';
 import { useUnifiedStore } from '@/stores/useUnifiedStore';
-import { useCanvasSelectors, useExecutionActions } from '../useStoreSelectors';
+import { useCanvas } from '../useCanvas';
+import { useExecutionActions } from '../useStoreSelectors';
 import type { DomainDiagram } from '@/types/domain';
 import type { InteractivePromptData, ExecutionOptions, ExecutionUpdate } from '@/types/runtime';
 import type { NodeID } from '@/types/branded';
@@ -70,7 +71,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
   } = options;
 
   // Get store actions
-  const { nodes } = useCanvasSelectors();
+  const { nodes } = useCanvas();
   const executionActions = useExecutionActions();
   
   // Initialize sub-hooks
@@ -141,7 +142,7 @@ export function useExecutionV2(options: UseExecutionV2Options = {}): UseExecutio
     });
 
     on('node_complete', (data: any) => {
-      const nodeType = nodes.find(n => n.id === data.node_id)?.type || 'unknown';
+      const nodeType = nodes.find((n: any) => n.id === data.node_id)?.type || 'unknown';
       state.completeNode(data.node_id, data.token_count);
       ui.showNodeComplete(data.node_id, nodeType as NodeKind);
       executionActions.removeRunningNode(data.node_id);

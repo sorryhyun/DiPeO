@@ -5,14 +5,11 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
-import { 
-  useNodes, 
-  useArrows, 
-  usePersons,
-  useSelectedElement 
-} from '@/hooks/useStoreSelectors';
+import { useCanvas } from '@/hooks/useCanvas';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 import type { PersonID } from '@/types/branded';
+import type { Node } from '@xyflow/react';
+import type { DomainArrow, DomainPerson } from '@/types/domain';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
@@ -42,15 +39,27 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const { nodes } = useNodes();
-  const { arrows } = useArrows();
+  const canvas = useCanvas();
   const { 
-    selectedPersonId, 
-    selectedNodeId, 
-    selectedArrowId,
-    setSelectedPersonId 
-  } = useSelectedElement();
-  const { persons, addPerson } = usePersons();
+    nodes, 
+    arrows, 
+    persons, 
+    addPerson,
+    selectedId,
+    selectedType,
+    select,
+    clearSelection
+  } = canvas;
+  
+  // Derive selected IDs based on selectedType
+  const selectedNodeId = selectedType === 'node' ? selectedId : null;
+  const selectedArrowId = selectedType === 'arrow' ? selectedId : null;
+  const selectedPersonId = selectedType === 'person' ? selectedId : null;
+  
+  const setSelectedPersonId = (id: PersonID | null) => {
+    if (id) select(id, 'person');
+    else clearSelection();
+  };
   const { handleFileInput, saveYAML, saveLLMYAML } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
@@ -69,19 +78,19 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
     let selectedData: UniversalData | null = null;
     
     if (selectedNodeId) {
-      const node = nodes.find(n => n.id === selectedNodeId);
+      const node = nodes.find((n: Node) => n.id === selectedNodeId);
       if (node) {
         selectedId = node.id;
         selectedData = { ...node.data, type: node.type || 'unknown' };
       }
     } else if (selectedArrowId) {
-      const arrow = arrows.find(a => a.id === selectedArrowId);
+      const arrow = arrows.find((a: DomainArrow) => a.id === selectedArrowId);
       if (arrow) {
         selectedId = arrow.id;
         selectedData = { ...arrow.data, type: 'arrow' };
       }
     } else if (selectedPersonId) {
-      const person = persons.find(p => p.id === selectedPersonId);
+      const person = persons.find((p: DomainPerson) => p.id === selectedPersonId);
       if (person) {
         selectedId = person.id;
         selectedData = { ...person, type: 'person' };
@@ -162,7 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         {personsExpanded && (
           <div className="mt-3 max-h-48 overflow-y-auto px-2">
             <div className="space-y-1">
-              {persons.map(person => (
+              {persons.map((person: DomainPerson) => (
                 <div
                   key={person.id}
                   className={`p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${

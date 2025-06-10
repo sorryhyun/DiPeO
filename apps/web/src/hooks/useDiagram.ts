@@ -1,12 +1,8 @@
 import { useCallback } from 'react';
+import { useCanvas } from './useCanvas';
 import { 
-  useCanvasSelectors, 
   useExecutionSelectors, 
-  useUIState, 
-  useSelectedElement,
-  useHistorySelectors,
-  usePersons,
-  useArrowDataUpdater,
+  useUIState,
   exportDiagramState,
   loadDiagram as loadDiagramAction,
   clearDiagram
@@ -53,24 +49,34 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // CORE HOOKS
   // =====================
 
-  // Canvas state and operations
-  const canvas = useCanvasSelectors();
+  // Canvas state and operations (includes nodes, arrows, persons, history, selection)
+  const canvas = useCanvas();
   
   // Execution state and operations
   const execution = useExecutionSelectors();
   
   // UI state
   const ui = useUIState();
-  const selection = useSelectedElement();
   
-  // History operations
-  const history = useHistorySelectors();
-  
-  // Person operations
-  const persons = usePersons();
-  
-  // Arrow updater
-  const arrowUpdater = useArrowDataUpdater();
+  // Derive selection helpers
+  const selection = {
+    selectedNodeId: canvas.selectedType === 'node' ? canvas.selectedId : null,
+    selectedArrowId: canvas.selectedType === 'arrow' ? canvas.selectedId : null,
+    selectedPersonId: canvas.selectedType === 'person' ? canvas.selectedId : null,
+    setSelectedNodeId: (id: NodeID | null) => {
+      if (id) canvas.select(id, 'node');
+      else canvas.clearSelection();
+    },
+    setSelectedArrowId: (id: ArrowID | null) => {
+      if (id) canvas.select(id, 'arrow');
+      else canvas.clearSelection();
+    },
+    setSelectedPersonId: (id: PersonID | null) => {
+      if (id) canvas.select(id, 'person');
+      else canvas.clearSelection();
+    },
+    clearSelection: canvas.clearSelection
+  };
   
   // Realtime execution (WebSocket)
   const realtime = useExecutionV2({
@@ -158,12 +164,12 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
 
   const getNode = (nodeId: NodeID): DomainNode | undefined => {
-    return canvas.nodes.find(n => n.id === nodeId) as DomainNode | undefined;
+    return canvas.nodes.find((n: any) => n.id === nodeId) as DomainNode | undefined;
   };
 
   // Arrow operations
   const updateArrow = (arrowId: ArrowID, updates: Record<string, unknown>) => {
-    return arrowUpdater(arrowId, updates);
+    return canvas.updateArrow(arrowId, updates);
   };
 
   const deleteArrow = (arrowId: ArrowID) => {
@@ -174,27 +180,27 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
 
   const getArrow = (arrowId: ArrowID): DomainArrow | undefined => {
-    return canvas.arrows.find(a => a.id === arrowId);
+    return canvas.arrows.find((a: any) => a.id === arrowId);
   };
 
   // Person operations
   const addPerson = (person: Omit<DomainPerson, 'id'>) => {
-    return persons.addPerson(person);
+    return canvas.addPerson(person as any);
   };
 
   const updatePerson = (personId: PersonID, updates: Record<string, unknown>) => {
-    return persons.updatePerson(personId, updates);
+    return canvas.updatePerson(personId, updates);
   };
 
   const deletePerson = (personId: PersonID) => {
-    persons.deletePerson(personId);
+    canvas.deletePerson(personId);
     if (selection.selectedPersonId === personId) {
       selection.clearSelection();
     }
   };
 
   const getPerson = (personId: PersonID): DomainPerson | undefined => {
-    return persons.getPersonById(personId);
+    return canvas.getPersonById(personId);
   };
 
   // =====================
@@ -265,7 +271,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     // Canvas data
     nodes: canvas.nodes,
     arrows: canvas.arrows,
-    persons: persons.persons,
+    persons: canvas.persons,
     
     // Execution data
     runningNodes: execution.runningNodes,
@@ -399,10 +405,10 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     }),
     
     // ===== HISTORY =====
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
-    undo: history.undo,
-    redo: history.redo,
+    canUndo: canvas.canUndo,
+    canRedo: canvas.canRedo,
+    undo: canvas.undo,
+    redo: canvas.redo,
     
     // ===== UTILITIES =====
     // Property manager factory

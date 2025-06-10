@@ -1,20 +1,17 @@
 import React, { Suspense } from 'react';
-import { useNodes, useArrows, usePersons, useSelectedElement } from '@/hooks/useStoreSelectors';
+import { useCanvas } from '@/hooks/useCanvas';
 import { LoadingFallback } from '@/components/ui/feedback';
 
 // Lazy load the properties renderer
 const PropertiesRenderer = React.lazy(() => import('./renderers/PropertiesRenderer'));
 
 export const PropertiesTab: React.FC = () => {
-  const { nodes } = useNodes();
-  const { arrows } = useArrows();
-  const { persons } = usePersons();
+  const { nodes, arrows, persons, selectedId, selectedType } = useCanvas();
   
-  const {
-    selectedPersonId,
-    selectedNodeId,
-    selectedArrowId,
-  } = useSelectedElement();
+  // Derive selected IDs based on selectedType
+  const selectedNodeId = selectedType === 'node' ? selectedId : null;
+  const selectedArrowId = selectedType === 'arrow' ? selectedId : null;
+  const selectedPersonId = selectedType === 'person' ? selectedId : null;
 
   return (
     <div className="flex-1 overflow-y-auto">

@@ -8,6 +8,7 @@ export * from './useDiagram';
 
 // ===== FEATURE HOOKS =====
 // Canvas & Interactions
+export * from './useCanvas'; // New consolidated canvas hook
 export * from './useCanvasInteractions';
 export * from './useNodeType';
 
