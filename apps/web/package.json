@@ -37,7 +37,7 @@
     "react-window": "^1.8.11",
     "sonner": "^2.0.3",
     "zod": "^3.25.42",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@types/react": "^19.1.0",

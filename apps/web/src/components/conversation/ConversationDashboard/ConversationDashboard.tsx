@@ -64,10 +64,11 @@ const ConversationDashboard: React.FC = () => {
     };
   }, []);
 
-  // Initial load
+  // Initial load - only run once on mount
   useEffect(() => {
     void fetchConversationData();
-  }, [fetchConversationData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run only once
 
   // Handle person selection from sidebar
   useEffect(() => {
@@ -125,24 +126,20 @@ const ConversationDashboard: React.FC = () => {
       .reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
   }, [dashboardSelectedPerson, conversationData]);
 
-  // Memoize whole conversation data
+  // Memoize whole conversation data with stable dependency
+  const conversationDataKeys = Object.keys(conversationData).sort().join(',');
   const wholeConversationData = useMemo(() => {
     if (dashboardSelectedPerson !== 'whole') {
       return { allMessages: [], totalTokens: 0 };
     }
 
     const messages: ConversationMessage[] = [];
-    Object.values(conversationData).forEach(personData => {
+    Object.entries(conversationData).forEach(([key, personData]) => {
       // Add personId to each message
-      const messagesWithPersonId = personData.messages.map(msg => {
-        const personIdFromData = Object.keys(conversationData).find(key => 
-          conversationData[key] === personData
-        );
-        return {
-          ...msg,
-          personId: personId(personIdFromData || '')
-        } as ConversationMessage;
-      });
+      const messagesWithPersonId = personData.messages.map(msg => ({
+        ...msg,
+        personId: personId(key)
+      } as ConversationMessage));
       messages.push(...messagesWithPersonId);
     });
     
@@ -155,7 +152,7 @@ const ConversationDashboard: React.FC = () => {
     
     const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
     return { allMessages: messages, totalTokens: tokens };
-  }, [dashboardSelectedPerson, conversationData]);
+  }, [dashboardSelectedPerson, conversationDataKeys]); // Use stable dependency
 
   // Handle whole conversation button click
   const handleWholeConversation = () => {

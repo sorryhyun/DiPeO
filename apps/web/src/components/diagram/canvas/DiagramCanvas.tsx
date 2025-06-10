@@ -25,6 +25,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
 import { useUnifiedStore } from "@/hooks/useUnifiedStore";
+import { useShallow } from "zustand/react/shallow";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
@@ -197,10 +198,12 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     clearSelection,
   } = useDiagram({ enableInteractions: true, enableFileOperations: true });
   
-  // Get full arrow data from the store
-  const arrows = useUnifiedStore(state => {
-    return arrowIds.map(id => state.arrows.get(id)).filter(Boolean) as DomainArrow[];
-  });
+  // Get full arrow data from the store with memoization
+  const arrows = useUnifiedStore(
+    useShallow(state => {
+      return arrowIds.map(id => state.arrows.get(id)).filter(Boolean) as DomainArrow[];
+    })
+  );
 
 
   /** --------------------------------------------------

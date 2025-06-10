@@ -153,18 +153,12 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // Store state
   const storeState = useUnifiedStore(
     useShallow(state => ({
-      // Convert domain nodes to React Flow format with handles
-      nodes: (() => {
-        const domainNodes = Array.from(state.nodes.values());
-        return domainNodes.map(node => {
-          const nodeHandles = Array.from(state.handles.values()).filter(h => h.nodeId === node.id);
-          return nodeToReact(node, nodeHandles);
-        });
-      })(),
+      // Raw data from store
+      nodesMap: state.nodes,
+      handlesMap: state.handles,
       
       arrows: Array.from(state.arrows.values()),
       persons: Array.from(state.persons.values()),
-      handles: state.handles,
       isMonitorMode: state.readOnly,
       
       // Selection
@@ -205,9 +199,20 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
         changes.forEach((change) => {
           switch (change.type) {
             case 'position':
-              if (change.position) {
-                // Update position for any position change
-                state.updateNode(change.id as NodeID, { position: change.position });
+              if (change.position && !change.dragging) {
+                // Only update position when dragging ends to prevent update loops
+                const node = state.nodes.get(change.id as NodeID);
+                if (node) {
+                  // Check if position actually changed (with tolerance for floating point)
+                  const tolerance = 0.01;
+                  const positionChanged = 
+                    Math.abs((node.position?.x || 0) - change.position.x) > tolerance ||
+                    Math.abs((node.position?.y || 0) - change.position.y) > tolerance;
+                  
+                  if (positionChanged) {
+                    state.updateNode(change.id as NodeID, { position: change.position });
+                  }
+                }
               }
               break;
             case 'dimensions':
@@ -279,6 +284,19 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     }))
   );
   
+  // Convert domain nodes to React Flow format with handles
+  // Use size as dependency to only recompute when nodes/handles are added/removed
+  const nodesSize = storeState.nodesMap.size;
+  const handlesSize = storeState.handlesMap.size;
+  
+  const nodes = React.useMemo(() => {
+    const domainNodes = Array.from(storeState.nodesMap.values());
+    return domainNodes.map(node => {
+      const nodeHandles = Array.from(storeState.handlesMap.values()).filter(h => h.nodeId === node.id);
+      return nodeToReact(node, nodeHandles);
+    });
+  }, [nodesSize, handlesSize, storeState.nodesMap, storeState.handlesMap]);
+  
   // Derive selected IDs based on selectedType
   const selectedNodeId = storeState.selectedType === 'node' ? storeState.selectedId as NodeID : null;
   const selectedArrowId = storeState.selectedType === 'arrow' ? storeState.selectedId as ArrowID : null;
@@ -339,7 +357,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const handleDuplicateNode = useCallback((nodeId: NodeID) => {
     if (!enableInteractions || storeState.isMonitorMode) return;
     
-    const node = storeState.nodes.find(n => n.id === nodeId);
+    const node = storeState.nodesMap.get(nodeId);
     if (!node) return;
     
     // Create a duplicate with offset position
@@ -619,10 +637,10 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   
   return {
     // === Canvas State ===
-    nodes: storeState.nodes,
+    nodes,
     arrows: storeState.arrows.map(a => a.id),
     persons: storeState.persons.map(p => p.id),
-    handles: storeState.handles,
+    handles: storeState.handlesMap,
     
     // === Selection State ===
     selectedId: storeState.selectedId,
