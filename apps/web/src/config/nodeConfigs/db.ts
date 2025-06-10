@@ -11,8 +11,8 @@ export const dbConfig = createUnifiedConfig<DBFormData>({
   icon: '💾',
   color: 'yellow',
   handles: {
-    input: [{ id: 'default', position: 'bottom', offset: { x: -20, y: 0 } }],
-    output: [{ id: 'default', position: 'bottom', offset: { x: 20, y: 0 } }]
+    input: [{ id: 'default', position: 'left' }],
+    output: [{ id: 'default', position: 'right' }]
   },
   fields: [
     { 

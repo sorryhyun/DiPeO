@@ -56,9 +56,9 @@ function useHandles(nodeType: string, isFlipped: boolean) {
            handle.position === 'top' ? Position.Top : Position.Bottom);
       
       const offset = handle.offset || { x: 0, y: 0 };
-      const style = isVertical 
-        ? { left: `${50 + (offset.x / 2)}%`, transform: `translateX(-50%)` }
-        : { top: `${50 + (offset.y / 2)}%`, transform: `translateY(-50%)` };
+      const offsetPercentage = isVertical 
+        ? 50 + (offset.x / 2)
+        : 50 + (offset.y / 2);
       
       // Ensure unique handle ID
       let handleName = handle.id || 'default';
@@ -74,8 +74,8 @@ function useHandles(nodeType: string, isFlipped: boolean) {
         position,
         id: handleName,
         name: handleName,
-        style,
-        offset: 50,
+        style: {},
+        offset: offsetPercentage,
         color: handle.color
       };
     });

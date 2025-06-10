@@ -12,8 +12,8 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
   color: 'indigo',
   handles: {
     input: [
-      { id: 'first', position: 'left', label: 'first', offset: { x: 0, y: -40 }, color: '#f59e0b' },
-      { id: 'default', position: 'left', label: 'default', offset: { x: 0, y: 40 }, color: '#2563eb' }
+      { id: 'first', position: 'left', label: 'first', offset: { x: 0, y: -60 }, color: '#f59e0b' },
+      { id: 'default', position: 'left', label: 'default', offset: { x: 0, y: 60 }, color: '#2563eb' }
     ],
     output: [{ id: 'default', position: 'right' }]
   },

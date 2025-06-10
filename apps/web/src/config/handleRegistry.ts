@@ -37,8 +37,8 @@ export const HANDLE_REGISTRY: Record<string, NodeHandleConfig> = {
   
   'person_job': {
     inputs: [
-      { id: 'first', position: 'left', label: 'first', offset: { y: -40 } },
-      { id: 'default', position: 'left', label: 'default', offset: { y: 40 } }
+      { id: 'first', position: 'left', label: 'first', offset: { y: -60 } },
+      { id: 'default', position: 'left', label: 'default', offset: { y: 60 } }
     ],
     outputs: [{ id: 'default', position: 'right' }]
   },
@@ -49,8 +49,8 @@ export const HANDLE_REGISTRY: Record<string, NodeHandleConfig> = {
   },
   
   'db': {
-    inputs: [{ id: 'default', position: 'bottom' }],
-    outputs: [{ id: 'default', position: 'bottom' }]
+    inputs: [{ id: 'default', position: 'left' }],
+    outputs: [{ id: 'default', position: 'right' }]
   },
   
   'user_response': {

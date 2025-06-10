@@ -16,7 +16,7 @@ const TopBar = () => {
   
   // Use unified store with specific selectors to avoid unnecessary re-renders
   const setReadOnly = useUnifiedStore(state => state.setReadOnly);
-  const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
+  const { activeCanvas, setActiveCanvas } = useUIState();
   
   // Use only the diagram manager for file operations - much lighter weight
   const diagramManager = useDiagramManager({
@@ -181,7 +181,7 @@ const TopBar = () => {
             }`}
             onClick={() => {
               if (activeCanvas === 'execution') {
-                toggleCanvas();
+                setActiveCanvas('main');
                 // Exit read-only mode when leaving execution mode
                 setReadOnly?.(false);
                 // Also exit monitor mode when leaving execution mode
