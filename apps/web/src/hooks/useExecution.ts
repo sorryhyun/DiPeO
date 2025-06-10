@@ -505,7 +505,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       let backendDiagram = diagram;
       if (diagram) {
         // Backend expects nodes and arrows as arrays, but persons as object
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         backendDiagram = {
           nodes: Object.values(diagram.nodes || {}),
           arrows: Object.values(diagram.arrows || {}),
