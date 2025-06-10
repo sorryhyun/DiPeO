@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
-import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { 
@@ -152,137 +152,131 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   
   // Store state
   const storeState = useUnifiedStore(
-    state => {
+    useShallow(state => ({
       // Convert domain nodes to React Flow format with handles
-      const domainNodes = Array.from(state.nodes.values());
-      const nodes = domainNodes.map(node => {
-        const nodeHandles = Array.from(state.handles.values()).filter(h => h.nodeId === node.id);
-        return nodeToReact(node, nodeHandles);
-      });
+      nodes: (() => {
+        const domainNodes = Array.from(state.nodes.values());
+        return domainNodes.map(node => {
+          const nodeHandles = Array.from(state.handles.values()).filter(h => h.nodeId === node.id);
+          return nodeToReact(node, nodeHandles);
+        });
+      })(),
       
-      const arrows = Array.from(state.arrows.values());
-      const persons = Array.from(state.persons.values());
+      arrows: Array.from(state.arrows.values()),
+      persons: Array.from(state.persons.values()),
+      handles: state.handles,
+      isMonitorMode: state.readOnly,
       
-      return {
-        // State
-        nodes,
-        arrows,
-        persons,
-        handles: state.handles,
-        isMonitorMode: state.readOnly,
+      // Selection
+      selectedId: state.selectedId,
+      selectedType: state.selectedType,
+      
+      // Node operations
+      addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
+        state.addNode(type as NodeKind, position, data),
+      updateNode: state.updateNode,
+      deleteNode: state.deleteNode,
+      
+      // Arrow operations
+      addArrow: state.addArrow,
+      updateArrow: state.updateArrow,
+      deleteArrow: state.deleteArrow,
+      
+      // Person operations
+      addPerson: (person: { name: string; service: string; model: string }) => 
+        state.addPerson(person.name, person.service as LLMService, person.model),
+      updatePerson: state.updatePerson,
+      deletePerson: state.deletePerson,
+      getPersonById: (id: PersonID) => state.persons.get(id),
+      
+      // Selection
+      select: state.select,
+      clearSelection: state.clearSelection,
+      
+      // Derived state helpers
+      isNodeRunning: (id: NodeID) => state.execution.runningNodes.has(id),
+      getNodeState: (id: NodeID) => state.execution.nodeStates.get(id),
+      isSelected: (id: string) => state.selectedId === id,
+      
+      // React Flow handlers
+      onNodesChange: (changes: NodeChange[]) => {
+        if (state.readOnly) return;
         
-        // Selection
-        selectedId: state.selectedId,
-        selectedType: state.selectedType,
-        
-        // Node operations
-        addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
-          state.addNode(type as NodeKind, position, data),
-        updateNode: state.updateNode,
-        deleteNode: state.deleteNode,
-        
-        // Arrow operations
-        addArrow: state.addArrow,
-        updateArrow: state.updateArrow,
-        deleteArrow: state.deleteArrow,
-        
-        // Person operations
-        addPerson: (person: { name: string; service: string; model: string }) => 
-          state.addPerson(person.name, person.service as LLMService, person.model),
-        updatePerson: state.updatePerson,
-        deletePerson: state.deletePerson,
-        getPersonById: (id: PersonID) => state.persons.get(id),
-        
-        // Selection
-        select: state.select,
-        clearSelection: state.clearSelection,
-        
-        // Derived state helpers
-        isNodeRunning: (id: NodeID) => state.execution.runningNodes.has(id),
-        getNodeState: (id: NodeID) => state.execution.nodeStates.get(id),
-        isSelected: (id: string) => state.selectedId === id,
-        
-        // React Flow handlers
-        onNodesChange: (changes: NodeChange[]) => {
-          if (state.readOnly) return;
-          
-          changes.forEach((change) => {
-            switch (change.type) {
-              case 'position':
-                if (change.position) {
-                  // Update position for any position change
-                  state.updateNode(change.id as NodeID, { position: change.position });
-                }
-                break;
-              case 'dimensions':
-                // Dimensions are handled by React Flow internally
-                // We don't need to store them in our domain model
-                break;
-              case 'replace':
-                // Handle node replacement if needed
-                // This is typically used when React Flow updates internal state
-                break;
-              case 'remove':
-                state.deleteNode(change.id as NodeID);
-                break;
-              case 'select':
-                // Handle selection changes if needed
-                if (change.selected) {
-                  state.select(change.id, 'node');
-                }
-                break;
-              case 'add':
-                // React Flow is initializing the node - no action needed as node already exists in store
-                break;
-              default: {
-                // Type-safe exhaustive check
-                const _exhaustiveCheck: never = change;
-                break;
+        changes.forEach((change) => {
+          switch (change.type) {
+            case 'position':
+              if (change.position) {
+                // Update position for any position change
+                state.updateNode(change.id as NodeID, { position: change.position });
               }
+              break;
+            case 'dimensions':
+              // Dimensions are handled by React Flow internally
+              // We don't need to store them in our domain model
+              break;
+            case 'replace':
+              // Handle node replacement if needed
+              // This is typically used when React Flow updates internal state
+              break;
+            case 'remove':
+              state.deleteNode(change.id as NodeID);
+              break;
+            case 'select':
+              // Handle selection changes if needed
+              if (change.selected) {
+                state.select(change.id, 'node');
+              }
+              break;
+            case 'add':
+              // React Flow is initializing the node - no action needed as node already exists in store
+              break;
+            default: {
+              // Type-safe exhaustive check
+              const _exhaustiveCheck: never = change;
+              break;
             }
-          });
-        },
-        
-        onArrowsChange: (changes: EdgeChange[]) => {
-          if (state.readOnly) return;
-          
-          changes.forEach((change) => {
-            if (change.type === 'remove') {
-              state.deleteArrow(change.id as ArrowID);
-            }
-          });
-        },
-        
-        onConnect: (connection: Connection) => {
-          if (state.readOnly) return;
-          
-          if (connection.source && connection.target && 
-              connection.sourceHandle && connection.targetHandle) {
-            // Create proper handle IDs from node IDs and handle names
-            const sourceHandleId = handleId(
-              nodeId(connection.source),
-              connection.sourceHandle
-            );
-            const targetHandleId = handleId(
-              nodeId(connection.target),
-              connection.targetHandle
-            );
-            
-            state.addArrow(sourceHandleId, targetHandleId);
           }
-        },
+        });
+      },
+      
+      onArrowsChange: (changes: EdgeChange[]) => {
+        if (state.readOnly) return;
         
-        // Batch operations
-        transaction: state.transaction,
+        changes.forEach((change) => {
+          if (change.type === 'remove') {
+            state.deleteArrow(change.id as ArrowID);
+          }
+        });
+      },
+      
+      onConnect: (connection: Connection) => {
+        if (state.readOnly) return;
         
-        // History
-        undo: state.undo,
-        redo: state.redo,
-        canUndo: state.history.undoStack.length > 0,
-        canRedo: state.history.redoStack.length > 0,
-      };
-    },
-    shallow
+        if (connection.source && connection.target && 
+            connection.sourceHandle && connection.targetHandle) {
+          // Create proper handle IDs from node IDs and handle names
+          const sourceHandleId = handleId(
+            nodeId(connection.source),
+            connection.sourceHandle
+          );
+          const targetHandleId = handleId(
+            nodeId(connection.target),
+            connection.targetHandle
+          );
+          
+          state.addArrow(sourceHandleId, targetHandleId);
+        }
+      },
+      
+      // Batch operations
+      transaction: state.transaction,
+      
+      // History
+      undo: state.undo,
+      redo: state.redo,
+      canUndo: state.history.undoStack.length > 0,
+      canRedo: state.history.redoStack.length > 0,
+    }))
   );
   
   // Derive selected IDs based on selectedType

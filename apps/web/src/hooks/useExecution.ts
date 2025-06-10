@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { useWebSocketEventBus } from './useWebSocketEventBus';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
@@ -167,7 +167,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   
   // Get execution actions from store
   const executionActions = useUnifiedStore(
-    state => ({
+    useShallow(state => ({
       startExecution: state.startExecution,
       stopExecution: state.stopExecution,
       reset: () => {
@@ -197,8 +197,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           timestamp: Date.now()
         });
       },
-    }),
-    shallow
+    }))
   );
   
   // State
@@ -612,12 +611,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
 
   // Get store state for selectors
   const storeState = useUnifiedStore(
-    state => ({
+    useShallow(state => ({
       runContext: state.execution.context,
       runningNodes: Array.from(state.execution.runningNodes),
       nodeStates: state.execution.nodeStates,
-    }),
-    shallow
+    }))
   );
 
   // Helper function to get node execution state
