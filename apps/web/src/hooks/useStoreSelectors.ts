@@ -5,32 +5,44 @@
  * For diagram export/import operations, use the useExport hook.
  */
 
+import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
+import { useCallback } from 'react';
 
 
 export const useUIState = () => {
-  const store = useUnifiedStore();
-  
+  // Use shallow equality check for object selection
+  const state = useUnifiedStore(
+    useShallow((state) => ({
+      dashboardTab: state.dashboardTab,
+      setDashboardTab: state.setDashboardTab,
+      activeCanvas: state.activeCanvas,
+      setActiveCanvas: state.setActiveCanvas,
+      activeView: state.activeView,
+      showApiKeysModal: state.showApiKeysModal,
+      showExecutionModal: state.showExecutionModal,
+      openApiKeysModal: state.openApiKeysModal,
+      closeApiKeysModal: state.closeApiKeysModal,
+      openExecutionModal: state.openExecutionModal,
+      closeExecutionModal: state.closeExecutionModal,
+      selectedId: state.selectedId,
+    }))
+  );
+
+  // Memoize the toggle function
+  const toggleCanvas = useCallback(() => {
+    const canvases: ('main' | 'execution' | 'memory')[] = ['main', 'execution', 'memory'];
+    const currentCanvas = state.activeCanvas || 'main';
+    const currentIndex = canvases.indexOf(currentCanvas as 'main' | 'execution' | 'memory');
+    const nextIndex = (currentIndex + 1) % canvases.length;
+    state.setActiveCanvas(canvases[nextIndex] as 'main' | 'execution' | 'memory');
+  }, [state.activeCanvas, state.setActiveCanvas]);
+
   return {
-    dashboardTab: store.dashboardTab,
-    setDashboardTab: store.setDashboardTab,
-    activeCanvas: store.activeCanvas as 'main' | 'execution' | 'memory',
-    setActiveCanvas: store.setActiveCanvas,
-    toggleCanvas: () => {
-      const canvases: ('main' | 'execution' | 'memory')[] = ['main', 'execution', 'memory'];
-      const currentCanvas = store.activeCanvas || 'main';
-      const currentIndex = canvases.indexOf(currentCanvas);
-      const nextIndex = (currentIndex + 1) % canvases.length;
-      store.setActiveCanvas(canvases[nextIndex] as 'main' | 'execution' | 'memory');
-    },
-    activeView: store.activeView,
-    showApiKeysModal: store.showApiKeysModal,
-    showExecutionModal: store.showExecutionModal,
-    openApiKeysModal: store.openApiKeysModal,
-    closeApiKeysModal: store.closeApiKeysModal,
-    openExecutionModal: store.openExecutionModal,
-    closeExecutionModal: store.closeExecutionModal,
-    hasSelection: store.selectedId !== null,
+    ...state,
+    activeCanvas: state.activeCanvas as 'main' | 'execution' | 'memory',
+    toggleCanvas,
+    hasSelection: state.selectedId !== null,
   };
 };
 

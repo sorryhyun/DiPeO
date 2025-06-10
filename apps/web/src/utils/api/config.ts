@@ -26,12 +26,12 @@ export const API_BASE_URL = API_CONFIG.BASE_URL;
 export const API_ENDPOINTS = {
   // Diagram execution (Unified Backend)
   RUN_DIAGRAM: '/api/diagrams/execute',
-  EXECUTION_CAPABILITIES: '/api/execution-capabilities',
+  EXECUTION_CAPABILITIES: '/api/diagrams/execution-capabilities',
   EXECUTION_DETAILS: (id: string) => `/api/executions/${id}`,
   EXECUTION_STATE: (id: string) => `/api/executions/${id}/state`,
   PAUSE_EXECUTION: (id: string) => `/api/executions/${id}/pause`,
   RESUME_EXECUTION: (id: string) => `/api/executions/${id}/resume`,
-  HEALTH: '/api/health',
+  HEALTH: '/api/diagrams/health',
   
   // Resource management  
   API_KEYS: '/api/api-keys/',
@@ -41,7 +41,7 @@ export const API_ENDPOINTS = {
   CONVERSATIONS: '/api/conversations',
   
   // File operations
-  UPLOAD_FILE: '/api/upload-file',
+  UPLOAD_FILE: '/api/files/upload',
   
   // Import/Export
   IMPORT_YAML: '/api/import-yaml', 

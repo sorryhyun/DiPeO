@@ -15,7 +15,6 @@ const TopBar = () => {
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
   // Use unified store with specific selectors to avoid unnecessary re-renders
-  const apiKeysLength = useUnifiedStore(state => state.apiKeys.size);
   const setReadOnly = useUnifiedStore(state => state.setReadOnly);
   const { activeCanvas, toggleCanvas, setActiveCanvas } = useUIState();
   
@@ -96,7 +95,10 @@ const TopBar = () => {
             const data = await res.json();
             const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
             
-            if (backendKeys.length > 0 && apiKeysLength === 0) {
+            // Get current apiKeys length from store
+            const currentApiKeysLength = useUnifiedStore.getState().apiKeys.size;
+            
+            if (backendKeys.length > 0 && currentApiKeysLength === 0) {
               // API keys are already loaded in the mount effect above
               // This check is kept for compatibility but keys are not re-added
             }
@@ -125,8 +127,7 @@ const TopBar = () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  }, [hasCheckedBackend]); // Add hasCheckedBackend to dependencies
 
   // Keyboard shortcuts could be added here if needed
 
