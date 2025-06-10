@@ -16,6 +16,7 @@ import {generateNodeHandlesFromRegistry} from "@/utils";
 import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
 import {DiagramExporter} from "./diagramExporter";
 import {getNodeDefaults} from "@/config";
+import {loadAutoSavedDiagram, setupAutoSave} from "./persistedStore";
 
 // Helper function to create a snapshot
 function createSnapshot(state: Partial<UnifiedStore>): Snapshot {
@@ -53,6 +54,7 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
 
   return baseNode;
 }
+
 
 export const useUnifiedStore = create<UnifiedStore>()(
   devtools(
@@ -506,6 +508,15 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.apiKeys = new Map(snapshot.apiKeys);
           }),
 
+        clearAll: () =>
+          set((state) => {
+            state.nodes = new Map();
+            state.arrows = new Map();
+            state.persons = new Map();
+            state.handles = new Map();
+            state.apiKeys = new Map();
+          }),
+
         // Export/Import operations
         exportDiagram: () => {
           const exporter = new DiagramExporter(get());
@@ -518,8 +529,60 @@ export const useUnifiedStore = create<UnifiedStore>()(
         },
 
         importDiagram: (data: ExportFormat | string) => {
-          const exporter = new DiagramExporter(get());
-          exporter.importDiagram(data);
+          const exportData: ExportFormat = typeof data === 'string'
+            ? JSON.parse(data)
+            : data;
+            
+          // Validate first
+          const validation = get().validateExportData(exportData);
+          if (!validation.valid) {
+            throw new Error(`Invalid export data: ${validation.errors.join(', ')}`);
+          }
+          
+          // Clear and import in a single set operation
+          set((state) => {
+            // Clear existing data
+            state.nodes = new Map();
+            state.arrows = new Map();
+            state.persons = new Map();
+            state.handles = new Map();
+            state.apiKeys = new Map();
+            
+            // Create a temporary exporter with mutable maps
+            const tempState = {
+              nodes: new Map(state.nodes),
+              arrows: new Map(state.arrows),
+              persons: new Map(state.persons), 
+              handles: new Map(state.handles),
+              apiKeys: new Map(state.apiKeys),
+              // Include all the action methods
+              addNode: state.addNode,
+              addArrow: state.addArrow,
+              addPerson: state.addPerson,
+              addApiKey: state.addApiKey,
+              updateNode: state.updateNode,
+              updatePerson: state.updatePerson,
+              transaction: (fn: () => void) => fn(),
+              clearAll: () => {
+                tempState.nodes.clear();
+                tempState.arrows.clear();
+                tempState.persons.clear();
+                tempState.handles.clear();
+                tempState.apiKeys.clear();
+              }
+            };
+            
+            // Import using temporary state
+            const exporter = new DiagramExporter(tempState as any);
+            exporter.importDiagram(exportData);
+            
+            // Copy back to actual state
+            state.nodes = tempState.nodes;
+            state.arrows = tempState.arrows;
+            state.persons = tempState.persons;
+            state.handles = tempState.handles;
+            state.apiKeys = tempState.apiKeys;
+          });
         },
 
         validateExportData: (data: unknown) => {
@@ -530,6 +593,28 @@ export const useUnifiedStore = create<UnifiedStore>()(
     )
   )
 );
+
+// Initialize store with auto-saved data
+const initializeStore = () => {
+  const autoSaved = loadAutoSavedDiagram();
+  if (autoSaved) {
+    try {
+      console.log('Restoring auto-saved diagram from', autoSaved.metadata?.exported);
+      useUnifiedStore.getState().importDiagram(autoSaved);
+    } catch (e) {
+      console.error('Failed to restore auto-saved diagram:', e);
+    }
+  }
+  
+  // Set up auto-save
+  setupAutoSave(useUnifiedStore);
+};
+
+// Initialize on first import
+if (typeof window !== 'undefined') {
+  // Delay initialization to ensure store is ready
+  setTimeout(initializeStore, 0);
+}
 
 // Selectors for common operations
 export const useNodeById = (nodeId: NodeID | null) =>

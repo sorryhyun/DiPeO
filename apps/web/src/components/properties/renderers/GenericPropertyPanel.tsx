@@ -17,20 +17,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   data,
   config
 }: GenericPropertyPanelProps<T>) => {
-  console.log('GenericPropertyPanel rendering:', {
-    nodeId,
-    dataType: data.type,
-    config: {
-      layout: config.layout,
-      fieldsCount: config.layout === 'single' ? config.fields?.length : undefined,
-      leftColumnCount: config.layout === 'twoColumn' ? config.leftColumn?.length : undefined,
-      rightColumnCount: config.layout === 'twoColumn' ? config.rightColumn?.length : undefined,
-      fields: config.layout === 'single' ? config.fields : undefined,
-      leftColumn: config.layout === 'twoColumn' ? config.leftColumn : undefined,
-      rightColumn: config.layout === 'twoColumn' ? config.rightColumn : undefined
-    }
-  });
-  
+
   const canvas = useCanvasOperations();
 
   // Convert persons to the format expected by UnifiedFormField
@@ -200,12 +187,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
 
   const renderSection = useCallback((fields: PanelFieldConfig[] | undefined) => {
-    console.log('renderSection called with fields:', fields);
     if (!fields) {
-      console.log('  -> fields is null/undefined, returning null');
       return null;
     }
-    console.log(`  -> rendering ${fields.length} fields`);
     return fields.map((field, index) => renderField(field, index));
   }, [renderField]);
 

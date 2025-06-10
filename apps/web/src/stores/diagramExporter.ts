@@ -1,12 +1,10 @@
 import {
-  DomainNode,  DomainArrow,  DomainHandle,  DomainPerson, DomainApiKey,  NodeID,
-  ArrowID,  PersonID,  ApiKeyID,  nodeId,  arrowId,
-  personId,  apiKeyId,  handleId,  parseHandleId,  NodeKind,
-  DataType,  HandlePosition,  generateShortId,  generateArrowId,
-  LLMService,  ForgettingMode
+  DomainNode,  DomainArrow,  DomainPerson, DomainApiKey,  DomainHandle,  
+  InputHandle, OutputHandle, NodeID, PersonID,  ApiKeyID,  handleId,  
+  parseHandleId,  NodeKind, LLMService, generateNodeId, DataType, HandlePosition
 } from '@/types';
-import { getNodeConfig } from '@/config/helpers';
-import type { UnifiedStore, ExportFormat, ExportedNode, ExportedArrow, ExportedPerson, ExportedApiKey } from './unifiedStore.types';
+import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
+import type { UnifiedStore, ExportFormat, ExportedNode, ExportedArrow, ExportedPerson, ExportedApiKey, ExportedHandle } from './unifiedStore.types';
 
 // Optimized export class
 export class DiagramExporter {
@@ -72,12 +70,16 @@ export class DiagramExporter {
     this.buildExportLookups();
 
     const nodes = Array.from(this.store.nodes.values());
+    const handles = Array.from(this.store.handles.values());
     const arrows = Array.from(this.store.arrows.values());
     const persons = Array.from(this.store.persons.values());
     const apiKeys = Array.from(this.store.apiKeys.values());
 
-    // Export nodes with handles
+    // Export nodes
     const exportedNodes = this.exportNodes(nodes);
+    
+    // Export handles separately
+    const exportedHandles = this.exportHandles(handles);
     
     // Export arrows
     const exportedArrows = this.exportArrows(arrows);
@@ -89,8 +91,9 @@ export class DiagramExporter {
     const exportedApiKeys = this.exportApiKeys(apiKeys);
 
     return {
-      version: '3.0.0',
+      version: '4.0.0',
       nodes: exportedNodes,
+      handles: exportedHandles,
       arrows: exportedArrows,
       persons: exportedPersons,
       apiKeys: exportedApiKeys,
@@ -117,22 +120,28 @@ export class DiagramExporter {
       throw new Error(`Invalid export data: ${validation.errors.join(', ')}`);
     }
 
-    // Clear existing data
-    this.store.transaction(() => {
-      // Clear all collections
-      this.store.nodes.clear();
-      this.store.arrows.clear();
-      this.store.persons.clear();
-      this.store.apiKeys.clear();
-      this.store.handles.clear();
-    });
+    // Clear existing data without using transaction
+    this.store.clearAll();
     this.clearLookups();
 
-    // Import in order: API keys -> Persons -> Nodes -> Arrows
+    // Import in order: API keys -> Persons -> Nodes -> Handles -> Arrows
     this.store.transaction(() => {
       this.importApiKeys(exportData.apiKeys);
       this.importPersons(exportData.persons);
-      this.importNodes(exportData.nodes);
+      
+      // For v4.0.0+, we'll import handles separately, so skip auto-generation
+      const skipHandleGeneration = exportData.version >= '4.0.0' && !!exportData.handles && exportData.handles.length > 0;
+      this.importNodes(exportData.nodes, skipHandleGeneration);
+      
+      // Import handles if present (v4.0.0+)
+      if (exportData.handles && Array.isArray(exportData.handles) && exportData.handles.length > 0) {
+        this.importHandles(exportData.handles);
+      } else if (exportData.version >= '4.0.0') {
+        // If v4.0.0+ but no handles, we need to generate them
+        console.warn('No handles found in v4.0.0+ export, regenerating handles');
+        this.regenerateHandlesForNodes();
+      }
+      
       this.importArrows(exportData.arrows);
     });
   }
@@ -166,6 +175,13 @@ export class DiagramExporter {
     if (!Array.isArray(exportData.apiKeys)) {
       errors.push('apiKeys must be an array');
     }
+    
+    // Check handles array for v4.0.0+
+    if (exportData.version && exportData.version >= '4.0.0') {
+      if (!Array.isArray(exportData.handles)) {
+        errors.push('handles must be an array for version 4.0.0+');
+      }
+    }
 
     // Validate nodes
     if (Array.isArray(exportData.nodes)) {
@@ -181,8 +197,6 @@ export class DiagramExporter {
     // Validate arrows
     if (Array.isArray(exportData.arrows)) {
       exportData.arrows.forEach((arrow, index) => {
-        if (!arrow.sourceLabel) errors.push(`Arrow ${index} missing sourceLabel`);
-        if (!arrow.targetLabel) errors.push(`Arrow ${index} missing targetLabel`);
         if (!arrow.sourceHandle) errors.push(`Arrow ${index} missing sourceHandle`);
         if (!arrow.targetHandle) errors.push(`Arrow ${index} missing targetHandle`);
       });
@@ -194,8 +208,6 @@ export class DiagramExporter {
   // Private export helpers
   private exportNodes(nodes: DomainNode[]): ExportedNode[] {
     return nodes.map(node => {
-      const nodeHandles = Array.from(this.store.handles.values())
-        .filter(handle => handle.nodeId === node.id);
       const label = this.nodeIdToLabel.get(node.id) || node.id;
 
       // Prepare data without internal properties
@@ -218,16 +230,36 @@ export class DiagramExporter {
           x: this.roundPosition(node.position.x),
           y: this.roundPosition(node.position.y)
         },
-        data,
-        handles: nodeHandles.map(handle => ({
-          name: handle.name,
-          direction: handle.direction,
-          dataType: handle.dataType,
-          position: handle.position,
-          label: handle.label,
-          maxConnections: handle.maxConnections
-        }))
+        data
       };
+    });
+  }
+
+  private exportHandles(handles: DomainHandle[]): ExportedHandle[] {
+    return handles.map(handle => {
+      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId) || handle.nodeId;
+      
+      const exportedHandle: ExportedHandle = {
+        nodeLabel,
+        name: handle.name,
+        direction: handle.direction,
+        dataType: handle.dataType,
+        position: handle.position,
+        label: handle.label,
+        maxConnections: handle.maxConnections
+      };
+
+      // Type-safe handling of optional properties
+      if (handle.direction === 'input') {
+        const inputHandle = handle as InputHandle;
+        if ('required' in inputHandle) exportedHandle.required = inputHandle.required;
+        if ('defaultValue' in inputHandle) exportedHandle.defaultValue = inputHandle.defaultValue;
+      } else if (handle.direction === 'output') {
+        const outputHandle = handle as OutputHandle;
+        if ('dynamic' in outputHandle) exportedHandle.dynamic = outputHandle.dynamic;
+      }
+
+      return exportedHandle;
     });
   }
 
@@ -240,10 +272,8 @@ export class DiagramExporter {
       const targetLabel = this.nodeIdToLabel.get(targetNodeId) || targetNodeId;
 
       return {
-        sourceLabel,
-        targetLabel,
-        sourceHandle: `${sourceLabel}-${sourceHandleName}`,
-        targetHandle: `${targetLabel}-${targetHandleName}`,
+        sourceHandle: `${sourceLabel}::${sourceHandleName}`,
+        targetHandle: `${targetLabel}::${targetHandleName}`,
         data: arrow.data
       };
     });
@@ -285,166 +315,190 @@ export class DiagramExporter {
   // Private import helpers
   private importApiKeys(apiKeys: ExportedApiKey[]): void {
     apiKeys.forEach(apiKeyData => {
-      const id = apiKeyId(`APIKEY_${generateShortId().slice(0, 6).toUpperCase()}`);
       const label = this.ensureUniqueLabel(apiKeyData.name, this.usedApiKeyLabels);
+      const id = this.store.addApiKey(label, apiKeyData.service);
       this.apiKeyLabelToId.set(label, id);
-
-      this.store.apiKeys.set(id, {
-        id,
-        name: label,
-        service: apiKeyData.service as LLMService
-      });
     });
   }
 
   private importPersons(persons: ExportedPerson[]): void {
     persons.forEach(personData => {
-      const id = personId(`person-${generateShortId().slice(0, 4)}`);
       const label = this.ensureUniqueLabel(personData.label, this.usedPersonLabels);
+      
+      // Create person using store action
+      const id = this.store.addPerson(label, personData.service as LLMService, personData.model);
       this.personLabelToId.set(label, id);
 
+      // Update with additional properties
+      const updateData: Record<string, unknown> = {};
+      if (personData.systemPrompt !== undefined) updateData.systemPrompt = personData.systemPrompt;
+      if (personData.temperature !== undefined) updateData.temperature = personData.temperature;
+      if (personData.maxTokens !== undefined) updateData.maxTokens = personData.maxTokens;
+      
       // Resolve API key reference
-      const apiKeyId = personData.apiKeyLabel ? this.apiKeyLabelToId.get(personData.apiKeyLabel) : undefined;
+      if (personData.apiKeyLabel) {
+        const apiKeyId = this.apiKeyLabelToId.get(personData.apiKeyLabel);
+        if (apiKeyId) updateData.apiKeyId = apiKeyId;
+      }
 
-      this.store.persons.set(id, {
-        id,
-        label,
-        model: personData.model,
-        service: personData.service as LLMService,
-        systemPrompt: personData.systemPrompt,
-        temperature: personData.temperature,
-        maxTokens: personData.maxTokens,
-        forgettingMode: 'no_forget' as ForgettingMode,
-        ...(apiKeyId && { apiKeyId })
-      });
+      if (Object.keys(updateData).length > 0) {
+        this.store.updatePerson(id, updateData as Partial<DomainPerson>);
+      }
     });
   }
 
-  private importNodes(nodes: ExportedNode[]): void {
+  private importNodes(nodes: ExportedNode[], skipHandleGeneration = false): void {
     nodes.forEach(nodeData => {
-      const id = nodeId(`${nodeData.type}-${generateShortId().slice(0, 4)}`);
       const label = this.ensureUniqueLabel(nodeData.label, this.usedNodeLabels);
-      this.nodeLabelToId.set(label, id);
-
+      
       // Resolve person reference
       let resolvedPersonId: PersonID | undefined;
-      if (nodeData.data.personLabel && this.personLabelToId.has(nodeData.data.personLabel as string)) {
-        resolvedPersonId = this.personLabelToId.get(nodeData.data.personLabel as string);
-        delete nodeData.data.personLabel;
+      const personLabel = nodeData.data.personLabel;
+      if (personLabel && this.personLabelToId.has(personLabel as string)) {
+        resolvedPersonId = this.personLabelToId.get(personLabel as string);
       }
 
-      // Create domain node
-      const domainNode: DomainNode = {
-        id,
-        type: nodeData.type as NodeKind,
-        position: nodeData.position,
-        data: {
-          ...nodeData.data,
-          label,
-          ...(resolvedPersonId && { personId: resolvedPersonId })
-        }
+      // Create a new data object without personLabel (if it exists)
+      const { personLabel: _, ...dataWithoutPersonLabel } = nodeData.data;
+
+      // Prepare initial data for node creation
+      const initialData = {
+        ...dataWithoutPersonLabel,
+        label,
+        ...(resolvedPersonId && { personId: resolvedPersonId })
       };
 
-      this.store.nodes.set(id, domainNode);
-
-      // Add handles
-      if (nodeData.handles) {
-        nodeData.handles.forEach(handleData => {
-          const handle: DomainHandle = {
-            id: handleId(id, handleData.name),
-            nodeId: id,
-            name: handleData.name,
-            direction: handleData.direction,
-            dataType: handleData.dataType as DataType,
-            position: handleData.position as HandlePosition,
-            label: handleData.label,
-            maxConnections: handleData.maxConnections
-          };
-          this.store.handles.set(handle.id, handle);
-        });
+      // Create node using store action
+      // For v4.0.0+, handles will be imported separately
+      if (skipHandleGeneration) {
+        // Directly add node without auto-generating handles
+        const nodeId = generateNodeId();
+        const node: DomainNode = {
+          id: nodeId,
+          type: nodeData.type as NodeKind,
+          position: nodeData.position,
+          data: initialData
+        };
+        this.store.nodes.set(nodeId, node);
+        this.nodeLabelToId.set(label, nodeId);
       } else {
-        // Generate default handles if not provided
-        const nodeConfig = getNodeConfig(nodeData.type as NodeKind);
-        if (nodeConfig?.handles) {
-          const inputHandles = nodeConfig.handles.input || [];
-          const outputHandles = nodeConfig.handles.output || [];
-          
-          // Process input handles
-          inputHandles.forEach(handleConfig => {
-            const handle: DomainHandle = {
-              id: handleId(id, handleConfig.id),
-              nodeId: id,
-              name: handleConfig.id,
-              direction: 'input',
-              dataType: 'any' as DataType, // Default data type
-              position: handleConfig.position as HandlePosition,
-              label: handleConfig.label,
-              offset: handleConfig.offset ? 
-                ((handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0)) 
-                : undefined
-            };
-            this.store.handles.set(handle.id, handle);
-          });
-          
-          // Process output handles
-          outputHandles.forEach(handleConfig => {
-            const handle: DomainHandle = {
-              id: handleId(id, handleConfig.id),
-              nodeId: id,
-              name: handleConfig.id,
-              direction: 'output',
-              dataType: 'any' as DataType, // Default data type
-              position: handleConfig.position as HandlePosition,
-              label: handleConfig.label,
-              offset: handleConfig.offset ? 
-                ((handleConfig.offset.x ?? 0) + (handleConfig.offset.y ?? 0)) 
-                : undefined
-            };
-            this.store.handles.set(handle.id, handle);
-          });
-        }
+        // Use regular addNode which auto-generates handles
+        const id = this.store.addNode(nodeData.type as NodeKind, nodeData.position, initialData);
+        this.nodeLabelToId.set(label, id);
+      }
+    });
+  }
+
+  private importHandles(handles: ExportedHandle[]): void {
+    handles.forEach(handleData => {
+      // Resolve node ID from label
+      const nodeId = this.nodeLabelToId.get(handleData.nodeLabel);
+      if (!nodeId) {
+        console.warn(`Cannot resolve node for handle: ${handleData.nodeLabel}:${handleData.name}`);
+        return;
+      }
+
+      // Create handle ID
+      const id = handleId(nodeId, handleData.name);
+      
+      // Create handle based on direction
+      if (handleData.direction === 'input') {
+        const handle: InputHandle = {
+          id,
+          nodeId,
+          name: handleData.name,
+          direction: 'input',
+          dataType: handleData.dataType as DataType,
+          position: handleData.position as HandlePosition | undefined,
+          label: handleData.label,
+          maxConnections: handleData.maxConnections,
+          ...(handleData.required !== undefined && { required: handleData.required }),
+          ...(handleData.defaultValue !== undefined && { defaultValue: handleData.defaultValue })
+        };
+        this.store.handles.set(id, handle);
+      } else {
+        const handle: OutputHandle = {
+          id,
+          nodeId,
+          name: handleData.name,
+          direction: 'output',
+          dataType: handleData.dataType as DataType,
+          position: handleData.position as HandlePosition | undefined,
+          label: handleData.label,
+          maxConnections: handleData.maxConnections,
+          ...(handleData.dynamic !== undefined && { dynamic: handleData.dynamic })
+        };
+        this.store.handles.set(id, handle);
       }
     });
   }
 
   private importArrows(arrows: ExportedArrow[]): void {
     arrows.forEach(arrowData => {
-      // Resolve node IDs from labels
-      const sourceNodeId = this.nodeLabelToId.get(arrowData.sourceLabel);
-      const targetNodeId = this.nodeLabelToId.get(arrowData.targetLabel);
+      // Parse handle references - support both old "-" and new "::" separators
+      const parseHandleRef = (handleRef: string): { nodeLabel: string; handleName: string } => {
+        // First try new format with "::" separator
+        if (handleRef.includes('::')) {
+          const parts = handleRef.split('::');
+          return {
+            nodeLabel: parts[0] || '',
+            handleName: parts[1] || 'default'
+          };
+        }
+        
+        // Fall back to old format with "-" separator
+        // For backward compatibility, we need to handle cases where node labels contain hyphens
+        const lastHyphenIndex = handleRef.lastIndexOf('-');
+        
+        if (lastHyphenIndex === -1) {
+          // No hyphen found, assume default handle
+          return {
+            nodeLabel: handleRef,
+            handleName: 'default'
+          };
+        }
+        
+        // Extract node label and handle name
+        const nodeLabel = handleRef.substring(0, lastHyphenIndex);
+        const handleName = handleRef.substring(lastHyphenIndex + 1) || 'default';
+        
+        return { nodeLabel, handleName };
+      };
 
-      if (!sourceNodeId || !targetNodeId) {
-        console.warn(`Cannot resolve arrow nodes: ${arrowData.sourceLabel} -> ${arrowData.targetLabel}`);
+      // Parse source and target handle references
+      const source = parseHandleRef(arrowData.sourceHandle);
+      const target = parseHandleRef(arrowData.targetHandle);
+
+      // Validate we have node labels
+      if (!source.nodeLabel || !target.nodeLabel) {
+        console.warn(`Invalid arrow handle format: ${arrowData.sourceHandle} -> ${arrowData.targetHandle}`);
         return;
       }
 
-      // Extract handle names from compound labels
-      const sourceHandleParts = arrowData.sourceHandle.split('-');
-      const targetHandleParts = arrowData.targetHandle.split('-');
+      // Resolve node IDs from labels
+      const sourceNodeId = this.nodeLabelToId.get(source.nodeLabel);
+      const targetNodeId = this.nodeLabelToId.get(target.nodeLabel);
 
-      // Remove the node label prefix to get handle name
-      const sourceHandleName = sourceHandleParts.slice(1).join('-') || 'output';
-      const targetHandleName = targetHandleParts.slice(1).join('-') || 'input';
+      if (!sourceNodeId || !targetNodeId) {
+        console.warn(`Cannot resolve arrow nodes: ${source.nodeLabel} -> ${target.nodeLabel}`);
+        return;
+      }
 
-      // Create handle IDs
-      const sourceHandleId = handleId(sourceNodeId, sourceHandleName);
-      const targetHandleId = handleId(targetNodeId, targetHandleName);
+      // Create handle IDs (we know these are defined from the check above)
+      const sourceHandleId = handleId(sourceNodeId!, source.handleName);
+      const targetHandleId = handleId(targetNodeId!, target.handleName);
 
       // Verify handles exist
-      if (!this.store.handles.get(sourceHandleId) || !this.store.handles.get(targetHandleId)) {
+      const sourceHandle = this.store.handles.get(sourceHandleId);
+      const targetHandle = this.store.handles.get(targetHandleId);
+      
+      if (!sourceHandle || !targetHandle) {
         console.warn(`Cannot find handles for arrow: ${sourceHandleId} -> ${targetHandleId}`);
         return;
       }
 
-      // Create arrow
-      const arrow: DomainArrow = {
-        id: arrowId(generateArrowId()),
-        source: sourceHandleId,
-        target: targetHandleId,
-        data: arrowData.data
-      };
-
-      this.store.arrows.set(arrow.id, arrow);
+      // Create arrow using store action
+      this.store.addArrow(sourceHandleId, targetHandleId, arrowData.data);
     });
   }
 
@@ -455,16 +509,39 @@ export class DiagramExporter {
       return label;
     }
 
-    let counter = 2;
-    while (existingLabels.has(`${label}_${counter}`)) {
+    // Generate alphabetic suffixes like -ab, -ac, -ad, etc.
+    const generateSuffix = (index: number): string => {
+      let suffix = '';
+      while (index >= 0) {
+        suffix = String.fromCharCode(97 + (index % 26)) + suffix;
+        index = Math.floor(index / 26) - 1;
+      }
+      return suffix;
+    };
+
+    let counter = 0;
+    let uniqueLabel: string;
+    do {
+      const suffix = generateSuffix(counter);
+      uniqueLabel = `${label}-${suffix}`;
       counter++;
-    }
-    const uniqueLabel = `${label}_${counter}`;
+    } while (existingLabels.has(uniqueLabel));
+    
     existingLabels.add(uniqueLabel);
     return uniqueLabel;
   }
 
   private roundPosition(value: number): number {
     return Math.round(value * 10) / 10;
+  }
+  
+  private regenerateHandlesForNodes(): void {
+    // Generate handles for all nodes
+    this.store.nodes.forEach((node) => {
+      const handles = generateNodeHandlesFromRegistry(node.id, node.type);
+      handles.forEach((handle: DomainHandle) => {
+        this.store.handles.set(handle.id, handle);
+      });
+    });
   }
 }

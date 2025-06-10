@@ -121,7 +121,7 @@ export class Yaml {
       // Use service from person
       const service = person.service || 'openai'; // default
       
-      persons[person.name] = {
+      persons[person.label] = {
         model: person.model || 'gpt-4.1-nano',
         service,
         ...(person.systemPrompt && { system: person.systemPrompt })
@@ -210,7 +210,7 @@ export class Yaml {
     if (data.personId) {
       const person = persons.find(p => p.id === data.personId);
       if (person) {
-        baseStep.person = person.name;
+        baseStep.person = person.label;
       }
     }
 
@@ -286,8 +286,8 @@ export class Yaml {
       // Skip API key resolution - not part of DomainPerson
       
       persons.push({
-        id: personId(`person-${generateShortId().slice(0, 4)}`),  // Generate fresh ID
-        name: label,  // Use the key as label
+        id: personId(`person-${generateShortId()}`),  // Generate fresh ID
+        label: label,  // Use the key as label
         model: person.model,
         service: (person.service || 'openai') as DomainPerson['service'],
         systemPrompt: person.system
@@ -298,7 +298,7 @@ export class Yaml {
     const nodeLabelToId = new Map<string, string>();
     const personNameToId = new Map<string, PersonID>();
     persons.forEach(person => {
-      personNameToId.set(person.name, person.id);
+      personNameToId.set(person.label, person.id);
     });
     
     // First pass: create nodes and build label-to-ID mapping

@@ -16,19 +16,9 @@ export interface ExportedNode {
   type: string;
   position: { x: number; y: number };
   data: Record<string, unknown>;
-  handles?: Array<{
-    name: string;
-    direction: 'input' | 'output';
-    dataType: string;
-    position?: string;
-    label?: string;
-    maxConnections?: number;
-  }>;
 }
 
 export interface ExportedArrow {
-  sourceLabel: string;
-  targetLabel: string;
   sourceHandle: string;
   targetHandle: string;
   data?: Record<string, unknown>;
@@ -49,9 +39,23 @@ export interface ExportedApiKey {
   service: string;
 }
 
+export interface ExportedHandle {
+  nodeLabel: string;
+  name: string;
+  direction: 'input' | 'output';
+  dataType: string;
+  position?: string;
+  label?: string;
+  maxConnections?: number;
+  required?: boolean;
+  defaultValue?: unknown;
+  dynamic?: boolean;
+}
+
 export interface ExportFormat {
   version: string;
   nodes: ExportedNode[];
+  handles: ExportedHandle[];
   arrows: ExportedArrow[];
   persons: ExportedPerson[];
   apiKeys: ExportedApiKey[];
@@ -161,6 +165,7 @@ export interface UnifiedStore {
   // Utilities
   createSnapshot: () => Snapshot;
   restoreSnapshot: (snapshot: Snapshot) => void;
+  clearAll: () => void;
   
   // Export/Import operations
   exportDiagram: () => ExportFormat;

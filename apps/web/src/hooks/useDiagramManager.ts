@@ -111,8 +111,17 @@ function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolea
   // Check for unconnected nodes
   const connectedNodes = new Set<string>();
   exportFormat.arrows.forEach(arrow => {
-    connectedNodes.add(arrow.sourceLabel);
-    connectedNodes.add(arrow.targetLabel);
+    // Extract node labels from handle format "nodeLabel-handleName"
+    const sourceHandleParts = arrow.sourceHandle.split('-');
+    const targetHandleParts = arrow.targetHandle.split('-');
+    const sourceLabel = sourceHandleParts.length > 1 
+      ? sourceHandleParts.slice(0, -1).join('-') 
+      : sourceHandleParts[0];
+    const targetLabel = targetHandleParts.length > 1 
+      ? targetHandleParts.slice(0, -1).join('-') 
+      : targetHandleParts[0];
+    if (sourceLabel) connectedNodes.add(sourceLabel);
+    if (targetLabel) connectedNodes.add(targetLabel);
   });
   
   const unconnectedNodes = exportFormat.nodes.filter(

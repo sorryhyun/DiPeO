@@ -43,7 +43,7 @@ export function sanitizeDiagram(diagram: DomainDiagram): DomainDiagram {
   for (const [personId, person] of Object.entries(diagram.persons || {})) {
     sanitizedPersons[personId as PersonID] = {
       id: person.id,
-      name: person.name || 'Unnamed Person',
+      label: person.label || 'Unnamed Person',
       model: person.model || 'gpt-4.1-nano',
       service: person.service || 'openai',
       systemPrompt: person.systemPrompt,
