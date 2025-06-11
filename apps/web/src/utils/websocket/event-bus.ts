@@ -6,6 +6,7 @@
 import { Client, getWebSocketClient } from './client';
 import type { WSMessage } from '@/types';
 import { toast } from 'sonner';
+import { logger } from '../logger';
 
 export type EventCallback<T = any> = (data: T) => void;
 export type UnsubscribeFunction = () => void;
@@ -78,7 +79,7 @@ class WebSocketEventBus {
         this.updateConnectionState({
           lastError: error,
         });
-        console.error('WebSocket error:', event);
+        logger.error('WebSocket error:', event);
       })
       .on('message', (event) => {
         const message = (event as CustomEvent<WSMessage>).detail;
@@ -106,7 +107,7 @@ class WebSocketEventBus {
    */
   send(message: WSMessage): void {
     if (!this.client) {
-      console.error('WebSocket client not initialized');
+      logger.error('WebSocket client not initialized');
       return;
     }
     this.client.send(message);
@@ -175,7 +176,7 @@ class WebSocketEventBus {
    */
   private emit(eventType: string, data: any): void {
     if (this.debug) {
-      console.log(`[EventBus] Emit: ${eventType}`, data);
+      logger.debug(`[EventBus] Emit: ${eventType}`, data);
     }
 
     const callbacks = this.listeners.get(eventType);
@@ -184,7 +185,7 @@ class WebSocketEventBus {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in event handler for ${eventType}:`, error);
+          logger.error(`Error in event handler for ${eventType}:`, error);
         }
       });
     }
@@ -203,7 +204,7 @@ class WebSocketEventBus {
       try {
         callback(this.connectionState);
       } catch (error) {
-        console.error('Error in connection state listener:', error);
+        logger.error('Error in connection state listener:', error);
       }
     });
   }

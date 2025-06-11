@@ -19,9 +19,13 @@ import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
 import {DiagramExporter} from "./diagramExporter";
 import {getNodeDefaults} from "@/config";
 import {loadAutoSavedDiagram, setupAutoSave} from "./persistedStore";
+import { logger } from "@/utils/logger";
 
-// Helper function to create a snapshot
-function createSnapshot(state: Partial<UnifiedStore>): Snapshot {
+// Configuration
+const MAX_HISTORY_SIZE = 50; // Limit history to prevent memory issues
+
+// Helper function to create a full snapshot
+function createFullSnapshot(state: Partial<UnifiedStore>): Snapshot {
   return {
     nodes: new Map(state.nodes || new Map()),
     arrows: new Map(state.arrows || new Map()),
@@ -31,6 +35,7 @@ function createSnapshot(state: Partial<UnifiedStore>): Snapshot {
     timestamp: Date.now(),
   };
 }
+
 
 // Helper function to create a node
 function createNode(type: NodeKind, position: Vec2, initialData?: Record<string, unknown>): DomainNode {
@@ -105,18 +110,27 @@ export const useUnifiedStore = create<UnifiedStore>()(
             node.id = nodeId;
 
             // Add node
-            state.nodes.set(nodeId, node);
+            const newNodes = new Map(state.nodes);
+            newNodes.set(nodeId, node);
+            state.nodes = newNodes;
 
             // Auto-generate handles
             const handles = generateNodeHandlesFromRegistry(nodeId, type);
+            const newHandles = new Map(state.handles);
             handles.forEach((handle: DomainHandle) => {
-              state.handles.set(handle.id, handle);
+              newHandles.set(handle.id, handle);
             });
+            state.handles = newHandles;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           });
 
@@ -128,24 +142,35 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const node = state.nodes.get(id);
             if (!node) return;
 
+            // Create a new node object to ensure immutability
+            const updatedNode = { ...node };
+            
             // Deep merge data if provided in updates
             if (updates.data && node.data) {
-              updates = {
-                ...updates,
-                data: {
-                  ...node.data,
-                  ...updates.data
-                }
+              updatedNode.data = {
+                ...node.data,
+                ...updates.data
               };
+              const { data, ...otherUpdates } = updates;
+              Object.assign(updatedNode, otherUpdates);
+            } else {
+              Object.assign(updatedNode, updates);
             }
 
-            // Update node
-            Object.assign(node, updates);
+            // Replace the entire Map to trigger reactivity
+            const newNodes = new Map(state.nodes);
+            newNodes.set(id, updatedNode);
+            state.nodes = newNodes;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
@@ -155,21 +180,27 @@ export const useUnifiedStore = create<UnifiedStore>()(
             if (!node) return;
 
             // Delete node
-            state.nodes.delete(id);
+            const newNodes = new Map(state.nodes);
+            newNodes.delete(id);
+            state.nodes = newNodes;
 
             // Delete associated handles
+            const newHandles = new Map(state.handles);
             Array.from(state.handles.values()).forEach((handle) => {
               if (handle.nodeId === id) {
-                state.handles.delete(handle.id);
+                newHandles.delete(handle.id);
               }
             });
+            state.handles = newHandles;
 
             // Delete connected arrows
+            const newArrows = new Map(state.arrows);
             Array.from(state.arrows.values()).forEach((arrow) => {
               if (connectsToNode(arrow, id)) {
-                state.arrows.delete(arrow.id);
+                newArrows.delete(arrow.id);
               }
             });
+            state.arrows = newArrows;
 
             // Clear selection if deleted
             if (state.selectedId === id) {
@@ -179,8 +210,13 @@ export const useUnifiedStore = create<UnifiedStore>()(
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
@@ -196,12 +232,19 @@ export const useUnifiedStore = create<UnifiedStore>()(
               data: data || {},
             };
 
-            state.arrows.set(arrowId, arrow);
+            const newArrows = new Map(state.arrows);
+            newArrows.set(arrowId, arrow);
+            state.arrows = newArrows;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           });
 
@@ -225,19 +268,28 @@ export const useUnifiedStore = create<UnifiedStore>()(
               Object.assign(updatedArrow, updates);
             }
             
-            // Replace the arrow in the map to trigger reactivity
-            state.arrows.set(id, updatedArrow);
+            // Replace the entire Map to trigger reactivity
+            const newArrows = new Map(state.arrows);
+            newArrows.set(id, updatedArrow);
+            state.arrows = newArrows;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
         deleteArrow: (id) =>
           set((state) => {
-            state.arrows.delete(id);
+            const newArrows = new Map(state.arrows);
+            newArrows.delete(id);
+            state.arrows = newArrows;
 
             // Clear selection if deleted
             if (state.selectedId === id) {
@@ -247,8 +299,13 @@ export const useUnifiedStore = create<UnifiedStore>()(
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
@@ -267,12 +324,19 @@ export const useUnifiedStore = create<UnifiedStore>()(
               forgettingMode: 'no_forget',
             };
 
-            state.persons.set(personId, person);
+            const newPersons = new Map(state.persons);
+            newPersons.set(personId, person);
+            state.persons = newPersons;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           });
 
@@ -284,18 +348,31 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const person = state.persons.get(id);
             if (!person) return;
 
-            Object.assign(person, updates);
+            // Create a new person object to ensure immutability
+            const updatedPerson = { ...person, ...updates };
+            
+            // Replace the entire Map to trigger reactivity
+            const newPersons = new Map(state.persons);
+            newPersons.set(id, updatedPerson);
+            state.persons = newPersons;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
         deletePerson: (id) =>
           set((state) => {
-            state.persons.delete(id);
+            const newPersons = new Map(state.persons);
+            newPersons.delete(id);
+            state.persons = newPersons;
 
             // Clear selection if deleted
             if (state.selectedId === id) {
@@ -304,19 +381,27 @@ export const useUnifiedStore = create<UnifiedStore>()(
             }
 
             // Update nodes that reference this person
-            state.nodes.forEach((node) => {
+            const updatedNodes = new Map(state.nodes);
+            updatedNodes.forEach((node) => {
               if (
                 (node.type === 'person_job' || node.type === 'person_batch_job') &&
                 node.data.personId === id
               ) {
-                node.data.personId = null;
+                const updatedNode = { ...node, data: { ...node.data, personId: null } };
+                updatedNodes.set(node.id, updatedNode);
               }
             });
+            state.nodes = updatedNodes;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
@@ -384,12 +469,19 @@ export const useUnifiedStore = create<UnifiedStore>()(
               service: service as DomainApiKey['service'],
             };
 
-            state.apiKeys.set(id, apiKey);
+            const newApiKeys = new Map(state.apiKeys);
+            newApiKeys.set(id, apiKey);
+            state.apiKeys = newApiKeys;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           });
 
@@ -401,24 +493,41 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const apiKey = state.apiKeys.get(id);
             if (!apiKey) return;
 
-            // Update API key
-            Object.assign(apiKey, updates);
+            // Create a new API key object to ensure immutability
+            const updatedApiKey = { ...apiKey, ...updates };
+            
+            // Replace the entire Map to trigger reactivity
+            const newApiKeys = new Map(state.apiKeys);
+            newApiKeys.set(id, updatedApiKey);
+            state.apiKeys = newApiKeys;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
         deleteApiKey: (id) =>
           set((state) => {
-            state.apiKeys.delete(id);
+            const newApiKeys = new Map(state.apiKeys);
+            newApiKeys.delete(id);
+            state.apiKeys = newApiKeys;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
+              
+              // Limit history size
+              if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
+                state.history.undoStack.shift();
+              }
             }
           }),
 
@@ -427,8 +536,8 @@ export const useUnifiedStore = create<UnifiedStore>()(
           set((state) => {
             state.execution.id = executionId;
             state.execution.isRunning = true;
-            state.execution.runningNodes.clear();
-            state.execution.nodeStates.clear();
+            state.execution.runningNodes = new Set();
+            state.execution.nodeStates = new Map();
             state.execution.context = {};
             state.activeView = 'execution';
             state.executionReadOnly = true; // Set execution-specific read-only
@@ -436,19 +545,23 @@ export const useUnifiedStore = create<UnifiedStore>()(
 
         updateNodeExecution: (nodeId, nodeState) =>
           set((state) => {
-            state.execution.nodeStates.set(nodeId, nodeState);
+            const newNodeStates = new Map(state.execution.nodeStates);
+            newNodeStates.set(nodeId, nodeState);
+            state.execution.nodeStates = newNodeStates;
 
+            const newRunningNodes = new Set(state.execution.runningNodes);
             if (nodeState.status === 'running') {
-              state.execution.runningNodes.add(nodeId);
+              newRunningNodes.add(nodeId);
             } else {
-              state.execution.runningNodes.delete(nodeId);
+              newRunningNodes.delete(nodeId);
             }
+            state.execution.runningNodes = newRunningNodes;
           }),
 
         stopExecution: () =>
           set((state) => {
             state.execution.isRunning = false;
-            state.execution.runningNodes.clear();
+            state.execution.runningNodes = new Set();
             state.executionReadOnly = false; // Clear execution-specific read-only
           }),
 
@@ -458,7 +571,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
             if (state.history.undoStack.length === 0) return;
 
             // Save current state to redo stack
-            state.history.redoStack.push(createSnapshot(state));
+            state.history.redoStack.push(createFullSnapshot(state));
 
             // Pop from undo stack and restore
             const snapshot = state.history.undoStack.pop();
@@ -476,7 +589,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
             if (state.history.redoStack.length === 0) return;
 
             // Save current state to undo stack
-            state.history.undoStack.push(createSnapshot(state));
+            state.history.undoStack.push(createFullSnapshot(state));
 
             // Pop from redo stack and restore
             const snapshot = state.history.redoStack.pop();
@@ -505,7 +618,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
 
           set((state) => {
             if (state.history.currentTransaction) {
-              state.history.undoStack.push(createSnapshot(state));
+              state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack = [];
               state.history.currentTransaction = null;
             }
@@ -515,7 +628,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
         },
 
         // Utilities
-        createSnapshot: () => createSnapshot(get()),
+        createSnapshot: () => createFullSnapshot(get()),
 
         restoreSnapshot: (snapshot) =>
           set((state) => {
@@ -663,7 +776,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
             exporter.importDiagram(exportData);
             
             // Log import results
-            console.log('Import complete:', {
+            logger.debug('Import complete:', {
               nodes: tempNodes.size,
               arrows: tempArrows.size,
               handles: tempHandles.size,
@@ -694,10 +807,10 @@ const initializeStore = () => {
   const autoSaved = loadAutoSavedDiagram();
   if (autoSaved) {
     try {
-      console.log('Restoring auto-saved diagram from', autoSaved.metadata?.exported);
+      logger.info('Restoring auto-saved diagram from', autoSaved.metadata?.exported);
       useUnifiedStore.getState().importDiagram(autoSaved);
     } catch (e) {
-      console.error('Failed to restore auto-saved diagram:', e);
+      logger.error('Failed to restore auto-saved diagram:', e);
     }
   }
   

@@ -10,6 +10,7 @@ export * from './math';
 export * from './typeGuardFactory';
 export * from './validationFactory';
 export * from './dispatchTable';
+export * from './logger';
 
 // Handle utilities
 export * from './node/handle-utils';

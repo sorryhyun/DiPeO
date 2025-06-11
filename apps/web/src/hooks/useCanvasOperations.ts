@@ -29,6 +29,31 @@ import {
   type DomainHandle
 } from '@/types';
 
+// Helper hook for efficient Map to Array conversion with caching
+function useCachedMapArray<K, V>(
+  map: Map<K, V>,
+  mapVersion?: number
+): V[] {
+  const cacheRef = useRef<{ array: V[]; size: number; version?: number }>({
+    array: [],
+    size: -1,
+    version: -1
+  });
+  
+  return React.useMemo(() => {
+    // Only recompute if size or version changed
+    if (cacheRef.current.size !== map.size || 
+        (mapVersion !== undefined && cacheRef.current.version !== mapVersion)) {
+      cacheRef.current = {
+        array: Array.from(map.values()),
+        size: map.size,
+        version: mapVersion
+      };
+    }
+    return cacheRef.current.array;
+  }, [map.size, mapVersion]);
+}
+
 // Types
 
 interface ContextMenuState {
@@ -161,16 +186,9 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // Store state
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
-  // Convert Maps to arrays with proper memoization
-  const arrows = React.useMemo(
-    () => Array.from(storeState.arrows.values()) as DomainArrow[],
-    [storeState.arrows]
-  );
-  
-  const persons = React.useMemo(
-    () => Array.from(storeState.persons.values()) as DomainPerson[],
-    [storeState.persons]
-  );
+  // Convert Maps to arrays with efficient caching
+  const arrows = useCachedMapArray(storeState.arrows) as DomainArrow[];
+  const persons = useCachedMapArray(storeState.persons) as DomainPerson[];
   
   // Wrapped operations
   const wrappedOperations = React.useMemo(() => ({
@@ -334,29 +352,28 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   }, [storeState]);
   
   // Convert domain nodes to React Flow format with handles
-  // Use size as dependency to only recompute when nodes/handles are added/removed
-  const nodesSize = storeState.nodesMap.size;
-  const handlesSize = storeState.handlesMap.size;
+  // Use cached arrays for better performance
+  const domainNodes = useCachedMapArray(storeState.nodesMap) as DomainNode[];
+  const domainHandles = useCachedMapArray(storeState.handlesMap) as DomainHandle[];
   
   // Create a pre-computed handle lookup by nodeId for O(1) access
   const handlesByNode = React.useMemo(() => {
     const lookup = new Map<NodeID, DomainHandle[]>();
-    storeState.handlesMap.forEach(handle => {
+    domainHandles.forEach(handle => {
       const handles = lookup.get(handle.nodeId) || [];
       handles.push(handle);
       lookup.set(handle.nodeId, handles);
     });
     return lookup;
-  }, [handlesSize, storeState.handlesMap]);
+  }, [domainHandles]);
   
   const nodes = React.useMemo(() => {
-    const domainNodes = Array.from(storeState.nodesMap.values());
     return domainNodes.map(node => {
       // O(1) lookup instead of O(n) filter
       const nodeHandles = handlesByNode.get(node.id) || [];
       return nodeToReact(node, nodeHandles);
     });
-  }, [nodesSize, storeState.nodesMap, handlesByNode]);
+  }, [domainNodes, handlesByNode]);
   
   // Derive selected IDs based on selectedType
   const selectedNodeId = storeState.selectedType === 'node' ? storeState.selectedId as NodeID : null;
@@ -697,6 +714,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // =====================
   
   // Memoize the ID arrays to avoid recreating on every render
+  // This is already optimized since persons is cached
   const personIds = React.useMemo(
     () => persons.map((p: DomainPerson) => p.id),
     [persons]

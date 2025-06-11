@@ -5,7 +5,7 @@
  * creating, saving, loading, exporting, and executing diagrams.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useExecution } from './useExecution';
@@ -174,27 +174,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Refs
   const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
-  // Auto-save setup
-  useCallback(() => {
-    if (autoSave && autoSaveInterval > 0) {
-      if (autoSaveInterval$ef.current) {
-        clearInterval(autoSaveInterval$ef.current);
-      }
-      
-      autoSaveInterval$ef.current = setInterval(() => {
-        if (isDirty && !execution.isRunning) {
-          saveDiagram();
-        }
-      }, autoSaveInterval);
-      
-      return () => {
-        if (autoSaveInterval$ef.current) {
-          clearInterval(autoSaveInterval$ef.current);
-        }
-      };
-    }
-  }, [autoSave, autoSaveInterval, isDirty, execution.isRunning]);
   
   // Computed values
   const isEmpty = canvas.nodes.length === 0;
@@ -414,9 +393,30 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, []);
   
   // Mark dirty when canvas changes
-  useCallback(() => {
+  useEffect(() => {
     setIsDirty(true);
   }, [canvas.nodes, canvas.arrows]);
+  
+  // Auto-save setup
+  useEffect(() => {
+    if (autoSave && autoSaveInterval > 0) {
+      if (autoSaveInterval$ef.current) {
+        clearInterval(autoSaveInterval$ef.current);
+      }
+      
+      autoSaveInterval$ef.current = setInterval(() => {
+        if (isDirty && !execution.isRunning) {
+          saveDiagram();
+        }
+      }, autoSaveInterval);
+      
+      return () => {
+        if (autoSaveInterval$ef.current) {
+          clearInterval(autoSaveInterval$ef.current);
+        }
+      };
+    }
+  }, [autoSave, autoSaveInterval, isDirty, execution.isRunning]);
   
   return {
     // State

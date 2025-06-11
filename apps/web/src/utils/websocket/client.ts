@@ -3,6 +3,7 @@
  */
 
 import type { WSMessage, MessageHandler, WebSocketClientOptions } from '@/types';
+import { logger } from '../logger';
 
 export type ConnectionHandler = (event: CustomEvent) => void;
 
@@ -47,7 +48,7 @@ export class Client extends EventTarget {
   
   private log(...args: unknown[]): void {
     if (this.debug) {
-      console.log('[WebSocket]', ...args);
+      logger.debug('[WebSocket]', ...args);
     }
   }
   
@@ -91,7 +92,7 @@ export class Client extends EventTarget {
             try {
               handler(message);
             } catch (error) {
-              console.error('Handler error:', error);
+              logger.error('Handler error:', error);
             }
           });
         }
@@ -99,12 +100,12 @@ export class Client extends EventTarget {
         // Dispatch generic message event
         this.dispatchEvent(new CustomEvent('message', { detail: message }));
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
+        logger.error('Failed to parse WebSocket message:', error);
       }
     };
     
     this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      logger.error('WebSocket error:', error);
       this.dispatchEvent(new CustomEvent('error', { detail: error }));
     };
     

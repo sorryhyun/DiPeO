@@ -15,20 +15,6 @@ export default defineConfig({
           
           // Large diagram library
           'diagram-vendor': ['@xyflow/react'],
-          
-          // UI libraries
-          'ui-vendor': ['sonner', 'react-resizable-panels'],
-          
-          // Icon library
-          'icon-vendor': ['lucide-react'],
-          
-          // Store libraries
-          'store-vendor': ['zustand'],
-          
-          // Large components - lazy loaded
-          'conversation': ['./src/components/conversation/ConversationDashboard/ConversationDashboard'],
-          'properties': ['./src/components/properties/renderers/PropertiesRenderer'],
-          'modals': ['./src/components/modals/ApiKeysModal/ApiKeysModal'],
         },
         
         // Better chunk naming

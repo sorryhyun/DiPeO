@@ -66,6 +66,21 @@ export interface ExportFormat {
 }
 
 // History types
+export interface MapDiff<K, V> {
+  added: Map<K, V>;
+  modified: Map<K, V>;
+  deleted: Set<K>;
+}
+
+export interface SnapshotDiff {
+  nodes: MapDiff<NodeID, DomainNode>;
+  arrows: MapDiff<ArrowID, DomainArrow>;
+  persons: MapDiff<PersonID, DomainPerson>;
+  handles: MapDiff<HandleID, DomainHandle>;
+  apiKeys: MapDiff<ApiKeyID, DomainApiKey>;
+  timestamp: number;
+}
+
 export interface Snapshot {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
