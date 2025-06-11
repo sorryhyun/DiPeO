@@ -19,79 +19,17 @@ import {
 } from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
-import { buildNode as buildNodeFromInfo, NodeInfo as NodeBuilderInfo } from './nodeBuilders';
-
-// Converter diagram format with arrays and handles
-export interface ConverterDiagram {
-  id: string;
-  name: string;
-  description?: string;
-  nodes: DomainNode[];
-  arrows: DomainArrow[];
-  persons: DomainPerson[];
-  apiKeys: DomainApiKey[];
-  handles: DomainHandle[]; // Store handles separately
-}
-
-// Temporary type for building nodes with handles
-interface NodeWithHandles extends DomainNode {
-  handles: DomainHandle[];
-}
-
-// Edge type for graph representation
-export interface Edge {
-  source: string;
-  target: string;
-  condition: string | null;
-  variable: string | null;
-}
-
-// Node information for analysis
-export interface NodeAnalysis {
-  name: string;
-  type: string;
-  incoming: Edge[];
-  outgoing: Edge[];
-  [key: string]: any;
-}
-
-// Position calculation result
-export interface NodePosition {
-  x: number;
-  y: number;
-}
-
-// Callbacks for format-specific logic
-// Use NodeInfo from nodeBuilders
-export type NodeInfo = NodeBuilderInfo;
-
-export interface AssemblerCallbacks {
-  // Parse edges from format-specific flow structure
-  parseFlow: (flowData: any) => Edge[];
-  
-  // Infer node type from name and context
-  inferNodeType: (name: string, context: any) => string;
-  
-  // Create node data from analysis
-  createNodeInfo: (name: string, analysis: NodeAnalysis, context: any) => any;
-  
-  // Create arrow data from edge
-  createArrowData: (edge: Edge, sourceId: string, targetId: string) => any;
-  
-  // Extract persons from context
-  extractPersons: (nodeAnalysis: Record<string, NodeAnalysis>, context: any) => DomainPerson[];
-  
-  // Extract API keys from persons
-  extractApiKeys: (persons: DomainPerson[]) => DomainApiKey[];
-  
-  // Link persons to nodes
-  linkPersonsToNodes?: (nodes: DomainNode[], nodeAnalysis: Record<string, NodeAnalysis>, context: any) => void;
-}
-
-export interface AssemblerOptions {
-  source: any;
-  callbacks: AssemblerCallbacks;
-}
+import { buildNode as buildNodeFromInfo } from './nodeBuilders';
+import type {
+  ConverterDiagram,
+  NodeWithHandles,
+  Edge,
+  NodeAnalysis,
+  NodePosition,
+  NodeInfo,
+  AssemblerCallbacks,
+  AssemblerOptions
+} from '../types';
 
 /**
  * Common diagram assembler that unifies conversion logic

@@ -28,7 +28,6 @@ import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
 import { DomainArrow, arrowToReact, nodeId, arrowId } from "@/types";
-import { roundPosition } from "@/utils/canvas";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -47,6 +46,13 @@ interface DiagramCanvasProps {
   /** When true, the property panel is hidden & execution‑mode colours are used */
   executionMode?: boolean;
 }
+
+const roundPosition = (position: { x: number; y: number }) => {
+  return {
+    x: Math.round(position.x / 10) * 10,
+    y: Math.round(position.y / 10) * 10,
+  };
+};
 
 /**
  * Single source of truth for *all* ReactFlow props we pass around.

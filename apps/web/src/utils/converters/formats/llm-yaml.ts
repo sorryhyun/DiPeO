@@ -1,6 +1,20 @@
 import { parse, stringify } from 'yaml';
-import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks, ConverterDiagram } from './diagramAssembler';
-import { buildNode, NodeInfo } from './nodeBuilders';
+import { DiagramAssembler } from '../core/diagramAssembler';
+import { buildNode } from '../core/nodeBuilders';
+import type { 
+  Edge, 
+  NodeAnalysis, 
+  AssemblerCallbacks, 
+  ConverterDiagram, 
+  NodeInfo, 
+  LLMYamlFormat 
+} from '../types';
+import { 
+  YAML_STRINGIFY_OPTIONS, 
+  DEFAULT_MODEL, 
+  DEFAULT_SERVICE, 
+  DEFAULT_ASSISTANT_LABEL 
+} from '../constants';
 import { 
   generateShortId,
   entityIdGenerators,
@@ -18,19 +32,6 @@ import {
   PersonID,
   ApiKeyID
 } from '@/types';
-
-
-interface LLMYamlFormat {
-  flow: Record<string, string | string[]> | string[];
-  prompts?: Record<string, string>;
-  persons?: Record<string, string | {
-    model?: string;
-    service?: string;
-    system?: string;
-    temperature?: number;
-  }>;
-  data?: Record<string, string>;
-}
 
 export class LlmYaml {
   /**
@@ -185,9 +186,9 @@ export class LlmYaml {
     const defaultPersonId = personId(`PERSON_${generateShortId()}`);
     const defaultPerson: DomainPerson = {
       id: defaultPersonId,
-      label: 'Default Assistant',
-      model: 'gpt-4.1-nano',
-      service: 'openai',
+      label: DEFAULT_ASSISTANT_LABEL,
+      model: DEFAULT_MODEL,
+      service: DEFAULT_SERVICE,
     };
     let needDefault = false;
 
@@ -201,18 +202,18 @@ export class LlmYaml {
         persons.push({
           id: personIdValue,
           label: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          model: 'gpt-4.1-nano',
-          service: 'openai',
+          model: DEFAULT_MODEL,
+          service: DEFAULT_SERVICE,
           systemPrompt: personConfig
         });
-        serviceMap.set(personIdValue, 'openai');
+        serviceMap.set(personIdValue, DEFAULT_SERVICE);
       } else {
         // Full format
-        const service = (personConfig.service || 'openai') as DomainApiKey['service'];
+        const service = (personConfig.service || DEFAULT_SERVICE) as DomainApiKey['service'];
         persons.push({
           id: personIdValue,
           label: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          model: personConfig.model || 'gpt-4.1-nano',
+          model: personConfig.model || DEFAULT_MODEL,
           service,
           systemPrompt: personConfig.system
         });
@@ -239,7 +240,7 @@ export class LlmYaml {
     if (needDefault) {
       persons.push(defaultPerson);
       personMap.set('_default', defaultPersonId);
-      serviceMap.set(defaultPersonId, 'openai');
+      serviceMap.set(defaultPersonId, DEFAULT_SERVICE);
     }
 
     // Store serviceMap for later use
@@ -254,7 +255,7 @@ export class LlmYaml {
 
     persons.forEach(person => {
       // Get service from our map
-      const service = serviceMap?.get(person.id) || 'openai';
+      const service = serviceMap?.get(person.id) || DEFAULT_SERVICE;
       if (!apiKeys[service]) {
         const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
         apiKeys[service] = {
@@ -439,11 +440,6 @@ export class LlmYaml {
       yamlData.data = data;
     }
 
-    return stringify(yamlData, {
-      indent: 2,
-      lineWidth: 120,
-      defaultKeyType: 'PLAIN',
-      defaultStringType: 'QUOTE_DOUBLE'
-    });
+    return stringify(yamlData, YAML_STRINGIFY_OPTIONS);
   }
 }

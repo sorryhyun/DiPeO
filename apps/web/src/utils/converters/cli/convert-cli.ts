@@ -8,8 +8,8 @@
 import { readFile, writeFile } from 'fs/promises';
 import { resolve } from 'path';
 import { parse as parseYaml } from 'yaml';
-import { Yaml } from './yaml';
-import { LlmYaml } from './llm-yaml';
+import { Yaml } from '../formats/yaml';
+import { LlmYaml } from '../formats/llm-yaml';
 
 // Main async function
 async function main() {

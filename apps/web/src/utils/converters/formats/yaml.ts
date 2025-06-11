@@ -21,64 +21,15 @@ import {
   PersonID,
   ApiKeyID
 } from '@/types';
-import { buildNode, NodeInfo } from './nodeBuilders';
-import { ConverterDiagram } from './diagramAssembler';
-
-interface YamlDiagram {
-  version: '1.0';
-  title?: string;
-  metadata?: {
-    description?: string;
-  };
-
-  // API Keys section - labels only
-  apiKeys: Record<string, {
-    service: string;
-    name: string;
-  }>;
-
-  // Enhanced persons with full details - label-based
-  persons: Record<string, {
-    model: string;
-    service: string;
-    apiKeyLabel?: string;  // Reference by label
-    system?: string;
-    temperature?: number;
-  }>;
-
-  // Enhanced workflow with positions - label-based
-  workflow: {
-    label: string;  // Use label as primary identifier
-    type: string;
-    position: { x: number; y: number };  // Preserved positions
-    person?: string;  // Person label reference
-
-    // All node-specific fields preserved
-    prompt?: string;
-    first_prompt?: string;
-    source?: string;
-    code?: string;
-    expression?: string;
-    file?: string;
-    file_format?: string;
-    forget?: string;
-    max_iterations?: number;
-    mode?: string;
-    condition_type?: string;
-    sub_type?: string;
-
-    // Connections with full arrow data
-    connections?: {
-      to: string;
-      label?: string;
-      content_type?: string;
-      branch?: string;
-      source_handle?: string;
-      target_handle?: string;
-      control_offset?: { x: number; y: number };
-    }[];
-  }[];
-}
+import { buildNode } from '../core/nodeBuilders';
+import type { ConverterDiagram, YamlDiagram, NodeInfo } from '../types';
+import { 
+  YAML_VERSION, 
+  YAML_STRINGIFY_OPTIONS, 
+  DEFAULT_MODEL, 
+  DEFAULT_SERVICE,
+  DEFAULT_CONTEXT_CLEANING_RULE 
+} from '../constants';
 
 
 export class Yaml {
@@ -88,12 +39,7 @@ export class Yaml {
   static toYAML(diagram: ConverterDiagram): string {
     const yamlDiagram = this.toYamlFormat(diagram);
 
-    return stringify(yamlDiagram, {
-      indent: 2,
-      lineWidth: 120,
-      defaultKeyType: 'PLAIN',  // Forces plain keys without quotes
-      defaultStringType: 'QUOTE_DOUBLE',  // Only quote string values when needed
-    });
+    return stringify(yamlDiagram, YAML_STRINGIFY_OPTIONS);
   }
 
   static fromYAML(yamlString: string): ConverterDiagram {
@@ -119,10 +65,10 @@ export class Yaml {
     // Convert persons with full details - use label as key
     diagram.persons.forEach(person => {
       // Use service from person
-      const service = person.service || 'openai'; // default
+      const service = person.service || DEFAULT_SERVICE; // default
       
       persons[person.label] = {
-        model: person.model || 'gpt-4.1-nano',
+        model: person.model || DEFAULT_MODEL,
         service,
         ...(person.systemPrompt && { system: person.systemPrompt })
       };
@@ -148,7 +94,7 @@ export class Yaml {
     });
 
     return {
-      version: '1.0',
+      version: YAML_VERSION as '1.0',
       metadata: {
         description: 'DiPeO workflow export'
       },
@@ -289,7 +235,7 @@ export class Yaml {
         id: personId(`person-${generateShortId()}`),  // Generate fresh ID
         label,  // Use the key as label
         model: person.model,
-        service: (person.service || 'openai') as DomainPerson['service'],
+        service: (person.service || DEFAULT_SERVICE) as DomainPerson['service'],
         systemPrompt: person.system
       });
     });
@@ -372,7 +318,7 @@ export class Yaml {
       personId: step.person ? personLabelToId.get(step.person) : undefined,
       prompt: step.prompt,
       firstPrompt: step.first_prompt,
-      contextCleaningRule: step.forget || 'upon_request',
+      contextCleaningRule: step.forget || DEFAULT_CONTEXT_CLEANING_RULE,
       maxIterations: step.max_iterations,
       mode: step.mode,
       // Condition fields

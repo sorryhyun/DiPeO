@@ -13,53 +13,16 @@ import {
 } from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
+import type {
+  NodeWithHandles,
+  BaseNodeDataConfig,
+  NodeBuilderConfig,
+  NodeInfo,
+  NodeBuilder
+} from '../types';
 
-// Temporary type for nodes with handles (same as original)
-export interface NodeWithHandles extends DomainNode {
-  handles: DomainHandle[];
-}
-
-// Base interface for all node data configurations
-interface BaseNodeDataConfig extends Record<string, unknown> {
-  label: string;
-  type: string;
-}
-
-// Node builder configuration
-interface NodeBuilderConfig<TData extends BaseNodeDataConfig = BaseNodeDataConfig> {
-  // The node type this builder creates
-  nodeType: NodeKind;
-  
-  // Function to build the data object from NodeInfo
-  buildData: (info: NodeInfo, id: string) => TData;
-  
-  // Optional data transformer for post-processing
-  transformData?: (data: TData, info: NodeInfo) => TData;
-  
-  // Optional validator
-  validate?: (info: NodeInfo) => void;
-}
-
-// Node info type (same as original)
-export interface NodeInfo {
-  name: string;
-  type: NodeKind | 'generic';
-  position: { x: number; y: number };
-  hasPrompt?: boolean;
-  hasPerson?: boolean;
-  prompt?: string;
-  firstPrompt?: string;
-  condition?: string;
-  dataSource?: string;
-  code?: string;
-  filePath?: string;
-  fileFormat?: string;
-  personId?: string;
-  [key: string]: any;
-}
-
-// Type for node builder functions
-export type NodeBuilder = (info: NodeInfo) => NodeWithHandles;
+// Re-export types for other modules
+export type { NodeInfo, NodeBuilder, NodeWithHandles } from '../types';
 
 // Common utilities
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
