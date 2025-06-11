@@ -84,8 +84,9 @@ const ConversationDashboard: React.FC = () => {
 
   // Initial load - only run once on mount
   useEffect(() => {
-    void fetchConversationData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Don't automatically load conversation logs on mount
+    // void fetchConversationData();
+     
   }, []); // Empty dependency array to run only once
 
   // Handle person selection from sidebar

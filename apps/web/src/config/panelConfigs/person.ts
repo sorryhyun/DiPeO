@@ -3,7 +3,7 @@ import { fetchApiKeys, fetchAvailableModels } from '@/utils/api';
 
 interface ExtendedPersonFormData extends PersonFormData {
   apiKeyId?: string;
-  modelName?: string;
+  model?: string;
   label?: string;
   systemPrompt?: string;
 }
@@ -37,7 +37,7 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'modelName',
+      name: 'model',
       label: 'Model',
       options: async (formData: unknown) => {
         const data = formData as Record<string, unknown>;

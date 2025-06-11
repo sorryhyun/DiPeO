@@ -35,7 +35,7 @@ function useNodeStatus(nodeId: string) {
 }
 
 // Custom hook for handles generation
-function useHandles(nodeType: string, isFlipped: boolean) {
+function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
   const config = getNodeConfig(nodeType as NodeKind);
   
   return useMemo(() => {
@@ -44,10 +44,7 @@ function useHandles(nodeType: string, isFlipped: boolean) {
       ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
     ];
     
-    // Track used IDs to ensure uniqueness
-    const usedIds = new Set<string>();
-    
-    return allHandles.map((handle, index) => {
+    return allHandles.map((handle) => {
       const isVertical = handle.position === 'top' || handle.position === 'bottom';
       const position = isFlipped && !isVertical
         ? (handle.position === 'left' ? Position.Right : Position.Left)
@@ -60,26 +57,21 @@ function useHandles(nodeType: string, isFlipped: boolean) {
         ? 50 + (offset.x / 2)
         : 50 + (offset.y / 2);
       
-      // Ensure unique handle ID
-      let handleName = handle.id || 'default';
-      
-      // If ID already exists, append index to make it unique
-      if (usedIds.has(handleName)) {
-        handleName = `${handleName}_${index}`;
-      }
-      usedIds.add(handleName);
+      const handleName = handle.id || 'default';
+      // Generate unique ID by combining nodeId, handle type, and handleName
+      const uniqueId = `${nodeId}:${handle.type}:${handleName}`;
       
       return {
         type: handle.type,
         position,
-        id: handleName,
+        id: uniqueId,
         name: handleName,
         style: {},
         offset: offsetPercentage,
         color: handle.color
       };
     });
-  }, [config, isFlipped]);
+  }, [nodeId, config, isFlipped]);
 }
 
 // Memoized status indicator component
@@ -190,7 +182,7 @@ export function BaseNode({
   const status = useNodeStatus(id);
   const config = getNodeConfig(type as NodeKind);
   const isFlipped = data?.flipped === true;
-  const handles = useHandles(type, isFlipped);
+  const handles = useHandles(id, type, isFlipped);
   
   // Handle flip
   const handleFlip = useCallback(() => {

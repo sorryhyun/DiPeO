@@ -211,10 +211,10 @@ export class DiagramExporter {
       const label = this.nodeIdToLabel.get(node.id) || node.id;
 
       // Prepare data without internal properties and React Flow handles
-      const { label: _, inputs: __, outputs: ___, ...dataWithoutLabel } = node.data;
+      const { label: _, inputs: __, outputs: ___, properties: ____, ...dataWithoutInternals } = node.data;
 
       // Replace person ID with label if exists
-      const data = { ...dataWithoutLabel };
+      const data = { ...dataWithoutInternals };
       if ('personId' in data && data.personId) {
         const personLabel = this.personIdToLabel.get(data.personId as PersonID);
         if (personLabel) {
@@ -306,18 +306,36 @@ export class DiagramExporter {
   }
 
   private exportApiKeys(apiKeys: DomainApiKey[]): ExportedApiKey[] {
-    return apiKeys.map(apiKey => ({
-      name: apiKey.name,
-      service: apiKey.service
-    }));
+    // Deduplicate API keys by name and service combination
+    const seen = new Set<string>();
+    const uniqueApiKeys: ExportedApiKey[] = [];
+    
+    apiKeys.forEach(apiKey => {
+      const key = `${apiKey.name}_${apiKey.service}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueApiKeys.push({
+          name: apiKey.name,
+          service: apiKey.service
+        });
+      }
+    });
+    
+    return uniqueApiKeys;
   }
 
   // Private import helpers
   private importApiKeys(apiKeys: ExportedApiKey[]): void {
+    // Deduplicate API keys before importing
+    const seen = new Set<string>();
     apiKeys.forEach(apiKeyData => {
-      const label = this.ensureUniqueLabel(apiKeyData.name, this.usedApiKeyLabels);
-      const id = this.store.addApiKey(label, apiKeyData.service);
-      this.apiKeyLabelToId.set(label, id);
+      const key = `${apiKeyData.name}_${apiKeyData.service}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const label = this.ensureUniqueLabel(apiKeyData.name, this.usedApiKeyLabels);
+        const id = this.store.addApiKey(label, apiKeyData.service);
+        this.apiKeyLabelToId.set(label, id);
+      }
     });
   }
 
@@ -494,24 +512,50 @@ export class DiagramExporter {
       
       // Handle backward compatibility for handle names
       if (!sourceHandle && sourceNodeId) {
-        const node = this.store.nodes.get(sourceNodeId);
-        if (node?.type === 'start' && source.handleName === 'output') {
-          // Start nodes use 'default' handle name in the registry
-          const defaultHandleId = handleId(sourceNodeId, 'default');
-          sourceHandle = this.store.handles.get(defaultHandleId);
+        // Check if handle name has a suffix like _1, _2, etc.
+        const suffixMatch = source.handleName.match(/^(.+)_\d+$/);
+        if (suffixMatch && suffixMatch[1]) {
+          // Try the base name without the suffix
+          const baseName = suffixMatch[1];
+          const baseHandleId = handleId(sourceNodeId!, baseName);
+          sourceHandle = this.store.handles.get(baseHandleId);
           if (sourceHandle) {
-            console.log(`Mapped start node handle: ${sourceHandleId} -> ${defaultHandleId}`);
+            console.log(`Mapped suffixed source handle: ${sourceHandleId} -> ${baseHandleId}`);
+          }
+        }
+        
+        if (!sourceHandle) {
+          const node = this.store.nodes.get(sourceNodeId);
+          if (node?.type === 'start' && source.handleName === 'output') {
+            // Start nodes use 'default' handle name in the registry
+            const defaultHandleId = handleId(sourceNodeId!, 'default');
+            sourceHandle = this.store.handles.get(defaultHandleId);
+            if (sourceHandle) {
+              console.log(`Mapped start node handle: ${sourceHandleId} -> ${defaultHandleId}`);
+            }
           }
         }
       }
       
       // Handle other common handle name mappings
       if (!targetHandle && targetNodeId) {
-        if (target.handleName === 'input') {
+        // Check if handle name has a suffix like _1, _2, etc.
+        const suffixMatch = target.handleName.match(/^(.+)_\d+$/);
+        if (suffixMatch && suffixMatch[1]) {
+          // Try the base name without the suffix
+          const baseName = suffixMatch[1];
+          const baseHandleId = handleId(targetNodeId!, baseName);
+          targetHandle = this.store.handles.get(baseHandleId);
+          if (targetHandle) {
+            console.log(`Mapped suffixed target handle: ${targetHandleId} -> ${baseHandleId}`);
+          }
+        }
+        
+        if (!targetHandle && target.handleName === 'input') {
           // Try common input handle names
           const handleNames = ['default', 'first', 'input'];
           for (const name of handleNames) {
-            const mappedHandleId = handleId(targetNodeId, name);
+            const mappedHandleId = handleId(targetNodeId!, name);
             targetHandle = this.store.handles.get(mappedHandleId);
             if (targetHandle) {
               console.log(`Mapped target handle: ${targetHandleId} -> ${mappedHandleId}`);

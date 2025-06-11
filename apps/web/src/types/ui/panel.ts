@@ -126,12 +126,12 @@ export interface ArrowFormData extends Record<string, unknown> {
  * Person form data - maps to DomainPerson properties
  */
 export interface PersonFormData extends Record<string, unknown> {
-  name: string;
-  service: 'openai' | 'anthropic' | 'gemini' | 'xai';
-  model: string;
+  label?: string;
+  service?: 'openai' | 'claude' | 'gemini' | 'grok';
+  model?: string;
   temperature?: number;
   maxTokens?: number;
-  apiKey?: string;
+  apiKeyId?: string;
 }
 
 /**

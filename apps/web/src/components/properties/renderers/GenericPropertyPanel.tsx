@@ -4,7 +4,7 @@ import { usePropertyManager } from '@/hooks/usePropertyManager';
 import { useCanvasOperations } from '@/hooks';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
-import { preInitializeModel } from '@/utils/api';
+import { preInitializeModel, fetchApiKeys } from '@/utils/api';
 import { createHandlerTable } from '@/utils/dispatchTable';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
@@ -68,8 +68,21 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     // Update field using property manager
     updateField(name as keyof T, value as T[keyof T]);
     
+    // If this is an API key selection for a person entity, update the service field
+    if (data.type === 'person' && name === 'apiKeyId' && value) {
+      try {
+        const apiKeys = await fetchApiKeys();
+        const selectedKey = apiKeys.find(k => k.id === value);
+        if (selectedKey) {
+          updateField('service' as keyof T, selectedKey.service as T[keyof T]);
+        }
+      } catch (error) {
+        console.error('Failed to update service:', error);
+      }
+    }
+    
     // If this is a model selection for a person entity, pre-initialize the model
-    if (data.type === 'person' && name === 'modelName') {
+    if (data.type === 'person' && name === 'model') {
       const service = formData.service || data.service;
       const apiKeyId = formData.apiKeyId || data.apiKeyId;
       

@@ -1,4 +1,4 @@
-import { PersonID } from '../branded';
+import { PersonID, ApiKeyID } from '../branded';
 
 export type LLMService = 'openai' | 'claude' | 'gemini'  | 'grok';
 
@@ -9,6 +9,7 @@ export interface DomainPerson {
   label: string;
   model: string;
   service: LLMService;
+  apiKeyId?: ApiKeyID;
   systemPrompt?: string;
   temperature?: number;
   maxTokens?: number;

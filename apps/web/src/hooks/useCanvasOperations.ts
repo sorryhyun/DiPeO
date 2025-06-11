@@ -64,7 +64,7 @@ export interface UseCanvasOperationsOptions {
 export interface UseCanvasOperationsReturn {
   // === Canvas State ===
   nodes: ReturnType<typeof nodeToReact>[];
-  arrows: ArrowID[];
+  arrows: DomainArrow[];
   persons: PersonID[];
   handles: Map<HandleID, any>;
   
@@ -97,6 +97,7 @@ export interface UseCanvasOperationsReturn {
   updatePerson: (id: PersonID, updates: any) => void;
   deletePerson: (id: PersonID) => void;
   getPersonById: (id: PersonID) => any;
+  getArrowById: (id: ArrowID) => any;
   
   // === Selection Operations ===
   select: (id: string, type: 'node' | 'arrow' | 'person') => void;
@@ -225,6 +226,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       storeState.addPerson(person.label, person.service as LLMService, person.model),
     
     getPersonById: (id: PersonID) => storeState.persons.get(id),
+    getArrowById: (id: ArrowID) => storeState.arrows.get(id),
     
     // Derived state helpers
     isNodeRunning: (id: NodeID) => storeState.runningNodes.has(id),
@@ -356,14 +358,20 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     
     if (connection.source && connection.target && 
         connection.sourceHandle && connection.targetHandle) {
-      // Create proper handle IDs from node IDs and handle names
+      // Strip any numeric suffixes that React Flow might have added (e.g., _1, _2)
+      const stripSuffix = (handleName: string): string => {
+        const match = handleName.match(/^(.+)_\d+$/);
+        return match && match[1] ? match[1] : handleName;
+      };
+      
+      // Create proper handle IDs from node IDs and handle names (without suffixes)
       const sourceHandleId = handleId(
         nodeId(connection.source),
-        connection.sourceHandle
+        stripSuffix(connection.sourceHandle)
       );
       const targetHandleId = handleId(
         nodeId(connection.target),
-        connection.targetHandle
+        stripSuffix(connection.targetHandle)
       );
       
       storeState.addArrow(sourceHandleId, targetHandleId);
@@ -734,11 +742,6 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // =====================
   
   // Memoize the ID arrays to avoid recreating on every render
-  const arrowIds = React.useMemo(
-    () => arrows.map(a => a.id),
-    [arrows]
-  );
-  
   const personIds = React.useMemo(
     () => persons.map(p => p.id),
     [persons]
@@ -747,7 +750,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   return {
     // === Canvas State ===
     nodes,
-    arrows: arrowIds,
+    arrows,
     persons: personIds,
     handles: storeState.handlesMap,
     
@@ -780,6 +783,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     updatePerson: storeState.updatePerson,
     deletePerson: storeState.deletePerson,
     getPersonById: wrappedOperations.getPersonById,
+    getArrowById: wrappedOperations.getArrowById,
     
     // === Selection Operations ===
     select: storeState.select,

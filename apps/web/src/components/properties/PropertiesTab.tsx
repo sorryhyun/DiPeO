@@ -7,7 +7,7 @@ const PropertiesRenderer = React.lazy(() => import('./renderers/PropertiesRender
 
 export const PropertiesTab: React.FC = () => {
   const canvas = useCanvasOperations();
-  const { nodes, selectedId, selectedType } = canvas;
+  const { nodes, arrows, selectedId, selectedType } = canvas;
   
   // Derive selected IDs based on selectedType
   const selectedNodeId = selectedType === 'node' ? selectedId : null;
@@ -17,8 +17,8 @@ export const PropertiesTab: React.FC = () => {
   // Convert person IDs to person objects
   const personsData = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
   
-  // For now, pass empty arrays for arrows since we don't have full arrow data
-  const arrowsData: any[] = [];
+  // Pass the actual arrows data from canvas
+  const arrowsData = arrows;
 
   return (
     <div className="flex-1 overflow-y-auto">
