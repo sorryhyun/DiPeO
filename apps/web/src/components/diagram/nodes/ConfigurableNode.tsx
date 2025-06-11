@@ -3,8 +3,9 @@ import { NodeProps } from '@xyflow/react';
 import { BaseNode } from './BaseNode';
 
 // Main component - much simpler now
-export default function ConfigurableNode({ id, data, selected }: NodeProps) {
-  const nodeType = (data?.type || 'start') as string;
+export default function ConfigurableNode({ id, type, data, selected }: NodeProps) {
+  // Use the type prop from React Flow directly
+  const nodeType = type || 'start';
   
   return (
     <BaseNode

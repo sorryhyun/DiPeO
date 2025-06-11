@@ -40,7 +40,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         >
           <div className="flex items-center justify-between mb-1">
             <div className="text-xs opacity-75">
-              {isFromSelectedPerson ? 'Wrote' : `Read from ${senderPerson?.name || 'Unknown'}`}
+              {isFromSelectedPerson ? 'Wrote' : `Read from ${senderPerson?.label || 'Unknown'}`}
               {message.nodeLabel && (
                 <span className="ml-2">• {message.nodeLabel}</span>
               )}

@@ -43,10 +43,12 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
 export function derivePanelConfig<T extends Record<string, unknown>>(
   config: UnifiedNodeConfig<T>
 ): TypedPanelConfig<T> {
+
   const panelFields: Array<TypedPanelFieldConfig<T>> = [];
   const customFieldsMap = new Map(
     (config.panelCustomFields || []).map(field => [field.type === 'labelPersonRow' ? 'labelPersonRow' : field.name || field.type, field])
   );
+
   
   // Convert node fields to panel fields
   for (const field of config.fields) {
@@ -78,11 +80,11 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
     
     panelFields.push(panelField);
   }
+
   
-  // Apply field ordering if specified
   const orderedFields = config.panelFieldOrder 
     ? orderFields(panelFields, config.panelFieldOrder, customFieldsMap)
-    : panelFields;
+    : [...panelFields, ...(config.panelCustomFields || [])];
   
   // Determine layout
   const layout = config.panelLayout || (orderedFields.length > 3 ? 'twoColumn' : 'single');
@@ -96,6 +98,7 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
       // Split based on the original panel config layout
       const leftFieldNames = ['labelPersonRow', 'contextCleaningRule', 'maxIteration'];
       const rightFieldNames = ['defaultPrompt', 'firstOnlyPrompt'];
+
       
       for (const field of orderedFields) {
         const fieldKey = field.name || field.type;
@@ -103,8 +106,12 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
           leftColumnFields.push(field);
         } else if (rightFieldNames.includes(fieldKey)) {
           rightColumnFields.push(field);
+        } else {
+          // For nodes other than personJob, distribute fields not in predefined lists
+          leftColumnFields.push(field);
         }
       }
+
       
       return {
         layout: 'twoColumn',
@@ -114,18 +121,20 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
     } else {
       // Default split
       const midpoint = Math.ceil(orderedFields.length / 2);
-      return {
-        layout: 'twoColumn',
+      const result = {
+        layout: 'twoColumn' as const,
         leftColumn: orderedFields.slice(0, midpoint),
         rightColumn: orderedFields.slice(midpoint)
       };
+      return result;
     }
   }
   
-  return {
-    layout: 'single',
+  const result = {
+    layout: 'single' as const,
     fields: orderedFields
   };
+  return result;
 }
 
 /**
@@ -136,9 +145,11 @@ function orderFields<T extends Record<string, unknown>>(
   order: Array<keyof T | string>,
   customFieldsMap?: Map<string, TypedPanelFieldConfig<T>>
 ): Array<TypedPanelFieldConfig<T>> {
+  
   const fieldMap = new Map(
     fields.map(field => [field.name || field.type, field])
   );
+
   
   const orderedFields: Array<TypedPanelFieldConfig<T>> = [];
   
@@ -149,19 +160,23 @@ function orderFields<T extends Record<string, unknown>>(
       fieldMap.delete(key as string);
     } else if (customFieldsMap?.has(key as string)) {
       // Add custom field from map
-      orderedFields.push(customFieldsMap.get(key as string)!);
+      const customField = customFieldsMap.get(key as string)!;
+      orderedFields.push(customField);
     } else if (key === 'labelPersonRow') {
       // Special case for labelPersonRow if not in custom fields
       orderedFields.push({
         type: 'labelPersonRow',
         labelPlaceholder: 'Person Job'
       } as TypedPanelFieldConfig<T>);
+    } else {
+      console.log(`  Field not found for key: ${String(key)}`);
     }
   }
   
   // Add any remaining fields not in the order
-  orderedFields.push(...fieldMap.values());
-  
+  const remainingFields = Array.from(fieldMap.values());
+  orderedFields.push(...remainingFields);
+
   return orderedFields;
 }
 

@@ -16,7 +16,7 @@ import {
   type UnsubscribeFunction,
 } from '@/utils/websocket/event-bus';
 import type { WSMessage } from '@/types/runtime';
-import { useEvent } from './useEvent';
+import { useEvent } from './usePropertyManager';
 
 interface UseWebSocketEventBusOptions {
   autoConnect?: boolean;
@@ -94,8 +94,7 @@ export function useWebSocketEventBus(options?: UseWebSocketEventBusOptions): Use
 
   // Subscribe to connection state changes
   useEffect(() => {
-    const unsubscribe = onConnectionStateChange(setConnectionState);
-    return unsubscribe;
+    return onConnectionStateChange(setConnectionState);
   }, []);
 
   // Handle connection events
@@ -114,7 +113,7 @@ export function useWebSocketEventBus(options?: UseWebSocketEventBusOptions): Use
       unsubscribes.push(onWebSocketEvent('error', (event: Error | ErrorEvent | { message?: string }) => {
         const error = event instanceof Error 
           ? event 
-          : new Error((event as any)?.message || 'WebSocket error');
+          : new Error((event as ErrorEvent | { message?: string })?.message || 'WebSocket error');
         setLastError(error);
         onError(error);
       }));

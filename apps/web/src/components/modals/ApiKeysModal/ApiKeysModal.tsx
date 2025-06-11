@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/components/ui';
-import { DomainApiKey, apiKeyId, createErrorHandlerFactory } from '@/types';
-import { useApiKeyStore } from '@/stores/apiKeyStore';
+import { DomainApiKey, apiKeyId, createErrorHandlerFactory, ApiKeyID } from '@/types';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
@@ -20,7 +20,10 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const { apiKeys, addApiKey, deleteApiKey, loadApiKeys } = useApiKeyStore();
+  const { apiKeys, addApiKey, deleteApiKey } = useUnifiedStore();
+  
+  // Convert Map to array for display
+  const apiKeysArray = Array.from(apiKeys.values());
   const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
     name: '',
     service: 'openai',
@@ -37,14 +40,10 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
-      loadApiKeys()
-        .catch((error) => {
-          console.error('Failed to load API keys:', error);
-          setErrors({ general: 'Failed to load existing API keys' });
-        })
-        .finally(() => setLoading(false));
+      // API keys are already in the unified store
+      setLoading(false);
     }
-  }, [isOpen, loadApiKeys]);
+  }, [isOpen]);
 
   const handleAddKey = async () => {
     setErrors({});
@@ -87,10 +86,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         // key is optional - not stored in frontend for security
       };
 
-      addApiKey(newKey);
-      
-      // Reload API keys to ensure everything is in sync
-      await loadApiKeys();
+      // The unified store's addApiKey expects (name, service) and returns the ID
+      addApiKey(newKey.name, newKey.service as DomainApiKey['service']);
       
       // Reset form
       setNewKeyForm({
@@ -144,13 +141,13 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
             Configured API Keys
           </h3>
-          {apiKeys.length === 0 ? (
+          {apiKeysArray.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400 italic">
               No API keys configured yet. Add one below.
             </p>
           ) : (
             <div className="space-y-2">
-              {apiKeys.map((key) => (
+              {apiKeysArray.map((key: DomainApiKey) => (
                 <div
                   key={key.id}
                   className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"

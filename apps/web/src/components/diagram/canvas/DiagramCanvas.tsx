@@ -24,6 +24,8 @@ import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
+import { useUnifiedStore } from "@/hooks/useUnifiedStore";
+import { useShallow } from "zustand/react/shallow";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
@@ -109,6 +111,16 @@ function useCommonFlowProps({
       },
       onDragOver: onDragOver ?? undefined,
       onDrop,
+      // Ensure nodes are draggable and selectable
+      nodesDraggable: true,
+      nodesConnectable: true,
+      nodesFocusable: true,
+      elementsSelectable: true,
+      panOnDrag: true,
+      panOnScroll: false,
+      zoomOnScroll: true,
+      zoomOnPinch: true,
+      zoomOnDoubleClick: true,
     } as const;
 
     return {
@@ -162,7 +174,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   const {
     // diagram state & callbacks
     nodes,
-    arrows,
+    arrows: arrowIds,
     onNodesChange,
     onArrowsChange,
     onConnect,
@@ -185,6 +197,13 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     closeContextMenu,
     clearSelection,
   } = useDiagram({ enableInteractions: true, enableFileOperations: true });
+  
+  // Get full arrow data from the store with memoization
+  const arrows = useUnifiedStore(
+    useShallow(state => {
+      return arrowIds.map(id => state.arrows.get(id)).filter(Boolean) as DomainArrow[];
+    })
+  );
 
 
   /** --------------------------------------------------
@@ -234,7 +253,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * Context‑menu helpers
    * --------------------------------------------------*/
   const handleAddPerson = () => addPerson({ 
-    name: "New Person",
+    label: "New Person",
     model: "gpt-4.1-nano",
     service: "openai"
   });

@@ -1,10 +1,23 @@
 import { parse, stringify } from 'yaml';
 import { DiagramAssembler, Edge, NodeAnalysis, AssemblerCallbacks, ConverterDiagram } from './diagramAssembler';
 import { buildNode, NodeInfo } from './nodeBuilders';
-import { generateShortId, entityIdGenerators } from '@/types/primitives/id-generation';
-import type { DomainDiagram, DomainPerson, DomainApiKey, DomainNode } from '@/types/domain';
-import { NodeKind } from '@/types/primitives/enums';
-import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
+import { 
+  generateShortId,
+  entityIdGenerators,
+  DomainDiagram,
+  DomainPerson,
+  DomainApiKey,
+  DomainNode,
+  NodeKind,
+  nodeId,
+  arrowId,
+  personId,
+  apiKeyId,
+  NodeID,
+  ArrowID,
+  PersonID,
+  ApiKeyID
+} from '@/types';
 
 
 interface LLMYamlFormat {
@@ -172,7 +185,7 @@ export class LlmYaml {
     const defaultPersonId = personId(`PERSON_${generateShortId()}`);
     const defaultPerson: DomainPerson = {
       id: defaultPersonId,
-      name: 'Default Assistant',
+      label: 'Default Assistant',
       model: 'gpt-4.1-nano',
       service: 'openai',
     };
@@ -187,7 +200,7 @@ export class LlmYaml {
         // Simple format: just system prompt
         persons.push({
           id: personIdValue,
-          name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          label: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           model: 'gpt-4.1-nano',
           service: 'openai',
           systemPrompt: personConfig
@@ -198,7 +211,7 @@ export class LlmYaml {
         const service = (personConfig.service || 'openai') as DomainApiKey['service'];
         persons.push({
           id: personIdValue,
-          name: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          label: personName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           model: personConfig.model || 'gpt-4.1-nano',
           service,
           systemPrompt: personConfig.system
@@ -324,7 +337,7 @@ export class LlmYaml {
 
     // Map persons to names
     diagram.persons.forEach((person, index) => {
-      const personName = person.name?.replace(/\s+/g, '_').toLowerCase() || `person_${index + 1}`;
+      const personName = person.label?.replace(/\s+/g, '_').toLowerCase() || `person_${index + 1}`;
       personNameMap[person.id] = personName;
     });
 

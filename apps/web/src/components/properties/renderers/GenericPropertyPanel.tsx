@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { PanelConfig, PanelFieldConfig } from '@/types';
 import { usePropertyManager } from '@/hooks/usePropertyManager';
-import { usePersons } from '@/hooks/useStoreSelectors';
+import { useCanvasOperations } from '@/hooks';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { preInitializeModel } from '@/utils/api';
@@ -17,10 +17,12 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   data,
   config
 }: GenericPropertyPanelProps<T>) => {
-  const { persons } = usePersons();
+
+  const canvas = useCanvasOperations();
 
   // Convert persons to the format expected by UnifiedFormField
-  const personsForSelect = persons.map(person => ({ id: person.id, name: person.name }));
+  const persons = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
+  const personsForSelect = persons.map(person => ({ id: person.id, label: person.label }));
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
@@ -185,7 +187,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
 
   const renderSection = useCallback((fields: PanelFieldConfig[] | undefined) => {
-    if (!fields) return null;
+    if (!fields) {
+      return null;
+    }
     return fields.map((field, index) => renderField(field, index));
   }, [renderField]);
 

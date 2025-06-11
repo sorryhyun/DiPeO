@@ -25,7 +25,7 @@ export interface UnifiedFormFieldProps {
   layout?: 'inline' | 'vertical';
   error?: string;
   helperText?: string;
-  persons?: Array<{ id: string; name: string }>;
+  persons?: Array<{ id: string; label: string }>;
   acceptedFileTypes?: string;
   customProps?: Record<string, unknown>;
   rows?: number;
@@ -90,6 +90,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   
   select: (p) => (
     <Select
+      id={p.fieldId}
       value={String(p.value || '')}
       onValueChange={p.onChange}
       disabled={p.disabled}
@@ -107,6 +108,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
   
   'person-select': (p) => (
     <Select
+      id={p.fieldId}
       value={String(p.value || '')}
       onValueChange={p.onChange}
       disabled={p.disabled}
@@ -116,7 +118,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
       <option value="">Select person...</option>
       {p.persons?.map((person) => (
         <option key={person.id} value={person.id}>
-          {person.name}
+          {person.label}
         </option>
       ))}
     </Select>

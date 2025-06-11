@@ -29,12 +29,12 @@ export type DeepReadonly<T> = {
 /**
  * Extract function arguments
  */
-export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
+export type ArgumentTypes<F extends (...args: any[]) => any> = F extends (...args: infer A) => any ? A : never;
 
 /**
  * Extract function return type
  */
-export type ReturnType<F extends Function> = F extends (...args: any[]) => infer R ? R : never;
+export type ReturnType<F extends (...args: any[]) => any> = F extends (...args: any[]) => infer R ? R : never;
 
 /**
  * Omit multiple properties

@@ -1,37 +1,41 @@
-import { generateShortId } from '@/types/primitives/id-generation';
-import { NodeKind } from '@/types/primitives/enums';
 import { 
+  generateShortId,
+  NodeKind,
   DomainNode, 
   DomainArrow, 
   DomainPerson, 
   DomainApiKey, 
   DomainHandle,
   DomainDiagram,
-  createHandleId 
-} from '@/types/domain';
-import { nodeId, arrowId, personId, apiKeyId, NodeID, ArrowID, PersonID, ApiKeyID } from '@/types/branded';
+  createHandleId,
+  nodeId,
+  arrowId,
+  personId,
+  apiKeyId,
+  NodeID,
+  ArrowID,
+  PersonID,
+  ApiKeyID
+} from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
 import { buildNode as buildNodeFromInfo, NodeInfo as NodeBuilderInfo } from './nodeBuilders';
 
-// Extended Node type with handles for converters
-export interface NodeWithHandles extends DomainNode {
-  handles: DomainHandle[];
-  // ReactFlow properties
-  draggable?: boolean;
-  selectable?: boolean;
-  connectable?: boolean;
-}
-
-// Converter diagram format with arrays
+// Converter diagram format with arrays and handles
 export interface ConverterDiagram {
   id: string;
   name: string;
   description?: string;
-  nodes: NodeWithHandles[];
+  nodes: DomainNode[];
   arrows: DomainArrow[];
   persons: DomainPerson[];
   apiKeys: DomainApiKey[];
+  handles: DomainHandle[]; // Store handles separately
+}
+
+// Temporary type for building nodes with handles
+interface NodeWithHandles extends DomainNode {
+  handles: DomainHandle[];
 }
 
 // Edge type for graph representation
@@ -81,7 +85,7 @@ export interface AssemblerCallbacks {
   extractApiKeys: (persons: DomainPerson[]) => DomainApiKey[];
   
   // Link persons to nodes
-  linkPersonsToNodes?: (nodes: NodeWithHandles[], nodeAnalysis: Record<string, NodeAnalysis>, context: any) => void;
+  linkPersonsToNodes?: (nodes: DomainNode[], nodeAnalysis: Record<string, NodeAnalysis>, context: any) => void;
 }
 
 export interface AssemblerOptions {
@@ -117,7 +121,7 @@ export class DiagramAssembler {
       const apiKeys = callbacks.extractApiKeys(persons);
       
       // Build nodes with positions
-      const nodes = this.buildNodes(nodeAnalysis, positions, source, callbacks);
+      const { nodes, handles } = this.buildNodes(nodeAnalysis, positions, source, callbacks);
       
       // Build arrows
       const arrows = this.buildArrows(edges);
@@ -128,13 +132,14 @@ export class DiagramAssembler {
       }
       
       return {
-        id: `diagram-${generateShortId().slice(0, 4)}`,
+        id: `diagram-${generateShortId()}`,
         name: 'Imported Diagram',
         nodes,
         arrows,
         persons,
-        apiKeys
-      } as ConverterDiagram;
+        apiKeys,
+        handles
+      };
     } catch (error) {
       // Return minimal valid diagram on error
       console.error('Diagram assembly error:', error);
@@ -145,7 +150,7 @@ export class DiagramAssembler {
         : getDefaultHandles(errorNodeId, 'start' as NodeKind);
       
       return {
-        id: `diagram-${generateShortId().slice(0, 4)}`,
+        id: `diagram-${generateShortId()}`,
         name: 'Import Error',
         nodes: [{
           id: errorNodeId,
@@ -156,11 +161,11 @@ export class DiagramAssembler {
             label: `Import Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
             type: 'start'
           },
-          handles: errorHandles
         }],
         arrows: [],
         persons: [],
-        apiKeys: []
+        apiKeys: [],
+        handles: errorHandles
       } as ConverterDiagram;
     }
   }
@@ -281,8 +286,9 @@ export class DiagramAssembler {
     positions: Record<string, NodePosition>,
     source: any,
     callbacks: AssemblerCallbacks
-  ): NodeWithHandles[] {
-    const nodes: NodeWithHandles[] = [];
+  ): { nodes: DomainNode[], handles: DomainHandle[] } {
+    const nodes: DomainNode[] = [];
+    const allHandles: DomainHandle[] = [];
     
     Object.entries(nodeAnalysis).forEach(([name, analysis]) => {
       const nodeInfo = callbacks.createNodeInfo(name, analysis, source);
@@ -297,23 +303,19 @@ export class DiagramAssembler {
         ? generateNodeHandles(nodeIdValue, nodeConfig, nodeInfo.type) 
         : getDefaultHandles(nodeIdValue, nodeInfo.type);
       
-      // Create node
-      const node: NodeWithHandles = {
+      // Create node (pure domain node)
+      const node: DomainNode = {
         id: nodeIdValue,
         type: nodeInfo.type,
         position: positions[name] || { x: 0, y: 0 },
-        data: nodeInfo.data,
-        handles,
-        // Add ReactFlow required properties
-        draggable: true,
-        selectable: true,
-        connectable: true
+        data: nodeInfo.data
       };
       
       nodes.push(node);
+      allHandles.push(...handles);
     });
     
-    return nodes;
+    return { nodes, handles: allHandles };
   }
   
   /**
@@ -328,7 +330,7 @@ export class DiagramAssembler {
       
       if (!sourceId || !targetId) return;
       
-      const id = arrowId(`arrow-${generateShortId().slice(0, 4)}`);
+      const id = arrowId(`arrow-${generateShortId()}`);
       
       // Determine handle names based on edge properties
       const sourceHandleName = edge.condition ? 
@@ -382,18 +384,21 @@ export class DiagramAssembler {
   
   /**
    * Build a node using the unified builder system
+   * @deprecated Use buildNodeFromInfo directly from nodeBuilders
    */
-  static buildNode(info: NodeInfo): NodeWithHandles {
-    // Use the imported buildNode function and ensure it has handles
-    const node = buildNodeFromInfo(info) as NodeWithHandles;
-    // The node from nodeBuilders already has handles, draggable, selectable, connectable
-    return node;
+  static buildNode(info: NodeInfo): DomainNode {
+    // This is now deprecated - use buildNodeFromInfo directly
+    const nodeWithHandles = buildNodeFromInfo(info) as NodeWithHandles;
+    // Extract just the domain node part
+    const { handles: _handles, ...domainNode } = nodeWithHandles;
+    return domainNode;
   }
   
   /**
    * Build multiple nodes from a record of node infos
+   * @deprecated Use buildNodes directly from nodeBuilders
    */
-  static buildNodes(nodeInfos: Record<string, NodeInfo>): NodeWithHandles[] {
+  static buildNodes(nodeInfos: Record<string, NodeInfo>): DomainNode[] {
     return Object.values(nodeInfos).map(info => DiagramAssembler.buildNode(info));
   }
   

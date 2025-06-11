@@ -4,21 +4,17 @@ import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
-import { useCanvasInteractions } from '@/hooks/useCanvasInteractions';
-import { 
-  useNodes, 
-  useArrows, 
-  usePersons,
-  useSelectedElement 
-} from '@/hooks/useStoreSelectors';
+import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
+import type { PersonID } from '@/types/branded';
+import type { Node } from '@xyflow/react';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
 import type { UniversalData } from '@/components/properties/PropertiesPanel';
 
 export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
-  const { onNodeDragStart } = useCanvasInteractions();
+  const { onNodeDragStart } = useCanvasOperations();
 
   // Extract emoji from label (assuming it's the first character(s))
   const icon = label.split(' ')[0] || '';
@@ -41,15 +37,27 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ position }) => {
-  const { nodes } = useNodes();
-  const { arrows } = useArrows();
+  const canvas = useCanvasOperations();
   const { 
-    selectedPersonId, 
-    selectedNodeId, 
-    selectedArrowId,
-    setSelectedPersonId 
-  } = useSelectedElement();
-  const { persons, addPerson } = usePersons();
+    nodes, 
+    persons, 
+    addPerson,
+    selectedId,
+    selectedType,
+    select,
+    clearSelection,
+    getPersonById
+  } = canvas;
+  
+  // Derive selected IDs based on selectedType
+  const selectedNodeId = selectedType === 'node' ? selectedId : null;
+  const selectedArrowId = selectedType === 'arrow' ? selectedId : null;
+  const selectedPersonId = selectedType === 'person' ? selectedId : null;
+  
+  const setSelectedPersonId = (id: PersonID | null) => {
+    if (id) select(id, 'person');
+    else clearSelection();
+  };
   const { handleFileInput, saveYAML, saveLLMYAML } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
@@ -59,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   
   const handlePersonClick = (personId: string) => {
-    setSelectedPersonId(personId);
+    setSelectedPersonId(personId as PersonID);
   };
 
   if (position === 'right') {
@@ -68,21 +76,20 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
     let selectedData: UniversalData | null = null;
     
     if (selectedNodeId) {
-      const node = nodes.find(n => n.id === selectedNodeId);
+      const node = nodes.find((n: Node) => n.id === selectedNodeId);
       if (node) {
         selectedId = node.id;
         selectedData = { ...node.data, type: node.type || 'unknown' };
       }
     } else if (selectedArrowId) {
-      const arrow = arrows.find(a => a.id === selectedArrowId);
-      if (arrow) {
-        selectedId = arrow.id;
-        selectedData = { ...arrow.data, type: 'arrow' };
-      }
+      // For arrows, we need to get the arrow data from the store
+      // Since arrows array only contains IDs, we'll skip arrow properties for now
+      selectedId = selectedArrowId;
+      selectedData = { type: 'arrow' };
     } else if (selectedPersonId) {
-      const person = persons.find(p => p.id === selectedPersonId);
+      const person = getPersonById(selectedPersonId as PersonID);
       if (person) {
-        selectedId = person.id;
+        selectedId = selectedPersonId;
         selectedData = { ...person, type: 'person' };
       }
     }
@@ -161,34 +168,37 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
         {personsExpanded && (
           <div className="mt-3 max-h-48 overflow-y-auto px-2">
             <div className="space-y-1">
-              {persons.map(person => (
-                <div
-                  key={person.id}
-                  className={`p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
-                    selectedPersonId === person.id
-                      ? 'bg-blue-100 border border-blue-300 shadow-sm'
-                      : 'bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => handlePersonClick(person.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🤖</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs truncate">{person.name}</p>
+              {persons.map((personId) => {
+                const person = getPersonById(personId);
+                if (!person) return null;
+                return (
+                  <div
+                    key={person.id}
+                    className={`p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
+                      selectedPersonId === person.id
+                        ? 'bg-blue-100 border border-blue-300 shadow-sm'
+                        : 'bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handlePersonClick(person.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🤖</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">{person.label}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <Button
               variant="outline"
               className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               size="sm"
               onClick={() => addPerson({
-                name: `Person ${persons.length + 1}`,
+                label: `Person ${persons.length + 1}`,
                 model: 'gpt-4.1-nano',
                 service: 'openai',
-                systemPrompt: '',
               })}
             >
               <span className="mr-1">➕</span> Add Person

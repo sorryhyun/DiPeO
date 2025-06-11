@@ -1,19 +1,17 @@
-// Main stores
-export { DiagramCanvasStore } from './diagramCanvasStore';
-export { useExecutionStore } from './executionStore';
-export { useConsolidatedUIStore } from './consolidatedUIStore';
-export { useDiagramExportStore } from './diagramExportStore';
-export { useDiagramStore, useNodes, useArrows, usePersons, useApiKeys, useIsReadOnly } from './useDiagramStore';
+// Store exports only - hooks are in @/hooks
+export { useUnifiedStore } from './unifiedStore';
 
-// Supporting stores
-export { useApiKeyStore } from './apiKeyStore';
-export { useHistoryStore } from './historyStore';
+// Type exports
+export type { 
+  UnifiedStore,
+  NodeState,
+  Snapshot,
+  ExportFormat,
+  ExportedNode,
+  ExportedArrow,
+  ExportedPerson,
+  ExportedApiKey
+} from './unifiedStore.types';
 
-// Types
-export type { ExecutionStore } from './executionStore';
-export type { ApiKeyState } from './apiKeyStore';
-export type { HistoryStore, HistoryState } from './historyStore';
-
-// Phase 8 additions
-export { createTypedActions } from './typed-actions';
-export type { TypedDiagramActions } from './typed-actions';
+// Export the DiagramExporter class
+export { DiagramExporter } from './diagramExporter';

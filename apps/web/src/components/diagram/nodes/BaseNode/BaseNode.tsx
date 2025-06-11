@@ -1,13 +1,12 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
 import { FlowHandle } from '@/components/diagram/controls';
-import { useNodeDataUpdater } from '@/hooks/useStoreSelectors';
-import { useExecutionV2 } from '@/hooks/execution';
-import { useConsolidatedUIStore } from '@/stores';
-import {NodeKind, NodeID, nodeId, handleId} from '@/types';
+import { useCanvasOperations, useExecution } from '@/hooks';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
+import {NodeKind, nodeId} from '@/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -22,7 +21,7 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { nodeStates } = useExecutionV2();
+  const { nodes: nodeStates } = useExecution();
   const nodeState = nodeStates?.[nodeId];
   
   return useMemo(() => ({
@@ -36,7 +35,7 @@ function useNodeStatus(nodeId: string) {
 }
 
 // Custom hook for handles generation
-function useHandles(nodeId: NodeID, nodeType: string, isFlipped: boolean) {
+function useHandles(nodeType: string, isFlipped: boolean) {
   const config = getNodeConfig(nodeType as NodeKind);
   
   return useMemo(() => {
@@ -57,31 +56,30 @@ function useHandles(nodeId: NodeID, nodeType: string, isFlipped: boolean) {
            handle.position === 'top' ? Position.Top : Position.Bottom);
       
       const offset = handle.offset || { x: 0, y: 0 };
-      const style = isVertical 
-        ? { left: `${50 + (offset.x / 2)}%`, transform: `translateX(-50%)` }
-        : { top: `${50 + (offset.y / 2)}%`, transform: `translateY(-50%)` };
+      const offsetPercentage = isVertical 
+        ? 50 + (offset.x / 2)
+        : 50 + (offset.y / 2);
       
       // Ensure unique handle ID
-      const handleName = handle.id || 'default';
-      let handleIdentifier = handleId(nodeId, handleName);
+      let handleName = handle.id || 'default';
       
       // If ID already exists, append index to make it unique
-      if (usedIds.has(handleIdentifier)) {
-        handleIdentifier = handleId(nodeId, `${handleName}_${index}`);
+      if (usedIds.has(handleName)) {
+        handleName = `${handleName}_${index}`;
       }
-      usedIds.add(handleIdentifier);
+      usedIds.add(handleName);
       
       return {
         type: handle.type,
         position,
-        id: handleIdentifier,
+        id: handleName,
         name: handleName,
-        style,
-        offset: 50,
+        style: {},
+        offset: offsetPercentage,
         color: handle.color
       };
     });
-  }, [config, nodeId, isFlipped]);
+  }, [config, isFlipped]);
 }
 
 // Memoized status indicator component
@@ -182,9 +180,9 @@ export function BaseNode({
   className 
 }: BaseNodeProps) {
   // Store selectors
-  const updateNode = useNodeDataUpdater();
+  const canvas = useCanvasOperations();
   const updateNodeInternals = useUpdateNodeInternals();
-  const { activeCanvas } = useConsolidatedUIStore();
+  const { activeCanvas } = useUnifiedStore();
   const isExecutionMode = activeCanvas === 'execution';
   
   // Use custom hooks
@@ -192,13 +190,26 @@ export function BaseNode({
   const status = useNodeStatus(id);
   const config = getNodeConfig(type as NodeKind);
   const isFlipped = data?.flipped === true;
-  const handles = useHandles(nId, type, isFlipped);
+  const handles = useHandles(type, isFlipped);
   
   // Handle flip
   const handleFlip = useCallback(() => {
-    updateNode(nId, { data: { ...data, flipped: !isFlipped } });
+    canvas.updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
-  }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
+  }, [nId, id, data, isFlipped, canvas, updateNodeInternals]);
+
+  // Track previous data to detect changes
+  const prevDataRef = useRef(data);
+  
+  // Update node internals when data changes (except on first render)
+  useEffect(() => {
+    // Skip the first render
+    if (prevDataRef.current !== data) {
+      // Update node internals to recalculate handle positions and connections
+      updateNodeInternals(id);
+      prevDataRef.current = data;
+    }
+  }, [data, id, updateNodeInternals]);
   
   // Determine node appearance based on state using data attributes
   const nodeClassNames = useMemo(() => {

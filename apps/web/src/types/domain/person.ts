@@ -1,21 +1,12 @@
 import { PersonID } from '../branded';
 
-/**
- * LLM service types
- */
-export type LLMService = 'openai' | 'claude' | 'gemini' | 'groq' | 'grok';
+export type LLMService = 'openai' | 'claude' | 'gemini'  | 'grok';
 
-/**
- * Forgetting mode for person memory management
- */
 export type ForgettingMode = 'no_forget' | 'on_every_turn' | 'upon_request';
 
-/**
- * Pure domain person - represents a configured LLM instance with memory
- */
 export interface DomainPerson {
   id: PersonID;
-  name: string;
+  label: string;
   model: string;
   service: LLMService;
   systemPrompt?: string;
@@ -27,18 +18,12 @@ export interface DomainPerson {
   forgettingMode?: ForgettingMode;
 }
 
-/**
- * Person memory configuration
- */
 export interface PersonMemoryConfig {
   maxMessages?: number;
   ttlSeconds?: number;
   autoCleanup?: boolean;
 }
 
-/**
- * Person with extended configuration
- */
 export interface ExtendedPerson extends DomainPerson {
   memoryConfig?: PersonMemoryConfig;
   metadata?: {
@@ -48,23 +33,17 @@ export interface ExtendedPerson extends DomainPerson {
   };
 }
 
-/**
- * Type guard for domain person
- */
 export function isDomainPerson(obj: unknown): obj is DomainPerson {
   return (
     obj !== null &&
     typeof obj === 'object' &&
     'id' in obj &&
-    'name' in obj &&
+    'label' in obj &&
     'model' in obj &&
     'service' in obj
   );
 }
 
-/**
- * Default person configuration
- */
 export const DEFAULT_PERSON_CONFIG: Partial<DomainPerson> = {
   temperature: 0.7,
   maxTokens: 2000,
@@ -74,12 +53,9 @@ export const DEFAULT_PERSON_CONFIG: Partial<DomainPerson> = {
   forgettingMode: 'no_forget'
 };
 
-/**
- * Create a new person with defaults
- */
 export function createPerson(
   id: PersonID,
-  name: string,
+  label: string,
   model: string,
   service: LLMService,
   overrides?: Partial<DomainPerson>
@@ -87,7 +63,7 @@ export function createPerson(
   return {
     ...DEFAULT_PERSON_CONFIG,
     id,
-    name,
+    label,
     model,
     service,
     ...overrides

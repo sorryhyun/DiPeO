@@ -1,4 +1,4 @@
-// types/index.ts - Central export point for all types
+// types/config.ts - Central export point for all types
 
 // Re-export all types from separate modules
 export * from './primitives';
@@ -41,7 +41,7 @@ export {
 } from './branded';
 
 // Legacy exports for backward compatibility
-export * from './legacy';
+
 
 // Export type guards
 export * from './typeGuards';

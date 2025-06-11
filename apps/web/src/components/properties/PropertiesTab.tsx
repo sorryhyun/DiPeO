@@ -1,20 +1,24 @@
 import React, { Suspense } from 'react';
-import { useNodes, useArrows, usePersons, useSelectedElement } from '@/hooks/useStoreSelectors';
+import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { LoadingFallback } from '@/components/ui/feedback';
 
 // Lazy load the properties renderer
 const PropertiesRenderer = React.lazy(() => import('./renderers/PropertiesRenderer'));
 
 export const PropertiesTab: React.FC = () => {
-  const { nodes } = useNodes();
-  const { arrows } = useArrows();
-  const { persons } = usePersons();
+  const canvas = useCanvasOperations();
+  const { nodes, selectedId, selectedType } = canvas;
   
-  const {
-    selectedPersonId,
-    selectedNodeId,
-    selectedArrowId,
-  } = useSelectedElement();
+  // Derive selected IDs based on selectedType
+  const selectedNodeId = selectedType === 'node' ? selectedId : null;
+  const selectedArrowId = selectedType === 'arrow' ? selectedId : null;
+  const selectedPersonId = selectedType === 'person' ? selectedId : null;
+  
+  // Convert person IDs to person objects
+  const personsData = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
+  
+  // For now, pass empty arrays for arrows since we don't have full arrow data
+  const arrowsData: any[] = [];
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -24,8 +28,8 @@ export const PropertiesTab: React.FC = () => {
           selectedArrowId={selectedArrowId}
           selectedPersonId={selectedPersonId}
           nodes={nodes}
-          arrows={arrows}
-          persons={persons}
+          arrows={arrowsData}
+          persons={personsData}
         />
       </Suspense>
     </div>

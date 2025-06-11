@@ -195,7 +195,7 @@ export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandl
           name: 'true',
           direction: 'output',
           position: 'right',
-          label: 'True',
+          label: 'true',
           dataType: 'boolean',
         },
         {
@@ -204,7 +204,7 @@ export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandl
           name: 'false',
           direction: 'output',
           position: 'right',
-          label: 'False',
+          label: 'false',
           dataType: 'boolean',
         },
       ];

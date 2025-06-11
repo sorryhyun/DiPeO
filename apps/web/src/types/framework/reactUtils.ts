@@ -20,6 +20,11 @@ export interface DiPeoNode extends Node {
     inputs?: Record<string, unknown>;
     outputs?: Record<string, unknown>;
   };
+  draggable?: boolean;
+  selectable?: boolean;
+  connectable?: boolean;
+  focusable?: boolean;
+  deletable?: boolean;
 }
 
 /**

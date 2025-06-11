@@ -12,9 +12,6 @@ import { NodeID, ArrowID, HandleID, handleId } from '../branded';
 import { DiPeoNode, DiPeoEdge, ValidatedConnection } from './reactUtils';
 import { Vec2, Rect, NodeKind, generateId } from '../primitives';
 
-// ============================================================================
-// Domain to React Conversions
-// ============================================================================
 
 /**
  * Convert domain node to React node
@@ -34,11 +31,18 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
     type: node.type,
     position: node.position,
     data: {
+      ...node.data,
       label: (node.data as any).label,
       properties: node.data,
       inputs,
       outputs
-    }
+    },
+    // Add default React Flow properties required for proper node initialization
+    draggable: true,
+    selectable: true,
+    connectable: true,
+    focusable: true,
+    deletable: true
   };
 }
 
@@ -77,13 +81,9 @@ export function diagramToReact(diagram: DomainDiagram): {
   return { nodes, edges };
 }
 
-// ============================================================================
-// React to Domain Conversions
-// ============================================================================
 
-/**
- * Convert React node to domain node
- */
+// React to Domain Conversions
+
 export function reactToNode(rfNode: RFNode): DomainNode {
   return {
     id: rfNode.id as NodeID,
@@ -93,9 +93,6 @@ export function reactToNode(rfNode: RFNode): DomainNode {
   };
 }
 
-/**
- * Convert React edge to domain arrow
- */
 export function reactToArrow(rfEdge: RFEdge): DomainArrow {
   const sourceHandle = handleId(
     rfEdge.source as NodeID, 
@@ -114,9 +111,6 @@ export function reactToArrow(rfEdge: RFEdge): DomainArrow {
   };
 }
 
-/**
- * Convert React connection to domain arrow
- */
 export function connectionToArrow(connection: Connection): DomainArrow | null {
   if (!connection.source || !connection.target) {
     return null;
@@ -138,13 +132,8 @@ export function connectionToArrow(connection: Connection): DomainArrow | null {
   };
 }
 
-// ============================================================================
 // Validation and Utilities
-// ============================================================================
 
-/**
- * Validate a connection against the diagram
- */
 export function validateConnection(
   connection: Connection,
   diagram: DomainDiagram
@@ -187,9 +176,7 @@ export function validateConnection(
   return validated;
 }
 
-/**
- * Normalize position to ensure it's valid
- */
+
 export function normalizePosition(position: Partial<Vec2> | undefined): Vec2 {
   return {
     x: position?.x ?? 0,

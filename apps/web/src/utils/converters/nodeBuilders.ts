@@ -1,10 +1,16 @@
-import { generateShortId } from '@/types/primitives/id-generation';
-import type { DomainNode, DomainHandle } from '@/types/domain';
-import type { NodeWithHandles } from './diagramAssembler';
-import { NodeKind } from '@/types/primitives/enums';
-import { nodeId, NodeID } from '@/types/branded';
+import { 
+  generateNodeId,
+  NodeKind,
+  DomainNode,
+  DomainHandle
+} from '@/types';
 import { generateNodeHandles, getDefaultHandles } from '@/utils/node';
 import { getNodeConfig } from '@/config/helpers';
+
+// Temporary type for nodes with handles
+interface NodeWithHandles extends DomainNode {
+  handles: DomainHandle[];
+}
 
 // Common utilities
 export const capitalize = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -17,12 +23,8 @@ const addHandles = (node: DomainNode, nodeType: NodeKind): NodeWithHandles => {
     : getDefaultHandles(node.id, nodeType);
   return { 
     ...node, 
-    handles,
-    // Add ReactFlow required properties
-    draggable: true,
-    selectable: true,
-    connectable: true
-  } as NodeWithHandles;
+    handles
+  };
 };
 
 // Node info type for builder input
@@ -49,7 +51,7 @@ type NodeBuilder = (info: NodeInfo) => NodeWithHandles;
 // Unified node builders lookup map
 export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   start: (info) => {
-    const id = nodeId(`st-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'start' as const,
@@ -63,7 +65,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   person_job: (info) => {
-    const id = nodeId(`pj-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'person_job',
@@ -84,7 +86,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   condition: (info) => {
-    const id = nodeId(`cd-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'condition' as const,
@@ -101,7 +103,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   db: (info) => {
-    const id = nodeId(`db-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'db' as const,
@@ -117,7 +119,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   job: (info) => {
-    const id = nodeId(`jb-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'job' as const,
@@ -133,7 +135,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   endpoint: (info) => {
-    const id = nodeId(`ep-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'endpoint' as const,
@@ -150,7 +152,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   notion: (info) => {
-    const id = nodeId(`nt-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'notion' as const,
@@ -167,7 +169,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   person_batch_job: (info) => {
-    const id = nodeId(`pb-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'person_batch_job' as const,
@@ -187,7 +189,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
   },
 
   user_response: (info) => {
-    const id = nodeId(`ur-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'user_response' as const,
@@ -209,7 +211,7 @@ export const NODE_BUILDERS: Record<string, NodeBuilder> = {
       return personJobBuilder(info);
     }
     // Ultimate fallback
-    const id = nodeId(`nd-${generateShortId()}`);
+    const id = generateNodeId();
     return addHandles({
       id,
       type: 'person_job' as const,
@@ -267,20 +269,3 @@ export function detectVariables(...prompts: string[]): string[] {
   return Array.from(vars);
 }
 
-/**
- * Get node type prefix for ID generation
- */
-export function getNodeTypePrefix(nodeType: string): string {
-  const prefixMap: Record<string, string> = {
-    start: 'st',
-    person_job: 'pj',
-    condition: 'cd',
-    db: 'db',
-    job: 'jb',
-    endpoint: 'ep',
-    notion: 'nt',
-    person_batch_job: 'pb',
-    user_response: 'ur'
-  };
-  return prefixMap[nodeType] || 'nd';
-}

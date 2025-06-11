@@ -6,10 +6,11 @@ import {
 import { Button, Input, Select } from '@/components/ui';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { toast } from 'sonner';
-import { usePersons, useSelectedElement, useExecutionStatus } from '@/hooks/useStoreSelectors';
+import { useCanvasOperations } from '@/hooks';
+import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
-import {ConversationFilters, ConversationMessage, PersonID, ExecutionID, executionId, personId} from '@/types';
+import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
@@ -20,10 +21,20 @@ const ConversationDashboard: React.FC = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const { persons } = usePersons();
-  const { runContext } = useExecutionStatus();
-  const { selectedPersonId } = useSelectedElement();
+  const canvas = useCanvasOperations();
+  const store = useUnifiedStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Get persons from canvas
+  const persons = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
+  
+  // Get selected person ID if a person is selected
+  const selectedPersonId = (() => {
+    if (!store.selectedId) return null;
+    // Check if the selected ID is a person
+    const person = store.persons.get(store.selectedId as PersonID);
+    return person ? store.selectedId as PersonID : null;
+  })();
   
 
   // Use consolidated conversation data hook with real-time updates
@@ -53,12 +64,11 @@ const ConversationDashboard: React.FC = () => {
     };
   }, []);
 
-  // Initial load when runContext changes
+  // Initial load - only run once on mount
   useEffect(() => {
-    if (Object.keys(runContext).length > 0) {
-      void fetchConversationData();
-    }
-  }, [runContext, fetchConversationData]);
+    void fetchConversationData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run only once
 
   // Handle person selection from sidebar
   useEffect(() => {
@@ -115,6 +125,34 @@ const ConversationDashboard: React.FC = () => {
     return conversationData[dashboardSelectedPerson].messages
       .reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
   }, [dashboardSelectedPerson, conversationData]);
+
+  // Memoize whole conversation data with stable dependency
+  const conversationDataKeys = Object.keys(conversationData).sort().join(',');
+  const wholeConversationData = useMemo(() => {
+    if (dashboardSelectedPerson !== 'whole') {
+      return { allMessages: [], totalTokens: 0 };
+    }
+
+    const messages: ConversationMessage[] = [];
+    Object.entries(conversationData).forEach(([key, personData]) => {
+      // Add personId to each message
+      const messagesWithPersonId = personData.messages.map(msg => ({
+        ...msg,
+        personId: personId(key)
+      } as ConversationMessage));
+      messages.push(...messagesWithPersonId);
+    });
+    
+    // Sort messages by timestamp
+    messages.sort((a, b) => {
+      const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return aTime - bTime;
+    });
+    
+    const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
+    return { allMessages: messages, totalTokens: tokens };
+  }, [dashboardSelectedPerson, conversationDataKeys]); // Use stable dependency
 
   // Handle whole conversation button click
   const handleWholeConversation = () => {
@@ -222,33 +260,6 @@ const ConversationDashboard: React.FC = () => {
 
     // Handle whole conversation view
     if (dashboardSelectedPerson === 'whole') {
-      const { allMessages, totalTokens } = useMemo(() => {
-        const messages: ConversationMessage[] = [];
-        Object.values(conversationData).forEach(personData => {
-          // Add personId to each message
-          const messagesWithPersonId = personData.messages.map(msg => {
-            const personIdFromData = Object.keys(conversationData).find(key => 
-              conversationData[key] === personData
-            );
-            return {
-              ...msg,
-              personId: personId(personIdFromData || '')
-            } as ConversationMessage;
-          });
-          messages.push(...messagesWithPersonId);
-        });
-        
-        // Sort messages by timestamp
-        messages.sort((a, b) => {
-          const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          return aTime - bTime;
-        });
-        
-        const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
-        return { allMessages: messages, totalTokens: tokens };
-      }, [conversationData]);
-      
       return (
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
@@ -256,18 +267,18 @@ const ConversationDashboard: React.FC = () => {
               Whole Conversation Timeline
             </h3>
             <div className="flex items-center space-x-4 text-xs text-gray-600">
-              <span>{allMessages.length} messages</span>
-              {totalTokens > 0 && (
+              <span>{wholeConversationData.allMessages.length} messages</span>
+              {wholeConversationData.totalTokens > 0 && (
                 <span className="flex items-center">
                   <DollarSign className="h-3 w-3 mr-1" />
-                  Total Tokens: {totalTokens.toFixed(2)}
+                  Total Tokens: {wholeConversationData.totalTokens.toFixed(2)}
                 </span>
               )}
             </div>
           </div>
 
           <MessageList
-            messages={allMessages}
+            messages={wholeConversationData.allMessages}
             currentPersonId={dashboardSelectedPerson}
             persons={persons}
             messagesEndRef={messagesEndRef}

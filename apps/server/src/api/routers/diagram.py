@@ -87,6 +87,8 @@ class ConvertDiagramRequest(BaseModel):
     to_format: str    # "yaml", "json", "llm-yaml", "uml"
 
 
+
+
 @router.post("/save")
 @handle_api_errors
 async def save_diagram(
@@ -117,16 +119,27 @@ async def save_diagram(
         dir_path = os.path.join(os.environ.get('BASE_DIR', '.'), directory)
         os.makedirs(dir_path, exist_ok=True)
         
+        # Check if file exists and generate unique filename if needed
+        base_name = os.path.splitext(filename)[0]
+        extension = os.path.splitext(filename)[1]
+        final_filename = filename
+        counter = 1
+        
+        while os.path.exists(os.path.join(dir_path, final_filename)):
+            final_filename = f"{base_name}_{counter}{extension}"
+            counter += 1
+        
         # Save to appropriate directory
         saved_path = await file_service.write(
-            path=f"{directory}/{filename}",
+            path=f"{directory}/{final_filename}",
             content=request.diagram,
             format=request.format
         )
         
         return {
             "success": True,
-            "message": f"Diagram saved to {saved_path}"
+            "message": f"Diagram saved to {saved_path}",
+            "filename": final_filename
         }
         
     except Exception as e:

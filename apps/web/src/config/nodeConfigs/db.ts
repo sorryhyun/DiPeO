@@ -11,35 +11,11 @@ export const dbConfig = createUnifiedConfig<DBFormData>({
   icon: '💾',
   color: 'yellow',
   handles: {
-    input: [{ id: 'default', position: 'bottom', offset: { x: -20, y: 0 } }],
-    output: [{ id: 'default', position: 'bottom', offset: { x: 20, y: 0 } }]
+    input: [{ id: 'default', position: 'left' }],
+    output: [{ id: 'default', position: 'right' }]
   },
-  fields: [
-    { 
-      name: 'operation', 
-      type: 'select', 
-      label: 'Operation', 
-      required: true,
-      options: [
-        { value: 'read', label: 'Read File' },
-        { value: 'write', label: 'Write File' },
-        { value: 'query', label: 'Query Database' }
-      ]
-    },
-    { name: 'path', type: 'string', label: 'Path', required: true, placeholder: 'files/data.json' },
-    { 
-      name: 'format', 
-      type: 'select', 
-      label: 'Format', 
-      required: true,
-      options: [
-        { value: 'json', label: 'JSON' },
-        { value: 'csv', label: 'CSV' },
-        { value: 'text', label: 'Text' }
-      ]
-    }
-  ],
-  defaults: { operation: 'read', path: '', format: 'json', label: '', subType: 'fixed_prompt', sourceDetails: '' },
+  fields: [], // Fields are defined in panelCustomFields to match backend expectations
+  defaults: { label: '', subType: 'fixed_prompt', sourceDetails: '' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
