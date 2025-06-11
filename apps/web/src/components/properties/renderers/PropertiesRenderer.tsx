@@ -67,7 +67,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     let title = "Properties";
 
     if (selectedPersonId && personData) {
-      title = `${personData.name || 'Person'} Properties`;
+      title = `${personData.label || 'Person'} Properties`;
       content = (
         <Suspense fallback={<LoadingFallback />}>
           <UniversalPropertiesPanel nodeId={selectedPersonId} data={{ ...personData, type: 'person' as const }} />

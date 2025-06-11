@@ -96,7 +96,8 @@ export interface UnifiedStore {
   activeView: 'diagram' | 'execution';
   activeCanvas: 'main' | 'execution' | 'memory';
   dashboardTab: string;
-  readOnly: boolean;
+  readOnly: boolean; // Monitor mode - set by URL param or manual toggle
+  executionReadOnly: boolean; // Execution mode - automatically set during execution
   showApiKeysModal: boolean;
   showExecutionModal: boolean;
   

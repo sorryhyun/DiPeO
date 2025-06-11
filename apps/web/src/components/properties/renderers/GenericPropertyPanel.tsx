@@ -5,12 +5,30 @@ import { useCanvasOperations } from '@/hooks';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { preInitializeModel } from '@/utils/api';
+import { createHandlerTable } from '@/utils/dispatchTable';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
   data: T;
   config: PanelConfig<T>;
 }
+
+// Create dispatch tables for operators and field types
+const conditionalOperators = createHandlerTable<string, [unknown, unknown[]], boolean>({
+  'equals': (fieldValue, values) => values.includes(fieldValue),
+  'notEquals': (fieldValue, values) => !values.includes(fieldValue),
+  'includes': (fieldValue, values) => values.includes(fieldValue)
+}, (fieldValue, values) => values.includes(fieldValue)); // Default to 'includes'
+
+const fieldTypeMapping = createHandlerTable<string, [], string>({
+  'text': () => 'text',
+  'select': () => 'select',
+  'textarea': () => 'textarea',
+  'variableTextArea': () => 'variable-textarea',
+  'checkbox': () => 'checkbox',
+  'maxIteration': () => 'iteration-count',
+  'personSelect': () => 'person-select'
+}, () => 'text'); // Default to 'text'
 
 export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   nodeId,
@@ -76,37 +94,12 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     const fieldValue = formData[fieldConfig.conditional.field];
     const { values, operator = 'includes' } = fieldConfig.conditional;
     
-    switch (operator) {
-      case 'equals':
-        return values.includes(fieldValue);
-      case 'notEquals':
-        return !values.includes(fieldValue);
-      case 'includes':
-      default:
-        return values.includes(fieldValue);
-    }
+    return conditionalOperators.executeOrDefault(operator, fieldValue, values);
   }, [formData]);
 
   // Convert field type to UnifiedFormField type
-  const getFieldType = (fieldConfig: PanelFieldConfig) => {
-    switch (fieldConfig.type) {
-      case 'text':
-        return 'text';
-      case 'select':
-        return 'select';
-      case 'textarea':
-        return 'textarea';
-      case 'variableTextArea':
-        return 'variable-textarea';
-      case 'checkbox':
-        return 'checkbox';
-      case 'maxIteration':
-        return 'iteration-count';
-      case 'personSelect':
-        return 'person-select';
-      default:
-        return 'text';
-    }
+  const getFieldType = (fieldConfig: PanelFieldConfig): "number" | "text" | "select" | "textarea" | "variable-textarea" | "checkbox" | "iteration-count" | "person-select" | "file" => {
+    return fieldTypeMapping.executeOrDefault(fieldConfig.type) as any;
   };
 
   // Render individual field

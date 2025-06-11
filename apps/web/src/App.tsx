@@ -106,14 +106,10 @@ function AppContent() {
             <LazyInteractivePromptModal
               prompt={execution.interactivePrompt}
               onResponse={(response) => {
-                if (execution.interactivePrompt?.nodeId) {
-                  execution.respondToPrompt(execution.interactivePrompt.nodeId, response);
-                }
+                execution.respondToPrompt(response);
               }}
               onCancel={() => {
-                if (execution.interactivePrompt?.nodeId) {
-                  execution.respondToPrompt(execution.interactivePrompt.nodeId, '');
-                }
+                execution.respondToPrompt('');
               }}
             />
           </Suspense>

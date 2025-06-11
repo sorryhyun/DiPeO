@@ -11,6 +11,7 @@ import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
 import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
+import { debounce, throttle } from '@/utils/math';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
@@ -20,21 +21,32 @@ const ConversationDashboard: React.FC = () => {
     showForgotten: false,
   });
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Create a debounced search handler
+  const debouncedSetSearchTerm = React.useMemo(
+    () => debounce((searchTerm: string) => {
+      setFilters(prev => ({ ...prev, searchTerm }));
+    }, 300),
+    []
+  );
 
   const canvas = useCanvasOperations();
   const store = useUnifiedStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Get persons from canvas
-  const persons = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
+  // Get persons from canvas with proper memoization
+  const persons = React.useMemo(
+    () => canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean),
+    [canvas]
+  );
   
   // Get selected person ID if a person is selected
-  const selectedPersonId = (() => {
+  const selectedPersonId = React.useMemo(() => {
     if (!store.selectedId) return null;
     // Check if the selected ID is a person
     const person = store.persons.get(store.selectedId as PersonID);
     return person ? store.selectedId as PersonID : null;
-  })();
+  }, [store.selectedId, store.persons]);
   
 
   // Use consolidated conversation data hook with real-time updates
@@ -50,19 +62,25 @@ const ConversationDashboard: React.FC = () => {
     enableRealtimeUpdates: true
   });
 
+  // Debounced auto-scroll handler
+  const scrollToBottom = React.useMemo(
+    () => debounce(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 300),
+    []
+  );
+  
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     const handleMessageAdded = () => {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      scrollToBottom();
     };
 
     window.addEventListener('conversation-update', handleMessageAdded);
     return () => {
       window.removeEventListener('conversation-update', handleMessageAdded);
     };
-  }, []);
+  }, [scrollToBottom]);
 
   // Initial load - only run once on mount
   useEffect(() => {
@@ -80,8 +98,8 @@ const ConversationDashboard: React.FC = () => {
     }
   }, [selectedPersonId, dashboardSelectedPerson, conversationData, fetchConversationData]);
 
-  // Handle infinite scroll
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  // Handle infinite scroll with throttling
+  const handleScrollInternal = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const element = e.currentTarget;
     const threshold = 100;
 
@@ -94,6 +112,12 @@ const ConversationDashboard: React.FC = () => {
       void fetchMore(dashboardSelectedPerson);
     }
   }, [dashboardSelectedPerson, conversationData, isLoadingMore, fetchMore]);
+  
+  // Throttled scroll handler to prevent excessive calls
+  const handleScroll = React.useMemo(
+    () => throttle(handleScrollInternal, 150),
+    [handleScrollInternal]
+  );
 
   // Export conversations
   const { downloadJSON } = useFileOperations();
@@ -160,11 +184,17 @@ const ConversationDashboard: React.FC = () => {
     void fetchConversationData(); // Fetch all conversations
   };
 
+  // Memoize selected person for render functions
+  const selectedPersonForRender = React.useMemo(
+    () => dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' 
+      ? persons.find(p => p.id === dashboardSelectedPerson) 
+      : null,
+    [dashboardSelectedPerson, persons]
+  );
+  
   // Render person status bar
   const renderPersonBar = () => {
-    const selectedPerson = dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' 
-      ? persons.find(p => p.id === dashboardSelectedPerson) 
-      : null;
+    const selectedPerson = selectedPersonForRender;
     
     return (
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b">
@@ -225,7 +255,7 @@ const ConversationDashboard: React.FC = () => {
           type="text"
           placeholder="Search messages..."
           value={filters.searchTerm}
-          onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+          onChange={(e) => debouncedSetSearchTerm(e.target.value)}
           className="flex-1 h-8"
         />
       </div>
@@ -297,7 +327,7 @@ const ConversationDashboard: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
           <h3 className="font-medium text-sm text-gray-700">
-            Conversation for {persons.find(p => p.id === dashboardSelectedPerson)?.name}
+            Conversation for {selectedPersonForRender?.name}
           </h3>
           <div className="flex items-center space-x-4 text-xs text-gray-600">
             <span>{personMemory.visibleMessages} messages</span>

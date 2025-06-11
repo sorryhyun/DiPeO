@@ -8,6 +8,8 @@
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
+import { isWithinTolerance } from '@/utils/math';
+import { createHandlerTable } from '@/utils/dispatchTable';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { 
   nodeToReact,
@@ -23,7 +25,8 @@ import {
   type LLMService, 
   type DomainNode,
   type DomainArrow,
-  type DomainPerson
+  type DomainPerson,
+  type DomainHandle
 } from '@/types';
 
 // =====================
@@ -161,6 +164,7 @@ const createStoreSelector = () => (state: UnifiedStore) => ({
   arrows: state.arrows,
   persons: state.persons,
   isMonitorMode: state.readOnly,
+  isExecutionMode: state.executionReadOnly,
   
   // Selection
   selectedId: state.selectedId,
@@ -200,15 +204,16 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // Store state
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
-  // Convert Maps to arrays
+  // Convert Maps to arrays with proper memoization based on size
+  // Using size is sufficient since our operations always change the size
   const arrows = React.useMemo(
     () => Array.from(storeState.arrows.values()) as DomainArrow[],
-    [storeState.arrows]
+    [storeState.arrows.size]
   );
   
   const persons = React.useMemo(
     () => Array.from(storeState.persons.values()) as DomainPerson[],
-    [storeState.persons]
+    [storeState.persons.size]
   );
   
   // Wrapped operations
@@ -227,62 +232,115 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     isSelected: (id: string) => storeState.selectedId === id,
   }), [storeState]);
   
-  // React Flow handlers
-  const onNodesChange = React.useCallback((changes: NodeChange[]) => {
-    if (storeState.isMonitorMode) return;
+  // Position update batching with requestAnimationFrame
+  const positionUpdateQueueRef = useRef<Map<NodeID, { x: number; y: number }>>(new Map());
+  const rafIdRef = useRef<number | undefined>(undefined);
+  
+  const processBatchedPositionUpdates = React.useCallback(() => {
+    if (positionUpdateQueueRef.current.size === 0) return;
     
     storeState.transaction(() => {
-      changes.forEach((change) => {
-        switch (change.type) {
-          case 'position':
-            if (change.position && !change.dragging) {
-              // Only update position when dragging ends to prevent update loops
-              const node = storeState.nodesMap.get(change.id as NodeID);
-              if (node) {
-                // Check if position actually changed (with tolerance for floating point)
-                const tolerance = 0.01;
-                const positionChanged = 
-                  Math.abs((node.position?.x || 0) - change.position.x) > tolerance ||
-                  Math.abs((node.position?.y || 0) - change.position.y) > tolerance;
-                
-                if (positionChanged) {
-                  storeState.updateNode(change.id as NodeID, { position: change.position });
-                }
-              }
-            }
-            break;
-          case 'dimensions':
-            // Dimensions are handled by React Flow internally
-            // We don't need to store them in our domain model
-            break;
-          case 'replace':
-            // Handle node replacement if needed
-            // This is typically used when React Flow updates internal state
-            break;
-          case 'remove':
-            storeState.deleteNode(change.id as NodeID);
-            break;
-          case 'select':
-            // Handle selection changes if needed
-            if (change.selected) {
-              storeState.select(change.id, 'node');
-            }
-            break;
-          case 'add':
-            // React Flow is initializing the node - no action needed as node already exists in store
-            break;
-          default: {
-            // Type-safe exhaustive check
-            const _exhaustiveCheck: never = change;
-            break;
-          }
-        }
+      positionUpdateQueueRef.current.forEach((position, nodeId) => {
+        storeState.updateNode(nodeId, { position });
       });
+      positionUpdateQueueRef.current.clear();
     });
+    
+    rafIdRef.current = undefined;
   }, [storeState]);
   
+  const batchPositionUpdate = React.useCallback((nodeId: NodeID, position: { x: number; y: number }) => {
+    positionUpdateQueueRef.current.set(nodeId, position);
+    
+    if (!rafIdRef.current) {
+      rafIdRef.current = requestAnimationFrame(processBatchedPositionUpdates);
+    }
+  }, [processBatchedPositionUpdates]);
+  
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+  
+  // React Flow handlers
+  // Create node change handler table
+  const nodeChangeHandlers = React.useMemo(() => 
+    createHandlerTable<NodeChange['type'], [NodeChange, typeof storeState], void>({
+      position: () => {
+        // Position changes are handled separately for batching
+      },
+      dimensions: () => {
+        // Dimensions are handled by React Flow internally
+        // We don't need to store them in our domain model
+      },
+      replace: () => {
+        // Handle node replacement if needed
+        // This is typically used when React Flow updates internal state
+      },
+      remove: (change, state) => {
+        if ('id' in change) {
+          state.deleteNode(change.id as NodeID);
+        }
+      },
+      select: (change, state) => {
+        // Handle selection changes if needed
+        if ('selected' in change && 'id' in change && change.selected) {
+          state.select(change.id, 'node');
+        }
+      },
+      add: () => {
+        // React Flow is initializing the node - no action needed as node already exists in store
+      },
+    }), []
+  );
+
+  const onNodesChange = React.useCallback((changes: NodeChange[]) => {
+    if (storeState.isMonitorMode || storeState.isExecutionMode) return;
+    
+    // Separate position changes for batching from other changes
+    const positionChanges: NodeChange[] = [];
+    const otherChanges: NodeChange[] = [];
+    
+    changes.forEach((change) => {
+      if (change.type === 'position' && change.position && !change.dragging) {
+        positionChanges.push(change);
+      } else {
+        otherChanges.push(change);
+      }
+    });
+    
+    // Batch position updates with RAF
+    positionChanges.forEach((change) => {
+      if (change.type === 'position' && change.position) {
+        const node = storeState.nodesMap.get(change.id as NodeID);
+        if (node) {
+          const positionChanged = 
+            !isWithinTolerance(node.position?.x || 0, change.position.x) ||
+            !isWithinTolerance(node.position?.y || 0, change.position.y);
+          
+          if (positionChanged) {
+            batchPositionUpdate(change.id as NodeID, change.position);
+          }
+        }
+      }
+    });
+    
+    // Handle other changes immediately in a transaction
+    if (otherChanges.length > 0) {
+      storeState.transaction(() => {
+        otherChanges.forEach((change) => {
+          nodeChangeHandlers.execute(change.type, change, storeState);
+        });
+      });
+    }
+  }, [storeState, batchPositionUpdate, nodeChangeHandlers]);
+  
   const onArrowsChange = React.useCallback((changes: EdgeChange[]) => {
-    if (storeState.isMonitorMode) return;
+    if (storeState.isMonitorMode || storeState.isExecutionMode) return;
     
     storeState.transaction(() => {
       changes.forEach((change) => {
@@ -294,7 +352,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   }, [storeState]);
   
   const onConnect = React.useCallback((connection: Connection) => {
-    if (storeState.isMonitorMode) return;
+    if (storeState.isMonitorMode || storeState.isExecutionMode) return;
     
     if (connection.source && connection.target && 
         connection.sourceHandle && connection.targetHandle) {
@@ -317,13 +375,25 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const nodesSize = storeState.nodesMap.size;
   const handlesSize = storeState.handlesMap.size;
   
+  // Create a pre-computed handle lookup by nodeId for O(1) access
+  const handlesByNode = React.useMemo(() => {
+    const lookup = new Map<NodeID, DomainHandle[]>();
+    storeState.handlesMap.forEach(handle => {
+      const handles = lookup.get(handle.nodeId) || [];
+      handles.push(handle);
+      lookup.set(handle.nodeId, handles);
+    });
+    return lookup;
+  }, [handlesSize, storeState.handlesMap]);
+  
   const nodes = React.useMemo(() => {
     const domainNodes = Array.from(storeState.nodesMap.values());
     return domainNodes.map(node => {
-      const nodeHandles = Array.from(storeState.handlesMap.values()).filter(h => h.nodeId === node.id);
+      // O(1) lookup instead of O(n) filter
+      const nodeHandles = handlesByNode.get(node.id) || [];
       return nodeToReact(node, nodeHandles);
     });
-  }, [nodesSize, handlesSize, storeState.nodesMap, storeState.handlesMap]);
+  }, [nodesSize, storeState.nodesMap, handlesByNode]);
   
   // Derive selected IDs based on selectedType
   const selectedNodeId = storeState.selectedType === 'node' ? storeState.selectedId as NodeID : null;
@@ -663,11 +733,22 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // RETURN INTERFACE
   // =====================
   
+  // Memoize the ID arrays to avoid recreating on every render
+  const arrowIds = React.useMemo(
+    () => arrows.map(a => a.id),
+    [arrows]
+  );
+  
+  const personIds = React.useMemo(
+    () => persons.map(p => p.id),
+    [persons]
+  );
+  
   return {
     // === Canvas State ===
     nodes,
-    arrows: arrows.map(a => a.id),
-    persons: persons.map(p => p.id),
+    arrows: arrowIds,
+    persons: personIds,
     handles: storeState.handlesMap,
     
     // === Selection State ===

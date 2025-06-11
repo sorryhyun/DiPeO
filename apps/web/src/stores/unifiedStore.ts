@@ -10,7 +10,8 @@ import {
     generateArrowId,
     generateNodeId,
     generatePersonId, type NodeID, type NodeKind, type PersonID, type Vec2,
-    connectsToNode
+    connectsToNode,
+    apiKeyId
 } from "@/types";
 import {generateNodeHandlesFromRegistry} from "@/utils";
 import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
@@ -74,6 +75,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
         activeCanvas: 'main',
         dashboardTab: 'properties',
         readOnly: false,
+        executionReadOnly: false,
         showApiKeysModal: false,
         showExecutionModal: false,
 
@@ -415,6 +417,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.execution.nodeStates.clear();
             state.execution.context = {};
             state.activeView = 'execution';
+            state.executionReadOnly = true; // Set execution-specific read-only
           }),
 
         updateNodeExecution: (nodeId, nodeState) =>
@@ -432,6 +435,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
           set((state) => {
             state.execution.isRunning = false;
             state.execution.runningNodes.clear();
+            state.executionReadOnly = false; // Clear execution-specific read-only
           }),
 
         // History operations
@@ -548,27 +552,90 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.handles = new Map();
             state.apiKeys = new Map();
             
-            // Create a temporary exporter with mutable maps
+            // Create temporary maps first
+            const tempNodes = new Map<NodeID, DomainNode>();
+            const tempArrows = new Map<ArrowID, DomainArrow>();
+            const tempPersons = new Map<PersonID, DomainPerson>();
+            const tempHandles = new Map<string, DomainHandle>();
+            const tempApiKeys = new Map<ApiKeyID, DomainApiKey>();
+            
+            // Create a temporary state object with all required methods
             const tempState = {
-              nodes: new Map(state.nodes),
-              arrows: new Map(state.arrows),
-              persons: new Map(state.persons), 
-              handles: new Map(state.handles),
-              apiKeys: new Map(state.apiKeys),
-              // Include all the action methods
-              addNode: state.addNode,
-              addArrow: state.addArrow,
-              addPerson: state.addPerson,
-              addApiKey: state.addApiKey,
-              updateNode: state.updateNode,
-              updatePerson: state.updatePerson,
+              nodes: tempNodes,
+              arrows: tempArrows,
+              persons: tempPersons,
+              handles: tempHandles,
+              apiKeys: tempApiKeys,
+              // Include all the action methods that work with temp maps
+              addNode: (type: NodeKind, position: Vec2, initialData?: Record<string, unknown>) => {
+                const nodeId = generateNodeId();
+                const node = createNode(type, position, initialData);
+                node.id = nodeId;
+                tempNodes.set(nodeId, node);
+                
+                // Auto-generate handles
+                const handles = generateNodeHandlesFromRegistry(nodeId, type);
+                handles.forEach((handle: DomainHandle) => {
+                  tempHandles.set(handle.id, handle);
+                });
+                
+                return nodeId;
+              },
+              addArrow: (source: string, target: string, data?: Record<string, unknown>) => {
+                const arrowId = generateArrowId();
+                const arrow: DomainArrow = {
+                  id: arrowId,
+                  source: source as any, // HandleID type will be validated by DiagramExporter
+                  target: target as any, // HandleID type will be validated by DiagramExporter
+                  data: data || {},
+                };
+                tempArrows.set(arrowId, arrow);
+                return arrowId;
+              },
+              addPerson: (label: string, service: string, model: string) => {
+                const personId = generatePersonId();
+                const person: DomainPerson = {
+                  id: personId,
+                  label,
+                  service: service as any, // LLMService type
+                  model,
+                  systemPrompt: '',
+                  temperature: 0.7,
+                  maxTokens: 4096
+                };
+                tempPersons.set(personId, person);
+                return personId;
+              },
+              addApiKey: (name: string, service: string) => {
+                const rawId = entityIdGenerators.apiKey();
+                const id = apiKeyId(rawId);
+                const apiKey: DomainApiKey = {
+                  id,
+                  name,
+                  service: service as any, // ApiService type
+                };
+                tempApiKeys.set(id, apiKey);
+                return id;
+              },
+              updateNode: (id: NodeID, updates: Partial<DomainNode>) => {
+                const node = tempNodes.get(id);
+                if (node && updates.data) {
+                  node.data = { ...node.data, ...updates.data };
+                }
+              },
+              updatePerson: (id: PersonID, updates: Partial<DomainPerson>) => {
+                const person = tempPersons.get(id);
+                if (person) {
+                  Object.assign(person, updates);
+                }
+              },
               transaction: (fn: () => void) => fn(),
               clearAll: () => {
-                tempState.nodes.clear();
-                tempState.arrows.clear();
-                tempState.persons.clear();
-                tempState.handles.clear();
-                tempState.apiKeys.clear();
+                tempNodes.clear();
+                tempArrows.clear();
+                tempPersons.clear();
+                tempHandles.clear();
+                tempApiKeys.clear();
               }
             };
             
@@ -576,12 +643,21 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const exporter = new DiagramExporter(tempState as any);
             exporter.importDiagram(exportData);
             
+            // Log import results
+            console.log('Import complete:', {
+              nodes: tempNodes.size,
+              arrows: tempArrows.size,
+              handles: tempHandles.size,
+              persons: tempPersons.size,
+              apiKeys: tempApiKeys.size
+            });
+            
             // Copy back to actual state
-            state.nodes = tempState.nodes;
-            state.arrows = tempState.arrows;
-            state.persons = tempState.persons;
-            state.handles = tempState.handles;
-            state.apiKeys = tempState.apiKeys;
+            state.nodes = tempNodes;
+            state.arrows = tempArrows;
+            state.persons = tempPersons;
+            state.handles = tempHandles as any; // Type mismatch between string and HandleID keys
+            state.apiKeys = tempApiKeys;
           });
         },
 

@@ -3,6 +3,7 @@ import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/re
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useCanvasOperations } from '@/hooks';
 import { arrowId } from '@/types';
+import { getQuadraticPoint } from '@/utils/geometry';
 
 export interface ArrowData {
   label?: string;
@@ -15,22 +16,6 @@ export interface ArrowData {
 }
 
 export type CustomArrowProps = EdgeProps;
-
-// Helper function to calculate quadratic bezier point at parameter t
-const getQuadraticPoint = (
-  t: number,
-  sourceX: number,
-  sourceY: number,
-  controlX: number,
-  controlY: number,
-  targetX: number,
-  targetY: number
-) => {
-  const oneMinusT = 1 - t;
-  const x = oneMinusT * oneMinusT * sourceX + 2 * oneMinusT * t * controlX + t * t * targetX;
-  const y = oneMinusT * oneMinusT * sourceY + 2 * oneMinusT * t * controlY + t * t * targetY;
-  return { x, y };
-};
 
 export const CustomArrow = React.memo<CustomArrowProps>(({
   id,
@@ -95,9 +80,14 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
       path = `M ${sourceX},${sourceY} Q ${controlX},${controlY} ${targetX},${targetY}`;
       
       // Calculate point on the bezier curve at t=0.5 (midpoint along the curve)
-      const { x, y } = getQuadraticPoint(0.5, sourceX, sourceY, controlX, controlY, targetX, targetY);
-      lx = x;
-      ly = y;
+      const midPoint = getQuadraticPoint(
+        { x: sourceX, y: sourceY },
+        { x: controlX, y: controlY },
+        { x: targetX, y: targetY },
+        0.5
+      );
+      lx = midPoint.x;
+      ly = midPoint.y;
     }
     
     return { edgePath: path, labelX: lx, labelY: ly };

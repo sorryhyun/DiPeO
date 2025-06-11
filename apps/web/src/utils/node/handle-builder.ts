@@ -3,33 +3,37 @@
 import { createHandleId, nodeId, type NodeConfigItem, type HandleConfig, type DomainHandle, type NodeID } from '@/types';
 import { DataType, HandlePosition } from '@/types/primitives';
 import { HANDLE_REGISTRY, getHandleConfig } from '@/config/handleRegistry';
+import { createLookupTable, createHandlerTable } from '@/utils/dispatchTable';
+
+// Create lookup tables for position and data type mappings
+const positionLookup = createLookupTable<string, HandlePosition>({
+  'top': 'top',
+  'right': 'right',
+  'bottom': 'bottom',
+  'left': 'left'
+});
+
+const dataTypeLookup = createLookupTable<string, DataType>({
+  'string': 'string',
+  'number': 'number',
+  'boolean': 'boolean',
+  'object': 'object',
+  'array': 'array',
+  'any': 'any'
+});
 
 /**
  * Map string position to HandlePosition type
  */
 function mapToHandlePosition(position: string): HandlePosition {
-  switch (position) {
-    case 'top': return 'top';
-    case 'right': return 'right';
-    case 'bottom': return 'bottom';
-    case 'left': return 'left';
-    default: return 'left';
-  }
+  return positionLookup(position) || 'left';
 }
 
 /**
  * Map string data type to DataType type
  */
 function mapToDataType(dataType: string): DataType {
-  switch (dataType) {
-    case 'string': return 'string';
-    case 'number': return 'number';
-    case 'boolean': return 'boolean';
-    case 'object': return 'object';
-    case 'array': return 'array';
-    case 'any': return 'any';
-    default: return 'any';
-  }
+  return dataTypeLookup(dataType) || 'any';
 }
 
 /**
@@ -153,13 +157,42 @@ function inferDataType(handleName: string): string {
   return 'any';
 }
 
+// Create handler table for node type default handles
+const nodeDefaultHandles = createHandlerTable<string, [NodeID, DomainHandle, DomainHandle], DomainHandle[]>({
+  'start': (_nodeId, _defaultInput, defaultOutput) => [defaultOutput],
+  'endpoint': (_nodeId, defaultInput) => [defaultInput],
+  'condition': (nodeIdTyped, defaultInput) => [
+    defaultInput,
+    {
+      id: createHandleId(nodeIdTyped, 'true'),
+      nodeId: nodeIdTyped,
+      name: 'true',
+      direction: 'output',
+      position: 'right',
+      label: 'true',
+      dataType: 'boolean',
+    },
+    {
+      id: createHandleId(nodeIdTyped, 'false'),
+      nodeId: nodeIdTyped,
+      name: 'false',
+      direction: 'output',
+      position: 'right',
+      label: 'false',
+      dataType: 'boolean',
+    },
+  ]
+}, (_nodeId, defaultInput, defaultOutput) => [defaultInput, defaultOutput]); // Default: both handles
+
 /**
  * Get default handles for a node type when no configuration is provided
  */
 export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandle[] {
+  const nodeIdTyped = nodeId as NodeID;
+  
   const defaultInputHandle: DomainHandle = {
-    id: createHandleId(nodeId as NodeID, 'input'),
-    nodeId: nodeId as NodeID,
+    id: createHandleId(nodeIdTyped, 'input'),
+    nodeId: nodeIdTyped,
     name: 'input',
     direction: 'input',
     dataType: 'any',
@@ -167,50 +200,13 @@ export function getDefaultHandles(nodeId: string, nodeType: string): DomainHandl
   };
   
   const defaultOutputHandle: DomainHandle = {
-    id: createHandleId(nodeId as NodeID, 'output'),
-    nodeId: nodeId as NodeID,
+    id: createHandleId(nodeIdTyped, 'output'),
+    nodeId: nodeIdTyped,
     name: 'output',
     direction: 'output',
     dataType: 'any',
     position: 'right',
   };
   
-  // Special cases for specific node types
-  switch (nodeType) {
-    case 'start':
-      // Start nodes only have output
-      return [defaultOutputHandle];
-      
-    case 'endpoint':
-      // Endpoint nodes only have input
-      return [defaultInputHandle];
-      
-    case 'condition':
-      // Condition nodes have special true/false outputs
-      return [
-        defaultInputHandle,
-        {
-          id: createHandleId(nodeId as NodeID, 'true'),
-          nodeId: nodeId as NodeID,
-          name: 'true',
-          direction: 'output',
-          position: 'right',
-          label: 'true',
-          dataType: 'boolean',
-        },
-        {
-          id: createHandleId(nodeId as NodeID, 'false'),
-          nodeId: nodeId as NodeID,
-          name: 'false',
-          direction: 'output',
-          position: 'right',
-          label: 'false',
-          dataType: 'boolean',
-        },
-      ];
-      
-    default:
-      // Most nodes have both input and output
-      return [defaultInputHandle, defaultOutputHandle];
-  }
+  return nodeDefaultHandles.executeOrDefault(nodeType, nodeIdTyped, defaultInputHandle, defaultOutputHandle);
 }
