@@ -7,7 +7,7 @@ export interface DomainArrow {
   id: ArrowID;
   source: HandleID;
   target: HandleID;
-  data?: Record<string, unknown>;
+  data?: ArrowData;
 }
 
 
@@ -19,6 +19,7 @@ export interface ValidatedArrow extends DomainArrow {
 export type ArrowData = {
   label?: string;
   style?: React.CSSProperties;
+  [key: string]: unknown; // Allow additional properties
 };
 
 export function connectsHandles(

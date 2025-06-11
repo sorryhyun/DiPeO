@@ -57,7 +57,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       ...arrow.data,
       id: arrow.id, // Use arrow's id directly
       type: 'arrow' as const,
-      _sourceNodeType: (sourceNode?.data?.properties as Dict)?.type || sourceNode?.type,
+      _sourceNodeType: sourceNode?.type,
       _isFromConditionBranch: isFromConditionBranch
     };
   })();

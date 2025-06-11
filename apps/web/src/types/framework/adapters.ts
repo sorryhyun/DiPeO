@@ -32,8 +32,7 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
     position: node.position,
     data: {
       ...node.data,
-      label: (node.data as any).label,
-      properties: node.data,
+      label: (node.data as any).label || '',
       inputs,
       outputs
     },
@@ -85,11 +84,12 @@ export function diagramToReact(diagram: DomainDiagram): {
 // React to Domain Conversions
 
 export function reactToNode(rfNode: RFNode): DomainNode {
+  const { inputs, outputs, ...nodeData } = rfNode.data || {};
   return {
     id: rfNode.id as NodeID,
     type: (rfNode.type as NodeKind) || 'start',
     position: rfNode.position,
-    data: (rfNode.data as any)?.properties || rfNode.data || {}
+    data: nodeData as any
   };
 }
 

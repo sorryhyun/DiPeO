@@ -105,6 +105,9 @@ export interface UnifiedStore {
   handles: Map<HandleID, DomainHandle>;
   apiKeys: Map<ApiKeyID, DomainApiKey>;
   
+  // === Version Tracking ===
+  dataVersion: number; // Single version for all data changes
+  
   // === UI State ===
   selectedId: NodeID | ArrowID | PersonID | null;
   selectedType: 'node' | 'arrow' | 'person' | null;

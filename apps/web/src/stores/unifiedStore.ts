@@ -73,6 +73,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
         persons: new Map(),
         handles: new Map(),
         apiKeys: new Map(),
+        
+        // Version tracking
+        dataVersion: 0,
 
         // Initial UI state
         selectedId: null,
@@ -113,6 +116,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newNodes = new Map(state.nodes);
             newNodes.set(nodeId, node);
             state.nodes = newNodes;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Auto-generate handles
             const handles = generateNodeHandlesFromRegistry(nodeId, type);
@@ -161,6 +167,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newNodes = new Map(state.nodes);
             newNodes.set(id, updatedNode);
             state.nodes = newNodes;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -183,6 +192,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newNodes = new Map(state.nodes);
             newNodes.delete(id);
             state.nodes = newNodes;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Delete associated handles
             const newHandles = new Map(state.handles);
@@ -235,6 +247,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newArrows = new Map(state.arrows);
             newArrows.set(arrowId, arrow);
             state.arrows = newArrows;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -272,6 +287,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newArrows = new Map(state.arrows);
             newArrows.set(id, updatedArrow);
             state.arrows = newArrows;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -290,6 +308,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newArrows = new Map(state.arrows);
             newArrows.delete(id);
             state.arrows = newArrows;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Clear selection if deleted
             if (state.selectedId === id) {
@@ -327,6 +348,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newPersons = new Map(state.persons);
             newPersons.set(personId, person);
             state.persons = newPersons;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -355,6 +379,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newPersons = new Map(state.persons);
             newPersons.set(id, updatedPerson);
             state.persons = newPersons;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -373,6 +400,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const newPersons = new Map(state.persons);
             newPersons.delete(id);
             state.persons = newPersons;
+            
+            // Increment version to trigger re-renders
+            state.dataVersion += 1;
 
             // Clear selection if deleted
             if (state.selectedId === id) {
@@ -392,6 +422,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
               }
             });
             state.nodes = updatedNodes;
+            
+            // Also increment version since we updated nodes
+            state.dataVersion += 1;
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -637,6 +670,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.persons = new Map(snapshot.persons);
             state.handles = new Map(snapshot.handles);
             state.apiKeys = new Map(snapshot.apiKeys);
+            
+            // Increment version to force re-renders
+            state.dataVersion += 1;
           }),
 
         clearAll: () =>
@@ -646,6 +682,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.persons = new Map();
             state.handles = new Map();
             state.apiKeys = new Map();
+            
+            // Reset version
+            state.dataVersion = 0;
           }),
 
         // Array selectors
@@ -790,6 +829,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.persons = tempPersons;
             state.handles = tempHandles as any; // Type mismatch between string and HandleID keys
             state.apiKeys = tempApiKeys;
+            
+            // Reset version to trigger re-renders
+            state.dataVersion = 0;
           });
         },
 

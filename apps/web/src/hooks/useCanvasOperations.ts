@@ -187,8 +187,8 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
   // Convert Maps to arrays with efficient caching
-  const arrows = useCachedMapArray(storeState.arrows) as DomainArrow[];
-  const persons = useCachedMapArray(storeState.persons) as DomainPerson[];
+  const arrows = useCachedMapArray(storeState.arrows, storeState.dataVersion) as DomainArrow[];
+  const persons = useCachedMapArray(storeState.persons, storeState.dataVersion) as DomainPerson[];
   
   // Wrapped operations
   const wrappedOperations = React.useMemo(() => ({
@@ -281,24 +281,34 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     const otherChanges: NodeChange[] = [];
     
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position && !change.dragging) {
+      // Allow position updates during dragging for more responsive feedback
+      if (change.type === 'position' && change.position) {
         positionChanges.push(change);
       } else {
         otherChanges.push(change);
       }
     });
     
-    // Batch position updates with RAF
+    // Process position updates
     positionChanges.forEach((change) => {
       if (change.type === 'position' && change.position) {
         const node = storeState.nodesMap.get(change.id as NodeID);
         if (node) {
+          // Use smaller tolerance for more responsive dragging
+          const tolerance = change.dragging ? 1 : 0.01;
           const positionChanged = 
-            !isWithinTolerance(node.position?.x || 0, change.position.x) ||
-            !isWithinTolerance(node.position?.y || 0, change.position.y);
+            !isWithinTolerance(node.position?.x || 0, change.position.x, tolerance) ||
+            !isWithinTolerance(node.position?.y || 0, change.position.y, tolerance);
           
           if (positionChanged) {
-            batchPositionUpdate(change.id as NodeID, change.position);
+            // Update immediately during dragging for visual feedback
+            if (change.dragging) {
+              // Direct update without history for dragging
+              storeState.updateNode(change.id as NodeID, { position: change.position });
+            } else {
+              // Batch updates when drag ends for history recording
+              batchPositionUpdate(change.id as NodeID, change.position);
+            }
           }
         }
       }
@@ -353,8 +363,8 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   
   // Convert domain nodes to React Flow format with handles
   // Use cached arrays for better performance
-  const domainNodes = useCachedMapArray(storeState.nodesMap) as DomainNode[];
-  const domainHandles = useCachedMapArray(storeState.handlesMap) as DomainHandle[];
+  const domainNodes = useCachedMapArray(storeState.nodesMap, storeState.dataVersion) as DomainNode[];
+  const domainHandles = useCachedMapArray(storeState.handlesMap, storeState.dataVersion) as DomainHandle[];
   
   // Create a pre-computed handle lookup by nodeId for O(1) access
   const handlesByNode = React.useMemo(() => {

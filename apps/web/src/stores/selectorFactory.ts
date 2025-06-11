@@ -15,6 +15,9 @@ export const createCommonStoreSelector = () => (state: UnifiedStore) => ({
   persons: state.persons,
   apiKeys: state.apiKeys,
   
+  // === Version tracking ===
+  dataVersion: state.dataVersion,
+  
   // === Mode flags ===
   isMonitorMode: state.readOnly,
   isExecutionMode: state.executionReadOnly,
