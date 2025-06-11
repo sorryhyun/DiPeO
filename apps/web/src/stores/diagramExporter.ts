@@ -498,7 +498,8 @@ export class DiagramExporter {
       }
 
       // Create arrow using store action
-      this.store.addArrow(sourceHandleId, targetHandleId, arrowData.data);
+      const arrowId = this.store.addArrow(sourceHandleId, targetHandleId, arrowData.data);
+      console.log(`Imported arrow ${arrowId}: ${sourceHandleId} -> ${targetHandleId}`);
     });
   }
 
