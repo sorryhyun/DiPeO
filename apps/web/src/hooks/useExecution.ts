@@ -14,7 +14,8 @@ import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { onWebSocketEvent } from '@/utils/websocket/event-bus';
 import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
 import { NodeKind } from '@/types/primitives/enums';
-import type { UnifiedStore } from '@/stores/unifiedStore.types';
+import { createCommonStoreSelector } from '@/stores/selectorFactory';
+import { NODE_ICONS, NODE_COLORS } from '@/config/nodeMeta';
 
 // ========== Types ==========
 
@@ -105,45 +106,9 @@ const initialExecutionState: ExecutionState = {
   error: null,
 };
 
-const NODE_ICONS: Record<string, string> = {
-  start: '🚀',
-  person_job: '🤖',
-  person_batch_job: '📦',
-  condition: '🔀',
-  db: '💾',
-  endpoint: '🎯',
-  job: '⚙️',
-  user_response: '💬',
-  notion: '📝'
-};
-
-const NODE_COLORS: Record<string, string> = {
-  start: '#10b981',
-  person_job: '#3b82f6',
-  person_batch_job: '#8b5cf6',
-  condition: '#f59e0b',
-  db: '#6366f1',
-  endpoint: '#ef4444',
-  job: '#6b7280',
-  user_response: '#14b8a6',
-  notion: '#ec4899'
-};
+// Node visualization constants are now imported from nodeMeta
 
 // ========== Main Hook ==========
-
-// Create stable selector for execution store
-const createExecutionStoreSelector = () => (state: UnifiedStore) => ({
-  // Store actions
-  startExecution: state.startExecution,
-  updateNodeExecution: state.updateNodeExecution,
-  stopExecution: state.stopExecution,
-  // Execution state
-  executionId: state.execution.id,
-  isRunning: state.execution.isRunning,
-  runningNodes: state.execution.runningNodes,
-  nodeStates: state.execution.nodeStates,
-  context: state.execution.context,
-});
 
 export function useExecution(options: UseExecutionOptions = {}): UseExecutionReturn {
   const {
@@ -153,8 +118,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     onUpdate
   } = options;
   
-  // Memoized selector
-  const executionStoreSelector = React.useMemo(createExecutionStoreSelector, []);
+  // Memoized selector using common factory
+  const executionStoreSelector = React.useMemo(createCommonStoreSelector, []);
   const executionActions = useUnifiedStore(useShallow(executionStoreSelector));
   
   // State
@@ -273,7 +238,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     }));
     
     if (showToasts) {
-      const nodeIcon = NODE_ICONS[nodeType] || '📦';
+      const nodeIcon = NODE_ICONS[nodeType as NodeKind] || '📦';
       const node = canvasNodes.find(n => n.id === nodeId);
       const nodeLabel = node?.data?.label || nodeId.slice(0, 8);
       toast.info(`${nodeIcon} Running: ${nodeLabel}...`);
@@ -572,11 +537,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [formatDuration]);
   
   const getNodeIcon = useCallback((nodeType: string): string => {
-    return NODE_ICONS[nodeType] || '📦';
+    return NODE_ICONS[nodeType as NodeKind] || '📦';
   }, []);
   
   const getNodeColor = useCallback((nodeType: string): string => {
-    return NODE_COLORS[nodeType] || '#6b7280';
+    return NODE_COLORS[nodeType as NodeKind] || '#6b7280';
   }, []);
   
   // ========== Effects ==========

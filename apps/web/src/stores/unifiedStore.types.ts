@@ -168,6 +168,11 @@ export interface UnifiedStore {
   restoreSnapshot: (snapshot: Snapshot) => void;
   clearAll: () => void;
   
+  // Array selectors
+  getNodes: () => DomainNode[];
+  getArrows: () => DomainArrow[];
+  getPersons: () => DomainPerson[];
+  
   // Export/Import operations
   exportDiagram: () => ExportFormat;
   exportAsJSON: () => string;

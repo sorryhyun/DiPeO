@@ -52,6 +52,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const entityType = getEntityType(data.type);
 
   // Use enhanced property manager with panel schema support
+  // Use minimal delay for all entities to provide immediate feedback
   const {
     formData,
     updateField,
@@ -59,7 +60,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     isReadOnly
   } = usePropertyManager<T>(nodeId, entityType, data, {
     autoSave: true,
-    autoSaveDelay: 500,
+    autoSaveDelay: 50,
     panelConfig: config
   });
 

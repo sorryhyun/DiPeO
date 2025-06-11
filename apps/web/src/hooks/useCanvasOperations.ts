@@ -153,63 +153,23 @@ export interface UseCanvasOperationsReturn {
 // MAIN HOOK
 // =====================
 
-// Import the store type
-import type { UnifiedStore } from '@/stores/unifiedStore.types';
-
-// Create a stable selector using useMemo
-const createStoreSelector = () => (state: UnifiedStore) => ({
-  // Raw data from store
-  nodesMap: state.nodes,
-  handlesMap: state.handles,
-  
-  arrows: state.arrows,
-  persons: state.persons,
-  isMonitorMode: state.readOnly,
-  isExecutionMode: state.executionReadOnly,
-  
-  // Selection
-  selectedId: state.selectedId,
-  selectedType: state.selectedType,
-  
-  // Store actions (these are stable references)
-  addNode: state.addNode,
-  updateNode: state.updateNode,
-  deleteNode: state.deleteNode,
-  addArrow: state.addArrow,
-  updateArrow: state.updateArrow,
-  deleteArrow: state.deleteArrow,
-  addPerson: state.addPerson,
-  updatePerson: state.updatePerson,
-  deletePerson: state.deletePerson,
-  select: state.select,
-  clearSelection: state.clearSelection,
-  
-  // Execution
-  runningNodes: state.execution.runningNodes,
-  nodeStates: state.execution.nodeStates,
-  
-  // History
-  transaction: state.transaction,
-  undo: state.undo,
-  redo: state.redo,
-  canUndo: state.history.undoStack.length > 0,
-  canRedo: state.history.redoStack.length > 0,
-});
+// Import the common selector factory
+import { createCommonStoreSelector } from '@/stores/selectorFactory';
 
 export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): UseCanvasOperationsReturn {
   const { shortcuts = {}, enableInteractions = true } = options;
   
-  // Create a stable selector
-  const storeSelector = React.useMemo(() => createStoreSelector(), []);
+  // Create a stable selector using common factory
+  const storeSelector = React.useMemo(() => createCommonStoreSelector(), []);
   
   // Store state
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
-  // Convert Maps to arrays with proper memoization based on size
-  // Using size is sufficient since our operations always change the size
+  // Convert Maps to arrays with proper memoization
+  // We need to depend on the Map itself to detect data changes, not just size
   const arrows = React.useMemo(
     () => Array.from(storeState.arrows.values()) as DomainArrow[],
-    [storeState.arrows.size]
+    [storeState.arrows]
   );
   
   const persons = React.useMemo(

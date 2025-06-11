@@ -44,7 +44,7 @@ export {
 
 
 // Export type guards
-export * from './typeGuards';
+export * from './typeGuardsRefactored';
 
 // Type guard factory types (for advanced usage)
 export type { TypeGuard, TypeGuardConfig, PropertyCheck } from '@/utils/typeGuardFactory';

@@ -13,6 +13,7 @@ import {
     connectsToNode,
     apiKeyId
 } from "@/types";
+import { generateNodeLabel } from "@/config/nodeMeta";
 import {generateNodeHandlesFromRegistry} from "@/utils";
 import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
 import {DiagramExporter} from "./diagramExporter";
@@ -48,8 +49,8 @@ function createNode(type: NodeKind, position: Vec2, initialData?: Record<string,
     data: {
       ...configDefaults,
       ...initialData,
-      // Ensure label is always set
-      label: initialData?.label || configDefaults.label || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} ${id.split('-').pop()}`,
+      // Ensure label is always set using centralized nodeMeta
+      label: initialData?.label || configDefaults.label || generateNodeLabel(type, id),
     },
   };
 
@@ -212,14 +213,20 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const arrow = state.arrows.get(id);
             if (!arrow) return;
 
+            // Create a new arrow object to ensure immutability
+            const updatedArrow = { ...arrow };
+            
             // Merge data field properly if it exists
             if (updates.data) {
-              arrow.data = { ...arrow.data, ...updates.data };
+              updatedArrow.data = { ...arrow.data, ...updates.data };
               const { data, ...otherUpdates } = updates;
-              Object.assign(arrow, otherUpdates);
+              Object.assign(updatedArrow, otherUpdates);
             } else {
-              Object.assign(arrow, updates);
+              Object.assign(updatedArrow, updates);
             }
+            
+            // Replace the arrow in the map to trigger reactivity
+            state.arrows.set(id, updatedArrow);
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
@@ -528,6 +535,11 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.apiKeys = new Map();
           }),
 
+        // Array selectors
+        getNodes: () => Array.from(get().nodes.values()),
+        getArrows: () => Array.from(get().arrows.values()),
+        getPersons: () => Array.from(get().persons.values()),
+
         // Export/Import operations
         exportDiagram: () => {
           const exporter = new DiagramExporter(get());
@@ -708,6 +720,16 @@ export const useArrowById = (arrowId: ArrowID | null) =>
 
 export const usePersonById = (personId: PersonID | null) =>
   useUnifiedStore((state) => (personId ? state.persons.get(personId) : null));
+
+// Array selectors for easier iteration
+export const useNodes = () =>
+  useUnifiedStore((state) => Array.from(state.nodes.values()));
+
+export const useArrows = () =>
+  useUnifiedStore((state) => Array.from(state.arrows.values()));
+
+export const usePersons = () =>
+  useUnifiedStore((state) => Array.from(state.persons.values()));
 
 export const useSelectedEntity = () =>
   useUnifiedStore((state) => {

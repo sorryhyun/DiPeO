@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useEffect,
 } from "react";
 import {
   Background,
@@ -27,7 +28,8 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow, arrowToReact, nodeId, arrowId } from "@/types";
+import { DomainArrow, arrowToReact, nodeId, arrowId, NodeKind } from "@/types";
+import { DragPreview } from "../DragPreview";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -200,7 +202,36 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     isContextMenuOpen,
     closeContextMenu,
     clearSelection,
+    // drag state
+    dragState,
   } = useDiagram({ enableInteractions: true, enableFileOperations: true });
+
+  // State for drag preview
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Track mouse position during drag
+  useEffect(() => {
+    if (dragState?.isDragging) {
+      const handleMouseMove = (e: MouseEvent) => {
+        requestAnimationFrame(() => {
+          setMousePosition({ x: e.clientX, y: e.clientY });
+        });
+      };
+
+      // Set initial position
+      const handleMouseDown = (e: MouseEvent) => {
+        setMousePosition({ x: e.clientX, y: e.clientY });
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mousedown', handleMouseDown);
+      
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mousedown', handleMouseDown);
+      };
+    }
+  }, [dragState?.isDragging]);
 
 
   /** --------------------------------------------------
@@ -283,6 +314,15 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * --------------------------------------------------*/
   return (
     <div className="h-full flex flex-col">
+      {/* Drag Preview Overlay */}
+      {dragState?.isDragging && dragState?.dragType === 'node' && (
+        <DragPreview
+          position={mousePosition}
+          nodeType={dragState.dragData as NodeKind}
+          isDraggingNode={true}
+        />
+      )}
+      
       {executionMode ? (
         // Execution mode: Split view with diagram and conversation
         <PanelGroup direction="vertical">

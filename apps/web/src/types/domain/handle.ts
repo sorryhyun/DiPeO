@@ -65,3 +65,26 @@ export function isValidHandleIdFormat(value: string): boolean {
 export function isValidNodeIdFormat(value: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(value);
 }
+
+/**
+ * Sanitize a handle name to ensure it's valid
+ * - Replaces spaces with underscores
+ * - Removes special characters except dashes and underscores
+ * - Converts to lowercase for consistency
+ * 
+ * @param name - The raw handle name to sanitize
+ * @returns A sanitized handle name that's safe to use
+ * 
+ * @example
+ * sanitizeHandleName('My Handle') // 'my_handle'
+ * sanitizeHandleName('Special!Chars#') // 'specialchars'
+ * sanitizeHandleName('dash-and_underscore') // 'dash-and_underscore'
+ */
+export function sanitizeHandleName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '_')  // Replace spaces with underscores
+    .replace(/[^a-z0-9_-]/g, '')  // Remove special chars except dash and underscore
+    .replace(/^[-_]+|[-_]+$/g, '')  // Remove leading/trailing dashes or underscores
+    .replace(/[-_]{2,}/g, '_');  // Replace multiple consecutive dashes/underscores with single underscore
+}
