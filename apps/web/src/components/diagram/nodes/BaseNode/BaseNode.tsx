@@ -149,6 +149,11 @@ const NodeBody = React.memo(({
 }) => (
   <div className="space-y-1">
     {data.map(([key, value]) => {
+      // Skip rendering objects
+      if (typeof value === 'object' && value !== null) {
+        return null;
+      }
+      
       const displayValue = typeof value === 'string' && value.length > 20 
         ? `${value.substring(0, 20)}...` 
         : String(value);

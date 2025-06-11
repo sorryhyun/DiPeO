@@ -18,7 +18,6 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     output: [{ id: 'default', position: 'right' }]
   },
   fields: [
-    { name: 'personId', type: 'person', label: 'Person', required: true, placeholder: 'Select person...' },
     { name: 'maxIteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
     { name: 'firstOnlyPrompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
     { name: 'defaultPrompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' },

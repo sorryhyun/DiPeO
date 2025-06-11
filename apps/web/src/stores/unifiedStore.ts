@@ -212,7 +212,14 @@ export const useUnifiedStore = create<UnifiedStore>()(
             const arrow = state.arrows.get(id);
             if (!arrow) return;
 
-            Object.assign(arrow, updates);
+            // Merge data field properly if it exists
+            if (updates.data) {
+              arrow.data = { ...arrow.data, ...updates.data };
+              const { data, ...otherUpdates } = updates;
+              Object.assign(arrow, otherUpdates);
+            } else {
+              Object.assign(arrow, updates);
+            }
 
             // Record history if not in transaction
             if (!state.history.currentTransaction) {
