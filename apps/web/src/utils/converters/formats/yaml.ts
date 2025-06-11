@@ -1,4 +1,9 @@
-// apps/web/src/utils/yaml.ts
+/**
+ * YAML format converter for DiPeO diagrams
+ * 
+ * Handles export/import of diagrams to/from YAML format
+ */
+
 import { stringify, parse } from 'yaml';
 import { 
   NodeKind,
@@ -10,14 +15,12 @@ import {
   DomainArrow,
   DomainPerson,
   DomainApiKey,
-  DomainDiagram,
   DomainHandle,
-  nodeId,
+  HandleID,
   arrowId,
   personId,
   apiKeyId,
   NodeID,
-  ArrowID,
   PersonID,
   ApiKeyID
 } from '@/types';
@@ -30,52 +33,57 @@ import {
   DEFAULT_SERVICE,
   DEFAULT_CONTEXT_CLEANING_RULE 
 } from '../constants';
+import { ConverterCore } from '../core/converterCore';
 
-
-export class Yaml {
+export class YamlConverter extends ConverterCore<YamlDiagram> {
   /**
-   * Convert DiagramState to enhanced YAML format with full data preservation
+   * Serialize diagram to YAML string
    */
-  static toYAML(diagram: ConverterDiagram): string {
+  serialize(diagram: ConverterDiagram): string {
     const yamlDiagram = this.toYamlFormat(diagram);
-
     return stringify(yamlDiagram, YAML_STRINGIFY_OPTIONS);
   }
 
-  static fromYAML(yamlString: string): ConverterDiagram {
+  /**
+   * Deserialize diagram from YAML string
+   */
+  deserialize(yamlString: string): ConverterDiagram {
     const yamlDiagram = parse(yamlString);
     return this.fromYamlFormat(yamlDiagram as YamlDiagram);
   }
+
   /**
-   * Convert DiagramState to YAML format
+   * Convert diagram to YAML format
    */
-  private static toYamlFormat(diagram: ConverterDiagram): YamlDiagram {
+  private toYamlFormat(diagram: ConverterDiagram): YamlDiagram {
+    // Reset state
+    this.reset();
+    
     const apiKeys: Record<string, { service: string; name: string }> = {};
     const persons: YamlDiagram['persons'] = {};
     const workflow: YamlDiagram['workflow'] = [];
 
     // Convert API keys - use name as key
     diagram.apiKeys.forEach(key => {
-      apiKeys[key.name] = {
-        service: key.service,
-        name: key.name
+      const baseKey = this.convertApiKeyToBase(key);
+      apiKeys[baseKey.label] = {
+        service: baseKey.service,
+        name: baseKey.label
       };
     });
 
     // Convert persons with full details - use label as key
     diagram.persons.forEach(person => {
-      // Use service from person
-      const service = person.service || DEFAULT_SERVICE; // default
-      
-      persons[person.label] = {
-        model: person.model || DEFAULT_MODEL,
-        service,
-        ...(person.systemPrompt && { system: person.systemPrompt })
+      const basePerson = this.convertPersonToBase(person);
+      persons[basePerson.label] = {
+        model: basePerson.model || DEFAULT_MODEL,
+        service: basePerson.service || DEFAULT_SERVICE,
+        ...(basePerson.systemPrompt && { system: basePerson.systemPrompt })
       };
     });
 
     // Build adjacency map for connections
-    const connectionMap = new Map<string, DomainArrow[]>();
+    const connectionMap = new Map<HandleID, DomainArrow[]>();
     diagram.arrows.forEach(arrow => {
       const arrows = connectionMap.get(arrow.source) || [];
       arrows.push(arrow);
@@ -84,10 +92,10 @@ export class Yaml {
 
     // Convert nodes to workflow steps with full data
     diagram.nodes.forEach(node => {
-      const connections = connectionMap.get(node.id) || [];
-      // Find handles for this node
-      const nodeHandles = diagram.handles.filter(h => h.nodeId === node.id);
-      const workflowNode = this.nodeToEnhancedStep(node, nodeHandles, connections, diagram.persons);
+      const baseNode = this.convertNodeToBase(node);
+      const nodeHandleId = createHandleId(node.id, 'output');
+      const connections = connectionMap.get(nodeHandleId) || [];
+      const workflowNode = this.nodeToEnhancedStep(baseNode, node, connections);
       if (workflowNode) {
         workflow.push(workflowNode);
       }
@@ -96,8 +104,9 @@ export class Yaml {
     return {
       version: YAML_VERSION as '1.0',
       metadata: {
-        description: 'DiPeO workflow export'
+        description: diagram.description || 'DiPeO workflow export'
       },
+      title: diagram.name,
       apiKeys,
       persons,
       workflow
@@ -107,19 +116,18 @@ export class Yaml {
   /**
    * Convert node to enhanced workflow step
    */
-  private static nodeToEnhancedStep(
-    node: DomainNode,
-    _handles: DomainHandle[],
-    connections: DomainArrow[],
-    persons: DomainPerson[]
+  private nodeToEnhancedStep(
+    baseNode: ReturnType<typeof this.convertNodeToBase>,
+    originalNode: DomainNode,
+    connections: DomainArrow[]
   ): YamlDiagram['workflow'][0] | null {
-    const data = node.data;
+    const data = originalNode.data;
     const baseStep: YamlDiagram['workflow'][0] = {
-      label: String(data.label || node.id),
-      type: node.type as string,
+      label: baseNode.label,
+      type: baseNode.type,
       position: {
-        x: Math.round(node.position.x),
-        y: Math.round(node.position.y)
+        x: Math.round(baseNode.position.x),
+        y: Math.round(baseNode.position.y)
       }
     };
 
@@ -130,8 +138,11 @@ export class Yaml {
         const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
         const { handleName: sourceHandleName } = parseHandleId(arrow.source);
         
+        // Get target node label
+        const targetLabel = this.nodeIdToLabel.get(targetNodeId) || targetNodeId;
+        
         const connection: any = {
-          to: targetNodeId,
+          to: targetLabel,
           source_handle: sourceHandleName,
           target_handle: targetHandleName,
         };
@@ -154,9 +165,9 @@ export class Yaml {
 
     // Find person label if needed
     if (data.personId) {
-      const person = persons.find(p => p.id === data.personId);
-      if (person) {
-        baseStep.person = person.label;
+      const personLabel = this.personIdToLabel.get(data.personId as PersonID);
+      if (personLabel) {
+        baseStep.person = personLabel;
       }
     }
 
@@ -166,15 +177,19 @@ export class Yaml {
       firstOnlyPrompt: 'first_prompt',
       contextCleaningRule: 'forget',
       iterationCount: 'max_iterations',
+      maxIterations: 'max_iterations',
       conditionType: 'condition_type',
-      sourceDetails: node.type === 'db' ? 'source' : 'code',
+      expression: 'expression',
+      sourceDetails: originalNode.type === 'db' ? 'source' : '',
+      code: originalNode.type === 'job' ? 'code' : '',
       filePath: 'file',
       fileFormat: 'file_format',
-      subType: 'sub_type'
+      subType: 'sub_type',
+      mode: 'mode'
     };
     
     Object.entries(fieldMappings).forEach(([dataKey, yamlKey]) => {
-      if (data[dataKey] !== undefined && data[dataKey] !== null && data[dataKey] !== '') {
+      if (yamlKey && data[dataKey] !== undefined && data[dataKey] !== null && data[dataKey] !== '') {
         (baseStep as any)[yamlKey] = data[dataKey];
       }
     });
@@ -183,9 +198,12 @@ export class Yaml {
   }
 
   /**
-   * Convert enhanced YAML format back to DiagramState
+   * Convert from YAML format to diagram
    */
-  private static fromYamlFormat(yamlDiagram: YamlDiagram): ConverterDiagram {
+  private fromYamlFormat(yamlDiagram: YamlDiagram): ConverterDiagram {
+    // Reset state
+    this.reset();
+    
     const nodes: DomainNode[] = [];
     const handles: DomainHandle[] = [];
     const arrows: DomainArrow[] = [];
@@ -199,19 +217,12 @@ export class Yaml {
         id: apiKeyIdValue,
         name: key.name,
         service: key.service as DomainApiKey['service'],
-        // key is optional - not stored in frontend
       });
-    });
-
-
-    // Create label-to-ID mappings for references
-    const apiKeyLabelToId = new Map<string, string>();
-    apiKeys.forEach(key => {
-      apiKeyLabelToId.set(key.name, key.id);
+      this.apiKeyLabelToId.set(key.name, apiKeyIdValue);
     });
     
     // Create API keys for services found in persons
-    const serviceToApiKey = new Map<string, string>();
+    const serviceToApiKey = new Map<string, ApiKeyID>();
     Object.entries(yamlDiagram.persons || {}).forEach(([_label, person]) => {
       const service = (person.service || 'chatgpt') as DomainApiKey['service'];
       if (!serviceToApiKey.has(service) && !person.apiKeyLabel) {
@@ -221,50 +232,43 @@ export class Yaml {
           id: newApiKeyId,
           name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
           service,
-          // key is optional - not stored in frontend
         };
         apiKeys.push(newApiKey);
         serviceToApiKey.set(service, newApiKeyId);
       }
     });
 
+    // Convert persons
     Object.entries(yamlDiagram.persons || {}).forEach(([label, person]) => {
-      // Skip API key resolution - not part of DomainPerson
-      
+      const personIdValue = personId(`person-${generateShortId()}`);
       persons.push({
-        id: personId(`person-${generateShortId()}`),  // Generate fresh ID
-        label,  // Use the key as label
+        id: personIdValue,
+        label,
         model: person.model,
         service: (person.service || DEFAULT_SERVICE) as DomainPerson['service'],
         systemPrompt: person.system
       });
-    });
-
-    // Create label-to-ID mappings for node references
-    const nodeLabelToId = new Map<string, string>();
-    const personNameToId = new Map<string, PersonID>();
-    persons.forEach(person => {
-      personNameToId.set(person.label, person.id);
+      this.personLabelToId.set(label, personIdValue);
     });
     
     // First pass: create nodes and build label-to-ID mapping
     yamlDiagram.workflow.forEach(step => {
-      const nodeWithHandles = this.enhancedStepToNode(step, persons, personNameToId);
+      const nodeWithHandles = this.enhancedStepToNode(step);
       if (nodeWithHandles) {
         const { handles: nodeHandles, ...node } = nodeWithHandles;
         nodes.push(node);
         handles.push(...nodeHandles);
-        nodeLabelToId.set(step.label, node.id);
+        this.nodeLabelToId.set(step.label, node.id);
       }
     });
     
     // Second pass: create arrows using label-to-ID mapping
     yamlDiagram.workflow.forEach(step => {
       if (step.connections) {
-        const sourceId = nodeLabelToId.get(step.label);
+        const sourceId = this.nodeLabelToId.get(step.label);
         if (sourceId) {
           step.connections.forEach(conn => {
-            const targetId = nodeLabelToId.get(conn.to);
+            const targetId = this.nodeLabelToId.get(conn.to);
             if (targetId) {
               const arrowIdValue = arrowId(`arrow-${generateShortId()}`);
               
@@ -305,17 +309,15 @@ export class Yaml {
   /**
    * Convert enhanced step back to node
    */
-  private static enhancedStepToNode(
-    step: YamlDiagram['workflow'][0],
-    _persons: DomainPerson[],
-    personLabelToId: Map<string, PersonID>
+  private enhancedStepToNode(
+    step: YamlDiagram['workflow'][0]
   ): ReturnType<typeof buildNode> | null {
     const nodeInfo: NodeInfo = {
       name: step.label,
       type: step.type as NodeKind,
       position: step.position,
       // Common fields
-      personId: step.person ? personLabelToId.get(step.person) : undefined,
+      personId: step.person ? this.personLabelToId.get(step.person) : undefined,
       prompt: step.prompt,
       firstPrompt: step.first_prompt,
       contextCleaningRule: step.forget || DEFAULT_CONTEXT_CLEANING_RULE,
@@ -336,5 +338,17 @@ export class Yaml {
     
     return buildNode(nodeInfo);
   }
+}
 
+// Legacy static class for backward compatibility
+export class Yaml {
+  private static converter = new YamlConverter();
+
+  static toYAML(diagram: ConverterDiagram): string {
+    return this.converter.serialize(diagram);
+  }
+
+  static fromYAML(yamlString: string): ConverterDiagram {
+    return this.converter.deserialize(yamlString);
+  }
 }

@@ -1,15 +1,7 @@
-/**
- * useDiagramOperations - Diagram operation utilities
- * 
- * This file contains utility functions for diagram operations.
- */
+// Clear all diagram data
 
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 
-/**
- * Clear all diagram data
- * This function clears all diagram elements and resets the selection.
- */
 export const clearDiagram = () => {
   const state = useUnifiedStore.getState();
   

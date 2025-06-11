@@ -6,60 +6,23 @@
 
 import {
   DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle,
-  NodeID, PersonID, ApiKeyID, HandleID,
-  parseHandleId, createHandleId,
-  NodeKind, DataType, HandlePosition, LLMService,
+  PersonID, ApiKeyID,
+  createHandleId,
+  NodeKind, LLMService,
   generateNodeId, generateShortId,
-  nodeId, arrowId, personId, apiKeyId, handleId
+  arrowId, personId, apiKeyId
 } from '@/types';
 import { JSON_VERSION } from '../constants';
 import type { ConverterDiagram } from '../types';
 import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
-import { isValidHandleName } from '@/utils/node/handle-utils';
+import { ConverterCore, BaseExportedNode, BaseExportedArrow, BaseExportedPerson, BaseExportedApiKey, BaseExportedHandle } from '../core/converterCore';
 
-// Export format types
-export interface ExportedNode {
-  label: string;
-  type: string;
-  position: { x: number; y: number };
-  data: Record<string, unknown>;
-}
-
-export interface ExportedArrow {
-  sourceNode: string;
-  sourceHandle: string;
-  targetNode: string;
-  targetHandle: string;
-  data?: Record<string, unknown>;
-}
-
-export interface ExportedPerson {
-  label: string;
-  model: string;
-  service: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  apiKeyLabel?: string;
-}
-
-export interface ExportedApiKey {
-  label: string;
-  service: string;
-}
-
-export interface ExportedHandle {
-  nodeLabel: string;
-  name: string;
-  direction: 'input' | 'output';
-  dataType: DataType;
-  position?: HandlePosition;
-  label?: string;
-  maxConnections?: number;
-}
+// Export format types (extend base types)
+export type ExportedNode = BaseExportedNode;
+export type ExportedArrow = BaseExportedArrow;
+export type ExportedPerson = BaseExportedPerson;
+export type ExportedApiKey = BaseExportedApiKey;
+export type ExportedHandle = BaseExportedHandle;
 
 export interface ExportFormat {
   version: string;
@@ -72,36 +35,35 @@ export interface ExportFormat {
   handles?: ExportedHandle[];
 }
 
-export class JsonConverter {
-  // Label tracking for uniqueness
-  private usedNodeLabels = new Set<string>();
-  private usedPersonLabels = new Set<string>();
-  private usedApiKeyLabels = new Set<string>();
-  
-  // ID to label mappings for export
-  private nodeIdToLabel = new Map<NodeID, string>();
-  private personIdToLabel = new Map<PersonID, string>();
-  private apiKeyIdToLabel = new Map<ApiKeyID, string>();
-  
-  // Label to ID mappings for import
-  private nodeLabelToId = new Map<string, NodeID>();
-  private personLabelToId = new Map<string, PersonID>();
-  private apiKeyLabelToId = new Map<string, ApiKeyID>();
-
+export class JsonConverter extends ConverterCore<ExportFormat> {
   /**
-   * Export diagram to JSON format
+   * Serialize diagram to JSON string
    */
-  toJSON(diagram: ConverterDiagram): string {
+  serialize(diagram: ConverterDiagram): string {
     const exportData = this.toExportFormat(diagram);
     return JSON.stringify(exportData, null, 2);
   }
 
   /**
-   * Import diagram from JSON format
+   * Export diagram to JSON format (legacy method name)
    */
-  fromJSON(jsonString: string): ConverterDiagram {
+  toJSON(diagram: ConverterDiagram): string {
+    return this.serialize(diagram);
+  }
+
+  /**
+   * Deserialize diagram from JSON string
+   */
+  deserialize(jsonString: string): ConverterDiagram {
     const data = JSON.parse(jsonString) as ExportFormat;
     return this.fromExportFormat(data);
+  }
+
+  /**
+   * Import diagram from JSON format (legacy method name)
+   */
+  fromJSON(jsonString: string): ConverterDiagram {
+    return this.deserialize(jsonString);
   }
 
   /**
@@ -109,20 +71,36 @@ export class JsonConverter {
    */
   toExportFormat(diagram: ConverterDiagram): ExportFormat {
     // Clear previous state
-    this.clearMappings();
+    this.reset();
     
-    // Build mappings
-    this.buildExportMappings(diagram);
+    // First convert API keys (needed for person references)
+    const apiKeys = diagram.apiKeys.map(key => this.convertApiKeyToBase(key));
+    
+    // Then convert persons (may reference API keys)
+    const persons = diagram.persons.map(person => this.convertPersonToBase(person));
+    
+    // Convert nodes
+    const nodes = diagram.nodes.map(node => this.convertNodeToBase(node));
+    
+    // Convert arrows (references nodes)
+    const arrows = diagram.arrows
+      .map(arrow => this.convertArrowToBase(arrow, diagram.nodes))
+      .filter((arrow): arrow is ExportedArrow => arrow !== null);
+    
+    // Convert handles (references nodes)
+    const handles = diagram.handles
+      .map(handle => this.convertHandleToBase(handle))
+      .filter((handle): handle is ExportedHandle => handle !== null);
     
     return {
       version: JSON_VERSION,
       name: diagram.name,
       description: diagram.description,
-      nodes: this.exportNodes(diagram.nodes),
-      arrows: this.exportArrows(diagram.arrows),
-      persons: this.exportPersons(diagram.persons),
-      apiKeys: this.exportApiKeys(diagram.apiKeys),
-      handles: this.exportHandles(diagram.handles)
+      nodes,
+      arrows,
+      persons,
+      apiKeys,
+      handles
     };
   }
 
@@ -137,14 +115,14 @@ export class JsonConverter {
     }
     
     // Clear previous state
-    this.clearMappings();
+    this.reset();
     
     // Import in order of dependencies
     const apiKeys = this.importApiKeys(data.apiKeys || []);
     const persons = this.importPersons(data.persons || [], apiKeys);
     const nodes = this.importNodes(data.nodes || [], persons);
     const handles = this.importHandles(data.handles || [], nodes);
-    const arrows = this.importArrows(data.arrows || [], nodes);
+    const arrows = this.importArrows(data.arrows || []);
     
     return {
       id: `diagram-${generateShortId()}`,
@@ -221,171 +199,39 @@ export class JsonConverter {
     return { valid: errors.length === 0, errors };
   }
 
-  // Private helper methods
-
-  private clearMappings(): void {
-    this.usedNodeLabels.clear();
-    this.usedPersonLabels.clear();
-    this.usedApiKeyLabels.clear();
-    this.nodeIdToLabel.clear();
-    this.personIdToLabel.clear();
-    this.apiKeyIdToLabel.clear();
-    this.nodeLabelToId.clear();
-    this.personLabelToId.clear();
-    this.apiKeyLabelToId.clear();
-  }
-
-  private buildExportMappings(diagram: ConverterDiagram): void {
-    // Build node label mappings
-    diagram.nodes.forEach(node => {
-      const label = (node.data.label as string) || node.id;
-      const uniqueLabel = this.ensureUniqueLabel(label, this.usedNodeLabels);
-      this.nodeIdToLabel.set(node.id, uniqueLabel);
-    });
-
-    // Build person label mappings
-    diagram.persons.forEach(person => {
-      const label = person.label || person.id;
-      const uniqueLabel = this.ensureUniqueLabel(label, this.usedPersonLabels);
-      this.personIdToLabel.set(person.id, uniqueLabel);
-    });
-
-    // Build API key label mappings
-    diagram.apiKeys.forEach(apiKey => {
-      const label = apiKey.name || apiKey.id;
-      const uniqueLabel = this.ensureUniqueLabel(label, this.usedApiKeyLabels);
-      this.apiKeyIdToLabel.set(apiKey.id, uniqueLabel);
-    });
-  }
-
-  private ensureUniqueLabel(baseLabel: string, usedLabels: Set<string>): string {
-    if (!usedLabels.has(baseLabel)) {
-      usedLabels.add(baseLabel);
-      return baseLabel;
-    }
-
-    // Try alphabetic suffixes: -a, -b, -c, etc.
-    for (let i = 0; i < 26; i++) {
-      const suffix = String.fromCharCode(97 + i); // a-z
-      const candidateLabel = `${baseLabel}-${suffix}`;
-      if (!usedLabels.has(candidateLabel)) {
-        usedLabels.add(candidateLabel);
-        return candidateLabel;
+  /**
+   * Override convertNodeToBase to handle person label replacement and position rounding
+   */
+  protected convertNodeToBase(node: DomainNode): BaseExportedNode {
+    const base = super.convertNodeToBase(node);
+    
+    // Remove the label from data (it's already in the top-level label field)
+    const { label: _, ...dataWithoutLabel } = base.data;
+    
+    // Replace person ID with label if exists
+    const data = { ...dataWithoutLabel };
+    if ('personId' in data && data.personId) {
+      const personLabel = this.personIdToLabel.get(data.personId as PersonID);
+      if (personLabel) {
+        data.personLabel = personLabel;
+        delete data.personId;
       }
     }
-
-    // Fallback to numeric suffixes if all alphabetic are taken
-    let counter = 1;
-    let uniqueLabel = `${baseLabel}-${counter}`;
-    while (usedLabels.has(uniqueLabel)) {
-      counter++;
-      uniqueLabel = `${baseLabel}-${counter}`;
-    }
-    usedLabels.add(uniqueLabel);
-    return uniqueLabel;
+    
+    return {
+      ...base,
+      position: {
+        x: this.roundPosition(base.position.x),
+        y: this.roundPosition(base.position.y)
+      },
+      data
+    };
   }
 
+  // Private helper methods
+  
   private roundPosition(value: number): number {
     return Math.round(value);
-  }
-
-  private exportNodes(nodes: DomainNode[]): ExportedNode[] {
-    return nodes.map(node => {
-      const label = this.nodeIdToLabel.get(node.id) || node.id;
-
-      // Prepare data without internal properties
-      const { label: _, ...dataWithoutLabel } = node.data;
-
-      // Replace person ID with label if exists
-      const data = { ...dataWithoutLabel };
-      if ('personId' in data && data.personId) {
-        const personLabel = this.personIdToLabel.get(data.personId as PersonID);
-        if (personLabel) {
-          data.personLabel = personLabel;
-          delete data.personId;
-        }
-      }
-
-      return {
-        label,
-        type: node.type,
-        position: {
-          x: this.roundPosition(node.position.x),
-          y: this.roundPosition(node.position.y)
-        },
-        data
-      };
-    });
-  }
-
-  private exportArrows(arrows: DomainArrow[]): ExportedArrow[] {
-    return arrows.map(arrow => {
-      const { nodeId: sourceNodeId, handleName: sourceHandleName } = parseHandleId(arrow.source);
-      const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
-      
-      const sourceNode = this.nodeIdToLabel.get(sourceNodeId) || sourceNodeId;
-      const targetNode = this.nodeIdToLabel.get(targetNodeId) || targetNodeId;
-
-      return {
-        sourceNode,
-        sourceHandle: sourceHandleName,
-        targetNode,
-        targetHandle: targetHandleName,
-        data: arrow.data
-      };
-    });
-  }
-
-  private exportPersons(persons: DomainPerson[]): ExportedPerson[] {
-    return persons.map(person => {
-      const label = this.personIdToLabel.get(person.id) || person.id;
-      
-      const exported: ExportedPerson = {
-        label,
-        model: person.model,
-        service: person.service
-      };
-
-      // Add optional fields if they exist
-      if (person.systemPrompt) exported.systemPrompt = person.systemPrompt;
-      if (person.temperature !== undefined) exported.temperature = person.temperature;
-      if (person.maxTokens !== undefined) exported.maxTokens = person.maxTokens;
-      if (person.topP !== undefined) exported.topP = person.topP;
-      if (person.frequencyPenalty !== undefined) exported.frequencyPenalty = person.frequencyPenalty;
-      if (person.presencePenalty !== undefined) exported.presencePenalty = person.presencePenalty;
-
-      return exported;
-    });
-  }
-
-  private exportApiKeys(apiKeys: DomainApiKey[]): ExportedApiKey[] {
-    return apiKeys.map(apiKey => {
-      const label = this.apiKeyIdToLabel.get(apiKey.id) || apiKey.id;
-      return {
-        label,
-        service: apiKey.service
-      };
-    });
-  }
-
-  private exportHandles(handles: DomainHandle[]): ExportedHandle[] {
-    return handles.map(handle => {
-      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId) || handle.nodeId;
-      
-      const exportedHandle: ExportedHandle = {
-        nodeLabel,
-        name: handle.name,
-        direction: handle.direction,
-        dataType: handle.dataType
-      };
-
-      // Add optional fields
-      if (handle.position) exportedHandle.position = handle.position;
-      if (handle.label) exportedHandle.label = handle.label;
-      if (handle.maxConnections !== undefined) exportedHandle.maxConnections = handle.maxConnections;
-
-      return exportedHandle;
-    });
   }
 
   private importNodes(nodes: ExportedNode[], persons: DomainPerson[]): DomainNode[] {
@@ -406,55 +252,38 @@ export class JsonConverter {
           delete data.personLabel;
         }
       }
-
-      // Ensure label is set
+      
+      // Store label in data for consistency
       data.label = node.label;
-
-      // Store mapping
+      
       this.nodeLabelToId.set(node.label, id);
-
+      
       return {
         id,
         type: node.type as NodeKind,
-        position: node.position,
+        position: { ...node.position },
         data
       };
     });
   }
 
-  private importArrows(arrows: ExportedArrow[], nodes: DomainNode[]): DomainArrow[] {
-    // Create a map of node IDs to node types for validation
-    const nodeTypeMap = new Map<NodeID, NodeKind>();
-    nodes.forEach(node => nodeTypeMap.set(node.id, node.type));
-    
-    return arrows.map((arrow, index) => {
+  private importArrows(arrows: ExportedArrow[]): DomainArrow[] {
+    return arrows.map(arrow => {
       const sourceNodeId = this.nodeLabelToId.get(arrow.sourceNode);
       const targetNodeId = this.nodeLabelToId.get(arrow.targetNode);
       
       if (!sourceNodeId || !targetNodeId) {
-        throw new Error(`Invalid arrow reference: ${arrow.sourceNode} -> ${arrow.targetNode}`);
-      }
-
-      // Validate handle names are valid for the node types
-      const sourceNodeType = nodeTypeMap.get(sourceNodeId);
-      const targetNodeType = nodeTypeMap.get(targetNodeId);
-      
-      if (sourceNodeType && !isValidHandleName(sourceNodeType, arrow.sourceHandle, 'output')) {
-        throw new Error(`Arrow ${index}: Invalid output handle "${arrow.sourceHandle}" for ${sourceNodeType} node "${arrow.sourceNode}"`);
+        throw new Error(`Arrow references unknown node: ${arrow.sourceNode} -> ${arrow.targetNode}`);
       }
       
-      if (targetNodeType && !isValidHandleName(targetNodeType, arrow.targetHandle, 'input')) {
-        throw new Error(`Arrow ${index}: Invalid input handle "${arrow.targetHandle}" for ${targetNodeType} node "${arrow.targetNode}"`);
-      }
-
       const sourceHandleId = createHandleId(sourceNodeId, arrow.sourceHandle);
       const targetHandleId = createHandleId(targetNodeId, arrow.targetHandle);
-
+      
       return {
-        id: arrowId(`arrow-${generateShortId()}`),
+        id: arrowId(generateShortId()),
         source: sourceHandleId,
         target: targetHandleId,
-        data: arrow.data
+        data: arrow.data || {}
       };
     });
   }
@@ -466,11 +295,16 @@ export class JsonConverter {
     });
 
     return persons.map(person => {
-      const id = personId(`person-${generateShortId()}`);
+      const id = personId(generateShortId());
       
-      // Store mapping
+      // Find API key ID if label is provided
+      let apiKeyId: ApiKeyID | undefined;
+      if (person.apiKeyLabel) {
+        apiKeyId = apiKeyLabelMap.get(person.apiKeyLabel);
+      }
+      
       this.personLabelToId.set(person.label, id);
-
+      
       return {
         id,
         label: person.label,
@@ -481,39 +315,43 @@ export class JsonConverter {
         maxTokens: person.maxTokens,
         topP: person.topP,
         frequencyPenalty: person.frequencyPenalty,
-        presencePenalty: person.presencePenalty
+        presencePenalty: person.presencePenalty,
+        apiKeyId
       };
     });
   }
 
   private importApiKeys(apiKeys: ExportedApiKey[]): DomainApiKey[] {
     return apiKeys.map(apiKey => {
-      const id = apiKeyId(`apikey-${generateShortId()}`);
-      
-      // Store mapping
+      const id = apiKeyId(generateShortId());
       this.apiKeyLabelToId.set(apiKey.label, id);
-
+      
       return {
         id,
         name: apiKey.label,
-        service: apiKey.service as DomainApiKey['service']
+        service: apiKey.service as LLMService
       };
     });
   }
 
   private importHandles(handles: ExportedHandle[] | undefined, nodes: DomainNode[]): DomainHandle[] {
     if (!handles || handles.length === 0) {
-      // Generate handles from node configurations
-      return this.generateHandlesFromNodes(nodes);
+      // Generate default handles from registry for backward compatibility
+      const allHandles: DomainHandle[] = [];
+      nodes.forEach(node => {
+        const defaultHandles = generateNodeHandlesFromRegistry(node.type as NodeKind, node.id);
+        allHandles.push(...defaultHandles);
+      });
+      return allHandles;
     }
 
     return handles.map(handle => {
       const nodeId = this.nodeLabelToId.get(handle.nodeLabel);
       if (!nodeId) {
-        throw new Error(`Invalid handle reference: node ${handle.nodeLabel} not found`);
+        throw new Error(`Handle references unknown node: ${handle.nodeLabel}`);
       }
-
-      const id = handleId(nodeId, handle.name);
+      
+      const id = createHandleId(nodeId, handle.name);
       
       return {
         id,
@@ -527,42 +365,4 @@ export class JsonConverter {
       };
     });
   }
-
-  private generateHandlesFromNodes(nodes: DomainNode[]): DomainHandle[] {
-    const handles: DomainHandle[] = [];
-    
-    // Generate handles for each node based on its type
-    nodes.forEach(node => {
-      const nodeHandles = generateNodeHandlesFromRegistry(node.id, node.type);
-      handles.push(...nodeHandles);
-    });
-    
-    return handles;
-  }
-}
-
-// Convenience functions
-export function toJSON(diagram: ConverterDiagram): string {
-  const converter = new JsonConverter();
-  return converter.toJSON(diagram);
-}
-
-export function fromJSON(jsonString: string): ConverterDiagram {
-  const converter = new JsonConverter();
-  return converter.fromJSON(jsonString);
-}
-
-export function toExportFormat(diagram: ConverterDiagram): ExportFormat {
-  const converter = new JsonConverter();
-  return converter.toExportFormat(diagram);
-}
-
-export function fromExportFormat(data: ExportFormat): ConverterDiagram {
-  const converter = new JsonConverter();
-  return converter.fromExportFormat(data);
-}
-
-export function validateExportData(data: unknown): { valid: boolean; errors: string[] } {
-  const converter = new JsonConverter();
-  return converter.validateExportData(data);
 }

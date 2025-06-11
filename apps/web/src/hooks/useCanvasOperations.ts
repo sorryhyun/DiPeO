@@ -29,9 +29,7 @@ import {
   type DomainHandle
 } from '@/types';
 
-// =====================
-// TYPES
-// =====================
+// Types
 
 interface ContextMenuState {
   position: { x: number; y: number } | null;
@@ -62,13 +60,13 @@ export interface UseCanvasOperationsOptions {
 }
 
 export interface UseCanvasOperationsReturn {
-  // === Canvas State ===
+  // Canvas State
   nodes: ReturnType<typeof nodeToReact>[];
   arrows: DomainArrow[];
   persons: PersonID[];
   handles: Map<HandleID, any>;
   
-  // === Selection State ===
+  // Selection State
   selectedId: string | null;
   selectedType: 'node' | 'arrow' | 'person' | null;
   selectedNodeId: NodeID | null;
@@ -77,37 +75,37 @@ export interface UseCanvasOperationsReturn {
   hasSelection: boolean;
   isSelected: (id: string) => boolean;
   
-  // === Mode State ===
+  // Mode State
   isMonitorMode: boolean;
   isConnectable: boolean;
   
-  // === Node Operations ===
+  // Node Operations
   addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
   duplicateNode: (id: NodeID) => void;
   
-  // === Arrow Operations ===
+  // Arrow Operations
   addArrow: (sourceHandle: HandleID, targetHandle: HandleID) => ArrowID | null;
   updateArrow: (id: ArrowID, updates: any) => void;
   deleteArrow: (id: ArrowID) => void;
   
-  // === Person Operations ===
+  // Person Operations
   addPerson: (person: { label: string; service: string; model: string }) => PersonID;
   updatePerson: (id: PersonID, updates: any) => void;
   deletePerson: (id: PersonID) => void;
   getPersonById: (id: PersonID) => any;
   getArrowById: (id: ArrowID) => any;
   
-  // === Selection Operations ===
+  // Selection Operations
   select: (id: string, type: 'node' | 'arrow' | 'person') => void;
   clearSelection: () => void;
   
-  // === Execution State ===
+  // Execution State
   isNodeRunning: (id: NodeID) => boolean;
   getNodeState: (id: NodeID) => any;
   
-  // === Drag & Drop ===
+  // Drag & Drop
   dragState: DragState;
   onNodeDragStart: (event: DragEvent, nodeType: string) => void;
   onPersonDragStart: (event: DragEvent, personId: string) => void;
@@ -116,7 +114,7 @@ export interface UseCanvasOperationsReturn {
   onPersonDrop: (event: DragEvent, nodeId: NodeID) => void;
   onDragEnd: () => void;
   
-  // === Context Menu ===
+  // Context Menu
   contextMenu: ContextMenuState;
   isContextMenuOpen: boolean;
   openContextMenu: (x: number, y: number, target: 'pane' | 'node' | 'edge', targetId?: NodeID) => void;
@@ -124,34 +122,32 @@ export interface UseCanvasOperationsReturn {
   handleDeleteSelected: () => void;
   handleDuplicateNode: (nodeId: NodeID) => void;
   
-  // === Keyboard Shortcuts ===
+  // Keyboard Shortcuts
   registerShortcut: (key: string, handler: () => void) => void;
   unregisterShortcut: (key: string) => void;
   
-  // === Canvas Events ===
+  // Canvas Events
   onPaneClick: () => void;
   onPaneContextMenu: (event: React.MouseEvent) => void;
   onNodeContextMenu: (event: React.MouseEvent, nodeIdStr: string) => void;
   onEdgeContextMenu: (event: React.MouseEvent, edgeIdStr: string) => void;
   
-  // === React Flow Handlers ===
+  // React Flow Handlers
   onNodesChange: (changes: NodeChange[]) => void;
   onArrowsChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   
-  // === History ===
+  // History
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
   
-  // === Transactions ===
+  // Transactions
   transaction: (fn: () => void) => void;
 }
 
-// =====================
-// MAIN HOOK
-// =====================
+// Main Hook
 
 // Import the common selector factory
 import { createCommonStoreSelector } from '@/stores/selectorFactory';
@@ -166,7 +162,6 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
   // Convert Maps to arrays with proper memoization
-  // We need to depend on the Map itself to detect data changes, not just size
   const arrows = React.useMemo(
     () => Array.from(storeState.arrows.values()) as DomainArrow[],
     [storeState.arrows]
@@ -174,7 +169,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   
   const persons = React.useMemo(
     () => Array.from(storeState.persons.values()) as DomainPerson[],
-    [storeState.persons.size]
+    [storeState.persons]
   );
   
   // Wrapped operations
@@ -703,18 +698,18 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   
   // Memoize the ID arrays to avoid recreating on every render
   const personIds = React.useMemo(
-    () => persons.map(p => p.id),
+    () => persons.map((p: DomainPerson) => p.id),
     [persons]
   );
   
   return {
-    // === Canvas State ===
+    // Canvas State
     nodes,
     arrows,
     persons: personIds,
     handles: storeState.handlesMap,
     
-    // === Selection State ===
+    // Selection State
     selectedId: storeState.selectedId,
     selectedType: storeState.selectedType,
     selectedNodeId,
@@ -723,37 +718,37 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     hasSelection: storeState.selectedId !== null,
     isSelected: wrappedOperations.isSelected,
     
-    // === Mode State ===
+    // Mode State
     isMonitorMode: storeState.isMonitorMode,
     isConnectable: !storeState.isMonitorMode && enableInteractions,
     
-    // === Node Operations ===
+    // Node Operations
     addNode: wrappedOperations.addNode,
     updateNode: storeState.updateNode,
     deleteNode: storeState.deleteNode,
     duplicateNode: handleDuplicateNode,
     
-    // === Arrow Operations ===
+    // Arrow Operations
     addArrow: storeState.addArrow,
     updateArrow: storeState.updateArrow,
     deleteArrow: storeState.deleteArrow,
     
-    // === Person Operations ===
+    // Person Operations
     addPerson: wrappedOperations.addPerson,
     updatePerson: storeState.updatePerson,
     deletePerson: storeState.deletePerson,
     getPersonById: wrappedOperations.getPersonById,
     getArrowById: wrappedOperations.getArrowById,
     
-    // === Selection Operations ===
+    // Selection Operations
     select: storeState.select,
     clearSelection: storeState.clearSelection,
     
-    // === Execution State ===
+    // Execution State
     isNodeRunning: wrappedOperations.isNodeRunning,
     getNodeState: wrappedOperations.getNodeState,
     
-    // === Drag & Drop ===
+    // Drag & Drop
     dragState,
     onNodeDragStart,
     onPersonDragStart,
@@ -762,7 +757,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     onPersonDrop,
     onDragEnd,
     
-    // === Context Menu ===
+    // Context Menu
     contextMenu,
     isContextMenuOpen: contextMenu.position !== null,
     openContextMenu,
@@ -770,28 +765,28 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     handleDeleteSelected,
     handleDuplicateNode,
     
-    // === Keyboard Shortcuts ===
+    // Keyboard Shortcuts
     registerShortcut,
     unregisterShortcut,
     
-    // === Canvas Events ===
+    // Canvas Events
     onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu,
     
-    // === React Flow Handlers ===
+    // React Flow Handlers
     onNodesChange,
     onArrowsChange,
     onConnect,
     
-    // === History ===
+    // History
     undo: storeState.undo,
     redo: storeState.redo,
     canUndo: storeState.canUndo,
     canRedo: storeState.canRedo,
     
-    // === Transactions ===
+    // Transactions
     transaction: storeState.transaction,
   };
 }

@@ -1,11 +1,7 @@
 import { DomainHandle, DataType, HandlePosition } from '@/types';
 import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
 import { 
-  toJSON, 
-  fromJSON, 
-  toExportFormat, 
-  fromExportFormat, 
-  validateExportData,
+  JsonConverter,
   type ExportFormat as JsonExportFormat,
   type ExportedHandle as JsonExportedHandle 
 } from '@/utils/converters';
@@ -14,6 +10,8 @@ import type { ConverterDiagram } from '@/utils/converters/types';
 
 // Thin wrapper around JSON converter that provides store integration
 export class DiagramExporter {
+  private jsonConverter = new JsonConverter();
+  
   constructor(private store: UnifiedStore) {}
   
   // Parse handle reference - support both old "-" and new "::" separators
@@ -40,7 +38,7 @@ export class DiagramExporter {
   // Export operations
   exportDiagram(): ExportFormat {
     const diagram = this.storeToDiagram();
-    const jsonFormat = toExportFormat(diagram);
+    const jsonFormat = this.jsonConverter.toExportFormat(diagram);
     
     // Convert from JSON format to store format
     return {
@@ -66,13 +64,13 @@ export class DiagramExporter {
 
   exportAsJSON(): string {
     const diagram = this.storeToDiagram();
-    return toJSON(diagram);
+    return this.jsonConverter.toJSON(diagram);
   }
 
   // Import operations
   importDiagram(data: ExportFormat | string): void {
     if (typeof data === 'string') {
-      const diagram = fromJSON(data);
+      const diagram = this.jsonConverter.fromJSON(data);
       this.diagramToStore(diagram);
     } else {
       // Convert from store format to JSON format
@@ -101,7 +99,7 @@ export class DiagramExporter {
         handles: data.handles.map(handle => this.convertHandleToJson(handle))
       };
       
-      const diagram = fromExportFormat(jsonFormat);
+      const diagram = this.jsonConverter.fromExportFormat(jsonFormat);
       this.diagramToStore(diagram);
     }
   }
@@ -134,9 +132,9 @@ export class DiagramExporter {
         })),
         handles: exportData.handles.map(handle => this.convertHandleToJson(handle))
       };
-      return validateExportData(jsonFormat);
+      return this.jsonConverter.validateExportData(jsonFormat);
     }
-    return validateExportData(data);
+    return this.jsonConverter.validateExportData(data);
   }
 
   // Private helper methods

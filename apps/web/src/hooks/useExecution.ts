@@ -17,7 +17,7 @@ import { NodeKind } from '@/types/primitives/enums';
 import { createCommonStoreSelector } from '@/stores/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/config/nodeMeta';
 
-// ========== Types ==========
+// Types
 
 export interface ExecutionState {
   isRunning: boolean;
