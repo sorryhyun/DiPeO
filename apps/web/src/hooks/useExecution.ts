@@ -11,6 +11,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useWebSocketEventBus } from './useWebSocketEventBus';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
+import { onWebSocketEvent } from '@/utils/websocket/event-bus';
 import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
 import { NodeKind } from '@/types/primitives/enums';
 import type { UnifiedStore } from '@/stores/unifiedStore.types';
@@ -48,66 +49,50 @@ export interface UseExecutionOptions {
 }
 
 export interface UseExecutionReturn {
-  // Connection state
-  isConnected: boolean;
-  isReconnecting: boolean;
-  
-  // Execution state
-  isRunning: boolean;
-  executionId: string | null;
+  // State
   execution: ExecutionState;
-  nodes: Record<string, NodeState>;
-  
-  // Node-specific state
-  getNodeExecutionState: (nodeId: NodeID) => {
-    isRunning: boolean;
-    isCurrentRunning: boolean;
-    nodeRunningState: boolean;
-    isSkipped: boolean;
-    skipReason: string | undefined;
-  };
-  
-  // Execution selectors
-  runContext: Record<string, unknown>;
-  runningNodes: NodeID[];
-  currentRunningNode: NodeID | null;
-  nodeRunningStates: Record<string, boolean>;
-  skippedNodes: Record<string, { reason: string }>;
-  
-  // UI state
+  nodeStates: Record<string, NodeState>;
+  isRunning: boolean;
+  isReconnecting: boolean;
   progress: number;
   duration: string;
-  currentNodeName: string | null;
-  interactivePrompt: InteractivePromptData | null;
   
-  // Main actions
+  // Execution Actions
   execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
-  pauseNode: (nodeId: NodeID) => void;
-  resumeNode: (nodeId: NodeID) => void;
-  skipNode: (nodeId: NodeID) => void;
   abort: () => void;
-  respondToPrompt: (nodeId: NodeID, response: string) => void;
   
-  // Execution actions
-  addRunningNode: (nodeId: NodeID) => void;
-  removeRunningNode: (nodeId: NodeID) => void;
-  setCurrentRunningNode: (nodeId: NodeID | null) => void;
-  setRunContext: (context: Record<string, unknown>) => void;
-  addSkippedNode: (nodeId: NodeID, reason: string) => void;
-  reset: () => void;
+  // Node Actions
+  pauseNode: (nodeId: string) => void;
+  resumeNode: (nodeId: string) => void;
+  skipNode: (nodeId: string) => void;
   
-  // Connection actions
-  connect: () => void;
+  // Interactive Prompt
+  interactivePrompt: InteractivePromptData | null;
+  respondToPrompt: (response: string) => void;
+  
+  // Connection
+  isConnected: boolean;
+  connect: () => Promise<void>;
   disconnect: () => void;
   
-  // UI helpers
+  // UI Helpers
   formatTime: (startTime: Date | null, endTime: Date | null) => string;
-  formatTokens: (tokens: number) => string;
-  getNodeIcon: (status: NodeState['status']) => string;
-  getNodeColor: (status: NodeState['status']) => string;
+  getNodeIcon: (nodeType: string) => string;
+  getNodeColor: (nodeType: string) => string;
+  getNodeExecutionState: (nodeId: string) => NodeState | undefined;
+  
+  // Store integration
+  currentRunningNode: string | null;
+  nodeRunningStates: Record<string, boolean>;
+  runContext: Record<string, unknown>;
+  skippedNodes: Array<{ nodeId: string; reason: string }>;
+  
+  // Additional properties for compatibility
+  runningNodes: Set<NodeID>;
+  nodes?: any[];
 }
 
-// ========== Initial States ==========
+// ========== Constants ==========
 
 const initialExecutionState: ExecutionState = {
   isRunning: false,
@@ -117,146 +102,95 @@ const initialExecutionState: ExecutionState = {
   currentNode: null,
   startTime: null,
   endTime: null,
-  error: null
+  error: null,
 };
 
-const createDefaultNodeState = (): NodeState => ({
-  status: 'pending',
-  startTime: null,
-  endTime: null
-});
+const NODE_ICONS: Record<string, string> = {
+  start: '🚀',
+  person_job: '🤖',
+  person_batch_job: '📦',
+  condition: '🔀',
+  db: '💾',
+  endpoint: '🎯',
+  job: '⚙️',
+  user_response: '💬',
+  notion: '📝'
+};
 
-// ========== Helper Functions ==========
-
-function formatTimeInternal(startTime: Date | null, endTime: Date | null, formatDuration: boolean): string {
-  if (!startTime) return '0s';
-  
-  const end = endTime || new Date();
-  const totalSeconds = Math.floor((end.getTime() - startTime.getTime()) / 1000);
-  
-  if (!formatDuration) return `${totalSeconds}s`;
-  
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m ${seconds}s`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  } else {
-    return `${seconds}s`;
-  }
-}
+const NODE_COLORS: Record<string, string> = {
+  start: '#10b981',
+  person_job: '#3b82f6',
+  person_batch_job: '#8b5cf6',
+  condition: '#f59e0b',
+  db: '#6366f1',
+  endpoint: '#ef4444',
+  job: '#6b7280',
+  user_response: '#14b8a6',
+  notion: '#ec4899'
+};
 
 // ========== Main Hook ==========
 
-// Track if WebSocket connection has been initialized globally
-let globalConnectionInitialized = false;
-
-// Create stable selector for execution actions
-const createExecutionSelector = () => (state: UnifiedStore) => ({
-  // Store methods (these are stable references)
+// Create stable selector for execution store
+const createExecutionStoreSelector = () => (state: UnifiedStore) => ({
+  // Store actions
   startExecution: state.startExecution,
-  stopExecution: state.stopExecution,
   updateNodeExecution: state.updateNodeExecution,
-  
-  // Direct references to execution state for manual updates
-  execution: state.execution
-});
-
-// Create stable selector for store state
-const createStoreStateSelector = () => (state: UnifiedStore) => ({
-  runContext: state.execution.context,
-  runningNodes: state.execution.runningNodes, // Keep as Set
+  stopExecution: state.stopExecution,
+  // Execution state
+  executionId: state.execution.id,
+  isRunning: state.execution.isRunning,
+  runningNodes: state.execution.runningNodes,
   nodeStates: state.execution.nodeStates,
+  context: state.execution.context,
 });
 
 export function useExecution(options: UseExecutionOptions = {}): UseExecutionReturn {
-  const { 
-    autoConnect = false, // Changed default to false 
-    debug = false,
+  const {
+    autoConnect = false,
     showToasts = true,
     formatDuration = true,
     onUpdate
   } = options;
-
-  // Store hooks
-  const { nodes: canvasNodes } = useCanvasOperations();
   
-  // Create stable selector
-  const executionSelector = React.useMemo(() => createExecutionSelector(), []);
-  
-  // Get execution actions from store using stable selector
-  const storeActions = useUnifiedStore(useShallow(executionSelector));
-  
-  // Create execution actions that work with store state
-  const executionActions = React.useMemo(() => ({
-    startExecution: storeActions.startExecution,
-    stopExecution: storeActions.stopExecution,
-    reset: () => {
-      storeActions.stopExecution();
-      storeActions.execution.nodeStates.clear();
-      storeActions.execution.context = {};
-    },
-    addRunningNode: (nodeId: NodeID) => {
-      storeActions.execution.runningNodes.add(nodeId);
-    },
-    removeRunningNode: (nodeId: NodeID) => {
-      storeActions.execution.runningNodes.delete(nodeId);
-    },
-    setCurrentRunningNode: (nodeId: NodeID | null) => {
-      if (nodeId) {
-        storeActions.execution.runningNodes.clear();
-        storeActions.execution.runningNodes.add(nodeId);
-      }
-    },
-    setRunContext: (context: Record<string, unknown>) => {
-      storeActions.execution.context = context;
-    },
-    addSkippedNode: (nodeId: NodeID, reason: string) => {
-      storeActions.updateNodeExecution(nodeId, { 
-        status: 'skipped', 
-        error: reason,
-        timestamp: Date.now()
-      });
-    },
-  }), [storeActions]);
+  // Memoized selector
+  const executionStoreSelector = React.useMemo(createExecutionStoreSelector, []);
+  const executionActions = useUnifiedStore(useShallow(executionStoreSelector));
   
   // State
   const [execution, setExecution] = useState<ExecutionState>(initialExecutionState);
   const [nodeStates, setNodeStates] = useState<Record<string, NodeState>>({});
   const [interactivePrompt, setInteractivePrompt] = useState<InteractivePromptData | null>(null);
-  const [currentNodeName, setCurrentNodeName] = useState<string | null>(null);
-  
-  // UI State
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState('0s');
   
   // Refs
   const executionIdRef = useRef<string | null>(null);
   const durationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // WebSocket - only auto-connect if not already initialized
-  const shouldAutoConnect = autoConnect && !globalConnectionInitialized;
-  if (shouldAutoConnect) {
-    globalConnectionInitialized = true;
-  }
+  const startTimeRef = useRef<Date | null>(null);
+  const runContextRef = useRef<Record<string, unknown>>({});
+  const skippedNodesRef = useRef<Array<{ nodeId: string; reason: string }>>([]);
+  const currentRunningNodeRef = useRef<string | null>(null);
   
-  const { 
-    isConnected, 
-    isReconnecting, 
-    send, 
-    on, 
-    connect, 
+  // Canvas operations
+  const { nodes: canvasNodes } = useCanvasOperations();
+  
+  // WebSocket
+  const {
+    isConnected,
+    isReconnecting,
+    send,
+    connect,
     disconnect,
-    waitForConnection 
-  } = useWebSocketEventBus({ autoConnect: shouldAutoConnect, debug });
-
-  // ========== Execution Actions ==========
-
+    waitForConnection
+  } = useWebSocketEventBus();
+  
+  // ========== State Management Functions ==========
+  
   const startExecution = useCallback((executionId: string, totalNodes: number) => {
     const now = new Date();
+    startTimeRef.current = now;
+    
     setExecution({
       isRunning: true,
       executionId,
@@ -265,30 +199,33 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       currentNode: null,
       startTime: now,
       endTime: null,
-      error: null
+      error: null,
     });
-    setNodeStates({});
-    setProgress(0);
     
     // Start duration timer
-    if (durationInterval.current) clearInterval(durationInterval.current);
-    durationInterval.current = setInterval(() => {
-      const formattedTime = formatTimeInternal(now, null, formatDuration);
-      setDuration(formattedTime);
-    }, 1000);
-
-    if (showToasts) {
-      toast.info(`Execution started with ${totalNodes} nodes`);
+    if (formatDuration) {
+      durationInterval.current = setInterval(() => {
+        if (startTimeRef.current) {
+          const elapsed = Date.now() - startTimeRef.current.getTime();
+          const seconds = Math.floor(elapsed / 1000);
+          const minutes = Math.floor(seconds / 60);
+          
+          if (minutes > 0) {
+            setDuration(`${minutes}m ${seconds % 60}s`);
+          } else {
+            setDuration(`${seconds}s`);
+          }
+        }
+      }, 1000);
     }
-  }, [showToasts]);
-
+  }, [formatDuration]);
+  
   const completeExecution = useCallback((totalTokens?: number) => {
     setExecution(prev => ({
       ...prev,
       isRunning: false,
-      currentNode: null,
       endTime: new Date(),
-      error: null
+      error: null,
     }));
     
     if (durationInterval.current) {
@@ -296,26 +233,18 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       durationInterval.current = null;
     }
     
-    setProgress(100);
-    
     if (showToasts) {
-      const finalDuration = execution.startTime 
-        ? (new Date().getTime() - execution.startTime.getTime()) / 1000
-        : 0;
-      const message = totalTokens 
-        ? `Execution completed in ${finalDuration.toFixed(1)}s (${formatTokens(totalTokens)} tokens)`
-        : `Execution completed in ${finalDuration.toFixed(1)}s`;
-      toast.success(message);
+      const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
+      toast.success(`Execution completed${tokensMsg}`);
     }
-  }, [showToasts, execution.startTime]);
-
+  }, [showToasts]);
+  
   const errorExecution = useCallback((error: string) => {
     setExecution(prev => ({
       ...prev,
       isRunning: false,
-      currentNode: null,
       endTime: new Date(),
-      error
+      error,
     }));
     
     if (durationInterval.current) {
@@ -327,197 +256,237 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       toast.error(`Execution failed: ${error}`);
     }
   }, [showToasts]);
-
-  // ========== Node Actions ==========
-
-  const startNode = useCallback((nodeId: string, nodeType: NodeKind) => {
-    setExecution(prev => ({ ...prev, currentNode: nodeId }));
+  
+  const startNode = useCallback((nodeId: string, nodeType: string) => {
+    setExecution(prev => ({
+      ...prev,
+      currentNode: nodeId,
+    }));
+    
     setNodeStates(prev => ({
       ...prev,
       [nodeId]: {
         status: 'running',
         startTime: new Date(),
-        endTime: null
+        endTime: null,
       }
     }));
     
-    setCurrentNodeName(`${nodeType} (${nodeId.slice(0, 8)}...)`);
-    
-    if (showToasts && nodeType === 'user_response') {
-      toast.info('Waiting for user input...');
+    if (showToasts) {
+      const nodeIcon = NODE_ICONS[nodeType] || '📦';
+      const node = canvasNodes.find(n => n.id === nodeId);
+      const nodeLabel = node?.data?.label || nodeId.slice(0, 8);
+      toast.info(`${nodeIcon} Running: ${nodeLabel}...`);
     }
-  }, [showToasts]);
-
+  }, [showToasts, canvasNodes]);
+  
   const completeNode = useCallback((nodeId: string, tokenCount?: number) => {
     setExecution(prev => ({
       ...prev,
       completedNodes: prev.completedNodes + 1,
-      currentNode: prev.currentNode === nodeId ? null : prev.currentNode
+      currentNode: prev.currentNode === nodeId ? null : prev.currentNode,
     }));
     
-    setNodeStates(prev => {
-      const currentNode = prev[nodeId] || createDefaultNodeState();
-      return {
-        ...prev,
-        [nodeId]: {
-          ...currentNode,
-          status: 'completed' as const,
-          endTime: new Date(),
-          tokenCount
-        }
-      };
-    });
-    
-    if (currentNodeName?.includes(nodeId.slice(0, 8))) {
-      setCurrentNodeName(null);
-    }
-    
-    // Update progress
-    if (execution.totalNodes > 0) {
-      setProgress(Math.round(((execution.completedNodes + 1) / execution.totalNodes) * 100));
-    }
-  }, [currentNodeName, execution.completedNodes, execution.totalNodes]);
-
-  // ========== Event Handlers ==========
-
-  useEffect(() => {
-    const handlers = {
-      'execution_started': (data: any) => {
-        executionIdRef.current = data.execution_id;
-        startExecution(data.execution_id, data.total_nodes || 0);
-        executionActions.setRunContext({});
-        onUpdate?.({ type: 'execution_started', ...data });
-      },
-      
-      'execution_complete': (data: any) => {
-        executionIdRef.current = null;
-        completeExecution(data.total_tokens);
-        onUpdate?.({ type: 'execution_complete', ...data });
-      },
-      
-      'execution_error': (data: any) => {
-        executionIdRef.current = null;
-        errorExecution(data.error);
-        onUpdate?.({ type: 'execution_error', ...data });
-      },
-      
-      'execution_aborted': () => {
-        executionIdRef.current = null;
-        errorExecution('Execution aborted');
-        onUpdate?.({ type: 'execution_aborted' });
-      },
-      
-      'node_start': (data: any) => {
-        startNode(data.node_id, data.node_type);
-        executionActions.addRunningNode(data.node_id);
-        executionActions.setCurrentRunningNode(data.node_id);
-        onUpdate?.({ type: 'node_start', ...data });
-      },
-      
-      'node_progress': (data: any) => {
-        setNodeStates(prev => ({
-          ...prev,
-          [data.node_id]: {
-            ...prev[data.node_id],
-            progress: data.progress
-          }
-        }));
-        onUpdate?.({ type: 'node_progress', ...data });
-      },
-      
-      'node_complete': (data: any) => {
-        completeNode(data.node_id, data.token_count);
-        executionActions.removeRunningNode(data.node_id);
-        
-        if (data.output && typeof data.output === 'object') {
-          executionActions.setRunContext(data.output as Record<string, unknown>);
-        }
-        onUpdate?.({ type: 'node_complete', ...data });
-      },
-      
-      'node_skipped': (data: any) => {
-        setExecution(prev => ({
-          ...prev,
-          completedNodes: prev.completedNodes + 1
-        }));
-        
-        setNodeStates(prev => ({
-          ...prev,
-          [data.node_id]: {
-            ...prev[data.node_id],
-            status: 'skipped',
-            endTime: new Date(),
-            skipReason: data.reason
-          }
-        }));
-        
-        executionActions.addSkippedNode(data.node_id, data.reason || 'Unknown reason');
-        executionActions.removeRunningNode(data.node_id);
-        
-        if (showToasts && data.reason) {
-          toast.warning(`Node ${data.node_id.slice(0, 8)}... skipped: ${data.reason}`);
-        }
-        
-        onUpdate?.({ type: 'node_skipped', ...data });
-      },
-      
-      'node_error': (data: any) => {
-        setNodeStates(prev => ({
-          ...prev,
-          [data.node_id]: {
-            ...prev[data.node_id],
-            status: 'error',
-            endTime: new Date(),
-            error: data.error
-          }
-        }));
-        
-        executionActions.removeRunningNode(data.node_id);
-        
-        if (showToasts) {
-          toast.error(`Node ${data.node_id.slice(0, 8)}... failed: ${data.error}`);
-        }
-        
-        onUpdate?.({ type: 'node_error', ...data });
-      },
-      
-      'node_paused': (data: any) => {
-        setNodeStates(prev => ({
-          ...prev,
-          [data.node_id]: {
-            ...prev[data.node_id],
-            status: 'paused'
-          }
-        }));
-        onUpdate?.({ type: 'node_paused', ...data });
-      },
-      
-      'node_resumed': (data: any) => {
-        setNodeStates(prev => ({
-          ...prev,
-          [data.node_id]: {
-            ...prev[data.node_id],
-            status: 'running'
-          }
-        }));
-        onUpdate?.({ type: 'node_resumed', ...data });
-      },
-      
-      'interactive_prompt_request': (data: any) => {
-        setInteractivePrompt(data);
-        onUpdate?.({ type: 'interactive_prompt_request', ...data });
+    setNodeStates(prev => ({
+      ...prev,
+      [nodeId]: {
+        ...(prev[nodeId] || { startTime: null, endTime: null }),
+        status: 'completed' as const,
+        endTime: new Date(),
+        tokenCount,
       }
-    };
-    
-    // Register all handlers
-    Object.entries(handlers).forEach(([event, handler]) => {
-      on(event, handler);
+    }));
+  }, []);
+  
+  // ========== Stable Event Handlers ==========
+  
+  // Create stable handler references using useCallback
+  const handleExecutionStarted = useCallback((data: any) => {
+    executionIdRef.current = data.execution_id;
+    startExecution(data.execution_id, data.total_nodes || 0);
+    runContextRef.current = {};
+    skippedNodesRef.current = [];
+    currentRunningNodeRef.current = null;
+    executionActions.startExecution(data.execution_id);
+    onUpdate?.({ type: 'execution_started', ...data });
+  }, [startExecution, executionActions, onUpdate]);
+  
+  const handleExecutionComplete = useCallback((data: any) => {
+    executionIdRef.current = null;
+    completeExecution(data.total_tokens);
+    executionActions.stopExecution();
+    onUpdate?.({ type: 'execution_complete', ...data });
+  }, [completeExecution, executionActions, onUpdate]);
+  
+  const handleExecutionError = useCallback((data: any) => {
+    executionIdRef.current = null;
+    errorExecution(data.error);
+    executionActions.stopExecution();
+    onUpdate?.({ type: 'execution_error', ...data });
+  }, [errorExecution, executionActions, onUpdate]);
+  
+  const handleExecutionAborted = useCallback(() => {
+    executionIdRef.current = null;
+    errorExecution('Execution aborted');
+    executionActions.stopExecution();
+    onUpdate?.({ type: 'execution_aborted' });
+  }, [errorExecution, executionActions, onUpdate]);
+  
+  const handleNodeStart = useCallback((data: any) => {
+    startNode(data.node_id, data.node_type);
+    currentRunningNodeRef.current = data.node_id;
+    executionActions.updateNodeExecution(data.node_id as NodeID, {
+      status: 'running',
+      timestamp: Date.now()
     });
-  }, [on, startExecution, completeExecution, errorExecution, startNode, completeNode, 
-      executionActions, canvasNodes, showToasts, onUpdate]);
-
+    onUpdate?.({ type: 'node_start', ...data });
+  }, [startNode, executionActions, onUpdate]);
+  
+  const handleNodeProgress = useCallback((data: any) => {
+    setNodeStates(prev => ({
+      ...prev,
+      [data.node_id]: {
+        ...prev[data.node_id],
+        progress: data.progress
+      }
+    }));
+    onUpdate?.({ type: 'node_progress', ...data });
+  }, [onUpdate]);
+  
+  const handleNodeComplete = useCallback((data: any) => {
+    completeNode(data.node_id, data.token_count);
+    if (currentRunningNodeRef.current === data.node_id) {
+      currentRunningNodeRef.current = null;
+    }
+    executionActions.updateNodeExecution(data.node_id as NodeID, {
+      status: 'completed',
+      timestamp: Date.now()
+    });
+    
+    if (data.output && typeof data.output === 'object') {
+      runContextRef.current = { ...runContextRef.current, ...data.output };
+    }
+    onUpdate?.({ type: 'node_complete', ...data });
+  }, [completeNode, executionActions, onUpdate]);
+  
+  const handleNodeSkipped = useCallback((data: any) => {
+    setExecution(prev => ({
+      ...prev,
+      completedNodes: prev.completedNodes + 1
+    }));
+    
+    setNodeStates(prev => ({
+      ...prev,
+      [data.node_id]: {
+        ...(prev[data.node_id] || { startTime: null, endTime: null }),
+        status: 'skipped' as const,
+        endTime: new Date(),
+        skipReason: data.reason
+      }
+    }));
+    
+    skippedNodesRef.current.push({ nodeId: data.node_id, reason: data.reason || 'Unknown reason' });
+    executionActions.updateNodeExecution(data.node_id as NodeID, {
+      status: 'skipped',
+      timestamp: Date.now()
+    });
+    
+    if (showToasts && data.reason) {
+      toast.warning(`Node ${data.node_id.slice(0, 8)}... skipped: ${data.reason}`);
+    }
+    
+    onUpdate?.({ type: 'node_skipped', ...data });
+  }, [executionActions, showToasts, onUpdate]);
+  
+  const handleNodeError = useCallback((data: any) => {
+    setNodeStates(prev => ({
+      ...prev,
+      [data.node_id]: {
+        ...(prev[data.node_id] || { startTime: null, endTime: null }),
+        status: 'error' as const,
+        endTime: new Date(),
+        error: data.error
+      }
+    }));
+    
+    executionActions.updateNodeExecution(data.node_id as NodeID, {
+      status: 'failed',
+      timestamp: Date.now(),
+      error: data.error
+    });
+    
+    if (showToasts) {
+      toast.error(`Node ${data.node_id.slice(0, 8)}... failed: ${data.error}`);
+    }
+    
+    onUpdate?.({ type: 'node_error', ...data });
+  }, [executionActions, showToasts, onUpdate]);
+  
+  const handleNodePaused = useCallback((data: any) => {
+    setNodeStates(prev => ({
+      ...prev,
+      [data.node_id]: {
+        ...(prev[data.node_id] || { startTime: null, endTime: null }),
+        status: 'paused' as const
+      }
+    }));
+    onUpdate?.({ type: 'node_paused', ...data });
+  }, [onUpdate]);
+  
+  const handleNodeResumed = useCallback((data: any) => {
+    setNodeStates(prev => ({
+      ...prev,
+      [data.node_id]: {
+        ...(prev[data.node_id] || { startTime: null, endTime: null }),
+        status: 'running' as const
+      }
+    }));
+    onUpdate?.({ type: 'node_resumed', ...data });
+  }, [onUpdate]);
+  
+  const handleInteractivePrompt = useCallback((data: any) => {
+    setInteractivePrompt(data);
+    onUpdate?.({ type: 'interactive_prompt_request', ...data });
+  }, [onUpdate]);
+  
+  // Register WebSocket event handlers using stable references
+  useEffect(() => {
+    const unsubscribers = [
+      onWebSocketEvent('execution_started', handleExecutionStarted),
+      onWebSocketEvent('execution_complete', handleExecutionComplete),
+      onWebSocketEvent('execution_error', handleExecutionError),
+      onWebSocketEvent('execution_aborted', handleExecutionAborted),
+      onWebSocketEvent('node_start', handleNodeStart),
+      onWebSocketEvent('node_progress', handleNodeProgress),
+      onWebSocketEvent('node_complete', handleNodeComplete),
+      onWebSocketEvent('node_skipped', handleNodeSkipped),
+      onWebSocketEvent('node_error', handleNodeError),
+      onWebSocketEvent('node_paused', handleNodePaused),
+      onWebSocketEvent('node_resumed', handleNodeResumed),
+      onWebSocketEvent('interactive_prompt_request', handleInteractivePrompt)
+    ];
+    
+    // Cleanup function
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [
+    handleExecutionStarted,
+    handleExecutionComplete,
+    handleExecutionError,
+    handleExecutionAborted,
+    handleNodeStart,
+    handleNodeProgress,
+    handleNodeComplete,
+    handleNodeSkipped,
+    handleNodeError,
+    handleNodePaused,
+    handleNodeResumed,
+    handleInteractivePrompt
+  ]);
+  
   // ========== Main Actions ==========
-
+  
   const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
     // Reset state
     setExecution(initialExecutionState);
@@ -525,105 +494,101 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     setInteractivePrompt(null);
     setProgress(0);
     setDuration('0s');
-    executionActions.setRunContext({});
-    executionActions.reset();
+    runContextRef.current = {};
+    skippedNodesRef.current = [];
+    currentRunningNodeRef.current = null;
     
     try {
       await waitForConnection();
       
-      // Convert DomainDiagram to backend format if provided
-      let backendDiagram = diagram;
-      if (diagram) {
-        // Backend expects nodes and arrows as arrays, but persons as object
-         
-        backendDiagram = {
-          nodes: Object.values(diagram.nodes || {}),
-          arrows: Object.values(diagram.arrows || {}),
-          persons: diagram.persons || {},  // Keep as object
-          api_keys: diagram.apiKeys || {}   // Backend expects snake_case
-        } as any;
-      }
-      
-      send({
+      const message = diagram ? {
         type: 'execute_diagram',
-        diagram: backendDiagram,
-        options
-      });
+        diagram: {
+          ...diagram,
+          // Ensure we're sending arrays (nodes/arrows/persons are Records)
+          nodes: Object.values(diagram.nodes),
+          arrows: Object.values(diagram.arrows),
+          persons: Object.values(diagram.persons),
+        },
+        ...options
+      } : {
+        type: 'execute_current',
+        ...options
+      };
+      
+      send(message);
     } catch (error) {
-      console.error('Execution failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to execute diagram';
+      errorExecution(errorMessage);
       throw error;
     }
-  }, [send, waitForConnection, executionActions]);
-
-  const pauseNode = useCallback((nodeId: NodeID) => {
+  }, [send, waitForConnection, errorExecution]);
+  
+  const pauseNode = useCallback((nodeId: string) => {
     send({ type: 'pause_node', node_id: nodeId });
   }, [send]);
-
-  const resumeNode = useCallback((nodeId: NodeID) => {
+  
+  const resumeNode = useCallback((nodeId: string) => {
     send({ type: 'resume_node', node_id: nodeId });
   }, [send]);
-
-  const skipNode = useCallback((nodeId: NodeID) => {
+  
+  const skipNode = useCallback((nodeId: string) => {
     send({ type: 'skip_node', node_id: nodeId });
   }, [send]);
-
+  
   const abort = useCallback(() => {
     if (executionIdRef.current) {
-      send({
-        type: 'abort_execution',
-        execution_id: executionIdRef.current
-      });
+      send({ type: 'abort_execution', execution_id: executionIdRef.current });
+    } else if (execution.isRunning) {
+      // Fallback abort
+      errorExecution('Execution aborted');
+      executionActions.stopExecution();
     }
-    errorExecution('Execution aborted');
-    executionActions.reset();
-  }, [send, errorExecution, executionActions]);
-
-  const respondToPrompt = useCallback((nodeId: NodeID, response: string) => {
+  }, [send, errorExecution, executionActions, execution.isRunning]);
+  
+  const respondToPrompt = useCallback((response: string) => {
     send({
-      type: 'interactive_response',
-      node_id: nodeId,
+      type: 'interactive_prompt_response',
+      execution_id: executionIdRef.current,
       response
     });
     setInteractivePrompt(null);
   }, [send]);
-
-  // ========== Formatters ==========
-
+  
+  // ========== UI Helpers ==========
+  
   const formatTime = useCallback((startTime: Date | null, endTime: Date | null): string => {
-    return formatTimeInternal(startTime, endTime, formatDuration);
+    if (!startTime) return formatDuration ? '0s' : '-';
+    
+    const end = endTime || new Date();
+    const elapsed = Math.floor((end.getTime() - startTime.getTime()) / 1000);
+    
+    if (!formatDuration) return `${elapsed}s`;
+    
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
   }, [formatDuration]);
-
-  const formatTokens = useCallback((tokens: number): string => {
-    if (tokens < 1000) return `${tokens}`;
-    if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}k`;
-    return `${(tokens / 1000000).toFixed(2)}M`;
+  
+  const getNodeIcon = useCallback((nodeType: string): string => {
+    return NODE_ICONS[nodeType] || '📦';
   }, []);
-
-  const getNodeIcon = useCallback((status: NodeState['status']): string => {
-    const icons: Record<NodeState['status'], string> = {
-      pending: '⏳',
-      running: '🔄', 
-      completed: '✅',
-      skipped: '⏭️',
-      error: '❌',
-      paused: '⏸️'
-    };
-    return icons[status] || '❓';
+  
+  const getNodeColor = useCallback((nodeType: string): string => {
+    return NODE_COLORS[nodeType] || '#6b7280';
   }, []);
-
-  const getNodeColor = useCallback((status: NodeState['status']): string => {
-    const colors: Record<NodeState['status'], string> = {
-      pending: 'text-gray-500',
-      running: 'text-blue-500',
-      completed: 'text-green-500',
-      skipped: 'text-yellow-500',
-      error: 'text-red-500',
-      paused: 'text-orange-500'
-    };
-    return colors[status] || 'text-gray-400';
-  }, []);
-
-  // Cleanup
+  
+  // ========== Effects ==========
+  
+  // Auto-connect on mount if requested
+  useEffect(() => {
+    if (autoConnect && !isConnected && !isReconnecting) {
+      connect();
+    }
+  }, [autoConnect, isConnected, isReconnecting, connect]);
+  
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (durationInterval.current) {
@@ -631,91 +596,89 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }
     };
   }, []);
-
-  // Create stable selector for store state
-  const storeStateSelector = React.useMemo(() => createStoreStateSelector(), []);
   
-  // Get store state for selectors
-  const storeState = useUnifiedStore(useShallow(storeStateSelector));
-
-  // Helper function to get node execution state
-  const getNodeExecutionState = useCallback((nodeId: NodeID) => {
-    const isRunning = storeState.runningNodes.has(nodeId);
-    const nodeState = storeState.nodeStates.get(nodeId);
-    const isSkipped = nodeState?.status === 'skipped';
+  // Track current node name for UI
+  const currentNodeName = React.useMemo(() => {
+    if (!execution.currentNode) return null;
+    const node = canvasNodes.find(n => n.id === execution.currentNode);
+    return node?.data?.label || execution.currentNode;
+  }, [execution.currentNode, canvasNodes]);
+  
+  // Update progress
+  useEffect(() => {
+    if (currentNodeName) {
+      const node = canvasNodes.find(n => n.id === execution.currentNode);
+      const nodeType = node?.type as NodeKind;
+      const nodeIcon = NODE_ICONS[nodeType] || '📦';
+      // Progress message with icon and name
+      if (showToasts) {
+        console.log(`${nodeIcon} Processing: ${currentNodeName}`);
+      }
+    }
     
-    return {
-      isRunning,
-      isCurrentRunning: isRunning,
-      nodeRunningState: isRunning,
-      isSkipped,
-      skipReason: nodeState?.error,
-    };
-  }, [storeState.runningNodes, storeState.nodeStates]);
-
-  // Computed values
-  const runningNodesArray = Array.from(storeState.runningNodes);
-  const currentRunningNode = runningNodesArray[0] || null;
-  const nodeRunningStates = Object.fromEntries(
-    Array.from(storeState.nodeStates.entries()).map(([id, state]) => [id, state.status === 'running'])
-  );
-  const skippedNodes = Object.fromEntries(
-    Array.from(storeState.nodeStates.entries())
-      .filter(([_, state]) => state.status === 'skipped')
-      .map(([id, state]) => [id, { reason: state.error || 'Skipped' }])
-  );
-
+    // Update progress
+    if (execution.totalNodes > 0) {
+      setProgress(Math.round(((execution.completedNodes + 1) / execution.totalNodes) * 100));
+    }
+  }, [currentNodeName, execution.completedNodes, execution.totalNodes, canvasNodes, showToasts]);
+  
+  // ========== Return ==========
+  
+  const getNodeExecutionState = useCallback((nodeId: string): NodeState | undefined => {
+    return nodeStates[nodeId];
+  }, [nodeStates]);
+  
+  const nodeRunningStates = React.useMemo(() => {
+    const states: Record<string, boolean> = {};
+    if (executionActions.runningNodes instanceof Set) {
+      executionActions.runningNodes.forEach((nodeId: NodeID) => {
+        states[nodeId] = true;
+      });
+    }
+    return states;
+  }, [executionActions.runningNodes]);
+  
   return {
-    // Connection state
-    isConnected,
-    isReconnecting,
-    
-    // Execution state
-    isRunning: execution.isRunning,
-    executionId: execution.executionId,
+    // State
     execution,
-    nodes: nodeStates,
-    
-    // Node-specific state
-    getNodeExecutionState,
-    
-    // Execution selectors
-    runContext: storeState.runContext,
-    runningNodes: runningNodesArray,
-    currentRunningNode,
-    nodeRunningStates,
-    skippedNodes,
-    
-    // UI state
+    nodeStates,
+    isRunning: execution.isRunning,
+    isReconnecting,
     progress,
     duration,
-    currentNodeName,
-    interactivePrompt,
     
-    // Main actions
+    // Execution Actions
     execute,
+    abort,
+    
+    // Node Actions
     pauseNode,
     resumeNode,
     skipNode,
-    abort,
+    
+    // Interactive Prompt
+    interactivePrompt,
     respondToPrompt,
     
-    // Execution actions
-    addRunningNode: executionActions.addRunningNode,
-    removeRunningNode: executionActions.removeRunningNode,
-    setCurrentRunningNode: executionActions.setCurrentRunningNode,
-    setRunContext: executionActions.setRunContext,
-    addSkippedNode: executionActions.addSkippedNode,
-    reset: executionActions.reset,
-    
-    // Connection actions
-    connect,
+    // Connection
+    isConnected,
+    connect: async () => connect(),
     disconnect,
     
-    // UI helpers
+    // UI Helpers
     formatTime,
-    formatTokens,
     getNodeIcon,
-    getNodeColor
+    getNodeColor,
+    getNodeExecutionState,
+    
+    // Store integration
+    currentRunningNode: currentRunningNodeRef.current,
+    nodeRunningStates,
+    runContext: runContextRef.current,
+    skippedNodes: skippedNodesRef.current,
+    
+    // Additional properties for compatibility
+    runningNodes: executionActions.runningNodes,
+    nodes: canvasNodes,
   };
 }

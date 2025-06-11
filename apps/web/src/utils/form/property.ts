@@ -4,49 +4,46 @@
  */
 
 import type { ValidationResult } from '@/types';
+import { createHandlerTable } from '../dispatchTable';
+
+// Create dispatch tables for property formatting and parsing
+const formatHandlers = createHandlerTable<string, [unknown], string>({
+  'boolean': (value) => value ? 'true' : 'false',
+  'number': (value) => Number(value).toString(),
+  'array': (value) => Array.isArray(value) ? value.join(', ') : '',
+  'object': (value) => typeof value === 'object' ? JSON.stringify(value, null, 2) : ''
+}, (value) => String(value)); // Default handler
+
+const parseHandlers = createHandlerTable<string, [string], unknown>({
+  'boolean': (value) => value.toLowerCase() === 'true',
+  'number': (value) => {
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+  },
+  'array': (value) => value.split(',').map(item => item.trim()).filter(Boolean),
+  'object': (value) => {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+}, (value) => value); // Default handler
 
 export const formatPropertyValue = (value: unknown, type: string): string => {
   if (value === null || value === undefined) {
     return '';
   }
-
-  switch (type) {
-    case 'boolean':
-      return value ? 'true' : 'false';
-    case 'number':
-      return Number(value).toString();
-    case 'array':
-      return Array.isArray(value) ? value.join(', ') : '';
-    case 'object':
-      return typeof value === 'object' ? JSON.stringify(value, null, 2) : '';
-    default:
-      return String(value);
-  }
+  
+  return formatHandlers.executeOrDefault(type, value);
 };
 
 export const parsePropertyValue = (value: string, type: string): unknown => {
   if (!value) {
     return type === 'boolean' ? false : type === 'number' ? 0 : '';
   }
-
-  switch (type) {
-    case 'boolean':
-      return value.toLowerCase() === 'true';
-    case 'number': {
-      const num = Number(value);
-      return isNaN(num) ? 0 : num;
-    }
-    case 'array':
-      return value.split(',').map(item => item.trim()).filter(Boolean);
-    case 'object':
-      try {
-        return JSON.parse(value);
-      } catch {
-        return {};
-      }
-    default:
-      return value;
-  }
+  
+  return parseHandlers.executeOrDefault(type, value);
 };
 
 export const getPropertyDisplayName = (key: string): string => {

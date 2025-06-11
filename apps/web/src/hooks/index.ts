@@ -32,4 +32,11 @@ export * from './usePropertyManager';
 // useApiKeys is exported from useStoreSelectors
 export * from './useConversationData';
 
+// Entity operation hooks (using factory pattern)
+export * from './useApiKeyOperations';
+export * from './usePersonOperations';
+
+// Hook factories
+export * from './factories';
+
 

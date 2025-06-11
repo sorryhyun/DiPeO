@@ -13,7 +13,8 @@ import type { Node } from '@xyflow/react';
 const PropertiesPanel = React.lazy(() => import('@/components/properties/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
 import type { UniversalData } from '@/components/properties/PropertiesPanel';
 
-export const DraggableBlock = ({ type, label }: { type: string; label: string }) => {
+// Memoized draggable block component
+export const DraggableBlock = React.memo<{ type: string; label: string }>(({ type, label }) => {
   const { onNodeDragStart } = useCanvasOperations();
 
   // Extract emoji from label (assuming it's the first character(s))
@@ -30,13 +31,42 @@ export const DraggableBlock = ({ type, label }: { type: string; label: string })
       <div className="text-sm font-medium text-gray-700 leading-tight">{text}</div>
     </div>
   );
-};
+});
+
+DraggableBlock.displayName = 'DraggableBlock';
 
 interface SidebarProps {
   position: 'left' | 'right';
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ position }) => {
+// Memoized person item component
+const PersonItem = React.memo<{
+  person: { id: string; label: string };
+  isSelected: boolean;
+  onClick: (id: string) => void;
+}>(({ person, isSelected, onClick }) => {
+  return (
+    <div
+      className={`p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
+        isSelected
+          ? 'bg-blue-100 border border-blue-300 shadow-sm'
+          : 'bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-gray-300'
+      }`}
+      onClick={() => onClick(person.id)}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-base">🤖</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-xs truncate">{person.label}</p>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+PersonItem.displayName = 'PersonItem';
+
+const Sidebar = React.memo<SidebarProps>(({ position }) => {
   const canvas = useCanvasOperations();
   const { 
     nodes, 
@@ -172,22 +202,12 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
                 const person = getPersonById(personId);
                 if (!person) return null;
                 return (
-                  <div
+                  <PersonItem
                     key={person.id}
-                    className={`p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
-                      selectedPersonId === person.id
-                        ? 'bg-blue-100 border border-blue-300 shadow-sm'
-                        : 'bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handlePersonClick(person.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">🤖</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-xs truncate">{person.label}</p>
-                      </div>
-                    </div>
-                  </div>
+                    person={person}
+                    isSelected={selectedPersonId === person.id}
+                    onClick={handlePersonClick}
+                  />
                 );
               })}
             </div>
@@ -255,6 +275,8 @@ const Sidebar: React.FC<SidebarProps> = ({ position }) => {
       <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
     </aside>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

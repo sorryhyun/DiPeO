@@ -287,7 +287,7 @@ export class Yaml {
       
       persons.push({
         id: personId(`person-${generateShortId()}`),  // Generate fresh ID
-        label: label,  // Use the key as label
+        label,  // Use the key as label
         model: person.model,
         service: (person.service || 'openai') as DomainPerson['service'],
         systemPrompt: person.system

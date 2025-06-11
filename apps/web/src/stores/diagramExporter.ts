@@ -210,8 +210,8 @@ export class DiagramExporter {
     return nodes.map(node => {
       const label = this.nodeIdToLabel.get(node.id) || node.id;
 
-      // Prepare data without internal properties
-      const { label: _, ...dataWithoutLabel } = node.data;
+      // Prepare data without internal properties and React Flow handles
+      const { label: _, inputs: __, outputs: ___, ...dataWithoutLabel } = node.data;
 
       // Replace person ID with label if exists
       const data = { ...dataWithoutLabel };
@@ -489,11 +489,44 @@ export class DiagramExporter {
       const targetHandleId = handleId(targetNodeId!, target.handleName);
 
       // Verify handles exist
-      const sourceHandle = this.store.handles.get(sourceHandleId);
-      const targetHandle = this.store.handles.get(targetHandleId);
+      let sourceHandle = this.store.handles.get(sourceHandleId);
+      let targetHandle = this.store.handles.get(targetHandleId);
+      
+      // Handle backward compatibility for handle names
+      if (!sourceHandle && sourceNodeId) {
+        const node = this.store.nodes.get(sourceNodeId);
+        if (node?.type === 'start' && source.handleName === 'output') {
+          // Start nodes use 'default' handle name in the registry
+          const defaultHandleId = handleId(sourceNodeId, 'default');
+          sourceHandle = this.store.handles.get(defaultHandleId);
+          if (sourceHandle) {
+            console.log(`Mapped start node handle: ${sourceHandleId} -> ${defaultHandleId}`);
+          }
+        }
+      }
+      
+      // Handle other common handle name mappings
+      if (!targetHandle && targetNodeId) {
+        if (target.handleName === 'input') {
+          // Try common input handle names
+          const handleNames = ['default', 'first', 'input'];
+          for (const name of handleNames) {
+            const mappedHandleId = handleId(targetNodeId, name);
+            targetHandle = this.store.handles.get(mappedHandleId);
+            if (targetHandle) {
+              console.log(`Mapped target handle: ${targetHandleId} -> ${mappedHandleId}`);
+              break;
+            }
+          }
+        }
+      }
       
       if (!sourceHandle || !targetHandle) {
         console.warn(`Cannot find handles for arrow: ${sourceHandleId} -> ${targetHandleId}`);
+        console.warn(`Available handles for source node ${sourceNodeId}:`, 
+          Array.from(this.store.handles.keys()).filter(id => id.startsWith(`${sourceNodeId}::`)));
+        console.warn(`Available handles for target node ${targetNodeId}:`, 
+          Array.from(this.store.handles.keys()).filter(id => id.startsWith(`${targetNodeId}::`)));
         return;
       }
 

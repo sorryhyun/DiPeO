@@ -182,16 +182,11 @@ const TopBar = () => {
             onClick={() => {
               if (activeCanvas === 'execution') {
                 setActiveCanvas('main');
-                // Exit read-only mode when leaving execution mode
-                setReadOnly?.(false);
-                // Also exit monitor mode when leaving execution mode
-                setIsMonitorMode(false);
+                // When leaving execution mode, readOnly remains controlled by monitor mode
               } else {
                 setActiveCanvas('execution');
-                // Set the diagram to read-only when entering execution mode
-                setReadOnly?.(true);
-                // Also activate monitor mode when entering execution mode
-                setIsMonitorMode(true);
+                // Execution mode has its own read-only state (executionReadOnly)
+                // Monitor mode (readOnly) remains independent
               }
             }}
             title={activeCanvas === 'execution' ? 'Back to Diagram Canvas' : 'Enter Execution Mode'}

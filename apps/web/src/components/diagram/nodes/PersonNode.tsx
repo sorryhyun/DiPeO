@@ -1,23 +1,26 @@
 // Component for Person nodes (LLM instances)
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Position, NodeProps } from '@xyflow/react';
 import { DomainPerson, nodeId as createNodeId } from '@/types';
 import { User } from 'lucide-react';
 import { FlowHandle } from '../controls/FlowHandle';
 
-const PersonClass: React.FC<NodeProps> = ({ data, selected, id }) => {
+const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => {
   const [isDragging, setIsDragging] = React.useState(false);
   
-  const handleDragStart = (e: React.DragEvent) => {
+  // Cast data once to avoid repeated casting
+  const personData = data as unknown as DomainPerson;
+  const nodeIdTyped = createNodeId(id);
+  
+  const handleDragStart = useCallback((e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'copy';
-    const personData = data as unknown as DomainPerson;
     e.dataTransfer.setData('application/person', personData.id || id);
     setIsDragging(true);
-  };
+  }, [personData.id, id]);
   
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
   
   return (
     <div 
@@ -32,7 +35,7 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id }) => {
       <FlowHandle
         type="output"
         position={Position.Right}
-        nodeId={createNodeId(id)}
+        nodeId={nodeIdTyped}
         name="context"
         color="#16a34a"
       />
@@ -40,7 +43,7 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id }) => {
       <FlowHandle
         type="output"
         position={Position.Left}
-        nodeId={createNodeId(id)}
+        nodeId={nodeIdTyped}
         name="memory-tool"
         offset={25}
         color="#2563eb"
@@ -49,19 +52,33 @@ const PersonClass: React.FC<NodeProps> = ({ data, selected, id }) => {
       <FlowHandle
         type="output"
         position={Position.Left}
-        nodeId={createNodeId(id)}
+        nodeId={nodeIdTyped}
         name="api-tool"
         offset={75}
         color="#2563eb"
       />
       <div className="flex items-center space-x-2 mb-1">
         <User className="h-5 w-5 text-green-600 flex-shrink-0" />
-        <strong className="text-sm truncate" title={(data as unknown as DomainPerson).label || 'Person'}>
-          {(data as unknown as DomainPerson).label || 'Person'}
+        <strong className="text-sm truncate" title={personData.label || 'Person'}>
+          {personData.label || 'Person'}
         </strong>
       </div>
-      <p className="text-xs text-gray-500 truncate">Model: {(data as unknown as DomainPerson).model || 'Not set'}</p>
+      <p className="text-xs text-gray-500 truncate">Model: {personData.model || 'Not set'}</p>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  const prevData = prevProps.data as unknown as DomainPerson;
+  const nextData = nextProps.data as unknown as DomainPerson;
+  
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.selected === nextProps.selected &&
+    prevData.label === nextData.label &&
+    prevData.model === nextData.model
+  );
+});
+
+PersonClass.displayName = 'PersonNode';
+
 export default PersonClass;

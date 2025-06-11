@@ -10,7 +10,8 @@ import {
     generateArrowId,
     generateNodeId,
     generatePersonId, type NodeID, type NodeKind, type PersonID, type Vec2,
-    connectsToNode
+    connectsToNode,
+    apiKeyId
 } from "@/types";
 import {generateNodeHandlesFromRegistry} from "@/utils";
 import {UnifiedStore, Snapshot, ExportFormat} from "./unifiedStore.types";
@@ -74,6 +75,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
         activeCanvas: 'main',
         dashboardTab: 'properties',
         readOnly: false,
+        executionReadOnly: false,
         showApiKeysModal: false,
         showExecutionModal: false,
 
@@ -415,6 +417,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
             state.execution.nodeStates.clear();
             state.execution.context = {};
             state.activeView = 'execution';
+            state.executionReadOnly = true; // Set execution-specific read-only
           }),
 
         updateNodeExecution: (nodeId, nodeState) =>
@@ -432,6 +435,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
           set((state) => {
             state.execution.isRunning = false;
             state.execution.runningNodes.clear();
+            state.executionReadOnly = false; // Clear execution-specific read-only
           }),
 
         // History operations
@@ -603,16 +607,15 @@ export const useUnifiedStore = create<UnifiedStore>()(
                 return personId;
               },
               addApiKey: (name: string, service: string) => {
-                const apiKeyId = entityIdGenerators.apiKey();
+                const rawId = entityIdGenerators.apiKey();
+                const id = apiKeyId(rawId);
                 const apiKey: DomainApiKey = {
-                  id: apiKeyId,
+                  id,
                   name,
-                  service: service as any, // LLMService type
-                  value: '',
-                  isActive: true
+                  service: service as any, // ApiService type
                 };
-                tempApiKeys.set(apiKeyId, apiKey);
-                return apiKeyId;
+                tempApiKeys.set(id, apiKey);
+                return id;
               },
               updateNode: (id: NodeID, updates: Partial<DomainNode>) => {
                 const node = tempNodes.get(id);

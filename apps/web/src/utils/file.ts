@@ -6,6 +6,7 @@
 import { toast } from 'react-hot-toast';
 import type { DomainDiagram } from '@/types';
 import { getApiUrl, API_ENDPOINTS } from './api/config';
+import { createLookupTable } from './dispatchTable';
 
 export type FileFormat = 'json' | 'yaml' | 'llm-yaml';
 
@@ -185,35 +186,31 @@ export const detectFileFormat = (content: string, filename?: string): FileFormat
   return { format: 'json', isLLMFormat: false };
 };
 
+// Create lookup tables for file format mappings
+const mimeTypeLookup = createLookupTable<FileFormat, string>({
+  'json': 'application/json',
+  'yaml': 'text/yaml',
+  'llm-yaml': 'text/yaml'
+});
+
+const fileExtensionLookup = createLookupTable<FileFormat, string>({
+  'json': '.json',
+  'yaml': '.yaml',
+  'llm-yaml': '.llm-yaml'
+});
+
 /**
  * Get MIME type for format
  */
 export const getMimeType = (format: FileFormat): string => {
-  switch (format) {
-    case 'json':
-      return 'application/json';
-    case 'yaml':
-    case 'llm-yaml':
-      return 'text/yaml';
-    default:
-      return 'text/plain';
-  }
+  return mimeTypeLookup(format) || 'text/plain';
 };
 
 /**
  * Get file extension for format
  */
 export const getFileExtension = (format: FileFormat): string => {
-  switch (format) {
-    case 'json':
-      return '.json';
-    case 'yaml':
-      return '.yaml';
-    case 'llm-yaml':
-      return '.llm-yaml';
-    default:
-      return '.txt';
-  }
+  return fileExtensionLookup(format) || '.txt';
 };
 
 /**
