@@ -243,19 +243,20 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   // =====================
 
   const isNodeRunning = (nodeId: NodeID): boolean => {
-    return realtime.runningNodes.includes(nodeId);
+    return realtime.runningNodes.has(nodeId);
   };
 
   const isNodeSkipped = (nodeId: NodeID): boolean => {
-    return Boolean(realtime.skippedNodes[nodeId]);
+    return realtime.skippedNodes.some(skipped => skipped.nodeId === nodeId);
   };
 
   const getNodeExecutionState = (nodeId: NodeID) => {
+    const skippedNode = realtime.skippedNodes.find(skipped => skipped.nodeId === nodeId);
     return {
-      isRunning: realtime.runningNodes.includes(nodeId),
+      isRunning: realtime.runningNodes.has(nodeId),
       isCurrentlyRunning: realtime.currentRunningNode === nodeId,
-      isSkipped: Boolean(realtime.skippedNodes[nodeId]),
-      skipReason: realtime.skippedNodes[nodeId]?.reason,
+      isSkipped: Boolean(skippedNode),
+      skipReason: skippedNode?.reason,
       runningState: realtime.nodeRunningStates[nodeId] || false
     };
   };

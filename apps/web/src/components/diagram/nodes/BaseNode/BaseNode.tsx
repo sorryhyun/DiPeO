@@ -21,8 +21,8 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { nodes: nodeStates } = useExecution();
-  const nodeState = nodeStates?.[nodeId];
+  const { getNodeExecutionState } = useExecution();
+  const nodeState = getNodeExecutionState(nodeId);
   
   return useMemo(() => ({
     isRunning: nodeState?.status === 'running',

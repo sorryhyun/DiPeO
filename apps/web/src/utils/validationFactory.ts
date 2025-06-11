@@ -249,7 +249,7 @@ export function createAsyncValidator<T>(
     } catch (err) {
       return {
         isValid: false,
-        errors: ['Validation failed: ' + (err instanceof Error ? err.message : 'Unknown error')]
+        errors: [`Validation failed: ${  err instanceof Error ? err.message : 'Unknown error'}`]
       };
     }
   };

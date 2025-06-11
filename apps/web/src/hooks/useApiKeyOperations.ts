@@ -6,8 +6,7 @@
  */
 
 import { createStoreOperationHook } from './factories';
-import type { DomainApiKey, ApiService } from '@/types';
-import { apiKeyId } from '@/types';
+import { apiKeyId, type DomainApiKey, type ApiService } from '@/types';
 
 // Create the hook using our factory
 export const useApiKeyOperations = createStoreOperationHook<DomainApiKey, [string, ApiService]>({
