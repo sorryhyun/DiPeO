@@ -304,7 +304,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
             // Update immediately during dragging for visual feedback
             if (change.dragging) {
               // Direct update without history for dragging
-              storeState.updateNode(change.id as NodeID, { position: change.position });
+              storeState.updateNodeSilently(change.id as NodeID, { position: change.position });
             } else {
               // Batch updates when drag ends for history recording
               batchPositionUpdate(change.id as NodeID, change.position);

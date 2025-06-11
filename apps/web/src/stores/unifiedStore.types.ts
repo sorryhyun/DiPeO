@@ -139,6 +139,7 @@ export interface UnifiedStore {
   // Node operations
   addNode: (type: NodeKind, position: Vec2, initialData?: Record<string, unknown>) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
+  updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
   
   // Arrow operations
