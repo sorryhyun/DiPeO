@@ -150,7 +150,7 @@ export function useWebSocketEventBus(options?: UseWebSocketEventBusOptions): Use
       unsubscribesRef.current.forEach(unsubscribe => unsubscribe());
       unsubscribesRef.current.clear();
     };
-  }, [autoConnect, stableConnect]);
+  }, []); // Empty dependency array - only run on mount
 
   // Derive connection state string
   const getConnectionStateString = (): 'connecting' | 'connected' | 'disconnected' | 'reconnecting' => {

@@ -6,7 +6,7 @@ import { NodeID } from '@/types';
 export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   nodeId: NodeID;
   type: 'input' | 'output';
-  name: string;
+  label: string;
   position: Position;
   offset?: number;
   color?: string;
@@ -90,7 +90,7 @@ const LABEL_HANDLE_POS = {
 const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   nodeId: _nodeId,
   type,
-  name,
+  label,
   position,
   offset = 50,
   color,
@@ -128,12 +128,12 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
       <Handle
         type={rfType}
         position={position}
-        id={name}
+        id={label}
         style={handleStyle}
         className={className}
         {...props}
       />
-      <span style={labelStyle}>{name}</span>
+      <span style={labelStyle}>{label}</span>
     </>
   );
 };
@@ -143,7 +143,7 @@ export const FlowHandle = React.memo(FlowHandleComponent, (prevProps, nextProps)
   // Compare only the props that affect rendering
   return (
     prevProps.nodeId === nextProps.nodeId &&
-    prevProps.name === nextProps.name &&
+    prevProps.label === nextProps.label &&
     prevProps.type === nextProps.type &&
     prevProps.position === nextProps.position &&
     prevProps.offset === nextProps.offset &&

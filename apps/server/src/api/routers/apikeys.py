@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
 
 
 class CreateAPIKeyRequest(BaseModel):
-    name: str
+    label: str
     service: str  # "openai", "claude", "gemini", "grok"
     key: str
 
@@ -41,7 +41,7 @@ async def create_api_key(
 ):
     """Create a new API key."""
     created_key = api_key_service.create_api_key(
-        name=request.name,
+        label=request.label,
         service=request.service,
         key=request.key
     )

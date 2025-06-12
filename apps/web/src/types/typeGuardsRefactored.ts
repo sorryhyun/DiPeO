@@ -54,7 +54,7 @@ const HANDLE_DIRECTIONS: readonly HandleDirection[] = ['input', 'output'];
 export const isApiKey = createTypeGuard<DomainApiKey>({
   properties: [
     { key: 'id', type: 'string' },
-    { key: 'name', type: 'string' },
+    { key: 'label', type: 'string' },
     { key: 'service', type: 'string', enum: API_SERVICES }
   ]
 });

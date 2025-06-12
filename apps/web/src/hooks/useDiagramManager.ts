@@ -159,7 +159,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Get hooks
   const canvas = useCanvasOperations();
-  const execution = useExecution();
+  const execution = useExecution({ showToasts: false });
   const fileOps = useFileOperations();
   const exportHook = useExport();
   

@@ -44,7 +44,7 @@ export interface UseDiagramOptions {
  */
 export const useDiagram = (options: UseDiagramOptions = {}) => {
   const {
-    autoConnect = true,
+    autoConnect = false, // Changed to false - connection should be managed at app level
     enableMonitoring = false,
     enableFileOperations = true,
     enableInteractions = true,
@@ -98,6 +98,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   const realtime = useExecution({
     autoConnect,
     enableMonitoring,
+    showToasts: false,
     debug
   });
   
@@ -386,6 +387,8 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
       // Drag and drop
       dragState: interactions.dragState,
       onNodeDragStart: interactions.onNodeDragStart,
+      onNodeDragStartCanvas: interactions.onNodeDragStartCanvas,
+      onNodeDragStopCanvas: interactions.onNodeDragStopCanvas,
       onPersonDragStart: interactions.onPersonDragStart,
       onDragOver: interactions.onDragOver,
       onNodeDrop: interactions.onNodeDrop,

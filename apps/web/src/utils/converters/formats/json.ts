@@ -206,6 +206,7 @@ export class JsonConverter extends ConverterCore<ExportFormat> {
     const base = super.convertNodeToBase(node);
     
     // Remove the label from data (it's already in the top-level label field)
+    // Note: inputs/outputs are already removed by the parent class
     const { label: _, ...dataWithoutLabel } = base.data;
     
     // Replace person ID with label if exists
@@ -291,7 +292,7 @@ export class JsonConverter extends ConverterCore<ExportFormat> {
   private importPersons(persons: ExportedPerson[], apiKeys: DomainApiKey[]): DomainPerson[] {
     const apiKeyLabelMap = new Map<string, ApiKeyID>();
     apiKeys.forEach(key => {
-      apiKeyLabelMap.set(key.name, key.id);
+      apiKeyLabelMap.set(key.label, key.id);
     });
 
     return persons.map(person => {
@@ -328,7 +329,7 @@ export class JsonConverter extends ConverterCore<ExportFormat> {
       
       return {
         id,
-        name: apiKey.label,
+        label: apiKey.label,
         service: apiKey.service as LLMService
       };
     });
@@ -351,16 +352,15 @@ export class JsonConverter extends ConverterCore<ExportFormat> {
         throw new Error(`Handle references unknown node: ${handle.nodeLabel}`);
       }
       
-      const id = createHandleId(nodeId, handle.name);
+      const id = createHandleId(nodeId, handle.label);
       
       return {
         id,
         nodeId,
-        name: handle.name,
+        label: handle.label,
         direction: handle.direction,
         dataType: handle.dataType,
         position: handle.position,
-        label: handle.label,
         maxConnections: handle.maxConnections
       };
     });

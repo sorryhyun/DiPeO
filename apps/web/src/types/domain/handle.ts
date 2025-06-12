@@ -7,12 +7,11 @@ export type HandleDirection = 'input' | 'output';
 export interface DomainHandle {
   id: HandleID;
   nodeId: NodeID;
-  name: string;
+  label: string;
   direction: HandleDirection;
   dataType: DataType;
   position?: HandlePosition;
   offset?: number;
-  label?: string;
   maxConnections?: number;
 }
 
@@ -46,15 +45,15 @@ export function areHandlesCompatible(
   return source.dataType === target.dataType;
 }
 
-export function createHandleId(nodeId: NodeID, handleName: string): HandleID {
-  return `${nodeId}:${handleName}` as HandleID;
+export function createHandleId(nodeId: NodeID, handleLabel: string): HandleID {
+  return `${nodeId}:${handleLabel}` as HandleID;
 }
 
-export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
-  const [nodeId, ...handleNameParts] = handleId.split(':');
+export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleLabel: string } {
+  const [nodeId, ...handleLabelParts] = handleId.split(':');
   return {
     nodeId: nodeId as NodeID,
-    handleName: handleNameParts.join(':')
+    handleLabel: handleLabelParts.join(':')
   };
 }
 
@@ -67,21 +66,21 @@ export function isValidNodeIdFormat(value: string): boolean {
 }
 
 /**
- * Sanitize a handle name to ensure it's valid
+ * Sanitize a handle label to ensure it's valid
  * - Replaces spaces with underscores
  * - Removes special characters except dashes and underscores
  * - Converts to lowercase for consistency
  * 
- * @param name - The raw handle name to sanitize
- * @returns A sanitized handle name that's safe to use
+ * @param label - The raw handle label to sanitize
+ * @returns A sanitized handle label that's safe to use
  * 
  * @example
- * sanitizeHandleName('My Handle') // 'my_handle'
- * sanitizeHandleName('Special!Chars#') // 'specialchars'
- * sanitizeHandleName('dash-and_underscore') // 'dash-and_underscore'
+ * sanitizeHandleLabel('My Handle') // 'my_handle'
+ * sanitizeHandleLabel('Special!Chars#') // 'specialchars'
+ * sanitizeHandleLabel('dash-and_underscore') // 'dash-and_underscore'
  */
-export function sanitizeHandleName(name: string): string {
-  return name
+export function sanitizeHandleLabel(label: string): string {
+  return label
     .toLowerCase()
     .replace(/\s+/g, '_')  // Replace spaces with underscores
     .replace(/[^a-z0-9_-]/g, '')  // Remove special chars except dash and underscore

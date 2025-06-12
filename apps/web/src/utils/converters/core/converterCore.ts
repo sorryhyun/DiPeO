@@ -51,11 +51,10 @@ export interface BaseExportedApiKey {
 
 export interface BaseExportedHandle {
   nodeLabel: string;
-  name: string;
+  label: string;
   direction: 'input' | 'output';
   dataType: DataType;
   position?: HandlePosition;
-  label?: string;
   maxConnections?: number;
 }
 
@@ -137,11 +136,14 @@ export abstract class ConverterCore<TExportFormat = unknown> {
     
     this.nodeIdToLabel.set(node.id, label);
     
+    // Create a copy of data without inputs/outputs properties
+    const { inputs, outputs, ...dataWithoutHandles } = node.data as any;
+    
     return {
       label,
       type: node.type,
       position: { ...node.position },
-      data: { ...node.data }
+      data: dataWithoutHandles
     };
   }
 
@@ -149,8 +151,8 @@ export abstract class ConverterCore<TExportFormat = unknown> {
    * Convert a domain arrow to base exported format
    */
   protected convertArrowToBase(arrow: DomainArrow, _nodes: DomainNode[]): BaseExportedArrow | null {
-    const { nodeId: sourceNodeId, handleName: sourceHandleName } = parseHandleId(arrow.source);
-    const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
+    const { nodeId: sourceNodeId, handleLabel: sourceHandleLabel } = parseHandleId(arrow.source);
+    const { nodeId: targetNodeId, handleLabel: targetHandleLabel } = parseHandleId(arrow.target);
     
     const sourceLabel = this.nodeIdToLabel.get(sourceNodeId);
     const targetLabel = this.nodeIdToLabel.get(targetNodeId);
@@ -162,9 +164,9 @@ export abstract class ConverterCore<TExportFormat = unknown> {
     
     return {
       sourceNode: sourceLabel,
-      sourceHandle: sourceHandleName,
+      sourceHandle: sourceHandleLabel,
       targetNode: targetLabel,
-      targetHandle: targetHandleName,
+      targetHandle: targetHandleLabel,
       ...(arrow.data && Object.keys(arrow.data).length > 0 && { data: arrow.data })
     };
   }
@@ -210,7 +212,7 @@ export abstract class ConverterCore<TExportFormat = unknown> {
    */
   protected convertApiKeyToBase(apiKey: DomainApiKey): BaseExportedApiKey {
     const label = this.ensureUniqueLabel(
-      apiKey.name || 'api_key',
+      apiKey.label || 'api_key',
       this.usedApiKeyLabels
     );
     
@@ -234,11 +236,10 @@ export abstract class ConverterCore<TExportFormat = unknown> {
     
     return {
       nodeLabel,
-      name: handle.name,
+      label: handle.label,
       direction: handle.direction,
       dataType: handle.dataType,
       ...(handle.position && { position: handle.position }),
-      ...(handle.label && { label: handle.label }),
       ...(handle.maxConnections !== undefined && { maxConnections: handle.maxConnections })
     };
   }

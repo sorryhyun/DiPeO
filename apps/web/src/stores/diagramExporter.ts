@@ -15,24 +15,24 @@ export class DiagramExporter {
   constructor(private store: UnifiedStore) {}
   
   // Parse handle reference - support both old "-" and new "::" separators
-  private parseHandleRef(handleRef: string): { nodeLabel: string; handleName: string } {
+  private parseHandleRef(handleRef: string): { nodeLabel: string; handleLabel: string } {
     if (handleRef.includes('::')) {
       const parts = handleRef.split('::');
       return {
         nodeLabel: parts[0] || '',
-        handleName: parts[1] || 'default'
+        handleLabel: parts[1] || 'default'
       };
     }
     const lastHyphenIndex = handleRef.lastIndexOf('-');
     if (lastHyphenIndex === -1) {
       return {
         nodeLabel: handleRef,
-        handleName: 'default'
+        handleLabel: 'default'
       };
     }
     const nodeLabel = handleRef.substring(0, lastHyphenIndex);
-    const handleName = handleRef.substring(lastHyphenIndex + 1) || 'default';
-    return { nodeLabel, handleName };
+    const handleLabel = handleRef.substring(lastHyphenIndex + 1) || 'default';
+    return { nodeLabel, handleLabel };
   }
 
   // Export operations
@@ -85,9 +85,9 @@ export class DiagramExporter {
           
           return {
             sourceNode: source.nodeLabel,
-            sourceHandle: source.handleName,
+            sourceHandle: source.handleLabel,
             targetNode: target.nodeLabel,
-            targetHandle: target.handleName,
+            targetHandle: target.handleLabel,
             data: arrow.data
           };
         }),
@@ -119,9 +119,9 @@ export class DiagramExporter {
           
           return {
             sourceNode: source.nodeLabel,
-            sourceHandle: source.handleName,
+            sourceHandle: source.handleLabel,
             targetNode: target.nodeLabel,
-            targetHandle: target.handleName,
+            targetHandle: target.handleLabel,
             data: arrow.data
           };
         }),
@@ -206,11 +206,10 @@ export class DiagramExporter {
   private convertHandleToStore(handle: JsonExportedHandle): ExportedHandle {
     const result: ExportedHandle = {
       nodeLabel: handle.nodeLabel,
-      name: handle.name,
+      label: handle.label,
       direction: handle.direction,
       dataType: handle.dataType as string,
       position: handle.position as string | undefined,
-      label: handle.label,
       maxConnections: handle.maxConnections
     };
     
@@ -231,14 +230,13 @@ export class DiagramExporter {
   private convertHandleToJson(handle: ExportedHandle): JsonExportedHandle {
     const result: JsonExportedHandle = {
       nodeLabel: handle.nodeLabel,
-      name: handle.name,
+      label: handle.label,
       direction: handle.direction,
       dataType: handle.dataType as DataType
     };
     
     // Add optional fields
     if (handle.position) result.position = handle.position as HandlePosition;
-    if (handle.label) result.label = handle.label;
     if (handle.maxConnections !== undefined) result.maxConnections = handle.maxConnections;
     
     return result;

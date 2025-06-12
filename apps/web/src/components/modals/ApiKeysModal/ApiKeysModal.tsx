@@ -20,12 +20,12 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const { apiKeys, addApiKey, deleteApiKey } = useUnifiedStore();
+  const { apiKeys, deleteApiKey } = useUnifiedStore();
   
   // Convert Map to array for display
   const apiKeysArray = Array.from(apiKeys.values());
   const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
-    name: '',
+    label: '',
     service: 'openai',
     key: '',
   });
@@ -48,8 +48,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const handleAddKey = async () => {
     setErrors({});
     
-    if (!newKeyForm.name?.trim()) {
-      setErrors({ name: 'Name is required' });
+    if (!newKeyForm.label?.trim()) {
+      setErrors({ label: 'Name is required' });
       return;
     }
     
@@ -64,7 +64,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newKeyForm.name.trim(),
+          label: newKeyForm.label.trim(),
           service: newKeyForm.service || 'claude',
           key: newKeyForm.key.trim()
         })
@@ -78,25 +78,28 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
 
       const result = await response.json();
       
-      // Add to local store with backend ID
+      // Directly add to store with backend ID - don't use addApiKey which generates its own ID
       const newKey: DomainApiKey = {
         id: apiKeyId(result.id),
-        name: result.name || newKeyForm.name.trim(),
+        label: result.label || newKeyForm.label.trim(),
         service: result.service || newKeyForm.service || 'claude',
         // key is optional - not stored in frontend for security
       };
 
-      // The unified store's addApiKey expects (name, service) and returns the ID
-      addApiKey(newKey.name, newKey.service as DomainApiKey['service']);
+      // Manually add to store with the backend's ID
+      const { apiKeys } = useUnifiedStore.getState();
+      const newApiKeys = new Map(apiKeys);
+      newApiKeys.set(newKey.id, newKey);
+      useUnifiedStore.setState({ apiKeys: newApiKeys });
       
       // Reset form
       setNewKeyForm({
-        name: '',
+        label: '',
         service: 'openai',
         key: '',
       });
       
-      toast.success(`API key "${newKey.name}" added successfully`);
+      toast.success(`API key "${newKey.label}" added successfully`);
     } catch {
       setErrors({ keyReference: 'Network error: Failed to create API key' });
     }
@@ -154,7 +157,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{key.name}</span>
+                      <span className="font-medium text-sm">{key.label}</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         ({API_SERVICES.find(s => s.value === key.service)?.label})
                       </span>
@@ -201,8 +204,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               </label>
               <Input
                 placeholder="e.g., Production Claude Key"
-                value={newKeyForm.name || ''}
-                onChange={(e) => setNewKeyForm({ ...newKeyForm, name: e.target.value })}
+                value={newKeyForm.label || ''}
+                onChange={(e) => setNewKeyForm({ ...newKeyForm, label: e.target.value })}
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
@@ -241,7 +244,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
             <Button
               onClick={handleAddKey}
               className="w-full"
-              disabled={!newKeyForm.name || !newKeyForm.key}
+              disabled={!newKeyForm.label || !newKeyForm.key}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add API Key

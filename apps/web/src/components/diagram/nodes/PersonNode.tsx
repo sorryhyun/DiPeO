@@ -36,7 +36,7 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
         type="output"
         position={Position.Right}
         nodeId={nodeIdTyped}
-        name="context"
+        label="context"
         color="#16a34a"
       />
       {/* Memory tool handle for connecting memory storage */}
@@ -44,7 +44,7 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
         type="output"
         position={Position.Left}
         nodeId={nodeIdTyped}
-        name="memory-tool"
+        label="memory-tool"
         offset={25}
         color="#2563eb"
       />
@@ -53,7 +53,7 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
         type="output"
         position={Position.Left}
         nodeId={nodeIdTyped}
-        name="api-tool"
+        label="api-tool"
         offset={75}
         color="#2563eb"
       />

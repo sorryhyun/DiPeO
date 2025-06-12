@@ -29,6 +29,7 @@ class WebSocketEventBus {
     reconnectAttempts: 0,
   };
   private debug = false;
+  private isInitialized = false;
 
   private constructor() {}
 
@@ -43,50 +44,69 @@ class WebSocketEventBus {
    * Initialize the WebSocket connection
    */
   connect(options?: { debug?: boolean }): void {
+    // If already connected, just return
     if (this.client?.isConnected()) {
       return;
     }
 
     this.debug = options?.debug || false;
-    this.client = getWebSocketClient({ debug: this.debug });
     
-    // Set up connection event handlers
-    this.client
-      .on('connected', () => {
-        this.updateConnectionState({
-          isConnected: true,
-          isReconnecting: false,
-          reconnectAttempts: 0,
+    // If client exists and already initialized, just reconnect
+    if (this.client && this.isInitialized) {
+      this.client.connect();
+      return;
+    }
+    
+    // Only create new client and setup handlers if not already initialized
+    if (!this.isInitialized) {
+      this.client = getWebSocketClient({ debug: this.debug });
+      
+      // Set up connection event handlers - only once
+      this.client
+        .on('connected', () => {
+          logger.debug('[EventBus] Connected event received');
+          if (!this.connectionState.isConnected) {
+            this.updateConnectionState({
+              isConnected: true,
+              isReconnecting: false,
+              reconnectAttempts: 0,
+            });
+            toast.success('Connected to server');
+          } else {
+            logger.debug('[EventBus] Already connected, skipping notification');
+          }
+        })
+        .on('disconnected', () => {
+          this.updateConnectionState({
+            isConnected: false,
+            isReconnecting: true,
+          });
+          toast.warning('Disconnected from server. Reconnecting...');
+        })
+        .on('reconnectFailed', () => {
+          this.updateConnectionState({
+            isConnected: false,
+            isReconnecting: false,
+          });
+          toast.error('Failed to reconnect to server');
+        })
+        .on('error', (event) => {
+          const error = new Error('WebSocket error');
+          this.updateConnectionState({
+            lastError: error,
+          });
+          logger.error('WebSocket error:', event);
+        })
+        .on('message', (event) => {
+          const message = (event as CustomEvent<WSMessage>).detail;
+          this.emit(message.type, message);
         });
-        toast.success('Connected to server');
-      })
-      .on('disconnected', () => {
-        this.updateConnectionState({
-          isConnected: false,
-          isReconnecting: true,
-        });
-        toast.warning('Disconnected from server. Reconnecting...');
-      })
-      .on('reconnectFailed', () => {
-        this.updateConnectionState({
-          isConnected: false,
-          isReconnecting: false,
-        });
-        toast.error('Failed to reconnect to server');
-      })
-      .on('error', (event) => {
-        const error = new Error('WebSocket error');
-        this.updateConnectionState({
-          lastError: error,
-        });
-        logger.error('WebSocket error:', event);
-      })
-      .on('message', (event) => {
-        const message = (event as CustomEvent<WSMessage>).detail;
-        this.emit(message.type, message);
-      });
-
-    this.client.connect();
+      
+      this.isInitialized = true;
+      
+      // Connect the newly initialized client
+      this.client.connect();
+    }
   }
 
   /**
@@ -95,6 +115,7 @@ class WebSocketEventBus {
   disconnect(): void {
     this.client?.disconnect();
     this.client = null;
+    this.isInitialized = false;
     this.updateConnectionState({
       isConnected: false,
       isReconnecting: false,
@@ -137,23 +158,30 @@ class WebSocketEventBus {
    * Subscribe to all events matching a pattern
    */
   onPattern(pattern: RegExp, callback: EventCallback): UnsubscribeFunction {
-    const patternCallback = (eventType: string, data: any) => {
+    // Store the pattern handler
+    const patternHandler = (data: any) => {
+      // Get the event type from the message
+      const eventType = data.type || '';
       if (pattern.test(eventType)) {
-        callback({ type: eventType, ...data });
+        callback(data);
       }
     };
-
-    // Subscribe to all future events
-    const originalEmit = this.emit.bind(this);
-    this.emit = (eventType: string, data: any) => {
-      patternCallback(eventType, data);
-      originalEmit(eventType, data);
-    };
+    
+    // Subscribe to a special pattern event that we'll emit for all events
+    if (!this.listeners.has('__all_events')) {
+      this.listeners.set('__all_events', new Set());
+    }
+    this.listeners.get('__all_events')!.add(patternHandler);
 
     // Return unsubscribe function
     return () => {
-      // Restore original emit
-      this.emit = originalEmit;
+      const allEventListeners = this.listeners.get('__all_events');
+      if (allEventListeners) {
+        allEventListeners.delete(patternHandler);
+        if (allEventListeners.size === 0) {
+          this.listeners.delete('__all_events');
+        }
+      }
     };
   }
 
@@ -179,6 +207,7 @@ class WebSocketEventBus {
       logger.debug(`[EventBus] Emit: ${eventType}`, data);
     }
 
+    // Emit to specific event listeners
     const callbacks = this.listeners.get(eventType);
     if (callbacks) {
       callbacks.forEach(callback => {
@@ -186,6 +215,18 @@ class WebSocketEventBus {
           callback(data);
         } catch (error) {
           logger.error(`Error in event handler for ${eventType}:`, error);
+        }
+      });
+    }
+
+    // Also emit to pattern listeners
+    const allEventListeners = this.listeners.get('__all_events');
+    if (allEventListeners) {
+      allEventListeners.forEach(callback => {
+        try {
+          callback({ type: eventType, ...data });
+        } catch (error) {
+          logger.error(`Error in pattern handler for ${eventType}:`, error);
         }
       });
     }

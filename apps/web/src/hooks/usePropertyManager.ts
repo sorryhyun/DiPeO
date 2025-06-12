@@ -262,7 +262,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const apiKeyOptions = useMemo(() => {
     return Array.from(apiKeys.values()).map((key: DomainApiKey) => ({
       value: key.id,
-      label: `${key.service}: ${key.name}`,
+      label: `${key.service}: ${key.label}`,
       service: key.service
     }));
   }, [apiKeys]);

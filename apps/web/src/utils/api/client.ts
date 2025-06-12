@@ -244,7 +244,7 @@ export const getApiKeyOptions = (): Array<{ value: string; label: string }> => {
   
   return apiKeys.map((apiKey: DomainApiKey) => ({
     value: apiKey.id,
-    label: `${apiKey.name} (${apiKey.service})`
+    label: `${apiKey.label} (${apiKey.service})`
   }));
 };
 

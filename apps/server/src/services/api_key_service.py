@@ -54,7 +54,7 @@ class APIKeyService(BaseService):
         if isinstance(info, dict):
             return {
                 "id": key_id,
-                "name": info.get("name", key_id),
+                "label": info.get("label", key_id),
                 "service": info.get("service", "unknown"),
                 "key": info.get("key", "")
             }
@@ -68,16 +68,16 @@ class APIKeyService(BaseService):
             if isinstance(info, dict) and "service" in info:
                 result.append({
                     "id": key_id,
-                    "name": info.get("name", key_id),  # Use key_id as fallback name
+                    "label": info.get("label", key_id),  # Use key_id as fallback name
                     "service": info["service"]
                 })
         return result
     
-    def create_api_key(self, name: str, service: str, key: str) -> dict:
+    def create_api_key(self, label: str, service: str, key: str) -> dict:
         """Create a new API key entry."""
         self.validate_required_fields(
-            {"name": name, "service": service, "key": key},
-            ["name", "service", "key"]
+            {"label": label, "service": service, "key": key},
+            ["label", "service", "key"]
         )
         
         self._validate_service(service)
@@ -86,7 +86,7 @@ class APIKeyService(BaseService):
         normalized_service = self.normalize_service_name(service)
         
         self._store[key_id] = {
-            "name": name,
+            "label": label,
             "service": normalized_service,
             "key": key
         }
@@ -95,7 +95,7 @@ class APIKeyService(BaseService):
         
         return {
             "id": key_id,
-            "name": name,
+            "label": label,
             "service": normalized_service
         }
     
@@ -107,7 +107,7 @@ class APIKeyService(BaseService):
         del self._store[key_id]
         self._save_store()
     
-    def update_api_key(self, key_id: str, name: Optional[str] = None, 
+    def update_api_key(self, key_id: str, label: Optional[str] = None,
                       service: Optional[str] = None, key: Optional[str] = None) -> dict:
         """Update an existing API key."""
         if key_id not in self._store:
@@ -115,8 +115,8 @@ class APIKeyService(BaseService):
         
         api_key_data = self._store[key_id].copy()
         
-        if name is not None:
-            api_key_data["name"] = name
+        if label is not None:
+            api_key_data["label"] = label
         if service is not None:
             self._validate_service(service)
             api_key_data["service"] = self.normalize_service_name(service)
@@ -128,6 +128,6 @@ class APIKeyService(BaseService):
         
         return {
             "id": key_id,
-            "name": api_key_data["name"],
+            "label": api_key_data["label"],
             "service": api_key_data["service"]
         }

@@ -290,7 +290,7 @@ export function BaseNode({
           key={handle.id}
           nodeId={nId}
           type={handle.type}
-          name={handle.name}
+          label={handle.name}
           position={handle.position}
           offset={handle.offset}
           color={handle.color}

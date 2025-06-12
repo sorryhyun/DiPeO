@@ -6,7 +6,7 @@ import { useDiagramManager } from '@/hooks/useDiagramManager';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse } from '@/types';
+import { isApiKey, parseApiArrayResponse, apiKeyId } from '@/types';
 
 
 const TopBar = () => {
@@ -39,27 +39,43 @@ const TopBar = () => {
     }
   };
   
-  // Load API keys on mount
+  // Load API keys on mount - backend is the single source of truth
   useEffect(() => {
     const loadApiKeys = async () => {
       try {
         const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
         if (response.ok) {
           const data = await response.json();
-          const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
+          console.log('[TopBar] Raw API keys data:', data);
           
-          // Add each API key to the store
-          const { addApiKey } = useUnifiedStore.getState();
+          // The backend returns an array directly, not wrapped in an object
+          const rawKeys = Array.isArray(data) ? data : (data.apiKeys || []);
+          console.log('[TopBar] Raw keys array:', rawKeys);
+          
+          const backendKeys = parseApiArrayResponse(rawKeys, isApiKey);
+          console.log('[TopBar] Parsed API keys:', backendKeys);
+          
+          // Clear existing keys and load fresh from backend
+          // This ensures backend file is the single source of truth
+          const newApiKeys = new Map();
+          
           backendKeys.forEach(key => {
-            addApiKey(key.name, key.service);
+            // Brand the ID properly
+            const brandedId = apiKeyId(key.id);
+            const brandedKey = { ...key, id: brandedId };
+            newApiKeys.set(brandedId, brandedKey);
           });
           
+          // Replace entire apiKeys state with backend data
+          useUnifiedStore.setState({ apiKeys: newApiKeys });
+          
+          console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
           if (backendKeys.length > 0) {
-            toast.success(`Loaded ${backendKeys.length} API keys from backend`);
+            toast.success(`Loaded ${backendKeys.length} API keys`);
           }
         }
       } catch (error) {
-        console.error('[Load API Keys]', error);
+        console.error('[TopBar] Load API Keys error:', error);
         toast.error(`Failed to load API keys: ${(error as Error).message}`);
       }
     };

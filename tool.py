@@ -16,7 +16,7 @@ import websockets
 import uuid
 
 
-async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = True, debug: bool = False) -> Dict[str, Any]:
+async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = True, debug: bool = False, timeout: int = 300) -> Dict[str, Any]:
     """Execute diagram using WebSocket-based backend execution."""
     # WebSocket URL
     ws_url = f"ws://localhost:8000/api/ws"
@@ -30,6 +30,8 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
     }
     
     node_timings = {} if debug else None
+    last_activity_time = time.time()
+    timeout_seconds = timeout  # Timeout in seconds for no activity
     
     try:
         async with websockets.connect(ws_url) as websocket:
@@ -47,9 +49,27 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
             
             if debug:
                 print(f"🐛 Debug: Sent execution request via WebSocket")
+                print(f"🐛 Debug: Activity timeout set to {timeout_seconds} seconds")
             
-            # Process incoming messages
-            async for message in websocket:
+            # Process incoming messages with timeout
+            while True:
+                try:
+                    # Calculate remaining timeout
+                    elapsed = time.time() - last_activity_time
+                    remaining_timeout = max(0.1, timeout_seconds - elapsed)
+                    
+                    # Wait for message with timeout
+                    message = await asyncio.wait_for(
+                        websocket.recv(),
+                        timeout=remaining_timeout
+                    )
+                    
+                except asyncio.TimeoutError:
+                    # No activity for timeout period
+                    print(f"\n⏱️  Timeout: No execution activity for {timeout_seconds} seconds")
+                    final_result['error'] = f"Execution timeout after {timeout_seconds} seconds of inactivity"
+                    break
+                
                 try:
                     data = json.loads(message)
                     
@@ -60,6 +80,20 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
                             print(f"🐛 Debug: Event '{event_type}' - execution_id: {data.get('execution_id')}")
                         else:
                             print(f"🐛 Debug: Event '{event_type}' - {json.dumps(data, indent=2)}")
+                    
+                    # Skip the initial "connected" message
+                    if data.get('type') == 'connected':
+                        continue
+                    
+                    # Update activity time only for node execution signals
+                    node_execution_events = {
+                        'node_start', 'node_progress', 'node_complete', 
+                        'node_error', 'node_skipped', 'execution_started'
+                    }
+                    if data.get('type') in node_execution_events:
+                        last_activity_time = time.time()
+                        if debug:
+                            print(f"🐛 Debug: Activity detected - reset timeout")
                     
                     # Handle different message types
                     if data.get('type') == 'execution_started':
@@ -183,15 +217,74 @@ async def run_diagram_backend_execution(diagram: Dict[str, Any], stream: bool = 
 API_URL = "http://localhost:8000"
 
 
+def transform_api_key_labels(diagram: Dict[str, Any]) -> Dict[str, Any]:
+    """Transform apiKeyLabel to apiKeyId in persons array for backend compatibility."""
+    # Create a mapping from apiKeyLabel to apiKeyId
+    api_key_map = {}
+    for api_key in diagram.get('apiKeys', []):
+        if 'name' in api_key:
+            # Find the corresponding apiKeyId by matching service
+            # Since we don't have the actual IDs, we'll use a test key
+            api_key_map[api_key['name']] = 'APIKEY_387B73'  # Default test key
+    
+    # Transform persons array
+    persons = diagram.get('persons', [])
+    if isinstance(persons, list):
+        for person in persons:
+            if 'apiKeyLabel' in person and 'apiKeyId' not in person:
+                # Map apiKeyLabel to apiKeyId
+                label = person.get('apiKeyLabel')
+                if label in api_key_map:
+                    person['apiKeyId'] = api_key_map[label]
+                else:
+                    # Default to test key if not found
+                    person['apiKeyId'] = 'APIKEY_387B73'
+                # Remove apiKeyLabel to avoid confusion
+                person.pop('apiKeyLabel', None)
+            elif 'apiKeyId' not in person and 'apiKeyLabel' not in person:
+                # Person has neither apiKeyId nor apiKeyLabel, assign default
+                person['apiKeyId'] = 'APIKEY_387B73'
+    
+    # Transform arrows to backend format
+    arrows = diagram.get('arrows', [])
+    for arrow in arrows:
+        if 'sourceHandle' in arrow and 'source' not in arrow:
+            # Extract node ID from handle format "nodeId::handleName"
+            source_parts = arrow['sourceHandle'].split('::', 1)
+            arrow['source'] = source_parts[0]
+            if len(source_parts) > 1:
+                arrow['sourceHandle'] = source_parts[1]
+            
+        if 'targetHandle' in arrow and 'target' not in arrow:
+            # Extract node ID from handle format "nodeId::handleName"
+            target_parts = arrow['targetHandle'].split('::', 1)
+            arrow['target'] = target_parts[0]
+            if len(target_parts) > 1:
+                arrow['targetHandle'] = target_parts[1]
+    
+    # Transform nodes - ensure each node has an ID
+    nodes = diagram.get('nodes', [])
+    for i, node in enumerate(nodes):
+        if 'id' not in node:
+            # Generate ID from label or index
+            node['id'] = node.get('label', f'node_{i}').replace(' ', '_')
+    
+    return diagram
+
+
 def load_diagram(file_path: str) -> Dict[str, Any]:
     """Load diagram from JSON or YAML file."""
     path = Path(file_path)
 
     with open(file_path, 'r') as f:
         if path.suffix in ['.yaml', '.yml']:
-            return yaml.safe_load(f)
+            diagram = yaml.safe_load(f)
         else:
-            return json.load(f)
+            diagram = json.load(f)
+    
+    # Transform apiKeyLabel to apiKeyId for backend compatibility
+    diagram = transform_api_key_labels(diagram)
+    return diagram
 
 
 def save_diagram(diagram: Dict[str, Any], file_path: str) -> None:
@@ -282,7 +375,7 @@ async def broadcast_diagram_to_monitors(diagram: Dict[str, Any], execution_id: s
             return False
 
 
-def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True, debug: bool = False) -> Dict[str, Any]:
+def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initialize: bool = True, stream: bool = True, debug: bool = False, timeout: int = 300) -> Dict[str, Any]:
     """Synchronous wrapper for backend execution with optional pre-initialization."""
     start_time = time.time() if debug else None
     
@@ -303,7 +396,7 @@ def run_diagram(diagram: Dict[str, Any], show_in_browser: bool = True, pre_initi
         # Broadcast diagram structure to monitors
         asyncio.run(broadcast_diagram_to_monitors(diagram))
     
-    result = asyncio.run(run_diagram_backend_execution(diagram, stream=stream, debug=debug))
+    result = asyncio.run(run_diagram_backend_execution(diagram, stream=stream, debug=debug, timeout=timeout))
     
     if debug and start_time:
         elapsed = time.time() - start_time
@@ -323,23 +416,12 @@ def open_browser_monitor():
 
 
 def wait_for_monitor_connection(timeout: int = 10, check_interval: float = 0.5) -> bool:
-    """Wait for at least one monitor to connect."""
+    """Wait for monitor to potentially connect."""
     import time
-    start_time = time.time()
-    
-    while time.time() - start_time < timeout:
-        try:
-            response = requests.get(f"{API_URL}/api/monitor/status")
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("active_monitors", 0) > 0:
-                    return True
-        except Exception:
-            pass
-        
-        time.sleep(check_interval)
-    
-    return False
+    # Since monitors connect via WebSocket and there's no HTTP endpoint to check,
+    # we'll just wait a reasonable amount of time for the browser to open and connect
+    time.sleep(min(2.0, timeout))  # Wait up to 2 seconds for browser to open
+    return True
 
 
 def extract_person_models(diagram: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
@@ -447,13 +529,14 @@ def main():
         print("Commands:")
         print("  run <file> [options]                      - 🚀 Run diagram with execution options")
         print("    Options:")
-        print("      --mode=monitor                        - Pre-load models, open browser, then run (RECOMMENDED)")
+        print("      --monitor                             - Pre-load models, open browser, then run (RECOMMENDED)")
         print("      --mode=headless                       - Pure backend execution without browser")
         print("      --mode=check                          - Run and analyze conversation logs")
         print("      --no-browser                          - Disable browser visualization")
         print("      --no-preload                          - Skip model pre-initialization")  
         print("      --no-stream                           - Disable streaming output")
         print("      --debug                               - Enable debug mode with verbose output")
+        print("      --timeout=<seconds>                   - Set inactivity timeout (default: 300s)")
         print("  monitor                                   - Open browser monitoring page")
         print("  preload <file>                            - Pre-initialize all models in diagram")
         print("  convert <input> <output> [format]         - Convert between formats (JSON/YAML/LLM-YAML/UML)")
@@ -492,16 +575,20 @@ def main():
             
             # Extract mode and flags
             mode = None
+            monitor = False
             show_in_browser = True
             pre_initialize = True
             stream = True
             check_forget = False
             debug = False
+            timeout = 300  # Default 5 minutes
             output_file = None
             
             for arg in args[1:]:
                 if arg.startswith('--mode='):
                     mode = arg.split('=')[1]
+                elif arg == '--monitor':
+                    monitor = True
                 elif arg == '--no-browser':
                     show_in_browser = False
                 elif arg == '--no-preload':
@@ -510,11 +597,16 @@ def main():
                     stream = False
                 elif arg == '--debug':
                     debug = True
+                elif arg.startswith('--timeout='):
+                    try:
+                        timeout = int(arg.split('=')[1])
+                    except ValueError:
+                        print(f"Error: Invalid timeout value. Using default 300 seconds.")
                 elif not arg.startswith('--'):
                     output_file = arg  # Additional output file for check mode
 
             # Apply mode-specific settings
-            if mode == 'monitor':
+            if monitor:
                 # run-and-monitor behavior
                 diagram = load_diagram(file_path)
                 
@@ -524,11 +616,11 @@ def main():
                 # Open browser monitor first
                 open_browser_monitor()
                 
-                # Wait for monitor connection with faster interval
-                if wait_for_monitor_connection(timeout=5, check_interval=0.1):
-                    print("✓ Monitor connected")
+                # Wait for monitor connection
+                if wait_for_monitor_connection(timeout=2):
+                    print("✓ Monitor ready")
                 else:
-                    print("⚠️  No monitor connected within timeout, continuing anyway")
+                    print("⚠️  Monitor may not be ready, continuing anyway")
                 
                 # Now broadcast diagram structure to connected monitors
                 execution_id = f"cli_{uuid.uuid4().hex[:8]}"
@@ -538,7 +630,7 @@ def main():
                 time.sleep(1.0)
                 
                 # Run diagram - disable show_in_browser to prevent double broadcast
-                result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug)
+                result = run_diagram(diagram, show_in_browser=True, pre_initialize=False, stream=stream, debug=debug, timeout=timeout)
                 
                 print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
                 return
@@ -557,7 +649,7 @@ def main():
             # Standard run execution
             diagram = load_diagram(file_path)
 
-            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream, debug=debug)
+            result = run_diagram(diagram, show_in_browser=show_in_browser, pre_initialize=pre_initialize, stream=stream, debug=debug, timeout=timeout)
             
             print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
 

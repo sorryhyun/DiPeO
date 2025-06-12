@@ -41,11 +41,10 @@ export interface ExportedApiKey {
 
 export interface ExportedHandle {
   nodeLabel: string;
-  name: string;
+  label: string;
   direction: 'input' | 'output';
   dataType: string;
   position?: string;
-  label?: string;
   maxConnections?: number;
   required?: boolean;
   defaultValue?: unknown;
@@ -150,7 +149,8 @@ export interface UnifiedStore {
   addPerson: (label: string, service: LLMService, model: string) => PersonID;
   updatePerson: (id: PersonID, updates: Partial<DomainPerson>) => void;
   deletePerson: (id: PersonID) => void;
-  
+  updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
+
   // Selection
   select: (id: string, type: 'node' | 'arrow' | 'person') => void;
   clearSelection: () => void;

@@ -134,17 +134,17 @@ export class YamlConverter extends ConverterCore<YamlDiagram> {
     // Add connections if any
     if (connections.length > 0) {
       baseStep.connections = connections.map(arrow => {
-        // Parse target handle ID to get node ID and handle name
-        const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
-        const { handleName: sourceHandleName } = parseHandleId(arrow.source);
+        // Parse target handle ID to get node ID and handle label
+        const { nodeId: targetNodeId, handleLabel: targetHandleLabel } = parseHandleId(arrow.target);
+        const { handleLabel: sourceHandleLabel } = parseHandleId(arrow.source);
         
         // Get target node label
         const targetLabel = this.nodeIdToLabel.get(targetNodeId) || targetNodeId;
         
         const connection: any = {
           to: targetLabel,
-          source_handle: sourceHandleName,
-          target_handle: targetHandleName,
+          source_handle: sourceHandleLabel,
+          target_handle: targetHandleLabel,
         };
         
         if (arrow.data) {
@@ -215,7 +215,7 @@ export class YamlConverter extends ConverterCore<YamlDiagram> {
       const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
       apiKeys.push({
         id: apiKeyIdValue,
-        name: key.name,
+        label: key.name,
         service: key.service as DomainApiKey['service'],
       });
       this.apiKeyLabelToId.set(key.name, apiKeyIdValue);
@@ -230,7 +230,7 @@ export class YamlConverter extends ConverterCore<YamlDiagram> {
         const newApiKeyId = apiKeyId(entityIdGenerators.apiKey());
         const newApiKey = {
           id: newApiKeyId,
-          name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
+          label: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
           service,
         };
         apiKeys.push(newApiKey);

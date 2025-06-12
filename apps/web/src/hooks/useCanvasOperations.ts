@@ -7,9 +7,10 @@
 
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
+import { type NodeChange, type EdgeChange, type Connection, type Node } from '@xyflow/react';
 import { isWithinTolerance } from '@/utils/math';
 import { createHandlerTable } from '@/utils/dispatchTable';
+import { createNodeDragGhost } from '@/utils/dragGhost';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { 
   nodeToReact,
@@ -66,6 +67,7 @@ interface DragState {
   isDragging: boolean;
   dragType: 'node' | 'person' | null;
   dragData?: string;
+  draggedNodeId?: string; // For tracking existing node being dragged
 }
 
 interface KeyboardShortcutsConfig {
@@ -133,6 +135,8 @@ export interface UseCanvasOperationsReturn {
   // Drag & Drop
   dragState: DragState;
   onNodeDragStart: (event: DragEvent, nodeType: string) => void;
+  onNodeDragStartCanvas: (event: React.MouseEvent, node: Node) => void;
+  onNodeDragStopCanvas: (event: React.MouseEvent, node: Node) => void;
   onPersonDragStart: (event: DragEvent, personId: string) => void;
   onDragOver: (event: DragEvent) => void;
   onNodeDrop: (event: DragEvent, projectPosition: (x: number, y: number) => Vec2) => void;
@@ -246,11 +250,14 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const nodeChangeHandlers = React.useMemo(() => 
     createHandlerTable<NodeChange['type'], [NodeChange, typeof storeState], void>({
       position: () => {
-        // Position changes are handled separately for batching
+        // Position changes are handled inline to maintain proper order
       },
-      dimensions: () => {
+      dimensions: (change) => {
         // Dimensions are handled by React Flow internally
-        // We don't need to store them in our domain model
+        // We can optionally store them if needed for layout calculations
+        if ('id' in change && 'dimensions' in change && change.dimensions) {
+          // Could store dimensions here if needed in the future
+        }
       },
       replace: () => {
         // Handle node replacement if needed
@@ -262,13 +269,19 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
         }
       },
       select: (change, state) => {
-        // Handle selection changes if needed
-        if ('selected' in change && 'id' in change && change.selected) {
-          state.select(change.id, 'node');
+        // Handle selection changes
+        if ('selected' in change && 'id' in change) {
+          if (change.selected) {
+            state.select(change.id, 'node');
+          } else if (state.selectedId === change.id) {
+            state.clearSelection();
+          }
         }
       },
       add: () => {
-        // React Flow is initializing the node - no action needed as node already exists in store
+        // React Flow is initializing the node - this is expected behavior
+        // Our nodes already exist in the store, so no action needed
+        // This prevents the "node not initialized" warning
       },
     }), []
   );
@@ -276,52 +289,33 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const onNodesChange = React.useCallback((changes: NodeChange[]) => {
     if (storeState.isMonitorMode || storeState.isExecutionMode) return;
     
-    // Separate position changes for batching from other changes
-    const positionChanges: NodeChange[] = [];
-    const otherChanges: NodeChange[] = [];
-    
+    // Process all changes synchronously to maintain React Flow's expectations
     changes.forEach((change) => {
-      // Allow position updates during dragging for more responsive feedback
-      if (change.type === 'position' && change.position) {
-        positionChanges.push(change);
-      } else {
-        otherChanges.push(change);
-      }
-    });
-    
-    // Process position updates
-    positionChanges.forEach((change) => {
       if (change.type === 'position' && change.position) {
         const node = storeState.nodesMap.get(change.id as NodeID);
         if (node) {
           // Use smaller tolerance for more responsive dragging
-          const tolerance = change.dragging ? 1 : 0.01;
+          const tolerance = change.dragging ? 5 : 0.01;
           const positionChanged = 
             !isWithinTolerance(node.position?.x || 0, change.position.x, tolerance) ||
             !isWithinTolerance(node.position?.y || 0, change.position.y, tolerance);
           
           if (positionChanged) {
-            // Update immediately during dragging for visual feedback
             if (change.dragging) {
-              // Direct update without history for dragging
-              storeState.updateNode(change.id as NodeID, { position: change.position });
+              // Don't update store during dragging - let React Flow handle it
+              // This prevents the "node not initialized" warning
+              return;
             } else {
               // Batch updates when drag ends for history recording
               batchPositionUpdate(change.id as NodeID, change.position);
             }
           }
         }
+      } else {
+        // Handle other changes through the handler table
+        nodeChangeHandlers.execute(change.type, change, storeState);
       }
     });
-    
-    // Handle other changes immediately in a transaction
-    if (otherChanges.length > 0) {
-      storeState.transaction(() => {
-        otherChanges.forEach((change) => {
-          nodeChangeHandlers.execute(change.type, change, storeState);
-        });
-      });
-    }
   }, [storeState, batchPositionUpdate, nodeChangeHandlers]);
   
   const onArrowsChange = React.useCallback((changes: EdgeChange[]) => {
@@ -470,11 +464,44 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // =====================
   
   // Handle drag start for node types from sidebar
+  // Handle dragging existing nodes on canvas
+  const onNodeDragStartCanvas = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // React Flow doesn't provide drag events for nodes, only mouse events
+      // So we can't use native drag ghost for existing nodes on canvas
+      // We'll keep the current behavior of not showing a preview for canvas nodes
+      setDragState({
+        isDragging: false,
+        dragType: null,
+        draggedNodeId: node.id,
+      });
+    },
+    []
+  );
+
+  const onNodeDragStopCanvas = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      setDragState({
+        isDragging: false,
+        dragType: null,
+        draggedNodeId: undefined,
+      });
+    },
+    []
+  );
+
   const onNodeDragStart = useCallback((event: DragEvent, nodeType: string) => {
     if (!enableInteractions || storeState.isMonitorMode) return;
     
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
+    
+    // Create and set the drag ghost image
+    const ghost = createNodeDragGhost(nodeType as NodeKind);
+    // Center the ghost image on the cursor
+    const ghostWidth = 200; // Approximate width of the ghost element
+    const ghostHeight = 80; // Approximate height of the ghost element
+    event.dataTransfer.setDragImage(ghost, ghostWidth / 2, ghostHeight / 2);
     
     // Calculate offset from element center
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -483,9 +510,10 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       y: event.clientY - (rect.top + rect.height / 2)
     };
     
+    // No need to set drag state for preview since we're using native ghost
     setDragState({
-      isDragging: true,
-      dragType: 'node',
+      isDragging: false,
+      dragType: null,
       dragData: nodeType
     });
   }, [enableInteractions, storeState.isMonitorMode]);
@@ -779,6 +807,8 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     // Drag & Drop
     dragState,
     onNodeDragStart,
+    onNodeDragStartCanvas,
+    onNodeDragStopCanvas,
     onPersonDragStart,
     onDragOver,
     onNodeDrop,

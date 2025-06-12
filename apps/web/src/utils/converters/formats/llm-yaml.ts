@@ -260,7 +260,7 @@ export class LlmYaml {
         const apiKeyIdValue = apiKeyId(entityIdGenerators.apiKey());
         apiKeys[service] = {
           id: apiKeyIdValue,
-          name: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
+          label: `${service.charAt(0).toUpperCase() + service.slice(1)} API Key`,
           service: service as DomainApiKey['service']
         };
       }

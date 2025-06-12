@@ -42,7 +42,8 @@ export const createCommonStoreSelector = () => (state: UnifiedStore) => ({
   addNode: state.addNode,
   updateNode: state.updateNode,
   deleteNode: state.deleteNode,
-  
+  updateNodeSilently: state.updateNodeSilently,
+
   // Arrow operations
   addArrow: state.addArrow,
   updateArrow: state.updateArrow,

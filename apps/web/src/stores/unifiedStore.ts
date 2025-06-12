@@ -183,6 +183,33 @@ export const useUnifiedStore = create<UnifiedStore>()(
             }
           }),
 
+        updateNodeSilently: (id, updates) =>
+          set((state) => {
+            const node = state.nodes.get(id);
+            if (!node) return;
+
+            // Create a new node object to ensure immutability
+            const updatedNode = { ...node };
+
+            // Deep merge data if provided in updates
+            if (updates.data && node.data) {
+              updatedNode.data = {
+                ...node.data,
+                ...updates.data,
+              };
+              const { data, ...otherUpdates } = updates;
+              Object.assign(updatedNode, otherUpdates);
+            } else {
+              Object.assign(updatedNode, updates);
+            }
+
+            const newNodes = new Map(state.nodes);
+            newNodes.set(id, updatedNode);
+            state.nodes = newNodes;
+
+            state.dataVersion += 1;
+          }),
+
         deleteNode: (id) =>
           set((state) => {
             const node = state.nodes.get(id);
@@ -498,7 +525,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
           set((state) => {
             const apiKey: DomainApiKey = {
               id,
-              name,
+              label: name,
               service: service as DomainApiKey['service'],
             };
 
@@ -777,12 +804,12 @@ export const useUnifiedStore = create<UnifiedStore>()(
                 tempPersons.set(personId, person);
                 return personId;
               },
-              addApiKey: (name: string, service: string) => {
+              addApiKey: (label: string, service: string) => {
                 const rawId = entityIdGenerators.apiKey();
                 const id = apiKeyId(rawId);
                 const apiKey: DomainApiKey = {
                   id,
-                  name,
+                  label,
                   service: service as any, // ApiService type
                 };
                 tempApiKeys.set(id, apiKey);

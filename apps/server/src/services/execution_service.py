@@ -116,13 +116,18 @@ class ExecutionService(BaseService):
         """Pre-load each unique (service, model, api_key_id) once to cut latency."""
         seen: Set[str] = set()
         for p in diagram.get("persons", []):
-            key = f'{p.get("service")}:{p.get("model")}:{p.get("apiKeyId")}'
-            if key in seen or not all(key.split(":")):
+            # Handle both camelCase and snake_case
+            api_key_id = p.get("apiKeyId") or p.get("api_key_id")
+            service = p.get("service")
+            model = p.get("model")
+            
+            key = f'{service}:{model}:{api_key_id}'
+            if key in seen or not all([service, model, api_key_id]):
                 continue
             seen.add(key)
             try:
                 self.llm_service.pre_initialize_model(
-                    service=p["service"], model=p["model"], api_key_id=p["apiKeyId"]
+                    service=service, model=model, api_key_id=api_key_id
                 )
             except Exception as exc:  # pragma: no-cover
                 log.warning("Warm-up failed for %s – %s", key, exc)

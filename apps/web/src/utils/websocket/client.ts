@@ -53,9 +53,15 @@ export class Client extends EventTarget {
   }
   
   connect(): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.log('Already connected');
-      return;
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.log('Already connected');
+        return;
+      }
+      if (this.ws.readyState === WebSocket.CONNECTING) {
+        this.log('Connection already in progress');
+        return;
+      }
     }
     
     this.forcedClose = false;
@@ -67,7 +73,7 @@ export class Client extends EventTarget {
     if (!this.ws) return;
     
     this.ws.onopen = () => {
-      this.log('Connected');
+      this.log('Connected - WebSocket opened');
       this.reconnectAttempts = 0;
       this.dispatchEvent(new CustomEvent('connected'));
       
@@ -110,12 +116,15 @@ export class Client extends EventTarget {
     };
     
     this.ws.onclose = (event) => {
-      this.log('Disconnected', { code: event.code, reason: event.reason });
+      this.log('Disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean });
       this.ws = null;
       this.dispatchEvent(new CustomEvent('disconnected', { detail: event }));
       
-      if (!this.forcedClose) {
+      if (!this.forcedClose && event.code !== 1000) { // 1000 = normal closure
+        this.log('Scheduling reconnect due to abnormal closure');
         this.scheduleReconnect();
+      } else {
+        this.log('Not reconnecting:', { forcedClose: this.forcedClose, code: event.code });
       }
     };
   }
@@ -223,7 +232,10 @@ let wsClient: Client | null = null;
 
 export function getWebSocketClient(options?: WebSocketClientOptions): Client {
   if (!wsClient) {
+    logger.debug('[WebSocket] Creating new client instance');
     wsClient = new Client(options);
+  } else {
+    logger.debug('[WebSocket] Returning existing client instance');
   }
   return wsClient;
 }
