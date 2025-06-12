@@ -13,9 +13,48 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
     }
     inc, out = defaultdict(list), defaultdict(list)
     for a in diagram["arrows"]:
-        ar = Arrow(a["source"], a["target"],
-                   a.get("sourceHandle",""), a.get("targetHandle",""),
-                   a.get("label",""))
+        # ------------------------------------------------------------------
+        # Arrow source / target may come in two different shapes depending on
+        # who created the diagram:
+        #   1.  Modern format  →  {
+        #         "source": "node_id",
+        #         "sourceHandle": "default",
+        #         ...
+        #       }
+        #   2.  Legacy / compact → "source": "node_id:default"  (same for
+        #      target).  The backend engine historically expected the *node*
+        #      identifier only, with the handle stored separately.  If we get
+        #      the compact variant we therefore need to split it so that the
+        #      rest of the engine sees consistent data irrespective of the
+        #      client that produced the diagram.
+        # ------------------------------------------------------------------
+
+        def _split_handle(field: str, handle: str | None) -> tuple[str, str]:
+            """Return (node_id, handle_label) taking legacy `node:handle` into
+            account.  *handle* has priority because that means the caller
+            already provided a clean separation.
+            """
+            if handle:  # already explicit -> nothing to do
+                return field, handle
+            if ":" in field:
+                node_id, h = field.split(":", 1)
+                return node_id, h
+            return field, ""
+
+        src_node, s_handle = _split_handle(
+            a["source"], a.get("sourceHandle")
+        )
+        tgt_node, t_handle = _split_handle(
+            a["target"], a.get("targetHandle")
+        )
+
+        ar = Arrow(
+            src_node,
+            tgt_node,
+            s_handle,
+            t_handle,
+            a.get("label", ""),
+        )
         inc[ar.target].append(ar);  out[ar.source].append(ar)
     for nid, node in ns.items():
         node.in_arrows  = inc[nid]

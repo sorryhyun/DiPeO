@@ -8,95 +8,115 @@ import { API_ENDPOINTS, getApiUrl, ApiCache, apiCache } from './config';
 import { 
   createErrorHandlerFactory,
   type DomainApiKey,
-  type DomainDiagram,
-  type ApiResponse as ApiResponseType
+  type DomainDiagram
 } from '@/types';
+import type {
+  RequestConfig,
+  ApiResponse,
+  ApiClientOptions
+} from '@/types/api';
 
-// Internal HTTP response wrapper
-interface HttpResponse<T> {
-  data: T;
-  status: number;
-  headers: Headers;
+// Internal types for backwards compatibility
+interface CacheConfig {
+  key?: string;
+  ttl?: number;
 }
 
-// Types
-/* global RequestInit */
-interface ApiRequestOptions extends RequestInit {
-  params?: Record<string, string | number | boolean>;
-  cacheConfig?: {
-    key?: string;
-    ttl?: number;
-  };
+interface InternalRequestConfig extends RequestConfig {
+  cacheConfig?: CacheConfig;
   skipErrorToast?: boolean;
   errorContext?: string;
 }
 
 
 class Client {
-  private defaultHeaders = {
-    'Content-Type': 'application/json',
-  };
-
+  private options: ApiClientOptions;
   private createErrorHandler = createErrorHandlerFactory('Client');
 
+  constructor(options: ApiClientOptions = {}) {
+    this.options = {
+      baseURL: getApiUrl(''),
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    };
+  }
+
   /**
-   * Generic request method with error handling and caching
+   * Generic request method that returns ApiResponse<T>
    */
   private async request<T>(
     endpoint: string,
-    options: ApiRequestOptions = {}
-  ): Promise<HttpResponse<T>> {
+    options: Partial<InternalRequestConfig> = {}
+  ): Promise<ApiResponse<T>> {
     const {
-      params,
+      query,
+      body,
+      method = 'GET',
+      headers = {},
+      signal,
       cacheConfig,
       skipErrorToast = false,
-      errorContext = 'API Request',
-      headers = {},
-      ...fetchOptions
+      errorContext = 'API Request'
     } = options;
 
     // Check cache first if configured
-    if (cacheConfig?.key && fetchOptions.method === 'GET') {
+    if (cacheConfig?.key && method === 'GET') {
       const cachedData = apiCache.get<T>(cacheConfig.key);
       if (cachedData !== null) {
         return {
-          data: cachedData,
-          status: 200,
-          headers: new Headers(),
+          success: true,
+          data: cachedData
         };
       }
     }
 
     // Build URL with query parameters
-    let url = getApiUrl(endpoint);
-    if (params) {
+    let url = this.options.baseURL ? this.options.baseURL + endpoint : getApiUrl(endpoint);
+    if (query) {
       const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        searchParams.append(key, String(value));
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
+        }
       });
-      url += `?${searchParams.toString()}`;
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
     }
 
-    const errorHandler = (error: Error) => {
-      this.createErrorHandler(error);
-      if (!skipErrorToast) {
-        toast.error(`${errorContext}: ${error.message}`);
-      }
-    };
+    const controller = new AbortController();
+    const timeoutId = this.options.timeout 
+      ? setTimeout(() => controller.abort(), this.options.timeout)
+      : null;
 
     try {
       const response = await fetch(url, {
-        ...fetchOptions,
+        method,
         headers: {
-          ...this.defaultHeaders,
+          ...this.options.headers,
           ...headers,
         },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: signal || controller.signal
       });
+
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
         const errorMessage = this.parseErrorMessage(errorText, response.status);
-        throw new Error(errorMessage);
+        if (!skipErrorToast) {
+          toast.error(`${errorContext}: ${errorMessage}`);
+        }
+        return {
+          success: false,
+          error: errorMessage
+        };
       }
 
       // Parse response based on content type
@@ -113,20 +133,42 @@ class Client {
       }
 
       // Cache if configured
-      if (cacheConfig?.key && fetchOptions.method === 'GET') {
+      if (cacheConfig?.key && method === 'GET') {
         apiCache.set(cacheConfig.key, data, cacheConfig.ttl);
       }
 
-      return {
-        data,
-        status: response.status,
-        headers: response.headers,
+      // Add metadata if available
+      const result: ApiResponse<T> = {
+        success: true,
+        data
       };
-    } catch (error) {
-      if (!skipErrorToast) {
-        errorHandler(error as Error);
+
+      // Check for filename/path in response headers or data
+      const contentDisposition = response.headers.get('content-disposition');
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);;
+        if (filenameMatch) {
+          (result as any).filename = filenameMatch[1];
+        }
       }
-      throw error;
+
+      return result;
+    } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      const errorMessage = error instanceof Error 
+        ? (error.name === 'AbortError' ? 'Request timeout' : error.message)
+        : 'An unknown error occurred';
+      
+      if (!skipErrorToast) {
+        this.createErrorHandler(error as Error);
+        toast.error(`${errorContext}: ${errorMessage}`);
+      }
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
     }
   }
 
@@ -145,11 +187,14 @@ class Client {
   /**
    * GET request
    */
-  async get<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+  async get<T>(endpoint: string, options?: Partial<InternalRequestConfig>): Promise<T> {
     const response = await this.request<T>(endpoint, {
       ...options,
       method: 'GET',
     });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
     return response.data;
   }
 
@@ -159,13 +204,16 @@ class Client {
   async post<T, D = unknown>(
     endpoint: string,
     data?: D,
-    options?: ApiRequestOptions
+    options?: Partial<InternalRequestConfig>
   ): Promise<T> {
     const response = await this.request<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data as any,
     });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
     return response.data;
   }
 
@@ -175,35 +223,41 @@ class Client {
   async put<T, D = unknown>(
     endpoint: string,
     data?: D,
-    options?: ApiRequestOptions
+    options?: Partial<InternalRequestConfig>
   ): Promise<T> {
     const response = await this.request<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data as any,
     });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
     return response.data;
   }
 
   /**
    * DELETE request
    */
-  async delete<T = void>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+  async delete<T = void>(endpoint: string, options?: Partial<InternalRequestConfig>): Promise<T> {
     const response = await this.request<T>(endpoint, {
       ...options,
       method: 'DELETE',
     });
+    if (!response.success) {
+      throw new Error(response.error);
+    }
     return response.data;
   }
 
   /**
-   * Upload file
+   * Upload file - special handling for FormData
    */
   async uploadFile(
     endpoint: string,
     file: File,
     additionalData?: Record<string, string>,
-    options?: ApiRequestOptions
+    options?: Partial<InternalRequestConfig>
   ): Promise<{ filename: string }> {
     const formData = new FormData();
     formData.append('file', file);
@@ -214,16 +268,32 @@ class Client {
       });
     }
 
-    const response = await this.request<{ filename: string }>(endpoint, {
-      ...options,
-      method: 'POST',
-      body: formData,
-      headers: {
-        // Don't set Content-Type for FormData - browser will set it with boundary
-      },
-    });
+    const { skipErrorToast = false, errorContext = 'Upload File' } = options || {};
+    const url = this.options.baseURL ? this.options.baseURL + endpoint : getApiUrl(endpoint);
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
 
-    return response.data;
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage = this.parseErrorMessage(errorText, response.status);
+        if (!skipErrorToast) {
+          toast.error(`${errorContext}: ${errorMessage}`);
+        }
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (!skipErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        toast.error(`${errorContext}: ${errorMessage}`);
+      }
+      throw error;
+    }
   }
 }
 
@@ -261,7 +331,7 @@ export const fetchAvailableModels = async (
   const data = await apiClient.get<{ models?: string[]; error?: string }>(
     API_ENDPOINTS.MODELS(apiKeyId),
     {
-      params: { service, api_key_id: apiKeyId },
+      query: { service, api_key_id: apiKeyId },
       errorContext: 'Fetch Models',
     }
   );
@@ -299,38 +369,57 @@ export const preInitializeModel = async (
 export const saveDiagram = async (
   diagram: DomainDiagram,
   filename: string
-): Promise<ApiResponseType<{ path: string }>> => {
-  const data = await apiClient.post<{ path: string }>(
-    API_ENDPOINTS.SAVE_DIAGRAM,
-    { diagram, filename },
-    { errorContext: 'Save Diagram' }
-  );
-  
-  return { data, success: true };
+): Promise<ApiResponse<{ path: string }>> => {
+  try {
+    const data = await apiClient.post<{ path: string }>(
+      API_ENDPOINTS.SAVE_DIAGRAM,
+      { diagram, filename },
+      { errorContext: 'Save Diagram' }
+    );
+    return { success: true, data };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Save failed' 
+    };
+  }
 };
 
 export const convertDiagram = async (
   content: string,
   fromFormat: string,
   toFormat: string
-): Promise<ApiResponseType<{ content: string; format: string }>> => {
-  const data = await apiClient.post<{ content: string; format: string }>(
-    API_ENDPOINTS.DIAGRAMS_CONVERT,
-    { content, from_format: fromFormat, to_format: toFormat },
-    { errorContext: 'Convert Diagram' }
-  );
-  
-  return { data, success: true };
+): Promise<ApiResponse<{ content: string; format: string }>> => {
+  try {
+    const data = await apiClient.post<{ content: string; format: string }>(
+      API_ENDPOINTS.DIAGRAMS_CONVERT,
+      { content, from_format: fromFormat, to_format: toFormat },
+      { errorContext: 'Convert Diagram' }
+    );
+    return { success: true, data };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Convert failed' 
+    };
+  }
 };
 
-export const uploadFile = async (file: File): Promise<ApiResponseType<{ filename: string; content: string }>> => {
-  const response = await apiClient.uploadFile(
-    API_ENDPOINTS.UPLOAD_FILE,
-    file,
-    undefined,
-    { errorContext: 'Upload File' }
-  );
-  return { data: { ...response, content: '' }, success: true };
+export const uploadFile = async (file: File): Promise<ApiResponse<{ filename: string; content: string }>> => {
+  try {
+    const response = await apiClient.uploadFile(
+      API_ENDPOINTS.UPLOAD_FILE,
+      file,
+      undefined,
+      { errorContext: 'Upload File' }
+    );
+    return { success: true, data: { ...response, content: '' } };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Upload failed' 
+    };
+  }
 };
 
 export const checkHealth = async (): Promise<boolean> => {
@@ -342,17 +431,24 @@ export const checkHealth = async (): Promise<boolean> => {
   }
 };
 
-export const getExecutionCapabilities = async (): Promise<ApiResponseType<{ 
+export const getExecutionCapabilities = async (): Promise<ApiResponse<{ 
   supported_node_types: string[]; 
   features: { [key: string]: boolean } 
 }>> => {
-  const data = await apiClient.get<{ 
-    supported_node_types: string[]; 
-    features: { [key: string]: boolean } 
-  }>(API_ENDPOINTS.EXECUTION_CAPABILITIES, {
-    errorContext: 'Fetch Capabilities',
-  });
-  return { data, success: true };
+  try {
+    const data = await apiClient.get<{ 
+      supported_node_types: string[]; 
+      features: { [key: string]: boolean } 
+    }>(API_ENDPOINTS.EXECUTION_CAPABILITIES, {
+      errorContext: 'Fetch Capabilities',
+    });
+    return { success: true, data };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Fetch failed' 
+    };
+  }
 };
 
 // Convenience methods for common endpoints
@@ -397,7 +493,7 @@ export const api = {
       apiClient.get<Array<{ id: string; messages: unknown[] }>>(
         API_ENDPOINTS.CONVERSATIONS,
         { 
-          params: filters,
+          query: filters,
           errorContext: 'Load Conversations',
         }
       ),
