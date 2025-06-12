@@ -50,7 +50,7 @@ export interface UseDiagramManagerReturn {
   saveDiagram: (filename?: string) => Promise<void>;
   loadDiagramFromFile: (file: File) => Promise<void>;
   loadDiagramFromUrl: (url: string) => Promise<void>;
-  exportDiagram: (format: 'json' | 'yaml' | 'llm-yaml') => Promise<void>;
+  exportDiagram: (format: 'native' | 'light' | 'readable' | 'llm-readable') => Promise<void>;
   importDiagram: () => Promise<void>;
   
   // Execution
@@ -210,7 +210,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || `diagram.yaml`;
-      await fileOps.saveYAML(defaultFilename);
+      await fileOps.saveLight(defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
       toast.success('Diagram saved successfully as YAML');
@@ -261,18 +261,21 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
   }, [confirmOnLoad, isDirty, fileOps]);
   
-  const exportDiagramAs = useCallback(async (format: 'json' | 'yaml' | 'llm-yaml') => {
+  const exportDiagramAs = useCallback(async (format: 'native'|'light' | 'readable' | 'llm-readable') => {
     try {
       // Use appropriate export method based on format
       switch (format) {
-        case 'json':
-          await fileOps.exportJSON();
+        case 'native':
+          await fileOps.saveNative();
           break;
-        case 'yaml':
-          await fileOps.exportYAML();
+        case 'light':
+          await fileOps.saveLight();
           break;
-        case 'llm-yaml':
-          await fileOps.exportLLMYAML();
+        case 'readable':
+          await fileOps.saveReadable();
+          break;
+        case 'llm-readable':
+          await fileOps.saveLLMReadable();
           break;
       }
       toast.success(`Diagram exported as ${format.toUpperCase()}`);

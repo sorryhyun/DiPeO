@@ -725,9 +725,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
           return exporter.exportDiagram();
         },
 
-        exportAsJSON: () => {
+        exportAsYAML: () => {
           const exporter = new DiagramExporter(get());
-          return exporter.exportAsJSON();
+          return exporter.exportAsYAML();
         },
 
         importDiagram: (data: ExportFormat | string) => {

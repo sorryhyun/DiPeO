@@ -4,11 +4,11 @@
  */
 
 import { toast } from 'react-hot-toast';
-import type { DomainDiagram } from '@/types';
+import type { ConverterDiagram } from '@/utils/converters/types';
 import { getApiUrl, API_ENDPOINTS } from './api/config';
 import { createLookupTable } from './dispatchTable';
 
-export type FileFormat = 'json' | 'yaml' | 'llm-yaml';
+export type FileFormat = 'light' | 'native' | 'readable' | 'llm-readable';
 
 export interface ReadFileOptions {
   acceptedTypes?: string;
@@ -57,7 +57,7 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = options?.acceptedTypes || '.json,.yaml,.yml';
+    input.accept = options?.acceptedTypes || '.yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml';
     
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -121,7 +121,7 @@ export const downloadEnhanced = async (
  * Save diagram to backend
  */
 export const saveDiagramToBackend = async (
-  diagram: DomainDiagram,
+  diagram: ConverterDiagram,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
   try {
@@ -160,43 +160,67 @@ export const saveDiagramToBackend = async (
 export const detectFileFormat = (content: string, filename?: string): FileFormatInfo => {
   if (filename) {
     const ext = filename.split('.').pop()?.toLowerCase();
-    if (ext === 'json') {
-      return { format: 'json', isLLMFormat: false };
+    
+    // Check for specific YAML types by filename
+    if (filename.includes('.native.yaml') || filename.includes('.native.yml')) {
+      return { format: 'native', isLLMFormat: false };
     }
+    if (filename.includes('.readable.yaml') || filename.includes('.readable.yml')) {
+      return { format: 'readable', isLLMFormat: false };
+    }
+    if (filename.includes('.llm-readable') || filename.includes('.llm.yaml') || filename.includes('.llm.yml')) {
+      return { format: 'llm-readable', isLLMFormat: true };
+    }
+    
     if (ext === 'yaml' || ext === 'yml') {
+      // Check content to determine YAML type
       if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
-        return { format: 'llm-yaml', isLLMFormat: true };
+        return { format: 'llm-readable', isLLMFormat: true };
       }
-      return { format: 'yaml', isLLMFormat: false };
+      if (content.includes('workflow:') && content.includes("version: '1.0'")) {
+        return { format: 'readable', isLLMFormat: false };
+      }
+      // Check if it's native format (DomainDiagram structure)
+      if (content.includes('metadata:') && content.includes('nodes:') && content.includes('arrows:')) {
+        return { format: 'native', isLLMFormat: false };
+      }
+      // Default to light format for regular YAML files
+      return { format: 'light', isLLMFormat: false };
     }
   }
   
-  try {
-    JSON.parse(content);
-    return { format: 'json', isLLMFormat: false };
-  } catch {
-    if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
-      return { format: 'llm-yaml', isLLMFormat: true };
-    }
-    if (content.includes(':') && (content.includes('-') || content.includes('  '))) {
-      return { format: 'yaml', isLLMFormat: false };
-    }
+  // Check content structure
+  if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
+    return { format: 'llm-readable', isLLMFormat: true };
+  }
+  if (content.includes('workflow:') && content.includes("version: '1.0'")) {
+    return { format: 'readable', isLLMFormat: false };
+  }
+  // Check if it's native format (DomainDiagram structure)
+  if (content.includes('metadata:') && content.includes('nodes:') && content.includes('arrows:')) {
+    return { format: 'native', isLLMFormat: false };
+  }
+  if (content.includes(':') && (content.includes('-') || content.includes('  '))) {
+    return { format: 'light', isLLMFormat: false };
   }
   
-  return { format: 'json', isLLMFormat: false };
+  // Default to light format
+  return { format: 'light', isLLMFormat: false };
 };
 
 // Create lookup tables for file format mappings
 const mimeTypeLookup = createLookupTable<FileFormat, string>({
-  'json': 'application/json',
-  'yaml': 'text/yaml',
-  'llm-yaml': 'text/yaml'
+  'light': 'text/yaml',
+  'native': 'text/yaml',
+  'readable': 'text/yaml',
+  'llm-readable': 'text/yaml'
 });
 
 const fileExtensionLookup = createLookupTable<FileFormat, string>({
-  'json': '.json',
-  'yaml': '.yaml',
-  'llm-yaml': '.llm-yaml'
+  'light': '.yaml',
+  'native': '.native.yaml',
+  'readable': '.readable.yaml',
+  'llm-readable': '.llm-readable.yaml'
 });
 
 /**

@@ -350,24 +350,13 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
       importFromURL: fileOps.importFromURL,
       
       // Export operations
-      exportJSON: fileOps.exportJSON,
-      exportYAML: fileOps.exportYAML,
-      exportLLMYAML: fileOps.exportLLMYAML,
-      exportAllFormats: fileOps.exportAllFormats,
-      
-      // Save operations
-      saveJSON: fileOps.saveJSON,
-      saveYAML: fileOps.saveYAML,
-      saveLLMYAML: fileOps.saveLLMYAML,
-      
-      // Download operations
+      saveNative: fileOps.saveNative,
+      saveLight: fileOps.saveLight,
+      saveReadable: fileOps.saveReadable,
+      saveLLMReadable: fileOps.saveLLMReadable,
       download: fileOps.download,
-      downloadJSON: fileOps.downloadJSON,
-      downloadYAML: fileOps.downloadYAML,
-      downloadLLMYAML: fileOps.downloadLLMYAML,
-      
-      // Conversion operations
-      convertJSONtoYAML: fileOps.convertJSONtoYAML,
+
+      // Other operations
       cloneDiagram: fileOps.cloneDiagram,
       
       // State

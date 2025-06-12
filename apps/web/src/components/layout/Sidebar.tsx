@@ -5,9 +5,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
-import { useUnifiedStore } from '@/stores/unifiedStore';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
-import { toast } from 'sonner';
 import type { PersonID } from '@/types/branded';
 import type { Node } from '@xyflow/react';
 
@@ -90,42 +88,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
     if (id) select(id, 'person');
     else clearSelection();
   };
-  const { handleFileInput, saveYAML, saveLLMYAML } = useFileOperations();
-  const store = useUnifiedStore.getState();
-  
-  // Function to save readable format
-  const saveReadable = async () => {
-    const { Readable } = await import('@/utils/converters');
-    const converterDiagram = {
-      id: `diagram-${Date.now()}`,
-      name: 'Untitled Diagram',
-      nodes: Array.from(store.nodes.values()),
-      arrows: Array.from(store.arrows.values()),
-      persons: Array.from(store.persons.values()),
-      apiKeys: Array.from(store.apiKeys.values()),
-      handles: Array.from(store.handles.values())
-    };
-    const content = Readable.toReadable(converterDiagram);
-    
-    // Save to server
-    try {
-      const response = await fetch('/api/diagrams/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: converterDiagram,
-          format: 'readable',
-          filename: 'diagram.readable.yaml'
-        })
-      });
-      
-      if (!response.ok) throw new Error('Failed to save');
-      const result = await response.json();
-      toast.success(`Saved readable format to: ${result.filename}`);
-    } catch (error) {
-      toast.error('Failed to save readable format');
-    }
-  };
+  const { handleFileInput, saveNative, saveReadable, saveLLMReadable } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
@@ -289,10 +252,19 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
             </FileUploadButton>
             <Button
               variant="outline"
+              className="w-full text-sm py-2 hover:bg-indigo-50 hover:border-indigo-300 transition-colors duration-200"
+              size="sm"
+              onClick={() => saveNative()}
+              title="Export to native format (saves to /files/diagrams/native/)"
+            >
+              <span className="mr-1">🔧</span> Export Native
+            </Button>
+            <Button
+              variant="outline"
               className="w-full text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
               size="sm"
               onClick={() => saveReadable()}
-              title="Export to human-readable format"
+              title="Export to human-readable format (saves to /files/diagrams/readable/)"
             >
               <span className="mr-1">📖</span> Export Readable
             </Button>
@@ -300,10 +272,10 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={() => saveLLMYAML()}
-              title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
+              onClick={() => saveLLMReadable()}
+              title="Export to LLM-readable format (saves to /files/diagrams/llm-readable/)"
             >
-              <span className="mr-1">🤖</span> Export LLM YAML
+              <span className="mr-1">🤖</span> Export LLM Readable
             </Button>
           </div>
         )}

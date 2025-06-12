@@ -494,9 +494,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         diagram: {
           ...diagram,
           // Ensure we're sending arrays (nodes/arrows/persons are Records)
-          nodes: Object.values(diagram.nodes),
-          arrows: Object.values(diagram.arrows),
-          persons: Object.values(diagram.persons),
+          // Include IDs in the node objects when converting to array
+          nodes: Object.entries(diagram.nodes).map(([id, node]) => ({ ...node, id })),
+          arrows: Object.entries(diagram.arrows).map(([id, arrow]) => ({ ...arrow, id })),
+          persons: Object.entries(diagram.persons).map(([id, person]) => ({ ...person, id })),
         },
         ...options
       } : {

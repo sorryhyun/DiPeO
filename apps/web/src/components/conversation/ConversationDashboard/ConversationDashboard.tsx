@@ -12,6 +12,7 @@ import { useConversationData } from '@/hooks/useConversationData';
 import { MessageList } from '../MessageList';
 import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
 import { debounce, throttle } from '@/utils/math';
+import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
@@ -121,7 +122,7 @@ const ConversationDashboard: React.FC = () => {
   );
 
   // Export conversations
-  const { downloadJSON } = useFileOperations();
+  const { download } = useFileOperations();
   
   const exportConversations = async () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
@@ -139,8 +140,9 @@ const ConversationDashboard: React.FC = () => {
       }
     };
 
-    void downloadJSON(exportData, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
-    toast.success('Conversation exported');
+    const yamlContent = stringify(exportData, { lineWidth: 120, defaultStringType: 'PLAIN' });
+    void download(yamlContent, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.yaml`);
+    toast.success('Conversation exported as YAML');
   };
 
   // Calculate total tokens for selected person

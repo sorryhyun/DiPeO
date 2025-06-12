@@ -2,7 +2,20 @@ import { useState, useCallback, type ChangeEvent } from 'react';
 import { useExport } from './useExport';
 import { toast } from 'sonner';
 import { getApiUrl, API_ENDPOINTS } from '@/utils/api/config';
-import { Yaml, LlmYaml } from '@/utils/converters';
+import { fromNativeYAML, toNativeYAML, LlmYaml } from '@/utils/converters';
+import type { 
+  DomainDiagram, 
+  DomainNode, 
+  DomainArrow, 
+  DomainPerson, 
+  DomainApiKey, 
+  DomainHandle,
+  NodeID,
+  ArrowID,
+  PersonID,
+  ApiKeyID,
+  HandleID
+} from '@/types';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import {
   readFileAsText,
@@ -16,8 +29,63 @@ import {
   FileFormat
 } from '@/utils/file';
 
-export type SupportedFormat = 'json' | 'yaml' | 'llm-yaml';
+export type SupportedFormat = 'light' | 'native' | 'readable' | 'llm-readable';
 
+// Helper function to convert legacy YAML format to new format
+function convertLegacyYamlToExportFormat(data: any): any {
+  // If it already has a version field, it's not legacy
+  if (data.version) {
+    return data;
+  }
+  
+  // Convert legacy format
+  const converted = {
+    version: '4.0.0', // Add version field
+    nodes: (data.nodes || []).map((node: any) => ({
+      ...node,
+      // Move label from data.label to node.label if needed
+      label: node.label || node.data?.label || 'Untitled Node'
+    })),
+    arrows: (data.arrows || []).map((arrow: any) => {
+      // Legacy format has source/target as "nodeId:handleName"
+      // Keep the same format for the store format
+      return {
+        sourceHandle: arrow.source,
+        targetHandle: arrow.target,
+        data: arrow.data || {}
+      };
+    }),
+    persons: data.persons || [],
+    apiKeys: (data.apiKeys || []).map((key: any) => ({
+      // New format expects 'name' instead of 'label'
+      name: key.label || key.name,
+      service: key.service
+    })),
+    handles: (data.handles || []).map((handle: any) => {
+      // Find the node to get its label
+      const node = (data.nodes || []).find((n: any) => n.id === handle.nodeId);
+      const nodeLabel = node?.data?.label || handle.nodeId;
+      
+      return {
+        nodeLabel,
+        label: handle.label,
+        direction: handle.direction,
+        dataType: handle.dataType,
+        position: handle.position,
+        maxConnections: handle.maxConnections,
+        required: handle.required,
+        defaultValue: handle.defaultValue,
+        dynamic: handle.dynamic
+      };
+    }),
+    metadata: {
+      exported: new Date().toISOString(),
+      description: data.description || 'Imported from legacy YAML'
+    }
+  };
+  
+  return converted;
+}
 
 export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -105,56 +173,42 @@ export const useFileOperations = () => {
       
       // Process based on format
       switch (formatInfo.format) {
-        case 'json': {
-          const data = JSON.parse(content);
-          
-          // Check if it's the new export format (has version field)
-          if (data.version && Array.isArray(data.nodes)) {
-            // New format - use new import system
-            importDiagram(data);
-            toast.success('JSON file imported successfully');
-          } else {
-            // Legacy format - import as JSON string for backward compatibility
-            // The importDiagram function handles legacy format conversion
-            importDiagram(JSON.stringify(data));
-            toast.success('JSON file imported successfully (legacy format)');
-          }
+        case 'light': {
+          // Use YAML converter for light format
+          const YamlConverter = (await import('@/utils/converters/formats/yaml')).YamlConverter;
+          const converter = new YamlConverter();
+          const converterDiagram = converter.deserialize(content);
+          importDiagram(JSON.stringify(converterDiagram));
+          toast.success('Light YAML file imported successfully');
           break;
         }
         
-        case 'yaml': {
-          // Use server-side YAML import
-          const res = await fetch(getApiUrl(API_ENDPOINTS.IMPORT_YAML), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ yaml: content }),
-          });
-          
-          if (!res.ok) {
-            throw new Error('Failed to import YAML file');
-          }
-          
-          const data = await res.json();
-          
-          // Check format and import appropriately
-          if (data.version && Array.isArray(data.nodes)) {
-            importDiagram(data);
-            toast.success('YAML file imported successfully');
-          } else {
-            // Legacy YAML format - import as is
-            // The importDiagram function handles legacy format conversion
-            importDiagram(JSON.stringify(data));
-            toast.success('YAML file imported successfully (legacy format)');
-          }
+        case 'native': {
+          // Use native YAML converter for DomainDiagram format
+          const domainDiagram = fromNativeYAML(content);
+          // Import domain diagram directly - no conversion needed
+          importDiagram(JSON.stringify(domainDiagram));
+          toast.success('Native YAML file imported successfully');
           break;
         }
         
-        case 'llm-yaml': {
+        case 'readable': {
+          // Use Readable YAML importer
+          const ReadableConverter = (await import('@/utils/converters/formats/readable')).ReadableConverter;
+          const converter = new ReadableConverter();
+          const converterDiagram = converter.deserialize(content);
+          // Import converter diagram - importDiagram handles conversion
+          importDiagram(JSON.stringify(converterDiagram));
+          toast.success('Readable YAML file imported successfully');
+          break;
+        }
+        
+        case 'llm-readable': {
           // Use LLM YAML importer
           const converterDiagram = LlmYaml.fromLLMYAML(content);
           // Import converter diagram - importDiagram handles conversion
           importDiagram(JSON.stringify(converterDiagram));
-          toast.success('LLM-YAML file imported successfully');
+          toast.success('LLM-readable YAML file imported successfully');
           break;
         }
         
@@ -174,7 +228,7 @@ export const useFileOperations = () => {
   const importWithDialog = useCallback(async () => {
     try {
       const file = await selectFile({
-        acceptedTypes: '.json,.yaml,.yml,.llm-yaml'
+        acceptedTypes: '.yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml'
       });
       await importFile(file);
     } catch (error) {
@@ -216,105 +270,23 @@ export const useFileOperations = () => {
   // EXPORT OPERATIONS
   // ===================
 
-  // Unified export function
-  const exportDiagramAs = useCallback(async (format: SupportedFormat, filename?: string) => {
-    setIsProcessing(true);
-    try {
-      let content: string;
-      let defaultFilename: string;
-      
-      switch (format) {
-        case 'json': {
-          // Use new export format for JSON
-          const exportData = exportDiagram();
-          content = JSON.stringify(exportData, null, 2);
-          defaultFilename = 'example.json';
-          break;
-        }
-          
-        case 'yaml': {
-          // For YAML, we need to use the actual domain objects from the store
-          // since the converter expects DomainNode format, not ExportedNode
-          const store = useUnifiedStore.getState();
-          const converterDiagram = {
-            id: `diagram-${Date.now()}`,
-            name: 'Untitled Diagram',
-            nodes: Array.from(store.nodes.values()),
-            arrows: Array.from(store.arrows.values()),
-            persons: Array.from(store.persons.values()),
-            apiKeys: Array.from(store.apiKeys.values()),
-            handles: Array.from(store.handles.values())
-          };
-          content = Yaml.toYAML(converterDiagram);
-          defaultFilename = 'diagram.yaml';
-          break;
-        }
-          
-        case 'llm-yaml': {
-          // For LLM-YAML, we need to use the actual domain objects from the store
-          // since the converter expects DomainNode format, not ExportedNode
-          const store = useUnifiedStore.getState();
-          const converterDiagram = {
-            id: `diagram-${Date.now()}`,
-            name: 'Untitled Diagram',
-            nodes: Array.from(store.nodes.values()),
-            arrows: Array.from(store.arrows.values()),
-            persons: Array.from(store.persons.values()),
-            apiKeys: Array.from(store.apiKeys.values()),
-            handles: Array.from(store.handles.values())
-          };
-          content = LlmYaml.toLLMYAML(converterDiagram);
-          defaultFilename = 'diagram.llm-yaml';
-          break;
-        }
-          
-        default:
-          throw new Error(`Unsupported format: ${format}`);
-      }
-      
-      const finalFilename = filename || defaultFilename;
-      const mimeType = getMimeType(format);
-      
-      await downloadEnhanced(content, finalFilename, mimeType);
-      toast.success(`Exported as ${format.toUpperCase()}`);
-      
-      return { content, filename: finalFilename };
-    } catch (error) {
-      console.error('[Export diagram]', error);
-      toast.error(`Export failed: ${(error as Error).message}`);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [downloadEnhanced]);
+
 
   // Save to backend directory using the export functionality
   const saveDiagramToServer = useCallback(async (format: SupportedFormat, filename?: string) => {
     setIsProcessing(true);
     try {
-      let diagramData: any;
-      
-      if (format === 'json') {
-        // Use new export format for JSON saves
-        const exportData = exportDiagram();
-        diagramData = {
-          ...exportData,
-          id: `diagram-${Date.now()}`,
-          name: filename?.replace(/\.[^/.]+$/, '') || 'Untitled Diagram'
-        };
-      } else {
-        // Use actual domain objects for YAML formats
-        const store = useUnifiedStore.getState();
-        diagramData = {
-          id: `diagram-${Date.now()}`,
-          name: filename?.replace(/\.[^/.]+$/, '') || 'Untitled Diagram',
-          nodes: Array.from(store.nodes.values()),
-          arrows: Array.from(store.arrows.values()),
-          persons: Array.from(store.persons.values()),
-          apiKeys: Array.from(store.apiKeys.values()),
-          handles: Array.from(store.handles.values())
-        };
-      }
+      // Use actual domain objects for all YAML formats
+      const store = useUnifiedStore.getState();
+      const diagramData = {
+        id: `diagram-${Date.now()}`,
+        name: filename?.replace(/\.[^/.]+$/, '') || 'Untitled Diagram',
+        nodes: Array.from(store.nodes.values()),
+        arrows: Array.from(store.arrows.values()),
+        persons: Array.from(store.persons.values()),
+        apiKeys: Array.from(store.apiKeys.values()),
+        handles: Array.from(store.handles.values())
+      };
       
       const finalFilename = filename || `diagram${getFileExtension(format)}`;
       const result = await saveDiagramToBackend(diagramData, {
@@ -352,80 +324,10 @@ export const useFileOperations = () => {
     return downloadEnhanced(data, filename, mimeType);
   }, [downloadEnhanced]);
 
-  // Specific download functions
-  const downloadJSON = useCallback((data: object, filename: string) => {
-    const content = JSON.stringify(data, null, 2);
-    return download(content, filename, 'json');
-  }, [download]);
 
-  const downloadYAML = useCallback((data: string, filename: string) => {
-    return download(data, filename, 'yaml');
-  }, [download]);
-
-  const downloadLLMYAML = useCallback((data: string, filename: string) => {
-    return download(data, filename, 'llm-yaml');
-  }, [download]);
-
-  // ===================
-  // CONVERSION OPERATIONS
-  // ===================
-
-  // Convert JSON to YAML
-  const convertJSONtoYAML = useCallback(async (file: File) => {
-    setIsProcessing(true);
-    try {
-      const content = await readFileAsText(file);
-      const diagram = JSON.parse(content);
-      
-      const yamlContent = Yaml.toYAML(diagram);
-      
-      // Download the converted file
-      const filename = file.name.replace('.json', '.yaml');
-      await downloadYAML(yamlContent, filename);
-      
-      toast.success('JSON converted to YAML successfully');
-    } catch (error) {
-      console.error('[Convert JSON to YAML]', error);
-      toast.error(`Convert JSON to YAML: ${(error as Error).message}`);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [downloadYAML]);
-
-  // ===================
-  // ADVANCED OPERATIONS
-  // ===================
-
-  // Export all formats
-  const exportAllFormats = useCallback(async (baseFilename: string = 'diagram') => {
-    setIsProcessing(true);
-    try {
-      const results = await Promise.allSettled([
-        exportDiagramAs('json', `${baseFilename}.json`),
-        exportDiagramAs('yaml', `${baseFilename}.yaml`),
-        exportDiagramAs('llm-yaml', `${baseFilename}.llm-yaml`)
-      ]);
-      
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
-      
-      if (successful > 0) {
-        toast.success(`Exported ${successful} format(s) successfully${failed > 0 ? `, ${failed} failed` : ''}`);
-      } else {
-        throw new Error('All exports failed');
-      }
-    } catch (error) {
-      console.error('[Export all formats]', error);
-      toast.error(`Export all formats: ${(error as Error).message}`);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [exportDiagramAs]);
 
   // Clone diagram with new name
-  const cloneDiagram = useCallback(async (newName: string, format: SupportedFormat = 'json') => {
+  const cloneDiagram = useCallback(async (newName: string, format: SupportedFormat = 'light') => {
     setIsProcessing(true);
     try {
       // Use new export format for cloning
@@ -442,46 +344,29 @@ export const useFileOperations = () => {
         }
       };
       
-      // Convert to appropriate format based on file type
-      const diagramToSave = format === 'json' 
-        ? clonedDiagram 
-        : { 
-            id: clonedDiagram.id, 
-            name: newName,
-            nodes: exportedData.nodes,
-            arrows: exportedData.arrows,
-            persons: exportedData.persons,
-            apiKeys: exportedData.apiKeys,
-            handles: [] // Converter format expects handles
-          };
+      // Use actual domain objects for YAML formats
+      const store = useUnifiedStore.getState();
+      const diagramToSave = {
+        id: clonedDiagram.id,
+        name: newName,
+        nodes: Array.from(store.nodes.values()),
+        arrows: Array.from(store.arrows.values()),
+        persons: Array.from(store.persons.values()),
+        apiKeys: Array.from(store.apiKeys.values()),
+        handles: Array.from(store.handles.values())
+      };
       
-      // Save based on format
-      let result;
-      if (format === 'json') {
-        // For JSON, save the export format directly via API
-        const response = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            diagram: diagramToSave,
-            filename: `${newName}${getFileExtension(format)}`,
-            format: format as FileFormat
-          })
-        });
-        result = await response.json();
-      } else {
-        // For YAML formats, we already have the converter format
-        const response = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            diagram: diagramToSave,
-            filename: `${newName}${getFileExtension(format)}`,
-            format: format as FileFormat
-          })
-        });
-        result = await response.json();
-      }
+      // Save the cloned diagram
+      const response = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          diagram: diagramToSave,
+          filename: `${newName}${getFileExtension(format)}`,
+          format: format as FileFormat
+        })
+      });
+      const result = await response.json();
       
       if (result.success) {
         toast.success(`Cloned diagram as: ${result.filename}`);
@@ -532,29 +417,15 @@ export const useFileOperations = () => {
     importFromURL,
     handleFileInput,
     
-    // Export operations  
-    exportJSON: () => exportDiagramAs('json'),
-    exportYAML: () => exportDiagramAs('yaml'),
-    exportLLMYAML: () => exportDiagramAs('llm-yaml'),
-    exportDiagramAs,
-    
     // Save operations (save to server)
-    saveJSON: (filename?: string) => saveDiagramToServer('json', filename),
-    saveYAML: (filename?: string) => saveDiagramToServer('yaml', filename),
-    saveLLMYAML: (filename?: string) => saveDiagramToServer('llm-yaml', filename),
+    saveLight: (filename?: string) => saveDiagramToServer('light', filename),
+    saveNative: (filename?: string) => saveDiagramToServer('native', filename),
+    saveReadable: (filename?: string) => saveDiagramToServer('readable', filename),
+    saveLLMReadable: (filename?: string) => saveDiagramToServer('llm-readable', filename),
     saveDiagramAs: saveDiagramToServer, // Deprecated - use exportDiagramAs for downloads
-    
+
     // Download operations
     download,
-    downloadJSON,
-    downloadYAML,
-    downloadLLMYAML,
-    
-    // Conversion operations
-    convertJSONtoYAML,
-    
-    // Advanced operations
-    exportAllFormats,
     cloneDiagram,
     
     // Utilities
@@ -563,7 +434,7 @@ export const useFileOperations = () => {
     
     // Wrapped versions with error handling
     safeImport: withFileErrorHandling(importFile, 'Import file'),
-    safeExport: withFileErrorHandling((format: SupportedFormat) => exportDiagramAs(format), 'Export file'),
+    safeExport: withFileErrorHandling((format: SupportedFormat) => saveDiagramToServer(format), 'Export file'),
     safeDownload: withFileErrorHandling(download, 'Download file'),
     
     // Save to server

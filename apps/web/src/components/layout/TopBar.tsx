@@ -7,7 +7,6 @@ import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse, apiKeyId } from '@/types';
-import { JsonConverter } from '@/utils/converters/formats/json';
 import { YamlConverter } from '@/utils/converters/formats/yaml';
 import { downloadFile } from '@/utils/file';
 
@@ -35,7 +34,7 @@ const TopBar = () => {
   } = diagramManager;
   
   // Create onChange handler for FileUploadButton
-  const onImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onImportYAML = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && importFile) {
       void importFile(file);
@@ -188,10 +187,9 @@ const TopBar = () => {
         apiKeys: diagramFromYaml.apiKeys.length
       });
 
-      // Convert back to JSON for comparison
-      const jsonConverter = new JsonConverter();
-      const jsonFromYaml = jsonConverter.serialize(diagramFromYaml);
-      console.log('4. Converted back to JSON');
+      // Convert back to YAML for comparison
+      const yamlFromDiagram = yamlConverter.serialize(diagramFromYaml);
+      console.log('4. Converted back to YAML');
 
       // Compare structures
       const originalNodeTypes = diagram.nodes.map(n => n.type).sort();
@@ -200,9 +198,9 @@ const TopBar = () => {
       console.log('   Node types match:', JSON.stringify(originalNodeTypes) === JSON.stringify(yamlNodeTypes));
       console.log('   Arrow count matches:', diagram.arrows.length === diagramFromYaml.arrows.length);
 
-      // Download both YAML and roundtrip JSON for inspection
+      // Download both original and roundtrip YAML for inspection
       downloadFile(yamlContent, 'diagram_test.yaml', 'text/yaml');
-      downloadFile(jsonFromYaml, 'diagram_from_yaml.json', 'application/json');
+      downloadFile(yamlFromDiagram, 'diagram_roundtrip.yaml', 'text/yaml');
 
       toast.success('YAML conversion test completed! Check console and downloads.');
     } catch (error) {
@@ -231,11 +229,11 @@ const TopBar = () => {
             📄 New
           </Button>
           <FileUploadButton
-            accept=".json"
-            onChange={onImportJSON}
+            accept=".yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml"
+            onChange={onImportYAML}
             variant="outline"
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            title="Open diagram from JSON file"
+            title="Open diagram from YAML file"
           >
             📂 Open
           </FileUploadButton>

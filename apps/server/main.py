@@ -26,7 +26,8 @@ from .src.api.routers import (
     files_router,
     conversations_router,
     websocket_router,
-    models_router
+    models_router,
+    health_router
 )
 from .src.api.middleware import setup_middleware
 
@@ -45,6 +46,7 @@ app = FastAPI(
 setup_middleware(app)
 
 # Include routers
+app.include_router(health_router)
 app.include_router(diagram_router)
 app.include_router(apikeys_router)
 app.include_router(files_router)

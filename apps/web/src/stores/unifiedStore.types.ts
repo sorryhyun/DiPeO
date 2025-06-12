@@ -193,7 +193,7 @@ export interface UnifiedStore {
   
   // Export/Import operations
   exportDiagram: () => ExportFormat;
-  exportAsJSON: () => string;
+  exportAsYAML: () => string;
   importDiagram: (data: ExportFormat | string) => void;
   validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
 }

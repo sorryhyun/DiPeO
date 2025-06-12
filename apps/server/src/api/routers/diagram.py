@@ -78,13 +78,13 @@ async def get_execution_capabilities():
 class SaveDiagramRequest(BaseModel):
     diagram: Dict[str, Any]
     filename: str
-    format: str  # "json" or "yaml"
+    format: str  # "light", "native", "readable", "llm-readable"
 
 
 class ConvertDiagramRequest(BaseModel):
     content: str
-    from_format: str  # "yaml", "json", "llm-yaml", "uml"
-    to_format: str    # "yaml", "json", "llm-yaml", "uml"
+    from_format: str  # "light", "native", "readable", "llm-readable"
+    to_format: str    # "light", "native", "readable", "llm-readable"
 
 
 
@@ -101,22 +101,27 @@ async def save_diagram(
         filename = request.filename
         
         # Determine the directory based on format and filename
-        if "llm-yaml" in filename or "llm.yaml" in filename:
-            directory = "files/llm-yaml_diagrams"
+        if request.format == "native":
+            directory = "files/diagrams/native"
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
-        elif request.format == "readable" or "readable" in filename:
-            directory = "files/readable_diagrams"
+        elif request.format == "readable":
+            directory = "files/diagrams/readable"
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
-        elif request.format == "yaml":
-            directory = "files/diagrams"  # Save YAML to main diagrams folder
+        elif request.format == "llm-readable":
+            directory = "files/diagrams/llm-readable"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
+        elif request.format == "light":
+            directory = "files/diagrams"  # Light format saves to main diagrams folder
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
         else:
+            # Default to light format
             directory = "files/diagrams"
-            if not filename.endswith('.json'):
-                filename += ".json"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
         
         # Create directory if it doesn't exist
         import os
@@ -133,11 +138,20 @@ async def save_diagram(
             final_filename = f"{base_name}_{counter}{extension}"
             counter += 1
         
+        # Map old format names to new ones for backward compatibility
+        format_mapping = {
+            "yaml": "light",
+            "native-yaml": "native",
+            "readable-yaml": "readable",
+            "llm-yaml": "llm-readable"
+        }
+        save_format = format_mapping.get(request.format, request.format)
+        
         # Save to appropriate directory
         saved_path = await file_service.write(
             path=f"{directory}/{final_filename}",
             content=request.diagram,
-            format=request.format
+            format="yaml"  # Always save as YAML internally
         )
         
         return {
