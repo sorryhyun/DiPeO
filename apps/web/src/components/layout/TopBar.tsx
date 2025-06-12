@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layers } from 'lucide-react';
+import { Layers, TestTube } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
@@ -7,6 +7,9 @@ import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { isApiKey, parseApiArrayResponse, apiKeyId } from '@/types';
+import { JsonConverter } from '@/utils/converters/formats/json';
+import { YamlConverter } from '@/utils/converters/formats/yaml';
+import { downloadFile } from '@/utils/file';
 
 
 const TopBar = () => {
@@ -145,6 +148,69 @@ const TopBar = () => {
     };
   }, [hasCheckedBackend]); // Add hasCheckedBackend to dependencies
 
+  // Test YAML conversion function
+  const testYamlConversion = async () => {
+    try {
+      // Get current diagram from store
+      const store = useUnifiedStore.getState();
+      const diagram = {
+        id: `diagram-${Date.now()}`,
+        name: 'Test Diagram',
+        description: 'YAML conversion test',
+        nodes: Array.from(store.nodes.values()),
+        arrows: Array.from(store.arrows.values()),
+        persons: Array.from(store.persons.values()),
+        apiKeys: Array.from(store.apiKeys.values()),
+        handles: Array.from(store.handles.values())
+      };
+
+      console.log('🧪 Testing YAML Conversion...');
+      console.log('1. Original diagram:', {
+        nodes: diagram.nodes.length,
+        arrows: diagram.arrows.length,
+        persons: diagram.persons.length,
+        apiKeys: diagram.apiKeys.length
+      });
+
+      // Convert to YAML
+      const yamlConverter = new YamlConverter();
+      const yamlContent = yamlConverter.serialize(diagram);
+      console.log('2. Converted to YAML successfully');
+      console.log('   First 20 lines:');
+      yamlContent.split('\n').slice(0, 20).forEach(line => console.log(`   ${line}`));
+
+      // Convert back from YAML
+      const diagramFromYaml = yamlConverter.deserialize(yamlContent);
+      console.log('3. Converted back from YAML:', {
+        nodes: diagramFromYaml.nodes.length,
+        arrows: diagramFromYaml.arrows.length,
+        persons: diagramFromYaml.persons.length,
+        apiKeys: diagramFromYaml.apiKeys.length
+      });
+
+      // Convert back to JSON for comparison
+      const jsonConverter = new JsonConverter();
+      const jsonFromYaml = jsonConverter.serialize(diagramFromYaml);
+      console.log('4. Converted back to JSON');
+
+      // Compare structures
+      const originalNodeTypes = diagram.nodes.map(n => n.type).sort();
+      const yamlNodeTypes = diagramFromYaml.nodes.map(n => n.type).sort();
+      console.log('5. Comparison:');
+      console.log('   Node types match:', JSON.stringify(originalNodeTypes) === JSON.stringify(yamlNodeTypes));
+      console.log('   Arrow count matches:', diagram.arrows.length === diagramFromYaml.arrows.length);
+
+      // Download both YAML and roundtrip JSON for inspection
+      downloadFile(yamlContent, 'diagram_test.yaml', 'text/yaml');
+      downloadFile(jsonFromYaml, 'diagram_from_yaml.json', 'application/json');
+
+      toast.success('YAML conversion test completed! Check console and downloads.');
+    } catch (error) {
+      console.error('YAML conversion test failed:', error);
+      toast.error(`YAML conversion test failed: ${(error as Error).message}`);
+    }
+  };
+
   // Keyboard shortcuts could be added here if needed
 
   return (
@@ -180,6 +246,15 @@ const TopBar = () => {
             title="Save diagram to server (diagrams folder)"
           >
             💾 Save
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors"
+            onClick={testYamlConversion}
+            title="Test YAML conversion round-trip"
+          >
+            <TestTube className="h-4 w-4 mr-1" />
+            Test YAML
           </Button>
         </div>
 

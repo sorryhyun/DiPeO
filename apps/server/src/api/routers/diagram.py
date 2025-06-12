@@ -105,8 +105,12 @@ async def save_diagram(
             directory = "files/llm-yaml_diagrams"
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
+        elif request.format == "readable" or "readable" in filename:
+            directory = "files/readable_diagrams"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
         elif request.format == "yaml":
-            directory = "files/yaml_diagrams"
+            directory = "files/diagrams"  # Save YAML to main diagrams folder
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
         else:

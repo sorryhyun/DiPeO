@@ -209,11 +209,11 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     
     try {
       // Generate a more user-friendly default filename if not provided
-      const defaultFilename = filename || `diagram.json`;
-      await fileOps.saveJSON(defaultFilename);
+      const defaultFilename = filename || `diagram.yaml`;
+      await fileOps.saveYAML(defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
-      toast.success('Diagram saved successfully');
+      toast.success('Diagram saved successfully as YAML');
     } catch (error) {
       console.error('Failed to save diagram:', error);
       toast.error('Failed to save diagram');
