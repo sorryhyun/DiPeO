@@ -4,7 +4,7 @@ import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
 import { FlowHandle } from '@/components/diagram/controls';
-import { useCanvasOperations, useExecution } from '@/hooks';
+import { useCanvasOperations, useExecutionProvider } from '@/hooks';
 import { useUIState } from '@/hooks/selectors';
 import {NodeKind, nodeId} from '@/types';
 import './BaseNode.css';
@@ -21,7 +21,7 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { getNodeExecutionState } = useExecution();
+  const { getNodeExecutionState } = useExecutionProvider();
   const nodeState = getNodeExecutionState(nodeId);
   
   return useMemo(() => ({

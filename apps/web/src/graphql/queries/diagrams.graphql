@@ -8,26 +8,30 @@ query GetDiagram($id: DiagramID!) {
         y
       }
       displayName
-      handles {
-        id
-        label
-        direction
-        dataType
-      }
+      data
+    }
+    handles {
+      id
+      nodeId
+      label
+      direction
+      dataType
+      position
     }
     arrows {
       id
       source
       target
-      data {
-        label
-      }
+      data
     }
     persons {
       id
       label
       service
       model
+      systemPrompt
+      apiKeyId
+      forgettingMode
       maskedApiKey
     }
     apiKeys {
@@ -75,10 +79,8 @@ mutation CreateDiagram($input: CreateDiagramInput!) {
         name
       }
     }
-    errors {
-      field
-      message
-    }
+    message
+    error
   }
 }
 
@@ -86,9 +88,7 @@ mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
   executeDiagram(input: $input) {
     success
     executionId
-    error {
-      message
-      code
-    }
+    message
+    error
   }
 }

@@ -81,23 +81,24 @@ class DiagramResolver:
                 ))
             
             # Convert API keys from Record to list format
-            apiKeys = []
+            api_keys = []
             for key_id, key_data in diagram_data.get('apiKeys', {}).items():
-                apiKeys.append(ApiKey(
+                api_keys.append(ApiKey(
                     id=key_id,
                     label=key_data.get('label', ''),
                     service=key_data.get('service', '')
                 ))
             
             # Create and return Diagram object
-            return Diagram(
-                metadata=metadata,
+            diagram = Diagram(
                 nodes=nodes,
                 arrows=arrows,
                 handles=handles,
                 persons=persons,
-                apiKeys=apiKeys
+                api_keys=api_keys
             )
+            diagram.metadata = metadata
+            return diagram
             
         except Exception as e:
             logger.error(f"Failed to get diagram {diagram_id}: {e}")
@@ -167,14 +168,15 @@ class DiagramResolver:
                 )
                 
                 # Create a minimal Diagram object with just metadata
-                result.append(Diagram(
-                    metadata=metadata,
+                diagram = Diagram(
                     nodes=[],
                     arrows=[],
                     handles=[],
                     persons=[],
-                    apiKeys=[]
-                ))
+                    api_keys=[]
+                )
+                diagram.metadata = metadata
+                result.append(diagram)
             
             return result
             

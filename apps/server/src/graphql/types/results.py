@@ -26,14 +26,16 @@ class NodeResult:
     """Result of node operation."""
     success: bool
     node: Optional[Node] = None
-    errors: Optional[List[ValidationError]] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 @strawberry.type
 class DiagramResult:
     """Result of diagram operation."""
     success: bool
     diagram: Optional[Diagram] = None
-    errors: Optional[List[ValidationError]] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 @strawberry.type
 class ExecutionResult:
@@ -41,34 +43,38 @@ class ExecutionResult:
     success: bool
     execution: Optional[ExecutionState] = None
     execution_id: Optional[ExecutionID] = None
-    error: Optional[OperationError] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 @strawberry.type
 class PersonResult:
     """Result of person operation."""
     success: bool
     person: Optional[Person] = None
-    errors: Optional[List[ValidationError]] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 @strawberry.type
 class ApiKeyResult:
     """Result of API key operation."""
     success: bool
     api_key: Optional[ApiKey] = None
-    error: Optional[OperationError] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 @strawberry.type
 class DeleteResult:
     """Result of delete operation."""
     success: bool
     deleted_id: Optional[str] = None
-    error: Optional[OperationError] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 @strawberry.type
 class TestApiKeyResult:
     """Result of API key test."""
     success: bool
-    message: str
+    valid: bool
     available_models: Optional[List[str]] = None
     error: Optional[str] = None
 

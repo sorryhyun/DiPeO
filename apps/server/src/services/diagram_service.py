@@ -319,3 +319,95 @@ class DiagramService(BaseService):
         except Exception as e:
             raise ValidationError(f"Failed to load diagram: {e}")
     
+    def save_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
+        """Save a diagram to file.
+        
+        Args:
+            path: Relative path from diagrams directory
+            diagram: Diagram data in domain format
+        """
+        file_path = self.diagrams_dir / path
+        
+        # Ensure parent directory exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            # Validate diagram structure
+            self._validate_diagram(diagram)
+            
+            # Save based on extension
+            if file_path.suffix.lower() in ['.yaml', '.yml']:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(diagram, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            elif file_path.suffix.lower() == '.json':
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(diagram, f, indent=2, ensure_ascii=False)
+            else:
+                raise ValidationError(f"Unsupported file format: {file_path.suffix}")
+                
+            logger.info(f"Saved diagram to {path}")
+            
+        except Exception as e:
+            raise ValidationError(f"Failed to save diagram: {e}")
+    
+    def create_diagram(self, name: str, diagram: Dict[str, Any], format: str = 'json') -> str:
+        """Create a new diagram.
+        
+        Args:
+            name: Name for the diagram (will be used as filename)
+            diagram: Diagram data in domain format
+            format: File format ('json' or 'yaml')
+            
+        Returns:
+            Path to the created diagram
+        """
+        # Generate filename
+        safe_name = name.replace(' ', '_').replace('/', '_')
+        extension = '.yaml' if format == 'yaml' else '.json'
+        path = f"{safe_name}{extension}"
+        
+        # Check if file already exists
+        file_path = self.diagrams_dir / path
+        if file_path.exists():
+            # Generate unique name
+            import uuid
+            unique_id = str(uuid.uuid4())[:8]
+            path = f"{safe_name}_{unique_id}{extension}"
+        
+        # Save the diagram
+        self.save_diagram(path, diagram)
+        
+        return path
+    
+    def update_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
+        """Update an existing diagram.
+        
+        Args:
+            path: Relative path from diagrams directory
+            diagram: Updated diagram data in domain format
+        """
+        file_path = self.diagrams_dir / path
+        
+        if not file_path.exists():
+            raise ValidationError(f"Diagram file not found: {path}")
+        
+        # Save the updated diagram
+        self.save_diagram(path, diagram)
+    
+    def delete_diagram(self, path: str) -> None:
+        """Delete a diagram file.
+        
+        Args:
+            path: Relative path from diagrams directory
+        """
+        file_path = self.diagrams_dir / path
+        
+        if not file_path.exists():
+            raise ValidationError(f"Diagram file not found: {path}")
+        
+        try:
+            file_path.unlink()
+            logger.info(f"Deleted diagram at {path}")
+        except Exception as e:
+            raise ValidationError(f"Failed to delete diagram: {e}")
+    

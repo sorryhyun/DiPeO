@@ -15,7 +15,7 @@ class BaseService(ABC):
     
     def validate_required_fields(self, data: Dict[str, Any], required_fields: list[str]) -> None:
         """Validate that all required fields are present."""
-        missing_fields = [field for field in required_fields if not data.get(field)]
+        missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
     

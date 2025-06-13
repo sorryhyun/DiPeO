@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
-import { useExecution } from './useExecution';
+import { useExecutionProvider } from './useExecutionProvider';
 import { useFileOperations } from './useFileOperations';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
@@ -80,7 +80,7 @@ export interface UseDiagramManagerReturn {
   };
   
   // Internal - for composition with other hooks
-  _execution?: ReturnType<typeof useExecution>;
+  _execution?: ReturnType<typeof useExecutionProvider>;
 }
 
 // =====================
@@ -159,7 +159,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Get hooks
   const canvas = useCanvasOperations();
-  const execution = useExecution({ showToasts: false });
+  const execution = useExecutionProvider({ showToasts: false });
   const fileOps = useFileOperations();
   const exportHook = useExport();
   

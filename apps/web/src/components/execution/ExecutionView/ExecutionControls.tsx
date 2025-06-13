@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
-import { useExecution } from '@/hooks';
+import { useExecutionProvider } from '@/hooks';
 import { useDiagramData } from '@/hooks/selectors';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
-  const execution = useExecution({ showToasts: false });
+  const execution = useExecutionProvider({ showToasts: false });
   const { nodes, arrows, persons, handles, apiKeys } = useDiagramData();
   
   // Map execution state to old runStatus format

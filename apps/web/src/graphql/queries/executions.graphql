@@ -51,7 +51,7 @@ subscription ExecutionUpdates($executionId: ExecutionID!) {
   }
 }
 
-subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType]) {
+subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
   nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
     executionId
     nodeId
@@ -82,10 +82,8 @@ mutation ControlExecution($input: ExecutionControlInput!) {
       id
       status
     }
-    error {
-      message
-      code
-    }
+    message
+    error
   }
 }
 
@@ -97,9 +95,7 @@ mutation SubmitInteractiveResponse($input: InteractiveResponseInput!) {
       status
       runningNodes
     }
-    error {
-      message
-      code
-    }
+    message
+    error
   }
 }
