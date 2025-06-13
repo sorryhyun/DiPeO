@@ -20,6 +20,7 @@ import type {
 
 // YAML file format (uses arrays)
 interface YamlFileDiagram {
+  version?: string;
   id?: string;
   name?: string;
   nodes: DomainNode[];
@@ -45,6 +46,7 @@ export class NativeYamlConverter {
    */
   static serialize(diagram: DomainDiagram): string {
     const yamlDiagram: YamlFileDiagram = {
+      version: '1.0',
       nodes: Object.values(diagram.nodes),
       arrows: Object.values(diagram.arrows),
       handles: Object.values(diagram.handles),

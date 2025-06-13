@@ -91,6 +91,7 @@ export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const { exportDiagram, importDiagram } = useExport();
+  const store = useUnifiedStore();
 
   // Enhanced download with File System Access API support
   const downloadEnhanced = useCallback(async (
@@ -186,8 +187,36 @@ export const useFileOperations = () => {
         case 'native': {
           // Use native YAML converter for DomainDiagram format
           const domainDiagram = fromNativeYAML(content);
-          // Import domain diagram directly - no conversion needed
-          importDiagram(JSON.stringify(domainDiagram));
+          
+          // Clear existing data and import the domain diagram directly
+          store.clearAll();
+          store.transaction(() => {
+            // Import API keys
+            Object.entries(domainDiagram.apiKeys).forEach(([id, apiKey]) => {
+              store.apiKeys.set(id as ApiKeyID, apiKey);
+            });
+            
+            // Import persons
+            Object.entries(domainDiagram.persons).forEach(([id, person]) => {
+              store.persons.set(id as PersonID, person);
+            });
+            
+            // Import nodes
+            Object.entries(domainDiagram.nodes).forEach(([id, node]) => {
+              store.nodes.set(id as NodeID, node);
+            });
+            
+            // Import handles
+            Object.entries(domainDiagram.handles).forEach(([id, handle]) => {
+              store.handles.set(id as HandleID, handle);
+            });
+            
+            // Import arrows
+            Object.entries(domainDiagram.arrows).forEach(([id, arrow]) => {
+              store.arrows.set(id as ArrowID, arrow);
+            });
+          });
+          
           toast.success('Native YAML file imported successfully');
           break;
         }
@@ -222,7 +251,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [importDiagram]);
+  }, [importDiagram, store]);
 
   // Import via file selection dialog
   const importWithDialog = useCallback(async () => {

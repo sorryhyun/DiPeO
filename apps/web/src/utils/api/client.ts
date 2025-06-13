@@ -391,12 +391,20 @@ export const convertDiagram = async (
   toFormat: string
 ): Promise<ApiResponse<{ content: string; format: string }>> => {
   try {
-    const data = await apiClient.post<{ content: string; format: string }>(
+    // Backend returns { success: boolean, output: string, message: string }
+    const data = await apiClient.post<any>(
       API_ENDPOINTS.DIAGRAMS_CONVERT,
       { content, from_format: fromFormat, to_format: toFormat },
       { errorContext: 'Convert Diagram' }
     );
-    return { success: true, data };
+    // Map backend response to expected format
+    return { 
+      success: true, 
+      data: {
+        content: data.output || data.content || '',
+        format: data.format || toFormat
+      }
+    };
   } catch (error) {
     return { 
       success: false, 
