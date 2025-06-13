@@ -7,12 +7,19 @@ from .types import Node, Graph, Arrow, Ctx
 
 
 def build_graph(diagram: Dict[str, Any]) -> Graph:
+    # Only handle Record format (dict)
+    nodes = diagram.get("nodes", {})
+    # Record format - nodes is a dict with IDs as keys
     ns: Dict[str, Node] = {
-        n["id"]: Node(n["id"], n["data"].get("type", n["type"]), n["data"])
-        for n in diagram["nodes"]
+        node_id: Node(node_id, n["data"].get("type", n.get("type")), n["data"])
+        for node_id, n in nodes.items()
     }
+    
     inc, out = defaultdict(list), defaultdict(list)
-    for a in diagram["arrows"]:
+    
+    # Only handle Record format (dict) for arrows
+    arrows = diagram.get("arrows", {})
+    for a in arrows.values():
         # ------------------------------------------------------------------
         # Arrow source / target may come in two different shapes depending on
         # who created the diagram:

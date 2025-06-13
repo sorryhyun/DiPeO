@@ -47,62 +47,32 @@ class ExecutionOptions:
     output_file: Optional[str] = None
 
 
-class DiagramTransformer:
-    """Handles diagram format transformations for backend compatibility"""
+class DiagramValidator:
+    """Validates diagram structure without transformation"""
     
     @staticmethod
-    def transform_for_backend(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform diagram to backend-compatible format"""
-        diagram = DiagramTransformer._transform_api_keys(diagram)
-        diagram = DiagramTransformer._transform_arrows(diagram)
-        diagram = DiagramTransformer._ensure_node_ids(diagram)
-        return diagram
-    
-    @staticmethod
-    def _transform_api_keys(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform apiKeyLabel to apiKeyId in persons"""
-        persons = diagram.get('persons', [])
+    def validate_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate diagram has required structure"""
+        # Ensure all required fields exist
+        if 'nodes' not in diagram:
+            diagram['nodes'] = {}
+        if 'arrows' not in diagram:
+            diagram['arrows'] = {}
+        if 'handles' not in diagram:
+            diagram['handles'] = {}
+        if 'persons' not in diagram:
+            diagram['persons'] = {}
+        if 'apiKeys' not in diagram:
+            diagram['apiKeys'] = {}
         
-        if isinstance(persons, list):
-            for person in persons:
-                if 'apiKeyLabel' in person and 'apiKeyId' not in person:
-                    person['apiKeyId'] = DEFAULT_API_KEY
-                    person.pop('apiKeyLabel', None)
-                elif 'apiKeyId' not in person:
-                    person['apiKeyId'] = DEFAULT_API_KEY
-        
-        return diagram
-    
-    @staticmethod
-    def _transform_arrows(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform arrow handles to backend format"""
-        arrows = diagram.get('arrows', [])
-        
-        for arrow in arrows:
-            # Handle source
-            if 'sourceHandle' in arrow and 'source' not in arrow:
-                parts = arrow['sourceHandle'].split('::', 1)
-                arrow['source'] = parts[0]
-                if len(parts) > 1:
-                    arrow['sourceHandle'] = parts[1]
-            
-            # Handle target
-            if 'targetHandle' in arrow and 'target' not in arrow:
-                parts = arrow['targetHandle'].split('::', 1)
-                arrow['target'] = parts[0]
-                if len(parts) > 1:
-                    arrow['targetHandle'] = parts[1]
-        
-        return diagram
-    
-    @staticmethod
-    def _ensure_node_ids(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensure all nodes have IDs"""
-        nodes = diagram.get('nodes', [])
-        
-        for i, node in enumerate(nodes):
-            if 'id' not in node:
-                node['id'] = node.get('label', f'node_{i}').replace(' ', '_')
+        # Add default API key if needed
+        if not diagram['apiKeys'] and diagram['persons']:
+            diagram['apiKeys'][DEFAULT_API_KEY] = {
+                'id': DEFAULT_API_KEY,
+                'label': 'Default API Key',
+                'service': 'openai',
+                'key': 'test-key'
+            }
         
         return diagram
 
@@ -121,7 +91,7 @@ class DiagramLoader:
             else:
                 diagram = json.load(f)
         
-        return DiagramTransformer.transform_for_backend(diagram)
+        return DiagramValidator.validate_diagram(diagram)
     
     @staticmethod
     def save(diagram: Dict[str, Any], file_path: str) -> None:
@@ -178,7 +148,7 @@ class WebSocketExecutor:
         await websocket.send(json.dumps(message))
         
         if self.options.debug:
-            print(f"🐛 Debug: Sent execution request via WebSocket")
+            print("🐛 Debug: Sent execution request via WebSocket")
             print(f"🐛 Debug: Activity timeout set to {self.options.timeout} seconds")
     
     async def _process_messages(self, websocket, result: Dict[str, Any]) -> Dict[str, Any]:
@@ -243,7 +213,7 @@ class WebSocketExecutor:
             
         except json.JSONDecodeError:
             if self.options.debug:
-                print(f"🐛 Debug: Malformed JSON message")
+                print("🐛 Debug: Malformed JSON message")
         
         return False
     
@@ -465,14 +435,14 @@ class CommandHandler:
             node_type = node.get('type', 'unknown')
             node_types[node_type] = node_types.get(node_type, 0) + 1
         
-        print(f"\nDiagram Statistics:")
+        print("\nDiagram Statistics:")
         print(f"  Persons: {len(diagram.get('persons', []))}")
         print(f"  Nodes: {len(nodes)}")
         print(f"  Arrows: {len(diagram.get('arrows', []))}")
         print(f"  API Keys: {'Yes' if diagram.get('apiKeys') else 'No'}")
         
         if node_types:
-            print(f"\nNode Types:")
+            print("\nNode Types:")
             for node_type, count in sorted(node_types.items()):
                 print(f"  {node_type}: {count}")
     

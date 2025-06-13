@@ -103,19 +103,26 @@ class ExecutionService(BaseService):
         """Cheap structural sanity-check before running the engine."""
         if not isinstance(diagram, dict):
             raise ValidationError("Diagram must be a dictionary")
-        nodes = diagram.get("nodes") or []
+        nodes = diagram.get("nodes") or {}
+        if not isinstance(nodes, dict):
+            raise ValidationError("Nodes must be a dictionary with node IDs as keys")
         if not nodes:
             raise ValidationError("Diagram must contain at least one node")
+        # Record format - iterate over values
         if not any(
             n.get("type") == "start" or n.get("data", {}).get("type") == "start"
-            for n in nodes
+            for n in nodes.values()
         ):
             raise ValidationError("Diagram must contain at least one start node")
 
     async def _warm_up_models(self, diagram: Dict[str, Any]) -> None:
         """Pre-load each unique (service, model, api_key_id) once to cut latency."""
         seen: Set[str] = set()
-        for p in diagram.get("persons", []):
+        persons = diagram.get("persons", {})
+        # Only handle dict (Record format)
+        if not isinstance(persons, dict):
+            raise ValidationError("Persons must be a dictionary with person IDs as keys")
+        for p in persons.values():
             # Handle both camelCase and snake_case
             api_key_id = p.get("apiKeyId") or p.get("api_key_id")
             service = p.get("service")
