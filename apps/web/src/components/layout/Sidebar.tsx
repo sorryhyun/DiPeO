@@ -3,7 +3,7 @@ import React, { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
-import { useUnifiedFileOperations } from '@/hooks/useUnifiedFileOperations';
+import { useFileOperations } from '@/hooks/useFileOperations';
 import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
@@ -89,7 +89,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
     if (id) select(id, 'person');
     else clearSelection();
   };
-  const { importWithDialog, saveDiagramToServer } = useUnifiedFileOperations();
+  const { importWithDialog, saveDiagramToServer } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);

@@ -6,7 +6,7 @@ import { useExport } from './useExport';
 import { useDiagramManager } from './useDiagramManager';
 import { useExecution } from './useExecution';
 import { usePropertyManager } from './usePropertyManager';
-import { useUnifiedFileOperations } from './useUnifiedFileOperations';
+import { useFileOperations } from './useFileOperations';
 import type { 
   DomainNode, 
   DomainArrow, 
@@ -103,7 +103,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   });
   
   // File operations (conditional) - use unified file operations
-  const fileOps = useMaybe(enableFileOperations, useUnifiedFileOperations);
+  const fileOps = useMaybe(enableFileOperations, useFileOperations);
   
   // Note: Canvas interactions are now integrated into useCanvasOperations
   // The shortcuts are passed through the options

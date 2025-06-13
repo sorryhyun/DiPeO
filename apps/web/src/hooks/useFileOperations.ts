@@ -16,7 +16,7 @@ import {
 } from '@/utils/converters/core';
 import type { DomainDiagram } from '@/types';
 
-export const useUnifiedFileOperations = () => {
+export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const store = useUnifiedStore();

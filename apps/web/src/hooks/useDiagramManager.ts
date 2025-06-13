@@ -9,7 +9,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useExecution } from './useExecution';
-import { useUnifiedFileOperations } from './useUnifiedFileOperations';
+import { useFileOperations } from './useFileOperations';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
@@ -160,7 +160,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   // Get hooks
   const canvas = useCanvasOperations();
   const execution = useExecution({ showToasts: false });
-  const fileOps = useUnifiedFileOperations();
+  const fileOps = useFileOperations();
   const exportHook = useExport();
   
   // Track dirty state locally since store doesn't have it
