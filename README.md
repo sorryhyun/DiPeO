@@ -46,184 +46,177 @@ bash run-server.sh
 * The canvas space serves as a kind of sandbox unit, effectively an organizational unit. Here, the endpoint of a diagram becomes the endpoint of an agent system. When building an A2A (agent-to-agent) system, you can simply connect two diagrams to establish A2A. In addition, memory units are explicitly designated per diagram.
 
 * Rather than merely creating diagrams, the inputs and outputs of each diagram can be exposed via API, enabling agent-based tools like Claude Code to leverage the diagrams. We aim to explore visual collaboration in which Claude Code can generate diagrams on its own or a human can modify a diagram created by Claude Code.
-# CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) when working with DiPeO.
 
-## Quick Start
+## Project Overview
 
+DiPeO (Diagrammed People & Organizations) is a visual programming environment for building AI-powered agent workflows. It's a monorepo that enables users to create, execute, and monitor multi-agent systems through an intuitive drag-and-drop interface.
+
+## Development Commands
+
+### Frontend (React + TypeScript)
 ```bash
-# Frontend
-pnpm dev:web        # Dev server (localhost:3000)
-pnpm build:web      # Production build  
-pnpm lint:fix       # Fix linting
-pnpm typecheck      # Type checking
-
-# Backend  
-python -m apps.server.main  # Start server (localhost:8000)
-WORKERS=4 python -m apps.server.main  # Multi-worker mode
-
-# CLI Tool
-pip install -r requirements-cli.txt
-python tool.py run files/diagrams/diagram.json --mode=monitor
+pnpm dev:web        # Start dev server on localhost:3000
+pnpm build:web      # Production build
+pnpm lint           # Run ESLint
+pnpm lint:fix       # Fix linting issues
+pnpm typecheck      # TypeScript type checking
+pnpm analyze        # Bundle size analysis (from apps/web)
 ```
 
-## Architecture
+### Backend (FastAPI + Python)
+```bash
+# Always use python -m syntax for running the server
+# IMPORTANT: Use WORKERS=1 for development to avoid WebSocket connection issues
+WORKERS=1 python -m apps.server.main    # Development mode (single worker)
+python -m apps.server.main              # Default: 4 workers (production)
 
-**DiPeO** - Visual programming for AI agent workflows via WebSocket with real-time control.
+# Alternative: Use the provided script
+bash run-server.sh
 
-**Core**: Person-based LLMs with memory • Visual drag-drop workflows • 3D memory visualization
+# With hot reload
+RELOAD=true python -m apps.server.main
 
-**Flow**: Frontend ↔ WebSocket ↔ Execution Engine → Node Executors
+# Note: Multiple workers create isolated ConnectionManager instances which
+# breaks WebSocket connections if HTTP and WS requests hit different workers
+```
 
-**UI Modes**: Design (canvas+properties) • Execution (conversation dashboard)
+### CLI Tool
+```bash
+# Run diagrams - always use tool.py
+python tool.py run files/diagrams/diagram.json
+python tool.py run files/diagrams/diagram.json --monitor
+python tool.py run files/diagrams/diagram.json --debug --timeout=10
 
-## Node Types
+# Convert between formats
+python tool.py convert input.yaml output.json
 
-- **start**: Flow init with static data (output only)
-- **condition**: Boolean branching, detect_max_iterations
-- **job**: Code execution (Python/JS/Bash)
-- **endpoint**: Terminal ops, file saving (input only)
-- **person_job**: LLM calls with memory/iterations
-- **person_batch_job**: Batch LLM processing
-- **db**: Data operations, file I/O
-- **user_response**: Interactive prompts (1-60s timeout)
-- **notion**: Notion page read/write
+# Get diagram statistics
+python tool.py stats diagram.json
+```
 
-All use snake_case naming.
+### Testing
+```bash
+# Backend tests (limited coverage)
+cd apps/server && python -m pytest
 
-## Handle System
+# Frontend tests: Not yet implemented
+```
 
-Arrows connect handles (`nodeId:handleName`), not nodes directly.
+## Architecture Overview
 
-- Format: `nodeId:handleName`
-- Registry: `apps/web/src/config/handleRegistry.ts`
-- Special: start (output only), endpoint (input only), condition (input + true/false)
-- Standard positioning: input (left), output (right) to prevent overlap
-- Optimized: Memoized FlowHandle, pre-computed lookups
+### Key Concepts
+- **Person-Based LLM Representation**: LLMs are represented as "persons" who maintain memory across tasks
+- **Handle System**: Connections are made between specific handles (format: `nodeId:handleName`), not between nodes directly
+- **WebSocket Execution**: Real-time execution with pause/resume/skip capabilities
+- **Memory Management**: 3D underground space metaphor with 1000 message limit and 24h TTL
 
-## Export/Import
+### Node Types
+- `start`: Entry point with static data
+- `person_job`: LLM tasks with memory management
+- `condition`: Branching logic
+- `job`: Code execution (Python/JS/Bash)
+- `endpoint`: Terminal operations
+- `db`: Data operations/file I/O
+- `user_response`: Interactive prompts
+- `notion`: Notion integration
 
-**Formats**: JSON (v3.0.0 with labels), YAML/LLM-YAML (array-based)
+### Directory Structure
+```
+apps/
+├── server/          # FastAPI backend
+│   ├── src/
+│   │   ├── api/     # REST & WebSocket routes
+│   │   ├── engine/  # Execution engine & executors
+│   │   ├── llm/     # LLM provider adapters
+│   │   └── services/# Business logic services
+│   └── requirements.txt
+└── web/            # React frontend
+    ├── src/
+    │   ├── components/  # UI components
+    │   ├── hooks/      # React hooks
+    │   ├── stores/     # Zustand state management
+    │   ├── types/      # TypeScript types
+    │   └── utils/      # Utilities & converters
+    └── package.json
+```
 
+### Important File Locations
+- Diagrams: `/files/diagrams/`
+- Conversation logs: `/files/conversation_logs/`
+- Results: `/files/results/`
+- Uploads: `/files/uploads/`
+
+## Development Guidelines
+
+### Package Management
+- **ALWAYS use `pnpm`** - never use `npm`, `npx`, or `node` commands
+- This is a pnpm workspace-based monorepo
+
+### LLM Configuration
+- Always use `gpt-4.1-nano` for OpenAI LLM model
+- API key "APIKEY_387B73" is safe for testing
+
+### Code Search
+- When using ripgrep: `--type ts` will find both `.ts` and `.tsx` files
+- Do NOT use `--type tsx` (it doesn't exist)
+
+### State Management
+- Frontend uses Zustand v5 with unified store pattern
+- Store is located at `apps/web/src/stores/unifiedStore.ts`
+- Use selector factory pattern for performance
+
+### WebSocket Communication
+- WebSocket client: `apps/web/src/utils/websocket/client.ts`
+- Event bus pattern for message handling
+- Execution control via WebSocket messages
+
+### Converter System
+The converter system follows a two-stage conversion pipeline:
+
+#### Conversion Flow
+- **Import**: Format → Domain → Store (React-compatible)
+- **Export**: Store → Domain → Format
+
+#### Core Components
+- **StoreDomainConverter** (`apps/web/src/utils/converters/core/storeDomainConverter.ts`)
+  - Converts between React store (Maps) and domain format (Records)
+  - Store format: Uses Maps for React Flow compatibility
+  - Domain format: Uses Records for serialization
+
+- **Format Converters** (`apps/web/src/utils/converters/formats/`)
+  - `native-yaml`: Stores domain diagram as-is (full fidelity)
+  - `light-yaml`: Simplified format using labels instead of IDs
+  - `readable-yaml`: Human-friendly format with embedded connections
+  - `llm-domain-yaml`: Optimized for AI understanding
+
+- **Registry System** (`apps/web/src/utils/converters/core/registry.ts`)
+  - Centralized converter registration
+  - Format metadata management
+  - Runtime converter lookup
+
+#### Usage Example
 ```typescript
-// New (recommended)
-import { useExport } from '@/hooks';
-const { exportDiagram, importDiagram } = useExport();
+// Import flow
+const converter = converterRegistry.get(format);
+const domainDiagram = converter.deserialize(content);  // Format → Domain
+const storeData = storeDomainConverter.domainToStore(domainDiagram);  // Domain → Store
 
-// Legacy (deprecated)
-import { exportDiagramState, loadDiagram } from '@/hooks/useStoreSelectors';
+// Export flow
+const domainDiagram = storeDomainConverter.storeToDomain(storeState);  // Store → Domain
+const content = converter.serialize(domainDiagram);  // Domain → Format
 ```
 
-**File Naming**: Default filename is `diagram.json`. Backend auto-increments with `_1`, `_2` etc. if file exists.
+## Testing & Quality
 
-**Unique Labels**: Duplicate labels get alphabetic suffixes: `-a`, `-b`, `-c` etc.
-
-**Immer Fix**: Use store actions (addNode, addArrow, etc.) instead of direct Map mutations in import
-
-## Memory & Loops
-
-- **Memory**: 1000 msg limit, Redis (24h TTL) or in-memory
-- **Logs**: Auto JSONL to `files/conversation_logs/`
-- **PersonJob**: `maxIterations`, `firstOnlyPrompt` (count=0), `defaultPrompt` (count>0)
-- **Condition**: `detect_max_iterations` - false until all nodes reach limit
-
-## LLM YAML Format
-
-```yaml
-flow:
-  - start -> analyze: "data"
-  - analyze -> report: "results"
-prompts:
-  analyze: "Analyze: {{data}}"
-persons:
-  analyst:
-    model: "gpt-4.1-nano"
-    service: "openai"
+### Code Quality
+```bash
+pnpm lint:fix      # Auto-fix linting issues
+pnpm typecheck     # Ensure type safety
 ```
 
-## APIs
-
-**WebSocket** (`WS /api/ws`): All execution control
-- Messages: `execute_diagram`, `pause_node`, `resume_node`, `skip_node`, `abort_execution`
-- Backend expects arrays for nodes/arrows (auto-converted from frontend Records)
-
-**REST**: `/api/diagrams/*`, `/api/api-keys/`, `/api/conversations`, `/api/files/upload`
-
-## Key Files
-
-**Backend**:
-- `apps/server/src/engine/` - Execution engine
-- `apps/server/src/api/routers/websocket.py` - WebSocket handler
-- `apps/server/src/llm/adapters/` - LLM providers
-
-**Frontend**:
-- `apps/web/src/hooks/` - Consolidated hooks
-  - `useCanvasOperations` - Canvas interactions
-  - `useExecution` - Execution controls
-  - `useExport` - Import/export (NEW)
-  - `useDiagramManager` - Diagram lifecycle
-- `apps/web/src/stores/unifiedStore.ts` - Zustand store
-- `apps/web/src/config/handleRegistry.ts` - Handle definitions
-
-## Type System
-
-- **Primitives** (`/types/primitives/`): Base types (geometry, enums, utilities)
-- **Domain** (`/types/domain/`): Business logic (node, arrow, handle, person, diagram)
-- **Framework** (`/types/framework/`): @xyflow/react adapters
-- **UI** (`/types/ui/`): Interface state
-- **Runtime** (`/types/runtime/`): Execution, WebSocket, events
-
-## Usage Examples
-
-```typescript
-// Canvas operations
-const canvas = useCanvasOperations();
-canvas.addNode('person_job', { x: 100, y: 100 });
-canvas.connectNodes(sourceId, 'default', targetId, 'first');
-
-// Execution
-const execution = useExecution();
-execution.execute(diagram);
-execution.pauseNode(nodeId);
-
-// Store (with transactions)
-const store = useUnifiedStore();
-store.transaction(() => {
-  store.addNode('job', { x: 200, y: 100 });
-  store.addArrow(sourceHandle, targetHandle);
-});
-```
-
-## WebSocket Event Bus
-
-Single connection in App.tsx:
-```typescript
-// App.tsx only
-const execution = useExecution({ autoConnect: true });
-
-// Other components
-const { send, on } = useWebSocketEventBus();
-const unsub = on('node_complete', handler);
-```
-
-## Dev Guidelines
-
-- Use `pnpm` only
-- Python modules: `python -m`
-- Frontend `data` ↔ Backend `properties`
-- Zustand 5: Use `useShallow` for complex selectors
-- Person naming: `DomainPerson` uses `label` field (not `name`)
-
-## Performance
-
-- Position updates on drag end only
-- Tolerance validation (0.01)
-- Memoized conversions by collection size
-- Stable dependencies in ConversationDashboard
-
-## Adding Features
-
-- **New Node**: Add to NodeType enum → Create executor → Add config
-- **New LLM**: Create adapter → Implement chat()
-- **New Control**: Add WS message → Implement in engine → Update client
+### Development Notes
+- Project is in active development - backward compatibility not required
+- Recent refactoring in progress (check git status)
+- Use `dev` branch for development, `main` for PRs
+- No comprehensive test suite yet - testing infrastructure needs implementation
