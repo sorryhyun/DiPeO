@@ -4,7 +4,6 @@
  */
 
 import { toast } from 'react-hot-toast';
-import type { ConverterDiagram } from '@/utils/converters/types';
 import { getApiUrl, API_ENDPOINTS } from './api/config';
 import { createLookupTable } from './dispatchTable';
 
@@ -119,9 +118,11 @@ export const downloadEnhanced = async (
 
 /**
  * Save diagram to backend
+ * @param diagram - The serialized diagram content (parsed YAML object)
+ * @param options - Save options including format and filename
  */
 export const saveDiagramToBackend = async (
-  diagram: ConverterDiagram,
+  diagram: any,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
   try {
