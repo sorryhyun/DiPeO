@@ -1,0 +1,1 @@
+export { DiagramAdapter } from './DiagramAdapter';

@@ -1,5 +1,10 @@
 import yaml
 import logging
+import os
+import json
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 from fastapi import HTTPException
 
 from ..exceptions import ValidationError
@@ -27,6 +32,7 @@ class DiagramService(BaseService):
         self.llm_service = llm_service
         self.api_key_service = api_key_service
         self.memory_service = memory_service
+        self.diagrams_dir = Path(os.environ.get('BASE_DIR', '.')).joinpath('files', 'diagrams')
 
 
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
@@ -34,7 +40,12 @@ class DiagramService(BaseService):
         valid_api_keys = {key["id"] for key in self.api_key_service.list_api_keys()}
 
         # Fix invalid API key references in persons
-        for person in diagram.get("persons", []):
+        persons = diagram.get("persons", {})
+        # Only handle dict (Record format)
+        if not isinstance(persons, dict):
+            raise ValidationError("Persons must be a dictionary with person IDs as keys")
+        
+        for person in persons.values():
             if person.get("apiKeyId") and person["apiKeyId"] not in valid_api_keys:
                 # Try to find a fallback key for the same service
                 all_keys = self.api_key_service.list_api_keys()
@@ -58,11 +69,12 @@ class DiagramService(BaseService):
         
         self.validate_required_fields(diagram, ["nodes", "arrows"])
         
-        if not isinstance(diagram["nodes"], list):
-            raise ValidationError("Nodes must be a list")
+        # Only accept dict (Record format)
+        if not isinstance(diagram["nodes"], dict):
+            raise ValidationError("Nodes must be a dictionary with node IDs as keys")
         
-        if not isinstance(diagram["arrows"], list):
-            raise ValidationError("arrows must be a list")
+        if not isinstance(diagram["arrows"], dict):
+            raise ValidationError("Arrows must be a dictionary with arrow IDs as keys")
     
     def import_yaml(self, yaml_text: str) -> dict:
         """Import YAML agent definitions and convert to diagram state."""
@@ -72,19 +84,29 @@ class DiagramService(BaseService):
             
             # If the data is already in diagram format, validate and return it
             if isinstance(data, dict) and "nodes" in data and "arrows" in data:
+                # Convert arrays to Record format if needed
+                if isinstance(data.get("nodes"), list):
+                    data["nodes"] = {n["id"]: n for n in data["nodes"]}
+                if isinstance(data.get("arrows"), list):
+                    data["arrows"] = {a["id"]: a for a in data["arrows"]}
+                if isinstance(data.get("persons"), list):
+                    data["persons"] = {p["id"]: p for p in data["persons"]}
+                
                 self._validate_diagram(data)
                 # Ensure all required fields are present
-                data.setdefault("persons", [])
-                data.setdefault("apiKeys", [])
+                data.setdefault("persons", {})
+                data.setdefault("apiKeys", {})
+                data.setdefault("handles", {})
                 return data
             
             # Otherwise, return an empty diagram structure
             # The frontend handles more complex YAML formats (LLM-friendly format)
             return {
-                "nodes": [],
-                "arrows": [],
-                "persons": [],
-                "apiKeys": []
+                "nodes": {},
+                "arrows": {},
+                "handles": {},
+                "persons": {},
+                "apiKeys": {}
             }
             
         except yaml.YAMLError as e:
@@ -101,15 +123,30 @@ class DiagramService(BaseService):
         """
         try:
             # Basic LLM-friendly format export
-            nodes = diagram.get("nodes", [])
-            arrows = diagram.get("arrows", [])
-            persons = diagram.get("persons", [])
+            nodes = diagram.get("nodes", {})
+            arrows = diagram.get("arrows", {})
+            persons = diagram.get("persons", {})
+            
+            # Only handle Record format
+            if not isinstance(nodes, dict):
+                raise ValidationError("Nodes must be a dictionary with node IDs as keys")
+            if not isinstance(arrows, dict):
+                raise ValidationError("Arrows must be a dictionary with arrow IDs as keys")
+            if not isinstance(persons, dict):
+                raise ValidationError("Persons must be a dictionary with person IDs as keys")
+            
+            node_list = list(nodes.values())
+            arrow_list = list(arrows.values())
+            person_list = list(persons.values())
             
             # Create simple flow representation
             flow = []
-            for arrow in arrows:
-                source_node = next((n for n in nodes if n["id"] == arrow["source"]), None)
-                target_node = next((n for n in nodes if n["id"] == arrow["target"]), None)
+            for arrow in arrow_list:
+                # Extract node ID from handle ID (format: "nodeId:handleName")
+                source_node_id = arrow["source"].split(":")[0] if ":" in arrow["source"] else arrow["source"]
+                target_node_id = arrow["target"].split(":")[0] if ":" in arrow["target"] else arrow["target"]
+                source_node = nodes.get(source_node_id)
+                target_node = nodes.get(target_node_id)
                 
                 if source_node and target_node:
                     source_label = source_node.get("data", {}).get("label", arrow["source"])
@@ -123,7 +160,7 @@ class DiagramService(BaseService):
             
             # Extract prompts from PersonJob nodes
             prompts = {}
-            for node in nodes:
+            for node in node_list:
                 if node.get("type") == "personJobNode":
                     data = node.get("data", {})
                     label = data.get("label", node["id"])
@@ -133,7 +170,7 @@ class DiagramService(BaseService):
             
             # Extract agent configurations
             agents = {}
-            for person in persons:
+            for person in person_list:
                 label = person.get("label", person["id"])
                 config = {}
                 if person.get("modelName") and person["modelName"] != "gpt-4":
@@ -157,4 +194,220 @@ class DiagramService(BaseService):
             
         except Exception as e:
             raise ValidationError(f"Failed to export LLM YAML: {e}")
+    
+    def list_diagram_files(self, directory: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List all diagram files in the diagrams directory.
+        
+        Returns a list of diagram metadata including:
+        - id: filename without extension
+        - name: human-readable name
+        - path: relative path from diagrams directory
+        - format: file format (yaml, json)
+        - modified: last modification time
+        - size: file size in bytes
+        """
+        diagrams = []
+        
+        # Determine which directory to scan
+        if directory:
+            scan_dir = self.diagrams_dir / directory
+        else:
+            scan_dir = self.diagrams_dir
+            
+        if not scan_dir.exists():
+            return diagrams
+        
+        # Scan for diagram files
+        for file_path in scan_dir.rglob('*'):
+            if file_path.is_file() and file_path.suffix.lower() in ['.yaml', '.yml', '.json']:
+                try:
+                    # Get file stats
+                    stats = file_path.stat()
+                    
+                    # Create relative path from diagrams directory
+                    relative_path = file_path.relative_to(self.diagrams_dir)
+                    
+                    # Determine format based on parent directory or filename
+                    format_type = 'native'
+                    if 'readable' in str(relative_path):
+                        format_type = 'readable'
+                    elif 'llm' in str(relative_path):
+                        format_type = 'llm-readable'
+                    elif relative_path.parent == Path('.'):
+                        format_type = 'light'
+                    
+                    # Create diagram metadata
+                    diagram_meta = {
+                        'id': file_path.stem,  # filename without extension
+                        'name': file_path.stem.replace('_', ' ').replace('-', ' ').title(),
+                        'path': str(relative_path),
+                        'format': format_type,
+                        'extension': file_path.suffix[1:],  # Remove the dot
+                        'modified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                        'size': stats.st_size
+                    }
+                    
+                    diagrams.append(diagram_meta)
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to process diagram file {file_path}: {e}")
+                    continue
+        
+        # Sort by modification time (newest first)
+        diagrams.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return diagrams
+    
+    def load_diagram(self, path: str) -> Dict[str, Any]:
+        """Load a diagram from file.
+        
+        Args:
+            path: Relative path from diagrams directory
+            
+        Returns:
+            Diagram data in domain format
+        """
+        file_path = self.diagrams_dir / path
+        
+        if not file_path.exists():
+            raise ValidationError(f"Diagram file not found: {path}")
+        
+        try:
+            # Read file based on extension
+            if file_path.suffix.lower() in ['.yaml', '.yml']:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f)
+            elif file_path.suffix.lower() == '.json':
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            else:
+                raise ValidationError(f"Unsupported file format: {file_path.suffix}")
+            
+            # Convert to domain format if needed
+            if isinstance(data, dict) and 'nodes' in data:
+                # Already in diagram format, ensure it's in Record format
+                if isinstance(data.get('nodes'), list):
+                    data['nodes'] = {n['id']: n for n in data['nodes']}
+                if isinstance(data.get('arrows'), list):
+                    data['arrows'] = {a['id']: a for a in data['arrows']}
+                if isinstance(data.get('persons'), list):
+                    data['persons'] = {p['id']: p for p in data['persons']}
+                if isinstance(data.get('handles'), list):
+                    data['handles'] = {h['id']: h for h in data['handles']}
+                if isinstance(data.get('apiKeys'), list):
+                    data['apiKeys'] = {k['id']: k for k in data['apiKeys']}
+                
+                # Validate and fix API keys
+                self._validate_and_fix_api_keys(data)
+                
+                # Ensure all required fields
+                data.setdefault('nodes', {})
+                data.setdefault('arrows', {})
+                data.setdefault('handles', {})
+                data.setdefault('persons', {})
+                data.setdefault('apiKeys', {})
+                
+                return data
+            else:
+                # Not in expected format
+                raise ValidationError("Invalid diagram format")
+                
+        except yaml.YAMLError as e:
+            raise ValidationError(f"Failed to parse YAML file: {e}")
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"Failed to parse JSON file: {e}")
+        except Exception as e:
+            raise ValidationError(f"Failed to load diagram: {e}")
+    
+    def save_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
+        """Save a diagram to file.
+        
+        Args:
+            path: Relative path from diagrams directory
+            diagram: Diagram data in domain format
+        """
+        file_path = self.diagrams_dir / path
+        
+        # Ensure parent directory exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            # Validate diagram structure
+            self._validate_diagram(diagram)
+            
+            # Save based on extension
+            if file_path.suffix.lower() in ['.yaml', '.yml']:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(diagram, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            elif file_path.suffix.lower() == '.json':
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(diagram, f, indent=2, ensure_ascii=False)
+            else:
+                raise ValidationError(f"Unsupported file format: {file_path.suffix}")
+                
+            logger.info(f"Saved diagram to {path}")
+            
+        except Exception as e:
+            raise ValidationError(f"Failed to save diagram: {e}")
+    
+    def create_diagram(self, name: str, diagram: Dict[str, Any], format: str = 'json') -> str:
+        """Create a new diagram.
+        
+        Args:
+            name: Name for the diagram (will be used as filename)
+            diagram: Diagram data in domain format
+            format: File format ('json' or 'yaml')
+            
+        Returns:
+            Path to the created diagram
+        """
+        # Generate filename
+        safe_name = name.replace(' ', '_').replace('/', '_')
+        extension = '.yaml' if format == 'yaml' else '.json'
+        path = f"{safe_name}{extension}"
+        
+        # Check if file already exists
+        file_path = self.diagrams_dir / path
+        if file_path.exists():
+            # Generate unique name
+            import uuid
+            unique_id = str(uuid.uuid4())[:8]
+            path = f"{safe_name}_{unique_id}{extension}"
+        
+        # Save the diagram
+        self.save_diagram(path, diagram)
+        
+        return path
+    
+    def update_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
+        """Update an existing diagram.
+        
+        Args:
+            path: Relative path from diagrams directory
+            diagram: Updated diagram data in domain format
+        """
+        file_path = self.diagrams_dir / path
+        
+        if not file_path.exists():
+            raise ValidationError(f"Diagram file not found: {path}")
+        
+        # Save the updated diagram
+        self.save_diagram(path, diagram)
+    
+    def delete_diagram(self, path: str) -> None:
+        """Delete a diagram file.
+        
+        Args:
+            path: Relative path from diagrams directory
+        """
+        file_path = self.diagrams_dir / path
+        
+        if not file_path.exists():
+            raise ValidationError(f"Diagram file not found: {path}")
+        
+        try:
+            file_path.unlink()
+            logger.info(f"Deleted diagram at {path}")
+        except Exception as e:
+            raise ValidationError(f"Failed to delete diagram: {e}")
     

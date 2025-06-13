@@ -1,4 +1,5 @@
 """WebSocket endpoint for real-time bidirectional communication."""
+import asyncio
 import json
 import logging
 import uuid
@@ -20,6 +21,7 @@ from ..websocket_utils import (
     MessageBroadcaster, 
     generate_execution_id
 )
+from ...services.message_router import message_router
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +37,28 @@ class ConnectionManager:
         self.subscription_manager = ClientSubscriptionManager()
         self.validator = WebSocketValidator()
         self.broadcaster: Optional[MessageBroadcaster] = None
+        self._router_initialized = False
         
     async def connect(self, client_id: str, websocket: WebSocket):
         """Accept and register a new WebSocket connection."""
         await websocket.accept()
         self.active_connections[client_id] = websocket
+        
+        # Initialize message router if not already done
+        if not self._router_initialized:
+            await message_router.initialize()
+            self._router_initialized = True
+        
+        # Register connection with the router
+        async def websocket_sender(message: dict):
+            """Handler for messages routed from other workers"""
+            if client_id in self.active_connections:
+                ws = self.active_connections[client_id]
+                if ws.client_state == WebSocketState.CONNECTED:
+                    await ws.send_json(message)
+        
+        await message_router.register_connection(client_id, websocket_sender)
+        
         # Initialize broadcaster if not already done
         if not self.broadcaster:
             self.broadcaster = MessageBroadcaster(
@@ -52,39 +71,57 @@ class ConnectionManager:
         """Remove a WebSocket connection."""
         if client_id in self.active_connections:
             del self.active_connections[client_id]
+        
+        # Unregister from router
+        await message_router.unregister_connection(client_id)
+        
         self.subscription_manager.remove_client(client_id)
         logger.info(f"Client {client_id} disconnected from WebSocket")
         
     async def send_to_client(self, client_id: str, message: dict):
         """Send a message to a specific client."""
+        # First try local delivery
         if client_id in self.active_connections:
             websocket = self.active_connections[client_id]
             if websocket.client_state == WebSocketState.CONNECTED:
                 try:
                     await websocket.send_json(message)
+                    return
                 except Exception as e:
                     logger.error(f"Error sending to client {client_id}: {e}")
                     await self.disconnect(client_id)
+                    return
+        
+        # If not local, route through message router
+        if self._router_initialized:
+            success = await message_router.route_to_connection(client_id, message)
+            if not success:
+                logger.warning(f"Failed to route message to client {client_id}")
                     
     async def broadcast(self, message: dict, execution_id: str = None):
         """Broadcast a message to all connected clients or those subscribed to an execution."""
-        disconnected_clients = []
-        
-        for client_id, websocket in self.active_connections.items():
-            # Check if client is subscribed to this execution or if it's a general broadcast
-            if execution_id is None or self.subscription_manager.is_client_subscribed(client_id, execution_id):
-                if websocket.client_state == WebSocketState.CONNECTED:
-                    try:
-                        await websocket.send_json(message)
-                    except Exception as e:
-                        logger.error(f"Error broadcasting to client {client_id}: {e}")
+        if execution_id and self._router_initialized:
+            # Use router for execution-specific broadcasts
+            await message_router.broadcast_to_execution(execution_id, message)
+        else:
+            # General broadcast - send to all local connections
+            disconnected_clients = []
+            
+            for client_id, websocket in self.active_connections.items():
+                # Check if client is subscribed to this execution or if it's a general broadcast
+                if execution_id is None or self.subscription_manager.is_client_subscribed(client_id, execution_id):
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        try:
+                            await websocket.send_json(message)
+                        except Exception as e:
+                            logger.error(f"Error broadcasting to client {client_id}: {e}")
+                            disconnected_clients.append(client_id)
+                    else:
                         disconnected_clients.append(client_id)
-                else:
-                    disconnected_clients.append(client_id)
-                    
-        # Clean up disconnected clients
-        for client_id in disconnected_clients:
-            await self.disconnect(client_id)
+                        
+            # Clean up disconnected clients
+            for client_id in disconnected_clients:
+                await self.disconnect(client_id)
             
     async def handle_message(self, client_id: str, message: dict, app_context: AppContext):
         """Handle incoming messages from clients."""
@@ -138,6 +175,10 @@ class ConnectionManager:
             # Subscribe client to this execution
             self.subscription_manager.subscribe_client(client_id, execution_id)
             
+            # Register subscription with router for cross-worker broadcasts
+            if self._router_initialized:
+                await message_router.subscribe_connection_to_execution(client_id, execution_id)
+            
             # Create interactive handler
             handler_factory = InteractiveHandlerFactory(self.state_manager, self.broadcast)
             interactive_handler = handler_factory.create_handler(execution_id)
@@ -162,6 +203,10 @@ class ConnectionManager:
                 
             # Clean up execution state
             self.state_manager.remove_execution(execution_id)
+            
+            # Unsubscribe from router
+            if self._router_initialized:
+                await message_router.unsubscribe_connection_from_execution(client_id, execution_id)
                 
         except ValidationError as e:
             await self.broadcaster.send_error(client_id, str(e), execution_id)

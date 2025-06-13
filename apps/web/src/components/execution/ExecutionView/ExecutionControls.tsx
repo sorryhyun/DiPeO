@@ -1,10 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
-import { useExecution } from '@/hooks';
+import { useExecutionProvider } from '@/hooks';
+import { useDiagramData } from '@/hooks/selectors';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
-  const execution = useExecution();
+  const execution = useExecutionProvider({ showToasts: false });
+  const { nodes, arrows, persons, handles, apiKeys } = useDiagramData();
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 
@@ -58,7 +60,17 @@ const ExecutionControls = () => {
         <Button 
           variant="outline" 
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-          onClick={() => execution.execute()}
+          onClick={() => {
+            // Convert Maps to Records for DomainDiagram format
+            const diagram = {
+              nodes: Object.fromEntries(nodes),
+              arrows: Object.fromEntries(arrows),
+              persons: Object.fromEntries(persons),
+              handles: Object.fromEntries(handles),
+              apiKeys: Object.fromEntries(apiKeys)
+            };
+            execution.execute(diagram);
+          }}
         >
           ▶️ Run Diagram
         </Button>

@@ -3,6 +3,7 @@
  */
 
 import type { WSMessage, MessageHandler, WebSocketClientOptions } from '@/types';
+import { logger } from '../logger';
 
 export type ConnectionHandler = (event: CustomEvent) => void;
 
@@ -47,14 +48,20 @@ export class Client extends EventTarget {
   
   private log(...args: unknown[]): void {
     if (this.debug) {
-      console.log('[WebSocket]', ...args);
+      logger.debug('[WebSocket]', ...args);
     }
   }
   
   connect(): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.log('Already connected');
-      return;
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.log('Already connected');
+        return;
+      }
+      if (this.ws.readyState === WebSocket.CONNECTING) {
+        this.log('Connection already in progress');
+        return;
+      }
     }
     
     this.forcedClose = false;
@@ -66,7 +73,7 @@ export class Client extends EventTarget {
     if (!this.ws) return;
     
     this.ws.onopen = () => {
-      this.log('Connected');
+      this.log('Connected - WebSocket opened');
       this.reconnectAttempts = 0;
       this.dispatchEvent(new CustomEvent('connected'));
       
@@ -91,7 +98,7 @@ export class Client extends EventTarget {
             try {
               handler(message);
             } catch (error) {
-              console.error('Handler error:', error);
+              logger.error('Handler error:', error);
             }
           });
         }
@@ -99,22 +106,25 @@ export class Client extends EventTarget {
         // Dispatch generic message event
         this.dispatchEvent(new CustomEvent('message', { detail: message }));
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
+        logger.error('Failed to parse WebSocket message:', error);
       }
     };
     
     this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      logger.error('WebSocket error:', error);
       this.dispatchEvent(new CustomEvent('error', { detail: error }));
     };
     
     this.ws.onclose = (event) => {
-      this.log('Disconnected', { code: event.code, reason: event.reason });
+      this.log('Disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean });
       this.ws = null;
       this.dispatchEvent(new CustomEvent('disconnected', { detail: event }));
       
-      if (!this.forcedClose) {
+      if (!this.forcedClose && event.code !== 1000) { // 1000 = normal closure
+        this.log('Scheduling reconnect due to abnormal closure');
         this.scheduleReconnect();
+      } else {
+        this.log('Not reconnecting:', { forcedClose: this.forcedClose, code: event.code });
       }
     };
   }
@@ -222,7 +232,10 @@ let wsClient: Client | null = null;
 
 export function getWebSocketClient(options?: WebSocketClientOptions): Client {
   if (!wsClient) {
+    logger.debug('[WebSocket] Creating new client instance');
     wsClient = new Client(options);
+  } else {
+    logger.debug('[WebSocket] Returning existing client instance');
   }
   return wsClient;
 }

@@ -40,8 +40,8 @@ export interface DiagramSaveResponse {
 
 export interface ConvertRequest {
   content: string;
-  sourceFormat: 'json' | 'yaml' | 'llm-yaml';
-  targetFormat: 'json' | 'yaml' | 'llm-yaml';
+  sourceFormat: 'native' | 'light' | 'readable' | 'llm-readable';
+  targetFormat: 'native' | 'light' | 'readable' | 'llm-readable';
 }
 
 export interface ConvertResponse {

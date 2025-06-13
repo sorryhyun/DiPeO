@@ -57,7 +57,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
       ...arrow.data,
       id: arrow.id, // Use arrow's id directly
       type: 'arrow' as const,
-      _sourceNodeType: (sourceNode?.data?.properties as Dict)?.type || sourceNode?.type,
+      _sourceNodeType: sourceNode?.type,
       _isFromConditionBranch: isFromConditionBranch
     };
   })();
@@ -79,7 +79,7 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
         title = `${node.data.label || 'Block'} Properties`;
         content = (
           <Suspense fallback={<LoadingFallback />}>
-            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...(node.data.properties as Dict), type: node.type || 'unknown' }} />
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...node.data, type: node.type || 'unknown' }} />
           </Suspense>
         );
       }

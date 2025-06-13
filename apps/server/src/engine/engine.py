@@ -23,8 +23,18 @@ class CompactEngine:
             ctx.interactive_handler = interactive_handler
             ctx.persons = diagram.get("persons", {})
             loops = LoopBook()
-            send = send or (lambda *_:None)
-            send({"type":"execution_started","order":g.order})
+            # Make send async-aware
+            if send is None:
+                async def _send(msg):
+                    pass  # No-op for None send
+            elif asyncio.iscoroutinefunction(send):
+                _send = send
+            else:
+                # Wrap sync send in async
+                async def _send(msg):
+                    send(msg)
+            
+            await _send({"type":"execution_started","order":g.order})
 
             pending: Set[str] = set(g.order)
             while pending:
@@ -33,11 +43,12 @@ class CompactEngine:
                 if not ready:
                     raise RuntimeError(f"Dead-lock, remaining: {pending}")
                 #  start events
-                for nid in ready: send({"type":"node_start","node_id":nid})
+                for nid in ready: 
+                    await _send({"type":"node_start","node_id":nid})
 
                 #  run in parallel
                 results = await asyncio.gather(
-                    *[self._do(nid,g.nodes[nid],ctx,loops,send) for nid in ready]
+                    *[self._do(nid,g.nodes[nid],ctx,loops,_send) for nid in ready]
                 )
                 pending.difference_update(ready)
                 #  handle loop re-queues (false condition → run again)
@@ -46,7 +57,7 @@ class CompactEngine:
                         # re-queue the whole strongly-connected loop members
                         pend = self._loop_members(nid,g)
                         pending.update(pend)
-            send({"type":"execution_complete",
+            await _send({"type":"execution_complete",
                   "order":ctx.order,"outputs":ctx.outputs,"skipped":ctx.skipped})
 
     # ------------------------------------------------------------------ helpers
@@ -69,14 +80,21 @@ class CompactEngine:
     async def _do(self, nid:str, node:Node, ctx:Ctx,
                   loops:LoopBook, send:Callable[[dict],None]):
         if should_skip(node,ctx,loops):
-            send({"type":"node_skipped","node_id":nid,"reason":ctx.skipped[nid]})
+            await send({"type":"node_skipped","node_id":nid,"reason":ctx.skipped[nid]})
             return None
 
         ex = self.execs.get(node.type)
         if not ex: raise RuntimeError(f"No executor for {node.type}")
 
         #  run the executor (validate inside executor if needed)
-        result = await ex.execute(node, ctx)                  # your API
+        # Convert Node object to dict format expected by executors
+        node_dict = {
+            "id": node.id,
+            "type": node.type,
+            "properties": node.props,  # Executors expect "properties", not "props"
+            "data": node.props  # Some executors might use "data"
+        }
+        result = await ex.execute(node_dict, ctx)                  # your API
         ctx.outputs[nid] = result.output
         ctx.exec_cnt [nid]+=1
         ctx.order.append(nid)
@@ -91,7 +109,7 @@ class CompactEngine:
             if not loops.bump(nid,node.max_iter):
                 ctx.skip(nid,"max_iterations")
 
-        send({"type":"node_complete","node_id":nid,
+        await send({"type":"node_complete","node_id":nid,
               "output":result.output,"meta":result.metadata})
         return result
 

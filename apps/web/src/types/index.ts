@@ -1,5 +1,8 @@
 // types/config.ts - Central export point for all types
 
+// Core types - single source of truth
+export * from './core';
+
 // Re-export all types from separate modules
 export * from './primitives';
 export * from './api';
@@ -44,7 +47,7 @@ export {
 
 
 // Export type guards
-export * from './typeGuards';
+export * from './typeGuardsRefactored';
 
 // Type guard factory types (for advanced usage)
 export type { TypeGuard, TypeGuardConfig, PropertyCheck } from '@/utils/typeGuardFactory';

@@ -11,7 +11,7 @@ export type ApiService = 'openai' | 'gemini' | 'claude' | 'grok';
 export interface DomainApiKey {
   id: ApiKeyID;
   service: ApiService;
-  name: string;
+  label: string;
   key?: string; // Optional - not stored in frontend for security
 }
 
@@ -24,7 +24,7 @@ export function isDomainApiKey(obj: unknown): obj is DomainApiKey {
     typeof obj === 'object' &&
     'id' in obj &&
     'service' in obj &&
-    'name' in obj
+    'label' in obj
   );
 }
 
@@ -34,13 +34,13 @@ export function isDomainApiKey(obj: unknown): obj is DomainApiKey {
 export function createApiKey(
   id: ApiKeyID,
   service: ApiService,
-  name: string,
+  label: string,
   key?: string
 ): DomainApiKey {
   return {
     id,
     service,
-    name,
+    label,
     key
   };
 }

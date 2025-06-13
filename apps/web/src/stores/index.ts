@@ -5,13 +5,16 @@ export { useUnifiedStore } from './unifiedStore';
 export type { 
   UnifiedStore,
   NodeState,
-  Snapshot,
+  Snapshot
+} from './unifiedStore.types';
+
+// Export the DiagramExporter class and its types
+export { DiagramExporter } from './diagramExporter';
+export type {
   ExportFormat,
   ExportedNode,
   ExportedArrow,
   ExportedPerson,
-  ExportedApiKey
-} from './unifiedStore.types';
-
-// Export the DiagramExporter class
-export { DiagramExporter } from './diagramExporter';
+  ExportedApiKey,
+  ExportedHandle
+} from './diagramExporter';

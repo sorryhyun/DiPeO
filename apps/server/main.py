@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
 
@@ -20,18 +20,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import routers and middleware
-from .src.api.routers import (
+from apps.server.src.api.routers import (
     diagram_router,
     apikeys_router,
     files_router,
     conversations_router,
     websocket_router,
-    models_router
+    models_router,
+    health_router
 )
-from .src.api.middleware import setup_middleware
+from apps.server.src.api.middleware import setup_middleware
 
 # Import lifespan from dependencies
-from .src.utils.dependencies import lifespan
+from apps.server.src.utils.dependencies import lifespan
+
+# Import GraphQL router
+from apps.server.src.graphql.schema import create_graphql_router
+from apps.server.src.graphql.context import get_graphql_context
 
 
 # Create FastAPI app
@@ -45,6 +50,7 @@ app = FastAPI(
 setup_middleware(app)
 
 # Include routers
+app.include_router(health_router)
 app.include_router(diagram_router)
 app.include_router(apikeys_router)
 app.include_router(files_router)
@@ -52,17 +58,34 @@ app.include_router(conversations_router)
 app.include_router(websocket_router)
 app.include_router(models_router)
 
+# Include GraphQL router
+graphql_router = create_graphql_router(context_getter=get_graphql_context)
+app.include_router(graphql_router, prefix="")
+
 
 # Health check endpoint moved to diagram router at /api/diagrams/health
 
 
 # Metrics endpoint
 @app.get("/metrics")
-async def metrics():
-    """Expose Prometheus metrics."""
+async def metrics(request: Request):
+    """Expose Prometheus metrics with content negotiation support."""
+    # Support content negotiation for tests
+    accept_header = request.headers.get("accept", "")
+    
     try:
         from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
         
+        # Return JSON format for tests
+        if "application/json" in accept_header:
+            metrics_data = generate_latest().decode('utf-8')
+            return {
+                "metrics": metrics_data,
+                "format": "prometheus",
+                "message": "Metrics in Prometheus format"
+            }
+        
+        # Default to Prometheus text format
         return Response(
             content=generate_latest(),
             media_type=CONTENT_TYPE_LATEST
@@ -81,6 +104,16 @@ def start():
     
     # Multi-worker support for better parallel execution
     config.workers = int(os.environ.get("WORKERS", 4))
+    
+    # Redis configuration for multi-worker WebSocket support
+    # Set REDIS_URL environment variable (e.g., redis://localhost:6379/0)
+    # Without Redis, WebSocket connections will only work with WORKERS=1
+    redis_url = os.environ.get("REDIS_URL")
+    if config.workers > 1 and not redis_url:
+        logger.warning(
+            "Running with multiple workers without Redis. "
+            "WebSocket connections may fail. Set REDIS_URL or use WORKERS=1"
+        )
     
     # Graceful timeout for WebSocket connections
     config.graceful_timeout = 30.0

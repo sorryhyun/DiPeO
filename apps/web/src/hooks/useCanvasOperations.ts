@@ -7,9 +7,10 @@
 
 import React, { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
+import { type NodeChange, type EdgeChange, type Connection, type Node } from '@xyflow/react';
 import { isWithinTolerance } from '@/utils/math';
 import { createHandlerTable } from '@/utils/dispatchTable';
+import { createNodeDragGhost } from '@/utils/dragGhost';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { 
   nodeToReact,
@@ -29,9 +30,32 @@ import {
   type DomainHandle
 } from '@/types';
 
-// =====================
-// TYPES
-// =====================
+// Helper hook for efficient Map to Array conversion with caching
+function useCachedMapArray<K, V>(
+  map: Map<K, V>,
+  mapVersion?: number
+): V[] {
+  const cacheRef = useRef<{ array: V[]; size: number; version?: number }>({
+    array: [],
+    size: -1,
+    version: -1
+  });
+  
+  return React.useMemo(() => {
+    // Only recompute if size or version changed
+    if (cacheRef.current.size !== map.size || 
+        (mapVersion !== undefined && cacheRef.current.version !== mapVersion)) {
+      cacheRef.current = {
+        array: Array.from(map.values()),
+        size: map.size,
+        version: mapVersion
+      };
+    }
+    return cacheRef.current.array;
+  }, [map.size, mapVersion]);
+}
+
+// Types
 
 interface ContextMenuState {
   position: { x: number; y: number } | null;
@@ -43,6 +67,7 @@ interface DragState {
   isDragging: boolean;
   dragType: 'node' | 'person' | null;
   dragData?: string;
+  draggedNodeId?: string; // For tracking existing node being dragged
 }
 
 interface KeyboardShortcutsConfig {
@@ -62,13 +87,13 @@ export interface UseCanvasOperationsOptions {
 }
 
 export interface UseCanvasOperationsReturn {
-  // === Canvas State ===
+  // Canvas State
   nodes: ReturnType<typeof nodeToReact>[];
-  arrows: ArrowID[];
+  arrows: DomainArrow[];
   persons: PersonID[];
   handles: Map<HandleID, any>;
   
-  // === Selection State ===
+  // Selection State
   selectedId: string | null;
   selectedType: 'node' | 'arrow' | 'person' | null;
   selectedNodeId: NodeID | null;
@@ -77,45 +102,48 @@ export interface UseCanvasOperationsReturn {
   hasSelection: boolean;
   isSelected: (id: string) => boolean;
   
-  // === Mode State ===
+  // Mode State
   isMonitorMode: boolean;
   isConnectable: boolean;
   
-  // === Node Operations ===
+  // Node Operations
   addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
   duplicateNode: (id: NodeID) => void;
   
-  // === Arrow Operations ===
+  // Arrow Operations
   addArrow: (sourceHandle: HandleID, targetHandle: HandleID) => ArrowID | null;
   updateArrow: (id: ArrowID, updates: any) => void;
   deleteArrow: (id: ArrowID) => void;
   
-  // === Person Operations ===
+  // Person Operations
   addPerson: (person: { label: string; service: string; model: string }) => PersonID;
   updatePerson: (id: PersonID, updates: any) => void;
   deletePerson: (id: PersonID) => void;
   getPersonById: (id: PersonID) => any;
+  getArrowById: (id: ArrowID) => any;
   
-  // === Selection Operations ===
+  // Selection Operations
   select: (id: string, type: 'node' | 'arrow' | 'person') => void;
   clearSelection: () => void;
   
-  // === Execution State ===
+  // Execution State
   isNodeRunning: (id: NodeID) => boolean;
   getNodeState: (id: NodeID) => any;
   
-  // === Drag & Drop ===
+  // Drag & Drop
   dragState: DragState;
   onNodeDragStart: (event: DragEvent, nodeType: string) => void;
+  onNodeDragStartCanvas: (event: React.MouseEvent, node: Node) => void;
+  onNodeDragStopCanvas: (event: React.MouseEvent, node: Node) => void;
   onPersonDragStart: (event: DragEvent, personId: string) => void;
   onDragOver: (event: DragEvent) => void;
   onNodeDrop: (event: DragEvent, projectPosition: (x: number, y: number) => Vec2) => void;
   onPersonDrop: (event: DragEvent, nodeId: NodeID) => void;
   onDragEnd: () => void;
   
-  // === Context Menu ===
+  // Context Menu
   contextMenu: ContextMenuState;
   isContextMenuOpen: boolean;
   openContextMenu: (x: number, y: number, target: 'pane' | 'node' | 'edge', targetId?: NodeID) => void;
@@ -123,98 +151,48 @@ export interface UseCanvasOperationsReturn {
   handleDeleteSelected: () => void;
   handleDuplicateNode: (nodeId: NodeID) => void;
   
-  // === Keyboard Shortcuts ===
+  // Keyboard Shortcuts
   registerShortcut: (key: string, handler: () => void) => void;
   unregisterShortcut: (key: string) => void;
   
-  // === Canvas Events ===
+  // Canvas Events
   onPaneClick: () => void;
   onPaneContextMenu: (event: React.MouseEvent) => void;
   onNodeContextMenu: (event: React.MouseEvent, nodeIdStr: string) => void;
   onEdgeContextMenu: (event: React.MouseEvent, edgeIdStr: string) => void;
   
-  // === React Flow Handlers ===
+  // React Flow Handlers
   onNodesChange: (changes: NodeChange[]) => void;
   onArrowsChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   
-  // === History ===
+  // History
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
   
-  // === Transactions ===
+  // Transactions
   transaction: (fn: () => void) => void;
 }
 
-// =====================
-// MAIN HOOK
-// =====================
+// Main Hook
 
-// Import the store type
-import type { UnifiedStore } from '@/stores/unifiedStore.types';
-
-// Create a stable selector using useMemo
-const createStoreSelector = () => (state: UnifiedStore) => ({
-  // Raw data from store
-  nodesMap: state.nodes,
-  handlesMap: state.handles,
-  
-  arrows: state.arrows,
-  persons: state.persons,
-  isMonitorMode: state.readOnly,
-  isExecutionMode: state.executionReadOnly,
-  
-  // Selection
-  selectedId: state.selectedId,
-  selectedType: state.selectedType,
-  
-  // Store actions (these are stable references)
-  addNode: state.addNode,
-  updateNode: state.updateNode,
-  deleteNode: state.deleteNode,
-  addArrow: state.addArrow,
-  updateArrow: state.updateArrow,
-  deleteArrow: state.deleteArrow,
-  addPerson: state.addPerson,
-  updatePerson: state.updatePerson,
-  deletePerson: state.deletePerson,
-  select: state.select,
-  clearSelection: state.clearSelection,
-  
-  // Execution
-  runningNodes: state.execution.runningNodes,
-  nodeStates: state.execution.nodeStates,
-  
-  // History
-  transaction: state.transaction,
-  undo: state.undo,
-  redo: state.redo,
-  canUndo: state.history.undoStack.length > 0,
-  canRedo: state.history.redoStack.length > 0,
-});
+// Import the common selector factory
+import { createCommonStoreSelector } from '@/stores/selectorFactory';
 
 export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): UseCanvasOperationsReturn {
   const { shortcuts = {}, enableInteractions = true } = options;
   
-  // Create a stable selector
-  const storeSelector = React.useMemo(() => createStoreSelector(), []);
+  // Create a stable selector using common factory
+  const storeSelector = React.useMemo(() => createCommonStoreSelector(), []);
   
   // Store state
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
-  // Convert Maps to arrays with proper memoization based on size
-  // Using size is sufficient since our operations always change the size
-  const arrows = React.useMemo(
-    () => Array.from(storeState.arrows.values()) as DomainArrow[],
-    [storeState.arrows.size]
-  );
-  
-  const persons = React.useMemo(
-    () => Array.from(storeState.persons.values()) as DomainPerson[],
-    [storeState.persons.size]
-  );
+  // Convert Maps to arrays with efficient caching
+  const arrows = useCachedMapArray(storeState.arrows, storeState.dataVersion) as DomainArrow[];
+  const persons = useCachedMapArray(storeState.persons, storeState.dataVersion) as DomainPerson[];
   
   // Wrapped operations
   const wrappedOperations = React.useMemo(() => ({
@@ -225,6 +203,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       storeState.addPerson(person.label, person.service as LLMService, person.model),
     
     getPersonById: (id: PersonID) => storeState.persons.get(id),
+    getArrowById: (id: ArrowID) => storeState.arrows.get(id),
     
     // Derived state helpers
     isNodeRunning: (id: NodeID) => storeState.runningNodes.has(id),
@@ -271,11 +250,14 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const nodeChangeHandlers = React.useMemo(() => 
     createHandlerTable<NodeChange['type'], [NodeChange, typeof storeState], void>({
       position: () => {
-        // Position changes are handled separately for batching
+        // Position changes are handled inline to maintain proper order
       },
-      dimensions: () => {
+      dimensions: (change) => {
         // Dimensions are handled by React Flow internally
-        // We don't need to store them in our domain model
+        // We can optionally store them if needed for layout calculations
+        if ('id' in change && 'dimensions' in change && change.dimensions) {
+          // Could store dimensions here if needed in the future
+        }
       },
       replace: () => {
         // Handle node replacement if needed
@@ -287,13 +269,19 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
         }
       },
       select: (change, state) => {
-        // Handle selection changes if needed
-        if ('selected' in change && 'id' in change && change.selected) {
-          state.select(change.id, 'node');
+        // Handle selection changes
+        if ('selected' in change && 'id' in change) {
+          if (change.selected) {
+            state.select(change.id, 'node');
+          } else if (state.selectedId === change.id) {
+            state.clearSelection();
+          }
         }
       },
       add: () => {
-        // React Flow is initializing the node - no action needed as node already exists in store
+        // React Flow is initializing the node - this is expected behavior
+        // Our nodes already exist in the store, so no action needed
+        // This prevents the "node not initialized" warning
       },
     }), []
   );
@@ -301,42 +289,33 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const onNodesChange = React.useCallback((changes: NodeChange[]) => {
     if (storeState.isMonitorMode || storeState.isExecutionMode) return;
     
-    // Separate position changes for batching from other changes
-    const positionChanges: NodeChange[] = [];
-    const otherChanges: NodeChange[] = [];
-    
+    // Process all changes synchronously to maintain React Flow's expectations
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position && !change.dragging) {
-        positionChanges.push(change);
-      } else {
-        otherChanges.push(change);
-      }
-    });
-    
-    // Batch position updates with RAF
-    positionChanges.forEach((change) => {
       if (change.type === 'position' && change.position) {
         const node = storeState.nodesMap.get(change.id as NodeID);
         if (node) {
+          // Use smaller tolerance for more responsive dragging
+          const tolerance = change.dragging ? 5 : 0.01;
           const positionChanged = 
-            !isWithinTolerance(node.position?.x || 0, change.position.x) ||
-            !isWithinTolerance(node.position?.y || 0, change.position.y);
+            !isWithinTolerance(node.position?.x || 0, change.position.x, tolerance) ||
+            !isWithinTolerance(node.position?.y || 0, change.position.y, tolerance);
           
           if (positionChanged) {
-            batchPositionUpdate(change.id as NodeID, change.position);
+            if (change.dragging) {
+              // Don't update store during dragging - let React Flow handle it
+              // This prevents the "node not initialized" warning
+              return;
+            } else {
+              // Batch updates when drag ends for history recording
+              batchPositionUpdate(change.id as NodeID, change.position);
+            }
           }
         }
+      } else {
+        // Handle other changes through the handler table
+        nodeChangeHandlers.execute(change.type, change, storeState);
       }
     });
-    
-    // Handle other changes immediately in a transaction
-    if (otherChanges.length > 0) {
-      storeState.transaction(() => {
-        otherChanges.forEach((change) => {
-          nodeChangeHandlers.execute(change.type, change, storeState);
-        });
-      });
-    }
   }, [storeState, batchPositionUpdate, nodeChangeHandlers]);
   
   const onArrowsChange = React.useCallback((changes: EdgeChange[]) => {
@@ -356,14 +335,20 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     
     if (connection.source && connection.target && 
         connection.sourceHandle && connection.targetHandle) {
-      // Create proper handle IDs from node IDs and handle names
+      // Strip any numeric suffixes that React Flow might have added (e.g., _1, _2)
+      const stripSuffix = (handleName: string): string => {
+        const match = handleName.match(/^(.+)_\d+$/);
+        return match && match[1] ? match[1] : handleName;
+      };
+      
+      // Create proper handle IDs from node IDs and handle names (without suffixes)
       const sourceHandleId = handleId(
         nodeId(connection.source),
-        connection.sourceHandle
+        stripSuffix(connection.sourceHandle)
       );
       const targetHandleId = handleId(
         nodeId(connection.target),
-        connection.targetHandle
+        stripSuffix(connection.targetHandle)
       );
       
       storeState.addArrow(sourceHandleId, targetHandleId);
@@ -371,29 +356,28 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   }, [storeState]);
   
   // Convert domain nodes to React Flow format with handles
-  // Use size as dependency to only recompute when nodes/handles are added/removed
-  const nodesSize = storeState.nodesMap.size;
-  const handlesSize = storeState.handlesMap.size;
+  // Use cached arrays for better performance
+  const domainNodes = useCachedMapArray(storeState.nodesMap, storeState.dataVersion) as DomainNode[];
+  const domainHandles = useCachedMapArray(storeState.handlesMap, storeState.dataVersion) as DomainHandle[];
   
   // Create a pre-computed handle lookup by nodeId for O(1) access
   const handlesByNode = React.useMemo(() => {
     const lookup = new Map<NodeID, DomainHandle[]>();
-    storeState.handlesMap.forEach(handle => {
+    domainHandles.forEach(handle => {
       const handles = lookup.get(handle.nodeId) || [];
       handles.push(handle);
       lookup.set(handle.nodeId, handles);
     });
     return lookup;
-  }, [handlesSize, storeState.handlesMap]);
+  }, [domainHandles]);
   
   const nodes = React.useMemo(() => {
-    const domainNodes = Array.from(storeState.nodesMap.values());
     return domainNodes.map(node => {
       // O(1) lookup instead of O(n) filter
       const nodeHandles = handlesByNode.get(node.id) || [];
       return nodeToReact(node, nodeHandles);
     });
-  }, [nodesSize, storeState.nodesMap, handlesByNode]);
+  }, [domainNodes, handlesByNode]);
   
   // Derive selected IDs based on selectedType
   const selectedNodeId = storeState.selectedType === 'node' ? storeState.selectedId as NodeID : null;
@@ -480,11 +464,44 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // =====================
   
   // Handle drag start for node types from sidebar
+  // Handle dragging existing nodes on canvas
+  const onNodeDragStartCanvas = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // React Flow doesn't provide drag events for nodes, only mouse events
+      // So we can't use native drag ghost for existing nodes on canvas
+      // We'll keep the current behavior of not showing a preview for canvas nodes
+      setDragState({
+        isDragging: false,
+        dragType: null,
+        draggedNodeId: node.id,
+      });
+    },
+    []
+  );
+
+  const onNodeDragStopCanvas = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      setDragState({
+        isDragging: false,
+        dragType: null,
+        draggedNodeId: undefined,
+      });
+    },
+    []
+  );
+
   const onNodeDragStart = useCallback((event: DragEvent, nodeType: string) => {
     if (!enableInteractions || storeState.isMonitorMode) return;
     
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
+    
+    // Create and set the drag ghost image
+    const ghost = createNodeDragGhost(nodeType as NodeKind);
+    // Center the ghost image on the cursor
+    const ghostWidth = 200; // Approximate width of the ghost element
+    const ghostHeight = 80; // Approximate height of the ghost element
+    event.dataTransfer.setDragImage(ghost, ghostWidth / 2, ghostHeight / 2);
     
     // Calculate offset from element center
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -493,9 +510,10 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       y: event.clientY - (rect.top + rect.height / 2)
     };
     
+    // No need to set drag state for preview since we're using native ghost
     setDragState({
-      isDragging: true,
-      dragType: 'node',
+      isDragging: false,
+      dragType: null,
       dragData: nodeType
     });
   }, [enableInteractions, storeState.isMonitorMode]);
@@ -734,24 +752,20 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // =====================
   
   // Memoize the ID arrays to avoid recreating on every render
-  const arrowIds = React.useMemo(
-    () => arrows.map(a => a.id),
-    [arrows]
-  );
-  
+  // This is already optimized since persons is cached
   const personIds = React.useMemo(
-    () => persons.map(p => p.id),
+    () => persons.map((p: DomainPerson) => p.id),
     [persons]
   );
   
   return {
-    // === Canvas State ===
+    // Canvas State
     nodes,
-    arrows: arrowIds,
+    arrows,
     persons: personIds,
     handles: storeState.handlesMap,
     
-    // === Selection State ===
+    // Selection State
     selectedId: storeState.selectedId,
     selectedType: storeState.selectedType,
     selectedNodeId,
@@ -760,45 +774,48 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     hasSelection: storeState.selectedId !== null,
     isSelected: wrappedOperations.isSelected,
     
-    // === Mode State ===
+    // Mode State
     isMonitorMode: storeState.isMonitorMode,
     isConnectable: !storeState.isMonitorMode && enableInteractions,
     
-    // === Node Operations ===
+    // Node Operations
     addNode: wrappedOperations.addNode,
     updateNode: storeState.updateNode,
     deleteNode: storeState.deleteNode,
     duplicateNode: handleDuplicateNode,
     
-    // === Arrow Operations ===
+    // Arrow Operations
     addArrow: storeState.addArrow,
     updateArrow: storeState.updateArrow,
     deleteArrow: storeState.deleteArrow,
     
-    // === Person Operations ===
+    // Person Operations
     addPerson: wrappedOperations.addPerson,
     updatePerson: storeState.updatePerson,
     deletePerson: storeState.deletePerson,
     getPersonById: wrappedOperations.getPersonById,
+    getArrowById: wrappedOperations.getArrowById,
     
-    // === Selection Operations ===
+    // Selection Operations
     select: storeState.select,
     clearSelection: storeState.clearSelection,
     
-    // === Execution State ===
+    // Execution State
     isNodeRunning: wrappedOperations.isNodeRunning,
     getNodeState: wrappedOperations.getNodeState,
     
-    // === Drag & Drop ===
+    // Drag & Drop
     dragState,
     onNodeDragStart,
+    onNodeDragStartCanvas,
+    onNodeDragStopCanvas,
     onPersonDragStart,
     onDragOver,
     onNodeDrop,
     onPersonDrop,
     onDragEnd,
     
-    // === Context Menu ===
+    // Context Menu
     contextMenu,
     isContextMenuOpen: contextMenu.position !== null,
     openContextMenu,
@@ -806,28 +823,28 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     handleDeleteSelected,
     handleDuplicateNode,
     
-    // === Keyboard Shortcuts ===
+    // Keyboard Shortcuts
     registerShortcut,
     unregisterShortcut,
     
-    // === Canvas Events ===
+    // Canvas Events
     onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu,
     
-    // === React Flow Handlers ===
+    // React Flow Handlers
     onNodesChange,
     onArrowsChange,
     onConnect,
     
-    // === History ===
+    // History
     undo: storeState.undo,
     redo: storeState.redo,
     canUndo: storeState.canUndo,
     canRedo: storeState.canRedo,
     
-    // === Transactions ===
+    // Transactions
     transaction: storeState.transaction,
   };
 }

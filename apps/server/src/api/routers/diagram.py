@@ -9,6 +9,7 @@ from datetime import datetime
 
 from ...services.file_service import FileService
 from ...services.diagram_service import DiagramService
+from ...services.event_store import event_store
 from ...utils.dependencies import get_file_service, get_diagram_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
@@ -78,13 +79,13 @@ async def get_execution_capabilities():
 class SaveDiagramRequest(BaseModel):
     diagram: Dict[str, Any]
     filename: str
-    format: str  # "json" or "yaml"
+    format: str  # "light", "native", "readable", "llm-readable"
 
 
 class ConvertDiagramRequest(BaseModel):
     content: str
-    from_format: str  # "yaml", "json", "llm-yaml", "uml"
-    to_format: str    # "yaml", "json", "llm-yaml", "uml"
+    from_format: str  # "light", "native", "readable", "llm-readable"
+    to_format: str    # "light", "native", "readable", "llm-readable"
 
 
 
@@ -101,18 +102,27 @@ async def save_diagram(
         filename = request.filename
         
         # Determine the directory based on format and filename
-        if "llm-yaml" in filename or "llm.yaml" in filename:
-            directory = "files/llm-yaml_diagrams"
+        if request.format == "native":
+            directory = "files/diagrams/native"
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
-        elif request.format == "yaml":
-            directory = "files/yaml_diagrams"
+        elif request.format == "readable":
+            directory = "files/diagrams/readable"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
+        elif request.format == "llm-readable":
+            directory = "files/diagrams/llm-readable"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
+        elif request.format == "light":
+            directory = "files/diagrams"  # Light format saves to main diagrams folder
             if not filename.endswith(('.yaml', '.yml')):
                 filename += ".yaml"
         else:
+            # Default to light format
             directory = "files/diagrams"
-            if not filename.endswith('.json'):
-                filename += ".json"
+            if not filename.endswith(('.yaml', '.yml')):
+                filename += ".yaml"
         
         # Create directory if it doesn't exist
         import os
@@ -126,14 +136,38 @@ async def save_diagram(
         counter = 1
         
         while os.path.exists(os.path.join(dir_path, final_filename)):
-            final_filename = f"{base_name}_{counter}{extension}"
+            # Use format-specific naming patterns
+            if request.format == "native":
+                # Remove .native suffix if already present to avoid duplication
+                clean_base = base_name.replace('.native', '')
+                final_filename = f"{clean_base}_{counter}.native{extension}"
+            elif request.format == "readable":
+                # Remove .readable suffix if already present to avoid duplication
+                clean_base = base_name.replace('.readable', '')
+                final_filename = f"{clean_base}_{counter}.readable{extension}"
+            elif request.format == "llm-readable":
+                # Remove .llm-readable suffix if already present to avoid duplication
+                clean_base = base_name.replace('.llm-readable', '').replace('.llm', '')
+                final_filename = f"{clean_base}_{counter}.llm-readable{extension}"
+            else:
+                # Light format or default
+                final_filename = f"{base_name}_{counter}{extension}"
             counter += 1
+        
+        # Map old format names to new ones for backward compatibility
+        format_mapping = {
+            "yaml": "light",
+            "native-yaml": "native",
+            "readable-yaml": "readable",
+            "llm-yaml": "llm-readable"
+        }
+        save_format = format_mapping.get(request.format, request.format)
         
         # Save to appropriate directory
         saved_path = await file_service.write(
             path=f"{directory}/{final_filename}",
             content=request.diagram,
-            format=request.format
+            format="yaml"  # Always save as YAML internally
         )
         
         return {
@@ -200,6 +234,69 @@ async def health_check():
         "status": "healthy",
         "version": "2.0",
         "timestamp": datetime.now().isoformat()
+    }
+
+
+# Execution History Endpoints
+
+@router.get("/executions")
+@handle_api_errors
+async def list_executions(limit: int = 100, offset: int = 0):
+    """List recent executions with metadata."""
+    executions = await event_store.list_executions(limit=limit, offset=offset)
+    return {
+        "success": True,
+        "executions": executions,
+        "total": len(executions)
+    }
+
+
+@router.get("/executions/{execution_id}")
+@handle_api_errors
+async def get_execution_state(execution_id: str):
+    """Replay execution events to get current state."""
+    state = await event_store.replay(execution_id)
+    if not state:
+        raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
+    
+    return {
+        "success": True,
+        "execution": {
+            "execution_id": state.execution_id,
+            "status": state.status,
+            "start_time": state.start_time,
+            "end_time": state.end_time,
+            "node_outputs": state.node_outputs,
+            "node_statuses": state.node_statuses,
+            "variables": state.variables,
+            "total_tokens": state.total_tokens,
+            "error": state.error,
+            "paused_nodes": list(state.paused_nodes),
+            "skipped_nodes": list(state.skipped_nodes)
+        }
+    }
+
+
+@router.get("/executions/{execution_id}/events")
+@handle_api_errors
+async def get_execution_events(execution_id: str):
+    """Get raw events for an execution."""
+    events = await event_store.get_events(execution_id)
+    if not events:
+        raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
+    
+    return {
+        "success": True,
+        "events": [
+            {
+                "sequence": event.sequence,
+                "event_type": event.event_type.value,
+                "node_id": event.node_id,
+                "data": event.data,
+                "timestamp": event.timestamp
+            }
+            for event in events
+        ]
     }
 
 

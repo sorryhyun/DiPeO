@@ -4,11 +4,10 @@
  */
 
 import { toast } from 'react-hot-toast';
-import type { DomainDiagram } from '@/types';
 import { getApiUrl, API_ENDPOINTS } from './api/config';
 import { createLookupTable } from './dispatchTable';
 
-export type FileFormat = 'json' | 'yaml' | 'llm-yaml';
+export type FileFormat = 'light' | 'native' | 'readable' | 'llm-readable';
 
 export interface ReadFileOptions {
   acceptedTypes?: string;
@@ -57,7 +56,7 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = options?.acceptedTypes || '.json,.yaml,.yml';
+    input.accept = options?.acceptedTypes || '.yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml';
     
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -119,9 +118,11 @@ export const downloadEnhanced = async (
 
 /**
  * Save diagram to backend
+ * @param diagram - The serialized diagram content (parsed YAML object)
+ * @param options - Save options including format and filename
  */
 export const saveDiagramToBackend = async (
-  diagram: DomainDiagram,
+  diagram: any,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
   try {
@@ -155,48 +156,51 @@ export const saveDiagramToBackend = async (
 };
 
 /**
- * Detect file format from content and filename
+ * Detect file format from filename only
+ * No content-based detection to avoid confusion
  */
 export const detectFileFormat = (content: string, filename?: string): FileFormatInfo => {
-  if (filename) {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    if (ext === 'json') {
-      return { format: 'json', isLLMFormat: false };
-    }
-    if (ext === 'yaml' || ext === 'yml') {
-      if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
-        return { format: 'llm-yaml', isLLMFormat: true };
-      }
-      return { format: 'yaml', isLLMFormat: false };
-    }
+  if (!filename) {
+    // Default to native format if no filename provided
+    return { format: 'native', isLLMFormat: false };
   }
   
-  try {
-    JSON.parse(content);
-    return { format: 'json', isLLMFormat: false };
-  } catch {
-    if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
-      return { format: 'llm-yaml', isLLMFormat: true };
-    }
-    if (content.includes(':') && (content.includes('-') || content.includes('  '))) {
-      return { format: 'yaml', isLLMFormat: false };
-    }
+  // Check for specific format extensions in filename
+  if (filename.includes('.native.yaml') || filename.includes('.native.yml')) {
+    return { format: 'native', isLLMFormat: false };
   }
   
-  return { format: 'json', isLLMFormat: false };
+  if (filename.includes('.readable.yaml') || filename.includes('.readable.yml')) {
+    return { format: 'readable', isLLMFormat: false };
+  }
+  
+  if (filename.includes('.llm.yaml') || filename.includes('.llm.yml') || filename.includes('.llm-readable')) {
+    return { format: 'llm-readable', isLLMFormat: true };
+  }
+  
+  // For plain .yaml or .yml files, default to light format
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (ext === 'yaml' || ext === 'yml') {
+    return { format: 'light', isLLMFormat: false };
+  }
+  
+  // Default to native format for unrecognized extensions
+  return { format: 'native', isLLMFormat: false };
 };
 
 // Create lookup tables for file format mappings
 const mimeTypeLookup = createLookupTable<FileFormat, string>({
-  'json': 'application/json',
-  'yaml': 'text/yaml',
-  'llm-yaml': 'text/yaml'
+  'light': 'text/yaml',
+  'native': 'text/yaml',
+  'readable': 'text/yaml',
+  'llm-readable': 'text/yaml'
 });
 
 const fileExtensionLookup = createLookupTable<FileFormat, string>({
-  'json': '.json',
-  'yaml': '.yaml',
-  'llm-yaml': '.llm-yaml'
+  'light': '.yaml',
+  'native': '.native.yaml',
+  'readable': '.readable.yaml',
+  'llm-readable': '.llm-readable.yaml'
 });
 
 /**

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Layers } from 'lucide-react';
+import { Layers, TestTube } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
+import { useCanvasOperations } from '@/contexts/CanvasContext';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse } from '@/types';
+import { isApiKey, parseApiArrayResponse, apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
+import { LightDomainConverter } from '@/utils/converters';
+import { downloadFile } from '@/utils/file';
 
 
 const TopBar = () => {
@@ -14,8 +17,8 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use unified store with specific selectors to avoid unnecessary re-renders
-  const setReadOnly = useUnifiedStore(state => state.setReadOnly);
+  // Use canvas operations for mode control
+  const { setReadOnly } = useCanvasOperations();
   const { activeCanvas, setActiveCanvas } = useUIState();
   
   // Use only the diagram manager for file operations - much lighter weight
@@ -32,34 +35,50 @@ const TopBar = () => {
   } = diagramManager;
   
   // Create onChange handler for FileUploadButton
-  const onImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onImportYAML = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && importFile) {
       void importFile(file);
     }
   };
   
-  // Load API keys on mount
+  // Load API keys on mount - backend is the single source of truth
   useEffect(() => {
     const loadApiKeys = async () => {
       try {
         const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
         if (response.ok) {
           const data = await response.json();
-          const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
+          console.log('[TopBar] Raw API keys data:', data);
           
-          // Add each API key to the store
-          const { addApiKey } = useUnifiedStore.getState();
+          // The backend returns an array directly, not wrapped in an object
+          const rawKeys = Array.isArray(data) ? data : (data.apiKeys || []);
+          console.log('[TopBar] Raw keys array:', rawKeys);
+          
+          const backendKeys = parseApiArrayResponse(rawKeys, isApiKey);
+          console.log('[TopBar] Parsed API keys:', backendKeys);
+          
+          // Clear existing keys and load fresh from backend
+          // This ensures backend file is the single source of truth
+          const newApiKeys = new Map();
+          
           backendKeys.forEach(key => {
-            addApiKey(key.name, key.service);
+            // Brand the ID properly
+            const brandedId = apiKeyId(key.id);
+            const brandedKey = { ...key, id: brandedId };
+            newApiKeys.set(brandedId, brandedKey);
           });
           
+          // Replace entire apiKeys state with backend data
+          useUnifiedStore.setState({ apiKeys: newApiKeys });
+          
+          console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
           if (backendKeys.length > 0) {
-            toast.success(`Loaded ${backendKeys.length} API keys from backend`);
+            toast.success(`Loaded ${backendKeys.length} API keys`);
           }
         }
       } catch (error) {
-        console.error('[Load API Keys]', error);
+        console.error('[TopBar] Load API Keys error:', error);
         toast.error(`Failed to load API keys: ${(error as Error).message}`);
       }
     };
@@ -149,11 +168,11 @@ const TopBar = () => {
             📄 New
           </Button>
           <FileUploadButton
-            accept=".json"
-            onChange={onImportJSON}
+            accept=".yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml"
+            onChange={onImportYAML}
             variant="outline"
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            title="Open diagram from JSON file"
+            title="Open diagram from YAML file"
           >
             📂 Open
           </FileUploadButton>

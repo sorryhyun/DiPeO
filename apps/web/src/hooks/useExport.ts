@@ -5,8 +5,6 @@ import type { ExportFormat } from '@/stores';
 export interface UseExportReturn {
   // Export operations
   exportDiagram: () => ExportFormat;
-  exportAsJSON: () => string;
-  downloadAsJSON: (filename?: string) => void;
   
   // Import operations
   importDiagram: (data: ExportFormat | string) => void;
@@ -23,20 +21,6 @@ export interface UseExportReturn {
 export function useExport(): UseExportReturn {
   const store = useUnifiedStore();
 
-  // Download diagram as JSON file
-  const downloadAsJSON = useCallback((filename?: string) => {
-    const json = store.exportAsJSON();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `diagram-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [store]);
 
   // Import diagram from file
   const importFromFile = useCallback(async (file: File): Promise<void> => {
@@ -63,8 +47,6 @@ export function useExport(): UseExportReturn {
 
   return {
     exportDiagram: store.exportDiagram,
-    exportAsJSON: store.exportAsJSON,
-    downloadAsJSON,
     importDiagram: store.importDiagram,
     importFromFile,
     validateExportData: store.validateExportData,

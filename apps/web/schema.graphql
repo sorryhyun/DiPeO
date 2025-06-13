@@ -1,0 +1,396 @@
+type ApiKey {
+  maskedKey: String!
+  id: String!
+  label: String!
+  service: String!
+}
+
+"""Unique identifier for an API key"""
+scalar ApiKeyID
+
+type ApiKeyResult {
+  success: Boolean!
+  apiKey: ApiKey
+  message: String
+  error: String
+}
+
+type Arrow {
+  id: String!
+  source: String!
+  target: String!
+  data: JSONScalar
+}
+
+"""Unique identifier for an arrow"""
+scalar ArrowID
+
+input CreateApiKeyInput {
+  label: String!
+  service: LLMService!
+  key: String!
+}
+
+input CreateArrowInput {
+  source: HandleID!
+  target: HandleID!
+  label: String = null
+}
+
+input CreateDiagramInput {
+  name: String!
+  description: String = null
+  author: String = null
+  tags: [String!] = null
+}
+
+input CreateNodeInput {
+  type: NodeType!
+  position: Vec2Input!
+  label: String!
+  properties: JSONScalar!
+}
+
+input CreatePersonInput {
+  label: String!
+  service: LLMService!
+  model: String!
+  apiKeyId: ApiKeyID!
+  systemPrompt: String = null
+  forgettingMode: ForgettingMode! = NONE
+  temperature: Float = null
+  maxTokens: Int = null
+  topP: Float = null
+}
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+type DeleteResult {
+  success: Boolean!
+  deletedId: String
+  message: String
+  error: String
+}
+
+type Diagram {
+  nodes: [Node!]!
+  handles: [Handle!]!
+  arrows: [Arrow!]!
+  persons: [Person!]!
+  apiKeys: [ApiKey!]!
+  metadata: DiagramMetadata
+  nodeCount: Int!
+  arrowCount: Int!
+  personCount: Int!
+  estimatedCost: Float
+}
+
+input DiagramFilterInput {
+  nameContains: String = null
+  author: String = null
+  tags: [String!] = null
+  createdAfter: DateTime = null
+  createdBefore: DateTime = null
+  modifiedAfter: DateTime = null
+}
+
+"""Unique identifier for a diagram"""
+scalar DiagramID
+
+type DiagramMetadata {
+  id: String
+  name: String
+  description: String
+  version: String!
+  created: String!
+  modified: String!
+  author: String
+  tags: [String!]
+}
+
+type DiagramResult {
+  success: Boolean!
+  diagram: Diagram
+  message: String
+  error: String
+}
+
+enum EventType {
+  EXECUTION_STARTED
+  NODE_STARTED
+  NODE_PROGRESS
+  NODE_COMPLETED
+  NODE_FAILED
+  NODE_SKIPPED
+  NODE_PAUSED
+  EXECUTION_COMPLETED
+  EXECUTION_FAILED
+  EXECUTION_ABORTED
+  INTERACTIVE_PROMPT
+  INTERACTIVE_RESPONSE
+}
+
+input ExecuteDiagramInput {
+  diagramId: DiagramID!
+  variables: JSONScalar = null
+  debugMode: Boolean! = false
+  timeout: Int = null
+  maxIterations: Int = null
+}
+
+input ExecutionControlInput {
+  executionId: ExecutionID!
+  action: String!
+  nodeId: NodeID = null
+}
+
+type ExecutionEvent {
+  executionId: ExecutionID!
+  sequence: Int!
+  eventType: String!
+  nodeId: NodeID
+  timestamp: DateTime!
+  data: JSONScalar!
+  formattedMessage: String!
+}
+
+input ExecutionFilterInput {
+  diagramId: DiagramID = null
+  status: ExecutionStatus = null
+  startedAfter: DateTime = null
+  startedBefore: DateTime = null
+  activeOnly: Boolean! = false
+}
+
+"""Unique identifier for an execution"""
+scalar ExecutionID
+
+type ExecutionResult {
+  success: Boolean!
+  execution: ExecutionState
+  executionId: ExecutionID
+  message: String
+  error: String
+}
+
+type ExecutionState {
+  id: ExecutionID!
+  status: ExecutionStatus!
+  diagramId: DiagramID
+  startedAt: DateTime!
+  endedAt: DateTime
+  runningNodes: [NodeID!]!
+  completedNodes: [NodeID!]!
+  skippedNodes: [NodeID!]!
+  pausedNodes: [NodeID!]!
+  failedNodes: [NodeID!]!
+  nodeOutputs: JSONScalar!
+  variables: JSONScalar!
+  tokenUsage: TokenUsage
+  error: String
+  durationSeconds: Float
+  isActive: Boolean!
+}
+
+enum ExecutionStatus {
+  STARTED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  ABORTED
+}
+
+enum ForgettingMode {
+  NONE
+  ON_EVERY_TURN
+  UPON_REQUEST
+}
+
+type Handle {
+  id: String!
+  nodeId: String!
+  label: String!
+  direction: String!
+  dataType: String!
+  position: String
+}
+
+"""Unique identifier for a handle (format: nodeId:handleName)"""
+scalar HandleID
+
+type InteractivePrompt {
+  executionId: ExecutionID!
+  nodeId: NodeID!
+  prompt: String!
+  timeoutSeconds: Int
+  timestamp: DateTime!
+}
+
+input InteractiveResponseInput {
+  executionId: ExecutionID!
+  nodeId: NodeID!
+  response: String!
+}
+
+"""Arbitrary JSON-serializable data"""
+scalar JSONScalar
+
+enum LLMService {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  GROQ
+  BEDROCK
+  VERTEX
+  DEEPSEEK
+}
+
+type Mutation {
+  createDiagram(input: CreateDiagramInput!): DiagramResult!
+  deleteDiagram(id: DiagramID!): DeleteResult!
+  createNode(diagramId: DiagramID!, input: CreateNodeInput!): NodeResult!
+  updateNode(input: UpdateNodeInput!): NodeResult!
+  deleteNode(id: NodeID!): DeleteResult!
+  createArrow(diagramId: DiagramID!, input: CreateArrowInput!): DiagramResult!
+  deleteArrow(id: ArrowID!): DeleteResult!
+  createPerson(diagramId: DiagramID!, input: CreatePersonInput!): PersonResult!
+  updatePerson(input: UpdatePersonInput!): PersonResult!
+  deletePerson(id: PersonID!): DeleteResult!
+  createApiKey(input: CreateApiKeyInput!): ApiKeyResult!
+  testApiKey(id: ApiKeyID!): TestApiKeyResult!
+  deleteApiKey(id: ApiKeyID!): DeleteResult!
+  executeDiagram(input: ExecuteDiagramInput!): ExecutionResult!
+  controlExecution(input: ExecutionControlInput!): ExecutionResult!
+  submitInteractiveResponse(input: InteractiveResponseInput!): ExecutionResult!
+  clearConversations: DeleteResult!
+}
+
+type Node {
+  position: Vec2!
+  displayName: String!
+  id: String!
+  type: String!
+  data: JSONScalar!
+}
+
+type NodeExecution {
+  executionId: ExecutionID!
+  nodeId: NodeID!
+  nodeType: NodeType!
+  status: String!
+  progress: String
+  output: JSONScalar
+  error: String
+  tokensUsed: Int
+  timestamp: DateTime!
+}
+
+"""Unique identifier for a node"""
+scalar NodeID
+
+type NodeResult {
+  success: Boolean!
+  node: Node
+  message: String
+  error: String
+}
+
+enum NodeType {
+  START
+  PERSON_JOB
+  CONDITION
+  JOB
+  ENDPOINT
+  DB
+  USER_RESPONSE
+  NOTION
+  PERSON_BATCH_JOB
+}
+
+type Person {
+  maskedApiKey: String
+  id: String!
+  label: String!
+  service: String!
+  model: String!
+  apiKeyId: String!
+  systemPrompt: String
+  forgettingMode: String!
+  type: String!
+}
+
+"""Unique identifier for a person (LLM agent)"""
+scalar PersonID
+
+type PersonResult {
+  success: Boolean!
+  person: Person
+  message: String
+  error: String
+}
+
+type Query {
+  diagram(id: DiagramID!): Diagram
+  diagrams(filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [Diagram!]!
+  execution(id: ExecutionID!): ExecutionState
+  executions(filter: ExecutionFilterInput = null, limit: Int! = 100, offset: Int! = 0): [ExecutionState!]!
+  executionEvents(executionId: ExecutionID!, sinceSequence: Int = null, limit: Int! = 1000): [ExecutionEvent!]!
+  person(id: PersonID!): Person
+  persons(limit: Int! = 100): [Person!]!
+  apiKey(id: ApiKeyID!): ApiKey
+  apiKeys(service: String = null): [ApiKey!]!
+  availableModels(service: String!, apiKeyId: ApiKeyID!): [String!]!
+  systemInfo: JSONScalar!
+}
+
+type Subscription {
+  executionUpdates(executionId: ExecutionID!): ExecutionState!
+  executionEvents(executionId: ExecutionID!, eventTypes: [EventType!] = null): ExecutionEvent!
+  nodeUpdates(executionId: ExecutionID!, nodeTypes: [NodeType!] = null): NodeExecution!
+  diagramChanges(diagramId: DiagramID!): Diagram!
+  interactivePrompts(executionId: ExecutionID!): InteractivePrompt!
+}
+
+type TestApiKeyResult {
+  success: Boolean!
+  valid: Boolean!
+  availableModels: [String!]
+  error: String
+}
+
+type TokenUsage {
+  input: Int!
+  output: Int!
+  cached: Int
+  total: Int!
+}
+
+input UpdateNodeInput {
+  id: NodeID!
+  position: Vec2Input = null
+  label: String = null
+  properties: JSONScalar = null
+}
+
+input UpdatePersonInput {
+  id: PersonID!
+  label: String = null
+  model: String = null
+  apiKeyId: ApiKeyID = null
+  systemPrompt: String = null
+  forgettingMode: ForgettingMode = null
+  temperature: Float = null
+  maxTokens: Int = null
+}
+
+type Vec2 {
+  x: Float!
+  y: Float!
+}
+
+input Vec2Input {
+  x: Float!
+  y: Float!
+}

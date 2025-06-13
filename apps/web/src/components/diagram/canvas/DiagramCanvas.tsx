@@ -24,13 +24,10 @@ import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
-import { useUnifiedStore } from "@/hooks/useUnifiedStore";
-import { useShallow } from "zustand/react/shallow";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
 import { DomainArrow, arrowToReact, nodeId, arrowId } from "@/types";
-import { roundPosition } from "@/utils/canvas";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -50,6 +47,13 @@ interface DiagramCanvasProps {
   executionMode?: boolean;
 }
 
+const roundPosition = (position: { x: number; y: number }) => {
+  return {
+    x: Math.round(position.x / 10) * 10,
+    y: Math.round(position.y / 10) * 10,
+  };
+};
+
 /**
  * Single source of truth for *all* ReactFlow props we pass around.
  * Keeping them in one object avoids prop‑list drift between the two
@@ -66,6 +70,8 @@ interface CommonFlowPropsParams {
   onPaneContextMenu?: (event: React.MouseEvent) => void;
   onDragOver?: React.DragEventHandler;
   onDrop: React.DragEventHandler<HTMLElement>;
+  onNodeDragStart?: (event: React.MouseEvent, node: ReactFlowNode) => void;
+  onNodeDragStop?: (event: React.MouseEvent, node: ReactFlowNode) => void;
   selectNode: (id: string) => void;
   selectArrow: (id: string) => void;
   executionMode: boolean;
@@ -83,6 +89,8 @@ function useCommonFlowProps({
   onPaneContextMenu,
   onDragOver,
   onDrop,
+  onNodeDragStart,
+  onNodeDragStop,
   selectNode,
   selectArrow,
   executionMode,
@@ -127,6 +135,8 @@ function useCommonFlowProps({
       ...baseProps,
       onNodeClick: (_: React.MouseEvent, n: ReactFlowNode) => selectNode(n.id),
       onEdgeClick: (_: React.MouseEvent, e: Edge) => selectArrow(e.id),
+      onNodeDragStart,
+      onNodeDragStop,
       onNodeContextMenu: (
         event: React.MouseEvent,
         node: ReactFlowNode
@@ -164,6 +174,8 @@ function useCommonFlowProps({
     onPaneContextMenu,
     selectArrow,
     selectNode,
+    onNodeDragStart,
+    onNodeDragStop,
   ]);
 }
 
@@ -174,7 +186,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   const {
     // diagram state & callbacks
     nodes,
-    arrows: arrowIds,
+    arrows,
     onNodesChange,
     onArrowsChange,
     onConnect,
@@ -196,15 +208,10 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     isContextMenuOpen,
     closeContextMenu,
     clearSelection,
+    // canvas drag handlers
+    onNodeDragStartCanvas,
+    onNodeDragStopCanvas,
   } = useDiagram({ enableInteractions: true, enableFileOperations: true });
-  
-  // Get full arrow data from the store with memoization
-  const arrows = useUnifiedStore(
-    useShallow(state => {
-      return arrowIds.map(id => state.arrows.get(id)).filter(Boolean) as DomainArrow[];
-    })
-  );
-
 
   /** --------------------------------------------------
    * React Flow instance helpers
@@ -243,6 +250,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onPaneContextMenu,
     onDragOver,
     onDrop,
+    onNodeDragStart: onNodeDragStartCanvas,
+    onNodeDragStop: onNodeDragStopCanvas,
     selectNode,
     selectArrow,
     executionMode,

@@ -49,7 +49,7 @@ export const useApiKeyOperations = createStoreOperationHook<DomainApiKey, [strin
   validateUpdate: (_id: string, updates: Partial<DomainApiKey>) => {
     const errors: string[] = [];
     
-    if (updates.name !== undefined && (!updates.name || updates.name.trim().length === 0)) {
+    if (updates.label !== undefined && (!updates.label || updates.label.trim().length === 0)) {
       errors.push('API key name cannot be empty');
     }
     
@@ -120,16 +120,16 @@ export const useApiKeyUtils = () => {
     return items.find((key: DomainApiKey) => key.service === service);
   };
   
-  // Find API key by name
-  const getByName = (name: string): DomainApiKey | undefined => {
-    return items.find((key: DomainApiKey) => key.name === name);
+  // Find API key by label
+  const getByLabel = (name: string): DomainApiKey | undefined => {
+    return items.find((key: DomainApiKey) => key.label === name);
   };
   
   return {
     getByService,
     hasKeysForService,
     getFirstKeyForService,
-    getByName,
+    getByLabel,
     getApiKeyById: getById
   };
 };

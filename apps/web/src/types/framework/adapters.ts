@@ -20,11 +20,11 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
   // Separate handles by direction
   const inputs = handles
     .filter(h => h.direction === 'input')
-    .reduce((acc, h) => ({ ...acc, [h.name]: h }), {});
+    .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
   
   const outputs = handles
     .filter(h => h.direction === 'output')
-    .reduce((acc, h) => ({ ...acc, [h.name]: h }), {});
+    .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
 
   return {
     id: node.id,
@@ -32,8 +32,7 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
     position: node.position,
     data: {
       ...node.data,
-      label: (node.data as any).label,
-      properties: node.data,
+      label: (node.data as any).label || '',
       inputs,
       outputs
     },
@@ -50,8 +49,8 @@ export function nodeToReact(node: DomainNode, handles: DomainHandle[]): DiPeoNod
  * Convert domain arrow to React edge
  */
 export function arrowToReact(arrow: DomainArrow): DiPeoEdge {
-  const { nodeId: sourceNode, handleName: sourceHandle } = parseHandleId(arrow.source);
-  const { nodeId: targetNode, handleName: targetHandle } = parseHandleId(arrow.target);
+  const { nodeId: sourceNode, handleLabel: sourceHandle } = parseHandleId(arrow.source);
+  const { nodeId: targetNode, handleLabel: targetHandle } = parseHandleId(arrow.target);
   
   return {
     id: arrow.id,
@@ -85,11 +84,12 @@ export function diagramToReact(diagram: DomainDiagram): {
 // React to Domain Conversions
 
 export function reactToNode(rfNode: RFNode): DomainNode {
+  const { inputs, outputs, ...nodeData } = rfNode.data || {};
   return {
     id: rfNode.id as NodeID,
     type: (rfNode.type as NodeKind) || 'start',
     position: rfNode.position,
-    data: (rfNode.data as any)?.properties || rfNode.data || {}
+    data: nodeData as any
   };
 }
 

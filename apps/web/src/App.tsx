@@ -2,7 +2,8 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useExecution, useUnifiedStore } from './hooks';
+import { useExecutionProvider, useUnifiedStore } from './hooks';
+import { CanvasProvider, useCanvasOperations, useCanvasUIState } from './contexts/CanvasContext';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -12,10 +13,10 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 
 // Inner component that uses React Flow hooks
 function AppContent() {
-  const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
-  const setReadOnly = useUnifiedStore((state) => state.setReadOnly);
-  // Create the main WebSocket connection only once at the app level
-  const execution = useExecution({ autoConnect: true });
+  const { activeCanvas } = useCanvasUIState();
+  const { setReadOnly } = useCanvasOperations();
+  // Create the main execution connection (WebSocket or GraphQL based on feature flag)
+  const execution = useExecutionProvider({ autoConnect: true });
   const params = new URLSearchParams(window.location.search);
   const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
   
@@ -141,7 +142,9 @@ function App() {
 
   return (
     <ReactFlowProvider>
-      <AppContent />
+      <CanvasProvider>
+        <AppContent />
+      </CanvasProvider>
     </ReactFlowProvider>
   );
 }

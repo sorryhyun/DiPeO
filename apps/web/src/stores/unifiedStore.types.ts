@@ -2,68 +2,16 @@ import type {
   NodeID,  ArrowID,  PersonID,  HandleID,  ApiKeyID,
   DomainNode,  DomainArrow,  DomainPerson,  DomainHandle,  DomainApiKey,
   NodeKind,  Vec2,  LLMService,} from '@/types';
+import type { DiagramSlice } from './slices/diagramSlice';
+import type { ComputedSlice } from './slices/computedSlice';
+import type { ExecutionSlice, NodeState } from './slices/executionSlice';
+import type { PersonSlice } from './slices/personSlice';
+import type { UISlice } from './slices/uiSlice';
 
-// Define NodeState locally as it's not exported from types
-export interface NodeState {
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
-  error?: string;
-  timestamp: number;
-}
+// Re-export NodeState from executionSlice for backward compatibility
+export type { NodeState } from './slices/executionSlice';
 
-// Export format types
-export interface ExportedNode {
-  label: string;
-  type: string;
-  position: { x: number; y: number };
-  data: Record<string, unknown>;
-}
-
-export interface ExportedArrow {
-  sourceHandle: string;
-  targetHandle: string;
-  data?: Record<string, unknown>;
-}
-
-export interface ExportedPerson {
-  label: string;
-  model: string;
-  service: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  apiKeyLabel?: string;
-}
-
-export interface ExportedApiKey {
-  name: string;
-  service: string;
-}
-
-export interface ExportedHandle {
-  nodeLabel: string;
-  name: string;
-  direction: 'input' | 'output';
-  dataType: string;
-  position?: string;
-  label?: string;
-  maxConnections?: number;
-  required?: boolean;
-  defaultValue?: unknown;
-  dynamic?: boolean;
-}
-
-export interface ExportFormat {
-  version: string;
-  nodes: ExportedNode[];
-  handles: ExportedHandle[];
-  arrows: ExportedArrow[];
-  persons: ExportedPerson[];
-  apiKeys: ExportedApiKey[];
-  metadata?: {
-    exported: string;
-    description?: string;
-  };
-}
+// Note: Export format types have been moved to diagramExporter.ts
 
 // History types
 export interface Snapshot {
@@ -81,34 +29,16 @@ interface Transaction {
   timestamp: number;
 }
 
-// Unified store interface
-export interface UnifiedStore {
-  // === Core Data ===
-  nodes: Map<NodeID, DomainNode>;
-  arrows: Map<ArrowID, DomainArrow>;
-  persons: Map<PersonID, DomainPerson>;
+// Unified store interface extends all slices
+export interface UnifiedStore extends 
+  DiagramSlice,
+  ComputedSlice,
+  ExecutionSlice,
+  PersonSlice,
+  UISlice {
+  // === Additional Core Data not in slices ===
   handles: Map<HandleID, DomainHandle>;
   apiKeys: Map<ApiKeyID, DomainApiKey>;
-  
-  // === UI State ===
-  selectedId: NodeID | ArrowID | PersonID | null;
-  selectedType: 'node' | 'arrow' | 'person' | null;
-  activeView: 'diagram' | 'execution';
-  activeCanvas: 'main' | 'execution' | 'memory';
-  dashboardTab: string;
-  readOnly: boolean; // Monitor mode - set by URL param or manual toggle
-  executionReadOnly: boolean; // Execution mode - automatically set during execution
-  showApiKeysModal: boolean;
-  showExecutionModal: boolean;
-  
-  // === Execution State ===
-  execution: {
-    id: string | null;
-    isRunning: boolean;
-    runningNodes: Set<NodeID>;
-    nodeStates: Map<NodeID, NodeState>;
-    context: Record<string, unknown>;
-  };
   
   // === History ===
   history: {
@@ -117,44 +47,13 @@ export interface UnifiedStore {
     currentTransaction: Transaction | null;
   };
   
-  // === Actions (single source of truth) ===
-  // Node operations
-  addNode: (type: NodeKind, position: Vec2, initialData?: Record<string, unknown>) => NodeID;
-  updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
-  deleteNode: (id: NodeID) => void;
-  
-  // Arrow operations
-  addArrow: (source: HandleID, target: HandleID, data?: Record<string, unknown>) => ArrowID;
-  updateArrow: (id: ArrowID, updates: Partial<DomainArrow>) => void;
-  deleteArrow: (id: ArrowID) => void;
-  
-  // Person operations
-  addPerson: (label: string, service: LLMService, model: string) => PersonID;
-  updatePerson: (id: PersonID, updates: Partial<DomainPerson>) => void;
-  deletePerson: (id: PersonID) => void;
-  
-  // Selection
-  select: (id: string, type: 'node' | 'arrow' | 'person') => void;
-  clearSelection: () => void;
-  
-  // UI State
-  setActiveCanvas: (canvas: 'main' | 'execution' | 'memory') => void;
-  setReadOnly: (readOnly: boolean) => void;
-  setDashboardTab: (tab: string) => void;
-  openApiKeysModal: () => void;
-  closeApiKeysModal: () => void;
-  openExecutionModal: () => void;
-  closeExecutionModal: () => void;
+  // === Additional Actions not in slices ===
   
   // API Key operations
   addApiKey: (name: string, service: string) => ApiKeyID;
   updateApiKey: (id: ApiKeyID, updates: Partial<DomainApiKey>) => void;
   deleteApiKey: (id: ApiKeyID) => void;
   
-  // Execution
-  startExecution: (executionId: string) => void;
-  updateNodeExecution: (nodeId: NodeID, state: NodeState) => void;
-  stopExecution: () => void;
   
   // History
   undo: () => void;
@@ -168,9 +67,14 @@ export interface UnifiedStore {
   restoreSnapshot: (snapshot: Snapshot) => void;
   clearAll: () => void;
   
+  // Legacy array selectors (use nodesArray, arrowsArray, personsArray from slices instead)
+  getNodes: () => DomainNode[];
+  getArrows: () => DomainArrow[];
+  getPersons: () => DomainPerson[];
+  
   // Export/Import operations
-  exportDiagram: () => ExportFormat;
-  exportAsJSON: () => string;
-  importDiagram: (data: ExportFormat | string) => void;
+  exportDiagram: () => any; // Returns ExportFormat from diagramExporter.ts
+  exportAsYAML: () => string;
+  importDiagram: (data: any, format?: string) => void; // Accepts ExportFormat or string with optional format
   validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
 }

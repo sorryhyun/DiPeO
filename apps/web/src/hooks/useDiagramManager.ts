@@ -5,10 +5,10 @@
  * creating, saving, loading, exporting, and executing diagrams.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
-import { useExecution } from './useExecution';
+import { useExecutionProvider } from './useExecutionProvider';
 import { useFileOperations } from './useFileOperations';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
@@ -50,7 +50,7 @@ export interface UseDiagramManagerReturn {
   saveDiagram: (filename?: string) => Promise<void>;
   loadDiagramFromFile: (file: File) => Promise<void>;
   loadDiagramFromUrl: (url: string) => Promise<void>;
-  exportDiagram: (format: 'json' | 'yaml' | 'llm-yaml') => Promise<void>;
+  exportDiagram: (format: 'native' | 'light' | 'readable' | 'llm-readable') => Promise<void>;
   importDiagram: () => Promise<void>;
   
   // Execution
@@ -80,7 +80,7 @@ export interface UseDiagramManagerReturn {
   };
   
   // Internal - for composition with other hooks
-  _execution?: ReturnType<typeof useExecution>;
+  _execution?: ReturnType<typeof useExecutionProvider>;
 }
 
 // =====================
@@ -159,7 +159,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Get hooks
   const canvas = useCanvasOperations();
-  const execution = useExecution();
+  const execution = useExecutionProvider({ showToasts: false });
   const fileOps = useFileOperations();
   const exportHook = useExport();
   
@@ -174,27 +174,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Refs
   const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
-  // Auto-save setup
-  useCallback(() => {
-    if (autoSave && autoSaveInterval > 0) {
-      if (autoSaveInterval$ef.current) {
-        clearInterval(autoSaveInterval$ef.current);
-      }
-      
-      autoSaveInterval$ef.current = setInterval(() => {
-        if (isDirty && !execution.isRunning) {
-          saveDiagram();
-        }
-      }, autoSaveInterval);
-      
-      return () => {
-        if (autoSaveInterval$ef.current) {
-          clearInterval(autoSaveInterval$ef.current);
-        }
-      };
-    }
-  }, [autoSave, autoSaveInterval, isDirty, execution.isRunning]);
   
   // Computed values
   const isEmpty = canvas.nodes.length === 0;
@@ -230,8 +209,9 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     
     try {
       // Generate a more user-friendly default filename if not provided
-      const defaultFilename = filename || `diagram.json`;
-      await fileOps.saveJSON(defaultFilename);
+      const defaultFilename = filename || 'diagram';
+      // Use 'light' format for simpler, label-based saving
+      await fileOps.saveDiagramToServer('light', defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
       toast.success('Diagram saved successfully');
@@ -282,21 +262,15 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
   }, [confirmOnLoad, isDirty, fileOps]);
   
-  const exportDiagramAs = useCallback(async (format: 'json' | 'yaml' | 'llm-yaml') => {
+  const exportDiagramAs = useCallback(async (format: 'native'|'light' | 'readable' | 'llm-readable') => {
     try {
-      // Use appropriate export method based on format
-      switch (format) {
-        case 'json':
-          await fileOps.exportJSON();
-          break;
-        case 'yaml':
-          await fileOps.exportYAML();
-          break;
-        case 'llm-yaml':
-          await fileOps.exportLLMYAML();
-          break;
+      // Use unified export method with format
+      if (format === 'llm-readable') {
+        toast.error('LLM-readable format is not yet implemented');
+        return;
       }
-      toast.success(`Diagram exported as ${format.toUpperCase()}`);
+      // Export to server with format-specific extension
+      await fileOps.exportAndDownload(format);
     } catch (error) {
       console.error('Failed to export diagram:', error);
       toast.error('Failed to export diagram');
@@ -414,9 +388,30 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, []);
   
   // Mark dirty when canvas changes
-  useCallback(() => {
+  useEffect(() => {
     setIsDirty(true);
   }, [canvas.nodes, canvas.arrows]);
+  
+  // Auto-save setup
+  useEffect(() => {
+    if (autoSave && autoSaveInterval > 0) {
+      if (autoSaveInterval$ef.current) {
+        clearInterval(autoSaveInterval$ef.current);
+      }
+      
+      autoSaveInterval$ef.current = setInterval(() => {
+        if (isDirty && !execution.isRunning) {
+          saveDiagram();
+        }
+      }, autoSaveInterval);
+      
+      return () => {
+        if (autoSaveInterval$ef.current) {
+          clearInterval(autoSaveInterval$ef.current);
+        }
+      };
+    }
+  }, [autoSave, autoSaveInterval, isDirty, execution.isRunning]);
   
   return {
     // State

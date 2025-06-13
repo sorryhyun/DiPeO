@@ -3,7 +3,7 @@ import { fetchApiKeys, fetchAvailableModels } from '@/utils/api';
 
 interface ExtendedPersonFormData extends PersonFormData {
   apiKeyId?: string;
-  modelName?: string;
+  model?: string;
   label?: string;
   systemPrompt?: string;
 }
@@ -26,7 +26,7 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
           const apiKeys = await fetchApiKeys();
           return apiKeys.map(key => ({
             value: key.id,
-            label: `${key.name} (${key.service})`
+            label: `${key.label} (${key.service})`
           }));
         } catch (error) {
           console.error('Failed to fetch API keys:', error);
@@ -37,7 +37,7 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'modelName',
+      name: 'model',
       label: 'Model',
       options: async (formData: unknown) => {
         const data = formData as Record<string, unknown>;

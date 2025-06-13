@@ -7,12 +7,11 @@ export type HandleDirection = 'input' | 'output';
 export interface DomainHandle {
   id: HandleID;
   nodeId: NodeID;
-  name: string;
+  label: string;
   direction: HandleDirection;
   dataType: DataType;
   position?: HandlePosition;
   offset?: number;
-  label?: string;
   maxConnections?: number;
 }
 
@@ -46,15 +45,15 @@ export function areHandlesCompatible(
   return source.dataType === target.dataType;
 }
 
-export function createHandleId(nodeId: NodeID, handleName: string): HandleID {
-  return `${nodeId}:${handleName}` as HandleID;
+export function createHandleId(nodeId: NodeID, handleLabel: string): HandleID {
+  return `${nodeId}:${handleLabel}` as HandleID;
 }
 
-export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
-  const [nodeId, ...handleNameParts] = handleId.split(':');
+export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleLabel: string } {
+  const [nodeId, ...handleLabelParts] = handleId.split(':');
   return {
     nodeId: nodeId as NodeID,
-    handleName: handleNameParts.join(':')
+    handleLabel: handleLabelParts.join(':')
   };
 }
 
@@ -64,4 +63,27 @@ export function isValidHandleIdFormat(value: string): boolean {
 
 export function isValidNodeIdFormat(value: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(value);
+}
+
+/**
+ * Sanitize a handle label to ensure it's valid
+ * - Replaces spaces with underscores
+ * - Removes special characters except dashes and underscores
+ * - Converts to lowercase for consistency
+ * 
+ * @param label - The raw handle label to sanitize
+ * @returns A sanitized handle label that's safe to use
+ * 
+ * @example
+ * sanitizeHandleLabel('My Handle') // 'my_handle'
+ * sanitizeHandleLabel('Special!Chars#') // 'specialchars'
+ * sanitizeHandleLabel('dash-and_underscore') // 'dash-and_underscore'
+ */
+export function sanitizeHandleLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/\s+/g, '_')  // Replace spaces with underscores
+    .replace(/[^a-z0-9_-]/g, '')  // Remove special chars except dash and underscore
+    .replace(/^[-_]+|[-_]+$/g, '')  // Remove leading/trailing dashes or underscores
+    .replace(/[-_]{2,}/g, '_');  // Replace multiple consecutive dashes/underscores with single underscore
 }

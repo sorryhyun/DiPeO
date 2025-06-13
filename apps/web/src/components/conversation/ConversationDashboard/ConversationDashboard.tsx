@@ -4,14 +4,15 @@ import {
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui';
-import { useFileOperations } from '@/hooks/useFileOperations';
+import { downloadFile } from '@/utils/file';
 import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks';
-import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useConversationData } from '@/hooks/useConversationData';
+import { useUIState, usePersonsData } from '@/hooks/selectors';
 import { MessageList } from '../MessageList';
 import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
 import { debounce, throttle } from '@/utils/math';
+import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
@@ -31,7 +32,8 @@ const ConversationDashboard: React.FC = () => {
   );
 
   const canvas = useCanvasOperations();
-  const store = useUnifiedStore();
+  const { selectedId } = useUIState();
+  const { persons: personsMap } = usePersonsData();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Get persons from canvas with proper memoization
@@ -42,11 +44,11 @@ const ConversationDashboard: React.FC = () => {
   
   // Get selected person ID if a person is selected
   const selectedPersonId = React.useMemo(() => {
-    if (!store.selectedId) return null;
+    if (!selectedId) return null;
     // Check if the selected ID is a person
-    const person = store.persons.get(store.selectedId as PersonID);
-    return person ? store.selectedId as PersonID : null;
-  }, [store.selectedId, store.persons]);
+    const person = personsMap.get(selectedId as PersonID);
+    return person ? selectedId as PersonID : null;
+  }, [selectedId, personsMap]);
   
 
   // Use consolidated conversation data hook with real-time updates
@@ -84,8 +86,9 @@ const ConversationDashboard: React.FC = () => {
 
   // Initial load - only run once on mount
   useEffect(() => {
-    void fetchConversationData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Don't automatically load conversation logs on mount
+    // void fetchConversationData();
+     
   }, []); // Empty dependency array to run only once
 
   // Handle person selection from sidebar
@@ -120,7 +123,7 @@ const ConversationDashboard: React.FC = () => {
   );
 
   // Export conversations
-  const { downloadJSON } = useFileOperations();
+  // File operations are handled directly with utils
   
   const exportConversations = async () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
@@ -138,8 +141,9 @@ const ConversationDashboard: React.FC = () => {
       }
     };
 
-    void downloadJSON(exportData, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.json`);
-    toast.success('Conversation exported');
+    const yamlContent = stringify(exportData, { lineWidth: 120, defaultStringType: 'PLAIN' });
+    downloadFile(yamlContent, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.yaml`, 'text/yaml');
+    toast.success('Conversation exported as YAML');
   };
 
   // Calculate total tokens for selected person

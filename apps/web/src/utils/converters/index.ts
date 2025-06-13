@@ -1,7 +1,15 @@
-export * from './llm-yaml';
-export * from './yaml';
-export { DiagramAssembler } from './diagramAssembler';
-export { buildNode, buildNodes, NODE_BUILDERS } from './nodeBuilders';
-export type { NodeInfo } from './nodeBuilders';
-export type { Edge, NodeAnalysis, AssemblerCallbacks } from './diagramAssembler';
-// Note: cli.ts is a Node.js CLI tool and should not be imported in browser code
+// Re-export all converter functionality
+
+// Core functionality
+export * from './core';
+
+// Format converters
+export * from './formats';
+
+// Type definitions
+export * from './types';
+
+// Constants
+export * from './constants';
+
+// Note: CLI tools in ./cli are Node.js executables and should not be imported in browser code

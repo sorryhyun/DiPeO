@@ -9,14 +9,41 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useWebSocketEventBus } from './useWebSocketEventBus';
-import { useCanvasOperations } from './useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { onWebSocketEvent } from '@/utils/websocket/event-bus';
 import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
 import { NodeKind } from '@/types/primitives/enums';
-import type { UnifiedStore } from '@/stores/unifiedStore.types';
+import { createCommonStoreSelector } from '@/stores/selectorFactory';
+import { NODE_ICONS, NODE_COLORS } from '@/config/nodeMeta';
 
-// ========== Types ==========
+// Throttle utility for rapid updates
+function throttle<T extends (...args: any[]) => any>(fn: T, delay: number): T {
+  let lastCall = 0;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let lastArgs: Parameters<T> | null = null;
+  
+  return ((...args: Parameters<T>) => {
+    const now = Date.now();
+    lastArgs = args;
+    
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      fn(...args);
+    } else if (!timeoutId) {
+      // Schedule a call for the last invocation
+      timeoutId = setTimeout(() => {
+        if (lastArgs) {
+          lastCall = Date.now();
+          fn(...lastArgs);
+        }
+        timeoutId = null;
+        lastArgs = null;
+      }, delay - (now - lastCall));
+    }
+  }) as T;
+}
+
+// Types
 
 export interface ExecutionState {
   isRunning: boolean;
@@ -105,45 +132,9 @@ const initialExecutionState: ExecutionState = {
   error: null,
 };
 
-const NODE_ICONS: Record<string, string> = {
-  start: '🚀',
-  person_job: '🤖',
-  person_batch_job: '📦',
-  condition: '🔀',
-  db: '💾',
-  endpoint: '🎯',
-  job: '⚙️',
-  user_response: '💬',
-  notion: '📝'
-};
-
-const NODE_COLORS: Record<string, string> = {
-  start: '#10b981',
-  person_job: '#3b82f6',
-  person_batch_job: '#8b5cf6',
-  condition: '#f59e0b',
-  db: '#6366f1',
-  endpoint: '#ef4444',
-  job: '#6b7280',
-  user_response: '#14b8a6',
-  notion: '#ec4899'
-};
+// Node visualization constants are now imported from nodeMeta
 
 // ========== Main Hook ==========
-
-// Create stable selector for execution store
-const createExecutionStoreSelector = () => (state: UnifiedStore) => ({
-  // Store actions
-  startExecution: state.startExecution,
-  updateNodeExecution: state.updateNodeExecution,
-  stopExecution: state.stopExecution,
-  // Execution state
-  executionId: state.execution.id,
-  isRunning: state.execution.isRunning,
-  runningNodes: state.execution.runningNodes,
-  nodeStates: state.execution.nodeStates,
-  context: state.execution.context,
-});
 
 export function useExecution(options: UseExecutionOptions = {}): UseExecutionReturn {
   const {
@@ -153,8 +144,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     onUpdate
   } = options;
   
-  // Memoized selector
-  const executionStoreSelector = React.useMemo(createExecutionStoreSelector, []);
+  // Memoized selector using common factory
+  const executionStoreSelector = React.useMemo(createCommonStoreSelector, []);
   const executionActions = useUnifiedStore(useShallow(executionStoreSelector));
   
   // State
@@ -172,8 +163,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   const skippedNodesRef = useRef<Array<{ nodeId: string; reason: string }>>([]);
   const currentRunningNodeRef = useRef<string | null>(null);
   
-  // Canvas operations
-  const { nodes: canvasNodes } = useCanvasOperations();
+  // Canvas operations removed - using executionActions.nodes directly to avoid circular dependencies
   
   // WebSocket
   const {
@@ -257,7 +247,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     }
   }, [showToasts]);
   
-  const startNode = useCallback((nodeId: string, nodeType: string) => {
+  const startNode = useCallback((nodeId: string, _nodeType: string) => {
     setExecution(prev => ({
       ...prev,
       currentNode: nodeId,
@@ -272,13 +262,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }
     }));
     
-    if (showToasts) {
-      const nodeIcon = NODE_ICONS[nodeType] || '📦';
-      const node = canvasNodes.find(n => n.id === nodeId);
-      const nodeLabel = node?.data?.label || nodeId.slice(0, 8);
-      toast.info(`${nodeIcon} Running: ${nodeLabel}...`);
-    }
-  }, [showToasts, canvasNodes]);
+    // Removed node execution toasts since running nodes are already highlighted visually
+  }, []);
   
   const completeNode = useCallback((nodeId: string, tokenCount?: number) => {
     setExecution(prev => ({
@@ -332,7 +317,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     onUpdate?.({ type: 'execution_aborted' });
   }, [errorExecution, executionActions, onUpdate]);
   
-  const handleNodeStart = useCallback((data: any) => {
+  // Throttle node start updates to prevent UI freeze during rapid loops
+  const handleNodeStart = useCallback(throttle((data: any) => {
     startNode(data.node_id, data.node_type);
     currentRunningNodeRef.current = data.node_id;
     executionActions.updateNodeExecution(data.node_id as NodeID, {
@@ -340,9 +326,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       timestamp: Date.now()
     });
     onUpdate?.({ type: 'node_start', ...data });
-  }, [startNode, executionActions, onUpdate]);
+  }, 50), [startNode, executionActions, onUpdate]);
   
-  const handleNodeProgress = useCallback((data: any) => {
+  // Throttle node progress updates to prevent UI freeze during rapid loops
+  const handleNodeProgress = useCallback(throttle((data: any) => {
     setNodeStates(prev => ({
       ...prev,
       [data.node_id]: {
@@ -351,9 +338,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }
     }));
     onUpdate?.({ type: 'node_progress', ...data });
-  }, [onUpdate]);
+  }, 100), [onUpdate]);
   
-  const handleNodeComplete = useCallback((data: any) => {
+  // Throttle node complete updates to prevent UI freeze during rapid loops
+  const handleNodeComplete = useCallback(throttle((data: any) => {
     completeNode(data.node_id, data.token_count);
     if (currentRunningNodeRef.current === data.node_id) {
       currentRunningNodeRef.current = null;
@@ -367,7 +355,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       runContextRef.current = { ...runContextRef.current, ...data.output };
     }
     onUpdate?.({ type: 'node_complete', ...data });
-  }, [completeNode, executionActions, onUpdate]);
+  }, 50), [completeNode, executionActions, onUpdate]);
   
   const handleNodeSkipped = useCallback((data: any) => {
     setExecution(prev => ({
@@ -506,9 +494,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         diagram: {
           ...diagram,
           // Ensure we're sending arrays (nodes/arrows/persons are Records)
-          nodes: Object.values(diagram.nodes),
-          arrows: Object.values(diagram.arrows),
-          persons: Object.values(diagram.persons),
+          // Include IDs in the node objects when converting to array
+          nodes: Object.entries(diagram.nodes).map(([id, node]) => ({ ...node, id })),
+          arrows: Object.entries(diagram.arrows).map(([id, arrow]) => ({ ...arrow, id })),
+          persons: Object.entries(diagram.persons).map(([id, person]) => ({ ...person, id })),
         },
         ...options
       } : {
@@ -572,21 +561,21 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [formatDuration]);
   
   const getNodeIcon = useCallback((nodeType: string): string => {
-    return NODE_ICONS[nodeType] || '📦';
+    return NODE_ICONS[nodeType as NodeKind] || '📦';
   }, []);
   
   const getNodeColor = useCallback((nodeType: string): string => {
-    return NODE_COLORS[nodeType] || '#6b7280';
+    return NODE_COLORS[nodeType as NodeKind] || '#6b7280';
   }, []);
   
   // ========== Effects ==========
   
   // Auto-connect on mount if requested
   useEffect(() => {
-    if (autoConnect && !isConnected && !isReconnecting) {
+    if (autoConnect) {
       connect();
     }
-  }, [autoConnect, isConnected, isReconnecting, connect]);
+  }, []); // Only run on mount - the event bus handles connection state internally
   
   // Cleanup on unmount
   useEffect(() => {
@@ -600,27 +589,25 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   // Track current node name for UI
   const currentNodeName = React.useMemo(() => {
     if (!execution.currentNode) return null;
-    const node = canvasNodes.find(n => n.id === execution.currentNode);
+    const node = executionActions.nodes.get(execution.currentNode as NodeID);
     return node?.data?.label || execution.currentNode;
-  }, [execution.currentNode, canvasNodes]);
+  }, [execution.currentNode, executionActions.nodes]);
   
   // Update progress
   useEffect(() => {
-    if (currentNodeName) {
-      const node = canvasNodes.find(n => n.id === execution.currentNode);
-      const nodeType = node?.type as NodeKind;
+    if (currentNodeName && showToasts) {
+      // Find node type from execution context instead of canvasNodes
+      const nodeType = executionActions.nodes.get(execution.currentNode as NodeID)?.type as NodeKind;
       const nodeIcon = NODE_ICONS[nodeType] || '📦';
       // Progress message with icon and name
-      if (showToasts) {
-        console.log(`${nodeIcon} Processing: ${currentNodeName}`);
-      }
+      // console.log(`${nodeIcon} Processing: ${currentNodeName}`);
     }
     
     // Update progress
     if (execution.totalNodes > 0) {
       setProgress(Math.round(((execution.completedNodes + 1) / execution.totalNodes) * 100));
     }
-  }, [currentNodeName, execution.completedNodes, execution.totalNodes, canvasNodes, showToasts]);
+  }, [currentNodeName, execution.completedNodes, execution.totalNodes, execution.currentNode, executionActions.nodes, showToasts]);
   
   // ========== Return ==========
   
@@ -679,6 +666,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     // Additional properties for compatibility
     runningNodes: executionActions.runningNodes,
-    nodes: canvasNodes,
+    nodes: Array.from(executionActions.nodes.values()),
   };
 }

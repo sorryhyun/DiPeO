@@ -1,581 +1,407 @@
-import {
-  DomainNode,  DomainArrow,  DomainPerson, DomainApiKey,  DomainHandle,  
-  InputHandle, OutputHandle, NodeID, PersonID,  ApiKeyID,  handleId,  
-  parseHandleId,  NodeKind, LLMService, generateNodeId, DataType, HandlePosition
+import { 
+  DomainHandle, 
+  DomainNode,
+  DomainArrow,
+  DomainPerson,
+  DomainApiKey,
+  DomainDiagram,
+  DataType, 
+  HandlePosition,
+  NodeKind,
+  NodeID,
+  ArrowID,
+  PersonID,
+  ApiKeyID,
+  HandleID,
+  generateNodeId,
+  generateArrowId,
+  generatePersonId,
+  generateApiKeyId,
+  createHandleId
 } from '@/types';
-import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
-import type { UnifiedStore, ExportFormat, ExportedNode, ExportedArrow, ExportedPerson, ExportedApiKey, ExportedHandle } from './unifiedStore.types';
+import { generateNodeHandles } from '@/utils/node/handle-builder';
+import { getNodeConfig } from '@/config';
+import type { UnifiedStore } from './unifiedStore.types';
+import { LightDomainConverter } from '@/utils/converters/formats/light-yaml';
+import { storeDomainConverter, converterRegistry } from '@/utils/converters/core';
 
-// Optimized export class
+// Export format types moved from unifiedStore.types.ts
+export interface ExportedNode {
+  label: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+}
+
+export interface ExportedArrow {
+  sourceHandle: string;
+  targetHandle: string;
+  data?: Record<string, unknown>;
+}
+
+export interface ExportedPerson {
+  label: string;
+  model: string;
+  service: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  apiKeyLabel?: string;
+}
+
+export interface ExportedApiKey {
+  name: string;
+  service: string;
+}
+
+export interface ExportedHandle {
+  nodeLabel: string;
+  label: string;
+  direction: 'input' | 'output';
+  dataType: string;
+  position?: string;
+  maxConnections?: number;
+  required?: boolean;
+  defaultValue?: unknown;
+  dynamic?: boolean;
+}
+
+export interface ExportFormat {
+  version: string;
+  nodes: ExportedNode[];
+  handles: ExportedHandle[];
+  arrows: ExportedArrow[];
+  persons: ExportedPerson[];
+  apiKeys: ExportedApiKey[];
+  metadata?: {
+    exported: string;
+    description?: string;
+  };
+}
+
+// Thin wrapper around converters that provides store integration
 export class DiagramExporter {
-  // Pre-computed lookups for efficient export/import
-  private nodeIdToLabel: Map<NodeID, string> = new Map();
-  private personIdToLabel: Map<PersonID, string> = new Map();
-  private apiKeyIdToLabel: Map<ApiKeyID, string> = new Map();
-  private nodeLabelToId: Map<string, NodeID> = new Map();
-  private personLabelToId: Map<string, PersonID> = new Map();
-  private apiKeyLabelToId: Map<string, ApiKeyID> = new Map();
+  private lightConverter = new LightDomainConverter();
   
-  // Label uniqueness tracking
-  private usedNodeLabels: Set<string> = new Set();
-  private usedPersonLabels: Set<string> = new Set();
-  private usedApiKeyLabels: Set<string> = new Set();
-
   constructor(private store: UnifiedStore) {}
-
-  // Clear all lookups
-  private clearLookups(): void {
-    this.nodeIdToLabel.clear();
-    this.personIdToLabel.clear();
-    this.apiKeyIdToLabel.clear();
-    this.nodeLabelToId.clear();
-    this.personLabelToId.clear();
-    this.apiKeyLabelToId.clear();
-    this.usedNodeLabels.clear();
-    this.usedPersonLabels.clear();
-    this.usedApiKeyLabels.clear();
-  }
-
-  // Build export lookups
-  private buildExportLookups(): void {
-    this.clearLookups();
-
-    // Build node label mappings
-    const nodes = Array.from(this.store.nodes.values());
-    nodes.forEach(node => {
-      const label = (node.data.label as string) || node.id;
-      const uniqueLabel = this.ensureUniqueLabel(label, this.usedNodeLabels);
-      this.nodeIdToLabel.set(node.id, uniqueLabel);
-    });
-
-    // Build person label mappings
-    const persons = Array.from(this.store.persons.values());
-    persons.forEach(person => {
-      const label = person.label || person.id;
-      const uniqueLabel = this.ensureUniqueLabel(label, this.usedPersonLabels);
-      this.personIdToLabel.set(person.id, uniqueLabel);
-    });
-
-    // Build API key label mappings
-    const apiKeys = Array.from(this.store.apiKeys.values());
-    apiKeys.forEach(apiKey => {
-      const label = apiKey.name || apiKey.id;
-      const uniqueLabel = this.ensureUniqueLabel(label, this.usedApiKeyLabels);
-      this.apiKeyIdToLabel.set(apiKey.id, uniqueLabel);
-    });
+  
+  // Parse handle reference - support both old "-" and new "::" separators
+  private parseHandleRef(handleRef: string): { nodeLabel: string; handleLabel: string } {
+    if (handleRef.includes('::')) {
+      const parts = handleRef.split('::');
+      return {
+        nodeLabel: parts[0] || '',
+        handleLabel: parts[1] || 'default'
+      };
+    }
+    const lastHyphenIndex = handleRef.lastIndexOf('-');
+    if (lastHyphenIndex === -1) {
+      return {
+        nodeLabel: handleRef,
+        handleLabel: 'default'
+      };
+    }
+    const nodeLabel = handleRef.substring(0, lastHyphenIndex);
+    const handleLabel = handleRef.substring(lastHyphenIndex + 1) || 'default';
+    return { nodeLabel, handleLabel };
   }
 
   // Export operations
   exportDiagram(): ExportFormat {
-    this.buildExportLookups();
-
-    const nodes = Array.from(this.store.nodes.values());
-    const handles = Array.from(this.store.handles.values());
-    const arrows = Array.from(this.store.arrows.values());
-    const persons = Array.from(this.store.persons.values());
-    const apiKeys = Array.from(this.store.apiKeys.values());
-
-    // Export nodes
-    const exportedNodes = this.exportNodes(nodes);
+    const diagram = this.storeToDomainDiagram();
     
-    // Export handles separately
-    const exportedHandles = this.exportHandles(handles);
+    // Convert arrows to use handle references
+    const arrows = Object.values(diagram.arrows).map(arrow => {
+      const sourceHandle = diagram.handles[arrow.source];
+      const targetHandle = diagram.handles[arrow.target];
+      
+      if (!sourceHandle || !targetHandle) {
+        throw new Error('Missing handle information for arrow');
+      }
+      
+      const sourceNode = diagram.nodes[sourceHandle.nodeId];
+      const targetNode = diagram.nodes[targetHandle.nodeId];
+      
+      if (!sourceNode || !targetNode) {
+        throw new Error('Missing node information for arrow');
+      }
+      
+      return {
+        sourceHandle: `${(sourceNode.data.label as string) || sourceNode.id}::${sourceHandle.label}`,
+        targetHandle: `${(targetNode.data.label as string) || targetNode.id}::${targetHandle.label}`,
+        data: arrow.data
+      };
+    });
     
-    // Export arrows
-    const exportedArrows = this.exportArrows(arrows);
+    // Convert handles to export format
+    const handles = Object.values(diagram.handles).map(handle => {
+      const node = diagram.nodes[handle.nodeId];
+      const nodeLabel = (node?.data.label as string) || handle.nodeId;
+      
+      return {
+        nodeLabel,
+        label: handle.label,
+        direction: handle.direction,
+        dataType: handle.dataType as string,
+        position: handle.position as string | undefined,
+        maxConnections: handle.maxConnections
+      };
+    });
     
-    // Export persons
-    const exportedPersons = this.exportPersons(persons);
-    
-    // Export API keys
-    const exportedApiKeys = this.exportApiKeys(apiKeys);
-
+    // Convert to export format
     return {
-      version: '4.0.0',
-      nodes: exportedNodes,
-      handles: exportedHandles,
-      arrows: exportedArrows,
-      persons: exportedPersons,
-      apiKeys: exportedApiKeys,
+      version: '1.0',
+      nodes: Object.values(diagram.nodes).map(node => ({
+        label: (node.data.label as string) || node.id,
+        type: node.type,
+        position: { x: node.position.x, y: node.position.y },
+        data: node.data
+      })),
+      handles,
+      arrows,
+      persons: Object.values(diagram.persons).map(person => ({
+        label: person.label,
+        model: person.model,
+        service: person.service,
+        systemPrompt: person.systemPrompt,
+        temperature: person.temperature,
+        maxTokens: person.maxTokens,
+        topP: person.topP,
+        frequencyPenalty: person.frequencyPenalty,
+        presencePenalty: person.presencePenalty
+      })),
+      apiKeys: Object.values(diagram.apiKeys).map(key => ({
+        name: key.label,
+        service: key.service
+      })),
       metadata: {
         exported: new Date().toISOString()
       }
     };
   }
 
-  exportAsJSON(): string {
-    const exportData = this.exportDiagram();
-    return JSON.stringify(exportData, null, 2);
+  exportAsYAML(): string {
+    // Convert store state to domain model
+    const storeState = {
+      nodes: this.store.nodes,
+      arrows: this.store.arrows,
+      handles: this.store.handles,
+      persons: this.store.persons,
+      apiKeys: this.store.apiKeys
+    };
+    const domainDiagram = storeDomainConverter.storeToDomain(storeState);
+    return this.lightConverter.serialize(domainDiagram);
   }
 
   // Import operations
-  importDiagram(data: ExportFormat | string): void {
-    const exportData: ExportFormat = typeof data === 'string'
-      ? JSON.parse(data)
-      : data;
-
-    // Validate
-    const validation = this.validateExportData(exportData);
-    if (!validation.valid) {
-      throw new Error(`Invalid export data: ${validation.errors.join(', ')}`);
-    }
-
-    // Clear existing data without using transaction
-    this.store.clearAll();
-    this.clearLookups();
-
-    // Import in order: API keys -> Persons -> Nodes -> Handles -> Arrows
-    this.store.transaction(() => {
-      this.importApiKeys(exportData.apiKeys);
-      this.importPersons(exportData.persons);
-      
-      // For v4.0.0+, we'll import handles separately, so skip auto-generation
-      const skipHandleGeneration = exportData.version >= '4.0.0' && !!exportData.handles && exportData.handles.length > 0;
-      this.importNodes(exportData.nodes, skipHandleGeneration);
-      
-      // Import handles if present (v4.0.0+)
-      if (exportData.handles && Array.isArray(exportData.handles) && exportData.handles.length > 0) {
-        this.importHandles(exportData.handles);
-      } else if (exportData.version >= '4.0.0') {
-        // If v4.0.0+ but no handles, we need to generate them
-        console.warn('No handles found in v4.0.0+ export, regenerating handles');
-        this.regenerateHandlesForNodes();
+  importDiagram(data: ExportFormat | string, format?: string): void {
+    let domainDiagram: DomainDiagram;
+    
+    if (typeof data === 'string') {
+      // Handle string import with format detection
+      if (format) {
+        // Use specified format
+        const converter = converterRegistry.get(format as any);
+        domainDiagram = converter.deserialize(data);
+      } else {
+        // Default to light format for backward compatibility
+        domainDiagram = this.lightConverter.deserialize(data);
       }
-      
-      this.importArrows(exportData.arrows);
+    } else {
+      // Handle ExportFormat import
+      domainDiagram = this.exportFormatToDomainDiagram(data);
+    }
+    
+    // Convert to store format
+    const storeData = storeDomainConverter.domainToStore(domainDiagram);
+    
+    // Clear and import - Create new Maps to avoid Immer issues
+    this.store.clearAll();
+    this.store.transaction(() => {
+      // Replace Maps entirely instead of mutating them
+      (this.store as any).nodes = new Map(storeData.nodes);
+      (this.store as any).arrows = new Map(storeData.arrows);
+      (this.store as any).handles = new Map(storeData.handles);
+      (this.store as any).persons = new Map(storeData.persons);
+      (this.store as any).apiKeys = new Map(storeData.apiKeys);
     });
   }
 
   // Validation
   validateExportData(data: unknown): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    if (!data || typeof data !== 'object') {
-      errors.push('Data must be an object');
-      return { valid: false, errors };
-    }
-
-    const exportData = data as ExportFormat;
-
-    // Check version
-    if (!exportData.version) {
-      errors.push('Missing version field');
-    }
-
-    // Check required arrays
-    if (!Array.isArray(exportData.nodes)) {
-      errors.push('nodes must be an array');
-    }
-    if (!Array.isArray(exportData.arrows)) {
-      errors.push('arrows must be an array');
-    }
-    if (!Array.isArray(exportData.persons)) {
-      errors.push('persons must be an array');
-    }
-    if (!Array.isArray(exportData.apiKeys)) {
-      errors.push('apiKeys must be an array');
-    }
-    
-    // Check handles array for v4.0.0+
-    if (exportData.version && exportData.version >= '4.0.0') {
-      if (!Array.isArray(exportData.handles)) {
-        errors.push('handles must be an array for version 4.0.0+');
+    if (typeof data === 'string') {
+      try {
+        this.lightConverter.deserialize(data);
+        return { valid: true, errors: [] };
+      } catch (e) {
+        return { valid: false, errors: [e instanceof Error ? e.message : 'Invalid YAML'] };
       }
     }
-
-    // Validate nodes
-    if (Array.isArray(exportData.nodes)) {
-      exportData.nodes.forEach((node, index) => {
-        if (!node.label) errors.push(`Node ${index} missing label`);
-        if (!node.type) errors.push(`Node ${index} missing type`);
-        if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
-          errors.push(`Node ${index} missing valid position`);
-        }
-      });
+    
+    // Basic validation for export format
+    if (!data || typeof data !== 'object') {
+      return { valid: false, errors: ['Data must be an object'] };
     }
-
-    // Validate arrows
-    if (Array.isArray(exportData.arrows)) {
-      exportData.arrows.forEach((arrow, index) => {
-        if (!arrow.sourceHandle) errors.push(`Arrow ${index} missing sourceHandle`);
-        if (!arrow.targetHandle) errors.push(`Arrow ${index} missing targetHandle`);
-      });
-    }
-
+    
+    const exportData = data as ExportFormat;
+    const errors: string[] = [];
+    
+    if (!exportData.version) errors.push('Missing version');
+    if (!Array.isArray(exportData.nodes)) errors.push('nodes must be an array');
+    if (!Array.isArray(exportData.arrows)) errors.push('arrows must be an array');
+    
     return { valid: errors.length === 0, errors };
   }
 
-  // Private export helpers
-  private exportNodes(nodes: DomainNode[]): ExportedNode[] {
-    return nodes.map(node => {
-      const label = this.nodeIdToLabel.get(node.id) || node.id;
-
-      // Prepare data without internal properties and React Flow handles
-      const { label: _, inputs: __, outputs: ___, ...dataWithoutLabel } = node.data;
-
-      // Replace person ID with label if exists
-      const data = { ...dataWithoutLabel };
-      if ('personId' in data && data.personId) {
-        const personLabel = this.personIdToLabel.get(data.personId as PersonID);
-        if (personLabel) {
-          data.personLabel = personLabel;
-          delete data.personId;
-        }
-      }
-
-      return {
-        label,
-        type: node.type,
-        position: {
-          x: this.roundPosition(node.position.x),
-          y: this.roundPosition(node.position.y)
-        },
-        data
-      };
-    });
-  }
-
-  private exportHandles(handles: DomainHandle[]): ExportedHandle[] {
-    return handles.map(handle => {
-      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId) || handle.nodeId;
-      
-      const exportedHandle: ExportedHandle = {
-        nodeLabel,
-        name: handle.name,
-        direction: handle.direction,
-        dataType: handle.dataType,
-        position: handle.position,
-        label: handle.label,
-        maxConnections: handle.maxConnections
-      };
-
-      // Type-safe handling of optional properties
-      if (handle.direction === 'input') {
-        const inputHandle = handle as InputHandle;
-        if ('required' in inputHandle) exportedHandle.required = inputHandle.required;
-        if ('defaultValue' in inputHandle) exportedHandle.defaultValue = inputHandle.defaultValue;
-      } else if (handle.direction === 'output') {
-        const outputHandle = handle as OutputHandle;
-        if ('dynamic' in outputHandle) exportedHandle.dynamic = outputHandle.dynamic;
-      }
-
-      return exportedHandle;
-    });
-  }
-
-  private exportArrows(arrows: DomainArrow[]): ExportedArrow[] {
-    return arrows.map(arrow => {
-      const { nodeId: sourceNodeId, handleName: sourceHandleName } = parseHandleId(arrow.source);
-      const { nodeId: targetNodeId, handleName: targetHandleName } = parseHandleId(arrow.target);
-
-      const sourceLabel = this.nodeIdToLabel.get(sourceNodeId) || sourceNodeId;
-      const targetLabel = this.nodeIdToLabel.get(targetNodeId) || targetNodeId;
-
-      return {
-        sourceHandle: `${sourceLabel}::${sourceHandleName}`,
-        targetHandle: `${targetLabel}::${targetHandleName}`,
-        data: arrow.data
-      };
-    });
-  }
-
-  private exportPersons(persons: DomainPerson[]): ExportedPerson[] {
-    return persons.map(person => {
-      // Get the unique label for this person
-      const label = this.personIdToLabel.get(person.id) || person.label;
-      
-      const result: ExportedPerson = {
-        label,
-        model: person.model,
-        service: person.service,
-        systemPrompt: person.systemPrompt,
-        temperature: person.temperature,
-        maxTokens: person.maxTokens
-      };
-
-      // Add API key label if exists
-      if ('apiKeyId' in person && person.apiKeyId) {
-        const apiKeyLabel = this.apiKeyIdToLabel.get(person.apiKeyId as ApiKeyID);
-        if (apiKeyLabel) {
-          result.apiKeyLabel = apiKeyLabel;
-        }
-      }
-
-      return result;
-    });
-  }
-
-  private exportApiKeys(apiKeys: DomainApiKey[]): ExportedApiKey[] {
-    return apiKeys.map(apiKey => ({
-      name: apiKey.name,
-      service: apiKey.service
-    }));
-  }
-
-  // Private import helpers
-  private importApiKeys(apiKeys: ExportedApiKey[]): void {
-    apiKeys.forEach(apiKeyData => {
-      const label = this.ensureUniqueLabel(apiKeyData.name, this.usedApiKeyLabels);
-      const id = this.store.addApiKey(label, apiKeyData.service);
-      this.apiKeyLabelToId.set(label, id);
-    });
-  }
-
-  private importPersons(persons: ExportedPerson[]): void {
-    persons.forEach(personData => {
-      const label = this.ensureUniqueLabel(personData.label, this.usedPersonLabels);
-      
-      // Create person using store action
-      const id = this.store.addPerson(label, personData.service as LLMService, personData.model);
-      this.personLabelToId.set(label, id);
-
-      // Update with additional properties
-      const updateData: Record<string, unknown> = {};
-      if (personData.systemPrompt !== undefined) updateData.systemPrompt = personData.systemPrompt;
-      if (personData.temperature !== undefined) updateData.temperature = personData.temperature;
-      if (personData.maxTokens !== undefined) updateData.maxTokens = personData.maxTokens;
-      
-      // Resolve API key reference
-      if (personData.apiKeyLabel) {
-        const apiKeyId = this.apiKeyLabelToId.get(personData.apiKeyLabel);
-        if (apiKeyId) updateData.apiKeyId = apiKeyId;
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        this.store.updatePerson(id, updateData as Partial<DomainPerson>);
-      }
-    });
-  }
-
-  private importNodes(nodes: ExportedNode[], skipHandleGeneration = false): void {
-    nodes.forEach(nodeData => {
-      const label = this.ensureUniqueLabel(nodeData.label, this.usedNodeLabels);
-      
-      // Resolve person reference
-      let resolvedPersonId: PersonID | undefined;
-      const personLabel = nodeData.data.personLabel;
-      if (personLabel && this.personLabelToId.has(personLabel as string)) {
-        resolvedPersonId = this.personLabelToId.get(personLabel as string);
-      }
-
-      // Create a new data object without personLabel (if it exists)
-      const { personLabel: _, ...dataWithoutPersonLabel } = nodeData.data;
-
-      // Prepare initial data for node creation
-      const initialData = {
-        ...dataWithoutPersonLabel,
-        label,
-        ...(resolvedPersonId && { personId: resolvedPersonId })
-      };
-
-      // Create node using store action
-      // For v4.0.0+, handles will be imported separately
-      if (skipHandleGeneration) {
-        // Directly add node without auto-generating handles
-        const nodeId = generateNodeId();
-        const node: DomainNode = {
-          id: nodeId,
-          type: nodeData.type as NodeKind,
-          position: nodeData.position,
-          data: initialData
-        };
-        this.store.nodes.set(nodeId, node);
-        this.nodeLabelToId.set(label, nodeId);
-      } else {
-        // Use regular addNode which auto-generates handles
-        const id = this.store.addNode(nodeData.type as NodeKind, nodeData.position, initialData);
-        this.nodeLabelToId.set(label, id);
-      }
-    });
-  }
-
-  private importHandles(handles: ExportedHandle[]): void {
-    handles.forEach(handleData => {
-      // Resolve node ID from label
-      const nodeId = this.nodeLabelToId.get(handleData.nodeLabel);
-      if (!nodeId) {
-        console.warn(`Cannot resolve node for handle: ${handleData.nodeLabel}:${handleData.name}`);
-        return;
-      }
-
-      // Create handle ID
-      const id = handleId(nodeId, handleData.name);
-      
-      // Create handle based on direction
-      if (handleData.direction === 'input') {
-        const handle: InputHandle = {
-          id,
-          nodeId,
-          name: handleData.name,
-          direction: 'input',
-          dataType: handleData.dataType as DataType,
-          position: handleData.position as HandlePosition | undefined,
-          label: handleData.label,
-          maxConnections: handleData.maxConnections,
-          ...(handleData.required !== undefined && { required: handleData.required }),
-          ...(handleData.defaultValue !== undefined && { defaultValue: handleData.defaultValue })
-        };
-        this.store.handles.set(id, handle);
-      } else {
-        const handle: OutputHandle = {
-          id,
-          nodeId,
-          name: handleData.name,
-          direction: 'output',
-          dataType: handleData.dataType as DataType,
-          position: handleData.position as HandlePosition | undefined,
-          label: handleData.label,
-          maxConnections: handleData.maxConnections,
-          ...(handleData.dynamic !== undefined && { dynamic: handleData.dynamic })
-        };
-        this.store.handles.set(id, handle);
-      }
-    });
-  }
-
-  private importArrows(arrows: ExportedArrow[]): void {
-    arrows.forEach(arrowData => {
-      // Parse handle references - support both old "-" and new "::" separators
-      const parseHandleRef = (handleRef: string): { nodeLabel: string; handleName: string } => {
-        // First try new format with "::" separator
-        if (handleRef.includes('::')) {
-          const parts = handleRef.split('::');
-          return {
-            nodeLabel: parts[0] || '',
-            handleName: parts[1] || 'default'
-          };
-        }
-        
-        // Fall back to old format with "-" separator
-        // For backward compatibility, we need to handle cases where node labels contain hyphens
-        const lastHyphenIndex = handleRef.lastIndexOf('-');
-        
-        if (lastHyphenIndex === -1) {
-          // No hyphen found, assume default handle
-          return {
-            nodeLabel: handleRef,
-            handleName: 'default'
-          };
-        }
-        
-        // Extract node label and handle name
-        const nodeLabel = handleRef.substring(0, lastHyphenIndex);
-        const handleName = handleRef.substring(lastHyphenIndex + 1) || 'default';
-        
-        return { nodeLabel, handleName };
-      };
-
-      // Parse source and target handle references
-      const source = parseHandleRef(arrowData.sourceHandle);
-      const target = parseHandleRef(arrowData.targetHandle);
-
-      // Validate we have node labels
-      if (!source.nodeLabel || !target.nodeLabel) {
-        console.warn(`Invalid arrow handle format: ${arrowData.sourceHandle} -> ${arrowData.targetHandle}`);
-        return;
-      }
-
-      // Resolve node IDs from labels
-      const sourceNodeId = this.nodeLabelToId.get(source.nodeLabel);
-      const targetNodeId = this.nodeLabelToId.get(target.nodeLabel);
-
-      if (!sourceNodeId || !targetNodeId) {
-        console.warn(`Cannot resolve arrow nodes: ${source.nodeLabel} -> ${target.nodeLabel}`);
-        return;
-      }
-
-      // Create handle IDs (we know these are defined from the check above)
-      const sourceHandleId = handleId(sourceNodeId!, source.handleName);
-      const targetHandleId = handleId(targetNodeId!, target.handleName);
-
-      // Verify handles exist
-      let sourceHandle = this.store.handles.get(sourceHandleId);
-      let targetHandle = this.store.handles.get(targetHandleId);
-      
-      // Handle backward compatibility for handle names
-      if (!sourceHandle && sourceNodeId) {
-        const node = this.store.nodes.get(sourceNodeId);
-        if (node?.type === 'start' && source.handleName === 'output') {
-          // Start nodes use 'default' handle name in the registry
-          const defaultHandleId = handleId(sourceNodeId, 'default');
-          sourceHandle = this.store.handles.get(defaultHandleId);
-          if (sourceHandle) {
-            console.log(`Mapped start node handle: ${sourceHandleId} -> ${defaultHandleId}`);
-          }
-        }
-      }
-      
-      // Handle other common handle name mappings
-      if (!targetHandle && targetNodeId) {
-        if (target.handleName === 'input') {
-          // Try common input handle names
-          const handleNames = ['default', 'first', 'input'];
-          for (const name of handleNames) {
-            const mappedHandleId = handleId(targetNodeId, name);
-            targetHandle = this.store.handles.get(mappedHandleId);
-            if (targetHandle) {
-              console.log(`Mapped target handle: ${targetHandleId} -> ${mappedHandleId}`);
-              break;
-            }
-          }
-        }
-      }
-      
-      if (!sourceHandle || !targetHandle) {
-        console.warn(`Cannot find handles for arrow: ${sourceHandleId} -> ${targetHandleId}`);
-        console.warn(`Available handles for source node ${sourceNodeId}:`, 
-          Array.from(this.store.handles.keys()).filter(id => id.startsWith(`${sourceNodeId}::`)));
-        console.warn(`Available handles for target node ${targetNodeId}:`, 
-          Array.from(this.store.handles.keys()).filter(id => id.startsWith(`${targetNodeId}::`)));
-        return;
-      }
-
-      // Create arrow using store action
-      const arrowId = this.store.addArrow(sourceHandleId, targetHandleId, arrowData.data);
-      console.log(`Imported arrow ${arrowId}: ${sourceHandleId} -> ${targetHandleId}`);
-    });
-  }
-
-  // Utility methods
-  private ensureUniqueLabel(label: string, existingLabels: Set<string>): string {
-    if (!existingLabels.has(label)) {
-      existingLabels.add(label);
-      return label;
-    }
-
-    // Generate alphabetic suffixes like -ab, -ac, -ad, etc.
-    const generateSuffix = (index: number): string => {
-      let suffix = '';
-      while (index >= 0) {
-        suffix = String.fromCharCode(97 + (index % 26)) + suffix;
-        index = Math.floor(index / 26) - 1;
-      }
-      return suffix;
+  // Private helper methods
+  
+  // Convert store state to domain diagram
+  private storeToDomainDiagram(): DomainDiagram {
+    const storeState = {
+      nodes: this.store.nodes,
+      arrows: this.store.arrows,
+      handles: this.store.handles,
+      persons: this.store.persons,
+      apiKeys: this.store.apiKeys
     };
-
-    let counter = 0;
-    let uniqueLabel: string;
-    do {
-      const suffix = generateSuffix(counter);
-      uniqueLabel = `${label}-${suffix}`;
-      counter++;
-    } while (existingLabels.has(uniqueLabel));
-    
-    existingLabels.add(uniqueLabel);
-    return uniqueLabel;
-  }
-
-  private roundPosition(value: number): number {
-    return Math.round(value * 10) / 10;
+    return storeDomainConverter.storeToDomain(storeState);
   }
   
-  private regenerateHandlesForNodes(): void {
-    // Generate handles for all nodes
-    this.store.nodes.forEach((node) => {
-      const handles = generateNodeHandlesFromRegistry(node.id, node.type);
-      handles.forEach((handle: DomainHandle) => {
-        this.store.handles.set(handle.id, handle);
-      });
+  // Convert ExportFormat to DomainDiagram
+  private exportFormatToDomainDiagram(data: ExportFormat): DomainDiagram {
+    // Generate unique IDs for all entities
+    const nodeIdMap = new Map<string, NodeID>();
+    const personIdMap = new Map<string, PersonID>();
+    const apiKeyIdMap = new Map<string, ApiKeyID>();
+    
+    // Convert API keys first
+    const apiKeys: Record<string, DomainApiKey> = {};
+    (data.apiKeys || []).forEach(key => {
+      const id = generateApiKeyId();
+      apiKeyIdMap.set(key.name, id);
+      apiKeys[id as string] = {
+        id,
+        label: key.name,
+        service: key.service as DomainApiKey['service']
+      };
     });
+    
+    // Convert persons
+    const persons: Record<string, DomainPerson> = {};
+    (data.persons || []).forEach(person => {
+      const id = generatePersonId();
+      personIdMap.set(person.label, id);
+      persons[id as string] = {
+        id,
+        label: person.label,
+        model: person.model,
+        service: person.service as DomainPerson['service'],
+        systemPrompt: person.systemPrompt,
+        temperature: person.temperature,
+        maxTokens: person.maxTokens,
+        topP: person.topP,
+        frequencyPenalty: person.frequencyPenalty,
+        presencePenalty: person.presencePenalty
+      };
+    });
+    
+    // Convert nodes
+    const nodes: Record<string, DomainNode> = {};
+    (data.nodes || []).forEach(node => {
+      const id = generateNodeId();
+      nodeIdMap.set(node.label, id);
+      
+      // Update person references in node data
+      const nodeData = { ...node.data };
+      if (nodeData.personId && typeof nodeData.personId === 'string') {
+        // Find the person by label and update to new ID
+        const personLabel = (data.persons || []).find(p => p.label === nodeData.personId)?.label;
+        if (personLabel && personIdMap.has(personLabel)) {
+          nodeData.personId = personIdMap.get(personLabel);
+        }
+      }
+      
+      // Ensure label is preserved in data
+      if (node.label && !nodeData.label) {
+        nodeData.label = node.label;
+      }
+      
+      nodes[id as string] = {
+        id,
+        type: node.type as NodeKind,
+        position: { x: node.position.x, y: node.position.y },
+        data: nodeData
+      };
+    });
+    
+    // Convert handles
+    const handles: Record<string, DomainHandle> = {};
+    (data.handles || []).forEach(handle => {
+      const nodeId = nodeIdMap.get(handle.nodeLabel);
+      if (!nodeId) {
+        throw new Error(`Handle references unknown node: ${handle.nodeLabel}`);
+      }
+      
+      const id = createHandleId(nodeId, handle.label);
+      handles[id as string] = {
+        id,
+        nodeId,
+        label: handle.label,
+        direction: handle.direction as 'input' | 'output',
+        dataType: handle.dataType as DataType,
+        position: handle.position as HandlePosition | undefined,
+        maxConnections: handle.maxConnections
+      };
+    });
+    
+    // Generate default handles for nodes if not present
+    if (data.handles.length === 0) {
+      Object.values(nodes).forEach(node => {
+        const nodeConfig = getNodeConfig(node.type);
+        if (nodeConfig) {
+          const nodeHandles = generateNodeHandles(node.id, nodeConfig, node.type);
+          nodeHandles.forEach((handle: DomainHandle) => {
+            handles[handle.id] = handle;
+          });
+        }
+      });
+    }
+    
+    // Convert arrows
+    const arrows: Record<string, DomainArrow> = {};
+    (data.arrows || []).forEach(arrow => {
+      // Parse the node label and handle label from the combined format
+      const { nodeLabel: sourceNodeLabel, handleLabel: sourceHandleLabel } = this.parseHandleRef(arrow.sourceHandle);
+      const { nodeLabel: targetNodeLabel, handleLabel: targetHandleLabel } = this.parseHandleRef(arrow.targetHandle);
+      
+      const sourceNodeId = nodeIdMap.get(sourceNodeLabel || '');
+      const targetNodeId = nodeIdMap.get(targetNodeLabel || '');
+      
+      if (!sourceNodeId || !targetNodeId) {
+        throw new Error(`Arrow references unknown nodes: ${sourceNodeLabel} -> ${targetNodeLabel}`);
+      }
+      
+      const sourceHandleId = createHandleId(sourceNodeId, sourceHandleLabel || 'output');
+      const targetHandleId = createHandleId(targetNodeId, targetHandleLabel || 'input');
+      
+      const id = generateArrowId();
+      arrows[id as string] = {
+        id,
+        source: sourceHandleId,
+        target: targetHandleId,
+        data: arrow.data || {}
+      };
+    });
+    
+    return {
+      nodes: nodes as Record<NodeID, DomainNode>,
+      arrows: arrows as Record<ArrowID, DomainArrow>,
+      handles: handles as Record<HandleID, DomainHandle>,
+      persons: persons as Record<PersonID, DomainPerson>,
+      apiKeys: apiKeys as Record<ApiKeyID, DomainApiKey>
+    };
   }
 }

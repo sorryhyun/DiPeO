@@ -4,7 +4,7 @@ import { useUIState } from './useStoreSelectors';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
 import { useDiagramManager } from './useDiagramManager';
-import { useExecution } from './useExecution';
+import { useExecutionProvider } from './useExecutionProvider';
 import { usePropertyManager } from './usePropertyManager';
 import { useFileOperations } from './useFileOperations';
 import type { 
@@ -44,7 +44,7 @@ export interface UseDiagramOptions {
  */
 export const useDiagram = (options: UseDiagramOptions = {}) => {
   const {
-    autoConnect = true,
+    autoConnect = false, // Changed to false - connection should be managed at app level
     enableMonitoring = false,
     enableFileOperations = true,
     enableInteractions = true,
@@ -95,13 +95,14 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
   
   // Additional execution hook for realtime features
-  const realtime = useExecution({
+  const realtime = useExecutionProvider({
     autoConnect,
     enableMonitoring,
+    showToasts: false,
     debug
   });
   
-  // File operations (conditional) - use from manager if enabled
+  // File operations (conditional) - use unified file operations
   const fileOps = useMaybe(enableFileOperations, useFileOperations);
   
   // Note: Canvas interactions are now integrated into useCanvasOperations
@@ -348,26 +349,13 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
       importWithDialog: fileOps.importWithDialog,
       importFromURL: fileOps.importFromURL,
       
-      // Export operations
-      exportJSON: fileOps.exportJSON,
-      exportYAML: fileOps.exportYAML,
-      exportLLMYAML: fileOps.exportLLMYAML,
-      exportAllFormats: fileOps.exportAllFormats,
+      // Export operations  
+      exportDiagram: fileOps.exportDiagram,
+      exportAndDownload: fileOps.exportAndDownload,
+      saveDiagramToServer: fileOps.saveDiagramToServer,
       
-      // Save operations
-      saveJSON: fileOps.saveJSON,
-      saveYAML: fileOps.saveYAML,
-      saveLLMYAML: fileOps.saveLLMYAML,
-      
-      // Download operations
-      download: fileOps.download,
-      downloadJSON: fileOps.downloadJSON,
-      downloadYAML: fileOps.downloadYAML,
-      downloadLLMYAML: fileOps.downloadLLMYAML,
-      
-      // Conversion operations
-      convertJSONtoYAML: fileOps.convertJSONtoYAML,
-      cloneDiagram: fileOps.cloneDiagram,
+      // Format info
+      getAvailableFormats: fileOps.getAvailableFormats,
       
       // State
       isProcessingFile: fileOps.isProcessing,
@@ -386,6 +374,8 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
       // Drag and drop
       dragState: interactions.dragState,
       onNodeDragStart: interactions.onNodeDragStart,
+      onNodeDragStartCanvas: interactions.onNodeDragStartCanvas,
+      onNodeDragStopCanvas: interactions.onNodeDragStopCanvas,
       onPersonDragStart: interactions.onPersonDragStart,
       onDragOver: interactions.onDragOver,
       onNodeDrop: interactions.onNodeDrop,
@@ -440,7 +430,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     _canvas: canvas,
     _execution: realtime,
     _ui: ui,
-    _history: history,
+    _history: { canUndo: canvas.canUndo, canRedo: canvas.canRedo, undo: canvas.undo, redo: canvas.redo },
     _realtime: realtime,
     _fileOps: fileOps,
     _interactions: interactions,

@@ -1,9 +1,10 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState, Suspense } from 'react';
-import { Button, FileUploadButton } from '@/components/ui/buttons';
+import { Button } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
 import { useFileOperations } from '@/hooks/useFileOperations';
+import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 import type { PersonID } from '@/types/branded';
@@ -88,7 +89,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
     if (id) select(id, 'person');
     else clearSelection();
   };
-  const { handleFileInput, saveYAML, saveLLMYAML } = useFileOperations();
+  const { importWithDialog, saveDiagramToServer } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
@@ -241,32 +242,43 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
         </h3>
         {fileOperationsExpanded && (
           <div className="mt-3 space-y-2 px-2">
-            <FileUploadButton
-              onChange={handleFileInput}
+            <Button
+              onClick={() => importWithDialog()}
               className="w-full text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               variant="outline"
               size="sm"
               title="Import diagram from YAML file"
             >
               <span className="mr-1">📥</span> Import YAML
-            </FileUploadButton>
+            </Button>
             <Button
               variant="outline"
-              className="w-full text-sm py-2 hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
+              className="w-full text-sm py-2 hover:bg-indigo-50 hover:border-indigo-300 transition-colors duration-200"
               size="sm"
-              onClick={() => saveYAML()}
-              title="Export to YAML format (saves to /files/yaml_diagrams/)"
+              onClick={() => saveDiagramToServer('native')}
+              title="Export to native format (saves to /files/diagrams/native/)"
             >
-              <span className="mr-1">📤</span> Export YAML
+              <span className="mr-1">🔧</span> Export Native
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
+              size="sm"
+              onClick={() => saveDiagramToServer('readable')}
+              title="Export to human-readable format (saves to /files/diagrams/readable/)"
+            >
+              <span className="mr-1">📖</span> Export Readable
             </Button>
             <Button
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={() => saveLLMYAML()}
-              title="Export to LLM-friendly YAML format (saves to /files/llm-yaml_diagrams/)"
+              onClick={() => {
+                toast.error('LLM-readable format is not yet implemented');
+              }}
+              title="Export to LLM-readable format (saves to /files/diagrams/llm-readable/)"
             >
-              <span className="mr-1">🤖</span> Export LLM YAML
+              <span className="mr-1">🤖</span> Export LLM Readable
             </Button>
           </div>
         )}

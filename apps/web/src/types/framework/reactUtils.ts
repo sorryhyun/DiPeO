@@ -14,9 +14,8 @@ export interface ReactDiagram {
  * React node with DiPeO data
  */
 export interface DiPeoNode extends Node {
-  data: {
-    label?: string;
-    properties: Record<string, unknown>;
+  data: Record<string, unknown> & {
+    label: string;
     inputs?: Record<string, unknown>;
     outputs?: Record<string, unknown>;
   };
@@ -34,7 +33,6 @@ export interface DiPeoEdge extends Edge {
   data?: {
     label?: string;
     dataType?: string;
-    [key: string]: unknown;
   };
 }
 
@@ -62,7 +60,7 @@ export interface DiPeoReactInstance {
  * Type guards
  */
 export function isDiPeoNode(node: Node): node is DiPeoNode {
-  return node && typeof node.data === 'object' && 'properties' in node.data;
+  return node && typeof node.data === 'object' && 'label' in node.data;
 }
 
 export function isDiPeoEdge(edge: Edge): edge is DiPeoEdge {
