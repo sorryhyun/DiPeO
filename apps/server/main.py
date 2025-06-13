@@ -34,6 +34,9 @@ from .src.api.middleware import setup_middleware
 # Import lifespan from dependencies
 from .src.utils.dependencies import lifespan
 
+# Import GraphQL router
+from .src.graphql.schema import create_graphql_router
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -53,6 +56,10 @@ app.include_router(files_router)
 app.include_router(conversations_router)
 app.include_router(websocket_router)
 app.include_router(models_router)
+
+# Include GraphQL router
+graphql_router = create_graphql_router()
+app.include_router(graphql_router, prefix="")
 
 
 # Health check endpoint moved to diagram router at /api/diagrams/health
@@ -96,6 +103,16 @@ def start():
     
     # Multi-worker support for better parallel execution
     config.workers = int(os.environ.get("WORKERS", 4))
+    
+    # Redis configuration for multi-worker WebSocket support
+    # Set REDIS_URL environment variable (e.g., redis://localhost:6379/0)
+    # Without Redis, WebSocket connections will only work with WORKERS=1
+    redis_url = os.environ.get("REDIS_URL")
+    if config.workers > 1 and not redis_url:
+        logger.warning(
+            "Running with multiple workers without Redis. "
+            "WebSocket connections may fail. Set REDIS_URL or use WORKERS=1"
+        )
     
     # Graceful timeout for WebSocket connections
     config.graceful_timeout = 30.0

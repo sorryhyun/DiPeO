@@ -12,6 +12,8 @@ from ..services.file_service import FileService
 from ..services.memory_service import MemoryService
 from ..services.execution_service import ExecutionService
 from ..services.notion_service import NotionService
+from ..services.message_router import message_router
+from ..services.event_store import event_store
 from ...config import BASE_DIR
 
 
@@ -29,6 +31,9 @@ class AppContext:
     
     async def startup(self):
         """Initialize all services on startup."""
+        # Initialize event store
+        await event_store.initialize()
+        
         # Initialize services in dependency order
         self.api_key_service = APIKeyService()
         self.memory_service = MemoryService()
@@ -51,9 +56,14 @@ class AppContext:
     
     async def shutdown(self):
         """Cleanup resources on shutdown."""
-        # Add any cleanup logic here if needed
+        # Cleanup message router connections
+        await message_router.cleanup()
+        
+        # Cleanup event store
+        await event_store.cleanup()
+        
+        # Add any other cleanup logic here if needed
         # For example, closing database connections, saving state, etc.
-        pass
 
 
 # Global application context instance

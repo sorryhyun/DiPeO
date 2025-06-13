@@ -9,6 +9,7 @@ __pycache__/
 .pytest_cache/
 apikeys.json
 output.txt
+AGENTS.md
 
 # Node.js
 node_modules/

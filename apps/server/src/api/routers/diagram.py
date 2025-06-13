@@ -9,6 +9,7 @@ from datetime import datetime
 
 from ...services.file_service import FileService
 from ...services.diagram_service import DiagramService
+from ...services.event_store import event_store
 from ...utils.dependencies import get_file_service, get_diagram_service
 from ...engine import handle_api_errors
 from ...exceptions import ValidationError
@@ -233,6 +234,69 @@ async def health_check():
         "status": "healthy",
         "version": "2.0",
         "timestamp": datetime.now().isoformat()
+    }
+
+
+# Execution History Endpoints
+
+@router.get("/executions")
+@handle_api_errors
+async def list_executions(limit: int = 100, offset: int = 0):
+    """List recent executions with metadata."""
+    executions = await event_store.list_executions(limit=limit, offset=offset)
+    return {
+        "success": True,
+        "executions": executions,
+        "total": len(executions)
+    }
+
+
+@router.get("/executions/{execution_id}")
+@handle_api_errors
+async def get_execution_state(execution_id: str):
+    """Replay execution events to get current state."""
+    state = await event_store.replay(execution_id)
+    if not state:
+        raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
+    
+    return {
+        "success": True,
+        "execution": {
+            "execution_id": state.execution_id,
+            "status": state.status,
+            "start_time": state.start_time,
+            "end_time": state.end_time,
+            "node_outputs": state.node_outputs,
+            "node_statuses": state.node_statuses,
+            "variables": state.variables,
+            "total_tokens": state.total_tokens,
+            "error": state.error,
+            "paused_nodes": list(state.paused_nodes),
+            "skipped_nodes": list(state.skipped_nodes)
+        }
+    }
+
+
+@router.get("/executions/{execution_id}/events")
+@handle_api_errors
+async def get_execution_events(execution_id: str):
+    """Get raw events for an execution."""
+    events = await event_store.get_events(execution_id)
+    if not events:
+        raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
+    
+    return {
+        "success": True,
+        "events": [
+            {
+                "sequence": event.sequence,
+                "event_type": event.event_type.value,
+                "node_id": event.node_id,
+                "data": event.data,
+                "timestamp": event.timestamp
+            }
+            for event in events
+        ]
     }
 
 

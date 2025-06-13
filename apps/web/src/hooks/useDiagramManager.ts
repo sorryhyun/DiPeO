@@ -210,8 +210,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || 'diagram';
-      // Use 'native' format by default to preserve all diagram data
-      await fileOps.saveDiagramToServer('native', defaultFilename);
+      // Use 'light' format for simpler, label-based saving
+      await fileOps.saveDiagramToServer('light', defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
       toast.success('Diagram saved successfully');
