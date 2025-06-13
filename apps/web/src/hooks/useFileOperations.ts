@@ -56,7 +56,13 @@ export const useFileOperations = () => {
     try {
       const content = exportDiagram(format);
       const converter = converterRegistry.get(format);
-      const finalFilename = filename || `diagram${converter.fileExtension}`;
+      
+      // Ensure filename has the correct extension
+      let finalFilename = filename || 'diagram';
+      // Remove any existing extension
+      finalFilename = finalFilename.replace(/\.(yaml|yml|native\.yaml|readable\.yaml|llm-readable\.yaml|llm\.yaml)$/i, '');
+      // Add the correct extension for the format
+      finalFilename = `${finalFilename}${converter.fileExtension}`;
       
       await downloadFile(content, finalFilename, 'text/yaml');
       toast.success(`Exported as ${format} format`);
@@ -182,10 +188,21 @@ export const useFileOperations = () => {
       const yaml = await import('yaml');
       const data = yaml.parse(content);
       
+      // Get the proper file extension for the format
+      const converter = converterRegistry.get(format);
+      const extension = converter.fileExtension;
+      
+      // Ensure filename has the correct extension
+      let finalFilename = filename || 'diagram';
+      // Remove any existing extension
+      finalFilename = finalFilename.replace(/\.(yaml|yml|native\.yaml|readable\.yaml|llm-readable\.yaml|llm\.yaml)$/i, '');
+      // Add the correct extension
+      finalFilename = `${finalFilename}${extension}`;
+      
       // Save to backend
       const result = await saveDiagramToBackend(data, {
         format: format as FileFormat,
-        filename
+        filename: finalFilename
       });
       
       toast.success(`Saved to server as ${result.filename}`);

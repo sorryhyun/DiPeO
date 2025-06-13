@@ -70,7 +70,7 @@ export interface ReadableDiagram {
 
 export class ReadableDomainConverter implements DomainFormatConverter {
   readonly formatName = 'readable';
-  readonly fileExtension = '.workflow.yaml';
+  readonly fileExtension = '.readable.yaml';
 
   // ID to label mappings
   private nodeIdToLabel = new Map<NodeID, string>();

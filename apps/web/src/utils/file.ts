@@ -156,57 +156,36 @@ export const saveDiagramToBackend = async (
 };
 
 /**
- * Detect file format from content and filename
+ * Detect file format from filename only
+ * No content-based detection to avoid confusion
  */
 export const detectFileFormat = (content: string, filename?: string): FileFormatInfo => {
-  if (filename) {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    
-    // Check for specific YAML types by filename
-    if (filename.includes('.native.yaml') || filename.includes('.native.yml')) {
-      return { format: 'native', isLLMFormat: false };
-    }
-    if (filename.includes('.readable.yaml') || filename.includes('.readable.yml')) {
-      return { format: 'readable', isLLMFormat: false };
-    }
-    if (filename.includes('.llm-readable') || filename.includes('.llm.yaml') || filename.includes('.llm.yml')) {
-      return { format: 'llm-readable', isLLMFormat: true };
-    }
-    
-    if (ext === 'yaml' || ext === 'yml') {
-      // Check content to determine YAML type
-      if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
-        return { format: 'llm-readable', isLLMFormat: true };
-      }
-      if (content.includes('workflow:') && content.includes("version: '1.0'")) {
-        return { format: 'readable', isLLMFormat: false };
-      }
-      // Check if it's native format (DomainDiagram structure)
-      if (content.includes('metadata:') && content.includes('nodes:') && content.includes('arrows:')) {
-        return { format: 'native', isLLMFormat: false };
-      }
-      // Default to light format for regular YAML files
-      return { format: 'light', isLLMFormat: false };
-    }
-  }
-  
-  // Check content structure
-  if (content.includes('flow:') && (content.includes('prompts:') || content.includes('persons:'))) {
-    return { format: 'llm-readable', isLLMFormat: true };
-  }
-  if (content.includes('workflow:') && content.includes("version: '1.0'")) {
-    return { format: 'readable', isLLMFormat: false };
-  }
-  // Check if it's native format (DomainDiagram structure)
-  if (content.includes('nodes:') && content.includes('arrows:') && content.includes('handles:')) {
+  if (!filename) {
+    // Default to native format if no filename provided
     return { format: 'native', isLLMFormat: false };
   }
-  if (content.includes(':') && (content.includes('-') || content.includes('  '))) {
+  
+  // Check for specific format extensions in filename
+  if (filename.includes('.native.yaml') || filename.includes('.native.yml')) {
+    return { format: 'native', isLLMFormat: false };
+  }
+  
+  if (filename.includes('.readable.yaml') || filename.includes('.readable.yml')) {
+    return { format: 'readable', isLLMFormat: false };
+  }
+  
+  if (filename.includes('.llm.yaml') || filename.includes('.llm.yml') || filename.includes('.llm-readable')) {
+    return { format: 'llm-readable', isLLMFormat: true };
+  }
+  
+  // For plain .yaml or .yml files, default to light format
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (ext === 'yaml' || ext === 'yml') {
     return { format: 'light', isLLMFormat: false };
   }
   
-  // Default to light format
-  return { format: 'light', isLLMFormat: false };
+  // Default to native format for unrecognized extensions
+  return { format: 'native', isLLMFormat: false };
 };
 
 // Create lookup tables for file format mappings

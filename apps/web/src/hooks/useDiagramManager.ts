@@ -209,11 +209,12 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     
     try {
       // Generate a more user-friendly default filename if not provided
-      const defaultFilename = filename || `diagram.yaml`;
-      await fileOps.saveDiagramToServer('light', defaultFilename);
+      const defaultFilename = filename || 'diagram';
+      // Use 'native' format by default to preserve all diagram data
+      await fileOps.saveDiagramToServer('native', defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
-      toast.success('Diagram saved successfully as YAML');
+      toast.success('Diagram saved successfully');
     } catch (error) {
       console.error('Failed to save diagram:', error);
       toast.error('Failed to save diagram');
@@ -268,8 +269,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         toast.error('LLM-readable format is not yet implemented');
         return;
       }
-      await fileOps.saveDiagramToServer(format);
-      toast.success(`Diagram exported as ${format.toUpperCase()}`);
+      // Export to server with format-specific extension
+      await fileOps.exportAndDownload(format);
     } catch (error) {
       console.error('Failed to export diagram:', error);
       toast.error('Failed to export diagram');
