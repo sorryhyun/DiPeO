@@ -29,6 +29,17 @@ pip install -r apps/server/requirements.txt
 bash run-server.sh
 ```
 
+## 🚀 GraphQL Migration
+
+DiPeO is migrating from REST to GraphQL for better performance and developer experience:
+
+- **GraphQL Endpoint**: Available at `/graphql` with interactive playground
+- **Real-time Subscriptions**: <10ms latency with Redis pub/sub
+- **Feature Flags**: Use `?useGraphQL=true` to enable GraphQL mode in frontend
+- **Migration Guide**: See [docs/graphql-migration-guide.md](docs/graphql-migration-guide.md)
+
+REST endpoints are deprecated and will be removed in February 2025.
+
 ## Key Concepts
 
 * First, to intuitively represent context, the LLM instance is depicted as a “person.” A person does not forget memories even when performing tasks. Therefore, if person A completes task 1 and then person B completes task 2, when person A goes on to perform task 3, that memory must be preserved. To actively manage such situations, each person exists as a separate block as an LLM instance, and the workflow can be organized by assigning a person to each task.

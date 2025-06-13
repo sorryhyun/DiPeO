@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Any, AsyncIterator
 import logging
+import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
 
@@ -152,9 +153,11 @@ class ExecutionState:
 class EventStore:
     """Append-only event store for execution state."""
     
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, redis_url: Optional[str] = None):
         self.db_path = db_path or os.getenv("EVENT_STORE_PATH", "dipeo_events.db")
+        self.redis_url = redis_url or os.getenv('REDIS_URL', 'redis://localhost:6379/0')
         self._conn: Optional[sqlite3.Connection] = None
+        self._redis_client: Optional[redis.Redis] = None
         self._lock = asyncio.Lock()
         self._sequence_counters: Dict[str, int] = {}
         
@@ -162,12 +165,16 @@ class EventStore:
         """Initialize database connection and schema."""
         await self._connect()
         await self._init_schema()
+        await self._connect_redis()
         
     async def cleanup(self):
-        """Close database connection."""
+        """Close database and Redis connections."""
         if self._conn:
             await asyncio.to_thread(self._conn.close)
             self._conn = None
+        if self._redis_client:
+            await self._redis_client.close()
+            self._redis_client = None
             
     async def _connect(self):
         """Create database connection."""
@@ -187,6 +194,20 @@ class EventStore:
             self._conn.execute,
             "PRAGMA journal_mode=WAL"
         )
+        
+    async def _connect_redis(self):
+        """Connect to Redis for event publishing."""
+        try:
+            self._redis_client = await redis.from_url(
+                self.redis_url,
+                encoding="utf-8",
+                decode_responses=True
+            )
+            await self._redis_client.ping()
+            logger.info("Connected to Redis for event publishing")
+        except (redis.ConnectionError, redis.RedisError) as e:
+            logger.warning(f"Failed to connect to Redis: {e}. Event publishing will be disabled.")
+            self._redis_client = None
         
     async def _init_schema(self):
         """Initialize database schema."""
@@ -252,6 +273,29 @@ class EventStore:
                     event.timestamp
                 )
             )
+            
+            # Publish event to Redis for real-time subscriptions
+            if self._redis_client:
+                try:
+                    # Publish to execution-specific channel
+                    channel = f"execution:{event.execution_id}"
+                    event_dict = {
+                        "execution_id": event.execution_id,
+                        "sequence": event.sequence,
+                        "event_type": event.event_type.value,
+                        "node_id": event.node_id,
+                        "data": event.data,
+                        "timestamp": event.timestamp
+                    }
+                    await self._redis_client.publish(channel, json.dumps(event_dict))
+                    
+                    # Also publish to a general events channel for monitoring
+                    await self._redis_client.publish("events:all", json.dumps(event_dict))
+                    
+                    logger.debug(f"Published event {event.event_type} to Redis channel {channel}")
+                except Exception as e:
+                    logger.error(f"Failed to publish event to Redis: {e}")
+                    # Don't fail the append operation if Redis publish fails
             
             return event.sequence
             

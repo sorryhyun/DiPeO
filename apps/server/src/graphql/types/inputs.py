@@ -132,3 +132,16 @@ class ExecutionFilterInput:
     started_after: Optional[datetime] = None
     started_before: Optional[datetime] = None
     active_only: bool = False
+
+@strawberry.input
+class FileUploadInput:
+    """Input for file upload."""
+    filename: str
+    content_base64: str  # Base64 encoded file content
+    content_type: Optional[str] = None
+
+@strawberry.input
+class ImportYamlInput:
+    """Input for importing YAML diagram."""
+    content: str  # YAML content as string
+    filename: Optional[str] = None  # Optional filename to save as

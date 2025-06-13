@@ -1,4 +1,15 @@
-"""WebSocket endpoint for real-time bidirectional communication."""
+"""WebSocket endpoint for real-time bidirectional communication.
+
+IMPORTANT: This WebSocket endpoint is required for legacy support, specifically:
+1. CLI tool (tool.py) - Uses WebSocket for diagram execution and monitoring
+2. Monitor mode - Broadcasts execution events to browser monitors
+3. Interactive prompts - Handles user responses during execution
+
+DO NOT REMOVE until the CLI tool has been fully migrated to GraphQL.
+
+Most frontend functionality has been migrated to GraphQL subscriptions,
+but the CLI tool still depends entirely on WebSocket communication.
+"""
 import asyncio
 import json
 import logging

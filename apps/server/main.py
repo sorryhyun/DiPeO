@@ -38,6 +38,9 @@ from apps.server.src.utils.dependencies import lifespan
 from apps.server.src.graphql.schema import create_graphql_router
 from apps.server.src.graphql.context import get_graphql_context
 
+# Import REST API configuration
+from apps.server.src.api.config import is_router_enabled, DEPRECATION_MESSAGE, ENABLE_DEPRECATED_REST
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -49,18 +52,46 @@ app = FastAPI(
 # Setup middleware
 setup_middleware(app)
 
-# Include routers
-app.include_router(health_router)
-app.include_router(diagram_router)
-app.include_router(apikeys_router)
-app.include_router(files_router)
-app.include_router(conversations_router)
-app.include_router(websocket_router)
-app.include_router(models_router)
+# Conditionally include routers based on configuration
+if is_router_enabled("health"):
+    app.include_router(health_router)
+    
+if is_router_enabled("diagram"):
+    app.include_router(diagram_router)
+    logger.info("Diagram REST endpoints enabled (deprecated - use GraphQL)")
+    
+if is_router_enabled("apikeys"):
+    app.include_router(apikeys_router)
+    logger.info("API Keys REST endpoints enabled (deprecated - use GraphQL)")
+    
+if is_router_enabled("files"):
+    app.include_router(files_router)
+    logger.info("Files REST endpoints enabled (deprecated - use GraphQL)")
+    
+if is_router_enabled("conversations"):
+    app.include_router(conversations_router)
+    logger.info("Conversations REST endpoints enabled (deprecated - use GraphQL)")
+    
+if is_router_enabled("websocket"):
+    app.include_router(websocket_router)
+    logger.info("WebSocket endpoint enabled (will be maintained for legacy support)")
+    
+if is_router_enabled("models"):
+    app.include_router(models_router)
+    logger.info("Models REST endpoints enabled (deprecated - use GraphQL)")
 
-# Include GraphQL router
+# Always include GraphQL router
 graphql_router = create_graphql_router(context_getter=get_graphql_context)
 app.include_router(graphql_router, prefix="")
+logger.info("GraphQL endpoint enabled at /graphql")
+
+# Log deprecation status
+if ENABLE_DEPRECATED_REST:
+    logger.warning(
+        "Deprecated REST endpoints are enabled. "
+        "Set ENABLE_DEPRECATED_REST=false to disable them. "
+        "Use GraphQL endpoint at /graphql instead."
+    )
 
 
 # Health check endpoint moved to diagram router at /api/diagrams/health

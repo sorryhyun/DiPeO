@@ -7,14 +7,14 @@ from datetime import datetime
 
 from .types.results import (
     DiagramResult, ExecutionResult, NodeResult, PersonResult,
-    ApiKeyResult, DeleteResult, TestApiKeyResult
+    ApiKeyResult, DeleteResult, TestApiKeyResult, FileUploadResult
 )
 from .types.scalars import DiagramID, ExecutionID, NodeID, PersonID, ApiKeyID, ArrowID
 from .types.inputs import (
     CreateDiagramInput, CreateNodeInput, UpdateNodeInput,
     CreateArrowInput, CreatePersonInput, UpdatePersonInput,
     CreateApiKeyInput, ExecuteDiagramInput, ExecutionControlInput,
-    InteractiveResponseInput
+    InteractiveResponseInput, FileUploadInput, ImportYamlInput
 )
 from .types.domain import ApiKey, ExecutionState, Vec2
 from .context import GraphQLContext
@@ -894,8 +894,114 @@ class Mutation:
         input: InteractiveResponseInput,
         info
     ) -> ExecutionResult:
-        """Submit a response to an interactive prompt."""
-        pass
+        """Submit a response to an interactive prompt.
+        
+        This mutation is designed to work with executions started via WebSocket.
+        For GraphQL-only executions, interactive prompts are not currently supported.
+        """
+        try:
+            context: GraphQLContext = info.context
+            event_store = context.event_store
+            message_router = context.message_router
+            
+            # Check if execution exists by getting its state
+            execution_state = await event_store.replay(input.execution_id)
+            if not execution_state:
+                return ExecutionResult(
+                    success=False,
+                    error=f"Execution {input.execution_id} not found"
+                )
+            
+            # Check if execution is still running
+            if execution_state.status not in ['started', 'running']:
+                return ExecutionResult(
+                    success=False,
+                    error=f"Execution {input.execution_id} is not running (status: {execution_state.status})"
+                )
+            
+            # Create interactive response event
+            from ..services.event_store import ExecutionEvent, EventType
+            response_event = ExecutionEvent(
+                execution_id=input.execution_id,
+                sequence=0,  # Will be set by event store
+                event_type=EventType.INTERACTIVE_RESPONSE,
+                node_id=input.node_id,
+                timestamp=datetime.now().timestamp(),
+                data={
+                    'response': input.response,
+                    'node_id': input.node_id,
+                    'responded_at': datetime.now().isoformat()
+                }
+            )
+            await event_store.append(response_event)
+            
+            # Route the interactive response message to the WebSocket handler
+            # This message format matches what the WebSocket handler expects
+            interactive_message = {
+                'type': 'interactive_response',
+                'executionId': input.execution_id,
+                'nodeId': input.node_id,
+                'response': input.response,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Broadcast to all connections subscribed to this execution
+            # This will reach the WebSocket connection that started the execution
+            await message_router.broadcast_to_execution(input.execution_id, interactive_message)
+            
+            # Also try to access the WebSocket connection manager directly
+            # to resolve the interactive prompt future
+            try:
+                from ..api.routers.websocket import get_connection_manager
+                manager = get_connection_manager()
+                
+                # Try to resolve the interactive prompt directly
+                resolved = manager.state_manager.resolve_interactive_prompt(
+                    input.execution_id, 
+                    input.node_id, 
+                    input.response
+                )
+                
+                if not resolved:
+                    logger.warning(f"No pending interactive prompt found for node {input.node_id} in execution {input.execution_id}")
+                    
+            except Exception as ws_error:
+                logger.warning(f"Could not access WebSocket state manager: {ws_error}")
+                # This is expected if the execution wasn't started via WebSocket
+            
+            # Get updated execution state
+            updated_state = await event_store.replay(input.execution_id)
+            
+            # Convert to GraphQL ExecutionState
+            execution = ExecutionState(
+                id=input.execution_id,
+                status=_map_status(updated_state.status),
+                diagram_id=updated_state.diagram.get('id', ''),
+                started_at=datetime.fromtimestamp(updated_state.start_time),
+                ended_at=datetime.fromtimestamp(updated_state.end_time) if updated_state.end_time else None,
+                running_nodes=[node_id for node_id, status in updated_state.node_statuses.items() if status == 'started'],
+                completed_nodes=[node_id for node_id, status in updated_state.node_statuses.items() if status == 'completed'],
+                skipped_nodes=list(updated_state.skipped_nodes),
+                paused_nodes=list(updated_state.paused_nodes),
+                failed_nodes=[node_id for node_id, status in updated_state.node_statuses.items() if status == 'failed'],
+                node_outputs=updated_state.node_outputs,
+                variables=updated_state.variables,
+                token_usage=None,  # Would need to convert token usage format
+                error=updated_state.error
+            )
+            
+            return ExecutionResult(
+                success=True,
+                execution=execution,
+                message=f"Interactive response submitted for node {input.node_id}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to submit interactive response: {e}", exc_info=True)
+            return ExecutionResult(
+                success=False,
+                error=f"Failed to submit interactive response: {str(e)}"
+            )
     
     @strawberry.mutation
     async def clear_conversations(self, info) -> DeleteResult:
@@ -917,6 +1023,272 @@ class Mutation:
             return DeleteResult(
                 success=False,
                 error=f"Failed to clear conversations: {str(e)}"
+            )
+    
+    @strawberry.mutation
+    async def save_diagram(self, info, diagram_id: DiagramID, format: Optional[str] = None) -> DiagramResult:
+        """Save diagram to file system (replaces REST endpoint)."""
+        try:
+            context: GraphQLContext = info.context
+            diagram_service = context.diagram_service
+            
+            # Load the diagram
+            diagram = diagram_service.load_diagram(diagram_id)
+            if not diagram:
+                return DiagramResult(
+                    success=False,
+                    error=f"Diagram {diagram_id} not found"
+                )
+            
+            # Save diagram (format is auto-detected from filename if not specified)
+            path = diagram_service.save_diagram(diagram_id, diagram, format)
+            
+            # Convert to GraphQL type
+            from .types.domain import Diagram
+            graphql_diagram = diagram_service._convert_to_graphql_diagram(diagram)
+            
+            return DiagramResult(
+                success=True,
+                diagram=graphql_diagram,
+                message=f"Diagram saved to {path}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to save diagram: {e}")
+            return DiagramResult(
+                success=False,
+                error=f"Failed to save diagram: {str(e)}"
+            )
+    
+    @strawberry.mutation
+    async def convert_diagram(self, info, diagram_id: DiagramID, target_format: str) -> DiagramResult:
+        """Convert diagram between formats (JSON, YAML, LLM-YAML)."""
+        try:
+            context: GraphQLContext = info.context
+            diagram_service = context.diagram_service
+            
+            # Load the diagram
+            diagram = diagram_service.load_diagram(diagram_id)
+            if not diagram:
+                return DiagramResult(
+                    success=False,
+                    error=f"Diagram {diagram_id} not found"
+                )
+            
+            # Validate target format
+            valid_formats = ['json', 'yaml', 'llm-yaml']
+            if target_format.lower() not in valid_formats:
+                return DiagramResult(
+                    success=False,
+                    error=f"Invalid format. Must be one of: {', '.join(valid_formats)}"
+                )
+            
+            # Save in new format
+            # Create new filename with target extension
+            import os
+            base_name = os.path.splitext(diagram_id)[0]
+            new_diagram_id = f"{base_name}.{target_format.lower().replace('llm-', '')}"
+            
+            # Save diagram in new format
+            path = diagram_service.save_diagram(new_diagram_id, diagram, target_format)
+            
+            # Load and return the converted diagram
+            converted = diagram_service.load_diagram(new_diagram_id)
+            graphql_diagram = diagram_service._convert_to_graphql_diagram(converted)
+            
+            return DiagramResult(
+                success=True,
+                diagram=graphql_diagram,
+                message=f"Diagram converted to {target_format} and saved to {path}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to convert diagram: {e}")
+            return DiagramResult(
+                success=False,
+                error=f"Failed to convert diagram: {str(e)}"
+            )
+    
+    @strawberry.mutation
+    async def initialize_model(self, info, person_id: PersonID) -> PersonResult:
+        """Pre-initialize/warm up a model for faster first execution."""
+        try:
+            context: GraphQLContext = info.context
+            llm_service = context.llm_service
+            diagram_service = context.diagram_service
+            
+            # Find person in diagrams
+            person_data = None
+            diagram_id = None
+            
+            diagrams = diagram_service.list_diagram_files()
+            for diagram_meta in diagrams:
+                diagram = diagram_service.load_diagram(diagram_meta['path'])
+                if person_id in diagram.get('persons', {}):
+                    person_data = diagram['persons'][person_id]
+                    diagram_id = diagram_meta['path']
+                    break
+            
+            if not person_data:
+                return PersonResult(
+                    success=False,
+                    error=f"Person {person_id} not found"
+                )
+            
+            # Initialize the model
+            api_key_id = person_data.get('apiKeyId')
+            if not api_key_id:
+                return PersonResult(
+                    success=False,
+                    error=f"Person {person_id} has no API key configured"
+                )
+            
+            # Warm up the model by making a simple call
+            service = context.api_key_service.get_api_key(api_key_id)['service']
+            model = person_data.get('modelName', 'gpt-4o-mini')
+            
+            # Make a simple test call to warm up the model
+            result = await llm_service.get_completion(
+                prompt="Say 'initialized'",
+                model=model,
+                service=service,
+                api_key_id=api_key_id,
+                max_tokens=10
+            )
+            
+            # Convert to GraphQL type
+            from .types.domain import Person
+            person = Person(
+                id=person_id,
+                name=person_data.get('name', ''),
+                model=model,
+                api_key_id=api_key_id,
+                temperature=person_data.get('temperature', 0.7),
+                max_tokens=person_data.get('maxTokens', 4096),
+                forgetting_mode=person_data.get('contextCleaningRule', 'no_forgetting')
+            )
+            
+            return PersonResult(
+                success=True,
+                person=person,
+                message=f"Model {model} initialized successfully"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize model: {e}")
+            return PersonResult(
+                success=False,
+                error=f"Failed to initialize model: {str(e)}"
+            )
+    
+    @strawberry.mutation
+    async def upload_file(self, input: FileUploadInput, info) -> FileUploadResult:
+        """Upload a file to the server (replaces REST endpoint)."""
+        try:
+            import base64
+            import os
+            import aiofiles
+            from pathlib import Path
+            
+            # Decode base64 content
+            try:
+                file_content = base64.b64decode(input.content_base64)
+            except Exception as e:
+                return FileUploadResult(
+                    success=False,
+                    error=f"Invalid base64 encoding: {str(e)}"
+                )
+            
+            # Create uploads directory if it doesn't exist
+            upload_dir = Path("files/uploads")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Generate unique filename to avoid conflicts
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_id = str(uuid.uuid4())[:8]
+            filename_parts = os.path.splitext(input.filename)
+            safe_filename = f"{filename_parts[0]}_{timestamp}_{unique_id}{filename_parts[1]}"
+            
+            # Full path for the file
+            file_path = upload_dir / safe_filename
+            
+            # Write file asynchronously
+            async with aiofiles.open(file_path, 'wb') as f:
+                await f.write(file_content)
+            
+            # Get file size
+            file_size = len(file_content)
+            
+            return FileUploadResult(
+                success=True,
+                path=str(file_path),
+                size_bytes=file_size,
+                content_type=input.content_type,
+                message=f"File uploaded successfully to {file_path}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to upload file: {e}")
+            return FileUploadResult(
+                success=False,
+                error=f"Failed to upload file: {str(e)}"
+            )
+    
+    @strawberry.mutation
+    async def import_yaml_diagram(self, input: ImportYamlInput, info) -> DiagramResult:
+        """Import a YAML diagram (replaces REST endpoint)."""
+        try:
+            import yaml
+            from pathlib import Path
+            
+            context: GraphQLContext = info.context
+            diagram_service = context.diagram_service
+            
+            # Parse YAML content
+            try:
+                diagram_data = yaml.safe_load(input.content)
+            except yaml.YAMLError as e:
+                return DiagramResult(
+                    success=False,
+                    error=f"Invalid YAML format: {str(e)}"
+                )
+            
+            # Validate it's a diagram
+            if not isinstance(diagram_data, dict):
+                return DiagramResult(
+                    success=False,
+                    error="YAML content must be a dictionary representing a diagram"
+                )
+            
+            # Generate filename if not provided
+            if input.filename:
+                filename = input.filename
+                if not filename.endswith(('.yaml', '.yml')):
+                    filename += '.yaml'
+            else:
+                # Generate filename from diagram name or timestamp
+                diagram_name = diagram_data.get('metadata', {}).get('name', 'imported')
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{diagram_name}_{timestamp}.yaml"
+            
+            # Save the diagram
+            path = diagram_service.save_diagram(filename, diagram_data, 'yaml')
+            
+            # Load and convert to GraphQL type
+            loaded_diagram = diagram_service.load_diagram(filename)
+            graphql_diagram = diagram_service._convert_to_graphql_diagram(loaded_diagram)
+            
+            return DiagramResult(
+                success=True,
+                diagram=graphql_diagram,
+                message=f"YAML diagram imported successfully as {filename}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to import YAML diagram: {e}")
+            return DiagramResult(
+                success=False,
+                error=f"Failed to import YAML diagram: {str(e)}"
             )
 
 

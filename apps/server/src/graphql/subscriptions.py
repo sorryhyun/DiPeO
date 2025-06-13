@@ -9,6 +9,7 @@ from .types.domain import ExecutionState, ExecutionEvent, Node, Diagram, TokenUs
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
 from .types.enums import NodeType, EventType, ExecutionStatus
 from .context import GraphQLContext
+from .redis_subscriptions import RedisSubscriptionManager
 
 logger = logging.getLogger(__name__)
 
@@ -100,48 +101,77 @@ async def execution_stream(execution_id: ExecutionID, info) -> AsyncGenerator[Ex
     context: GraphQLContext = info.context
     event_store = context.event_store
     
-    # Track last known state
-    last_sequence = -1
+    # Check if Redis is available
+    redis_client = getattr(event_store, '_redis_client', None)
     
-    try:
-        while True:
-            # Get latest events
-            events = event_store.get_events(execution_id)
-            new_events = [e for e in events if e.sequence > last_sequence]
-            
-            if new_events:
-                # Update last sequence
-                last_sequence = max(e.sequence for e in new_events)
-                
-                # Replay full state (could be optimized to incremental updates)
-                state = event_store.replay(execution_id)
+    if redis_client:
+        # Use Redis pub/sub for real-time updates
+        logger.info(f"Using Redis pub/sub for execution {execution_id}")
+        subscription_manager = RedisSubscriptionManager(redis_client)
+        
+        try:
+            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
+                # Replay state after each event
+                state = await event_store.replay(execution_id)
                 
                 if state:
                     # Convert to GraphQL ExecutionState
                     yield ExecutionState(
                         id=state.execution_id,
                         status=_map_status(state.status),
-                        diagram_id=state.diagram_id,
-                        started_at=state.start_time,
-                        ended_at=state.end_time,
-                        running_nodes=[NodeID(n) for n in state.running_nodes],
-                        completed_nodes=[NodeID(n) for n in state.completed_nodes],
-                        skipped_nodes=[NodeID(n) for n in state.skipped_nodes],
-                        paused_nodes=[NodeID(n) for n in state.paused_nodes],
-                        failed_nodes=[NodeID(n) for n in state.failed_nodes],
+                        diagram_id=state.diagram_id if hasattr(state, 'diagram_id') else None,
+                        started_at=datetime.fromtimestamp(state.start_time),
+                        ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
+                        current_node=state.node_statuses.get('current'),
                         node_outputs=state.node_outputs,
                         variables=state.variables,
-                        token_usage=TokenUsage(
-                            input=state.token_usage.input,
-                            output=state.token_usage.output,
-                            cached=state.token_usage.cached,
-                            total=state.token_usage.total
-                        ) if state.token_usage else None,
-                        error=state.error
+                        total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
+                        error=state.error,
+                        # Additional fields for compatibility
+                        progress=len([s for s in state.node_statuses.values() if s == 'completed']) / max(len(state.node_statuses), 1) * 100 if state.node_statuses else 0
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error in Redis subscription for {execution_id}: {e}")
+            # Fall back to polling
+    
+    # Fallback to polling if Redis is not available
+    logger.info(f"Using polling for execution {execution_id}")
+    
+    # Track last known state
+    last_sequence = -1
+    
+    try:
+        while True:
+            # Get latest events
+            events = await event_store.get_events(execution_id)
+            new_events = [e for e in events if e.sequence > last_sequence]
+            
+            if new_events:
+                # Update last sequence
+                last_sequence = max(e.sequence for e in new_events)
+                
+                # Replay full state
+                state = await event_store.replay(execution_id)
+                
+                if state:
+                    # Convert to GraphQL ExecutionState
+                    yield ExecutionState(
+                        id=state.execution_id,
+                        status=_map_status(state.status),
+                        diagram_id=state.diagram_id if hasattr(state, 'diagram_id') else None,
+                        started_at=datetime.fromtimestamp(state.start_time),
+                        ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
+                        current_node=state.node_statuses.get('current'),
+                        node_outputs=state.node_outputs,
+                        variables=state.variables,
+                        total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
+                        error=state.error,
+                        progress=len([s for s in state.node_statuses.values() if s == 'completed']) / max(len(state.node_statuses), 1) * 100 if state.node_statuses else 0
                     )
                     
                     # Check if execution is complete
-                    if state.status in ['completed', 'failed', 'cancelled']:
+                    if state.status in ['completed', 'failed', 'aborted']:
                         break
             
             # Poll interval (100ms)
@@ -163,20 +193,53 @@ async def event_stream(
     context: GraphQLContext = info.context
     event_store = context.event_store
     
+    # Check if Redis is available
+    redis_client = getattr(event_store, '_redis_client', None)
+    
+    if redis_client:
+        # Use Redis pub/sub for real-time updates
+        logger.info(f"Using Redis pub/sub for event stream {execution_id}")
+        subscription_manager = RedisSubscriptionManager(redis_client)
+        
+        try:
+            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
+                # Filter by event types if specified
+                if event_types:
+                    event_type_str = event_data.get("event_type")
+                    if event_type_str not in [et.value for et in event_types]:
+                        continue
+                
+                # Convert to GraphQL ExecutionEvent
+                yield ExecutionEvent(
+                    execution_id=event_data["execution_id"],
+                    sequence=event_data["sequence"],
+                    event_type=EventType(event_data["event_type"]),
+                    node_id=NodeID(event_data["node_id"]) if event_data.get("node_id") else None,
+                    timestamp=datetime.fromtimestamp(event_data["timestamp"]),
+                    data=event_data.get("data", {})
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in Redis event subscription for {execution_id}: {e}")
+            # Fall back to polling
+    
+    # Fallback to polling if Redis is not available
+    logger.info(f"Using polling for event stream {execution_id}")
+    
     # Track last event sequence
     last_sequence = -1
     
     try:
         while True:
             # Get latest events
-            events = event_store.get_events(execution_id)
+            events = await event_store.get_events(execution_id)
             new_events = [e for e in events if e.sequence > last_sequence]
             
             # Apply event type filtering if specified
             if event_types and new_events:
                 new_events = [
                     e for e in new_events 
-                    if e.event_type in [et.value for et in event_types]
+                    if EventType(e.event_type) in event_types
                 ]
             
             # Yield new events
@@ -185,14 +248,14 @@ async def event_stream(
                 yield ExecutionEvent(
                     execution_id=event.execution_id,
                     sequence=event.sequence,
-                    event_type=event.event_type,
+                    event_type=EventType(event.event_type),
                     node_id=NodeID(event.node_id) if event.node_id else None,
-                    timestamp=event.timestamp,
+                    timestamp=datetime.fromtimestamp(event.timestamp),
                     data=event.data
                 )
                 
                 # Check if execution is complete
-                if event.event_type in ['execution_completed', 'execution_failed', 'execution_cancelled']:
+                if EventType(event.event_type) in [EventType.EXECUTION_COMPLETED, EventType.EXECUTION_FAILED, EventType.EXECUTION_ABORTED]:
                     return
             
             # Poll interval (100ms)
@@ -214,27 +277,36 @@ async def node_update_stream(
     context: GraphQLContext = info.context
     event_store = context.event_store
     
-    # Track processed events
-    processed_events = set()
+    # Check if Redis is available
+    redis_client = getattr(event_store, '_redis_client', None)
     
-    try:
-        while True:
-            # Get latest events
-            events = event_store.get_events(execution_id)
-            
-            # Filter for node-related events
-            node_events = [
-                e for e in events 
-                if e.event_type in ['node_started', 'node_completed', 'node_failed', 'node_skipped']
-                and e.sequence not in processed_events
-            ]
-            
-            for event in node_events:
-                processed_events.add(event.sequence)
+    node_event_types = [
+        EventType.NODE_STARTED,
+        EventType.NODE_COMPLETED,
+        EventType.NODE_FAILED,
+        EventType.NODE_SKIPPED,
+        EventType.NODE_PAUSED,
+        EventType.NODE_RESUMED
+    ]
+    
+    if redis_client:
+        # Use Redis pub/sub for real-time updates
+        logger.info(f"Using Redis pub/sub for node updates {execution_id}")
+        subscription_manager = RedisSubscriptionManager(redis_client)
+        
+        try:
+            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
+                # Filter for node-related events
+                event_type_str = event_data.get("event_type")
+                if event_type_str not in [et.value for et in node_event_types]:
+                    continue
                 
                 # Extract node info from event data
-                node_id = event.node_id
-                node_type = event.data.get('node_type', 'unknown')
+                node_id = event_data.get("node_id")
+                if not node_id:
+                    continue
+                    
+                node_type = event_data.get("data", {}).get('node_type', 'job')
                 
                 # Filter by node types if specified
                 if node_types and node_type not in [nt.value for nt in node_types]:
@@ -245,26 +317,88 @@ async def node_update_stream(
                     'node_started': 'started',
                     'node_completed': 'completed',
                     'node_failed': 'failed',
-                    'node_skipped': 'skipped'
+                    'node_skipped': 'skipped',
+                    'node_paused': 'paused',
+                    'node_resumed': 'running'
                 }
-                status = status_map.get(event.event_type, 'running')
+                status = status_map.get(event_type_str, 'running')
                 
                 # Create NodeExecution update
                 yield NodeExecution(
                     execution_id=execution_id,
                     node_id=NodeID(node_id),
-                    node_type=NodeType(node_type) if node_type != 'unknown' else NodeType.JOB,
+                    node_type=NodeType(node_type),
+                    status=status,
+                    progress=event_data.get("data", {}).get('progress'),
+                    output=event_data.get("data", {}).get('output'),
+                    error=event_data.get("data", {}).get('error'),
+                    tokens_used=event_data.get("data", {}).get('token_usage', {}).get('total'),
+                    timestamp=datetime.fromtimestamp(event_data["timestamp"])
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in Redis node update subscription for {execution_id}: {e}")
+            # Fall back to polling
+    
+    # Fallback to polling if Redis is not available
+    logger.info(f"Using polling for node updates {execution_id}")
+    
+    # Track processed events
+    processed_events = set()
+    
+    try:
+        while True:
+            # Get latest events
+            events = await event_store.get_events(execution_id)
+            
+            # Filter for node-related events
+            node_events = [
+                e for e in events 
+                if EventType(e.event_type) in node_event_types
+                and e.sequence not in processed_events
+            ]
+            
+            for event in node_events:
+                processed_events.add(event.sequence)
+                
+                # Extract node info from event data
+                node_id = event.node_id
+                if not node_id:
+                    continue
+                    
+                node_type = event.data.get('node_type', 'job')
+                
+                # Filter by node types if specified
+                if node_types and node_type not in [nt.value for nt in node_types]:
+                    continue
+                
+                # Map event type to status
+                status_map = {
+                    EventType.NODE_STARTED: 'started',
+                    EventType.NODE_COMPLETED: 'completed',
+                    EventType.NODE_FAILED: 'failed',
+                    EventType.NODE_SKIPPED: 'skipped',
+                    EventType.NODE_PAUSED: 'paused',
+                    EventType.NODE_RESUMED: 'running'
+                }
+                status = status_map.get(EventType(event.event_type), 'running')
+                
+                # Create NodeExecution update
+                yield NodeExecution(
+                    execution_id=execution_id,
+                    node_id=NodeID(node_id),
+                    node_type=NodeType(node_type),
                     status=status,
                     progress=event.data.get('progress'),
                     output=event.data.get('output'),
                     error=event.data.get('error'),
                     tokens_used=event.data.get('token_usage', {}).get('total'),
-                    timestamp=event.timestamp
+                    timestamp=datetime.fromtimestamp(event.timestamp)
                 )
                 
             # Check if execution is complete
-            state = event_store.replay(execution_id)
-            if state and state.status in ['completed', 'failed', 'cancelled']:
+            state = await event_store.replay(execution_id)
+            if state and state.status in ['completed', 'failed', 'aborted']:
                 break
             
             # Poll interval (100ms)
@@ -294,18 +428,51 @@ async def interactive_prompt_stream(execution_id: ExecutionID, info) -> AsyncGen
     context: GraphQLContext = info.context
     event_store = context.event_store
     
+    # Check if Redis is available
+    redis_client = getattr(event_store, '_redis_client', None)
+    
+    if redis_client:
+        # Use Redis pub/sub for real-time updates
+        logger.info(f"Using Redis pub/sub for interactive prompts {execution_id}")
+        subscription_manager = RedisSubscriptionManager(redis_client)
+        
+        try:
+            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
+                # Filter for interactive prompt events
+                if event_data.get("event_type") != EventType.INTERACTIVE_PROMPT.value:
+                    continue
+                
+                node_id = event_data.get("node_id")
+                if not node_id:
+                    continue
+                
+                yield InteractivePrompt(
+                    execution_id=execution_id,
+                    node_id=NodeID(node_id),
+                    prompt=event_data.get("data", {}).get('prompt', 'User input required'),
+                    timeout_seconds=event_data.get("data", {}).get('timeout'),
+                    timestamp=datetime.fromtimestamp(event_data["timestamp"])
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in Redis interactive prompt subscription for {execution_id}: {e}")
+            # Fall back to polling
+    
+    # Fallback to polling if Redis is not available
+    logger.info(f"Using polling for interactive prompts {execution_id}")
+    
     # Track processed prompts
     processed_prompts = set()
     
     try:
         while True:
             # Get latest events
-            events = event_store.get_events(execution_id)
+            events = await event_store.get_events(execution_id)
             
             # Filter for interactive prompt events
             prompt_events = [
                 e for e in events 
-                if e.event_type == 'interactive_prompt_required'
+                if e.event_type == EventType.INTERACTIVE_PROMPT
                 and e.sequence not in processed_prompts
             ]
             
@@ -317,12 +484,12 @@ async def interactive_prompt_stream(execution_id: ExecutionID, info) -> AsyncGen
                     node_id=NodeID(event.node_id),
                     prompt=event.data.get('prompt', 'User input required'),
                     timeout_seconds=event.data.get('timeout'),
-                    timestamp=event.timestamp
+                    timestamp=datetime.fromtimestamp(event.timestamp)
                 )
             
             # Check if execution is complete
-            state = event_store.replay(execution_id)
-            if state and state.status in ['completed', 'failed', 'cancelled']:
+            state = await event_store.replay(execution_id)
+            if state and state.status in ['completed', 'failed', 'aborted']:
                 break
             
             # Poll interval (100ms)

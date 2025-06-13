@@ -78,6 +78,16 @@ class TestApiKeyResult:
     available_models: Optional[List[str]] = None
     error: Optional[str] = None
 
+@strawberry.type
+class FileUploadResult:
+    """Result of file upload operation."""
+    success: bool
+    path: Optional[str] = None
+    size_bytes: Optional[int] = None
+    content_type: Optional[str] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
 # Union types for flexible error handling
 DiagramOperationResult = strawberry.union(
     "DiagramOperationResult",
