@@ -1,21 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
 import { useExecution } from '@/hooks';
-import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { useShallow } from 'zustand/react/shallow';
+import { useDiagramData } from '@/hooks/selectors';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
   const execution = useExecution({ showToasts: false });
-  const { nodes, arrows, persons, handles, apiKeys } = useUnifiedStore(
-    useShallow(state => ({
-      nodes: state.nodes,
-      arrows: state.arrows,
-      persons: state.persons,
-      handles: state.handles,
-      apiKeys: state.apiKeys
-    }))
-  );
+  const { nodes, arrows, persons, handles, apiKeys } = useDiagramData();
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 

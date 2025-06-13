@@ -1,11 +1,11 @@
 """Result types for GraphQL operations with error handling."""
 import strawberry
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, List, Union
 
 from .domain import (
     Node, Diagram, ExecutionState, Person, ApiKey
 )
-from .scalars import ExecutionID, DiagramID
+from .scalars import ExecutionID, DiagramID, JSONScalar
 
 @strawberry.type
 class ValidationError:
@@ -19,7 +19,7 @@ class OperationError:
     """General operation error."""
     message: str
     code: str
-    details: Optional[Dict[str, Any]] = None
+    details: Optional[JSONScalar] = None
 
 @strawberry.type
 class NodeResult:

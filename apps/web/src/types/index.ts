@@ -1,5 +1,8 @@
 // types/config.ts - Central export point for all types
 
+// Core types - single source of truth
+export * from './core';
+
 // Re-export all types from separate modules
 export * from './primitives';
 export * from './api';

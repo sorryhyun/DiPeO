@@ -3,6 +3,7 @@ import { Layers, TestTube } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
+import { useCanvasOperations } from '@/contexts/CanvasContext';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
@@ -16,8 +17,8 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use unified store with specific selectors to avoid unnecessary re-renders
-  const setReadOnly = useUnifiedStore(state => state.setReadOnly);
+  // Use canvas operations for mode control
+  const { setReadOnly } = useCanvasOperations();
   const { activeCanvas, setActiveCanvas } = useUIState();
   
   // Use only the diagram manager for file operations - much lighter weight

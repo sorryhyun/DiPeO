@@ -6,7 +6,7 @@ from datetime import datetime
 from .types.domain import (
     Diagram, ExecutionState, Person, ApiKey, ExecutionEvent
 )
-from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID
+from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .types.inputs import DiagramFilterInput, ExecutionFilterInput
 from .types.enums import NodeType, LLMService
 
@@ -95,7 +95,7 @@ class Query:
         return await person_resolver.get_available_models(service, api_key_id, info)
     
     @strawberry.field
-    async def system_info(self, info) -> Dict[str, Any]:
+    async def system_info(self, info) -> JSONScalar:
         """Get system information and capabilities."""
         return {
             "version": "2.0.0",

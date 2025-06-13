@@ -23,15 +23,6 @@ import { DiagramExporter } from "./diagramExporter";
 import { loadAutoSavedDiagram, setupAutoSave } from "./persistedStore";
 import { logger } from "@/utils/logger";
 
-// Import slices
-import {
-  createDiagramSlice,
-  createComputedSlice,
-  createExecutionSlice,
-  createPersonSlice,
-  createUISlice
-} from "./slices";
-
 // Import helpers
 import { 
   createFullSnapshot, 
@@ -39,30 +30,126 @@ import {
   updateMap 
 } from "./helpers/entityHelpers";
 import { 
+  nodeCrud, 
+  arrowCrud, 
+  personCrud, 
   apiKeyCrud 
 } from "./helpers/crudFactory";
+import { 
+  createNode, 
+  importDiagram as importDiagramHelper 
+} from "./helpers/importExportHelpers";
 
 export const useUnifiedStore = create<UnifiedStore>()(
   devtools(
     subscribeWithSelector(
-      immer((set, get, api) => ({
-        // Compose all slices
-        ...createDiagramSlice(set, get, api),
-        ...createComputedSlice(set, get, api),
-        ...createExecutionSlice(set, get, api),
-        ...createPersonSlice(set, get, api),
-        ...createUISlice(set, get, api),
-        
-        // Additional data not in slices
+      immer((set, get) => ({
+        // Initialize all data structures
+        nodes: new Map(),
+        arrows: new Map(),
+        persons: new Map(),
         handles: new Map(),
         apiKeys: new Map(),
-        
+        dataVersion: 0,
+
+        // Initial UI state
+        selectedId: null,
+        selectedType: null,
+        activeView: 'diagram',
+        activeCanvas: 'main',
+        dashboardTab: 'properties',
+        readOnly: false,
+        executionReadOnly: false,
+        showApiKeysModal: false,
+        showExecutionModal: false,
+
+        // Initial execution state
+        execution: {
+          id: null,
+          isRunning: false,
+          runningNodes: new Set(),
+          nodeStates: new Map(),
+          context: {},
+        },
+
         // Initial history state
         history: {
           undoStack: [],
           redoStack: [],
           currentTransaction: null,
         },
+
+        // === Node Operations (using CRUD factory) ===
+        addNode: (type, position, initialData) => {
+          const node = createNode(type, position, initialData);
+          set(state => {
+            nodeCrud.add(state, node);
+          });
+          return node.id;
+        },
+
+        updateNode: (id, updates) => set(state => {
+          nodeCrud.update(state, id, updates);
+        }),
+
+        updateNodeSilently: (id, updates) => set(state => {
+          const nodes = updateMap(state.nodes, id, { ...state.nodes.get(id)!, ...updates });
+          if (nodes) {
+            state.nodes = nodes;
+            state.dataVersion += 1;
+          }
+        }),
+
+        deleteNode: (id) => set(state => {
+          nodeCrud.delete(state, id);
+        }),
+
+        // === Arrow Operations ===
+        addArrow: (source, target, data) => {
+          const arrow: DomainArrow = {
+            id: generateArrowId(),
+            source,
+            target,
+            data: data || {},
+          };
+          set(state => {
+            arrowCrud.add(state, arrow);
+          });
+          return arrow.id;
+        },
+
+        updateArrow: (id, updates) => set(state => {
+          arrowCrud.update(state, id, updates);
+        }),
+
+        deleteArrow: (id) => set(state => {
+          arrowCrud.delete(state, id);
+        }),
+
+        // === Person Operations ===
+        addPerson: (label, service, model) => {
+          const person: DomainPerson = {
+            id: generatePersonId(),
+            label,
+            service,
+            model,
+            maxTokens: undefined,
+            temperature: undefined,
+            forgettingMode: 'no_forget',
+          };
+          set(state => {
+            personCrud.add(state, person);
+          });
+          return person.id;
+        },
+
+        updatePerson: (id, updates) => set(state => {
+          personCrud.update(state, id, updates);
+        }),
+
+        deletePerson: (id) => set(state => {
+          personCrud.delete(state, id);
+        }),
 
         // === API Key Operations ===
         addApiKey: (name, service) => {
@@ -86,6 +173,76 @@ export const useUnifiedStore = create<UnifiedStore>()(
           apiKeyCrud.delete(state, id);
         }),
 
+        // === Selection ===
+        select: (id, type) => set(state => {
+          state.selectedId = id as NodeID | ArrowID | PersonID;
+          state.selectedType = type;
+          state.dashboardTab = type === 'person' ? 'persons' : 'properties';
+        }),
+
+        clearSelection: () => set(state => {
+          state.selectedId = null;
+          state.selectedType = null;
+        }),
+
+        // === UI State ===
+        setActiveCanvas: (canvas) => set(state => {
+          state.activeCanvas = canvas;
+        }),
+
+        setReadOnly: (readOnly) => set(state => {
+          state.readOnly = readOnly;
+        }),
+
+        setDashboardTab: (tab) => set(state => {
+          state.dashboardTab = tab;
+        }),
+
+        openApiKeysModal: () => set(state => {
+          state.showApiKeysModal = true;
+        }),
+
+        closeApiKeysModal: () => set(state => {
+          state.showApiKeysModal = false;
+        }),
+
+        openExecutionModal: () => set(state => {
+          state.showExecutionModal = true;
+        }),
+
+        closeExecutionModal: () => set(state => {
+          state.showExecutionModal = false;
+        }),
+
+        // === Execution State ===
+        startExecution: (executionId) => set(state => {
+          state.execution = {
+            id: executionId,
+            isRunning: true,
+            runningNodes: new Set(),
+            nodeStates: new Map(),
+            context: {},
+          };
+          state.activeView = 'execution';
+          state.executionReadOnly = true;
+        }),
+
+        updateNodeExecution: (nodeId, nodeState) => set(state => {
+          state.execution.nodeStates.set(nodeId, nodeState);
+          
+          if (nodeState.status === 'running') {
+            state.execution.runningNodes.add(nodeId);
+          } else {
+            state.execution.runningNodes.delete(nodeId);
+          }
+        }),
+
+        stopExecution: () => set(state => {
+          state.execution.isRunning = false;
+          state.execution.runningNodes = new Set();
+          state.executionReadOnly = false;
+        }),
+
         // === History Operations ===
         undo: () => set(state => {
           if (state.history.undoStack.length === 0) return;
@@ -101,11 +258,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
               handles: new Map(snapshot.handles),
               apiKeys: new Map(snapshot.apiKeys),
             });
-            
-            // Update arrays after restoring maps
-            state.nodesArray = Array.from(state.nodes.values());
-            state.arrowsArray = Array.from(state.arrows.values());
-            state.personsArray = Array.from(state.persons.values());
           }
         }),
 
@@ -123,11 +275,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
               handles: new Map(snapshot.handles),
               apiKeys: new Map(snapshot.apiKeys),
             });
-            
-            // Update arrays after restoring maps
-            state.nodesArray = Array.from(state.nodes.values());
-            state.arrowsArray = Array.from(state.arrows.values());
-            state.personsArray = Array.from(state.persons.values());
           }
         }),
 
@@ -167,11 +314,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
             apiKeys: new Map(snapshot.apiKeys),
             dataVersion: state.dataVersion + 1,
           });
-          
-          // Update arrays after restoring maps
-          state.nodesArray = Array.from(state.nodes.values());
-          state.arrowsArray = Array.from(state.arrows.values());
-          state.personsArray = Array.from(state.persons.values());
         }),
 
         clearAll: () => set(state => {
@@ -180,16 +322,13 @@ export const useUnifiedStore = create<UnifiedStore>()(
           state.persons = new Map();
           state.handles = new Map();
           state.apiKeys = new Map();
-          state.nodesArray = [];
-          state.arrowsArray = [];
-          state.personsArray = [];
           state.dataVersion = 0;
         }),
 
-        // === Legacy Array selectors (for backward compatibility) ===
-        getNodes: () => get().nodesArray,
-        getArrows: () => get().arrowsArray,
-        getPersons: () => get().personsArray,
+        // === Array selectors ===
+        getNodes: () => Array.from(get().nodes.values()),
+        getArrows: () => Array.from(get().arrows.values()),
+        getPersons: () => Array.from(get().persons.values()),
 
         // === Export/Import ===
         exportDiagram: () => new DiagramExporter(get()).exportDiagram(),
@@ -235,13 +374,13 @@ export const usePersonById = (personId: PersonID | null) =>
   useUnifiedStore(state => personId ? state.persons.get(personId) : null);
 
 export const useNodes = () =>
-  useUnifiedStore(state => state.nodesArray);
+  useUnifiedStore(state => Array.from(state.nodes.values()));
 
 export const useArrows = () =>
-  useUnifiedStore(state => state.arrowsArray);
+  useUnifiedStore(state => Array.from(state.arrows.values()));
 
 export const usePersons = () =>
-  useUnifiedStore(state => state.personsArray);
+  useUnifiedStore(state => Array.from(state.persons.values()));
 
 export const useSelectedEntity = () =>
   useUnifiedStore(state => {

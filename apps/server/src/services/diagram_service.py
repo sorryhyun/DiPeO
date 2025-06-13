@@ -1,5 +1,10 @@
 import yaml
 import logging
+import os
+import json
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 from fastapi import HTTPException
 
 from ..exceptions import ValidationError
@@ -27,6 +32,7 @@ class DiagramService(BaseService):
         self.llm_service = llm_service
         self.api_key_service = api_key_service
         self.memory_service = memory_service
+        self.diagrams_dir = Path(os.environ.get('BASE_DIR', '.')).joinpath('files', 'diagrams')
 
 
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
@@ -188,4 +194,128 @@ class DiagramService(BaseService):
             
         except Exception as e:
             raise ValidationError(f"Failed to export LLM YAML: {e}")
+    
+    def list_diagram_files(self, directory: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List all diagram files in the diagrams directory.
+        
+        Returns a list of diagram metadata including:
+        - id: filename without extension
+        - name: human-readable name
+        - path: relative path from diagrams directory
+        - format: file format (yaml, json)
+        - modified: last modification time
+        - size: file size in bytes
+        """
+        diagrams = []
+        
+        # Determine which directory to scan
+        if directory:
+            scan_dir = self.diagrams_dir / directory
+        else:
+            scan_dir = self.diagrams_dir
+            
+        if not scan_dir.exists():
+            return diagrams
+        
+        # Scan for diagram files
+        for file_path in scan_dir.rglob('*'):
+            if file_path.is_file() and file_path.suffix.lower() in ['.yaml', '.yml', '.json']:
+                try:
+                    # Get file stats
+                    stats = file_path.stat()
+                    
+                    # Create relative path from diagrams directory
+                    relative_path = file_path.relative_to(self.diagrams_dir)
+                    
+                    # Determine format based on parent directory or filename
+                    format_type = 'native'
+                    if 'readable' in str(relative_path):
+                        format_type = 'readable'
+                    elif 'llm' in str(relative_path):
+                        format_type = 'llm-readable'
+                    elif relative_path.parent == Path('.'):
+                        format_type = 'light'
+                    
+                    # Create diagram metadata
+                    diagram_meta = {
+                        'id': file_path.stem,  # filename without extension
+                        'name': file_path.stem.replace('_', ' ').replace('-', ' ').title(),
+                        'path': str(relative_path),
+                        'format': format_type,
+                        'extension': file_path.suffix[1:],  # Remove the dot
+                        'modified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                        'size': stats.st_size
+                    }
+                    
+                    diagrams.append(diagram_meta)
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to process diagram file {file_path}: {e}")
+                    continue
+        
+        # Sort by modification time (newest first)
+        diagrams.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return diagrams
+    
+    def load_diagram(self, path: str) -> Dict[str, Any]:
+        """Load a diagram from file.
+        
+        Args:
+            path: Relative path from diagrams directory
+            
+        Returns:
+            Diagram data in domain format
+        """
+        file_path = self.diagrams_dir / path
+        
+        if not file_path.exists():
+            raise ValidationError(f"Diagram file not found: {path}")
+        
+        try:
+            # Read file based on extension
+            if file_path.suffix.lower() in ['.yaml', '.yml']:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f)
+            elif file_path.suffix.lower() == '.json':
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            else:
+                raise ValidationError(f"Unsupported file format: {file_path.suffix}")
+            
+            # Convert to domain format if needed
+            if isinstance(data, dict) and 'nodes' in data:
+                # Already in diagram format, ensure it's in Record format
+                if isinstance(data.get('nodes'), list):
+                    data['nodes'] = {n['id']: n for n in data['nodes']}
+                if isinstance(data.get('arrows'), list):
+                    data['arrows'] = {a['id']: a for a in data['arrows']}
+                if isinstance(data.get('persons'), list):
+                    data['persons'] = {p['id']: p for p in data['persons']}
+                if isinstance(data.get('handles'), list):
+                    data['handles'] = {h['id']: h for h in data['handles']}
+                if isinstance(data.get('apiKeys'), list):
+                    data['apiKeys'] = {k['id']: k for k in data['apiKeys']}
+                
+                # Validate and fix API keys
+                self._validate_and_fix_api_keys(data)
+                
+                # Ensure all required fields
+                data.setdefault('nodes', {})
+                data.setdefault('arrows', {})
+                data.setdefault('handles', {})
+                data.setdefault('persons', {})
+                data.setdefault('apiKeys', {})
+                
+                return data
+            else:
+                # Not in expected format
+                raise ValidationError("Invalid diagram format")
+                
+        except yaml.YAMLError as e:
+            raise ValidationError(f"Failed to parse YAML file: {e}")
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"Failed to parse JSON file: {e}")
+        except Exception as e:
+            raise ValidationError(f"Failed to load diagram: {e}")
     

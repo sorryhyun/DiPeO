@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/buttons';
 import { getNodeConfig } from '@/config/helpers';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useCanvasOperations, useExecution } from '@/hooks';
-import { useUnifiedStore } from '@/hooks/useUnifiedStore';
+import { useUIState } from '@/hooks/selectors';
 import {NodeKind, nodeId} from '@/types';
 import './BaseNode.css';
 
@@ -179,7 +179,7 @@ export function BaseNode({
   // Store selectors
   const canvas = useCanvasOperations();
   const updateNodeInternals = useUpdateNodeInternals();
-  const { activeCanvas } = useUnifiedStore();
+  const { activeCanvas } = useUIState();
   const isExecutionMode = activeCanvas === 'execution';
   
   // Use custom hooks

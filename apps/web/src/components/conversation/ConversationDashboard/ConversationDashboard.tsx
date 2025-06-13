@@ -7,8 +7,8 @@ import { Button, Input, Select } from '@/components/ui';
 import { downloadFile } from '@/utils/file';
 import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks';
-import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useConversationData } from '@/hooks/useConversationData';
+import { useUIState, usePersonsData } from '@/hooks/selectors';
 import { MessageList } from '../MessageList';
 import {ConversationFilters, ConversationMessage, PersonID, executionId, personId} from '@/types';
 import { debounce, throttle } from '@/utils/math';
@@ -32,7 +32,8 @@ const ConversationDashboard: React.FC = () => {
   );
 
   const canvas = useCanvasOperations();
-  const store = useUnifiedStore();
+  const { selectedId } = useUIState();
+  const { persons: personsMap } = usePersonsData();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Get persons from canvas with proper memoization
@@ -43,11 +44,11 @@ const ConversationDashboard: React.FC = () => {
   
   // Get selected person ID if a person is selected
   const selectedPersonId = React.useMemo(() => {
-    if (!store.selectedId) return null;
+    if (!selectedId) return null;
     // Check if the selected ID is a person
-    const person = store.persons.get(store.selectedId as PersonID);
-    return person ? store.selectedId as PersonID : null;
-  }, [store.selectedId, store.persons]);
+    const person = personsMap.get(selectedId as PersonID);
+    return person ? selectedId as PersonID : null;
+  }, [selectedId, personsMap]);
   
 
   // Use consolidated conversation data hook with real-time updates

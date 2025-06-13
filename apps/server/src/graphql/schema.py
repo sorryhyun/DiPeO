@@ -12,8 +12,6 @@ schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
     subscription=Subscription,
-    # Enable schema introspection for development
-    enable_query_introspection=True,
     # Add extensions for monitoring and optimization
     extensions=[
         # Add query depth limiter to prevent complex queries

@@ -1,6 +1,7 @@
 """Custom scalar types for DiPeO GraphQL schema."""
 import strawberry
-from typing import NewType
+from typing import NewType, Any
+import json
 
 # Branded ID types for type safety
 NodeID = strawberry.scalar(
@@ -36,4 +37,12 @@ ExecutionID = strawberry.scalar(
 DiagramID = strawberry.scalar(
     NewType("DiagramID", str),
     description="Unique identifier for a diagram"
+)
+
+# JSON scalar for arbitrary data
+JSONScalar = strawberry.scalar(
+    NewType("JSONScalar", Any),
+    description="Arbitrary JSON-serializable data",
+    serialize=lambda v: v,
+    parse_value=lambda v: v
 )

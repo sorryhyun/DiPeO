@@ -1,11 +1,11 @@
 """Input types for GraphQL mutations."""
 import strawberry
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime
 
 from .scalars import (
     NodeID, HandleID, ArrowID, PersonID, ApiKeyID, 
-    DiagramID, ExecutionID
+    DiagramID, ExecutionID, JSONScalar
 )
 from .enums import (
     NodeType, HandleDirection, DataType, LLMService, 
@@ -24,7 +24,7 @@ class CreateNodeInput:
     type: NodeType
     position: Vec2Input
     label: str
-    properties: Dict[str, Any]  # Node-specific properties
+    properties: JSONScalar  # Node-specific properties
 
 @strawberry.input
 class UpdateNodeInput:
@@ -32,7 +32,7 @@ class UpdateNodeInput:
     id: NodeID
     position: Optional[Vec2Input] = None
     label: Optional[str] = None
-    properties: Optional[Dict[str, Any]] = None
+    properties: Optional[JSONScalar] = None
 
 @strawberry.input
 class CreateHandleInput:
@@ -95,7 +95,7 @@ class CreateDiagramInput:
 class ExecuteDiagramInput:
     """Input for executing a diagram."""
     diagram_id: DiagramID
-    variables: Optional[Dict[str, Any]] = None
+    variables: Optional[JSONScalar] = None
     debug_mode: bool = False
     timeout: Optional[int] = None
     max_iterations: Optional[int] = None

@@ -1,35 +1,29 @@
-"""Core domain types for DiPeO GraphQL schema."""
+"""Strawberry GraphQL types based on existing Pydantic domain models."""
 import strawberry
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+from ...models.domain import (
+    DomainHandle, DomainNode, DomainArrow, DomainPerson, 
+    DomainApiKey, DiagramMetadata, DomainDiagram
+)
 from .scalars import (
     NodeID, HandleID, ArrowID, PersonID, ApiKeyID, 
-    ExecutionID, DiagramID
+    ExecutionID, DiagramID, JSONScalar
 )
 from .enums import (
     NodeType, HandleDirection, DataType, LLMService, 
     ForgettingMode, ExecutionStatus
 )
-from .node_data import NodeDataUnion
 
+
+# Basic types
 @strawberry.type
 class Vec2:
     """2D position vector."""
     x: float
     y: float
 
-@strawberry.type
-class Handle:
-    """Connection point on a node."""
-    id: HandleID
-    node_id: NodeID
-    label: str
-    direction: HandleDirection
-    data_type: DataType
-    position: Optional[Vec2] = None
-    offset: Optional[Vec2] = None
-    max_connections: Optional[int] = None
 
 @strawberry.type
 class ArrowData:
@@ -37,91 +31,82 @@ class ArrowData:
     label: Optional[str] = None
     loop_count: Optional[int] = None
 
-@strawberry.type
-class Arrow:
-    """Connection between two handles."""
-    id: ArrowID
-    source: HandleID
-    target: HandleID
-    data: Optional[ArrowData] = None
 
-@strawberry.type
+# Convert Pydantic models to Strawberry types
+@strawberry.experimental.pydantic.type(model=DomainHandle)
+class Handle:
+    """Connection point on a node."""
+    id: strawberry.auto
+    nodeId: strawberry.auto
+    label: strawberry.auto
+    direction: strawberry.auto
+    dataType: strawberry.auto
+    # position is a string ("left", "right", "top", "bottom") in the domain model
+    # but GraphQL expects Optional[Vec2]. We'll expose it as a string for now.
+    position: Optional[str] = strawberry.auto
+
+
+@strawberry.experimental.pydantic.type(model=DomainNode)
 class Node:
     """Node in a diagram."""
-    id: NodeID
-    type: NodeType
-    position: Vec2
-    data: NodeDataUnion
+    id: strawberry.auto
+    type: strawberry.auto
+    data: JSONScalar
+    
+    @strawberry.field
+    def position(self) -> Vec2:
+        """Node position as Vec2."""
+        pos_dict = self.__pydantic_model__.position
+        return Vec2(x=pos_dict['x'], y=pos_dict['y'])
     
     @strawberry.field
     def display_name(self) -> str:
         """Computed display name for the node."""
-        if hasattr(self.data, 'label'):
-            return f"{self.type.value}: {self.data.label}"
-        return self.type.value
-    
-    @strawberry.field
-    async def handles(self, info) -> List[Handle]:
-        """Get all handles for this node."""
-        # This will be resolved from the diagram's handles
-        diagram = info.context["diagram"]
-        return [h for h in diagram.handles.values() if h.node_id == self.id]
+        if 'label' in self.data:
+            return f"{self.type}: {self.data['label']}"
+        return self.type
 
-@strawberry.type
+
+@strawberry.experimental.pydantic.type(model=DomainArrow)
+class Arrow:
+    """Connection between two handles."""
+    id: strawberry.auto
+    source: strawberry.auto
+    target: strawberry.auto
+    data: Optional[JSONScalar] = strawberry.auto
+
+
+@strawberry.experimental.pydantic.type(model=DomainPerson, all_fields=True)
 class Person:
     """Person (LLM agent) configuration."""
-    id: PersonID
-    label: str
-    service: LLMService
-    model: str
-    api_key_id: Optional[ApiKeyID] = None
-    system_prompt: Optional[str] = None
-    forgetting_mode: ForgettingMode = ForgettingMode.NONE
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
-    presence_penalty: Optional[float] = None
-    frequency_penalty: Optional[float] = None
-    seed: Optional[int] = None
     
     @strawberry.field
     def masked_api_key(self) -> Optional[str]:
         """Return masked API key for display."""
-        if not self.api_key_id:
+        if not self.apiKeyId:
             return None
-        return f"****{str(self.api_key_id)[-4:]}"
+        return f"****{str(self.apiKeyId)[-4:]}"
 
-@strawberry.type
+
+@strawberry.experimental.pydantic.type(model=DomainApiKey)
 class ApiKey:
     """API key configuration."""
-    id: ApiKeyID
-    label: str
-    service: LLMService
-    
-    @strawberry.field
-    def key(self, info) -> Optional[str]:
-        """Actual key - requires permission."""
-        # Check permission in resolver
-        if info.context.get("can_read_api_keys"):
-            return info.context["api_keys"].get(self.id)
-        return None
+    id: strawberry.auto
+    label: strawberry.auto
+    service: strawberry.auto
+    # Don't expose the actual key by default
     
     @strawberry.field
     def masked_key(self) -> str:
         """Masked version of the key."""
-        return f"{self.service.value}-****"
+        return f"{self.service}-****"
 
-@strawberry.type
+
+@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True)
 class DiagramMetadata:
     """Metadata for a diagram."""
-    id: Optional[DiagramID] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    version: str = "2.0.0"
-    created: datetime
-    modified: datetime
-    author: Optional[str] = None
-    tags: Optional[List[str]] = None
+    pass
+
 
 @strawberry.type
 class Diagram:
@@ -155,6 +140,8 @@ class Diagram:
         # Placeholder for now
         return None
 
+
+# Execution-related types (not in domain.py, so we define them here)
 @strawberry.type
 class TokenUsage:
     """Token usage statistics."""
@@ -162,6 +149,7 @@ class TokenUsage:
     output: int
     cached: Optional[int] = None
     total: int
+
 
 @strawberry.type
 class ExecutionState:
@@ -176,8 +164,8 @@ class ExecutionState:
     skipped_nodes: List[NodeID]
     paused_nodes: List[NodeID]
     failed_nodes: List[NodeID]
-    node_outputs: Dict[str, Any]
-    variables: Dict[str, Any]
+    node_outputs: JSONScalar
+    variables: JSONScalar
     token_usage: Optional[TokenUsage] = None
     error: Optional[str] = None
     
@@ -197,6 +185,7 @@ class ExecutionState:
             ExecutionStatus.PAUSED
         ]
 
+
 @strawberry.type
 class ExecutionEvent:
     """Event during diagram execution."""
@@ -205,7 +194,7 @@ class ExecutionEvent:
     event_type: str
     node_id: Optional[NodeID] = None
     timestamp: datetime
-    data: Dict[str, Any]
+    data: JSONScalar
     
     @strawberry.field
     def formatted_message(self) -> str:
@@ -213,5 +202,6 @@ class ExecutionEvent:
         if self.event_type == "node_completed":
             return f"Node {self.node_id} completed"
         elif self.event_type == "node_failed":
-            return f"Node {self.node_id} failed: {self.data.get('error', 'Unknown error')}"
+            error = self.data.get('error', 'Unknown error') if isinstance(self.data, dict) else 'Unknown error'
+            return f"Node {self.node_id} failed: {error}"
         return self.event_type.replace("_", " ").title()

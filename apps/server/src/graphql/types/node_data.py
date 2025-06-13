@@ -1,12 +1,12 @@
 """Node data types for different node kinds."""
 import strawberry
 from typing import Optional, List, Dict, Any
-from .scalars import PersonID, ApiKeyID
+from .scalars import PersonID, ApiKeyID, JSONScalar
 
 @strawberry.type
 class StartNodeData:
     label: str
-    static_data: Optional[Dict[str, Any]] = None
+    static_data: Optional[JSONScalar] = None
 
 @strawberry.type
 class PersonJobNodeData:
@@ -15,7 +15,7 @@ class PersonJobNodeData:
     person_id: Optional[PersonID] = None
     first_only_prompt: Optional[str] = None
     merge_consecutive: Optional[bool] = None
-    forgetting_options: Optional[Dict[str, Any]] = None
+    forgetting_options: Optional[JSONScalar] = None
     max_iterations: Optional[int] = None
 
 @strawberry.type
