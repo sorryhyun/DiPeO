@@ -135,7 +135,22 @@ async def save_diagram(
         counter = 1
         
         while os.path.exists(os.path.join(dir_path, final_filename)):
-            final_filename = f"{base_name}_{counter}{extension}"
+            # Use format-specific naming patterns
+            if request.format == "native":
+                # Remove .native suffix if already present to avoid duplication
+                clean_base = base_name.replace('.native', '')
+                final_filename = f"{clean_base}_{counter}.native{extension}"
+            elif request.format == "readable":
+                # Remove .readable suffix if already present to avoid duplication
+                clean_base = base_name.replace('.readable', '')
+                final_filename = f"{clean_base}_{counter}.readable{extension}"
+            elif request.format == "llm-readable":
+                # Remove .llm-readable suffix if already present to avoid duplication
+                clean_base = base_name.replace('.llm-readable', '').replace('.llm', '')
+                final_filename = f"{clean_base}_{counter}.llm-readable{extension}"
+            else:
+                # Light format or default
+                final_filename = f"{base_name}_{counter}{extension}"
             counter += 1
         
         # Map old format names to new ones for backward compatibility

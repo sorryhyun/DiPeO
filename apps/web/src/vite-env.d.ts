@@ -2,7 +2,10 @@
 
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string
-  // more env variables...
+  readonly VITE_API_PORT?: string
+  readonly VITE_API_HOST?: string
+  readonly VITE_DEBUG_WEBSOCKET?: string
+  // Vite built-in env variables
   readonly DEV: boolean
   readonly PROD: boolean
   readonly MODE: string

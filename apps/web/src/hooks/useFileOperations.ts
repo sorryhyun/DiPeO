@@ -279,6 +279,7 @@ export const useFileOperations = () => {
       // Use actual domain objects for all YAML formats
       const store = useUnifiedStore.getState();
       const diagramData = {
+        version: '1.0',  // Add version field for YAML compatibility
         id: `diagram-${Date.now()}`,
         name: filename?.replace(/\.[^/.]+$/, '') || 'Untitled Diagram',
         nodes: Array.from(store.nodes.values()),
@@ -347,6 +348,7 @@ export const useFileOperations = () => {
       // Use actual domain objects for YAML formats
       const store = useUnifiedStore.getState();
       const diagramToSave = {
+        version: '1.0',  // Add version field for YAML compatibility
         id: clonedDiagram.id,
         name: newName,
         nodes: Array.from(store.nodes.values()),

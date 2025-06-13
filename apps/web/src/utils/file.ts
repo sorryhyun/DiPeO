@@ -197,7 +197,7 @@ export const detectFileFormat = (content: string, filename?: string): FileFormat
     return { format: 'readable', isLLMFormat: false };
   }
   // Check if it's native format (DomainDiagram structure)
-  if (content.includes('metadata:') && content.includes('nodes:') && content.includes('arrows:')) {
+  if (content.includes('nodes:') && content.includes('arrows:') && content.includes('handles:')) {
     return { format: 'native', isLLMFormat: false };
   }
   if (content.includes(':') && (content.includes('-') || content.includes('  '))) {

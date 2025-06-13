@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
 
@@ -60,11 +60,24 @@ app.include_router(models_router)
 
 # Metrics endpoint
 @app.get("/metrics")
-async def metrics():
-    """Expose Prometheus metrics."""
+async def metrics(request: Request):
+    """Expose Prometheus metrics with content negotiation support."""
+    # Support content negotiation for tests
+    accept_header = request.headers.get("accept", "")
+    
     try:
         from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
         
+        # Return JSON format for tests
+        if "application/json" in accept_header:
+            metrics_data = generate_latest().decode('utf-8')
+            return {
+                "metrics": metrics_data,
+                "format": "prometheus",
+                "message": "Metrics in Prometheus format"
+            }
+        
+        # Default to Prometheus text format
         return Response(
             content=generate_latest(),
             media_type=CONTENT_TYPE_LATEST
