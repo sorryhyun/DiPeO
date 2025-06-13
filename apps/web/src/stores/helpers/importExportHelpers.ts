@@ -10,7 +10,8 @@ import {
 } from '@/types';
 import { generateNodeLabel } from '@/config/nodeMeta';
 import { getNodeDefaults } from '@/config';
-import { generateNodeHandlesFromRegistry } from '@/utils';
+import { generateNodeHandles } from '@/utils/node/handle-builder';
+import { getNodeConfig } from '@/config';
 
 // Helper to create a node
 export function createNode(type: NodeKind, position: Vec2, initialData?: Record<string, unknown>): DomainNode {
@@ -53,8 +54,11 @@ export function createImportState() {
       nodes.set(node.id, node);
       
       // Auto-generate handles
-      const nodeHandles = generateNodeHandlesFromRegistry(node.id, type);
-      nodeHandles.forEach(handle => handles.set(handle.id, handle));
+      const nodeConfig = getNodeConfig(type);
+      if (nodeConfig) {
+        const nodeHandles = generateNodeHandles(node.id, nodeConfig, type);
+        nodeHandles.forEach((handle: DomainHandle) => handles.set(handle.id, handle));
+      }
       
       return node.id;
     },

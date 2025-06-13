@@ -15,7 +15,8 @@ import {
 } from '@/types';
 import { YAML_VERSION, YAML_STRINGIFY_OPTIONS } from '../constants';
 import { DomainFormatConverter } from '../core/types';
-import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
+import { generateNodeHandles } from '@/utils/node/handle-builder';
+import { getNodeConfig } from '@/config';
 
 // Readable format types
 export interface ReadableConnection {
@@ -237,8 +238,9 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       // Skip default handles
       const node = diagram.nodes[handle.nodeId];
       if (node) {
-        const defaultHandles = generateNodeHandlesFromRegistry(node.type as NodeKind, handle.nodeId);
-        const isDefault = defaultHandles.some(dh => 
+        const nodeConfig = getNodeConfig(node.type as NodeKind);
+        const defaultHandles = nodeConfig ? generateNodeHandles(handle.nodeId, nodeConfig, node.type as NodeKind) : [];
+        const isDefault = defaultHandles.some((dh: DomainHandle) => 
           dh.label === handle.label &&
           dh.direction === handle.direction &&
           dh.dataType === handle.dataType &&
@@ -362,11 +364,14 @@ export class ReadableDomainConverter implements DomainFormatConverter {
     
     // Generate default handles
     Object.values(diagram.nodes).forEach(node => {
-      const handles = generateNodeHandlesFromRegistry(node.type as NodeKind, node.id);
-      handles.forEach(handle => {
-        this.labelToHandleId.set(handle.label, handle.id);
-        diagram.handles[handle.id] = handle;
-      });
+      const nodeConfig = getNodeConfig(node.type as NodeKind);
+      if (nodeConfig) {
+        const handles = generateNodeHandles(node.id, nodeConfig, node.type as NodeKind);
+        handles.forEach((handle: DomainHandle) => {
+          this.labelToHandleId.set(handle.label, handle.id);
+          diagram.handles[handle.id] = handle;
+        });
+      }
     });
     
     // Import custom handles

@@ -6,7 +6,8 @@ import {
   DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle,
   connectsToNode
 } from '@/types';
-import { generateNodeHandlesFromRegistry } from '@/utils';
+import { generateNodeHandles } from '@/utils/node/handle-builder';
+import { getNodeConfig } from '@/config';
 
 type EntityType = 'nodes' | 'arrows' | 'persons' | 'apiKeys';
 type EntityId = NodeID | ArrowID | PersonID | ApiKeyID;
@@ -80,11 +81,14 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
 export const nodeCrud = createCrudActions<DomainNode, NodeID>('nodes', {
   onAdd: (state, node) => {
     // Auto-generate handles
-    const handles = generateNodeHandlesFromRegistry(node.id, node.type);
-    handles.forEach((handle: DomainHandle) => {
-      const newHandles = updateMap(state.handles, handle.id, handle);
-      state.handles = newHandles;
-    });
+    const nodeConfig = getNodeConfig(node.type);
+    if (nodeConfig) {
+      const handles = generateNodeHandles(node.id, nodeConfig, node.type);
+      handles.forEach((handle: DomainHandle) => {
+        const newHandles = updateMap(state.handles, handle.id, handle);
+        state.handles = newHandles;
+      });
+    }
   },
   
   onDelete: (state, nodeId) => {

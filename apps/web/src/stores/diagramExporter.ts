@@ -19,10 +19,11 @@ import {
   generateApiKeyId,
   createHandleId
 } from '@/types';
-import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
+import { generateNodeHandles } from '@/utils/node/handle-builder';
+import { getNodeConfig } from '@/config';
 import type { UnifiedStore } from './unifiedStore.types';
 import { LightDomainConverter } from '@/utils/converters/formats/light-yaml';
-import { storeDomainConverter } from '@/utils/converters/core';
+import { storeDomainConverter, converterRegistry } from '@/utils/converters/core';
 
 // Export format types moved from unifiedStore.types.ts
 export interface ExportedNode {
@@ -196,36 +197,37 @@ export class DiagramExporter {
   }
 
   // Import operations
-  importDiagram(data: ExportFormat | string): void {
+  importDiagram(data: ExportFormat | string, format?: string): void {
+    let domainDiagram: DomainDiagram;
+    
     if (typeof data === 'string') {
-      // Handle YAML string import
-      const domainDiagram = this.lightConverter.deserialize(data);
-      const storeData = storeDomainConverter.domainToStore(domainDiagram);
-      // Clear and import
-      this.store.clearAll();
-      this.store.transaction(() => {
-        // Copy the new data into the store
-        storeData.nodes.forEach((node, id) => this.store.nodes.set(id, node));
-        storeData.arrows.forEach((arrow, id) => this.store.arrows.set(id, arrow));
-        storeData.handles.forEach((handle, id) => this.store.handles.set(id, handle));
-        storeData.persons.forEach((person, id) => this.store.persons.set(id, person));
-        storeData.apiKeys.forEach((apiKey, id) => this.store.apiKeys.set(id, apiKey));
-      });
+      // Handle string import with format detection
+      if (format) {
+        // Use specified format
+        const converter = converterRegistry.get(format as any);
+        domainDiagram = converter.deserialize(data);
+      } else {
+        // Default to light format for backward compatibility
+        domainDiagram = this.lightConverter.deserialize(data);
+      }
     } else {
       // Handle ExportFormat import
-      const domainDiagram = this.exportFormatToDomainDiagram(data);
-      const storeData = storeDomainConverter.domainToStore(domainDiagram);
-      // Clear and import
-      this.store.clearAll();
-      this.store.transaction(() => {
-        // Copy the new data into the store
-        storeData.nodes.forEach((node, id) => this.store.nodes.set(id, node));
-        storeData.arrows.forEach((arrow, id) => this.store.arrows.set(id, arrow));
-        storeData.handles.forEach((handle, id) => this.store.handles.set(id, handle));
-        storeData.persons.forEach((person, id) => this.store.persons.set(id, person));
-        storeData.apiKeys.forEach((apiKey, id) => this.store.apiKeys.set(id, apiKey));
-      });
+      domainDiagram = this.exportFormatToDomainDiagram(data);
     }
+    
+    // Convert to store format
+    const storeData = storeDomainConverter.domainToStore(domainDiagram);
+    
+    // Clear and import - Create new Maps to avoid Immer issues
+    this.store.clearAll();
+    this.store.transaction(() => {
+      // Replace Maps entirely instead of mutating them
+      (this.store as any).nodes = new Map(storeData.nodes);
+      (this.store as any).arrows = new Map(storeData.arrows);
+      (this.store as any).handles = new Map(storeData.handles);
+      (this.store as any).persons = new Map(storeData.persons);
+      (this.store as any).apiKeys = new Map(storeData.apiKeys);
+    });
   }
 
   // Validation
@@ -322,6 +324,11 @@ export class DiagramExporter {
         }
       }
       
+      // Ensure label is preserved in data
+      if (node.label && !nodeData.label) {
+        nodeData.label = node.label;
+      }
+      
       nodes[id as string] = {
         id,
         type: node.type as NodeKind,
@@ -353,10 +360,13 @@ export class DiagramExporter {
     // Generate default handles for nodes if not present
     if (data.handles.length === 0) {
       Object.values(nodes).forEach(node => {
-        const nodeHandles = generateNodeHandlesFromRegistry(node.type, node.id);
-        nodeHandles.forEach(handle => {
-          handles[handle.id] = handle;
-        });
+        const nodeConfig = getNodeConfig(node.type);
+        if (nodeConfig) {
+          const nodeHandles = generateNodeHandles(node.id, nodeConfig, node.type);
+          nodeHandles.forEach((handle: DomainHandle) => {
+            handles[handle.id] = handle;
+          });
+        }
       });
     }
     

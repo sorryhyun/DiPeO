@@ -127,6 +127,6 @@ export interface UnifiedStore {
   // Export/Import operations
   exportDiagram: () => any; // Returns ExportFormat from diagramExporter.ts
   exportAsYAML: () => string;
-  importDiagram: (data: any) => void; // Accepts ExportFormat or string
+  importDiagram: (data: any, format?: string) => void; // Accepts ExportFormat or string with optional format
   validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
 }

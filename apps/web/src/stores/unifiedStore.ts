@@ -333,7 +333,10 @@ export const useUnifiedStore = create<UnifiedStore>()(
         // === Export/Import ===
         exportDiagram: () => new DiagramExporter(get()).exportDiagram(),
         exportAsYAML: () => new DiagramExporter(get()).exportAsYAML(),
-        importDiagram: (data) => set(state => importDiagramHelper(state, data)),
+        importDiagram: (data, format) => {
+          const exporter = new DiagramExporter(get());
+          exporter.importDiagram(data, format);
+        },
         validateExportData: (data) => new DiagramExporter(get()).validateExportData(data),
       }))
     )

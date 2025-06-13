@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { parse } from 'yaml';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import {
   readFileAsText,
@@ -79,41 +80,8 @@ export const useFileOperations = () => {
     content: string,
     format: SupportedFormat
   ): void => {
-    // Get converter for format and deserialize
-    const converter = converterRegistry.get(format);
-    const domainDiagram = converter.deserialize(content);
-    
-    // Convert domain model to store state
-    const storeData = storeDomainConverter.domainToStore(domainDiagram);
-    
-    // Clear existing data and load new diagram
-    store.clearAll();
-    store.transaction(() => {
-      // Add entities using store actions
-      if (storeData.apiKeys) {
-        storeData.apiKeys.forEach((apiKey, id) => {
-          store.addApiKey(apiKey.label, apiKey.service);
-        });
-      }
-      
-      if (storeData.persons) {
-        storeData.persons.forEach((person, id) => {
-          store.addPerson(person.label, person.service, person.model);
-        });
-      }
-      
-      if (storeData.nodes) {
-        storeData.nodes.forEach((node, id) => {
-          store.addNode(node.type, node.position, node.data);
-        });
-      }
-      
-      if (storeData.arrows) {
-        storeData.arrows.forEach((arrow, id) => {
-          store.addArrow(arrow.source, arrow.target, arrow.data);
-        });
-      }
-    });
+    // Use the store's importDiagram with format parameter
+    store.importDiagram(content, format);
   }, [store]);
 
   /**
@@ -210,9 +178,9 @@ export const useFileOperations = () => {
       const content = exportDiagram(format);
       
       // Parse for backend (expects JSON/YAML object)
-      const data = format.includes('yaml') || format.includes('readable')
-        ? (await import('yaml')).parse(content)
-        : JSON.parse(content);
+      // All current formats produce YAML content
+      const yaml = await import('yaml');
+      const data = yaml.parse(content);
       
       // Save to backend
       const result = await saveDiagramToBackend(data, {

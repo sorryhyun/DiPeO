@@ -1,8 +1,9 @@
 /**
  * Light YAML format converter for DiPeO diagrams
  * 
- * Provides a reduced, cleaner YAML format that's more readable than JSON
- * while maintaining all necessary information for diagram reconstruction
+ * Provides a lighter version of the native YAML format using labels instead of IDs
+ * for better readability while maintaining all necessary information for diagram reconstruction.
+ * Uses 'arrows' instead of 'connections' to align with native format structure.
  * Works directly with DomainDiagram types
  */
 
@@ -16,7 +17,8 @@ import {
 } from '@/types';
 import { YAML_VERSION, YAML_STRINGIFY_OPTIONS } from '../constants';
 import { DomainFormatConverter } from '../core/types';
-import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
+import { generateNodeHandles } from '@/utils/node/handle-builder';
+import { getNodeConfig } from '@/config';
 
 // Reduced YAML format types
 export interface ReducedYamlNode {
@@ -28,8 +30,8 @@ export interface ReducedYamlNode {
 }
 
 export interface ReducedYamlArrow {
-  from: string;      // nodeLabel:handleName
-  to: string;        // nodeLabel:handleName
+  source: string;    // nodeLabel:handleName
+  target: string;    // nodeLabel:handleName
   label?: string;
   [key: string]: any;
 }
@@ -64,7 +66,7 @@ export interface ReducedYamlFormat {
   name?: string;
   description?: string;
   nodes: Record<string, ReducedYamlNode>;
-  connections: ReducedYamlArrow[];
+  arrows: ReducedYamlArrow[];
   persons?: Record<string, ReducedYamlPerson>;
   apiKeys?: Record<string, ReducedYamlApiKey>;
   handles?: ReducedYamlHandle[];
@@ -114,7 +116,7 @@ export class LightDomainConverter implements DomainFormatConverter {
     this.reset();
     
     const nodes: Record<string, ReducedYamlNode> = {};
-    const connections: ReducedYamlArrow[] = [];
+    const arrows: ReducedYamlArrow[] = [];
     const persons: Record<string, ReducedYamlPerson> = {};
     const apiKeys: Record<string, ReducedYamlApiKey> = {};
     const handles: ReducedYamlHandle[] = [];
@@ -211,18 +213,18 @@ export class LightDomainConverter implements DomainFormatConverter {
       }
       
       const reducedArrow: ReducedYamlArrow = {
-        from: `${sourceNodeLabel}:${sourceHandleLabel}`,
-        to: `${targetNodeLabel}:${targetHandleLabel}`
+        source: `${sourceNodeLabel}:${sourceHandleLabel}`,
+        target: `${targetNodeLabel}:${targetHandleLabel}`
       };
       
-      // Add data fields if present
+      // Add arrow data fields if present
       if (arrow.data && Object.keys(arrow.data).length > 0) {
         Object.entries(arrow.data).forEach(([key, value]) => {
           reducedArrow[key] = value;
         });
       }
       
-      connections.push(reducedArrow);
+      arrows.push(reducedArrow);
     });
     
     // Convert custom handles only
@@ -233,8 +235,9 @@ export class LightDomainConverter implements DomainFormatConverter {
       // Skip default handles that would be auto-generated
       const node = diagram.nodes[handle.nodeId];
       if (node) {
-        const defaultHandles = generateNodeHandlesFromRegistry(node.type as NodeKind, handle.nodeId);
-        const isDefault = defaultHandles.some(dh => 
+        const nodeConfig = getNodeConfig(node.type as NodeKind);
+        const defaultHandles = nodeConfig ? generateNodeHandles(handle.nodeId, nodeConfig, node.type as NodeKind) : [];
+        const isDefault = defaultHandles.some((dh: DomainHandle) => 
           dh.label === handle.label &&
           dh.direction === handle.direction &&
           dh.dataType === handle.dataType &&
@@ -257,7 +260,7 @@ export class LightDomainConverter implements DomainFormatConverter {
     const result: ReducedYamlFormat = {
       version: YAML_VERSION,
       nodes,
-      connections
+      arrows
     };
     
     // Only add optional fields if they have content
@@ -356,11 +359,14 @@ export class LightDomainConverter implements DomainFormatConverter {
     
     // Generate default handles for nodes
     Object.values(diagram.nodes).forEach(node => {
-      const handles = generateNodeHandlesFromRegistry(node.type as NodeKind, node.id);
-      handles.forEach(handle => {
-        this.labelToHandleId.set(handle.label, handle.id);
-        diagram.handles[handle.id] = handle;
-      });
+      const nodeConfig = getNodeConfig(node.type as NodeKind);
+      if (nodeConfig) {
+        const handles = generateNodeHandles(node.id, nodeConfig, node.type as NodeKind);
+        handles.forEach((handle: DomainHandle) => {
+          this.labelToHandleId.set(handle.label, handle.id);
+          diagram.handles[handle.id] = handle;
+        });
+      }
     });
     
     // Import custom handles
@@ -384,16 +390,16 @@ export class LightDomainConverter implements DomainFormatConverter {
       });
     }
     
-    // Import connections
-    data.connections.forEach(connection => {
-      const [fromNode, fromHandle] = connection.from.split(':');
-      const [toNode, toHandle] = connection.to.split(':');
+    // Import arrows
+    data.arrows.forEach(arrow => {
+      const [fromNode, fromHandle] = arrow.source.split(':');
+      const [toNode, toHandle] = arrow.target.split(':');
       
       const sourceNodeId = this.labelToNodeId.get(fromNode || '');
       const targetNodeId = this.labelToNodeId.get(toNode || '');
       
       if (!sourceNodeId || !targetNodeId) {
-        console.warn(`Skipping connection ${connection.from} -> ${connection.to} due to missing nodes`);
+        console.warn(`Skipping arrow ${arrow.source} -> ${arrow.target} due to missing nodes`);
         return;
       }
       
@@ -402,7 +408,7 @@ export class LightDomainConverter implements DomainFormatConverter {
       const targetHandleId = createHandleId(targetNodeId, toHandle || 'input');
       
       const id = arrowId(generateShortId());
-      const { from, to, ...arrowData } = connection;
+      const { source, target, ...arrowData } = arrow;
       
       diagram.arrows[id] = {
         id,

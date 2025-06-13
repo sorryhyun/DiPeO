@@ -1,8 +1,7 @@
 // Utility for building node handles from configuration
 
-import { createHandleId, nodeId, type NodeConfigItem, type HandleConfig, type DomainHandle, type NodeID } from '@/types';
+import { createHandleId, type NodeConfigItem, type HandleConfig, type DomainHandle, type NodeID } from '@/types';
 import { DataType, HandlePosition } from '@/types/primitives';
-import { HANDLE_REGISTRY, getHandleConfig } from '@/config/handleRegistry';
 import { createLookupTable, createHandlerTable } from '@/utils/dispatchTable';
 
 // Create lookup tables for position and data type mappings
@@ -42,14 +41,9 @@ function mapToDataType(dataType: string): DataType {
 export function generateNodeHandles(
   nodeId: string, 
   nodeConfig: NodeConfigItem,
-  nodeType?: string
+  _nodeType?: string
 ): DomainHandle[] {
-  // Use centralized registry if available for this node type
-  if (nodeType && HANDLE_REGISTRY[nodeType]) {
-    return generateNodeHandlesFromRegistry(nodeId, nodeType);
-  }
-  
-  // Fallback to config-based generation
+  // Generate handles from node configuration
   const handles: DomainHandle[] = [];
   
   // Generate input handles
@@ -71,46 +65,6 @@ export function generateNodeHandles(
   return handles;
 }
 
-/**
- * Generate handles from the centralized registry
- */
-export function generateNodeHandlesFromRegistry(
-  nodeId: string,
-  nodeType: string
-): DomainHandle[] {
-  const handles: DomainHandle[] = [];
-  const config = getHandleConfig(nodeType);
-  
-  // Generate input handles
-  if (config.inputs) {
-    config.inputs.forEach((handleDef) => {
-      handles.push({
-        id: createHandleId(nodeId as NodeID, handleDef.id),
-        nodeId: nodeId as NodeID,
-        label: handleDef.id,
-        direction: 'input',
-        dataType: mapToDataType(inferDataType(handleDef.id)),
-        position: mapToHandlePosition(handleDef.position),
-      });
-    });
-  }
-  
-  // Generate output handles
-  if (config.outputs) {
-    config.outputs.forEach((handleDef) => {
-      handles.push({
-        id: createHandleId(nodeId as NodeID, handleDef.id),
-        nodeId: nodeId as NodeID,
-        label: handleDef.id,
-        direction: 'output',
-        dataType: mapToDataType(inferDataType(handleDef.id)),
-        position: mapToHandlePosition(handleDef.position),
-      });
-    });
-  }
-  
-  return handles;
-}
 
 /**
  * Create a Handle object from HandleConfig

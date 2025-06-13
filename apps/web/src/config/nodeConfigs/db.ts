@@ -11,8 +11,8 @@ export const dbConfig = createUnifiedConfig<DBFormData>({
   icon: '💾',
   color: 'yellow',
   handles: {
-    input: [{ id: 'default', position: 'left' }],
-    output: [{ id: 'default', position: 'right' }]
+    input: [{ id: 'default', position: 'bottom', offset: { x: -30, y: 0 } }],
+    output: [{ id: 'default', position: 'bottom', offset: { x: 30, y: 0 } }]
   },
   fields: [], // Fields are defined in panelCustomFields to match backend expectations
   defaults: { label: '', subType: 'fixed_prompt', sourceDetails: '' },
