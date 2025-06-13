@@ -1,9 +1,10 @@
 // Unified sidebar component that can render as left or right sidebar
 import React, { useState, Suspense } from 'react';
-import { Button, FileUploadButton } from '@/components/ui/buttons';
+import { Button } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
-import { useFileOperations } from '@/hooks/useFileOperations';
+import { useUnifiedFileOperations } from '@/hooks/useUnifiedFileOperations';
+import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { LazyApiKeysModal } from '@/components/modals/LazyModals';
 import type { PersonID } from '@/types/branded';
@@ -88,7 +89,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
     if (id) select(id, 'person');
     else clearSelection();
   };
-  const { handleFileInput, saveNative, saveReadable, saveLLMReadable } = useFileOperations();
+  const { importWithDialog, saveDiagramToServer } = useUnifiedFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
@@ -241,20 +242,20 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
         </h3>
         {fileOperationsExpanded && (
           <div className="mt-3 space-y-2 px-2">
-            <FileUploadButton
-              onChange={handleFileInput}
+            <Button
+              onClick={() => importWithDialog()}
               className="w-full text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               variant="outline"
               size="sm"
               title="Import diagram from YAML file"
             >
               <span className="mr-1">📥</span> Import YAML
-            </FileUploadButton>
+            </Button>
             <Button
               variant="outline"
               className="w-full text-sm py-2 hover:bg-indigo-50 hover:border-indigo-300 transition-colors duration-200"
               size="sm"
-              onClick={() => saveNative()}
+              onClick={() => saveDiagramToServer('native')}
               title="Export to native format (saves to /files/diagrams/native/)"
             >
               <span className="mr-1">🔧</span> Export Native
@@ -263,7 +264,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
               size="sm"
-              onClick={() => saveReadable()}
+              onClick={() => saveDiagramToServer('readable')}
               title="Export to human-readable format (saves to /files/diagrams/readable/)"
             >
               <span className="mr-1">📖</span> Export Readable
@@ -272,7 +273,9 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
               variant="outline"
               className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
               size="sm"
-              onClick={() => saveLLMReadable()}
+              onClick={() => {
+                toast.error('LLM-readable format is not yet implemented');
+              }}
               title="Export to LLM-readable format (saves to /files/diagrams/llm-readable/)"
             >
               <span className="mr-1">🤖</span> Export LLM Readable

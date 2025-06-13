@@ -7,9 +7,11 @@ import {
   NodeID,
   ArrowID,
   PersonID,
+  ApiKeyID,
   nodeId,
   arrowId,
-  personId
+  personId,
+  apiKeyId
 } from '../branded';
 
 const DEFAULT_ID_LENGTH = 4;
@@ -85,8 +87,8 @@ export function extractPrefix(id: string, separator: string = '_'): string | nul
   return parts.length > 0 && parts[0] !== undefined ? parts[0] : null;
 }
 
-export function generateApiKeyId(): string {
-  return `APIKEY_${nanoid(4).replace(/-/g, '_').toUpperCase()}`;
+export function generateApiKeyId(): ApiKeyID {
+  return apiKeyId(`APIKEY_${nanoid(4).replace(/-/g, '_').toUpperCase()}`);
 }
 
 /**

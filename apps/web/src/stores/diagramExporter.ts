@@ -1,12 +1,32 @@
-import { DomainHandle, DataType, HandlePosition } from '@/types';
+import { 
+  DomainHandle, 
+  DomainNode,
+  DomainArrow,
+  DomainPerson,
+  DomainApiKey,
+  DomainDiagram,
+  DataType, 
+  HandlePosition,
+  NodeKind,
+  NodeID,
+  ArrowID,
+  PersonID,
+  ApiKeyID,
+  HandleID,
+  generateNodeId,
+  generateArrowId,
+  generatePersonId,
+  generateApiKeyId,
+  createHandleId
+} from '@/types';
 import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
-import { YamlConverter } from '@/utils/converters';
-import type { UnifiedStore, ExportFormat, ExportedHandle } from './unifiedStore.types';
-import type { ConverterDiagram } from '@/utils/converters/types';
+import type { UnifiedStore, ExportFormat } from './unifiedStore.types';
+import { LightDomainConverter } from '@/utils/converters/formats/light-yaml';
+import { storeDomainConverter } from '@/utils/converters/core';
 
-// Thin wrapper around YAML converter that provides store integration
+// Thin wrapper around converters that provides store integration
 export class DiagramExporter {
-  private yamlConverter = new YamlConverter();
+  private lightConverter = new LightDomainConverter();
   
   constructor(private store: UnifiedStore) {}
   
@@ -33,19 +53,19 @@ export class DiagramExporter {
 
   // Export operations
   exportDiagram(): ExportFormat {
-    const diagram = this.storeToDiagram();
+    const diagram = this.storeToDomainDiagram();
     
     // Convert arrows to use handle references
-    const arrows = diagram.arrows.map(arrow => {
-      const sourceHandle = this.store.handles.get(arrow.source);
-      const targetHandle = this.store.handles.get(arrow.target);
+    const arrows = Object.values(diagram.arrows).map(arrow => {
+      const sourceHandle = diagram.handles[arrow.source];
+      const targetHandle = diagram.handles[arrow.target];
       
       if (!sourceHandle || !targetHandle) {
         throw new Error('Missing handle information for arrow');
       }
       
-      const sourceNode = this.store.nodes.get(sourceHandle.nodeId);
-      const targetNode = this.store.nodes.get(targetHandle.nodeId);
+      const sourceNode = diagram.nodes[sourceHandle.nodeId];
+      const targetNode = diagram.nodes[targetHandle.nodeId];
       
       if (!sourceNode || !targetNode) {
         throw new Error('Missing node information for arrow');
@@ -59,8 +79,8 @@ export class DiagramExporter {
     });
     
     // Convert handles to export format
-    const handles = Array.from(this.store.handles.values()).map(handle => {
-      const node = this.store.nodes.get(handle.nodeId);
+    const handles = Object.values(diagram.handles).map(handle => {
+      const node = diagram.nodes[handle.nodeId];
       const nodeLabel = (node?.data.label as string) || handle.nodeId;
       
       return {
@@ -76,7 +96,7 @@ export class DiagramExporter {
     // Convert to export format
     return {
       version: '1.0',
-      nodes: diagram.nodes.map(node => ({
+      nodes: Object.values(diagram.nodes).map(node => ({
         label: (node.data.label as string) || node.id,
         type: node.type,
         position: { x: node.position.x, y: node.position.y },
@@ -84,7 +104,7 @@ export class DiagramExporter {
       })),
       handles,
       arrows,
-      persons: diagram.persons.map(person => ({
+      persons: Object.values(diagram.persons).map(person => ({
         label: person.label,
         model: person.model,
         service: person.service,
@@ -95,7 +115,7 @@ export class DiagramExporter {
         frequencyPenalty: person.frequencyPenalty,
         presencePenalty: person.presencePenalty
       })),
-      apiKeys: diagram.apiKeys.map(key => ({
+      apiKeys: Object.values(diagram.apiKeys).map(key => ({
         name: key.label,
         service: key.service
       })),
@@ -106,19 +126,48 @@ export class DiagramExporter {
   }
 
   exportAsYAML(): string {
-    const diagram = this.storeToDiagram();
-    return this.yamlConverter.serialize(diagram);
+    // Convert store state to domain model
+    const storeState = {
+      nodes: this.store.nodes,
+      arrows: this.store.arrows,
+      handles: this.store.handles,
+      persons: this.store.persons,
+      apiKeys: this.store.apiKeys
+    };
+    const domainDiagram = storeDomainConverter.storeToDomain(storeState);
+    return this.lightConverter.serialize(domainDiagram);
   }
 
   // Import operations
   importDiagram(data: ExportFormat | string): void {
     if (typeof data === 'string') {
-      const diagram = this.yamlConverter.deserialize(data);
-      this.diagramToStore(diagram);
+      // Handle YAML string import
+      const domainDiagram = this.lightConverter.deserialize(data);
+      const storeData = storeDomainConverter.domainToStore(domainDiagram);
+      // Clear and import
+      this.store.clearAll();
+      this.store.transaction(() => {
+        // Copy the new data into the store
+        storeData.nodes.forEach((node, id) => this.store.nodes.set(id, node));
+        storeData.arrows.forEach((arrow, id) => this.store.arrows.set(id, arrow));
+        storeData.handles.forEach((handle, id) => this.store.handles.set(id, handle));
+        storeData.persons.forEach((person, id) => this.store.persons.set(id, person));
+        storeData.apiKeys.forEach((apiKey, id) => this.store.apiKeys.set(id, apiKey));
+      });
     } else {
-      // Convert from export format to ConverterDiagram
-      const diagram = this.exportFormatToDiagram(data);
-      this.diagramToStore(diagram);
+      // Handle ExportFormat import
+      const domainDiagram = this.exportFormatToDomainDiagram(data);
+      const storeData = storeDomainConverter.domainToStore(domainDiagram);
+      // Clear and import
+      this.store.clearAll();
+      this.store.transaction(() => {
+        // Copy the new data into the store
+        storeData.nodes.forEach((node, id) => this.store.nodes.set(id, node));
+        storeData.arrows.forEach((arrow, id) => this.store.arrows.set(id, arrow));
+        storeData.handles.forEach((handle, id) => this.store.handles.set(id, handle));
+        storeData.persons.forEach((person, id) => this.store.persons.set(id, person));
+        storeData.apiKeys.forEach((apiKey, id) => this.store.apiKeys.set(id, apiKey));
+      });
     }
   }
 
@@ -126,7 +175,7 @@ export class DiagramExporter {
   validateExportData(data: unknown): { valid: boolean; errors: string[] } {
     if (typeof data === 'string') {
       try {
-        const diagram = this.yamlConverter.deserialize(data);
+        this.lightConverter.deserialize(data);
         return { valid: true, errors: [] };
       } catch (e) {
         return { valid: false, errors: [e instanceof Error ? e.message : 'Invalid YAML'] };
@@ -138,7 +187,7 @@ export class DiagramExporter {
       return { valid: false, errors: ['Data must be an object'] };
     }
     
-    const exportData = data as any;
+    const exportData = data as ExportFormat;
     const errors: string[] = [];
     
     if (!exportData.version) errors.push('Missing version');
@@ -150,73 +199,142 @@ export class DiagramExporter {
 
   // Private helper methods
   
-  // Convert store state to diagram format for export
-  private storeToDiagram(): ConverterDiagram {
-    return {
-      id: `diagram-${Date.now()}`,
-      name: 'Exported Diagram',
-      description: undefined,
-      nodes: Array.from(this.store.nodes.values()),
-      arrows: Array.from(this.store.arrows.values()),
-      persons: Array.from(this.store.persons.values()),
-      apiKeys: Array.from(this.store.apiKeys.values()),
-      handles: Array.from(this.store.handles.values())
+  // Convert store state to domain diagram
+  private storeToDomainDiagram(): DomainDiagram {
+    const storeState = {
+      nodes: this.store.nodes,
+      arrows: this.store.arrows,
+      handles: this.store.handles,
+      persons: this.store.persons,
+      apiKeys: this.store.apiKeys
     };
+    return storeDomainConverter.storeToDomain(storeState);
   }
   
-  // Convert diagram format to store state for import
-  private diagramToStore(diagram: ConverterDiagram): void {
-    // Clear existing data
-    this.store.clearAll();
+  // Convert ExportFormat to DomainDiagram
+  private exportFormatToDomainDiagram(data: ExportFormat): DomainDiagram {
+    // Generate unique IDs for all entities
+    const nodeIdMap = new Map<string, NodeID>();
+    const personIdMap = new Map<string, PersonID>();
+    const apiKeyIdMap = new Map<string, ApiKeyID>();
     
-    // Import in transaction to ensure consistency
-    this.store.transaction(() => {
-      // Import API keys first
-      diagram.apiKeys.forEach(apiKey => {
-        this.store.apiKeys.set(apiKey.id, apiKey);
-      });
+    // Convert API keys first
+    const apiKeys: Record<string, DomainApiKey> = {};
+    (data.apiKeys || []).forEach(key => {
+      const id = generateApiKeyId();
+      apiKeyIdMap.set(key.name, id);
+      apiKeys[id as string] = {
+        id,
+        label: key.name,
+        service: key.service as DomainApiKey['service']
+      };
+    });
+    
+    // Convert persons
+    const persons: Record<string, DomainPerson> = {};
+    (data.persons || []).forEach(person => {
+      const id = generatePersonId();
+      personIdMap.set(person.label, id);
+      persons[id as string] = {
+        id,
+        label: person.label,
+        model: person.model,
+        service: person.service as DomainPerson['service'],
+        systemPrompt: person.systemPrompt,
+        temperature: person.temperature,
+        maxTokens: person.maxTokens,
+        topP: person.topP,
+        frequencyPenalty: person.frequencyPenalty,
+        presencePenalty: person.presencePenalty
+      };
+    });
+    
+    // Convert nodes
+    const nodes: Record<string, DomainNode> = {};
+    (data.nodes || []).forEach(node => {
+      const id = generateNodeId();
+      nodeIdMap.set(node.label, id);
       
-      // Import persons
-      diagram.persons.forEach(person => {
-        this.store.persons.set(person.id, person);
-      });
-      
-      // Import nodes
-      diagram.nodes.forEach(node => {
-        this.store.nodes.set(node.id, node);
-      });
-      
-      // Import handles or generate them if missing
-      if (diagram.handles && diagram.handles.length > 0) {
-        diagram.handles.forEach(handle => {
-          this.store.handles.set(handle.id, handle);
-        });
-      } else {
-        // Generate handles for all nodes if not present
-        this.regenerateHandlesForNodes();
+      // Update person references in node data
+      const nodeData = { ...node.data };
+      if (nodeData.personId && typeof nodeData.personId === 'string') {
+        // Find the person by label and update to new ID
+        const personLabel = (data.persons || []).find(p => p.label === nodeData.personId)?.label;
+        if (personLabel && personIdMap.has(personLabel)) {
+          nodeData.personId = personIdMap.get(personLabel);
+        }
       }
       
-      // Import arrows
-      diagram.arrows.forEach(arrow => {
-        this.store.arrows.set(arrow.id, arrow);
-      });
+      nodes[id as string] = {
+        id,
+        type: node.type as NodeKind,
+        position: { x: node.position.x, y: node.position.y },
+        data: nodeData
+      };
     });
-  }
-  
-  private regenerateHandlesForNodes(): void {
-    // Generate handles for all nodes
-    this.store.nodes.forEach((node) => {
-      const handles = generateNodeHandlesFromRegistry(node.id, node.type);
-      handles.forEach((handle: DomainHandle) => {
-        this.store.handles.set(handle.id, handle);
-      });
+    
+    // Convert handles
+    const handles: Record<string, DomainHandle> = {};
+    (data.handles || []).forEach(handle => {
+      const nodeId = nodeIdMap.get(handle.nodeLabel);
+      if (!nodeId) {
+        throw new Error(`Handle references unknown node: ${handle.nodeLabel}`);
+      }
+      
+      const id = createHandleId(nodeId, handle.label);
+      handles[id as string] = {
+        id,
+        nodeId,
+        label: handle.label,
+        direction: handle.direction as 'input' | 'output',
+        dataType: handle.dataType as DataType,
+        position: handle.position as HandlePosition | undefined,
+        maxConnections: handle.maxConnections
+      };
     });
-  }
-  
-  // Convert ExportFormat to ConverterDiagram
-  private exportFormatToDiagram(data: ExportFormat): ConverterDiagram {
-    // This is a simplified conversion - in a real implementation,
-    // you'd need to properly reconstruct all the domain objects
-    throw new Error('Direct ExportFormat import not implemented - use YAML string instead');
+    
+    // Generate default handles for nodes if not present
+    if (data.handles.length === 0) {
+      Object.values(nodes).forEach(node => {
+        const nodeHandles = generateNodeHandlesFromRegistry(node.type, node.id);
+        nodeHandles.forEach(handle => {
+          handles[handle.id] = handle;
+        });
+      });
+    }
+    
+    // Convert arrows
+    const arrows: Record<string, DomainArrow> = {};
+    (data.arrows || []).forEach(arrow => {
+      // Parse the node label and handle label from the combined format
+      const { nodeLabel: sourceNodeLabel, handleLabel: sourceHandleLabel } = this.parseHandleRef(arrow.sourceHandle);
+      const { nodeLabel: targetNodeLabel, handleLabel: targetHandleLabel } = this.parseHandleRef(arrow.targetHandle);
+      
+      const sourceNodeId = nodeIdMap.get(sourceNodeLabel || '');
+      const targetNodeId = nodeIdMap.get(targetNodeLabel || '');
+      
+      if (!sourceNodeId || !targetNodeId) {
+        throw new Error(`Arrow references unknown nodes: ${sourceNodeLabel} -> ${targetNodeLabel}`);
+      }
+      
+      const sourceHandleId = createHandleId(sourceNodeId, sourceHandleLabel || 'output');
+      const targetHandleId = createHandleId(targetNodeId, targetHandleLabel || 'input');
+      
+      const id = generateArrowId();
+      arrows[id as string] = {
+        id,
+        source: sourceHandleId,
+        target: targetHandleId,
+        data: arrow.data || {}
+      };
+    });
+    
+    return {
+      nodes: nodes as Record<NodeID, DomainNode>,
+      arrows: arrows as Record<ArrowID, DomainArrow>,
+      handles: handles as Record<HandleID, DomainHandle>,
+      persons: persons as Record<PersonID, DomainPerson>,
+      apiKeys: apiKeys as Record<ApiKeyID, DomainApiKey>
+    };
   }
 }

@@ -4,7 +4,7 @@ import {
   Search, Filter, Download, DollarSign
 } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui';
-import { useFileOperations } from '@/hooks/useFileOperations';
+import { downloadFile } from '@/utils/file';
 import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
@@ -122,7 +122,7 @@ const ConversationDashboard: React.FC = () => {
   );
 
   // Export conversations
-  const { download } = useFileOperations();
+  // File operations are handled directly with utils
   
   const exportConversations = async () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
@@ -141,7 +141,7 @@ const ConversationDashboard: React.FC = () => {
     };
 
     const yamlContent = stringify(exportData, { lineWidth: 120, defaultStringType: 'PLAIN' });
-    void download(yamlContent, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.yaml`);
+    downloadFile(yamlContent, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.yaml`, 'text/yaml');
     toast.success('Conversation exported as YAML');
   };
 

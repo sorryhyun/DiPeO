@@ -22,7 +22,7 @@ export * from './useDiagramManager'; // Diagram management operations
 export * from './useWebSocketEventBus';
 
 // File Operations
-export * from './useFileOperations';
+export * from './useUnifiedFileOperations';
 export * from './useExport';
 
 // Property Management

@@ -6,7 +6,7 @@ import { useExport } from './useExport';
 import { useDiagramManager } from './useDiagramManager';
 import { useExecution } from './useExecution';
 import { usePropertyManager } from './usePropertyManager';
-import { useFileOperations } from './useFileOperations';
+import { useUnifiedFileOperations } from './useUnifiedFileOperations';
 import type { 
   DomainNode, 
   DomainArrow, 
@@ -102,8 +102,8 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     debug
   });
   
-  // File operations (conditional) - use from manager if enabled
-  const fileOps = useMaybe(enableFileOperations, useFileOperations);
+  // File operations (conditional) - use unified file operations
+  const fileOps = useMaybe(enableFileOperations, useUnifiedFileOperations);
   
   // Note: Canvas interactions are now integrated into useCanvasOperations
   // The shortcuts are passed through the options
@@ -349,15 +349,13 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
       importWithDialog: fileOps.importWithDialog,
       importFromURL: fileOps.importFromURL,
       
-      // Export operations
-      saveNative: fileOps.saveNative,
-      saveLight: fileOps.saveLight,
-      saveReadable: fileOps.saveReadable,
-      saveLLMReadable: fileOps.saveLLMReadable,
-      download: fileOps.download,
-
-      // Other operations
-      cloneDiagram: fileOps.cloneDiagram,
+      // Export operations  
+      exportDiagram: fileOps.exportDiagram,
+      exportAndDownload: fileOps.exportAndDownload,
+      saveDiagramToServer: fileOps.saveDiagramToServer,
+      
+      // Format info
+      getAvailableFormats: fileOps.getAvailableFormats,
       
       // State
       isProcessingFile: fileOps.isProcessing,
@@ -432,7 +430,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     _canvas: canvas,
     _execution: realtime,
     _ui: ui,
-    _history: history,
+    _history: { canUndo: canvas.canUndo, canRedo: canvas.canRedo, undo: canvas.undo, redo: canvas.redo },
     _realtime: realtime,
     _fileOps: fileOps,
     _interactions: interactions,

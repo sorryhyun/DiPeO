@@ -146,3 +146,19 @@ export const toNativeYAML = (diagram: DomainDiagram): string => {
 export const fromNativeYAML = (yamlString: string): DomainDiagram => {
   return NativeYamlConverter.deserialize(yamlString);
 };
+
+// Implement DomainFormatConverter interface
+import { DomainFormatConverter } from '../core/types';
+
+export class NativeDomainConverter implements DomainFormatConverter {
+  readonly formatName = 'native';
+  readonly fileExtension = '.native.yaml';
+
+  serialize(diagram: DomainDiagram): string {
+    return NativeYamlConverter.serialize(diagram);
+  }
+
+  deserialize(data: string): DomainDiagram {
+    return NativeYamlConverter.deserialize(data);
+  }
+}

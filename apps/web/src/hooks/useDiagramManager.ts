@@ -9,7 +9,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useExecution } from './useExecution';
-import { useFileOperations } from './useFileOperations';
+import { useUnifiedFileOperations } from './useUnifiedFileOperations';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
@@ -160,7 +160,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   // Get hooks
   const canvas = useCanvasOperations();
   const execution = useExecution({ showToasts: false });
-  const fileOps = useFileOperations();
+  const fileOps = useUnifiedFileOperations();
   const exportHook = useExport();
   
   // Track dirty state locally since store doesn't have it
@@ -210,7 +210,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || `diagram.yaml`;
-      await fileOps.saveLight(defaultFilename);
+      await fileOps.saveDiagramToServer('light', defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
       toast.success('Diagram saved successfully as YAML');
@@ -263,21 +263,12 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   const exportDiagramAs = useCallback(async (format: 'native'|'light' | 'readable' | 'llm-readable') => {
     try {
-      // Use appropriate export method based on format
-      switch (format) {
-        case 'native':
-          await fileOps.saveNative();
-          break;
-        case 'light':
-          await fileOps.saveLight();
-          break;
-        case 'readable':
-          await fileOps.saveReadable();
-          break;
-        case 'llm-readable':
-          await fileOps.saveLLMReadable();
-          break;
+      // Use unified export method with format
+      if (format === 'llm-readable') {
+        toast.error('LLM-readable format is not yet implemented');
+        return;
       }
+      await fileOps.saveDiagramToServer(format);
       toast.success(`Diagram exported as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Failed to export diagram:', error);
