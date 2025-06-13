@@ -20,9 +20,66 @@ import {
   createHandleId
 } from '@/types';
 import { generateNodeHandlesFromRegistry } from '@/utils/node/handle-builder';
-import type { UnifiedStore, ExportFormat } from './unifiedStore.types';
+import type { UnifiedStore } from './unifiedStore.types';
 import { LightDomainConverter } from '@/utils/converters/formats/light-yaml';
 import { storeDomainConverter } from '@/utils/converters/core';
+
+// Export format types moved from unifiedStore.types.ts
+export interface ExportedNode {
+  label: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+}
+
+export interface ExportedArrow {
+  sourceHandle: string;
+  targetHandle: string;
+  data?: Record<string, unknown>;
+}
+
+export interface ExportedPerson {
+  label: string;
+  model: string;
+  service: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  apiKeyLabel?: string;
+}
+
+export interface ExportedApiKey {
+  name: string;
+  service: string;
+}
+
+export interface ExportedHandle {
+  nodeLabel: string;
+  label: string;
+  direction: 'input' | 'output';
+  dataType: string;
+  position?: string;
+  maxConnections?: number;
+  required?: boolean;
+  defaultValue?: unknown;
+  dynamic?: boolean;
+}
+
+export interface ExportFormat {
+  version: string;
+  nodes: ExportedNode[];
+  handles: ExportedHandle[];
+  arrows: ExportedArrow[];
+  persons: ExportedPerson[];
+  apiKeys: ExportedApiKey[];
+  metadata?: {
+    exported: string;
+    description?: string;
+  };
+}
 
 // Thin wrapper around converters that provides store integration
 export class DiagramExporter {

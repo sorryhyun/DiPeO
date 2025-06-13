@@ -10,79 +10,9 @@ export interface NodeState {
   timestamp: number;
 }
 
-// Export format types
-export interface ExportedNode {
-  label: string;
-  type: string;
-  position: { x: number; y: number };
-  data: Record<string, unknown>;
-}
-
-export interface ExportedArrow {
-  sourceHandle: string;
-  targetHandle: string;
-  data?: Record<string, unknown>;
-}
-
-export interface ExportedPerson {
-  label: string;
-  model: string;
-  service: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  apiKeyLabel?: string;
-}
-
-export interface ExportedApiKey {
-  name: string;
-  service: string;
-}
-
-export interface ExportedHandle {
-  nodeLabel: string;
-  label: string;
-  direction: 'input' | 'output';
-  dataType: string;
-  position?: string;
-  maxConnections?: number;
-  required?: boolean;
-  defaultValue?: unknown;
-  dynamic?: boolean;
-}
-
-export interface ExportFormat {
-  version: string;
-  nodes: ExportedNode[];
-  handles: ExportedHandle[];
-  arrows: ExportedArrow[];
-  persons: ExportedPerson[];
-  apiKeys: ExportedApiKey[];
-  metadata?: {
-    exported: string;
-    description?: string;
-  };
-}
+// Note: Export format types have been moved to diagramExporter.ts
 
 // History types
-export interface MapDiff<K, V> {
-  added: Map<K, V>;
-  modified: Map<K, V>;
-  deleted: Set<K>;
-}
-
-export interface SnapshotDiff {
-  nodes: MapDiff<NodeID, DomainNode>;
-  arrows: MapDiff<ArrowID, DomainArrow>;
-  persons: MapDiff<PersonID, DomainPerson>;
-  handles: MapDiff<HandleID, DomainHandle>;
-  apiKeys: MapDiff<ApiKeyID, DomainApiKey>;
-  timestamp: number;
-}
-
 export interface Snapshot {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
@@ -195,8 +125,8 @@ export interface UnifiedStore {
   getPersons: () => DomainPerson[];
   
   // Export/Import operations
-  exportDiagram: () => ExportFormat;
+  exportDiagram: () => any; // Returns ExportFormat from diagramExporter.ts
   exportAsYAML: () => string;
-  importDiagram: (data: ExportFormat | string) => void;
+  importDiagram: (data: any) => void; // Accepts ExportFormat or string
   validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
 }

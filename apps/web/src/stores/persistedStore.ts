@@ -1,55 +1,5 @@
-import { StateStorage } from 'zustand/middleware';
-import { ExportFormat } from './unifiedStore.types';
 import { logger } from '@/utils/logger';
-
-// Custom storage for persisting diagram state
-export const diagramStorage: StateStorage = {
-  getItem: (name: string): string | null => {
-    // Only persist diagram data, not UI state
-    const fullState = localStorage.getItem(name);
-    if (!fullState) return null;
-    
-    try {
-      const parsed = JSON.parse(fullState);
-      // Return only the data we want to persist
-      return JSON.stringify({
-        state: {
-          nodes: parsed.state.nodes || {},
-          arrows: parsed.state.arrows || {},
-          persons: parsed.state.persons || {},
-          handles: parsed.state.handles || {},
-          apiKeys: parsed.state.apiKeys || {}
-        }
-      });
-    } catch {
-      return null;
-    }
-  },
-  
-  setItem: (name: string, value: string): void => {
-    try {
-      const parsed = JSON.parse(value);
-      // Only persist diagram data
-      const toPersist = {
-        state: {
-          nodes: parsed.state.nodes || {},
-          arrows: parsed.state.arrows || {},
-          persons: parsed.state.persons || {},
-          handles: parsed.state.handles || {},
-          apiKeys: parsed.state.apiKeys || {}
-        },
-        version: parsed.version
-      };
-      localStorage.setItem(name, JSON.stringify(toPersist));
-    } catch (e) {
-      logger.error('Failed to persist store:', e);
-    }
-  },
-  
-  removeItem: (name: string): void => {
-    localStorage.removeItem(name);
-  }
-};
+import type { ExportFormat } from './diagramExporter';
 
 // Auto-save functionality
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
