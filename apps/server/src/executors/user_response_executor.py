@@ -6,11 +6,11 @@ from .validator import (
     validate_required_fields,
     validate_numeric_range
 )
-from .utils import get_input_values, substitute_variables
+from .executor_utils import get_input_values, substitute_variables
 import logging
 
 if TYPE_CHECKING:
-    from ..engine import ExecutionContext
+    from ..execution_engine import Ctx as ExecutionContext
 
 logger = logging.getLogger(__name__)
 

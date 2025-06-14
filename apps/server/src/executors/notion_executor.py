@@ -8,13 +8,13 @@ import logging
 import json
 
 if TYPE_CHECKING:
-    from ..engine import ExecutionContext
+    from ..execution_engine import Ctx as ExecutionContext
 
 from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
 from .validator import validate_required_fields, validate_json_field
-from .utils import get_input_values, substitute_variables
-from ...exceptions import ValidationError
-from ...utils.output_processor import OutputProcessor
+from .executor_utils import get_input_values, substitute_variables
+from ..exceptions import ValidationError
+from ..utils.output_processor import OutputProcessor
 
 logger = logging.getLogger(__name__)
 

@@ -7,11 +7,11 @@ import time
 import json
 
 if TYPE_CHECKING:
-    from ..engine import ExecutionContext
+    from ..execution_engine import Ctx as ExecutionContext
 
 from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
 from .validator import validate_json_field
-from .utils import has_incoming_connection
+from .executor_utils import has_incoming_connection
 
 
 class StartExecutor(BaseExecutor):

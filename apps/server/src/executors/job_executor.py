@@ -11,10 +11,10 @@ import tempfile
 import os
 
 if TYPE_CHECKING:
-    from ..engine import ExecutionContext
+    from ..execution_engine import Ctx as ExecutionContext
 
 from .base_executor import BaseExecutor, ExecutorResult
-from .utils import (
+from .executor_utils import (
     get_input_values,
     substitute_variables
 )

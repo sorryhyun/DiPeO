@@ -8,7 +8,7 @@ import re
 # Validation functions have been moved to validator.py
 
 if TYPE_CHECKING:
-    from ..types import Ctx
+    from .types import Ctx
 
 
 def get_input_values(node: Dict[str, Any], context: 'Ctx', target_handle_filter: str = None) -> Dict[str, Any]:
@@ -28,7 +28,7 @@ def get_input_values(node: Dict[str, Any], context: 'Ctx', target_handle_filter:
     incoming = context.graph.incoming.get(node_id, [])
     
     # Import OutputProcessor here to avoid circular imports
-    from ...utils.output_processor import OutputProcessor
+    from ..utils.output_processor import OutputProcessor
     
     for arrow in incoming:
         # If we have a handle filter, check if this arrow matches

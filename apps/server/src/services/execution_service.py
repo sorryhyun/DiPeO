@@ -72,7 +72,7 @@ class ExecutionService(BaseService):
         exec_opts = self._merge_options(options, execution_id, interactive_handler)
 
         # 3️⃣ Build executor registry *only* when needed
-        from ..engine.executors import create_executors  # lazy import
+        from ..executors import create_executors  # lazy import
         executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service,
@@ -81,7 +81,7 @@ class ExecutionService(BaseService):
         )
 
         # 4️⃣ Instantiate compact engine
-        from ..engine.engine import CompactEngine
+        from ..execution_engine import CompactEngine
 
         engine = CompactEngine(executors, logger=log)
 

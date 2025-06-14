@@ -197,7 +197,7 @@ class OutputProcessor:
         """
         if isinstance(value, dict) and value.get('_type') == 'personjob_output':
             # Import here to avoid circular dependency
-            from ..engine.executors.token_utils import TokenUsage
+            from ..utils.token_usage import TokenUsage
             
             return TokenUsage(
                 input=value.get('input_tokens', 0),
