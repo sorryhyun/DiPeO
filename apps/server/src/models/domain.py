@@ -3,7 +3,7 @@ Domain models that match the frontend's DomainDiagram structure.
 These models use dictionaries (Records) with IDs as keys instead of arrays.
 """
 from typing import Dict, Optional, List, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 # Base types
@@ -74,7 +74,8 @@ class DomainDiagram(BaseModel):
     apiKeys: Dict[ApiKeyID, DomainApiKey]
     metadata: Optional[DiagramMetadata] = None
 
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.isoformat()
         }
+    )

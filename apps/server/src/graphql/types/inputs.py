@@ -1,7 +1,26 @@
-"""Input types for GraphQL mutations."""
+"""Refactored input types for GraphQL mutations using Pydantic models."""
 import strawberry
 from typing import Optional, List
 from datetime import datetime
+
+from ...models.input_models import (
+    Vec2Input as PydanticVec2Input,
+    CreateNodeInput as PydanticCreateNodeInput,
+    UpdateNodeInput as PydanticUpdateNodeInput,
+    CreateHandleInput as PydanticCreateHandleInput,
+    CreateArrowInput as PydanticCreateArrowInput,
+    CreatePersonInput as PydanticCreatePersonInput,
+    UpdatePersonInput as PydanticUpdatePersonInput,
+    CreateApiKeyInput as PydanticCreateApiKeyInput,
+    CreateDiagramInput as PydanticCreateDiagramInput,
+    ExecuteDiagramInput as PydanticExecuteDiagramInput,
+    ExecutionControlInput as PydanticExecutionControlInput,
+    InteractiveResponseInput as PydanticInteractiveResponseInput,
+    DiagramFilterInput as PydanticDiagramFilterInput,
+    ExecutionFilterInput as PydanticExecutionFilterInput,
+    FileUploadInput as PydanticFileUploadInput,
+    ImportYamlInput as PydanticImportYamlInput,
+)
 
 from .scalars import (
     NodeID, HandleID, ArrowID, PersonID, ApiKeyID, 
@@ -12,136 +31,68 @@ from .enums import (
     ForgettingMode, ExecutionStatus
 )
 
-@strawberry.input
+
+# Convert Pydantic input models to Strawberry GraphQL inputs
+@strawberry.experimental.pydantic.input(model=PydanticVec2Input, all_fields=True)
 class Vec2Input:
-    """2D position input."""
-    x: float
-    y: float
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticCreateNodeInput, all_fields=True)
 class CreateNodeInput:
-    """Input for creating a new node."""
-    type: NodeType
-    position: Vec2Input
-    label: str
-    properties: JSONScalar  # Node-specific properties
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticUpdateNodeInput, all_fields=True)
 class UpdateNodeInput:
-    """Input for updating a node."""
-    id: NodeID
-    position: Optional[Vec2Input] = None
-    label: Optional[str] = None
-    properties: Optional[JSONScalar] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticCreateHandleInput, all_fields=True)
 class CreateHandleInput:
-    """Input for creating a handle."""
-    node_id: NodeID
-    label: str
-    direction: HandleDirection
-    data_type: DataType = DataType.ANY
-    position: Optional[Vec2Input] = None
-    max_connections: Optional[int] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticCreateArrowInput, all_fields=True)
 class CreateArrowInput:
-    """Input for creating an arrow."""
-    source: HandleID
-    target: HandleID
-    label: Optional[str] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticCreatePersonInput, all_fields=True)
 class CreatePersonInput:
-    """Input for creating a person."""
-    label: str
-    service: LLMService
-    model: str
-    api_key_id: ApiKeyID
-    system_prompt: Optional[str] = None
-    forgetting_mode: ForgettingMode = ForgettingMode.NONE
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticUpdatePersonInput, all_fields=True)
 class UpdatePersonInput:
-    """Input for updating a person."""
-    id: PersonID
-    label: Optional[str] = None
-    model: Optional[str] = None
-    api_key_id: Optional[ApiKeyID] = None
-    system_prompt: Optional[str] = None
-    forgetting_mode: Optional[ForgettingMode] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticCreateApiKeyInput, all_fields=True)
 class CreateApiKeyInput:
-    """Input for creating an API key."""
-    label: str
-    service: LLMService
-    key: str
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticCreateDiagramInput, all_fields=True)
 class CreateDiagramInput:
-    """Input for creating a new diagram."""
-    name: str
-    description: Optional[str] = None
-    author: Optional[str] = None
-    tags: Optional[List[str]] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticExecuteDiagramInput, all_fields=True)
 class ExecuteDiagramInput:
-    """Input for executing a diagram."""
-    diagram_id: DiagramID
-    variables: Optional[JSONScalar] = None
-    debug_mode: bool = False
-    timeout: Optional[int] = None
-    max_iterations: Optional[int] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticExecutionControlInput, all_fields=True)
 class ExecutionControlInput:
-    """Input for controlling execution."""
-    execution_id: ExecutionID
-    action: str  # pause, resume, abort, skip_node
-    node_id: Optional[NodeID] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticInteractiveResponseInput, all_fields=True)
 class InteractiveResponseInput:
-    """Input for interactive response."""
-    execution_id: ExecutionID
-    node_id: NodeID
-    response: str
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticDiagramFilterInput, all_fields=True)
 class DiagramFilterInput:
-    """Filter for querying diagrams."""
-    name_contains: Optional[str] = None
-    author: Optional[str] = None
-    tags: Optional[List[str]] = None
-    created_after: Optional[datetime] = None
-    created_before: Optional[datetime] = None
-    modified_after: Optional[datetime] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticExecutionFilterInput, all_fields=True)
 class ExecutionFilterInput:
-    """Filter for querying executions."""
-    diagram_id: Optional[DiagramID] = None
-    status: Optional[ExecutionStatus] = None
-    started_after: Optional[datetime] = None
-    started_before: Optional[datetime] = None
-    active_only: bool = False
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticFileUploadInput, all_fields=True)
 class FileUploadInput:
-    """Input for file upload."""
-    filename: str
-    content_base64: str  # Base64 encoded file content
-    content_type: Optional[str] = None
+    pass
 
-@strawberry.input
+@strawberry.experimental.pydantic.input(model=PydanticImportYamlInput, all_fields=True)
 class ImportYamlInput:
-    """Input for importing YAML diagram."""
-    content: str  # YAML content as string
-    filename: Optional[str] = None  # Optional filename to save as
+    pass

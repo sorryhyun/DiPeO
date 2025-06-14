@@ -1,4 +1,4 @@
-"""Execution resolvers for GraphQL queries and mutations."""
+"""Refactored execution resolvers using Pydantic models."""
 from typing import Optional, List
 import logging
 from datetime import datetime
@@ -6,8 +6,13 @@ from datetime import datetime
 from ..types.domain import ExecutionState, ExecutionEvent, TokenUsage
 from ..types.scalars import ExecutionID, NodeID
 from ..types.inputs import ExecutionFilterInput
-from ..types.enums import ExecutionStatus
 from ..context import GraphQLContext
+from ...models.domain_graphql import (
+    ExecutionState as PydanticExecutionState,
+    ExecutionEvent as PydanticExecutionEvent,
+    TokenUsage as PydanticTokenUsage,
+    ExecutionStatus
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,28 +32,35 @@ class ExecutionResolver:
                 logger.debug(f"No execution found with ID: {execution_id}")
                 return None
             
-            # Convert internal state to GraphQL ExecutionState
-            return ExecutionState(
+            # Create Pydantic model instance
+            token_usage = None
+            if execution_state.token_usage:
+                token_usage = PydanticTokenUsage(
+                    input=execution_state.token_usage.input,
+                    output=execution_state.token_usage.output,
+                    cached=execution_state.token_usage.cached,
+                    total=execution_state.token_usage.total
+                )
+            
+            pydantic_execution = PydanticExecutionState(
                 id=execution_state.execution_id,
                 status=self._map_status(execution_state.status),
                 diagram_id=execution_state.diagram_id,
                 started_at=execution_state.start_time,
                 ended_at=execution_state.end_time,
-                running_nodes=[NodeID(n) for n in execution_state.running_nodes],
-                completed_nodes=[NodeID(n) for n in execution_state.completed_nodes],
-                skipped_nodes=[NodeID(n) for n in execution_state.skipped_nodes],
-                paused_nodes=[NodeID(n) for n in execution_state.paused_nodes],
-                failed_nodes=[NodeID(n) for n in execution_state.failed_nodes],
+                running_nodes=[str(n) for n in execution_state.running_nodes],
+                completed_nodes=[str(n) for n in execution_state.completed_nodes],
+                skipped_nodes=[str(n) for n in execution_state.skipped_nodes],
+                paused_nodes=[str(n) for n in execution_state.paused_nodes],
+                failed_nodes=[str(n) for n in execution_state.failed_nodes],
                 node_outputs=execution_state.node_outputs,
                 variables=execution_state.variables,
-                token_usage=TokenUsage(
-                    input=execution_state.token_usage.input,
-                    output=execution_state.token_usage.output,
-                    cached=execution_state.token_usage.cached,
-                    total=execution_state.token_usage.total
-                ) if execution_state.token_usage else None,
+                token_usage=token_usage,
                 error=execution_state.error
             )
+            
+            # Strawberry will handle the conversion from Pydantic to GraphQL
+            return pydantic_execution
             
         except Exception as e:
             logger.error(f"Failed to get execution {execution_id}: {e}")
@@ -102,33 +114,38 @@ class ExecutionResolver:
             # Apply pagination
             paginated_executions = filtered_executions[offset:offset + limit]
             
-            # Convert to GraphQL ExecutionState objects
+            # Convert to Pydantic ExecutionState objects
             result = []
             for exec_summary in paginated_executions:
                 # Get full execution state
                 execution_state = event_store.replay(exec_summary['execution_id'])
                 if execution_state:
-                    result.append(ExecutionState(
+                    token_usage = None
+                    if execution_state.token_usage:
+                        token_usage = PydanticTokenUsage(
+                            input=execution_state.token_usage.input,
+                            output=execution_state.token_usage.output,
+                            cached=execution_state.token_usage.cached,
+                            total=execution_state.token_usage.total
+                        )
+                    
+                    pydantic_execution = PydanticExecutionState(
                         id=execution_state.execution_id,
                         status=self._map_status(execution_state.status),
                         diagram_id=execution_state.diagram_id,
                         started_at=execution_state.start_time,
                         ended_at=execution_state.end_time,
-                        running_nodes=[NodeID(n) for n in execution_state.running_nodes],
-                        completed_nodes=[NodeID(n) for n in execution_state.completed_nodes],
-                        skipped_nodes=[NodeID(n) for n in execution_state.skipped_nodes],
-                        paused_nodes=[NodeID(n) for n in execution_state.paused_nodes],
-                        failed_nodes=[NodeID(n) for n in execution_state.failed_nodes],
+                        running_nodes=[str(n) for n in execution_state.running_nodes],
+                        completed_nodes=[str(n) for n in execution_state.completed_nodes],
+                        skipped_nodes=[str(n) for n in execution_state.skipped_nodes],
+                        paused_nodes=[str(n) for n in execution_state.paused_nodes],
+                        failed_nodes=[str(n) for n in execution_state.failed_nodes],
                         node_outputs=execution_state.node_outputs,
                         variables=execution_state.variables,
-                        token_usage=TokenUsage(
-                            input=execution_state.token_usage.input,
-                            output=execution_state.token_usage.output,
-                            cached=execution_state.token_usage.cached,
-                            total=execution_state.token_usage.total
-                        ) if execution_state.token_usage else None,
+                        token_usage=token_usage,
                         error=execution_state.error
-                    ))
+                    )
+                    result.append(pydantic_execution)
             
             return result
             
@@ -158,17 +175,18 @@ class ExecutionResolver:
             # Apply limit
             limited_events = all_events[:limit] if limit > 0 else all_events
             
-            # Convert to GraphQL ExecutionEvent objects
+            # Convert to Pydantic ExecutionEvent objects
             result = []
             for event in limited_events:
-                result.append(ExecutionEvent(
+                pydantic_event = PydanticExecutionEvent(
                     execution_id=event.execution_id,
                     sequence=event.sequence,
                     event_type=event.event_type,
-                    node_id=NodeID(event.node_id) if event.node_id else None,
+                    node_id=str(event.node_id) if event.node_id else None,
                     timestamp=event.timestamp,
                     data=event.data
-                ))
+                )
+                result.append(pydantic_event)
             
             return result
             
@@ -177,15 +195,14 @@ class ExecutionResolver:
             return []
     
     def _map_status(self, status: str) -> ExecutionStatus:
-        """Map internal status string to GraphQL ExecutionStatus enum."""
-        status_map = {
-            'started': ExecutionStatus.STARTED,
-            'running': ExecutionStatus.RUNNING,
-            'paused': ExecutionStatus.PAUSED,
-            'completed': ExecutionStatus.COMPLETED,
-            'failed': ExecutionStatus.FAILED,
-            'cancelled': ExecutionStatus.CANCELLED
-        }
-        return status_map.get(status.lower(), ExecutionStatus.STARTED)
+        """Map internal status string to Pydantic ExecutionStatus enum."""
+        try:
+            # Handle some common variations
+            if status.lower() == 'cancelled':
+                return ExecutionStatus.ABORTED
+            return ExecutionStatus(status.lower())
+        except ValueError:
+            # Fallback to STARTED if unknown status
+            return ExecutionStatus.STARTED
 
 execution_resolver = ExecutionResolver()

@@ -1,13 +1,13 @@
-"""Diagram resolvers for GraphQL queries and mutations."""
-from typing import Optional, List, Dict, Any
+"""Refactored diagram resolvers using Pydantic models as single source of truth."""
+from typing import Optional, List
 from datetime import datetime
 import logging
 
-from ..types.domain import Diagram, Node, Handle, Arrow, Person, ApiKey, DiagramMetadata
+from ..types.domain import Diagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
 from ...services.diagram_service import DiagramService
-from ...utils.app_context import get_app_context
+from ...utils.graphql_converters import DomainToGraphQLConverter
 
 logger = logging.getLogger(__name__)
 
@@ -17,88 +17,38 @@ class DiagramResolver:
     async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[Diagram]:
         """Get a single diagram by ID (loads from file path)."""
         try:
-            # Get diagram service from context
-            app_context = get_app_context()
-            diagram_service: DiagramService = app_context.diagram_service
+            # Get diagram service from GraphQL context
+            diagram_service: DiagramService = info.context.diagram_service
             
-            # The diagram_id is expected to be the file path relative to diagrams directory
+            # Load diagram data
             diagram_data = diagram_service.load_diagram(diagram_id)
             
-            # Convert domain format to GraphQL Diagram type
-            # Extract metadata from the loaded data
-            metadata = DiagramMetadata(
-                id=diagram_id,
-                name=diagram_id.replace('/', ' - ').replace('.yaml', '').replace('.yml', '').replace('.json', '').replace('_', ' ').title(),
-                description=diagram_data.get('description', ''),
-                created=diagram_data.get('created', datetime.now()),
-                modified=diagram_data.get('modified', datetime.now()),
-                version=diagram_data.get('version', '1.0')
+            # If metadata is missing, create it
+            if 'metadata' not in diagram_data or not diagram_data['metadata']:
+                diagram_data['metadata'] = {
+                    'id': diagram_id,
+                    'name': diagram_id.replace('/', ' - ').replace('.yaml', '').replace('.yml', '').replace('.json', '').replace('_', ' ').title(),
+                    'description': diagram_data.get('description', ''),
+                    'version': diagram_data.get('version', '2.0.0'),
+                    'created': diagram_data.get('created', datetime.now().isoformat()),
+                    'modified': diagram_data.get('modified', datetime.now().isoformat())
+                }
+            
+            # Convert to GraphQL format using the converter
+            graphql_diagram = DomainToGraphQLConverter.convert_diagram(diagram_data)
+            
+            # Return as Strawberry type
+            return Diagram(
+                nodes=graphql_diagram.nodes,
+                handles=graphql_diagram.handles,
+                arrows=graphql_diagram.arrows,
+                persons=graphql_diagram.persons,
+                api_keys=graphql_diagram.api_keys,
+                metadata=graphql_diagram.metadata,
+                node_count=graphql_diagram.node_count,
+                arrow_count=graphql_diagram.arrow_count,
+                person_count=graphql_diagram.person_count
             )
-            
-            # Convert nodes from Record to list format
-            nodes = []
-            for node_id, node_data in diagram_data.get('nodes', {}).items():
-                nodes.append(Node(
-                    id=node_id,
-                    type=node_data.get('type', ''),
-                    position=node_data.get('position', {}),
-                    data=node_data.get('data', {})
-                ))
-            
-            # Convert arrows from Record to list format
-            arrows = []
-            for arrow_id, arrow_data in diagram_data.get('arrows', {}).items():
-                arrows.append(Arrow(
-                    id=arrow_id,
-                    source=arrow_data.get('source', ''),
-                    target=arrow_data.get('target', ''),
-                    data=arrow_data.get('data', {})
-                ))
-            
-            # Convert handles from Record to list format
-            handles = []
-            for handle_id, handle_data in diagram_data.get('handles', {}).items():
-                handles.append(Handle(
-                    id=handle_id,
-                    nodeId=handle_data.get('nodeId', ''),
-                    label=handle_data.get('label', ''),
-                    direction=handle_data.get('direction', ''),
-                    dataType=handle_data.get('dataType', 'any'),
-                    position=handle_data.get('position', '')
-                ))
-            
-            # Convert persons from Record to list format
-            persons = []
-            for person_id, person_data in diagram_data.get('persons', {}).items():
-                persons.append(Person(
-                    id=person_id,
-                    label=person_data.get('label', ''),
-                    service=person_data.get('service', 'openai'),
-                    modelName=person_data.get('modelName', 'gpt-4'),
-                    systemPrompt=person_data.get('systemPrompt'),
-                    apiKeyId=person_data.get('apiKeyId'),
-                    contextCleaningRule=person_data.get('contextCleaningRule', 'no_forget')
-                ))
-            
-            # Convert API keys from Record to list format
-            api_keys = []
-            for key_id, key_data in diagram_data.get('apiKeys', {}).items():
-                api_keys.append(ApiKey(
-                    id=key_id,
-                    label=key_data.get('label', ''),
-                    service=key_data.get('service', '')
-                ))
-            
-            # Create and return Diagram object
-            diagram = Diagram(
-                nodes=nodes,
-                arrows=arrows,
-                handles=handles,
-                persons=persons,
-                api_keys=api_keys
-            )
-            diagram.metadata = metadata
-            return diagram
             
         except Exception as e:
             logger.error(f"Failed to get diagram {diagram_id}: {e}")
@@ -113,9 +63,8 @@ class DiagramResolver:
     ) -> List[Diagram]:
         """List diagrams with optional filtering."""
         try:
-            # Get diagram service from context
-            app_context = get_app_context()
-            diagram_service: DiagramService = app_context.diagram_service
+            # Get diagram service from GraphQL context
+            diagram_service: DiagramService = info.context.diagram_service
             
             # Get all diagram files
             all_diagrams = diagram_service.list_diagram_files()
@@ -158,24 +107,28 @@ class DiagramResolver:
             # Convert to Diagram objects with minimal data (metadata only for listing)
             result = []
             for diagram_info in paginated_diagrams:
+                # Create metadata from file info
                 metadata = DiagramMetadata(
                     id=diagram_info['path'],  # Use path as ID for loading
                     name=diagram_info['name'],
                     description=f"Format: {diagram_info['format']}, Size: {diagram_info['size']} bytes",
                     created=datetime.fromisoformat(diagram_info['modified']),  # Use modified as created for now
                     modified=datetime.fromisoformat(diagram_info['modified']),
-                    version='1.0'
+                    version='2.0.0'
                 )
                 
                 # Create a minimal Diagram object with just metadata
                 diagram = Diagram(
                     nodes=[],
-                    arrows=[],
                     handles=[],
+                    arrows=[],
                     persons=[],
-                    api_keys=[]
+                    api_keys=[],
+                    metadata=metadata,
+                    node_count=0,
+                    arrow_count=0,
+                    person_count=0
                 )
-                diagram.metadata = metadata
                 result.append(diagram)
             
             return result

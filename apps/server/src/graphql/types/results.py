@@ -3,7 +3,7 @@ import strawberry
 from typing import Optional, List, Union
 
 from .domain import (
-    Node, Diagram, ExecutionState, Person, ApiKey
+    Node, Diagram, ExecutionState, Person, ApiKey, Handle
 )
 from .scalars import ExecutionID, DiagramID, JSONScalar
 
@@ -59,6 +59,14 @@ class ApiKeyResult:
     """Result of API key operation."""
     success: bool
     api_key: Optional[ApiKey] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+@strawberry.type
+class HandleResult:
+    """Result of handle operation."""
+    success: bool
+    handle: Optional[Handle] = None
     message: Optional[str] = None
     error: Optional[str] = None
 

@@ -1,11 +1,13 @@
-"""Person and API key resolvers for GraphQL queries."""
+"""Refactored person and API key resolvers using Pydantic models."""
 from typing import Optional, List
 import logging
 
 from ..types.domain import Person, ApiKey
 from ..types.scalars import PersonID, ApiKeyID
-from ..types.enums import LLMService, ForgettingMode
 from ..context import GraphQLContext
+from ...models.domain_graphql import (
+    DomainPerson, DomainApiKey, LLMService
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +42,16 @@ class PersonResolver:
             if not api_key_data:
                 return None
             
-            # Convert to GraphQL ApiKey type
-            return ApiKey(
+            # Create Pydantic model instance
+            pydantic_api_key = DomainApiKey(
                 id=api_key_data['id'],
                 label=api_key_data['label'],
-                service=self._map_service(api_key_data['service'])
+                service=self._map_service(api_key_data['service']),
+                key=api_key_data.get('key', '')  # Will be excluded in GraphQL
             )
+            
+            # Strawberry will handle the conversion from Pydantic to GraphQL
+            return pydantic_api_key
             
         except Exception as e:
             logger.error(f"Failed to get API key {api_key_id}: {e}")
@@ -64,14 +70,16 @@ class PersonResolver:
             if service:
                 all_keys = [k for k in all_keys if k['service'] == service]
             
-            # Convert to GraphQL ApiKey objects
+            # Convert to Pydantic models
             result = []
             for key_data in all_keys:
-                result.append(ApiKey(
+                pydantic_api_key = DomainApiKey(
                     id=key_data['id'],
                     label=key_data['label'],
-                    service=self._map_service(key_data['service'])
-                ))
+                    service=self._map_service(key_data['service']),
+                    key=key_data.get('key', '')  # Will be excluded in GraphQL
+                )
+                result.append(pydantic_api_key)
             
             return result
             
@@ -98,14 +106,12 @@ class PersonResolver:
             return []
     
     def _map_service(self, service: str) -> LLMService:
-        """Map service string to LLMService enum."""
-        service_map = {
-            'openai': LLMService.OPENAI,
-            'claude': LLMService.CLAUDE,
-            'gemini': LLMService.GEMINI,
-            'groq': LLMService.GROQ,
-            'deepseek': LLMService.DEEPSEEK
-        }
-        return service_map.get(service.lower(), LLMService.OPENAI)
+        """Map service string to LLMService enum using Pydantic enum."""
+        # The Pydantic enum handles legacy values automatically
+        try:
+            return LLMService(service.lower())
+        except ValueError:
+            # Fallback to OPENAI if unknown service
+            return LLMService.OPENAI
 
 person_resolver = PersonResolver()
