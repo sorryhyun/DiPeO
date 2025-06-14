@@ -73,11 +73,14 @@ class ExecutionService(BaseService):
 
         # 3️⃣ Build executor registry *only* when needed
         from ..executors import create_executors  # lazy import
+        from ..executors.config import executor_config
+        
         executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service,
             memory_service=self.memory_service,
             notion_service=self.notion_service,
+            use_unified=executor_config.is_unified_enabled()
         )
 
         # 4️⃣ Instantiate compact engine

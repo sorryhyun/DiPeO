@@ -95,12 +95,11 @@ def create_executor() -> UnifiedExecutor:
         description="Notion API operations including page, block, and database management"
     ))
     
-    # TODO: Add middleware once implemented
+    # Add middleware
+    from .middleware import LoggingMiddleware, MetricsMiddleware, ErrorHandlingMiddleware
     
-    # TODO: Add middleware once implemented
-    # from .middleware import LoggingMiddleware, MetricsMiddleware, ErrorHandlingMiddleware
-    # executor.add_middleware(LoggingMiddleware())
-    # executor.add_middleware(MetricsMiddleware())
-    # executor.add_middleware(ErrorHandlingMiddleware())
+    executor.add_middleware(LoggingMiddleware())
+    executor.add_middleware(MetricsMiddleware())
+    executor.add_middleware(ErrorHandlingMiddleware())
     
     return executor

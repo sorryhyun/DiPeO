@@ -1,13 +1,14 @@
 """Refactored diagram resolvers using Pydantic models as single source of truth."""
 from typing import Optional, List
 from datetime import datetime
+from collections import defaultdict
 import logging
 
 from ..types.domain import Diagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
-from ...services.diagram_service import DiagramService
-from ...utils.graphql_converters import DomainToGraphQLConverter
+from apps.server.src.services.diagram_service import DiagramService
+from apps.server.src.utils.graphql_converters import DomainToGraphQLConverter
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,14 @@ class DiagramResolver:
             
             # Convert to GraphQL format using the converter
             graphql_diagram = DomainToGraphQLConverter.convert_diagram(diagram_data)
+            
+            # Build handle_index for nested view
+            handle_index = defaultdict(list)
+            for handle in graphql_diagram.handles:
+                handle_index[handle.nodeId].append(handle)
+            
+            # Store handle_index in context for Node.handles() resolver
+            info.context.handle_index = handle_index
             
             # Return as Strawberry type
             return Diagram(
