@@ -6,6 +6,9 @@ from .person_job import PersonJobProps, PersonBatchJobProps, PersonConfig
 from .condition import ConditionNodeProps
 from .endpoint import EndpointNodeProps
 from .user_response import UserResponseNodeProps
+from .job import JobNodeProps, SupportedLanguage
+from .db import DBNodeProps, DBSubType
+from .notion import NotionNodeProps, NotionOperation
 
 __all__ = [
     "BaseNodeProps",
@@ -16,4 +19,10 @@ __all__ = [
     "ConditionNodeProps",
     "EndpointNodeProps",
     "UserResponseNodeProps",
+    "JobNodeProps",
+    "SupportedLanguage",
+    "DBNodeProps",
+    "DBSubType",
+    "NotionNodeProps",
+    "NotionOperation",
 ]

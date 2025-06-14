@@ -4,11 +4,13 @@ from .unified_executor import UnifiedExecutor
 from .types import NodeDefinition
 from .schemas import (
     StartNodeProps, PersonJobProps, PersonBatchJobProps, 
-    ConditionNodeProps, EndpointNodeProps, UserResponseNodeProps
+    ConditionNodeProps, EndpointNodeProps, UserResponseNodeProps,
+    JobNodeProps, DBNodeProps, NotionNodeProps
 )
 from .handlers import (
     start_handler, person_job_handler, person_batch_job_handler,
-    condition_handler, endpoint_handler, user_response_handler
+    condition_handler, endpoint_handler, user_response_handler,
+    job_handler, db_handler, notion_handler
 )
 
 
@@ -67,7 +69,33 @@ def create_executor() -> UnifiedExecutor:
         description="Interactive user input node"
     ))
     
-    # TODO: Register other node types as they are implemented
+    # Register Job node type
+    executor.register(NodeDefinition(
+        type="job",
+        schema=JobNodeProps,
+        handler=job_handler,
+        description="Execute code in Python, JavaScript, or Bash"
+    ))
+    
+    # Register DB node type
+    executor.register(NodeDefinition(
+        type="db",
+        schema=DBNodeProps,
+        handler=db_handler,
+        requires_services=["file_service"],
+        description="Data source node for file operations and fixed prompts"
+    ))
+    
+    # Register Notion node type
+    executor.register(NodeDefinition(
+        type="notion",
+        schema=NotionNodeProps,
+        handler=notion_handler,
+        requires_services=["notion_service"],
+        description="Notion API operations including page, block, and database management"
+    ))
+    
+    # TODO: Add middleware once implemented
     
     # TODO: Add middleware once implemented
     # from .middleware import LoggingMiddleware, MetricsMiddleware, ErrorHandlingMiddleware
