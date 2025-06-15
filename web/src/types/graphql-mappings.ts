@@ -15,7 +15,7 @@ import type {
   Vec2Input
 } from '@/__generated__/graphql';
 import { NodeType } from '@/__generated__/graphql';
-import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID } from './branded';
+import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from './branded';
 import type { Vec2 } from './primitives';
 
 // Re-export GraphQL types with Domain prefix for compatibility
@@ -33,7 +33,7 @@ export interface DomainDiagram {
   persons: Record<PersonID, Person>;
   apiKeys: Record<ApiKeyID, ApiKey>;
   metadata?: {
-    id?: string;
+    id?: DiagramID;
     name?: string;
     description?: string;
     version: string;
@@ -80,7 +80,7 @@ export function graphQLDiagramToDomain(diagram: Diagram): DomainDiagram {
     persons,
     apiKeys,
     metadata: diagram.metadata ? {
-      id: diagram.metadata.id || undefined,
+      id: diagram.metadata.id ? diagram.metadata.id as DiagramID : undefined,
       name: diagram.metadata.name || undefined,
       description: diagram.metadata.description || undefined,
       version: diagram.metadata.version,

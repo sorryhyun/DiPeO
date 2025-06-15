@@ -1,70 +1,67 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { parse } from 'yaml';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import {
   readFileAsText,
-  detectFileFormat,
   selectFile,
   downloadFile,
-  saveDiagramToBackend,
-  FileFormat
+  uploadDiagram,
+  saveDiagramToBackend
 } from '@/utils/file';
-import {
-  converterRegistry,
-  storeDomainConverter,
-  SupportedFormat
-} from '@/utils/converters/core';
-import type { DomainDiagram } from '@/types';
+import { 
+  useExportDiagramMutation,
+  ExportDiagramDocument,
+  DiagramFormat
+} from '@/__generated__/graphql';
+import { apolloClient } from '@/graphql/client';
 
 export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const store = useUnifiedStore();
+  const [exportDiagramMutation] = useExportDiagramMutation();
+
+  // Get current diagram ID from store
+  const diagramId = store.diagram?.metadata?.id;
 
   // ===================
   // EXPORT OPERATIONS
   // ===================
 
   /**
-   * Export diagram to specified format
-   */
-  const exportDiagram = useCallback((format: SupportedFormat): string => {
-    // Convert store state to domain model
-    const storeState = {
-      nodes: store.nodes,
-      arrows: store.arrows,
-      handles: store.handles,
-      persons: store.persons,
-      apiKeys: store.apiKeys
-    };
-    const domainDiagram = storeDomainConverter.storeToDomain(storeState);
-    
-    // Get converter for format and serialize
-    const converter = converterRegistry.get(format);
-    return converter.serialize(domainDiagram);
-  }, [store]);
-
-  /**
    * Export and download diagram in specified format
    */
   const exportAndDownload = useCallback(async (
-    format: SupportedFormat,
-    filename?: string
+    format: DiagramFormat,
+    filename?: string,
+    includeMetadata: boolean = true
   ) => {
+    if (!diagramId) {
+      toast.error('No diagram to export');
+      return;
+    }
+
     setIsDownloading(true);
     try {
-      const content = exportDiagram(format);
-      const converter = converterRegistry.get(format);
-      
-      // Ensure filename has the correct extension
-      let finalFilename = filename || 'diagram';
-      // Remove any existing extension
-      finalFilename = finalFilename.replace(/\.(yaml|yml|native\.yaml|readable\.yaml|llm-readable\.yaml|llm\.yaml)$/i, '');
-      // Add the correct extension for the format
-      finalFilename = `${finalFilename}${converter.fileExtension}`;
-      
-      await downloadFile(content, finalFilename, 'text/yaml');
+      const { data } = await exportDiagramMutation({
+        variables: {
+          diagramId,
+          format,
+          includeMetadata
+        }
+      });
+
+      if (!data?.exportDiagram.success) {
+        throw new Error(data?.exportDiagram.error || 'Export failed');
+      }
+
+      const { content, filename: exportFilename } = data.exportDiagram;
+      if (!content) {
+        throw new Error('No content returned from export');
+      }
+
+      // Download the file
+      await downloadFile(content, exportFilename || filename || 'diagram.yaml', 'text/yaml');
       toast.success(`Exported as ${format} format`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -73,45 +70,32 @@ export const useFileOperations = () => {
     } finally {
       setIsDownloading(false);
     }
-  }, [exportDiagram]);
+  }, [diagramId, exportDiagramMutation]);
 
   // ===================
   // IMPORT OPERATIONS
   // ===================
 
   /**
-   * Import diagram from content and format
-   */
-  const importDiagram = useCallback((
-    content: string,
-    format: SupportedFormat
-  ): void => {
-    // Use the store's importDiagram with format parameter
-    store.importDiagram(content, format);
-  }, [store]);
-
-  /**
-   * Import diagram from file
+   * Import diagram from file using GraphQL
    */
   const importFile = useCallback(async (file: File) => {
     setIsProcessing(true);
     try {
-      // Read file content
-      const content = await readFileAsText(file);
+      const result = await uploadDiagram(file);
       
-      // Detect format
-      const formatInfo = detectFileFormat(content, file.name);
-      
-      // Validate format is supported
-      if (!converterRegistry.has(formatInfo.format as SupportedFormat)) {
-        throw new Error(`Unsupported file format: ${formatInfo.format}`);
+      if (!result.success) {
+        throw new Error(result.message || 'Import failed');
       }
-      
-      // Import using unified pipeline
-      importDiagram(content, formatInfo.format as SupportedFormat);
-      
-      const metadata = converterRegistry.getMetadata(formatInfo.format as SupportedFormat);
-      toast.success(`${metadata?.displayName || formatInfo.format} file imported successfully`);
+
+      // Reload the page to load the new diagram
+      if (result.diagramId) {
+        window.location.href = `/?diagram=${result.diagramId}`;
+      }
+
+      toast.success(
+        `Imported ${result.diagramName || 'diagram'} (${result.nodeCount} nodes)`
+      );
     } catch (error) {
       console.error('[Import file]', error);
       toast.error(`Import failed: ${(error as Error).message}`);
@@ -119,7 +103,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [importDiagram]);
+  }, []);
 
   /**
    * Import via file selection dialog
@@ -127,7 +111,7 @@ export const useFileOperations = () => {
   const importWithDialog = useCallback(async () => {
     try {
       const file = await selectFile({
-        acceptedTypes: '.yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml,.llm.yaml'
+        acceptedTypes: '.yaml,.yml,.json'
       });
       await importFile(file);
     } catch (error) {
@@ -175,34 +159,19 @@ export const useFileOperations = () => {
    * Save diagram to backend in specified format
    */
   const saveDiagramToServer = useCallback(async (
-    format: SupportedFormat,
+    format?: DiagramFormat,
     filename?: string
   ) => {
+    if (!diagramId) {
+      toast.error('No diagram to save');
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      // Export diagram to format
-      const content = exportDiagram(format);
-      
-      // Parse for backend (expects JSON/YAML object)
-      // All current formats produce YAML content
-      const yaml = await import('yaml');
-      const data = yaml.parse(content);
-      
-      // Get the proper file extension for the format
-      const converter = converterRegistry.get(format);
-      const extension = converter.fileExtension;
-      
-      // Ensure filename has the correct extension
-      let finalFilename = filename || 'diagram';
-      // Remove any existing extension
-      finalFilename = finalFilename.replace(/\.(yaml|yml|native\.yaml|readable\.yaml|llm-readable\.yaml|llm\.yaml)$/i, '');
-      // Add the correct extension
-      finalFilename = `${finalFilename}${extension}`;
-      
-      // Save to backend
-      const result = await saveDiagramToBackend(data, {
-        format: format as FileFormat,
-        filename: finalFilename
+      const result = await saveDiagramToBackend(diagramId, {
+        format,
+        filename
       });
       
       toast.success(`Saved to server as ${result.filename}`);
@@ -214,23 +183,63 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [exportDiagram]);
+  }, [diagramId]);
 
   // ===================
   // FORMAT INFORMATION
   // ===================
 
   /**
-   * Get available formats with metadata
+   * Get available formats
    */
-  const getAvailableFormats = useCallback((): Array<{
-    format: SupportedFormat;
-    metadata: ReturnType<typeof converterRegistry.getMetadata>;
-  }> => {
-    return converterRegistry.getFormats().map(format => ({
-      format,
-      metadata: converterRegistry.getMetadata(format)
-    }));
+  const getAvailableFormats = useCallback(() => {
+    // Hardcode the formats that the backend supports
+    return [
+      {
+        format: DiagramFormat.Native,
+        metadata: {
+          id: DiagramFormat.Native,
+          displayName: 'Native YAML',
+          description: 'Full-fidelity format with all details',
+          fileExtension: '.yaml',
+          supportsImport: true,
+          supportsExport: true
+        }
+      },
+      {
+        format: DiagramFormat.Light,
+        metadata: {
+          id: DiagramFormat.Light,
+          displayName: 'Light YAML',
+          description: 'Simplified format using labels',
+          fileExtension: '.yaml',
+          supportsImport: true,
+          supportsExport: true
+        }
+      },
+      {
+        format: DiagramFormat.Readable,
+        metadata: {
+          id: DiagramFormat.Readable,
+          displayName: 'Readable Workflow',
+          description: 'Human-friendly format',
+          fileExtension: '.yaml',
+          supportsImport: true,
+          supportsExport: true
+        }
+      },
+      {
+        format: DiagramFormat.Llm,
+        metadata: {
+          id: DiagramFormat.Llm,
+          displayName: 'LLM-Friendly',
+          description: 'Optimized for AI understanding',
+          fileExtension: '.yaml',
+          supportsImport: false,
+          supportsExport: true
+        }
+      }
+    ];
   }, []);
 
   return {
@@ -239,7 +248,6 @@ export const useFileOperations = () => {
     isDownloading,
     
     // Export operations
-    exportDiagram,
     exportAndDownload,
     
     // Import operations

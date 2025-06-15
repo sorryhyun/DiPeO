@@ -8,7 +8,6 @@ import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useGetApiKeysQuery } from '@/__generated__/graphql';
 import { toast } from 'sonner';
 import { apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
-import { LightDomainConverter } from '@/utils/converters';
 import { downloadFile } from '@/utils/file';
 
 

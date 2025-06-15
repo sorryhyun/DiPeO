@@ -5,6 +5,7 @@ from .native_yaml import NativeYamlConverter
 from .light_yaml import LightYamlConverter
 from .readable_yaml import ReadableYamlConverter
 from .llm_yaml import LLMYamlConverter
+from ..domain import DiagramFormat
 
 
 class ConverterRegistry:
@@ -19,7 +20,7 @@ class ConverterRegistry:
         """Register default converters."""
         # Native YAML
         self.register(
-            'native',
+            DiagramFormat.NATIVE.value,
             NativeYamlConverter(),
             {
                 'name': 'Native YAML',
@@ -32,7 +33,7 @@ class ConverterRegistry:
         
         # Light YAML
         self.register(
-            'light',
+            DiagramFormat.LIGHT.value,
             LightYamlConverter(),
             {
                 'name': 'Light YAML',
@@ -45,7 +46,7 @@ class ConverterRegistry:
         
         # Readable YAML
         self.register(
-            'readable',
+            DiagramFormat.READABLE.value,
             ReadableYamlConverter(),
             {
                 'name': 'Readable Workflow',
@@ -58,13 +59,13 @@ class ConverterRegistry:
         
         # LLM YAML
         self.register(
-            'llm',
+            DiagramFormat.LLM.value,
             LLMYamlConverter(),
             {
                 'name': 'LLM-Friendly',
                 'description': 'Format optimized for AI/LLM understanding',
                 'extension': '.llm.yaml',
-                'supports_import': False,  # Write-only
+                'supports_import': True,
                 'supports_export': True
             }
         )

@@ -7,7 +7,7 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/stores/unifiedStore';
 import { useCanvasOperations as useCanvasOps } from '@/hooks/useCanvasOperations';
-import { useExecutionProvider } from '@/hooks/useExecutionProvider';
+import { useExecution } from '@/hooks/useExecution';
 import type { NodeID, ArrowID, PersonID, Vec2 } from '@/types';
 
 interface CanvasUIState {
@@ -46,7 +46,7 @@ interface CanvasOperations {
   
   // Canvas operations from hooks
   canvasOps: ReturnType<typeof useCanvasOps>;
-  executionOps: ReturnType<typeof useExecutionProvider>;
+  executionOps: ReturnType<typeof useExecution>;
 }
 
 interface CanvasContextValue extends CanvasUIState, CanvasOperations {}
@@ -123,7 +123,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
 
   // Get hook-based operations
   const canvasOps = useCanvasOps();
-  const executionOps = useExecutionProvider();
+  const executionOps = useExecution();
 
   // Memoize context value
   const contextValue = useMemo<CanvasContextValue>(

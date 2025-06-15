@@ -1,6 +1,6 @@
 """GraphQL context for providing access to services."""
 from typing import Dict, Any
-from fastapi import Request, WebSocket
+from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 from ..utils.app_context import AppContext
@@ -21,12 +21,10 @@ class GraphQLContext(BaseContext):
     def __init__(
         self,
         request: Request,
-        app_context: AppContext,
-        websocket: WebSocket = None
+        app_context: AppContext
     ):
         super().__init__()
         self.request = request
-        self.websocket = websocket
         self.app_context = app_context
         
         # Expose services directly for easy access
@@ -52,8 +50,7 @@ class GraphQLContext(BaseContext):
 
 
 async def get_graphql_context(
-    request: Request = None,
-    websocket: WebSocket = None
+    request: Request = None
 ) -> GraphQLContext:
     """
     Factory function for creating GraphQL context.
@@ -64,6 +61,5 @@ async def get_graphql_context(
     app_context = get_app_context()
     return GraphQLContext(
         request=request,
-        app_context=app_context,
-        websocket=websocket
+        app_context=app_context
     )

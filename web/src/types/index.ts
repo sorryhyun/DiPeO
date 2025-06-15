@@ -5,7 +5,6 @@ export * from './core';
 
 // Re-export all types from separate modules
 export * from './primitives';
-export * from './api';
 export * from './runtime';
 export * from './errors';
 export * from './framework';
@@ -22,7 +21,8 @@ export type {
   PersonID,
   ApiKeyID,
   ExecutionID,
-  MessageID
+  MessageID,
+  DiagramID
 } from './branded';
 
 export {
@@ -33,6 +33,7 @@ export {
   apiKeyId,
   executionId,
   messageId,
+  diagramId,
   isNodeId,
   isHandleId,
   isArrowId,
@@ -40,6 +41,7 @@ export {
   isApiKeyId,
   isExecutionId,
   isMessageId,
+  isDiagramId,
   createHandleId,
   parseHandleId,
 } from './branded';

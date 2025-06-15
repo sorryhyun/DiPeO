@@ -19,7 +19,6 @@ import {
   apiKeyId
 } from "@/types";
 import { UnifiedStore, NodeState } from "./unifiedStore.types";
-import { DiagramExporter } from "./diagramExporter";
 import { loadAutoSavedDiagram, setupAutoSave } from "./persistedStore";
 import { logger } from "@/utils/logger";
 
@@ -193,13 +192,25 @@ export const useUnifiedStore = create<UnifiedStore>()(
         getPersons: () => get().personsArray,
 
         // === Export/Import ===
-        exportDiagram: () => new DiagramExporter(get()).exportDiagram(),
-        exportAsYAML: () => new DiagramExporter(get()).exportAsYAML(),
-        importDiagram: (data, format) => {
-          const exporter = new DiagramExporter(get());
-          exporter.importDiagram(data, format);
+        exportDiagram: () => {
+          // Export functionality is now handled by GraphQL
+          console.warn('exportDiagram is deprecated. Use useFileOperations hook with GraphQL operations.');
+          return null;
         },
-        validateExportData: (data) => new DiagramExporter(get()).validateExportData(data),
+        exportAsYAML: () => {
+          // Export functionality is now handled by GraphQL
+          console.warn('exportAsYAML is deprecated. Use useFileOperations hook with GraphQL operations.');
+          return '';
+        },
+        importDiagram: (data, format) => {
+          // Import functionality is now handled by GraphQL
+          console.warn('importDiagram is deprecated. Use useFileOperations hook with GraphQL operations.');
+        },
+        validateExportData: (data) => {
+          // Validation is now handled by backend
+          console.warn('validateExportData is deprecated. Validation is handled by backend.');
+          return { valid: false, errors: ['Client-side validation is deprecated'] };
+        },
       }))
     )
   )

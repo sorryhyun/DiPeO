@@ -1,19 +1,16 @@
 # services/execution_service.py
 """Service for running a diagram through the CompactEngine and
-streaming execution updates to the caller (e.g. a WebSocket)."""
+streaming execution updates to the caller."""
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import AsyncIterator, Callable
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set
 
 from ..utils.base_service import BaseService
 from ..exceptions import ValidationError
 from .event_store import event_store, ExecutionEvent, EventType
-
-if TYPE_CHECKING:  # Only for static checkers, never at runtime
-    from ..state.websocket_state import WebSocketState  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +43,6 @@ class ExecutionService(BaseService):
         options: Dict[str, Any],
         execution_id: str,
         interactive_handler: Optional[Callable[[Dict[str, Any]], Any]] = None,
-        state_manager: "Optional[WebSocketState]" = None,
     ) -> AsyncIterator[Dict[str, Any]]:
         """
         Validate → warm-up → enrich → run the CompactEngine.

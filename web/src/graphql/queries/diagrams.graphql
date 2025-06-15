@@ -117,3 +117,14 @@ mutation SaveDiagram($diagramId: DiagramID!, $format: String) {
   }
 }
 
+mutation ExportDiagram($diagramId: DiagramID!, $format: DiagramFormat!, $includeMetadata: Boolean) {
+  exportDiagram(diagramId: $diagramId, format: $format, includeMetadata: $includeMetadata) {
+    success
+    message
+    error
+    content
+    format
+    filename
+  }
+}
+

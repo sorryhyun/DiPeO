@@ -24,7 +24,7 @@ import os
 # Constants
 API_URL = "http://localhost:8000"
 WS_URL = "ws://localhost:8000/api/ws"
-GRAPHQL_HOST = "localhost:8100"  # GraphQL server port
+GRAPHQL_HOST = "localhost:8000"  # GraphQL server port (same as main server)
 DEFAULT_API_KEY = "APIKEY_387B73"
 DEFAULT_TIMEOUT = 300  # 5 minutes
 DEFAULT_MODEL = "gpt-4.1-nano"
@@ -306,6 +306,7 @@ class GraphQLExecutor:
     def __init__(self, options: ExecutionOptions):
         self.options = options
         self.node_timings = {} if options.debug else None
+        self.last_activity_time = time.time()
     
     async def execute(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
         """Execute diagram via GraphQL"""
@@ -345,47 +346,34 @@ class GraphQLExecutor:
                 if self.options.debug:
                     print(f"🚀 Execution started with ID: {execution_id}")
                 
-                # Subscribe to updates
-                async for update in client.subscribe_to_execution(execution_id):
-                    event_type = update['type']
+                # Subscribe to node updates and interactive prompts concurrently
+                node_task = asyncio.create_task(self._handle_node_stream(client, execution_id, result))
+                prompt_task = asyncio.create_task(self._handle_prompt_stream(client, execution_id))
+                exec_task = asyncio.create_task(self._handle_execution_stream(client, execution_id, result))
+                
+                # Wait for execution to complete
+                tasks = [node_task, prompt_task, exec_task]
+                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                
+                # Cancel remaining tasks
+                for task in pending:
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # Check if execution completed successfully
+                if exec_task in done:
+                    exec_result = await exec_task
+                    if exec_result and 'error' in exec_result:
+                        result['error'] = exec_result['error']
+                    else:
+                        result.update(exec_result or {})
+                
+                if self.options.stream and not result.get('error'):
+                    print("\n✨ Execution completed successfully!")
                     
-                    if self.options.debug:
-                        print(f"🐛 Debug: Event '{event_type}' - {json.dumps(update, indent=2)}")
-                    
-                    # Handle different event types
-                    if event_type == 'node_started' and self.options.stream:
-                        node_id = update['nodeId']
-                        print(f"\n🔄 Executing node: {node_id}")
-                        if self.options.debug:
-                            self.node_timings[node_id] = {'start': time.time()}
-                    
-                    elif event_type == 'node_completed':
-                        await self._handle_node_completed(update, result)
-                    
-                    elif event_type == 'node_failed':
-                        node_id = update['nodeId']
-                        error = update.get('error', 'Unknown error')
-                        print(f"❌ Node {node_id} failed: {error}")
-                    
-                    elif event_type == 'prompt_request':
-                        # Handle interactive prompts
-                        node_id = update['nodeId']
-                        prompt = update.get('data', {}).get('prompt', 'Input required:')
-                        print(f"\n💬 {prompt}")
-                        user_input = input("Your response: ")
-                        
-                        await client.respond_to_prompt(execution_id, node_id, user_input)
-                    
-                    elif event_type == 'execution_completed':
-                        result.update(update.get('data', {}))
-                        if self.options.stream:
-                            print("\n✨ Execution completed successfully!")
-                        break
-                    
-                    elif event_type == 'execution_failed':
-                        error = update.get('error', 'Unknown error')
-                        raise Exception(f"Execution failed: {error}")
-            
             except Exception as e:
                 if self.options.debug:
                     print(f"❌ Error during execution: {str(e)}")
@@ -393,44 +381,112 @@ class GraphQLExecutor:
         
         return result
     
-    async def _handle_node_completed(self, update: Dict[str, Any], result: Dict[str, Any]) -> None:
-        """Handle node completion event"""
-        node_id = update['nodeId']
-        node_result = update.get('data', {})
+    async def _handle_node_stream(self, client, execution_id: str, result: Dict[str, Any]) -> None:
+        """Handle node update stream"""
+        try:
+            async for update in client.subscribe_to_node_updates(execution_id):
+                self.last_activity_time = time.time()
+                
+                node_id = update.get('nodeId', 'unknown')
+                status = update.get('status', '')
+                
+                if status == 'started' and self.options.stream:
+                    print(f"\n🔄 Executing node: {node_id}")
+                    if self.options.debug:
+                        self.node_timings[node_id] = {'start': time.time()}
+                
+                elif status == 'completed':
+                    if self.options.stream:
+                        print(f"✅ Node {node_id} completed")
+                    
+                    if self.options.debug and node_id in self.node_timings:
+                        self.node_timings[node_id]['end'] = time.time()
+                        duration = self.node_timings[node_id]['end'] - self.node_timings[node_id]['start']
+                        print(f"   Duration: {duration:.2f}s")
+                    
+                    # Accumulate token count
+                    tokens_used = update.get('tokensUsed', 0)
+                    if tokens_used:
+                        result['total_token_count'] += tokens_used
+                
+                elif status == 'failed':
+                    error = update.get('error', 'Unknown error')
+                    print(f"❌ Node {node_id} failed: {error}")
+                
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            if self.options.debug:
+                print(f"Error in node stream: {e}")
+    
+    async def _handle_prompt_stream(self, client, execution_id: str) -> None:
+        """Handle interactive prompt stream"""
+        try:
+            async for prompt in client.subscribe_to_interactive_prompts(execution_id):
+                node_id = prompt.get('nodeId')
+                prompt_text = prompt.get('prompt', 'Input required:')
+                
+                print(f"\n💬 {prompt_text}")
+                user_input = input("Your response: ")
+                
+                await client.submit_interactive_response(execution_id, node_id, user_input)
+                
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            if self.options.debug:
+                print(f"Error in prompt stream: {e}")
+    
+    async def _handle_execution_stream(self, client, execution_id: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle execution state stream"""
+        try:
+            async for update in client.subscribe_to_execution(execution_id):
+                self.last_activity_time = time.time()
+                
+                status = update.get('status', '').upper()
+                
+                if status == 'COMPLETED':
+                    # Extract final results
+                    return {
+                        'context': update.get('nodeOutputs', {}),
+                        'total_token_count': update.get('totalTokens', 0)
+                    }
+                
+                elif status in ['FAILED', 'ABORTED']:
+                    return {'error': update.get('error', 'Execution failed')}
+                
+                # Check timeout
+                elapsed = time.time() - self.last_activity_time
+                if elapsed > self.options.timeout:
+                    print(f"\n⏱️  Timeout: No execution activity for {self.options.timeout} seconds")
+                    await client.control_execution(execution_id, 'abort')
+                    return {'error': f"Execution timeout after {self.options.timeout} seconds"}
+                    
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            if self.options.debug:
+                print(f"Error in execution stream: {e}")
+            return {'error': str(e)}
         
-        if self.options.stream:
-            print(f"✅ Node {node_id} completed")
-            if node_result.get('output'):
-                print(f"   Output: {node_result['output']}")
-        
-        if self.options.debug and node_id in self.node_timings:
-            self.node_timings[node_id]['end'] = time.time()
-            duration = self.node_timings[node_id]['end'] - self.node_timings[node_id]['start']
-            print(f"   Duration: {duration:.2f}s")
-        
-        # Accumulate token count
-        if 'token_count' in node_result:
-            result['total_token_count'] += node_result['token_count']
-        elif 'cost' in node_result:
-            # Rough estimation from cost
-            estimated_tokens = int(node_result['cost'] * 100000)
-            result['total_token_count'] += estimated_tokens
+        return {}
+    
 
 
 class DiagramRunner:
     """Main diagram execution orchestrator"""
     
-    def __init__(self, options: ExecutionOptions, use_graphql: bool = False):
+    def __init__(self, options: ExecutionOptions, use_websocket: bool = False):
         self.options = options
-        # Use GraphQL if specified or if DIPEO_USE_GRAPHQL env var is set
-        if use_graphql or os.environ.get('DIPEO_USE_GRAPHQL'):
+        # Use WebSocket only if explicitly requested
+        if use_websocket or os.environ.get('DIPEO_USE_WEBSOCKET'):
+            self.executor = WebSocketExecutor(options)
+            if options.debug:
+                print("🐛 Debug: Using WebSocket executor (deprecated)")
+        else:
             self.executor = GraphQLExecutor(options)
             if options.debug:
                 print("🐛 Debug: Using GraphQL executor")
-        else:
-            self.executor = WebSocketExecutor(options)
-            if options.debug:
-                print("🐛 Debug: Using WebSocket executor")
     
     async def run(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
         """Run diagram with specified options"""
@@ -508,13 +564,13 @@ class CommandHandler:
             sys.exit(1)
         
         file_path = args[0]
-        options, use_graphql = CommandHandler._parse_run_options(args[1:])
+        options, use_websocket = CommandHandler._parse_run_options(args[1:])
         
         # Load diagram
         diagram = DiagramLoader.load(file_path)
         
         # Run diagram
-        runner = DiagramRunner(options, use_graphql=use_graphql)
+        runner = DiagramRunner(options, use_websocket=use_websocket)
         result = await runner.run(diagram)
         
         print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
@@ -526,7 +582,7 @@ class CommandHandler:
     def _parse_run_options(args: List[str]) -> tuple[ExecutionOptions, bool]:
         """Parse command line options for run command"""
         options = ExecutionOptions()
-        use_graphql = False
+        use_websocket = False
         
         for arg in args:
             if arg == '--monitor':
@@ -545,8 +601,8 @@ class CommandHandler:
                 options.stream = False
             elif arg == '--debug':
                 options.debug = True
-            elif arg == '--use-graphql':
-                use_graphql = True
+            elif arg == '--use-websocket':
+                use_websocket = True
             elif arg.startswith('--timeout='):
                 try:
                     options.timeout = int(arg.split('=')[1])
@@ -555,7 +611,7 @@ class CommandHandler:
             elif not arg.startswith('--'):
                 options.output_file = arg
         
-        return options, use_graphql
+        return options, use_websocket
     
     @staticmethod
     def _save_results(result: Dict[str, Any], options: ExecutionOptions) -> None:
@@ -632,7 +688,7 @@ def print_usage():
     print("    --no-stream             - Disable streaming output")
     print("    --debug                 - Enable debug mode")
     print("    --timeout=<seconds>     - Set inactivity timeout (default: 300)")
-    print("    --use-graphql           - Use GraphQL instead of WebSocket (experimental)")
+    print("    --use-websocket         - Use legacy WebSocket instead of GraphQL")
     print("  monitor                    - Open browser monitoring page")
     print("  convert <input> <output>   - Convert between JSON/YAML formats")
     print("  stats <file>               - Show diagram statistics")

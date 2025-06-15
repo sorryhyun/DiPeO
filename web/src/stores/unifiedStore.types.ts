@@ -7,6 +7,7 @@ import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice, NodeState } from './slices/executionSlice';
 import type { PersonSlice } from './slices/personSlice';
 import type { UISlice } from './slices/uiSlice';
+import { DiagramFormat } from '@/__generated__/graphql';
 
 // Re-export NodeState from executionSlice for backward compatibility
 export type { NodeState } from './slices/executionSlice';
@@ -72,9 +73,9 @@ export interface UnifiedStore extends
   getArrows: () => DomainArrow[];
   getPersons: () => DomainPerson[];
   
-  // Export/Import operations
-  exportDiagram: () => any; // Returns ExportFormat from diagramExporter.ts
-  exportAsYAML: () => string;
-  importDiagram: (data: any, format?: string) => void; // Accepts ExportFormat or string with optional format
-  validateExportData: (data: unknown) => { valid: boolean; errors: string[] };
+  // Export/Import operations (deprecated - use GraphQL operations)
+  exportDiagram: () => any; // Deprecated - use useFileOperations hook
+  exportAsYAML: () => string; // Deprecated - use useFileOperations hook
+  importDiagram: (data: any, format?: DiagramFormat) => void; // Deprecated - use useFileOperations hook
+  validateExportData: (data: unknown) => { valid: boolean; errors: string[] }; // Deprecated - validation handled by backend
 }

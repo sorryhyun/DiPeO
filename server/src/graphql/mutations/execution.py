@@ -217,11 +217,7 @@ class ExecutionMutations:
         input: InteractiveResponseInput,
         info
     ) -> ExecutionResult:
-        """Submit a response to an interactive prompt.
-        
-        This mutation is designed to work with executions started via WebSocket.
-        For GraphQL-only executions, interactive prompts are not currently supported.
-        """
+        """Submit a response to an interactive prompt."""
         try:
             context: GraphQLContext = info.context
             event_store = context.event_store
@@ -265,8 +261,7 @@ class ExecutionMutations:
             )
             await event_store.append(response_event)
             
-            # Route the interactive response message to the WebSocket handler
-            # This message format matches what the WebSocket handler expects
+            # Route the interactive response message to subscribed handlers
             interactive_message = {
                 'type': 'interactive_response',
                 'executionId': pydantic_input.execution_id,
@@ -276,28 +271,7 @@ class ExecutionMutations:
             }
             
             # Broadcast to all connections subscribed to this execution
-            # This will reach the WebSocket connection that started the execution
             await message_router.broadcast_to_execution(pydantic_input.execution_id, interactive_message)
-            
-            # Also try to access the WebSocket connection manager directly
-            # to resolve the interactive prompt future
-            try:
-                from ...api.routers.websocket import get_connection_manager
-                manager = get_connection_manager()
-                
-                # Try to resolve the interactive prompt directly
-                resolved = manager.state_manager.resolve_interactive_prompt(
-                    pydantic_input.execution_id, 
-                    pydantic_input.node_id, 
-                    pydantic_input.response
-                )
-                
-                if not resolved:
-                    logger.warning(f"No pending interactive prompt found for node {pydantic_input.node_id} in execution {pydantic_input.execution_id}")
-                    
-            except Exception as ws_error:
-                logger.warning(f"Could not access WebSocket state manager: {ws_error}")
-                # This is expected if the execution wasn't started via WebSocket
             
             # Get updated execution state
             updated_state = await event_store.replay(pydantic_input.execution_id)

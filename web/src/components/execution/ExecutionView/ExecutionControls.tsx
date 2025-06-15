@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/buttons';
-import { useExecutionProvider } from '@/hooks';
+import { useExecution } from '@/hooks';
 import { useDiagramData } from '@/hooks/selectors';
 import { useUnifiedStore } from '@/stores/unifiedStore';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
-  const execution = useExecutionProvider({ showToasts: false });
+  const execution = useExecution({ showToasts: false });
   const { nodes, arrows } = useDiagramData();
   const { persons, handles, apiKeys } = useUnifiedStore(state => ({
     persons: state.persons,

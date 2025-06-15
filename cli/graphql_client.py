@@ -40,6 +40,9 @@ class DiPeoGraphQLClient:
                     success
                     execution {
                         id
+                        status
+                        diagramId
+                        startedAt
                     }
                     message
                     error
@@ -51,10 +54,10 @@ class DiPeoGraphQLClient:
             mutation,
             variable_values={
                 "input": {
-                    "diagram_id": diagram_id,
-                    "debug_mode": debug_mode,
-                    "timeout_seconds": timeout,
-                    "max_iterations": 1000
+                    "diagramId": diagram_id,
+                    "debugMode": debug_mode,
+                    "timeoutSeconds": timeout,
+                    "maxIterations": 1000
                 }
             }
         )
@@ -68,18 +71,19 @@ class DiPeoGraphQLClient:
     async def subscribe_to_execution(self, execution_id: str) -> AsyncGenerator[Dict[str, Any], None]:
         """Subscribe to execution updates."""
         subscription = gql("""
-            subscription ExecutionUpdates($executionId: ExecutionID!) {
+            subscription ExecutionUpdates($executionId: String!) {
                 executionUpdates(executionId: $executionId) {
                     id
                     status
-                    runningNodes
-                    completedNodes
-                    failedNodes
+                    diagramId
+                    startedAt
+                    endedAt
+                    currentNode
                     nodeOutputs
-                    tokenUsage {
-                        total
-                    }
+                    variables
+                    totalTokens
                     error
+                    progress
                 }
             }
         """)
@@ -93,7 +97,7 @@ class DiPeoGraphQLClient:
     async def subscribe_to_node_updates(self, execution_id: str, node_types: Optional[List[str]] = None) -> AsyncGenerator[Dict[str, Any], None]:
         """Subscribe to node execution updates."""
         subscription = gql("""
-            subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
+            subscription NodeUpdates($executionId: String!, $nodeTypes: [String!]) {
                 nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
                     executionId
                     nodeId
@@ -121,7 +125,7 @@ class DiPeoGraphQLClient:
     async def subscribe_to_interactive_prompts(self, execution_id: str) -> AsyncGenerator[Dict[str, Any], None]:
         """Subscribe to interactive prompt notifications."""
         subscription = gql("""
-            subscription InteractivePrompts($executionId: ExecutionID!) {
+            subscription InteractivePrompts($executionId: String!) {
                 interactivePrompts(executionId: $executionId) {
                     executionId
                     nodeId
@@ -155,11 +159,11 @@ class DiPeoGraphQLClient:
         """)
         
         input_data = {
-            "execution_id": execution_id,
+            "executionId": execution_id,
             "action": action
         }
         if node_id and action == "skip_node":
-            input_data["node_id"] = node_id
+            input_data["nodeId"] = node_id
             
         result = await self._client.execute_async(
             mutation,
@@ -192,8 +196,8 @@ class DiPeoGraphQLClient:
             mutation,
             variable_values={
                 "input": {
-                    "execution_id": execution_id,
-                    "node_id": node_id,
+                    "executionId": execution_id,
+                    "nodeId": node_id,
                     "response": response
                 }
             }

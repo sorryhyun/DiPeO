@@ -17,10 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import routers and middleware
-from src.api.routers import (
-    websocket_router,
-    health_router
-)
+from src.api.routers import health_router
 from src.api.middleware import setup_middleware
 
 # Import lifespan from dependencies
@@ -48,15 +45,6 @@ setup_middleware(app)
 if is_router_enabled("health"):
     app.include_router(health_router)
     logger.info("Health endpoints enabled")
-    
-if is_router_enabled("websocket"):
-    app.include_router(websocket_router)
-    logger.info("WebSocket endpoint enabled for CLI support")
-else:
-    logger.warning(
-        "WebSocket endpoint is DISABLED. CLI users must use --use-graphql flag. "
-        "To re-enable WebSocket, unset DISABLE_WEBSOCKET environment variable."
-    )
 
 # Always include GraphQL router
 graphql_router = create_graphql_router(context_getter=get_graphql_context)
@@ -109,27 +97,26 @@ def start():
     # Multi-worker support for better parallel execution
     config.workers = int(os.environ.get("WORKERS", 4))
     
-    # Redis configuration for multi-worker WebSocket support
+    # Redis configuration for multi-worker support
     # Set REDIS_URL environment variable (e.g., redis://localhost:6379/0)
-    # Without Redis, WebSocket connections will only work with WORKERS=1
     redis_url = os.environ.get("REDIS_URL")
     if config.workers > 1 and not redis_url:
         logger.warning(
             "Running with multiple workers without Redis. "
-            "WebSocket connections may fail. Set REDIS_URL or use WORKERS=1"
+            "GraphQL subscriptions require Redis for multi-worker support."
         )
     
-    # Graceful timeout for WebSocket connections
+    # Graceful timeout
     config.graceful_timeout = 30.0
     
     # Access and error logging
     config.accesslog = "-"
     config.errorlog = "-"
     
-    # Keep alive for long-running WebSocket connections
+    # Keep alive for long-running connections
     config.keep_alive_timeout = 75.0
     
-    # Enable HTTP/2 for better WebSocket multiplexing
+    # Enable HTTP/2
     config.h2_max_concurrent_streams = 100
     
     # Note: Hypercorn doesn't support hot reload like uvicorn

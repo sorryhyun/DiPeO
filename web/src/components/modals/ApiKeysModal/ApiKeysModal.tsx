@@ -4,7 +4,7 @@ import { DomainApiKey, apiKeyId, createErrorHandlerFactory, ApiKeyID } from '@/t
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { useApiKeyOperationsGraphQL } from '@/hooks/useApiKeyOperationsGraphQL';
+import { useApiKeyOperations } from '@/hooks/useApiKeyOperations';
 
 interface ApiKeysModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const { apiKeys } = useUnifiedStore();
   
   // Use GraphQL operations for API key management
-  const graphQLOperations = useApiKeyOperationsGraphQL();
+  const graphQLOperations = useApiKeyOperations();
   
   // Convert Map to array for display
   const apiKeysArray = graphQLOperations.apiKeys;

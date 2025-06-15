@@ -20,6 +20,7 @@ from ...converters import converter_registry
 from ..context import GraphQLContext
 from ..types.results import FileUploadResult
 from ..types.scalars import DiagramID
+from ..types.enums import DiagramFormat
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class DiagramUploadResult:
     """Result of a diagram file upload."""
     success: bool
     message: str
-    diagram_id: Optional[str] = None
+    diagram_id: Optional[DiagramID] = None
     diagram_name: Optional[str] = None
     node_count: Optional[int] = None
     format_detected: Optional[str] = None
@@ -162,13 +163,13 @@ class UploadMutations:
                     # Try to infer from extension
                     ext = Path(filename).suffix.lower()
                     if 'light' in filename:
-                        detected_format = 'light'
+                        detected_format = DiagramFormat.LIGHT.value
                     elif 'readable' in filename:
-                        detected_format = 'readable'
+                        detected_format = DiagramFormat.READABLE.value
                     elif 'llm' in filename:
-                        detected_format = 'llm'
+                        detected_format = DiagramFormat.LLM.value
                     else:
-                        detected_format = 'native'  # Default
+                        detected_format = DiagramFormat.NATIVE.value  # Default
             
             # Get converter
             converter = converter_registry.get(detected_format)
@@ -238,8 +239,8 @@ class UploadMutations:
     @strawberry.mutation
     async def export_diagram(
         self,
-        diagram_id: str,
-        format: str = "native",
+        diagram_id: DiagramID,
+        format: DiagramFormat = DiagramFormat.NATIVE,
         include_metadata: bool = True,
         info: strawberry.Info = None
     ) -> DiagramExportResult:
@@ -256,19 +257,19 @@ class UploadMutations:
         
         try:
             # Get converter
-            converter = converter_registry.get(format)
+            converter = converter_registry.get(format.value)
             if not converter:
                 return DiagramExportResult(
                     success=False,
-                    error=f"Unknown format: {format}"
+                    error=f"Unknown format: {format.value}"
                 )
             
             # Check if format supports export
-            format_info = converter_registry.get_info(format)
+            format_info = converter_registry.get_info(format.value)
             if not format_info.get('supports_export', True):
                 return DiagramExportResult(
                     success=False,
-                    error=f"Format '{format}' does not support export"
+                    error=f"Format '{format.value}' does not support export"
                 )
             
             # Fetch diagram
@@ -296,9 +297,9 @@ class UploadMutations:
             
             return DiagramExportResult(
                 success=True,
-                message=f"Exported as {format} format",
+                message=f"Exported as {format.value} format",
                 content=content,
-                format=format,
+                format=format.value,
                 filename=filename
             )
             
@@ -384,7 +385,7 @@ class UploadMutations:
     def _domain_to_storage_format(self, diagram: DomainDiagram) -> Dict[str, Any]:
         """Convert domain diagram to storage format (dict)."""
         # Use native converter for storage
-        converter = converter_registry.get('native')
+        converter = converter_registry.get(DiagramFormat.NATIVE.value)
         yaml_str = converter.serialize(diagram)
         return yaml.safe_load(yaml_str)
     
@@ -392,5 +393,5 @@ class UploadMutations:
         """Convert storage format to domain diagram."""
         # Convert dict to YAML string then parse with native converter
         yaml_str = yaml.dump(data, default_flow_style=False)
-        converter = converter_registry.get('native')
+        converter = converter_registry.get(DiagramFormat.NATIVE.value)
         return converter.deserialize(yaml_str)

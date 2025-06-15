@@ -4,13 +4,23 @@
  */
 
 import { toast } from 'react-hot-toast';
-import { getApiUrl, API_ENDPOINTS } from './api/config';
 import { createLookupTable } from './dispatchTable';
-import { shouldUseGraphQL } from '@/config/featureFlags';
-import { saveDiagramToBackendGraphQL } from './fileGraphQL';
-import type { DiagramID } from '@/__generated__/graphql';
+import { apolloClient } from '@/graphql/client';
+import { 
+  SaveDiagramDocument,
+  type SaveDiagramMutation,
+  type SaveDiagramMutationVariables,
+  UploadFileDocument,
+  type UploadFileMutation,
+  type UploadFileMutationVariables,
+  UploadDiagramDocument,
+  type UploadDiagramMutation,
+  type UploadDiagramMutationVariables,
+  DiagramFormat
+} from '@/__generated__/graphql';
+import type { DiagramID } from '../types/branded';
 
-export type FileFormat = 'light' | 'native' | 'readable' | 'llm-readable';
+export type FileFormat = DiagramFormat;
 
 export interface ReadFileOptions {
   acceptedTypes?: string;
@@ -24,7 +34,7 @@ export interface SaveFileOptions {
 }
 
 export interface FileFormatInfo {
-  format: FileFormat;
+  format: DiagramFormat;
   isLLMFormat: boolean;
 }
 
@@ -120,45 +130,41 @@ export const downloadEnhanced = async (
 };
 
 /**
- * Save diagram to backend
- * @param diagram - The serialized diagram content (parsed YAML object) or diagram ID for GraphQL
- * @param options - Save options including format and filename
+ * Save diagram to backend using GraphQL
+ * @param diagramId - The diagram ID (file path)
+ * @param options - Save options including format
  */
 export const saveDiagramToBackend = async (
-  diagram: any,
+  diagramId: DiagramID,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
-  // Use GraphQL if enabled and diagram is a string (diagram ID)
-  if (shouldUseGraphQL() && typeof diagram === 'string') {
-    return saveDiagramToBackendGraphQL(diagram as DiagramID, options);
-  }
-  
-  // Fall back to REST API
   try {
-    const response = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        diagram,
-        filename: options.filename || options.defaultFilename || 'diagram',
-        format: options.format
-      }),
+    const { data } = await apolloClient.mutate<SaveDiagramMutation, SaveDiagramMutationVariables>({
+      mutation: SaveDiagramDocument,
+      variables: {
+        diagramId,
+        format: options.format || undefined
+      }
     });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to save file: ${response.statusText}`);
+    if (!data?.saveDiagram.success) {
+      throw new Error(data?.saveDiagram.error || 'Failed to save diagram');
     }
     
-    const result = await response.json();
+    // Extract filename from the message or use the diagram name
+    const filename = data.saveDiagram.diagram?.metadata?.name || 
+                    options.filename || 
+                    options.defaultFilename || 
+                    'diagram';
+    
     return {
       success: true,
-      filename: result.filename
+      filename: filename.endsWith('.yaml') || filename.endsWith('.yml') || filename.endsWith('.json') 
+        ? filename 
+        : `${filename}.yaml`
     };
   } catch (error) {
-    console.error('[Save diagram]', error);
+    console.error('[Save diagram GraphQL]', error);
     toast.error(`Save diagram: ${(error as Error).message}`);
     throw error;
   }
@@ -171,59 +177,164 @@ export const saveDiagramToBackend = async (
 export const detectFileFormat = (content: string, filename?: string): FileFormatInfo => {
   if (!filename) {
     // Default to native format if no filename provided
-    return { format: 'native', isLLMFormat: false };
+    return { format: DiagramFormat.Native, isLLMFormat: false };
   }
   
   // Check for specific format extensions in filename
   if (filename.includes('.native.yaml') || filename.includes('.native.yml')) {
-    return { format: 'native', isLLMFormat: false };
+    return { format: DiagramFormat.Native, isLLMFormat: false };
   }
   
   if (filename.includes('.readable.yaml') || filename.includes('.readable.yml')) {
-    return { format: 'readable', isLLMFormat: false };
+    return { format: DiagramFormat.Readable, isLLMFormat: false };
   }
   
   if (filename.includes('.llm.yaml') || filename.includes('.llm.yml') || filename.includes('.llm-readable')) {
-    return { format: 'llm-readable', isLLMFormat: true };
+    return { format: DiagramFormat.Llm, isLLMFormat: true };
   }
   
   // For plain .yaml or .yml files, default to light format
   const ext = filename.split('.').pop()?.toLowerCase();
   if (ext === 'yaml' || ext === 'yml') {
-    return { format: 'light', isLLMFormat: false };
+    return { format: DiagramFormat.Light, isLLMFormat: false };
   }
   
   // Default to native format for unrecognized extensions
-  return { format: 'native', isLLMFormat: false };
+  return { format: DiagramFormat.Native, isLLMFormat: false };
 };
 
 // Create lookup tables for file format mappings
-const mimeTypeLookup = createLookupTable<FileFormat, string>({
-  'light': 'text/yaml',
-  'native': 'text/yaml',
-  'readable': 'text/yaml',
-  'llm-readable': 'text/yaml'
+const mimeTypeLookup = createLookupTable<DiagramFormat, string>({
+  [DiagramFormat.Light]: 'text/yaml',
+  [DiagramFormat.Native]: 'text/yaml',
+  [DiagramFormat.Readable]: 'text/yaml',
+  [DiagramFormat.Llm]: 'text/yaml'
 });
 
-const fileExtensionLookup = createLookupTable<FileFormat, string>({
-  'light': '.yaml',
-  'native': '.native.yaml',
-  'readable': '.readable.yaml',
-  'llm-readable': '.llm-readable.yaml'
+const fileExtensionLookup = createLookupTable<DiagramFormat, string>({
+  [DiagramFormat.Light]: '.yaml',
+  [DiagramFormat.Native]: '.native.yaml',
+  [DiagramFormat.Readable]: '.readable.yaml',
+  [DiagramFormat.Llm]: '.llm-readable.yaml'
 });
 
 /**
  * Get MIME type for format
  */
-export const getMimeType = (format: FileFormat): string => {
+export const getMimeType = (format: DiagramFormat): string => {
   return mimeTypeLookup(format) || 'text/plain';
 };
 
 /**
  * Get file extension for format
  */
-export const getFileExtension = (format: FileFormat): string => {
+export const getFileExtension = (format: DiagramFormat): string => {
   return fileExtensionLookup(format) || '.txt';
+};
+
+/**
+ * Upload diagram file using GraphQL
+ */
+export const uploadDiagram = async (file: File, format?: DiagramFormat): Promise<{
+  success: boolean;
+  diagramId?: string;
+  diagramName?: string;
+  nodeCount?: number;
+  message: string;
+}> => {
+  try {
+    const { data } = await apolloClient.mutate<UploadDiagramMutation, UploadDiagramMutationVariables>({
+      mutation: UploadDiagramDocument,
+      variables: {
+        file,
+        format,
+        validateOnly: false
+      }
+    });
+    
+    if (!data?.uploadDiagram.success) {
+      throw new Error(data?.uploadDiagram.message || 'Failed to upload diagram');
+    }
+    
+    return {
+      success: true,
+      diagramId: data.uploadDiagram.diagramId || undefined,
+      diagramName: data.uploadDiagram.diagramName || undefined,
+      nodeCount: data.uploadDiagram.nodeCount || undefined,
+      message: data.uploadDiagram.message
+    };
+  } catch (error) {
+    console.error('[Upload diagram GraphQL]', error);
+    const message = (error as Error).message;
+    toast.error(`Upload diagram: ${message}`);
+    return {
+      success: false,
+      message
+    };
+  }
+};
+
+/**
+ * Upload a generic file using GraphQL
+ */
+export const uploadFile = async (
+  filename: string,
+  contentBase64: string,
+  contentType?: string
+): Promise<{
+  success: boolean;
+  path?: string;
+  sizeBytes?: number;
+  message?: string;
+}> => {
+  try {
+    const { data } = await apolloClient.mutate<UploadFileMutation, UploadFileMutationVariables>({
+      mutation: UploadFileDocument,
+      variables: {
+        input: {
+          filename,
+          contentBase64,
+          contentType
+        }
+      }
+    });
+    
+    if (!data?.uploadFile.success) {
+      throw new Error(data?.uploadFile.error || 'Failed to upload file');
+    }
+    
+    return {
+      success: true,
+      path: data.uploadFile.path || undefined,
+      sizeBytes: data.uploadFile.sizeBytes || undefined,
+      message: data.uploadFile.message || undefined
+    };
+  } catch (error) {
+    console.error('[Upload file GraphQL]', error);
+    const message = (error as Error).message;
+    toast.error(`Upload file: ${message}`);
+    return {
+      success: false,
+      message
+    };
+  }
+};
+
+/**
+ * Helper function to convert File to base64
+ */
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      // Remove the data URL prefix (e.g., "data:text/plain;base64,")
+      const base64Content = base64.split(',')[1];
+      resolve(base64Content);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 };
 
 /**

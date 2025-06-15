@@ -7,14 +7,3 @@ export type {
   NodeState,
   Snapshot
 } from './unifiedStore.types';
-
-// Export the DiagramExporter class and its types
-export { DiagramExporter } from './diagramExporter';
-export type {
-  ExportFormat,
-  ExportedNode,
-  ExportedArrow,
-  ExportedPerson,
-  ExportedApiKey,
-  ExportedHandle
-} from './diagramExporter';

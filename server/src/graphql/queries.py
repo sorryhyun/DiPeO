@@ -103,7 +103,6 @@ class Query:
             "supported_node_types": [t.value for t in NodeType],
             "supported_llm_services": [s.value for s in LLMService],
             "max_upload_size_mb": 100,
-            "websocket_url": "/api/ws",
             "graphql_subscriptions_enabled": True
         }
     

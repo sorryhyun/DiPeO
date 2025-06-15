@@ -5,7 +5,7 @@ This replaces the manual type definitions with automatic conversions.
 import strawberry
 from typing import Optional, List
 
-from ..types.scalars import JSONScalar
+from ..types.scalars import JSONScalar, DiagramID, ExecutionID
 
 from ...domain import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
@@ -13,7 +13,8 @@ from ...domain import (
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,
     TokenUsage as PydanticTokenUsage,
-    Vec2 as PydanticVec2
+    Vec2 as PydanticVec2,
+    DiagramFormat
 )
 
 # Convert basic types
@@ -142,9 +143,9 @@ class Diagram:
 @strawberry.experimental.pydantic.type(model=PydanticExecutionState)
 class ExecutionState:
     """Current state of a diagram execution."""
-    id: strawberry.auto
+    id: ExecutionID
     status: strawberry.auto
-    diagram_id: strawberry.auto
+    diagram_id: DiagramID
     started_at: strawberry.auto
     ended_at: strawberry.auto
     running_nodes: strawberry.auto

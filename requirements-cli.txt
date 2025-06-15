@@ -4,12 +4,6 @@
 # Core dependencies
 requests>=2.31.0,<3.0.0
 pyyaml>=6.0,<7.0
-websockets>=12.0,<13.0  # Keep for transition period
 
 # GraphQL dependencies
-gql>=3.5.0,<4.0.0  # GraphQL client
-gql[aiohttp]>=3.5.0,<4.0.0  # Async HTTP transport
-gql[websockets]>=3.5.0,<4.0.0  # WebSocket transport for subscriptions
-
-# For async operations
-asyncio  # Built-in, but listing for clarity
+gql[aiohttp,websockets]>=3.5.0,<4.0.0  # GraphQL client with both transports

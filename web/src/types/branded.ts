@@ -7,6 +7,7 @@ export type PersonID = Brand<string, 'PersonID'>;
 export type ApiKeyID = Brand<string, 'ApiKeyID'>;
 export type ExecutionID = Brand<string, 'ExecutionID'>;
 export type MessageID = Brand<string, 'MessageID'>;
+export type DiagramID = Brand<string, 'DiagramID'>;
 
 
 // Helper functions for creating branded types
@@ -17,6 +18,7 @@ export const personId = (id: string): PersonID => id as PersonID;
 export const apiKeyId = (id: string): ApiKeyID => id as ApiKeyID;
 export const executionId = (id: string): ExecutionID => id as ExecutionID;
 export const messageId = (id: string): MessageID => id as MessageID;
+export const diagramId = (id: string): DiagramID => id as DiagramID;
 
 // Handle ID utilities
 export const createHandleId = (nodeId: NodeID, handleName: string): HandleID => {
@@ -55,5 +57,8 @@ export const isExecutionId = (id: string): id is ExecutionID => {
   return /^[a-zA-Z0-9_-]+$/.test(id);
 };
 export const isMessageId = (id: string): id is MessageID => {
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+};
+export const isDiagramId = (id: string): id is DiagramID => {
   return /^[a-zA-Z0-9_-]+$/.test(id);
 };

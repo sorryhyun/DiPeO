@@ -16,6 +16,7 @@ from ...converters import converter_registry
 from ..context import GraphQLContext
 from ..types.results import OperationError
 from ..types.scalars import DiagramID
+from ..types.enums import DiagramFormat
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ class DiagramFileMutations:
                     if ext == '.json':
                         detected_format = 'json'
                     else:
-                        detected_format = 'native'  # Default
+                        detected_format = DiagramFormat.NATIVE.value  # Default
             
             # Get converter
             converter = converter_registry.get(detected_format)
@@ -184,8 +185,8 @@ class DiagramFileMutations:
     async def export_diagram(
         self,
         info: strawberry.Info[GraphQLContext],
-        diagram_id: str,
-        format: str = "native",
+        diagram_id: DiagramID,
+        format: DiagramFormat = DiagramFormat.NATIVE,
         include_metadata: bool = True
     ) -> DiagramExportResult:
         """
@@ -198,20 +199,20 @@ class DiagramFileMutations:
         """
         try:
             # Get converter
-            converter = converter_registry.get(format)
+            converter = converter_registry.get(format.value)
             if not converter:
                 return DiagramExportResult(
                     success=False,
-                    message=f"Unknown format: {format}",
+                    message=f"Unknown format: {format.value}",
                     error="Format not supported"
                 )
             
             # Check if format supports export
-            format_info = converter_registry.get_info(format)
+            format_info = converter_registry.get_info(format.value)
             if not format_info.get('supports_export', True):
                 return DiagramExportResult(
                     success=False,
-                    message=f"Format '{format}' does not support export",
+                    message=f"Format '{format.value}' does not support export",
                     error="Export not supported for this format"
                 )
             
@@ -245,9 +246,9 @@ class DiagramFileMutations:
             
             return DiagramExportResult(
                 success=True,
-                message=f"Exported as {format} format",
+                message=f"Exported as {format.value} format",
                 content=content,
-                format=format,
+                format=format.value,
                 filename=filename
             )
             

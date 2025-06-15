@@ -12,6 +12,7 @@ from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
+from ..domain import DiagramID
 
 logger = logging.getLogger(__name__)
 
@@ -451,7 +452,7 @@ class DiagramService(BaseService):
         
         return diagram_id
     
-    async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]:
+    async def get_diagram(self, diagram_id: DiagramID) -> Optional[Dict[str, Any]]:
         """Get a diagram by ID.
         
         Args:

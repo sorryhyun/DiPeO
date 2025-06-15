@@ -1,9 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
+import { useGetConversationsQuery } from '@/__generated__/graphql';
 import type { ConversationFilters, ConversationMessage, PersonMemoryConfig, PersonMemoryState, PersonID } from '@/types';
-import { useConversationDataGraphQL } from './useConversationDataGraphQL';
-import { shouldUseGraphQL } from '@/config/featureFlags';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -14,98 +12,94 @@ export interface UseConversationDataOptions {
 }
 
 export const useConversationData = (options: UseConversationDataOptions | ConversationFilters) => {
-  // Use GraphQL version if feature flag is enabled
-  if (shouldUseGraphQL()) {
-    return useConversationDataGraphQL(options);
-  }
   // Support both old and new API for backward compatibility
   const { filters, personId = null, enableRealtimeUpdates = true } = 
     'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true };
-  const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
+  const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const lastUpdateTime = useRef<string | null>(null);
   const messageCounts = useRef<Record<string, number>>({});
 
-  // Main fetch function
-  const fetchConversationData = useCallback(async (
-    personId?: PersonID,
-    append: boolean = false,
-    since?: string
-  ) => {
-    if (append) {
-      setIsLoadingMore(true);
-    } else {
-      setIsLoading(true);
-    }
-    
-    setError(null);
-
-    try {
-      // Build params with functional state update to avoid stale closure
-      const params = new URLSearchParams({
-        limit: MESSAGES_PER_PAGE.toString(),
-        ...(personId && { personId }),
-        ...(since && { since }),
-        ...(filters.searchTerm && { search: filters.searchTerm }),
-        ...(filters.executionId && { executionId: filters.executionId }),
-        ...(filters.showForgotten && { showForgotten: 'true' }),
-        ...(filters.startTime && { startTime: filters.startTime }),
-        ...(filters.endTime && { endTime: filters.endTime }),
-      });
-
-      // Add offset for pagination
-      if (append && personId && messageCounts.current[personId]) {
-        params.append('offset', messageCounts.current[personId].toString());
-      }
-
-      const res = await fetch(`${getApiUrl(API_ENDPOINTS.CONVERSATIONS)}?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-
-        if (append && personId) {
-          // Append to existing messages using functional update
-          setConversationData(prev => {
-            const newData = {
-              ...prev,
-              [personId]: {
-                ...data.persons[personId],
-                messages: [...(prev[personId]?.messages || []), ...data.persons[personId].messages],
-              }
-            };
-            // Update message counts ref
-            messageCounts.current[personId] = newData[personId].messages.length;
-            return newData;
-          });
-        } else {
-          // Replace data
-          setConversationData(data.persons);
-          // Update message counts ref for all persons
-          Object.keys(data.persons).forEach(pid => {
-            messageCounts.current[pid] = data.persons[pid].messages.length;
-          });
-        }
-
-        // Update last fetch time
-        if (personId && data.persons[personId]?.messages.length > 0) {
-          const lastMsg = data.persons[personId].messages[data.persons[personId].messages.length - 1];
-          lastUpdateTime.current = lastMsg.timestamp;
-        }
-      } else {
-        throw new Error(`Failed to fetch conversations: ${res.statusText}`);
-      }
-    } catch (error) {
+  // GraphQL query with automatic loading state
+  const { data, loading, error, refetch, fetchMore } = useGetConversationsQuery({
+    variables: {
+      personId: personId || undefined,
+      executionId: filters.executionId || undefined,
+      search: filters.searchTerm || undefined,
+      showForgotten: filters.showForgotten || false,
+      limit: MESSAGES_PER_PAGE,
+      offset: 0,
+      since: filters.startTime ? new Date(filters.startTime) : undefined
+    },
+    // Skip query if no filters are set
+    skip: false,
+    // Poll for updates every 5 seconds when realtime updates are enabled
+    pollInterval: enableRealtimeUpdates ? 5000 : 0,
+    // Error handling
+    onError: (error) => {
       console.error('Failed to fetch conversation data:', error);
-      const errorMessage = 'Failed to load conversations';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      toast.error('Failed to load conversations');
     }
-  }, [filters]);
+  });
+
+  // Transform GraphQL response to match expected format
+  useEffect(() => {
+    if (data?.conversations) {
+      const conversationsData = data.conversations as any;
+      const transformed: Record<string, PersonMemoryState> = {};
+      
+      // Group conversations by personId
+      const groupedByPerson: Record<string, any[]> = {};
+      conversationsData.conversations?.forEach((conv: any) => {
+        const pid = conv.personId;
+        if (!groupedByPerson[pid]) {
+          groupedByPerson[pid] = [];
+        }
+        groupedByPerson[pid].push(conv);
+      });
+      
+      // Transform to PersonMemoryState format
+      Object.entries(groupedByPerson).forEach(([pid, convs]) => {
+        transformed[pid as PersonID] = {
+          personId: pid as PersonID,
+          label: '', // This would need to be fetched from person data
+          service: 'openai', // Default, should come from person data
+          model: 'gpt-4.1-nano', // Default, should come from person data
+          messages: convs.map((conv: any) => ({
+            id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
+            role: 'assistant' as const,
+            content: conv.assistantResponse || '',
+            timestamp: conv.timestamp,
+            tokenCount: conv.tokenUsage?.total || 0,
+            // Additional fields for internal use
+            nodeId: conv.nodeId,
+            userPrompt: conv.userPrompt,
+            executionId: conv.executionId,
+            forgotten: conv.forgotten || false
+          })),
+          conversationCount: convs.length,
+          visibleMessages: convs.filter((c: any) => !c.forgotten).length,
+          hasMore: conversationsData.has_more || false,
+          lastCleared: null,
+          memoryConfig: {
+            mode: 'sliding_window',
+            maxMessages: 20
+          } as PersonMemoryConfig
+        };
+        
+        // Update message counts
+        messageCounts.current[pid] = convs.length;
+        
+        // Update last fetch time
+        if (convs.length > 0) {
+          lastUpdateTime.current = convs[convs.length - 1].timestamp;
+        }
+      });
+      
+      setConversationData(transformed);
+    }
+  }, [data]);
 
   // Add new message to conversation data
   const addMessage = useCallback((personId: PersonID, message: ConversationMessage) => {
@@ -129,23 +123,70 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
 
   // Refresh data for a specific person or all
   const refresh = useCallback((personId?: PersonID) => {
-    return fetchConversationData(personId);
-  }, [fetchConversationData]);
+    return refetch({
+      personId: personId || undefined,
+      executionId: filters.executionId || undefined,
+      search: filters.searchTerm || undefined,
+      showForgotten: filters.showForgotten || false,
+      limit: MESSAGES_PER_PAGE,
+      offset: 0,
+      since: filters.startTime ? new Date(filters.startTime) : undefined
+    });
+  }, [refetch, filters]);
 
   // Load more messages for pagination
-  const fetchMore = useCallback((personId: PersonID) => {
+  const fetchMore = useCallback(async (personId: PersonID) => {
     const personData = conversationData[personId];
-    if (personData?.hasMore && !isLoadingMore) {
-      return fetchConversationData(personId, true);
+    if (!personData?.hasMore || isLoadingMore) return;
+    
+    setIsLoadingMore(true);
+    
+    try {
+      const currentOffset = messageCounts.current[personId] || 0;
+      const result = await fetchMore({
+        variables: {
+          personId,
+          offset: currentOffset,
+          limit: MESSAGES_PER_PAGE
+        },
+        updateQuery: (prev, { fetchMoreResult }) => {
+          if (!fetchMoreResult) return prev;
+          
+          const newData = fetchMoreResult.conversations as any;
+          const prevData = prev.conversations as any;
+          
+          return {
+            conversations: {
+              ...prevData,
+              conversations: [
+                ...(prevData.conversations || []),
+                ...(newData.conversations || [])
+              ],
+              has_more: newData.has_more
+            }
+          };
+        }
+      });
+      
+      // Update message count
+      if (result.data) {
+        const newMessages = (result.data.conversations as any).conversations || [];
+        messageCounts.current[personId] = currentOffset + newMessages.length;
+      }
+    } catch (error) {
+      console.error('Failed to fetch more messages:', error);
+      toast.error('Failed to load more messages');
+    } finally {
+      setIsLoadingMore(false);
     }
-  }, [conversationData, isLoadingMore, fetchConversationData]);
+  }, [conversationData, isLoadingMore, fetchMore]);
 
   // Apply filters and refresh
   const applyFilters = useCallback(() => {
-    return fetchConversationData();
-  }, [fetchConversationData]);
+    return refresh();
+  }, [refresh]);
 
-  // Real-time message polling via WebSocket events (consolidated from useMessagePolling)
+  // Real-time message updates via WebSocket events
   useEffect(() => {
     if (!enableRealtimeUpdates) return;
 
@@ -171,16 +212,15 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
 
   return {
     conversationData,
-    isLoading,
+    isLoading: loading,
     isLoadingMore,
-    error,
+    error: error?.message || null,
     lastUpdateTime: lastUpdateTime.current,
-    fetchConversationData,
+    fetchConversationData: refresh,
     addMessage,
     refresh,
     fetchMore,
     applyFilters,
-    // Realtime updates now built-in
     enableRealtimeUpdates,
   };
 };

@@ -22,7 +22,7 @@ from ...input_models import (
 )
 
 from .scalars import (
-    JSONScalar
+    JSONScalar, DiagramID
 )
 # Enums are handled through Pydantic models, no need to import separately
 
@@ -72,7 +72,7 @@ class CreateDiagramInput:
 
 @strawberry.experimental.pydantic.input(model=PydanticExecuteDiagramInput)
 class ExecuteDiagramInput:
-    diagram_id: strawberry.auto
+    diagram_id: DiagramID
     variables: Optional[JSONScalar] = None
     debug_mode: strawberry.auto
     timeout_seconds: strawberry.auto

@@ -10,6 +10,12 @@ and not part of the core domain model.
 import strawberry
 from enum import Enum
 
+# Import domain enums that need to be exposed in GraphQL
+from ...domain import DiagramFormat as DomainDiagramFormat
+
+# Create strawberry enum from domain enum
+DiagramFormat = strawberry.enum(DomainDiagramFormat)
+
 # EventType is specific to GraphQL subscriptions and not part of the core domain
 @strawberry.enum
 class EventType(Enum):

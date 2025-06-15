@@ -4,7 +4,7 @@ import { useUIState } from './useStoreSelectors';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
 import { useDiagramManager } from './useDiagramManager';
-import { useExecutionProvider } from './useExecutionProvider';
+import { useExecution } from './useExecution';
 import { usePropertyManager } from './usePropertyManager';
 import { useFileOperations } from './useFileOperations';
 import type { 
@@ -95,7 +95,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
   
   // Additional execution hook for realtime features
-  const realtime = useExecutionProvider({
+  const realtime = useExecution({
     autoConnect,
     enableMonitoring,
     showToasts: false,

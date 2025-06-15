@@ -1,7 +1,5 @@
 export * from './api';
 export * from './file';
-export * from './websocket';
-export * from './converters';
 export * from './node';
 export * from './trpc';
 export * from './geometry';

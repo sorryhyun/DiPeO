@@ -1,6 +1,5 @@
 import { Draft } from 'immer';
 import { UnifiedStore } from '../unifiedStore.types';
-import { DiagramExporter } from '../diagramExporter';
 import { logger } from '@/utils/logger';
 import {
   NodeID, ArrowID, PersonID, ApiKeyID, HandleID,
@@ -129,42 +128,8 @@ export function createImportState() {
   };
 }
 
-// Import handler
+// DEPRECATED: Import handler - use GraphQL operations instead
 export function importDiagram(state: Draft<UnifiedStore>, data: any) {
-  const exportData = typeof data === 'string' ? JSON.parse(data) : data;
-  
-  // Validate first
-  const validation = new DiagramExporter(state as any).validateExportData(exportData);
-  if (!validation.valid) {
-    throw new Error(`Invalid export data: ${validation.errors.join(', ')}`);
-  }
-  
-  // Clear existing data
-  state.nodes = new Map();
-  state.arrows = new Map();
-  state.persons = new Map();
-  state.handles = new Map();
-  state.apiKeys = new Map();
-  
-  // Create import state and run import
-  const importState = createImportState();
-  const exporter = new DiagramExporter(importState as any);
-  exporter.importDiagram(exportData);
-  
-  // Log import results
-  logger.debug('Import complete:', {
-    nodes: importState.nodes.size,
-    arrows: importState.arrows.size,
-    handles: importState.handles.size,
-    persons: importState.persons.size,
-    apiKeys: importState.apiKeys.size
-  });
-  
-  // Copy back to actual state
-  state.nodes = importState.nodes;
-  state.arrows = importState.arrows;
-  state.persons = importState.persons;
-  state.handles = importState.handles as any;
-  state.apiKeys = importState.apiKeys;
-  state.dataVersion = 0;
+  logger.warn('importDiagram helper is deprecated. Use GraphQL operations for import/export.');
+  // This function is no longer used as import/export is handled by the backend
 }

@@ -2,7 +2,7 @@
 Enhanced domain models for GraphQL integration using Pydantic as single source of truth.
 These models will be used with @strawberry.experimental.pydantic.type decorator.
 """
-from typing import Dict, Optional, List, Any, Union
+from typing import Dict, Optional, List, Any, Union, Final
 from pydantic import BaseModel, Field, computed_field
 from datetime import datetime
 from enum import Enum
@@ -53,6 +53,12 @@ class ForgettingMode(str, Enum):
             return cls.NONE
         return None
 
+class DiagramFormat(str, Enum):
+    NATIVE = "native"
+    LIGHT = "light"
+    READABLE = "readable"
+    LLM = "llm"
+
 class ExecutionStatus(str, Enum):
     STARTED = "started"
     RUNNING = "running"
@@ -60,6 +66,21 @@ class ExecutionStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     ABORTED = "aborted"
+
+class DBBlockSubType(str, Enum):
+    FIXED_PROMPT = "fixed_prompt"
+    FILE = "file"
+    CODE = "code"
+
+class ContentType(str, Enum):
+    VARIABLE = "variable"
+    RAW_TEXT = "raw_text"
+    CONVERSATION_STATE = "conversation_state"
+
+class ContextCleaningRule(str, Enum):
+    ON_EVERY_TURN = "on_every_turn"
+    UPON_REQUEST = "upon_request"
+    NO_FORGET = "no_forget"
 
 # Type aliases
 NodeID = str
@@ -274,3 +295,40 @@ class ExecutionEvent(BaseModel):
             error = self.data.get('error', 'Unknown error') if isinstance(self.data, dict) else 'Unknown error'
             return f"Node {self.node_id} failed: {error}"
         return self.event_type.replace("_", " ").title()
+
+# Constants from constants.py
+API_BASE_PATH: Final[str] = "/api"
+DEFAULT_MAX_TOKENS: Final[int] = 4096
+DEFAULT_TEMPERATURE: Final[float] = 0.7
+
+SUPPORTED_DOC_EXTENSIONS: Final[set[str]] = {".txt", ".md", ".docx", ".pdf"}
+SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {".py", ".js", ".ts", ".json", ".yaml", ".yml"}
+
+# Service name mapping for normalization
+SERVICE_TO_PROVIDER_MAP: Final[dict[str, str]] = {
+    "openai": "openai",
+    "chatgpt": "openai",
+    "claude": "anthropic",
+    "anthropic": "anthropic",
+    "gemini": "google",
+    "google": "google",
+    "grok": "xai",
+    "xai": "xai",
+    "bedrock": "bedrock",
+    "vertex": "vertex",
+    "deepseek": "deepseek"
+}
+
+# Provider to LLM service enum mapping
+PROVIDER_TO_ENUM_MAP: Final[dict[str, LLMService]] = {
+    "openai": LLMService.OPENAI,
+    "anthropic": LLMService.ANTHROPIC,
+    "google": LLMService.GOOGLE,
+    "xai": LLMService.GROK,
+    "bedrock": LLMService.BEDROCK,
+    "vertex": LLMService.VERTEX,
+    "deepseek": LLMService.DEEPSEEK
+}
+
+# Default service when none specified
+DEFAULT_SERVICE: Final[str] = "openai"

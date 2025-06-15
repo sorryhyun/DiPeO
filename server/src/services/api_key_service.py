@@ -7,7 +7,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from ..exceptions import APIKeyError, ValidationError
 from ..utils.base_service import BaseService
-from ..constants import LLMService as LLMServiceEnum
+from ..domain import LLMService as LLMServiceEnum
 
 
 class APIKeyService(BaseService):

@@ -6,7 +6,7 @@ import base64
 
 from .domain import (
     NodeType, HandleDirection, DataType, LLMService, 
-    ForgettingMode, ExecutionStatus
+    ForgettingMode, ExecutionStatus, DiagramID
 )
 
 
@@ -166,7 +166,7 @@ class CreateDiagramInput(BaseModel):
 
 class ExecuteDiagramInput(BaseModel):
     """Input for executing a diagram."""
-    diagram_id: str
+    diagram_id: DiagramID
     variables: Optional[Dict[str, Any]] = None
     debug_mode: bool = False
     timeout_seconds: Optional[int] = Field(None, gt=0, description="Execution timeout in seconds")
@@ -223,7 +223,7 @@ class DiagramFilterInput(BaseModel):
 
 class ExecutionFilterInput(BaseModel):
     """Filter for querying executions."""
-    diagram_id: Optional[str] = None
+    diagram_id: Optional[DiagramID] = None
     status: Optional[ExecutionStatus] = None
     started_after: Optional[datetime] = None
     started_before: Optional[datetime] = None

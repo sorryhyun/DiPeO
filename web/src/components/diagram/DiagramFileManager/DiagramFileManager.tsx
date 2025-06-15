@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/buttons/Button';
 import { Select } from '@/components/ui/inputs/Select';
 import { useUnifiedStore } from '@/stores/unifiedStore';
+import { DiagramFormat } from '@/__generated__/graphql';
 
 // GraphQL mutations
 const UPLOAD_DIAGRAM = gql`
@@ -48,10 +49,10 @@ const LIST_FORMATS = gql`
 
 // Format options
 const EXPORT_FORMATS = [
-  { value: 'native', label: 'Native YAML', description: 'Full-fidelity format with all details' },
-  { value: 'light', label: 'Light YAML', description: 'Simplified format using labels' },
-  { value: 'readable', label: 'Readable Workflow', description: 'Human-friendly format' },
-  { value: 'llm', label: 'LLM-Friendly', description: 'Optimized for AI understanding' },
+  { value: DiagramFormat.Native, label: 'Native YAML', description: 'Full-fidelity format with all details' },
+  { value: DiagramFormat.Light, label: 'Light YAML', description: 'Simplified format using labels' },
+  { value: DiagramFormat.Readable, label: 'Readable Workflow', description: 'Human-friendly format' },
+  { value: DiagramFormat.Llm, label: 'LLM-Friendly', description: 'Optimized for AI understanding' },
 ];
 
 interface DiagramFileManagerProps {
@@ -60,7 +61,7 @@ interface DiagramFileManagerProps {
 
 export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ className }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState('native');
+  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.Native);
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   

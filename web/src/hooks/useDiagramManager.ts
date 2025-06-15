@@ -8,13 +8,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
-import { useExecutionProvider } from './useExecutionProvider';
+import { useExecution } from './useExecution';
 import { useFileOperations } from './useFileOperations';
 import { clearDiagram } from './useDiagramOperations';
 import { useExport } from './useExport';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import type { ExecutionOptions } from '@/types';
 import type { ExportFormat } from '@/stores';
+import { DiagramFormat } from '@/__generated__/graphql';
 
 // =====================
 // TYPES
@@ -50,7 +51,7 @@ export interface UseDiagramManagerReturn {
   saveDiagram: (filename?: string) => Promise<void>;
   loadDiagramFromFile: (file: File) => Promise<void>;
   loadDiagramFromUrl: (url: string) => Promise<void>;
-  exportDiagram: (format: 'native' | 'light' | 'readable' | 'llm-readable') => Promise<void>;
+  exportDiagram: (format: DiagramFormat) => Promise<void>;
   importDiagram: () => Promise<void>;
   
   // Execution
@@ -80,7 +81,7 @@ export interface UseDiagramManagerReturn {
   };
   
   // Internal - for composition with other hooks
-  _execution?: ReturnType<typeof useExecutionProvider>;
+  _execution?: ReturnType<typeof useExecution>;
 }
 
 // =====================
@@ -159,7 +160,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Get hooks
   const canvas = useCanvasOperations();
-  const execution = useExecutionProvider({ showToasts: false });
+  const execution = useExecution({ showToasts: false });
   const fileOps = useFileOperations();
   const exportHook = useExport();
   
@@ -211,7 +212,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || 'diagram';
       // Use 'light' format for simpler, label-based saving
-      await fileOps.saveDiagramToServer('light', defaultFilename);
+      await fileOps.saveDiagramToServer(DiagramFormat.Light, defaultFilename);
       setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
       setIsDirty(false);
       toast.success('Diagram saved successfully');
@@ -262,10 +263,10 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
   }, [confirmOnLoad, isDirty, fileOps]);
   
-  const exportDiagramAs = useCallback(async (format: 'native'|'light' | 'readable' | 'llm-readable') => {
+  const exportDiagramAs = useCallback(async (format: DiagramFormat) => {
     try {
       // Use unified export method with format
-      if (format === 'llm-readable') {
+      if (format === DiagramFormat.Llm) {
         toast.error('LLM-readable format is not yet implemented');
         return;
       }

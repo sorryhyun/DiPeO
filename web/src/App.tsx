@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
-import { useExecutionProvider, useUnifiedStore } from './hooks';
+import { useExecution, useUnifiedStore } from './hooks';
 import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './contexts/CanvasContext';
 
 // Lazy load heavy components
@@ -15,10 +15,8 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 function AppContent() {
   const { activeCanvas } = useCanvasUIState();
   const { setReadOnly } = useCanvasOperationsContext();
-  // Create the main execution connection (WebSocket or GraphQL based on feature flag)
-  const execution = useExecutionProvider({ autoConnect: true });
-  const params = new URLSearchParams(window.location.search);
-  const useWebSocket = params.get('useWebSocket') === 'true' || params.get('websocket') === 'true';
+  // Create the main execution connection (GraphQL-based)
+  const execution = useExecution({ autoConnect: true });
   
   useEffect(() => {
     const checkMonitorMode = () => {
@@ -46,13 +44,6 @@ function AppContent() {
   }, [setReadOnly]);
 
   // Don't create another connection - use the existing execution instance
-  
-  // Show WebSocket status when enabled via feature flag
-  useEffect(() => {
-    if (useWebSocket) {
-      console.log('[App] WebSocket monitoring enabled via feature flag');
-    }
-  }, [useWebSocket]);
   
   return (
     <div className="h-screen flex flex-col">

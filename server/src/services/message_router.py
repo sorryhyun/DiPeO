@@ -74,7 +74,7 @@ class MessageRouter:
         self._initialized = False
         
     async def register_connection(self, connection_id: str, handler: Callable):
-        """Register a WebSocket connection on this worker"""
+        """Register a connection handler on this worker"""
         if not self.redis_client:
             # Fallback to local-only mode
             self.local_handlers[connection_id] = handler
@@ -98,7 +98,7 @@ class MessageRouter:
         logger.debug(f"Registered connection {connection_id} on {self.worker_id}")
         
     async def unregister_connection(self, connection_id: str):
-        """Unregister a WebSocket connection"""
+        """Unregister a connection handler"""
         # Remove local handler
         self.local_handlers.pop(connection_id, None)
         
