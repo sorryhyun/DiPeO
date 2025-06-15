@@ -7,10 +7,9 @@ query GetPerson($id: PersonID!) {
     model
     apiKeyId
     systemPrompt
-    temperature
-    maxTokens
-    topP
     forgettingMode
+    maskedApiKey
+    type
   }
 }
 
@@ -22,10 +21,9 @@ query GetPersons($limit: Int = 100) {
     model
     apiKeyId
     systemPrompt
-    temperature
-    maxTokens
-    topP
     forgettingMode
+    maskedApiKey
+    type
   }
 }
 
@@ -40,10 +38,9 @@ mutation CreatePerson($diagramId: DiagramID!, $input: CreatePersonInput!) {
       model
       apiKeyId
       systemPrompt
-      temperature
-      maxTokens
-      topP
       forgettingMode
+      maskedApiKey
+      type
     }
     message
     error
@@ -60,10 +57,9 @@ mutation UpdatePerson($input: UpdatePersonInput!) {
       model
       apiKeyId
       systemPrompt
-      temperature
-      maxTokens
-      topP
       forgettingMode
+      maskedApiKey
+      type
     }
     message
     error

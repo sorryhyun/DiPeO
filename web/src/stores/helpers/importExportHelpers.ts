@@ -18,6 +18,8 @@ export function createNode(type: NodeKind, position: Vec2, initialData?: Record<
   const id = generateNodeId();
   const configDefaults = getNodeDefaults(type);
   
+  const label = initialData?.label || configDefaults.label || generateNodeLabel(type, id);
+  
   return {
     id,
     type,
@@ -28,8 +30,9 @@ export function createNode(type: NodeKind, position: Vec2, initialData?: Record<
     data: {
       ...configDefaults,
       ...initialData,
-      label: initialData?.label || configDefaults.label || generateNodeLabel(type, id),
+      label,
     },
+    displayName: label
   };
 }
 
@@ -51,13 +54,13 @@ export function createImportState() {
     // Minimal set of methods needed for import
     addNode: (type: NodeKind, position: Vec2, initialData?: Record<string, unknown>) => {
       const node = createNode(type, position, initialData);
-      nodes.set(node.id, node);
+      nodes.set(node.id as NodeID, node);
       
       // Auto-generate handles
       const nodeConfig = getNodeConfig(type);
       if (nodeConfig) {
-        const nodeHandles = generateNodeHandles(node.id, nodeConfig, type);
-        nodeHandles.forEach((handle: DomainHandle) => handles.set(handle.id, handle));
+        const nodeHandles = generateNodeHandles(node.id as NodeID, nodeConfig, type);
+        nodeHandles.forEach((handle: DomainHandle) => handles.set(handle.id as HandleID, handle));
       }
       
       return node.id;
@@ -94,6 +97,7 @@ export function createImportState() {
         id,
         label,
         service: service as any,
+        maskedKey: '••••••••'
       });
       return id;
     },

@@ -44,11 +44,6 @@ export interface ExportedPerson {
   model: string;
   service: string;
   systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
   apiKeyLabel?: string;
 }
 
@@ -60,13 +55,9 @@ export interface ExportedApiKey {
 export interface ExportedHandle {
   nodeLabel: string;
   label: string;
-  direction: 'input' | 'output';
+  direction: string;
   dataType: string;
   position?: string;
-  maxConnections?: number;
-  required?: boolean;
-  defaultValue?: unknown;
-  dynamic?: boolean;
 }
 
 export interface ExportFormat {
@@ -115,15 +106,15 @@ export class DiagramExporter {
     
     // Convert arrows to use handle references
     const arrows = Object.values(diagram.arrows).map(arrow => {
-      const sourceHandle = diagram.handles[arrow.source];
-      const targetHandle = diagram.handles[arrow.target];
+      const sourceHandle = diagram.handles[arrow.source as HandleID];
+      const targetHandle = diagram.handles[arrow.target as HandleID];
       
       if (!sourceHandle || !targetHandle) {
         throw new Error('Missing handle information for arrow');
       }
       
-      const sourceNode = diagram.nodes[sourceHandle.nodeId];
-      const targetNode = diagram.nodes[targetHandle.nodeId];
+      const sourceNode = diagram.nodes[sourceHandle.nodeId as NodeID];
+      const targetNode = diagram.nodes[targetHandle.nodeId as NodeID];
       
       if (!sourceNode || !targetNode) {
         throw new Error('Missing node information for arrow');
@@ -138,7 +129,7 @@ export class DiagramExporter {
     
     // Convert handles to export format
     const handles = Object.values(diagram.handles).map(handle => {
-      const node = diagram.nodes[handle.nodeId];
+      const node = diagram.nodes[handle.nodeId as NodeID];
       const nodeLabel = (node?.data.label as string) || handle.nodeId;
       
       return {
@@ -146,8 +137,7 @@ export class DiagramExporter {
         label: handle.label,
         direction: handle.direction,
         dataType: handle.dataType as string,
-        position: handle.position as string | undefined,
-        maxConnections: handle.maxConnections
+        position: handle.position as string | undefined
       };
     });
     
@@ -166,12 +156,7 @@ export class DiagramExporter {
         label: person.label,
         model: person.model,
         service: person.service,
-        systemPrompt: person.systemPrompt,
-        temperature: person.temperature,
-        maxTokens: person.maxTokens,
-        topP: person.topP,
-        frequencyPenalty: person.frequencyPenalty,
-        presencePenalty: person.presencePenalty
+        systemPrompt: person.systemPrompt || undefined
       })),
       apiKeys: Object.values(diagram.apiKeys).map(key => ({
         name: key.label,
@@ -285,7 +270,8 @@ export class DiagramExporter {
       apiKeys[id as string] = {
         id,
         label: key.name,
-        service: key.service as DomainApiKey['service']
+        service: key.service as DomainApiKey['service'],
+        maskedKey: `${key.service}-****`
       };
     });
     
@@ -299,12 +285,10 @@ export class DiagramExporter {
         label: person.label,
         model: person.model,
         service: person.service as DomainPerson['service'],
+        apiKeyId: '' as ApiKeyID, // TODO: Connect to actual API key
         systemPrompt: person.systemPrompt,
-        temperature: person.temperature,
-        maxTokens: person.maxTokens,
-        topP: person.topP,
-        frequencyPenalty: person.frequencyPenalty,
-        presencePenalty: person.presencePenalty
+        forgettingMode: 'NONE',
+        type: 'person'
       };
     });
     
@@ -333,7 +317,8 @@ export class DiagramExporter {
         id,
         type: node.type as NodeKind,
         position: { x: node.position.x, y: node.position.y },
-        data: nodeData
+        data: nodeData,
+        displayName: node.label
       };
     });
     
@@ -352,17 +337,16 @@ export class DiagramExporter {
         label: handle.label,
         direction: handle.direction as 'input' | 'output',
         dataType: handle.dataType as DataType,
-        position: handle.position as HandlePosition | undefined,
-        maxConnections: handle.maxConnections
+        position: handle.position as HandlePosition | undefined
       };
     });
     
     // Generate default handles for nodes if not present
     if (data.handles.length === 0) {
       Object.values(nodes).forEach(node => {
-        const nodeConfig = getNodeConfig(node.type);
+        const nodeConfig = getNodeConfig(node.type as NodeKind);
         if (nodeConfig) {
-          const nodeHandles = generateNodeHandles(node.id, nodeConfig, node.type);
+          const nodeHandles = generateNodeHandles(node.id, nodeConfig, node.type as NodeKind);
           nodeHandles.forEach((handle: DomainHandle) => {
             handles[handle.id] = handle;
           });

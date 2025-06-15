@@ -50,33 +50,69 @@ class ExecutionOptions:
 
 
 class DiagramValidator:
-    """Validates diagram structure without transformation"""
+    """Validates diagram structure using Pydantic models"""
     
     @staticmethod
     def validate_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate diagram has required structure"""
-        # Ensure all required fields exist
-        if 'nodes' not in diagram:
-            diagram['nodes'] = {}
-        if 'arrows' not in diagram:
-            diagram['arrows'] = {}
-        if 'handles' not in diagram:
-            diagram['handles'] = {}
-        if 'persons' not in diagram:
-            diagram['persons'] = {}
-        if 'apiKeys' not in diagram:
-            diagram['apiKeys'] = {}
-        
-        # Add default API key if needed
-        if not diagram['apiKeys'] and diagram['persons']:
-            diagram['apiKeys'][DEFAULT_API_KEY] = {
-                'id': DEFAULT_API_KEY,
-                'label': 'Default API Key',
-                'service': 'openai',
-                'key': 'test-key'
-            }
-        
-        return diagram
+        """Validate diagram using Pydantic DomainDiagram model"""
+        try:
+            # Import the Pydantic model
+            from server.src.domain import DomainDiagram, DiagramMetadata
+            from datetime import datetime
+            
+            # Ensure all required fields exist with proper defaults
+            if 'nodes' not in diagram:
+                diagram['nodes'] = {}
+            if 'arrows' not in diagram:
+                diagram['arrows'] = {}
+            if 'handles' not in diagram:
+                diagram['handles'] = {}
+            if 'persons' not in diagram:
+                diagram['persons'] = {}
+            if 'apiKeys' not in diagram:
+                diagram['apiKeys'] = {}
+            
+            # Add default API key if needed
+            if not diagram['apiKeys'] and diagram['persons']:
+                diagram['apiKeys'][DEFAULT_API_KEY] = {
+                    'id': DEFAULT_API_KEY,
+                    'label': 'Default API Key',
+                    'service': 'openai',
+                    'key': 'test-key'
+                }
+            
+            # Add metadata if missing
+            if 'metadata' not in diagram:
+                diagram['metadata'] = {
+                    'name': 'CLI Diagram',
+                    'created': datetime.now().isoformat(),
+                    'modified': datetime.now().isoformat(),
+                    'version': '2.0.0'
+                }
+            
+            # Convert apiKeys to api_keys for Pydantic model
+            if 'apiKeys' in diagram:
+                diagram['api_keys'] = diagram.pop('apiKeys')
+            
+            # Validate using Pydantic model
+            domain_diagram = DomainDiagram(**diagram)
+            
+            # Convert back to dict format expected by the rest of the code
+            validated = domain_diagram.model_dump()
+            
+            # Convert api_keys back to apiKeys for backward compatibility
+            if 'api_keys' in validated:
+                validated['apiKeys'] = validated.pop('api_keys')
+            
+            return validated
+            
+        except ImportError:
+            # Fallback to basic validation if imports fail
+            print("⚠️  Warning: Could not import Pydantic models, using basic validation")
+            return diagram
+        except Exception as e:
+            print(f"⚠️  Warning: Pydantic validation failed ({str(e)}), using basic structure")
+            return diagram
 
 
 class DiagramLoader:
@@ -288,12 +324,21 @@ class GraphQLExecutor:
         
         async with DiPeoGraphQLClient(host=GRAPHQL_HOST) as client:
             try:
-                # For now, GraphQL execution requires a diagram_id
-                # In the future, we'll need to save the diagram first
-                # TODO: Implement diagram save/load functionality
-                print("⚠️  GraphQL execution currently requires a saved diagram ID.")
-                print("   Full GraphQL support is coming in the next phase.")
-                raise NotImplementedError("GraphQL execution requires diagram save functionality")
+                # Save the diagram first to get a diagram_id
+                if self.options.debug:
+                    print("🐛 Debug: Saving diagram to server...")
+                
+                diagram_id = await client.save_diagram(diagram)
+                
+                if self.options.debug:
+                    print(f"🐛 Debug: Diagram saved with ID: {diagram_id}")
+                
+                # Execute the saved diagram
+                execution_id = await client.execute_diagram(
+                    diagram_id=diagram_id,
+                    debug_mode=self.options.debug,
+                    timeout=self.options.timeout
+                )
                 
                 result['execution_id'] = execution_id
                 

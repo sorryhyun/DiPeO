@@ -21,6 +21,7 @@ import {
   nodeId, 
   personId, 
   handleId,
+  createHandleId,
   type NodeKind,
   type Vec2,
   type LLMService, 
@@ -272,7 +273,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
         // Handle selection changes
         if ('selected' in change && 'id' in change) {
           if (change.selected) {
-            state.select(change.id, 'node');
+            state.select(change.id as NodeID, 'node');
           } else if (state.selectedId === change.id) {
             state.clearSelection();
           }
@@ -342,11 +343,11 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       };
       
       // Create proper handle IDs from node IDs and handle names (without suffixes)
-      const sourceHandleId = handleId(
+      const sourceHandleId = createHandleId(
         nodeId(connection.source),
         stripSuffix(connection.sourceHandle)
       );
-      const targetHandleId = handleId(
+      const targetHandleId = createHandleId(
         nodeId(connection.target),
         stripSuffix(connection.targetHandle)
       );
@@ -364,9 +365,9 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const handlesByNode = React.useMemo(() => {
     const lookup = new Map<NodeID, DomainHandle[]>();
     domainHandles.forEach(handle => {
-      const handles = lookup.get(handle.nodeId) || [];
+      const handles = lookup.get(nodeId(handle.nodeId)) || [];
       handles.push(handle);
-      lookup.set(handle.nodeId, handles);
+      lookup.set(nodeId(handle.nodeId), handles);
     });
     return lookup;
   }, [domainHandles]);
@@ -374,7 +375,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const nodes = React.useMemo(() => {
     return domainNodes.map(node => {
       // O(1) lookup instead of O(n) filter
-      const nodeHandles = handlesByNode.get(node.id) || [];
+      const nodeHandles = handlesByNode.get(node.id as NodeID) || [];
       return nodeToReact(node, nodeHandles);
     });
   }, [domainNodes, handlesByNode]);
@@ -754,7 +755,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   // Memoize the ID arrays to avoid recreating on every render
   // This is already optimized since persons is cached
   const personIds = React.useMemo(
-    () => persons.map((p: DomainPerson) => p.id),
+    () => persons.map((p: DomainPerson) => personId(p.id)),
     [persons]
   );
   

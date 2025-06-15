@@ -56,6 +56,9 @@ web/dist/
 # Project file storage - consolidated under files/
 files/
 
+# GraphQL codegen
+web/src/generated/
+
 pnpm-lock.yaml
 .claude
 example.yaml

@@ -53,12 +53,12 @@ export const createPersonSlice: StateCreator<
     };
     
     set(state => {
-      state.persons.set(person.id, person);
+      state.persons.set(person.id as PersonID, person);
       state.personsArray = Array.from(state.persons.values());
       state.dataVersion += 1;
     });
     
-    return person.id;
+    return person.id as PersonID;
   },
   
   updatePerson: (id, updates) => set(state => {
@@ -102,7 +102,7 @@ export const createPersonSlice: StateCreator<
   
   importPersons: (persons) => set(state => {
     persons.forEach(person => {
-      state.persons.set(person.id, person);
+      state.persons.set(person.id as PersonID, person);
     });
     state.personsArray = Array.from(state.persons.values());
     state.dataVersion += 1;
@@ -134,7 +134,7 @@ export const createPersonSlice: StateCreator<
     });
     
     return Array.from(state.persons.values()).filter(
-      person => !usedPersonIds.has(person.id)
+      person => !usedPersonIds.has(person.id as PersonID)
     );
   },
   

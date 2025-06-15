@@ -9,7 +9,10 @@ from typing import Set
 
 # Feature flags for essential REST endpoints
 ENABLE_HEALTH_ENDPOINTS = True  # Always enabled for Kubernetes
-ENABLE_WEBSOCKET = True  # Keep until CLI is migrated to GraphQL subscriptions
+
+# WebSocket endpoint control - can be disabled via environment variable
+# Set DISABLE_WEBSOCKET=true to disable the WebSocket endpoint
+ENABLE_WEBSOCKET = os.environ.get("DISABLE_WEBSOCKET", "false").lower() != "true"
 
 # Only essential routers remain enabled
 ENABLED_ROUTERS: Set[str] = set()

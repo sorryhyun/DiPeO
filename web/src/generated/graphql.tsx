@@ -595,6 +595,54 @@ export type Vec2Input = {
   y: Scalars['Float']['input'];
 };
 
+export type GetApiKeysQueryVariables = Exact<{
+  service?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type GetApiKeysQuery = { __typename?: 'Query', apiKeys: Array<{ __typename?: 'ApiKey', id: string, label: string, service: string, maskedKey: string }> };
+
+export type GetApiKeyQueryVariables = Exact<{
+  id: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type GetApiKeyQuery = { __typename?: 'Query', apiKey?: { __typename?: 'ApiKey', id: string, label: string, service: string, maskedKey: string } | null };
+
+export type GetAvailableModelsQueryVariables = Exact<{
+  service: Scalars['String']['input'];
+  apiKeyId: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type GetAvailableModelsQuery = { __typename?: 'Query', availableModels: Array<string> };
+
+export type CreateApiKeyMutationVariables = Exact<{
+  input: CreateApiKeyInput;
+}>;
+
+
+export type CreateApiKeyMutation = { __typename?: 'Mutation', createApiKey: { __typename?: 'ApiKeyResult', success: boolean, message?: string | null, error?: string | null, apiKey?: { __typename?: 'ApiKey', id: string, label: string, service: string, maskedKey: string } | null } };
+
+export type TestApiKeyMutationVariables = Exact<{
+  id: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type TestApiKeyMutation = { __typename?: 'Mutation', testApiKey: { __typename?: 'TestApiKeyResult', success: boolean, valid: boolean, availableModels?: Array<string> | null, error?: string | null } };
+
+export type DeleteApiKeyMutationVariables = Exact<{
+  id: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type DeleteApiKeyMutation = { __typename?: 'Mutation', deleteApiKey: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type ClearConversationsMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ClearConversationsMutation = { __typename?: 'Mutation', clearConversations: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
+
 export type GetDiagramQueryVariables = Exact<{
   id: Scalars['DiagramID']['input'];
 }>;
@@ -624,6 +672,13 @@ export type ExecuteDiagramMutationVariables = Exact<{
 
 
 export type ExecuteDiagramMutation = { __typename?: 'Mutation', executeDiagram: { __typename?: 'ExecutionResult', success: boolean, executionId?: string | null, message?: string | null, error?: string | null } };
+
+export type DeleteDiagramMutationVariables = Exact<{
+  id: Scalars['DiagramID']['input'];
+}>;
+
+
+export type DeleteDiagramMutation = { __typename?: 'Mutation', deleteDiagram: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
 
 export type GetExecutionQueryVariables = Exact<{
   id: Scalars['ExecutionID']['input'];
@@ -677,7 +732,357 @@ export type SubmitInteractiveResponseMutationVariables = Exact<{
 
 export type SubmitInteractiveResponseMutation = { __typename?: 'Mutation', submitInteractiveResponse: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionState', id: string, status: ExecutionStatus, runningNodes: Array<string> } | null } };
 
+export type CreateNodeMutationVariables = Exact<{
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreateNodeInput;
+}>;
 
+
+export type CreateNodeMutation = { __typename?: 'Mutation', createNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'Node', id: string, type: string, displayName: string, data: any, position: { __typename?: 'Vec2', x: number, y: number } } | null } };
+
+export type UpdateNodeMutationVariables = Exact<{
+  input: UpdateNodeInput;
+}>;
+
+
+export type UpdateNodeMutation = { __typename?: 'Mutation', updateNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'Node', id: string, type: string, displayName: string, data: any, position: { __typename?: 'Vec2', x: number, y: number } } | null } };
+
+export type DeleteNodeMutationVariables = Exact<{
+  id: Scalars['NodeID']['input'];
+}>;
+
+
+export type DeleteNodeMutation = { __typename?: 'Mutation', deleteNode: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type CreateArrowMutationVariables = Exact<{
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreateArrowInput;
+}>;
+
+
+export type CreateArrowMutation = { __typename?: 'Mutation', createArrow: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null, diagram?: { __typename?: 'Diagram', arrows: Array<{ __typename?: 'Arrow', id: string, source: string, target: string, data?: any | null }> } | null } };
+
+export type DeleteArrowMutationVariables = Exact<{
+  id: Scalars['ArrowID']['input'];
+}>;
+
+
+export type DeleteArrowMutation = { __typename?: 'Mutation', deleteArrow: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type GetPersonQueryVariables = Exact<{
+  id: Scalars['PersonID']['input'];
+}>;
+
+
+export type GetPersonQuery = { __typename?: 'Query', person?: { __typename?: 'Person', id: string, label: string, service: string, model: string, apiKeyId: string, systemPrompt?: string | null, forgettingMode: string, maskedApiKey?: string | null, type: string } | null };
+
+export type GetPersonsQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type GetPersonsQuery = { __typename?: 'Query', persons: Array<{ __typename?: 'Person', id: string, label: string, service: string, model: string, apiKeyId: string, systemPrompt?: string | null, forgettingMode: string, maskedApiKey?: string | null, type: string }> };
+
+export type CreatePersonMutationVariables = Exact<{
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreatePersonInput;
+}>;
+
+
+export type CreatePersonMutation = { __typename?: 'Mutation', createPerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'Person', id: string, label: string, service: string, model: string, apiKeyId: string, systemPrompt?: string | null, forgettingMode: string, maskedApiKey?: string | null, type: string } | null } };
+
+export type UpdatePersonMutationVariables = Exact<{
+  input: UpdatePersonInput;
+}>;
+
+
+export type UpdatePersonMutation = { __typename?: 'Mutation', updatePerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'Person', id: string, label: string, service: string, model: string, apiKeyId: string, systemPrompt?: string | null, forgettingMode: string, maskedApiKey?: string | null, type: string } | null } };
+
+export type DeletePersonMutationVariables = Exact<{
+  id: Scalars['PersonID']['input'];
+}>;
+
+
+export type DeletePersonMutation = { __typename?: 'Mutation', deletePerson: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetSystemInfoQuery = { __typename?: 'Query', systemInfo: any };
+
+
+export const GetApiKeysDocument = gql`
+    query GetApiKeys($service: String) {
+  apiKeys(service: $service) {
+    id
+    label
+    service
+    maskedKey
+  }
+}
+    `;
+
+/**
+ * __useGetApiKeysQuery__
+ *
+ * To run a query within a React component, call `useGetApiKeysQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetApiKeysQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetApiKeysQuery({
+ *   variables: {
+ *      service: // value for 'service'
+ *   },
+ * });
+ */
+export function useGetApiKeysQuery(baseOptions?: Apollo.QueryHookOptions<GetApiKeysQuery, GetApiKeysQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetApiKeysQuery, GetApiKeysQueryVariables>(GetApiKeysDocument, options);
+      }
+export function useGetApiKeysLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetApiKeysQuery, GetApiKeysQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetApiKeysQuery, GetApiKeysQueryVariables>(GetApiKeysDocument, options);
+        }
+export function useGetApiKeysSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetApiKeysQuery, GetApiKeysQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetApiKeysQuery, GetApiKeysQueryVariables>(GetApiKeysDocument, options);
+        }
+export type GetApiKeysQueryHookResult = ReturnType<typeof useGetApiKeysQuery>;
+export type GetApiKeysLazyQueryHookResult = ReturnType<typeof useGetApiKeysLazyQuery>;
+export type GetApiKeysSuspenseQueryHookResult = ReturnType<typeof useGetApiKeysSuspenseQuery>;
+export type GetApiKeysQueryResult = Apollo.QueryResult<GetApiKeysQuery, GetApiKeysQueryVariables>;
+export const GetApiKeyDocument = gql`
+    query GetApiKey($id: ApiKeyID!) {
+  apiKey(id: $id) {
+    id
+    label
+    service
+    maskedKey
+  }
+}
+    `;
+
+/**
+ * __useGetApiKeyQuery__
+ *
+ * To run a query within a React component, call `useGetApiKeyQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetApiKeyQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetApiKeyQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetApiKeyQuery(baseOptions: Apollo.QueryHookOptions<GetApiKeyQuery, GetApiKeyQueryVariables> & ({ variables: GetApiKeyQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetApiKeyQuery, GetApiKeyQueryVariables>(GetApiKeyDocument, options);
+      }
+export function useGetApiKeyLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetApiKeyQuery, GetApiKeyQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetApiKeyQuery, GetApiKeyQueryVariables>(GetApiKeyDocument, options);
+        }
+export function useGetApiKeySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetApiKeyQuery, GetApiKeyQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetApiKeyQuery, GetApiKeyQueryVariables>(GetApiKeyDocument, options);
+        }
+export type GetApiKeyQueryHookResult = ReturnType<typeof useGetApiKeyQuery>;
+export type GetApiKeyLazyQueryHookResult = ReturnType<typeof useGetApiKeyLazyQuery>;
+export type GetApiKeySuspenseQueryHookResult = ReturnType<typeof useGetApiKeySuspenseQuery>;
+export type GetApiKeyQueryResult = Apollo.QueryResult<GetApiKeyQuery, GetApiKeyQueryVariables>;
+export const GetAvailableModelsDocument = gql`
+    query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
+  availableModels(service: $service, apiKeyId: $apiKeyId)
+}
+    `;
+
+/**
+ * __useGetAvailableModelsQuery__
+ *
+ * To run a query within a React component, call `useGetAvailableModelsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetAvailableModelsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetAvailableModelsQuery({
+ *   variables: {
+ *      service: // value for 'service'
+ *      apiKeyId: // value for 'apiKeyId'
+ *   },
+ * });
+ */
+export function useGetAvailableModelsQuery(baseOptions: Apollo.QueryHookOptions<GetAvailableModelsQuery, GetAvailableModelsQueryVariables> & ({ variables: GetAvailableModelsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>(GetAvailableModelsDocument, options);
+      }
+export function useGetAvailableModelsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>(GetAvailableModelsDocument, options);
+        }
+export function useGetAvailableModelsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>(GetAvailableModelsDocument, options);
+        }
+export type GetAvailableModelsQueryHookResult = ReturnType<typeof useGetAvailableModelsQuery>;
+export type GetAvailableModelsLazyQueryHookResult = ReturnType<typeof useGetAvailableModelsLazyQuery>;
+export type GetAvailableModelsSuspenseQueryHookResult = ReturnType<typeof useGetAvailableModelsSuspenseQuery>;
+export type GetAvailableModelsQueryResult = Apollo.QueryResult<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>;
+export const CreateApiKeyDocument = gql`
+    mutation CreateApiKey($input: CreateApiKeyInput!) {
+  createApiKey(input: $input) {
+    success
+    apiKey {
+      id
+      label
+      service
+      maskedKey
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateApiKeyMutationFn = Apollo.MutationFunction<CreateApiKeyMutation, CreateApiKeyMutationVariables>;
+
+/**
+ * __useCreateApiKeyMutation__
+ *
+ * To run a mutation, you first call `useCreateApiKeyMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateApiKeyMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createApiKeyMutation, { data, loading, error }] = useCreateApiKeyMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<CreateApiKeyMutation, CreateApiKeyMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateApiKeyMutation, CreateApiKeyMutationVariables>(CreateApiKeyDocument, options);
+      }
+export type CreateApiKeyMutationHookResult = ReturnType<typeof useCreateApiKeyMutation>;
+export type CreateApiKeyMutationResult = Apollo.MutationResult<CreateApiKeyMutation>;
+export type CreateApiKeyMutationOptions = Apollo.BaseMutationOptions<CreateApiKeyMutation, CreateApiKeyMutationVariables>;
+export const TestApiKeyDocument = gql`
+    mutation TestApiKey($id: ApiKeyID!) {
+  testApiKey(id: $id) {
+    success
+    valid
+    availableModels
+    error
+  }
+}
+    `;
+export type TestApiKeyMutationFn = Apollo.MutationFunction<TestApiKeyMutation, TestApiKeyMutationVariables>;
+
+/**
+ * __useTestApiKeyMutation__
+ *
+ * To run a mutation, you first call `useTestApiKeyMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useTestApiKeyMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [testApiKeyMutation, { data, loading, error }] = useTestApiKeyMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useTestApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<TestApiKeyMutation, TestApiKeyMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<TestApiKeyMutation, TestApiKeyMutationVariables>(TestApiKeyDocument, options);
+      }
+export type TestApiKeyMutationHookResult = ReturnType<typeof useTestApiKeyMutation>;
+export type TestApiKeyMutationResult = Apollo.MutationResult<TestApiKeyMutation>;
+export type TestApiKeyMutationOptions = Apollo.BaseMutationOptions<TestApiKeyMutation, TestApiKeyMutationVariables>;
+export const DeleteApiKeyDocument = gql`
+    mutation DeleteApiKey($id: ApiKeyID!) {
+  deleteApiKey(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteApiKeyMutationFn = Apollo.MutationFunction<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>;
+
+/**
+ * __useDeleteApiKeyMutation__
+ *
+ * To run a mutation, you first call `useDeleteApiKeyMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteApiKeyMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteApiKeyMutation, { data, loading, error }] = useDeleteApiKeyMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>(DeleteApiKeyDocument, options);
+      }
+export type DeleteApiKeyMutationHookResult = ReturnType<typeof useDeleteApiKeyMutation>;
+export type DeleteApiKeyMutationResult = Apollo.MutationResult<DeleteApiKeyMutation>;
+export type DeleteApiKeyMutationOptions = Apollo.BaseMutationOptions<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>;
+export const ClearConversationsDocument = gql`
+    mutation ClearConversations {
+  clearConversations {
+    success
+    message
+    error
+  }
+}
+    `;
+export type ClearConversationsMutationFn = Apollo.MutationFunction<ClearConversationsMutation, ClearConversationsMutationVariables>;
+
+/**
+ * __useClearConversationsMutation__
+ *
+ * To run a mutation, you first call `useClearConversationsMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useClearConversationsMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [clearConversationsMutation, { data, loading, error }] = useClearConversationsMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useClearConversationsMutation(baseOptions?: Apollo.MutationHookOptions<ClearConversationsMutation, ClearConversationsMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ClearConversationsMutation, ClearConversationsMutationVariables>(ClearConversationsDocument, options);
+      }
+export type ClearConversationsMutationHookResult = ReturnType<typeof useClearConversationsMutation>;
+export type ClearConversationsMutationResult = Apollo.MutationResult<ClearConversationsMutation>;
+export type ClearConversationsMutationOptions = Apollo.BaseMutationOptions<ClearConversationsMutation, ClearConversationsMutationVariables>;
 export const GetDiagramDocument = gql`
     query GetDiagram($id: DiagramID!) {
   diagram(id: $id) {
@@ -897,6 +1302,42 @@ export function useExecuteDiagramMutation(baseOptions?: Apollo.MutationHookOptio
 export type ExecuteDiagramMutationHookResult = ReturnType<typeof useExecuteDiagramMutation>;
 export type ExecuteDiagramMutationResult = Apollo.MutationResult<ExecuteDiagramMutation>;
 export type ExecuteDiagramMutationOptions = Apollo.BaseMutationOptions<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>;
+export const DeleteDiagramDocument = gql`
+    mutation DeleteDiagram($id: DiagramID!) {
+  deleteDiagram(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteDiagramMutationFn = Apollo.MutationFunction<DeleteDiagramMutation, DeleteDiagramMutationVariables>;
+
+/**
+ * __useDeleteDiagramMutation__
+ *
+ * To run a mutation, you first call `useDeleteDiagramMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteDiagramMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteDiagramMutation, { data, loading, error }] = useDeleteDiagramMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteDiagramMutation(baseOptions?: Apollo.MutationHookOptions<DeleteDiagramMutation, DeleteDiagramMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteDiagramMutation, DeleteDiagramMutationVariables>(DeleteDiagramDocument, options);
+      }
+export type DeleteDiagramMutationHookResult = ReturnType<typeof useDeleteDiagramMutation>;
+export type DeleteDiagramMutationResult = Apollo.MutationResult<DeleteDiagramMutation>;
+export type DeleteDiagramMutationOptions = Apollo.BaseMutationOptions<DeleteDiagramMutation, DeleteDiagramMutationVariables>;
 export const GetExecutionDocument = gql`
     query GetExecution($id: ExecutionID!) {
   execution(id: $id) {
@@ -1196,3 +1637,472 @@ export function useSubmitInteractiveResponseMutation(baseOptions?: Apollo.Mutati
 export type SubmitInteractiveResponseMutationHookResult = ReturnType<typeof useSubmitInteractiveResponseMutation>;
 export type SubmitInteractiveResponseMutationResult = Apollo.MutationResult<SubmitInteractiveResponseMutation>;
 export type SubmitInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>;
+export const CreateNodeDocument = gql`
+    mutation CreateNode($diagramId: DiagramID!, $input: CreateNodeInput!) {
+  createNode(diagramId: $diagramId, input: $input) {
+    success
+    node {
+      id
+      type
+      displayName
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateNodeMutationFn = Apollo.MutationFunction<CreateNodeMutation, CreateNodeMutationVariables>;
+
+/**
+ * __useCreateNodeMutation__
+ *
+ * To run a mutation, you first call `useCreateNodeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateNodeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createNodeMutation, { data, loading, error }] = useCreateNodeMutation({
+ *   variables: {
+ *      diagramId: // value for 'diagramId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateNodeMutation(baseOptions?: Apollo.MutationHookOptions<CreateNodeMutation, CreateNodeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateNodeMutation, CreateNodeMutationVariables>(CreateNodeDocument, options);
+      }
+export type CreateNodeMutationHookResult = ReturnType<typeof useCreateNodeMutation>;
+export type CreateNodeMutationResult = Apollo.MutationResult<CreateNodeMutation>;
+export type CreateNodeMutationOptions = Apollo.BaseMutationOptions<CreateNodeMutation, CreateNodeMutationVariables>;
+export const UpdateNodeDocument = gql`
+    mutation UpdateNode($input: UpdateNodeInput!) {
+  updateNode(input: $input) {
+    success
+    node {
+      id
+      type
+      displayName
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+    `;
+export type UpdateNodeMutationFn = Apollo.MutationFunction<UpdateNodeMutation, UpdateNodeMutationVariables>;
+
+/**
+ * __useUpdateNodeMutation__
+ *
+ * To run a mutation, you first call `useUpdateNodeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateNodeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateNodeMutation, { data, loading, error }] = useUpdateNodeMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateNodeMutation(baseOptions?: Apollo.MutationHookOptions<UpdateNodeMutation, UpdateNodeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateNodeMutation, UpdateNodeMutationVariables>(UpdateNodeDocument, options);
+      }
+export type UpdateNodeMutationHookResult = ReturnType<typeof useUpdateNodeMutation>;
+export type UpdateNodeMutationResult = Apollo.MutationResult<UpdateNodeMutation>;
+export type UpdateNodeMutationOptions = Apollo.BaseMutationOptions<UpdateNodeMutation, UpdateNodeMutationVariables>;
+export const DeleteNodeDocument = gql`
+    mutation DeleteNode($id: NodeID!) {
+  deleteNode(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteNodeMutationFn = Apollo.MutationFunction<DeleteNodeMutation, DeleteNodeMutationVariables>;
+
+/**
+ * __useDeleteNodeMutation__
+ *
+ * To run a mutation, you first call `useDeleteNodeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteNodeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteNodeMutation, { data, loading, error }] = useDeleteNodeMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteNodeMutation(baseOptions?: Apollo.MutationHookOptions<DeleteNodeMutation, DeleteNodeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteNodeMutation, DeleteNodeMutationVariables>(DeleteNodeDocument, options);
+      }
+export type DeleteNodeMutationHookResult = ReturnType<typeof useDeleteNodeMutation>;
+export type DeleteNodeMutationResult = Apollo.MutationResult<DeleteNodeMutation>;
+export type DeleteNodeMutationOptions = Apollo.BaseMutationOptions<DeleteNodeMutation, DeleteNodeMutationVariables>;
+export const CreateArrowDocument = gql`
+    mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
+  createArrow(diagramId: $diagramId, input: $input) {
+    success
+    diagram {
+      arrows {
+        id
+        source
+        target
+        data
+      }
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateArrowMutationFn = Apollo.MutationFunction<CreateArrowMutation, CreateArrowMutationVariables>;
+
+/**
+ * __useCreateArrowMutation__
+ *
+ * To run a mutation, you first call `useCreateArrowMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateArrowMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createArrowMutation, { data, loading, error }] = useCreateArrowMutation({
+ *   variables: {
+ *      diagramId: // value for 'diagramId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateArrowMutation(baseOptions?: Apollo.MutationHookOptions<CreateArrowMutation, CreateArrowMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateArrowMutation, CreateArrowMutationVariables>(CreateArrowDocument, options);
+      }
+export type CreateArrowMutationHookResult = ReturnType<typeof useCreateArrowMutation>;
+export type CreateArrowMutationResult = Apollo.MutationResult<CreateArrowMutation>;
+export type CreateArrowMutationOptions = Apollo.BaseMutationOptions<CreateArrowMutation, CreateArrowMutationVariables>;
+export const DeleteArrowDocument = gql`
+    mutation DeleteArrow($id: ArrowID!) {
+  deleteArrow(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteArrowMutationFn = Apollo.MutationFunction<DeleteArrowMutation, DeleteArrowMutationVariables>;
+
+/**
+ * __useDeleteArrowMutation__
+ *
+ * To run a mutation, you first call `useDeleteArrowMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteArrowMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteArrowMutation, { data, loading, error }] = useDeleteArrowMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteArrowMutation(baseOptions?: Apollo.MutationHookOptions<DeleteArrowMutation, DeleteArrowMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteArrowMutation, DeleteArrowMutationVariables>(DeleteArrowDocument, options);
+      }
+export type DeleteArrowMutationHookResult = ReturnType<typeof useDeleteArrowMutation>;
+export type DeleteArrowMutationResult = Apollo.MutationResult<DeleteArrowMutation>;
+export type DeleteArrowMutationOptions = Apollo.BaseMutationOptions<DeleteArrowMutation, DeleteArrowMutationVariables>;
+export const GetPersonDocument = gql`
+    query GetPerson($id: PersonID!) {
+  person(id: $id) {
+    id
+    label
+    service
+    model
+    apiKeyId
+    systemPrompt
+    forgettingMode
+    maskedApiKey
+    type
+  }
+}
+    `;
+
+/**
+ * __useGetPersonQuery__
+ *
+ * To run a query within a React component, call `useGetPersonQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPersonQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPersonQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetPersonQuery(baseOptions: Apollo.QueryHookOptions<GetPersonQuery, GetPersonQueryVariables> & ({ variables: GetPersonQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetPersonQuery, GetPersonQueryVariables>(GetPersonDocument, options);
+      }
+export function useGetPersonLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetPersonQuery, GetPersonQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetPersonQuery, GetPersonQueryVariables>(GetPersonDocument, options);
+        }
+export function useGetPersonSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetPersonQuery, GetPersonQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetPersonQuery, GetPersonQueryVariables>(GetPersonDocument, options);
+        }
+export type GetPersonQueryHookResult = ReturnType<typeof useGetPersonQuery>;
+export type GetPersonLazyQueryHookResult = ReturnType<typeof useGetPersonLazyQuery>;
+export type GetPersonSuspenseQueryHookResult = ReturnType<typeof useGetPersonSuspenseQuery>;
+export type GetPersonQueryResult = Apollo.QueryResult<GetPersonQuery, GetPersonQueryVariables>;
+export const GetPersonsDocument = gql`
+    query GetPersons($limit: Int = 100) {
+  persons(limit: $limit) {
+    id
+    label
+    service
+    model
+    apiKeyId
+    systemPrompt
+    forgettingMode
+    maskedApiKey
+    type
+  }
+}
+    `;
+
+/**
+ * __useGetPersonsQuery__
+ *
+ * To run a query within a React component, call `useGetPersonsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPersonsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPersonsQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *   },
+ * });
+ */
+export function useGetPersonsQuery(baseOptions?: Apollo.QueryHookOptions<GetPersonsQuery, GetPersonsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetPersonsQuery, GetPersonsQueryVariables>(GetPersonsDocument, options);
+      }
+export function useGetPersonsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetPersonsQuery, GetPersonsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetPersonsQuery, GetPersonsQueryVariables>(GetPersonsDocument, options);
+        }
+export function useGetPersonsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetPersonsQuery, GetPersonsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetPersonsQuery, GetPersonsQueryVariables>(GetPersonsDocument, options);
+        }
+export type GetPersonsQueryHookResult = ReturnType<typeof useGetPersonsQuery>;
+export type GetPersonsLazyQueryHookResult = ReturnType<typeof useGetPersonsLazyQuery>;
+export type GetPersonsSuspenseQueryHookResult = ReturnType<typeof useGetPersonsSuspenseQuery>;
+export type GetPersonsQueryResult = Apollo.QueryResult<GetPersonsQuery, GetPersonsQueryVariables>;
+export const CreatePersonDocument = gql`
+    mutation CreatePerson($diagramId: DiagramID!, $input: CreatePersonInput!) {
+  createPerson(diagramId: $diagramId, input: $input) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreatePersonMutationFn = Apollo.MutationFunction<CreatePersonMutation, CreatePersonMutationVariables>;
+
+/**
+ * __useCreatePersonMutation__
+ *
+ * To run a mutation, you first call `useCreatePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreatePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createPersonMutation, { data, loading, error }] = useCreatePersonMutation({
+ *   variables: {
+ *      diagramId: // value for 'diagramId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreatePersonMutation(baseOptions?: Apollo.MutationHookOptions<CreatePersonMutation, CreatePersonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreatePersonMutation, CreatePersonMutationVariables>(CreatePersonDocument, options);
+      }
+export type CreatePersonMutationHookResult = ReturnType<typeof useCreatePersonMutation>;
+export type CreatePersonMutationResult = Apollo.MutationResult<CreatePersonMutation>;
+export type CreatePersonMutationOptions = Apollo.BaseMutationOptions<CreatePersonMutation, CreatePersonMutationVariables>;
+export const UpdatePersonDocument = gql`
+    mutation UpdatePerson($input: UpdatePersonInput!) {
+  updatePerson(input: $input) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    message
+    error
+  }
+}
+    `;
+export type UpdatePersonMutationFn = Apollo.MutationFunction<UpdatePersonMutation, UpdatePersonMutationVariables>;
+
+/**
+ * __useUpdatePersonMutation__
+ *
+ * To run a mutation, you first call `useUpdatePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdatePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updatePersonMutation, { data, loading, error }] = useUpdatePersonMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdatePersonMutation(baseOptions?: Apollo.MutationHookOptions<UpdatePersonMutation, UpdatePersonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdatePersonMutation, UpdatePersonMutationVariables>(UpdatePersonDocument, options);
+      }
+export type UpdatePersonMutationHookResult = ReturnType<typeof useUpdatePersonMutation>;
+export type UpdatePersonMutationResult = Apollo.MutationResult<UpdatePersonMutation>;
+export type UpdatePersonMutationOptions = Apollo.BaseMutationOptions<UpdatePersonMutation, UpdatePersonMutationVariables>;
+export const DeletePersonDocument = gql`
+    mutation DeletePerson($id: PersonID!) {
+  deletePerson(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeletePersonMutationFn = Apollo.MutationFunction<DeletePersonMutation, DeletePersonMutationVariables>;
+
+/**
+ * __useDeletePersonMutation__
+ *
+ * To run a mutation, you first call `useDeletePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeletePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deletePersonMutation, { data, loading, error }] = useDeletePersonMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeletePersonMutation(baseOptions?: Apollo.MutationHookOptions<DeletePersonMutation, DeletePersonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeletePersonMutation, DeletePersonMutationVariables>(DeletePersonDocument, options);
+      }
+export type DeletePersonMutationHookResult = ReturnType<typeof useDeletePersonMutation>;
+export type DeletePersonMutationResult = Apollo.MutationResult<DeletePersonMutation>;
+export type DeletePersonMutationOptions = Apollo.BaseMutationOptions<DeletePersonMutation, DeletePersonMutationVariables>;
+export const GetSystemInfoDocument = gql`
+    query GetSystemInfo {
+  systemInfo
+}
+    `;
+
+/**
+ * __useGetSystemInfoQuery__
+ *
+ * To run a query within a React component, call `useGetSystemInfoQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetSystemInfoQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetSystemInfoQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetSystemInfoQuery(baseOptions?: Apollo.QueryHookOptions<GetSystemInfoQuery, GetSystemInfoQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetSystemInfoQuery, GetSystemInfoQueryVariables>(GetSystemInfoDocument, options);
+      }
+export function useGetSystemInfoLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetSystemInfoQuery, GetSystemInfoQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetSystemInfoQuery, GetSystemInfoQueryVariables>(GetSystemInfoDocument, options);
+        }
+export function useGetSystemInfoSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetSystemInfoQuery, GetSystemInfoQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetSystemInfoQuery, GetSystemInfoQueryVariables>(GetSystemInfoDocument, options);
+        }
+export type GetSystemInfoQueryHookResult = ReturnType<typeof useGetSystemInfoQuery>;
+export type GetSystemInfoLazyQueryHookResult = ReturnType<typeof useGetSystemInfoLazyQuery>;
+export type GetSystemInfoSuspenseQueryHookResult = ReturnType<typeof useGetSystemInfoSuspenseQuery>;
+export type GetSystemInfoQueryResult = Apollo.QueryResult<GetSystemInfoQuery, GetSystemInfoQueryVariables>;

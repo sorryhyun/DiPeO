@@ -105,7 +105,7 @@ export const nodeCrud = createCrudActions<DomainNode, NodeID>('nodes', {
     const newArrows = new Map(state.arrows);
     Array.from(state.arrows.values()).forEach(arrow => {
       if (connectsToNode(arrow, nodeId)) {
-        newArrows.delete(arrow.id);
+        newArrows.delete(arrow.id as ArrowID);
       }
     });
     state.arrows = newArrows;
@@ -123,7 +123,7 @@ export const personCrud = createCrudActions<DomainPerson, PersonID>('persons', {
         node.data.personId === personId
       ) {
         const updatedNode = { ...node, data: { ...node.data, personId: null } };
-        updatedNodes.set(node.id, updatedNode);
+        updatedNodes.set(node.id as NodeID, updatedNode);
       }
     });
     state.nodes = updatedNodes;

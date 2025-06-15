@@ -261,11 +261,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Context‑menu helpers
    * --------------------------------------------------*/
-  const handleAddPerson = () => addPerson({ 
-    label: "New Person",
-    model: "gpt-4.1-nano",
-    service: "openai"
-  });
+  const handleAddPerson = () => addPerson(
+    "New Person",
+    "openai",
+    "gpt-4.1-nano"
+  );
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
   /** --------------------------------------------------
@@ -280,7 +280,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           selectedNodeId={selectedNodeId ? nodeId(selectedNodeId) : null}
           selectedArrowId={selectedArrowId ? arrowId(selectedArrowId) : null}
           containerRef={flowWrapperRef as React.RefObject<HTMLDivElement>}
-          onAddNode={addNode}
+          onAddNode={(type, position) => addNode(type as NodeKind, position)}
           onAddPerson={handleAddPerson}
           onDeleteNode={deleteNode}
           onDeleteArrow={deleteArrow}

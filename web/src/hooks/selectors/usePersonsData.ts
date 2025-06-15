@@ -46,7 +46,7 @@ export const usePersonsData = (): PersonsData => {
       
       // Get unused persons
       const unusedPersons = personsArray.filter(
-        person => !usedPersonIds.has(person.id)
+        person => !usedPersonIds.has(person.id as PersonID)
       );
       
       return {

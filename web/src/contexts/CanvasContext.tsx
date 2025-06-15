@@ -6,9 +6,8 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/stores/unifiedStore';
-import { useCanvasOperations } from '@/hooks/useCanvasOperations';
-import { useDiagramOperations } from '@/hooks/useDiagramOperations';
-import { useExecutionOperations } from '@/hooks/useExecutionOperations';
+import { useCanvasOperations as useCanvasOps } from '@/hooks/useCanvasOperations';
+import { useExecutionProvider } from '@/hooks/useExecutionProvider';
 import type { NodeID, ArrowID, PersonID, Vec2 } from '@/types';
 
 interface CanvasUIState {
@@ -46,9 +45,8 @@ interface CanvasOperations {
   setReadOnly: (readOnly: boolean) => void;
   
   // Canvas operations from hooks
-  canvasOps: ReturnType<typeof useCanvasOperations>;
-  diagramOps: ReturnType<typeof useDiagramOperations>;
-  executionOps: ReturnType<typeof useExecutionOperations>;
+  canvasOps: ReturnType<typeof useCanvasOps>;
+  executionOps: ReturnType<typeof useExecutionProvider>;
 }
 
 interface CanvasContextValue extends CanvasUIState, CanvasOperations {}
@@ -61,39 +59,73 @@ const CanvasContext = createContext<CanvasContextValue | null>(null);
 export function CanvasProvider({ children }: { children: React.ReactNode }) {
   // Get UI state from store
   const uiState = useUnifiedStore(
-    useShallow(state => ({
-      selectedNodeId: state.selectedNodeId,
-      selectedArrowId: state.selectedArrowId,
-      selectedPersonId: state.selectedPersonId,
-      selectedNodeIds: state.selectedNodeIds,
-      activeCanvas: state.activeCanvas,
-      readOnly: state.readOnly,
-      isExecuting: state.isExecuting,
-      isPaused: state.isPaused,
-      zoom: state.canvasPosition?.zoom ?? 1,
-      position: state.canvasPosition?.position ?? { x: 0, y: 0 },
-      showGrid: state.settings?.showGrid ?? true,
-      showMinimap: state.settings?.showMinimap ?? false,
-      showDebugInfo: state.settings?.showDebugInfo ?? false,
-    }))
+    useShallow(state => {
+      // Derive selection state from unified selection model
+      const selectedNodeId = state.selectedType === 'node' ? (state.selectedId as NodeID) : null;
+      const selectedArrowId = state.selectedType === 'arrow' ? (state.selectedId as ArrowID) : null;
+      const selectedPersonId = state.selectedType === 'person' ? (state.selectedId as PersonID) : null;
+      const selectedNodeIds = new Set<NodeID>();
+      
+      // Add multi-selected nodes
+      state.multiSelectedIds.forEach(id => {
+        if (state.selectedType === 'node') {
+          selectedNodeIds.add(id as NodeID);
+        }
+      });
+      
+      return {
+        selectedNodeId,
+        selectedArrowId,
+        selectedPersonId,
+        selectedNodeIds,
+        activeCanvas: state.activeCanvas,
+        readOnly: state.readOnly,
+        isExecuting: state.execution.isExecuting,
+        isPaused: state.execution.isPaused,
+        zoom: 1, // TODO: Get from React Flow instance
+        position: { x: 0, y: 0 }, // TODO: Get from React Flow instance
+        showGrid: true, // TODO: Add to settings
+        showMinimap: false, // TODO: Add to settings
+        showDebugInfo: false, // TODO: Add to settings
+      };
+    })
   );
 
   // Get selection operations from store
   const selectionOps = useUnifiedStore(
     useShallow(state => ({
-      selectNode: state.selectNode,
-      selectArrow: state.selectArrow,
-      selectPerson: state.selectPerson,
-      selectMultipleNodes: state.selectMultipleNodes,
+      selectNode: (nodeId: NodeID | null) => {
+        if (nodeId) {
+          state.select(nodeId, 'node');
+        } else {
+          state.clearSelection();
+        }
+      },
+      selectArrow: (arrowId: ArrowID | null) => {
+        if (arrowId) {
+          state.select(arrowId, 'arrow');
+        } else {
+          state.clearSelection();
+        }
+      },
+      selectPerson: (personId: PersonID | null) => {
+        if (personId) {
+          state.select(personId, 'person');
+        } else {
+          state.clearSelection();
+        }
+      },
+      selectMultipleNodes: (nodeIds: NodeID[]) => {
+        state.multiSelect(nodeIds, 'node');
+      },
       clearSelection: state.clearSelection,
       setReadOnly: state.setReadOnly,
     }))
   );
 
   // Get hook-based operations
-  const canvasOps = useCanvasOperations();
-  const diagramOps = useDiagramOperations();
-  const executionOps = useExecutionOperations();
+  const canvasOps = useCanvasOps();
+  const executionOps = useExecutionProvider();
 
   // Memoize context value
   const contextValue = useMemo<CanvasContextValue>(
@@ -104,10 +136,9 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       // Operations
       ...selectionOps,
       canvasOps,
-      diagramOps,
       executionOps,
     }),
-    [uiState, selectionOps, canvasOps, diagramOps, executionOps]
+    [uiState, selectionOps, canvasOps, executionOps]
   );
 
   return (
@@ -152,9 +183,9 @@ export function useCanvasUIState(): CanvasUIState {
 }
 
 /**
- * useCanvasOperations - Hook to access only operations (for action-focused components)
+ * useCanvasOperationsContext - Hook to access only operations (for action-focused components)
  */
-export function useCanvasOperations() {
+export function useCanvasOperationsContext() {
   const context = useCanvasContext();
   return {
     selectNode: context.selectNode,
@@ -164,7 +195,6 @@ export function useCanvasOperations() {
     clearSelection: context.clearSelection,
     setReadOnly: context.setReadOnly,
     canvasOps: context.canvasOps,
-    diagramOps: context.diagramOps,
     executionOps: context.executionOps,
   };
 }

@@ -52,6 +52,11 @@ if is_router_enabled("health"):
 if is_router_enabled("websocket"):
     app.include_router(websocket_router)
     logger.info("WebSocket endpoint enabled for CLI support")
+else:
+    logger.warning(
+        "WebSocket endpoint is DISABLED. CLI users must use --use-graphql flag. "
+        "To re-enable WebSocket, unset DISABLE_WEBSOCKET environment variable."
+    )
 
 # Always include GraphQL router
 graphql_router = create_graphql_router(context_getter=get_graphql_context)

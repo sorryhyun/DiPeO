@@ -11,7 +11,7 @@ import { stringify, parse } from 'yaml';
 import {
   DomainDiagram, DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle,
   NodeID, ArrowID, PersonID, ApiKeyID, HandleID,
-  NodeKind, LLMService, DataType,
+  NodeKind, DataType,
   generateNodeId, generateShortId, arrowId, personId, apiKeyId, handleId,
   parseHandleId, createHandleId
 } from '@/types';
@@ -41,11 +41,6 @@ export interface ReducedYamlPerson {
   service?: string;
   apiKey?: string;   // API key label
   systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
 }
 
 export interface ReducedYamlApiKey {
@@ -58,7 +53,6 @@ export interface ReducedYamlHandle {
   direction: 'input' | 'output';
   dataType: string;
   position: 'left' | 'right' | 'top' | 'bottom';
-  maxConnections?: number;
 }
 
 export interface ReducedYamlFormat {
@@ -142,17 +136,12 @@ export class LightDomainConverter implements DomainFormatConverter {
       // Only add non-default values
       if (person.service !== 'openai') reducedPerson.service = person.service;
       if (person.apiKeyId) {
-        const apiKeyLabel = this.apiKeyIdToLabel.get(person.apiKeyId);
+        const apiKeyLabel = this.apiKeyIdToLabel.get(person.apiKeyId as ApiKeyID);
         if (apiKeyLabel) reducedPerson.apiKey = apiKeyLabel;
       }
       if (person.systemPrompt) reducedPerson.systemPrompt = person.systemPrompt;
-      if (person.temperature !== undefined && person.temperature !== 0.2) {
-        reducedPerson.temperature = person.temperature;
-      }
-      if (person.maxTokens) reducedPerson.maxTokens = person.maxTokens;
-      if (person.topP !== undefined && person.topP !== 1) reducedPerson.topP = person.topP;
-      if (person.frequencyPenalty) reducedPerson.frequencyPenalty = person.frequencyPenalty;
-      if (person.presencePenalty) reducedPerson.presencePenalty = person.presencePenalty;
+      // Note: temperature, maxTokens, topP, frequencyPenalty, presencePenalty 
+      // are stored in node data, not in the Person entity
       
       persons[label] = reducedPerson;
     });
@@ -201,8 +190,8 @@ export class LightDomainConverter implements DomainFormatConverter {
     // Convert arrows
     Object.entries(diagram.arrows).forEach(([id, arrow]) => {
       // Parse handle IDs to get node IDs and handle labels
-      const { nodeId: sourceNodeId, handleLabel: sourceHandleLabel } = parseHandleId(arrow.source);
-      const { nodeId: targetNodeId, handleLabel: targetHandleLabel } = parseHandleId(arrow.target);
+      const { nodeId: sourceNodeId, handleName: sourceHandleLabel } = parseHandleId(arrow.source as HandleID);
+      const { nodeId: targetNodeId, handleName: targetHandleLabel } = parseHandleId(arrow.target as HandleID);
       
       const sourceNodeLabel = this.nodeIdToLabel.get(sourceNodeId);
       const targetNodeLabel = this.nodeIdToLabel.get(targetNodeId);
@@ -228,12 +217,12 @@ export class LightDomainConverter implements DomainFormatConverter {
     });
     
     // Convert custom handles only
-    Object.entries(diagram.handles).forEach(([id, handle]) => {
-      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId);
+    Object.entries(diagram.handles).forEach(([_id, handle]) => {
+      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId as NodeID);
       if (!nodeLabel) return;
       
       // Skip default handles that would be auto-generated
-      const node = diagram.nodes[handle.nodeId];
+      const node = diagram.nodes[handle.nodeId as NodeID];
       if (node) {
         const nodeConfig = getNodeConfig(node.type as NodeKind);
         const defaultHandles = nodeConfig ? generateNodeHandles(handle.nodeId, nodeConfig, node.type as NodeKind) : [];
@@ -249,10 +238,9 @@ export class LightDomainConverter implements DomainFormatConverter {
       handles.push({
         node: nodeLabel,
         name: handle.label,
-        direction: handle.direction,
+        direction: handle.direction as 'input' | 'output',
         dataType: handle.dataType,
-        position: handle.position || 'bottom',
-        maxConnections: handle.maxConnections
+        position: (handle.position || 'bottom') as 'top' | 'right' | 'bottom' | 'left'
       });
     });
     
@@ -295,7 +283,8 @@ export class LightDomainConverter implements DomainFormatConverter {
         diagram.apiKeys[id] = {
           id,
           label,
-          service: apiKey.service as LLMService
+          service: apiKey.service as string,
+          maskedKey: `${apiKey.service}-****`
         };
       });
     }
@@ -315,14 +304,11 @@ export class LightDomainConverter implements DomainFormatConverter {
           id,
           label,
           model: person.model,
-          service: (person.service || 'openai') as LLMService,
-          apiKeyId,
-          systemPrompt: person.systemPrompt || '',
-          temperature: person.temperature ?? 0.2,
-          maxTokens: person.maxTokens,
-          topP: person.topP ?? 1,
-          frequencyPenalty: person.frequencyPenalty ?? 0,
-          presencePenalty: person.presencePenalty ?? 0
+          service: (person.service || 'openai') as string,
+          apiKeyId: apiKeyId || '' as ApiKeyID,
+          systemPrompt: person.systemPrompt,
+          forgettingMode: 'NONE',
+          type: 'person'
         };
       });
     }
@@ -335,14 +321,14 @@ export class LightDomainConverter implements DomainFormatConverter {
       // Extract node properties
       const { type, position, label: nodeLabel, ...restData } = node;
       
-      const nodeData: any = {
+      const nodeData: Record<string, unknown> = {
         label,
         ...restData
       };
       
       // Convert person reference
       if (nodeData.person) {
-        const personId = this.labelToPersonId.get(nodeData.person);
+        const personId = this.labelToPersonId.get(nodeData.person as string);
         if (personId) {
           nodeData.personId = personId;
           delete nodeData.person;
@@ -353,7 +339,8 @@ export class LightDomainConverter implements DomainFormatConverter {
         id: nodeId,
         type: type as NodeKind,
         position,
-        data: nodeData
+        data: nodeData,
+        displayName: label
       };
     });
     
@@ -363,8 +350,8 @@ export class LightDomainConverter implements DomainFormatConverter {
       if (nodeConfig) {
         const handles = generateNodeHandles(node.id, nodeConfig, node.type as NodeKind);
         handles.forEach((handle: DomainHandle) => {
-          this.labelToHandleId.set(handle.label, handle.id);
-          diagram.handles[handle.id] = handle;
+          this.labelToHandleId.set(handle.label, handle.id as HandleID);
+          diagram.handles[handle.id as HandleID] = handle;
         });
       }
     });
@@ -384,8 +371,7 @@ export class LightDomainConverter implements DomainFormatConverter {
           label: handle.name,
           direction: handle.direction,
           dataType: handle.dataType as DataType,
-          position: handle.position,
-          maxConnections: handle.maxConnections
+          position: handle.position
         };
       });
     }
@@ -408,7 +394,7 @@ export class LightDomainConverter implements DomainFormatConverter {
       const targetHandleId = createHandleId(targetNodeId, toHandle || 'input');
       
       const id = arrowId(generateShortId());
-      const { source, target, ...arrowData } = arrow;
+      const { source: _source, target: _target, ...arrowData } = arrow;
       
       diagram.arrows[id] = {
         id,
@@ -434,13 +420,3 @@ export class LightDomainConverter implements DomainFormatConverter {
   }
 }
 
-// Export convenience functions
-export const toLightYAML = (diagram: DomainDiagram): string => {
-  const converter = new LightDomainConverter();
-  return converter.serialize(diagram);
-};
-
-export const fromLightYAML = (yamlString: string): DomainDiagram => {
-  const converter = new LightDomainConverter();
-  return converter.deserialize(yamlString);
-};

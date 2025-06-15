@@ -7,7 +7,7 @@
 
 import { createStoreOperationHook } from './factories';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { personId, type DomainPerson, type LLMService, type NodeID } from '@/types';
+import { personId, type DomainPerson, type LLMService, type NodeID, type PersonID } from '@/types';
 
 // Create the hook using our factory
 export const usePersonOperations = createStoreOperationHook<DomainPerson, [string, LLMService, string]>({
@@ -117,7 +117,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
       nodes.forEach(node => {
         if (node.data?.person === id) {
           // Remove person reference from node
-          state.updateNode(node.id, { 
+          state.updateNode(node.id as NodeID, { 
             data: { ...node.data, person: undefined } 
           });
         }
@@ -167,20 +167,20 @@ export const usePersonUtils = () => {
   };
   
   // Get nodes using a specific person
-  const getNodesUsingPerson = (personId: string): NodeID[] => {
+  const getNodesUsingPerson = (personId: PersonID): NodeID[] => {
     const nodes = Array.from(store.nodes.values());
     return nodes
       .filter(node => node.data?.person === personId)
-      .map(node => node.id);
+      .map(node => node.id as NodeID);
   };
   
   // Check if person is in use
-  const isPersonInUse = (personId: string): boolean => {
+  const isPersonInUse = (personId: PersonID): boolean => {
     return getNodesUsingPerson(personId).length > 0;
   };
   
   // Get usage count for a person
-  const getUsageCount = (personId: string): number => {
+  const getUsageCount = (personId: PersonID): number => {
     return getNodesUsingPerson(personId).length;
   };
   

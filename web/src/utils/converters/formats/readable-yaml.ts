@@ -10,8 +10,8 @@ import { stringify, parse } from 'yaml';
 import {
   DomainDiagram, DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle,
   NodeID, ArrowID, PersonID, ApiKeyID, HandleID,
-  NodeKind, LLMService, DataType,
-  generateNodeId, generateShortId, arrowId, personId, apiKeyId, handleId, createHandleId, parseHandleId
+  NodeKind, DataType,
+  generateNodeId, generateShortId, arrowId, personId, apiKeyId, createHandleId, parseHandleId
 } from '@/types';
 import { YAML_VERSION, YAML_STRINGIFY_OPTIONS } from '../constants';
 import { DomainFormatConverter } from '../core/types';
@@ -38,11 +38,6 @@ export interface ReadablePerson {
   service?: string;
   apiKey?: string;
   systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
 }
 
 export interface ReadableApiKey {
@@ -55,7 +50,6 @@ export interface ReadableHandle {
   direction: 'input' | 'output';
   dataType: string;
   position?: 'left' | 'right' | 'top' | 'bottom';
-  maxConnections?: number;
 }
 
 export interface ReadableDiagram {
@@ -137,17 +131,12 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       // Only add non-default values
       if (person.service !== 'openai') readablePerson.service = person.service;
       if (person.apiKeyId) {
-        const apiKeyLabel = this.apiKeyIdToLabel.get(person.apiKeyId);
+        const apiKeyLabel = this.apiKeyIdToLabel.get(person.apiKeyId as ApiKeyID);
         if (apiKeyLabel) readablePerson.apiKey = apiKeyLabel;
       }
       if (person.systemPrompt) readablePerson.systemPrompt = person.systemPrompt;
-      if (person.temperature !== undefined && person.temperature !== 0.2) {
-        readablePerson.temperature = person.temperature;
-      }
-      if (person.maxTokens) readablePerson.maxTokens = person.maxTokens;
-      if (person.topP !== undefined && person.topP !== 1) readablePerson.topP = person.topP;
-      if (person.frequencyPenalty) readablePerson.frequencyPenalty = person.frequencyPenalty;
-      if (person.presencePenalty) readablePerson.presencePenalty = person.presencePenalty;
+      // Note: temperature, maxTokens, topP, frequencyPenalty, presencePenalty 
+      // are stored in node data, not in the Person entity
       
       persons[label] = readablePerson;
     });
@@ -195,12 +184,12 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       // Find all outgoing connections from this node
       const connections: ReadableConnection[] = [];
       Object.values(diagram.arrows).forEach(arrow => {
-        const { nodeId: sourceNodeId } = parseHandleId(arrow.source);
+        const { nodeId: sourceNodeId } = parseHandleId(arrow.source as HandleID);
         if (sourceNodeId === nodeId) {
-          const { nodeId: targetNodeId } = parseHandleId(arrow.target);
+          const { nodeId: targetNodeId } = parseHandleId(arrow.target as HandleID);
           const targetLabel = this.nodeIdToLabel.get(targetNodeId);
-          const sourceHandleLabel = this.handleIdToLabel.get(arrow.source);
-          const targetHandleLabel = this.handleIdToLabel.get(arrow.target);
+          const sourceHandleLabel = this.handleIdToLabel.get(arrow.source as HandleID);
+          const targetHandleLabel = this.handleIdToLabel.get(arrow.target as HandleID);
           
           if (!targetLabel || !targetHandleLabel) return;
           
@@ -231,12 +220,12 @@ export class ReadableDomainConverter implements DomainFormatConverter {
     });
     
     // Convert custom handles only
-    Object.entries(diagram.handles).forEach(([id, handle]) => {
-      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId);
+    Object.entries(diagram.handles).forEach(([_id, handle]) => {
+      const nodeLabel = this.nodeIdToLabel.get(handle.nodeId as NodeID);
       if (!nodeLabel) return;
       
       // Skip default handles
-      const node = diagram.nodes[handle.nodeId];
+      const node = diagram.nodes[handle.nodeId as NodeID];
       if (node) {
         const nodeConfig = getNodeConfig(node.type as NodeKind);
         const defaultHandles = nodeConfig ? generateNodeHandles(handle.nodeId, nodeConfig, node.type as NodeKind) : [];
@@ -252,10 +241,9 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       handles.push({
         node: nodeLabel,
         name: handle.label,
-        direction: handle.direction,
+        direction: handle.direction as 'input' | 'output',
         dataType: handle.dataType,
-        position: handle.position,
-        maxConnections: handle.maxConnections
+        position: handle.position as 'left' | 'right' | 'top' | 'bottom' | undefined
       });
     });
     
@@ -297,7 +285,8 @@ export class ReadableDomainConverter implements DomainFormatConverter {
         diagram.apiKeys[id] = {
           id,
           label,
-          service: apiKey.service as LLMService
+          service: apiKey.service as string,
+          maskedKey: `${apiKey.service}-****`
         };
       });
     }
@@ -317,14 +306,11 @@ export class ReadableDomainConverter implements DomainFormatConverter {
           id,
           label,
           model: person.model,
-          service: (person.service || 'openai') as LLMService,
-          apiKeyId,
-          systemPrompt: person.systemPrompt || '',
-          temperature: person.temperature ?? 0.2,
-          maxTokens: person.maxTokens,
-          topP: person.topP ?? 1,
-          frequencyPenalty: person.frequencyPenalty ?? 0,
-          presencePenalty: person.presencePenalty ?? 0
+          service: (person.service || 'openai') as string,
+          apiKeyId: apiKeyId || '' as ApiKeyID,
+          systemPrompt: person.systemPrompt,
+          forgettingMode: 'NONE',
+          type: 'person'
         };
       });
     }
@@ -334,7 +320,7 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       const nodeId = generateNodeId();
       this.labelToNodeId.set(label, nodeId);
       
-      const nodeData: any = {
+      const nodeData: Record<string, unknown> = {
         id: nodeId,
         label,
         ...node
@@ -347,7 +333,7 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       
       // Convert person reference
       if (nodeData.person) {
-        const personId = this.labelToPersonId.get(nodeData.person);
+        const personId = this.labelToPersonId.get(nodeData.person as string);
         if (personId) {
           nodeData.personId = personId;
           delete nodeData.person;
@@ -358,7 +344,8 @@ export class ReadableDomainConverter implements DomainFormatConverter {
         id: nodeId,
         type: node.type as NodeKind,
         position: node.position,
-        data: nodeData
+        data: nodeData,
+        displayName: label
       };
     });
     
@@ -368,8 +355,8 @@ export class ReadableDomainConverter implements DomainFormatConverter {
       if (nodeConfig) {
         const handles = generateNodeHandles(node.id, nodeConfig, node.type as NodeKind);
         handles.forEach((handle: DomainHandle) => {
-          this.labelToHandleId.set(handle.label, handle.id);
-          diagram.handles[handle.id] = handle;
+          this.labelToHandleId.set(handle.label, handle.id as HandleID);
+          diagram.handles[handle.id as HandleID] = handle;
         });
       }
     });
@@ -389,8 +376,7 @@ export class ReadableDomainConverter implements DomainFormatConverter {
           label: handle.name,
           direction: handle.direction,
           dataType: handle.dataType as DataType,
-          position: handle.position || 'bottom',
-          maxConnections: handle.maxConnections
+          position: handle.position || 'bottom'
         };
       });
     }
@@ -426,7 +412,7 @@ export class ReadableDomainConverter implements DomainFormatConverter {
               sourceNode,
               Object.values(diagram.handles)
             );
-            sourceHandleId = defaultHandle?.id;
+            sourceHandleId = defaultHandle?.id as HandleID;
           }
         }
         
@@ -436,7 +422,7 @@ export class ReadableDomainConverter implements DomainFormatConverter {
         }
         
         const id = arrowId(generateShortId());
-        const { to, handle, ...arrowData } = connection;
+        const { to: _to, handle: _handle, ...arrowData } = connection;
         
         diagram.arrows[id] = {
           id,
@@ -477,13 +463,3 @@ export class ReadableDomainConverter implements DomainFormatConverter {
   }
 }
 
-// Export convenience functions
-export const toReadableYAML = (diagram: DomainDiagram): string => {
-  const converter = new ReadableDomainConverter();
-  return converter.serialize(diagram);
-};
-
-export const fromReadableYAML = (yamlString: string): DomainDiagram => {
-  const converter = new ReadableDomainConverter();
-  return converter.deserialize(yamlString);
-};

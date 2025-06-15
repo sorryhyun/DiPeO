@@ -71,6 +71,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
             id,
             label: name,
             service: service as DomainApiKey['service'],
+            maskedKey: '••••••••'
           };
           set(state => {
             apiKeyCrud.add(state, apiKey);

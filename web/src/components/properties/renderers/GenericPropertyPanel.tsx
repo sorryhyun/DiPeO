@@ -4,7 +4,9 @@ import { usePropertyManager } from '@/hooks/usePropertyManager';
 import { useCanvasOperations } from '@/hooks';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
-import { preInitializeModel, fetchApiKeys } from '@/utils/api';
+import { apolloClient } from '@/graphql/client';
+import { GetApiKeysDocument } from '@/generated/graphql';
+// TODO: preInitializeModel needs GraphQL migration
 import { createHandlerTable } from '@/utils/dispatchTable';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
@@ -72,8 +74,11 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     // If this is an API key selection for a person entity, update the service field
     if (data.type === 'person' && name === 'apiKeyId' && value) {
       try {
-        const apiKeys = await fetchApiKeys();
-        const selectedKey = apiKeys.find(k => k.id === value);
+        const { data } = await apolloClient.query({
+          query: GetApiKeysDocument,
+          fetchPolicy: 'cache-first'
+        });
+        const selectedKey = data.apiKeys.find((k: any) => k.id === value);
         if (selectedKey) {
           updateField('service' as keyof T, selectedKey.service as T[keyof T]);
         }
@@ -88,15 +93,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       const apiKeyId = formData.apiKeyId || data.apiKeyId;
       
       if (service && value && apiKeyId) {
-        try {
-          await preInitializeModel(
-            service as string,
-            value as string,
-            apiKeyId as string
-          );
-        } catch (error) {
-          console.warn('Failed to pre-initialize model:', error);
-        }
+        // TODO: Implement model pre-initialization with GraphQL
+        // The REST API preInitializeModel function needs to be migrated
+        console.log('Model pre-initialization not yet implemented in GraphQL', { service, value, apiKeyId });
       }
     }
   }, [updateField, formData, data]);

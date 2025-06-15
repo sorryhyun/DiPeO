@@ -8,6 +8,7 @@ from .api_key import ApiKeyMutations
 from .execution import ExecutionMutations
 from .handle import HandleMutations
 from .utility import UtilityMutations
+from .upload import UploadMutations
 
 # Import the main Mutation class from the parent module
 import strawberry
@@ -22,7 +23,8 @@ class Mutation(
     ApiKeyMutations,
     ExecutionMutations,
     HandleMutations,
-    UtilityMutations
+    UtilityMutations,
+    UploadMutations
 ):
     """Root mutation type for DiPeO GraphQL API.
     
@@ -42,4 +44,5 @@ __all__ = [
     'ExecutionMutations',
     'HandleMutations',
     'UtilityMutations',
+    'UploadMutations',
 ]

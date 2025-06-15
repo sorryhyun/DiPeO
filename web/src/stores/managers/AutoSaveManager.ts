@@ -7,6 +7,9 @@ import { debounce } from 'lodash-es';
 import { shallow } from 'zustand/shallow';
 import type { UnifiedStore } from '../unifiedStore.types';
 import { DomainNode, DomainArrow, NodeID, ArrowID } from '@/types';
+// TODO: Migrate to GraphQL - needs refactoring to use individual mutations
+// (createNode, updateNode, deleteNode, createArrow, deleteArrow, etc.)
+// instead of saving entire diagram at once
 import { api } from '@/utils/api';
 import { logger } from '@/utils/logger';
 import { toast } from 'react-hot-toast';

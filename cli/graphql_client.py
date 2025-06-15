@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any, Optional, AsyncGenerator
+from typing import Dict, Any, Optional, AsyncGenerator, List
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.websockets import WebsocketsTransport
@@ -38,7 +38,9 @@ class DiPeoGraphQLClient:
             mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
                 executeDiagram(input: $input) {
                     success
-                    executionId
+                    execution {
+                        id
+                    }
                     message
                     error
                 }
@@ -50,16 +52,16 @@ class DiPeoGraphQLClient:
             variable_values={
                 "input": {
                     "diagram_id": diagram_id,
-                    "variables": variables or {},
                     "debug_mode": debug_mode,
-                    "timeout_seconds": timeout
+                    "timeout_seconds": timeout,
+                    "max_iterations": 1000
                 }
             }
         )
         
         response = result["executeDiagram"]
         if response["success"]:
-            return response["executionId"]
+            return response["execution"]["id"]
         else:
             raise Exception(response.get("error") or response.get("message", "Unknown error"))
     
@@ -201,3 +203,50 @@ class DiPeoGraphQLClient:
         if not response["success"]:
             raise Exception(response.get("error") or response.get("message", "Interactive response failed"))
         return response["success"]
+    
+    async def save_diagram(self, diagram_data: Dict[str, Any], filename: Optional[str] = None) -> str:
+        """Save a diagram and return its ID."""
+        import json
+        import yaml
+        from datetime import datetime
+        
+        # Determine format based on content
+        yaml_content = yaml.dump(diagram_data, default_flow_style=False)
+        
+        mutation = gql("""
+            mutation ImportYamlDiagram($input: ImportYamlInput!) {
+                importYamlDiagram(input: $input) {
+                    success
+                    diagram {
+                        id
+                        metadata {
+                            name
+                        }
+                    }
+                    message
+                    error
+                }
+            }
+        """)
+        
+        # Generate filename if not provided
+        if not filename:
+            diagram_name = diagram_data.get('metadata', {}).get('name', 'cli_diagram')
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{diagram_name}_{timestamp}.yaml"
+        
+        result = await self._client.execute_async(
+            mutation,
+            variable_values={
+                "input": {
+                    "content": yaml_content,
+                    "filename": filename
+                }
+            }
+        )
+        
+        response = result["importYamlDiagram"]
+        if response["success"]:
+            return response["diagram"]["id"]
+        else:
+            raise Exception(response.get("error") or response.get("message", "Failed to save diagram"))

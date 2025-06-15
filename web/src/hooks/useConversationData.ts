@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+// TODO: Migrate to GraphQL when conversations query is available in the schema
+// Currently no GraphQL query exists for fetching conversation data
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import type { ConversationFilters, ConversationMessage, PersonMemoryConfig, PersonMemoryState, PersonID } from '@/types';
 

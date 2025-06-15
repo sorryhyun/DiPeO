@@ -1,5 +1,6 @@
 import type { TypedPanelConfig, PersonFormData } from '@/types/ui';
-import { fetchApiKeys, fetchAvailableModels } from '@/utils/api';
+import { apolloClient } from '@/graphql/client';
+import { GetApiKeysDocument, GetAvailableModelsDocument } from '@/generated/graphql';
 
 interface ExtendedPersonFormData extends PersonFormData {
   apiKeyId?: string;
@@ -23,8 +24,11 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
       label: 'API Key',
       options: async () => {
         try {
-          const apiKeys = await fetchApiKeys();
-          return apiKeys.map(key => ({
+          const { data } = await apolloClient.query({
+            query: GetApiKeysDocument,
+            fetchPolicy: 'network-only'
+          });
+          return data.apiKeys.map(key => ({
             value: key.id,
             label: `${key.label} (${key.service})`
           }));
@@ -46,12 +50,27 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
         }
         try {
           // Get service from selected API key
-          const apiKeys = await fetchApiKeys();
-          const selectedKey = apiKeys.find(k => k.id === data.apiKeyId);
+          const { data: apiKeysData } = await apolloClient.query({
+            query: GetApiKeysDocument,
+            fetchPolicy: 'cache-first'
+          });
+          const selectedKey = apiKeysData.apiKeys.find(k => k.id === data.apiKeyId);
           if (!selectedKey) {
             return [];
           }
-          return await fetchAvailableModels(selectedKey.service, data.apiKeyId as string);
+          
+          const { data: modelsData } = await apolloClient.query({
+            query: GetAvailableModelsDocument,
+            variables: {
+              service: selectedKey.service,
+              apiKeyId: data.apiKeyId as string
+            }
+          });
+          
+          return modelsData.availableModels.map(model => ({
+            value: model,
+            label: model
+          }));
         } catch (error) {
           console.error('Failed to fetch models:', error);
           return [];

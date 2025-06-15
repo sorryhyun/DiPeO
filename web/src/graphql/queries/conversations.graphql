@@ -1,22 +1,5 @@
-# Conversation Queries
-query GetConversations($filter: ConversationFilterInput, $limit: Int = 50, $offset: Int = 0) {
-  conversations(filter: $filter, limit: $limit, offset: $offset) {
-    id
-    personId
-    personLabel
-    nodeId
-    nodeLabel
-    timestamp
-    messages {
-      role
-      content
-      timestamp
-    }
-  }
-}
-
 # Conversation Mutations
-mutation ClearAllConversations {
+mutation ClearConversations {
   clearConversations {
     success
     message

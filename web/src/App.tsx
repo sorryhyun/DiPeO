@@ -3,7 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecutionProvider, useUnifiedStore } from './hooks';
-import { CanvasProvider, useCanvasOperations, useCanvasUIState } from './contexts/CanvasContext';
+import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './contexts/CanvasContext';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -14,7 +14,7 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 // Inner component that uses React Flow hooks
 function AppContent() {
   const { activeCanvas } = useCanvasUIState();
-  const { setReadOnly } = useCanvasOperations();
+  const { setReadOnly } = useCanvasOperationsContext();
   // Create the main execution connection (WebSocket or GraphQL based on feature flag)
   const execution = useExecutionProvider({ autoConnect: true });
   const params = new URLSearchParams(window.location.search);

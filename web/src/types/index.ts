@@ -8,7 +8,6 @@ export * from './primitives';
 export * from './api';
 export * from './runtime';
 export * from './errors';
-export * from './domain';
 export * from './framework';
 export * from './ui';
 export * from './config';
@@ -41,6 +40,8 @@ export {
   isApiKeyId,
   isExecutionId,
   isMessageId,
+  createHandleId,
+  parseHandleId,
 } from './branded';
 
 // Legacy exports for backward compatibility
@@ -51,3 +52,19 @@ export * from './typeGuardsRefactored';
 
 // Type guard factory types (for advanced usage)
 export type { TypeGuard, TypeGuardConfig, PropertyCheck } from '@/utils/typeGuardFactory';
+
+// GraphQL type mappings and domain compatibility
+export * from './graphql-mappings';
+export type {
+  Node,
+  Arrow,
+  Handle,
+  Person,
+  ApiKey,
+  Diagram,
+  NodeType,
+  LlmService,
+  ForgettingMode,
+  ExecutionStatus,
+  EventType
+} from '@/generated/graphql';

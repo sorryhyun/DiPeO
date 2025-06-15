@@ -7,7 +7,7 @@ import {
   TestApiKeyDocument,
   GetAvailableModelsDocument
 } from '@/generated/graphql';
-import { DomainApiKey, apiKeyId } from '@/types';
+import { DomainApiKey, apiKeyId, type ApiKeyID } from '@/types';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 
 export const useApiKeyOperationsGraphQL = () => {
@@ -24,11 +24,12 @@ export const useApiKeyOperationsGraphQL = () => {
           id: apiKeyId(data.createApiKey.apiKey.id),
           label: data.createApiKey.apiKey.label,
           service: data.createApiKey.apiKey.service.toLowerCase() as DomainApiKey['service'],
+          maskedKey: data.createApiKey.apiKey.maskedKey,
         };
 
         // Add to local store
-        const newApiKeys = new Map(apiKeys);
-        newApiKeys.set(newKey.id, newKey);
+        const newApiKeys = new Map<ApiKeyID, DomainApiKey>(apiKeys);
+        newApiKeys.set(newKey.id as ApiKeyID, newKey);
         useUnifiedStore.setState({ apiKeys: newApiKeys });
 
         toast.success(`API key "${newKey.label}" added successfully`);

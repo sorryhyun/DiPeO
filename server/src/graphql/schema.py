@@ -36,6 +36,8 @@ def create_graphql_router(context_getter=None):
         ],
         # Path for GraphQL endpoint
         path="/graphql",
+        # Enable multipart uploads (for file upload support)
+        multipart_uploads_enabled=True,
     )
 
 # Export schema for code generation

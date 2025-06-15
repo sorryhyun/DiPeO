@@ -3,7 +3,6 @@ import { Button, Input, Modal, Select } from '@/components/ui';
 import { DomainApiKey, apiKeyId, createErrorHandlerFactory, ApiKeyID } from '@/types';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
 import { useApiKeyOperationsGraphQL } from '@/hooks/useApiKeyOperationsGraphQL';
 
@@ -23,16 +22,11 @@ const API_SERVICES = [
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const { apiKeys } = useUnifiedStore();
   
-  // Use GraphQL hook if feature flag is enabled
-  const useGraphQL = new URLSearchParams(window.location.search).get('useGraphQL') === 'true' ||
-                     import.meta.env.VITE_USE_GRAPHQL === 'true';
-  
-  const graphQLOperations = useGraphQL ? useApiKeyOperationsGraphQL() : null;
+  // Use GraphQL operations for API key management
+  const graphQLOperations = useApiKeyOperationsGraphQL();
   
   // Convert Map to array for display
-  const apiKeysArray = useGraphQL && graphQLOperations 
-    ? graphQLOperations.apiKeys 
-    : Array.from(apiKeys.values());
+  const apiKeysArray = graphQLOperations.apiKeys;
     
   const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
     label: '',
@@ -69,49 +63,12 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
     }
 
     try {
-      if (useGraphQL && graphQLOperations) {
-        // Use GraphQL mutation
-        await graphQLOperations.createApiKey(
-          newKeyForm.label.trim(),
-          newKeyForm.service || 'openai',
-          newKeyForm.key.trim()
-        );
-      } else {
-        // Fall back to REST API
-        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            label: newKeyForm.label.trim(),
-            service: newKeyForm.service || 'claude',
-            key: newKeyForm.key.trim()
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          setErrors({ key: error.error || 'Failed to create API key' });
-          return;
-        }
-
-        const result = await response.json();
-        
-        // Directly add to store with backend ID - don't use addApiKey which generates its own ID
-        const newKey: DomainApiKey = {
-          id: apiKeyId(result.id),
-          label: result.label || newKeyForm.label.trim(),
-          service: result.service || newKeyForm.service || 'claude',
-          // key is optional - not stored in frontend for security
-        };
-
-        // Manually add to store with the backend's ID
-        const { apiKeys } = useUnifiedStore.getState();
-        const newApiKeys = new Map(apiKeys);
-        newApiKeys.set(newKey.id, newKey);
-        useUnifiedStore.setState({ apiKeys: newApiKeys });
-        
-        toast.success(`API key "${newKey.label}" added successfully`);
-      }
+      // Use GraphQL mutation
+      await graphQLOperations.createApiKey(
+        newKeyForm.label.trim(),
+        newKeyForm.service || 'openai',
+        newKeyForm.key.trim()
+      );
       
       // Reset form
       setNewKeyForm({
@@ -127,23 +84,8 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const handleDeleteKey = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this API key?')) {
       try {
-        if (useGraphQL && graphQLOperations) {
-          // Use GraphQL mutation
-          await graphQLOperations.deleteApiKey(id);
-        } else {
-          // Fall back to REST API
-          const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEY_BY_ID(id)), {
-            method: 'DELETE'
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to delete API key');
-          }
-
-          // Remove from local store
-          const { deleteApiKey } = useUnifiedStore.getState();
-          deleteApiKey(apiKeyId(id));
-        }
+        // Use GraphQL mutation
+        await graphQLOperations.deleteApiKey(id);
       } catch (error) {
         createErrorHandler(error);
       }
@@ -269,7 +211,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
             <Button
               onClick={handleAddKey}
               className="w-full"
-              disabled={!newKeyForm.label || !newKeyForm.key || (useGraphQL && graphQLOperations?.creatingApiKey)}
+              disabled={!newKeyForm.label || !newKeyForm.key || graphQLOperations?.creatingApiKey}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add API Key

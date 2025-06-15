@@ -62,11 +62,11 @@ export const createDiagramSlice: StateCreator<
   addNode: (type, position, initialData) => {
     const node = createNode(type, position, initialData);
     set(state => {
-      state.nodes.set(node.id, node);
+      state.nodes.set(node.id as NodeID, node);
       state.nodesArray = Array.from(state.nodes.values());
       state.dataVersion += 1;
     });
-    return node.id;
+    return node.id as NodeID;
   },
   
   updateNode: (id, updates) => set(state => {
@@ -116,11 +116,11 @@ export const createDiagramSlice: StateCreator<
       data: data || {}
     };
     set(state => {
-      state.arrows.set(arrow.id, arrow);
+      state.arrows.set(arrow.id as ArrowID, arrow);
       state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
     });
-    return arrow.id;
+    return arrow.id as ArrowID;
   },
   
   updateArrow: (id, updates) => set(state => {

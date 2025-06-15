@@ -2,11 +2,17 @@ import React from 'react';
 import { Button } from '@/components/ui/buttons';
 import { useExecutionProvider } from '@/hooks';
 import { useDiagramData } from '@/hooks/selectors';
+import { useUnifiedStore } from '@/stores/unifiedStore';
 import { nodeId } from '@/types';
 
 const ExecutionControls = () => {
   const execution = useExecutionProvider({ showToasts: false });
-  const { nodes, arrows, persons, handles, apiKeys } = useDiagramData();
+  const { nodes, arrows } = useDiagramData();
+  const { persons, handles, apiKeys } = useUnifiedStore(state => ({
+    persons: state.persons,
+    handles: state.handles,
+    apiKeys: state.apiKeys
+  }));
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 

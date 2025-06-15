@@ -86,7 +86,8 @@ export function createNodeBuilder<TData extends BaseNodeDataConfig = BaseNodeDat
       id,
       type: config.nodeType,
       position: info.position,
-      data
+      data,
+      displayName: data.label || id
     };
     
     // Add handles and return

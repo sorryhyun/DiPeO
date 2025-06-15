@@ -62,8 +62,11 @@ export const createComputedSlice: StateCreator<
     const node = state.nodes.get(nodeId);
     if (!node) return undefined;
     
-    const handles = state.handles.get(nodeId);
-    return handles ? { ...node, handles } : node;
+    // Get handles for this node by filtering all handles
+    const nodeHandles = Array.from(state.handles.values()).filter(
+      handle => handle.nodeId === nodeId
+    );
+    return nodeHandles.length > 0 ? { ...node, handles: nodeHandles } : node;
   },
   
   getNodesByType: (type) => {
@@ -110,13 +113,18 @@ export const createComputedSlice: StateCreator<
   // Handle-related computed getters
   getNodeHandles: (nodeId) => {
     const state = get();
-    return state.handles.get(nodeId);
+    // Filter handles by nodeId
+    return Array.from(state.handles.values()).filter(
+      handle => handle.nodeId === nodeId
+    );
   },
   
   getHandleByName: (nodeId, handleName) => {
     const state = get();
-    const handles = state.handles.get(nodeId);
-    return handles?.find(h => h.name === handleName);
+    // Find handle by nodeId and handleName
+    return Array.from(state.handles.values()).find(
+      h => h.nodeId === nodeId && h.label === handleName
+    );
   },
   
   // Graph analysis
@@ -167,7 +175,7 @@ export const createComputedSlice: StateCreator<
     
     // End nodes are nodes with incoming connections but no outgoing connections
     return Array.from(state.nodes.values()).filter(
-      node => nodesWithIncoming.has(node.id) && !nodesWithOutgoing.has(node.id)
+      node => nodesWithIncoming.has(node.id as NodeID) && !nodesWithOutgoing.has(node.id as NodeID)
     );
   },
   
@@ -207,7 +215,7 @@ export const createComputedSlice: StateCreator<
   getCompletedNodes: () => {
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
-      const nodeState = state.execution.nodeStates.get(node.id);
+      const nodeState = state.execution.nodeStates.get(node.id as NodeID);
       return nodeState?.status === 'completed';
     });
   },
@@ -215,7 +223,7 @@ export const createComputedSlice: StateCreator<
   getFailedNodes: () => {
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
-      const nodeState = state.execution.nodeStates.get(node.id);
+      const nodeState = state.execution.nodeStates.get(node.id as NodeID);
       return nodeState?.status === 'failed';
     });
   },

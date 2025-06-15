@@ -3,11 +3,11 @@ import { Layers, TestTube } from 'lucide-react';
 import { Button, FileUploadButton } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
-import { useCanvasOperations } from '@/contexts/CanvasContext';
+import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
+import { useGetApiKeysQuery } from '@/generated/graphql';
 import { toast } from 'sonner';
-import { isApiKey, parseApiArrayResponse, apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
+import { apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
 import { LightDomainConverter } from '@/utils/converters';
 import { downloadFile } from '@/utils/file';
 
@@ -43,48 +43,40 @@ const TopBar = () => {
   };
   
   // Load API keys on mount - backend is the single source of truth
+  const { data: apiKeysData, error: apiKeysError } = useGetApiKeysQuery();
+  
   useEffect(() => {
-    const loadApiKeys = async () => {
-      try {
-        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[TopBar] Raw API keys data:', data);
-          
-          // The backend returns an array directly, not wrapped in an object
-          const rawKeys = Array.isArray(data) ? data : (data.apiKeys || []);
-          console.log('[TopBar] Raw keys array:', rawKeys);
-          
-          const backendKeys = parseApiArrayResponse(rawKeys, isApiKey);
-          console.log('[TopBar] Parsed API keys:', backendKeys);
-          
-          // Clear existing keys and load fresh from backend
-          // This ensures backend file is the single source of truth
-          const newApiKeys = new Map();
-          
-          backendKeys.forEach(key => {
-            // Brand the ID properly
-            const brandedId = apiKeyId(key.id);
-            const brandedKey = { ...key, id: brandedId };
-            newApiKeys.set(brandedId, brandedKey);
-          });
-          
-          // Replace entire apiKeys state with backend data
-          useUnifiedStore.setState({ apiKeys: newApiKeys });
-          
-          console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
-          if (backendKeys.length > 0) {
-            toast.success(`Loaded ${backendKeys.length} API keys`);
-          }
-        }
-      } catch (error) {
-        console.error('[TopBar] Load API Keys error:', error);
-        toast.error(`Failed to load API keys: ${(error as Error).message}`);
+    if (apiKeysData?.apiKeys) {
+      const backendKeys = apiKeysData.apiKeys;
+      console.log('[TopBar] Loaded API keys from GraphQL:', backendKeys);
+      
+      // Clear existing keys and load fresh from backend
+      // This ensures backend file is the single source of truth
+      const newApiKeys = new Map();
+      
+      backendKeys.forEach(key => {
+        // Brand the ID properly
+        const brandedId = apiKeyId(key.id);
+        const brandedKey = { ...key, id: brandedId };
+        newApiKeys.set(brandedId, brandedKey);
+      });
+      
+      // Replace entire apiKeys state with backend data
+      useUnifiedStore.setState({ apiKeys: newApiKeys });
+      
+      console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
+      if (backendKeys.length > 0) {
+        toast.success(`Loaded ${backendKeys.length} API keys`);
       }
-    };
-
-    loadApiKeys().catch(console.error);
-  }, []);
+    }
+  }, [apiKeysData]);
+  
+  useEffect(() => {
+    if (apiKeysError) {
+      console.error('[TopBar] Load API Keys error:', apiKeysError);
+      toast.error(`Failed to load API keys: ${apiKeysError.message}`);
+    }
+  }, [apiKeysError]);
   
   // Handle monitor mode separately
   useEffect(() => {
@@ -109,10 +101,9 @@ const TopBar = () => {
     const timeoutId = setTimeout(() => {
       const checkBackendApiKeys = async () => {
         try {
-          const res = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS));
-          if (!cancelled && res.ok) {
-            const data = await res.json();
-            const backendKeys = parseApiArrayResponse(data.apiKeys || data, isApiKey);
+          // Skip this check since we're already loading API keys with GraphQL
+          if (!cancelled && apiKeysData?.apiKeys) {
+            const backendKeys = apiKeysData.apiKeys;
             
             // Get current apiKeys length from store
             const currentApiKeysLength = useUnifiedStore.getState().apiKeys.size;
@@ -146,7 +137,7 @@ const TopBar = () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [hasCheckedBackend]); // Add hasCheckedBackend to dependencies
+  }, [hasCheckedBackend, apiKeysData]); // Add hasCheckedBackend and apiKeysData to dependencies
 
   // Keyboard shortcuts could be added here if needed
 
