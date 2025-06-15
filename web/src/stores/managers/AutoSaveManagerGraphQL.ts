@@ -41,7 +41,7 @@ import {
   type CreatePersonMutationVariables,
   type UpdatePersonMutationVariables,
   type DeletePersonMutationVariables
-} from '@/generated/graphql';
+} from '@/__generated__/graphql';
 import { logger } from '@/utils/logger';
 import { toast } from 'react-hot-toast';
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client';

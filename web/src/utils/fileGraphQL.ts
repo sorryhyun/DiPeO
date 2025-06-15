@@ -10,7 +10,7 @@ import {
   type SaveDiagramMutation,
   type SaveDiagramMutationVariables,
   type DiagramID 
-} from '@/generated/graphql';
+} from '@/__generated__/graphql';
 import type { SaveFileOptions } from './file';
 
 /**

@@ -59,37 +59,35 @@ const CanvasContext = createContext<CanvasContextValue | null>(null);
 export function CanvasProvider({ children }: { children: React.ReactNode }) {
   // Get UI state from store
   const uiState = useUnifiedStore(
-    useShallow(state => {
+    useShallow(state => ({
       // Derive selection state from unified selection model
-      const selectedNodeId = state.selectedType === 'node' ? (state.selectedId as NodeID) : null;
-      const selectedArrowId = state.selectedType === 'arrow' ? (state.selectedId as ArrowID) : null;
-      const selectedPersonId = state.selectedType === 'person' ? (state.selectedId as PersonID) : null;
-      const selectedNodeIds = new Set<NodeID>();
-      
-      // Add multi-selected nodes
-      state.multiSelectedIds.forEach(id => {
-        if (state.selectedType === 'node') {
-          selectedNodeIds.add(id as NodeID);
-        }
-      });
-      
-      return {
-        selectedNodeId,
-        selectedArrowId,
-        selectedPersonId,
-        selectedNodeIds,
-        activeCanvas: state.activeCanvas,
-        readOnly: state.readOnly,
-        isExecuting: state.execution.isRunning,
-        isPaused: false, // TODO: Add isPaused to execution state
-        zoom: 1, // TODO: Get from React Flow instance
-        position: { x: 0, y: 0 }, // TODO: Get from React Flow instance
-        showGrid: true, // TODO: Add to settings
-        showMinimap: false, // TODO: Add to settings
-        showDebugInfo: false, // TODO: Add to settings
-      };
-    })
+      selectedNodeId: state.selectedType === 'node' ? (state.selectedId as NodeID) : null,
+      selectedArrowId: state.selectedType === 'arrow' ? (state.selectedId as ArrowID) : null,
+      selectedPersonId: state.selectedType === 'person' ? (state.selectedId as PersonID) : null,
+      multiSelectedIds: state.multiSelectedIds,
+      selectedType: state.selectedType,
+      activeCanvas: state.activeCanvas,
+      readOnly: state.readOnly,
+      isExecuting: state.execution.isRunning,
+      isPaused: false, // TODO: Add isPaused to execution state
+      zoom: 1, // TODO: Get from React Flow instance
+      position: { x: 0, y: 0 }, // TODO: Get from React Flow instance
+      showGrid: true, // TODO: Add to settings
+      showMinimap: false, // TODO: Add to settings
+      showDebugInfo: false, // TODO: Add to settings
+    }))
   );
+
+  // Create selectedNodeIds Set from multiSelectedIds
+  const selectedNodeIds = useMemo(() => {
+    const nodeIds = new Set<NodeID>();
+    if (uiState.selectedType === 'node') {
+      uiState.multiSelectedIds.forEach(id => {
+        nodeIds.add(id as NodeID);
+      });
+    }
+    return nodeIds;
+  }, [uiState.multiSelectedIds, uiState.selectedType]);
 
   // Get selection operations from store
   const selectionOps = useUnifiedStore(
@@ -132,13 +130,14 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     () => ({
       // UI state
       ...uiState,
+      selectedNodeIds, // Override with the memoized Set
       
       // Operations
       ...selectionOps,
       canvasOps,
       executionOps,
     }),
-    [uiState, selectionOps, canvasOps, executionOps]
+    [uiState, selectedNodeIds, selectionOps, canvasOps, executionOps]
   );
 
   return (

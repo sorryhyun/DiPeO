@@ -1,6 +1,6 @@
 import type { TypedPanelConfig, PersonFormData } from '@/types/ui';
 import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument, GetAvailableModelsDocument } from '@/generated/graphql';
+import { GetApiKeysDocument, GetAvailableModelsDocument } from '@/__generated__/graphql';
 
 interface ExtendedPersonFormData extends PersonFormData {
   apiKeyId?: string;

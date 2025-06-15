@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useGetConversationsQuery } from '@/generated/graphql';
+import { useGetConversationsQuery } from '@/__generated__/graphql';
 import type { ConversationFilters, ConversationMessage, PersonMemoryConfig, PersonMemoryState, PersonID } from '@/types';
 
 const MESSAGES_PER_PAGE = 50;

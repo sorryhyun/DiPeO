@@ -1,10 +1,11 @@
-import { ApolloClient, InMemoryCache, split, HttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, split } from '@apollo/client';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
+import { createUploadLink } from 'apollo-upload-client';
 
-// HTTP link for queries and mutations
-const httpLink = new HttpLink({
+// HTTP link for queries and mutations with file upload support
+const httpLink = createUploadLink({
   uri: `http://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
   credentials: 'include', // Include cookies for authentication if needed
 });

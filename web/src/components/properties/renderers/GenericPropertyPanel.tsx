@@ -5,7 +5,7 @@ import { useCanvasOperations } from '@/hooks';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument } from '@/generated/graphql';
+import { GetApiKeysDocument } from '@/__generated__/graphql';
 // TODO: preInitializeModel needs GraphQL migration
 import { createHandlerTable } from '@/utils/dispatchTable';
 

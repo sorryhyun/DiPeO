@@ -13,8 +13,8 @@ import type {
   ApiKey,
   Diagram,
   Vec2Input
-} from '@/generated/graphql';
-import { NodeType } from '@/generated/graphql';
+} from '@/__generated__/graphql';
+import { NodeType } from '@/__generated__/graphql';
 import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID } from './branded';
 import type { Vec2 } from './primitives';
 

@@ -3,10 +3,8 @@ import React, { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
-import { useFileOperations } from '@/hooks/useFileOperations';
-import { toast } from 'sonner';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
-import { LazyApiKeysModal } from '@/components/modals/LazyModals';
+import { LazyApiKeysModal, LazyDiagramFileModal } from '@/components/modals/LazyModals';
 import type { PersonID } from '@/types/branded';
 import type { Node } from '@xyflow/react';
 
@@ -89,13 +87,12 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
     if (id) select(id, 'person');
     else clearSelection();
   };
-  const { importWithDialog, saveDiagramToServer } = useFileOperations();
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
-  const [fileOperationsExpanded, setFileOperationsExpanded] = useState(true);
   const [_conversationExpanded, _setConversationExpanded] = useState(true);
   const [_memoryExpanded, _setMemoryExpanded] = useState(true);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [isDiagramFileModalOpen, setIsDiagramFileModalOpen] = useState(false);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId as PersonID);
@@ -228,63 +225,19 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
         )}
       </div>
 
-      {/* File Operations Section */}
-      <div className="mb-4">
-        <h3 
-          className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
-          onClick={() => setFileOperationsExpanded(!fileOperationsExpanded)}
+      {/* File Operations Button */}
+      <div className="mb-4 px-2">
+        <Button 
+          variant="outline" 
+          className="w-full bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200 py-2"
+          onClick={() => setIsDiagramFileModalOpen(true)}
         >
-          <span className="flex items-center gap-2">
-            <span className="text-base">📁</span>
-            <span className="text-base font-medium">File Operations</span>
-          </span>
-          {fileOperationsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
-        </h3>
-        {fileOperationsExpanded && (
-          <div className="mt-3 space-y-2 px-2">
-            <Button
-              onClick={() => importWithDialog()}
-              className="w-full text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
-              variant="outline"
-              size="sm"
-              title="Import diagram from YAML file"
-            >
-              <span className="mr-1">📥</span> Import YAML
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full text-sm py-2 hover:bg-indigo-50 hover:border-indigo-300 transition-colors duration-200"
-              size="sm"
-              onClick={() => saveDiagramToServer('native')}
-              title="Export to native format (saves to /files/diagrams/native/)"
-            >
-              <span className="mr-1">🔧</span> Export Native
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full text-sm py-2 hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200"
-              size="sm"
-              onClick={() => saveDiagramToServer('readable')}
-              title="Export to human-readable format (saves to /files/diagrams/readable/)"
-            >
-              <span className="mr-1">📖</span> Export Readable
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full text-sm py-2 hover:bg-yellow-50 hover:border-yellow-300 transition-colors duration-200"
-              size="sm"
-              onClick={() => {
-                toast.error('LLM-readable format is not yet implemented');
-              }}
-              title="Export to LLM-readable format (saves to /files/diagrams/llm-readable/)"
-            >
-              <span className="mr-1">🤖</span> Export LLM Readable
-            </Button>
-          </div>
-        )}
+          📁 Import / Export
+        </Button>
       </div>
       
       <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
+      <LazyDiagramFileModal isOpen={isDiagramFileModalOpen} onClose={() => setIsDiagramFileModalOpen(false)} />
     </aside>
   );
 });

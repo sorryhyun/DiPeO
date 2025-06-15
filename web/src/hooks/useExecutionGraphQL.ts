@@ -26,7 +26,7 @@ import {
   NodeUpdatesSubscription,
   InteractivePromptsSubscription,
   ExecutionStatus,
-} from '@/generated/graphql';
+} from '@/__generated__/graphql';
 
 // Types (same as original)
 export interface ExecutionState {
@@ -312,7 +312,7 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
       status: 'running',
       timestamp: Date.now()
     });
-    onUpdate?.({ type: 'node_start', nodeId: nodeId(nodeIdStr), nodeType: nodeType });
+    onUpdate?.({ type: 'node_start', nodeId: nodeId(nodeIdStr), nodeType });
   }, 50), [executionActions, onUpdate]);
   
   const handleNodeComplete = useCallback(throttle((nodeIdStr: string, tokenCount?: number, output?: any) => {

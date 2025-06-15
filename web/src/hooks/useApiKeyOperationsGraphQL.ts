@@ -6,7 +6,7 @@ import {
   DeleteApiKeyDocument,
   TestApiKeyDocument,
   GetAvailableModelsDocument
-} from '@/generated/graphql';
+} from '@/__generated__/graphql';
 import { DomainApiKey, apiKeyId, type ApiKeyID } from '@/types';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 

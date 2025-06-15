@@ -7,7 +7,7 @@ https://github.com/jaydenseric/graphql-multipart-request-spec
 
 import strawberry
 from strawberry.file_uploads import Upload
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import yaml
 import json
 from pathlib import Path
@@ -15,9 +15,11 @@ import uuid
 import logging
 
 from ...services.diagram_service import DiagramService
-from ...domain import DiagramMetadata
+from ...domain import DiagramMetadata, DomainDiagram
+from ...converters import converter_registry
 from ..context import GraphQLContext
 from ..types.results import FileUploadResult
+from ..types.scalars import DiagramID
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,17 @@ class DiagramUploadResult:
     diagram_id: Optional[str] = None
     diagram_name: Optional[str] = None
     node_count: Optional[int] = None
+    format_detected: Optional[str] = None
+
+@strawberry.type  
+class DiagramExportResult:
+    """Result of diagram export operation."""
+    success: bool
+    message: str = ""
+    error: Optional[str] = None
+    content: Optional[str] = None
+    format: Optional[str] = None
+    filename: Optional[str] = None
 
 @strawberry.type
 class UploadMutations:
@@ -110,13 +123,17 @@ class UploadMutations:
     async def upload_diagram(
         self,
         file: Upload,
+        format: Optional[str] = None,
+        validate_only: bool = False,
         info: strawberry.Info = None
     ) -> DiagramUploadResult:
         """
-        Upload and import a diagram file (JSON or YAML).
+        Upload a diagram file (YAML/JSON) and convert to executable format.
         
         Args:
-            file: The diagram file to upload
+            file: The uploaded file
+            format: Optional format hint (native, light, readable, llm)
+            validate_only: If true, only validate without saving
             info: GraphQL context info
             
         Returns:
@@ -125,68 +142,171 @@ class UploadMutations:
         context: GraphQLContext = info.context
         
         try:
-            # Read file
-            filename = file.filename
-            file_content = await file.read()
+            # Read file content
+            content = await file.read()
+            content_str = content.decode('utf-8')
+            filename = file.filename or "unnamed_diagram"
             
             # Validate file size (5MB limit for diagrams)
-            if len(file_content) > 5 * 1024 * 1024:
+            if len(content) > 5 * 1024 * 1024:
                 return DiagramUploadResult(
                     success=False,
                     message="Diagram file exceeds 5MB limit"
                 )
             
-            # Parse diagram based on file extension
-            file_ext = Path(filename).suffix.lower()
+            # Detect or validate format
+            detected_format = format
+            if not detected_format:
+                detected_format = converter_registry.detect_format(content_str)
+                if not detected_format:
+                    # Try to infer from extension
+                    ext = Path(filename).suffix.lower()
+                    if 'light' in filename:
+                        detected_format = 'light'
+                    elif 'readable' in filename:
+                        detected_format = 'readable'
+                    elif 'llm' in filename:
+                        detected_format = 'llm'
+                    else:
+                        detected_format = 'native'  # Default
             
-            if file_ext in ['.yaml', '.yml']:
-                diagram_data = yaml.safe_load(file_content.decode('utf-8'))
-            elif file_ext == '.json':
-                diagram_data = json.loads(file_content.decode('utf-8'))
-            else:
+            # Get converter
+            converter = converter_registry.get(detected_format)
+            if not converter:
                 return DiagramUploadResult(
                     success=False,
-                    message=f"Unsupported file type: {file_ext}. Use .json or .yaml"
+                    message=f"Unknown format: {detected_format}"
                 )
             
-            # Validate it's a diagram
-            if not isinstance(diagram_data, dict) or 'nodes' not in diagram_data:
+            # Check if format supports import
+            format_info = converter_registry.get_info(detected_format)
+            if not format_info.get('supports_import', True):
                 return DiagramUploadResult(
                     success=False,
-                    message="Invalid diagram format: missing 'nodes' field"
+                    message=f"Format '{detected_format}' does not support import"
                 )
+            
+            # Parse diagram
+            try:
+                domain_diagram = converter.deserialize(content_str)
+            except Exception as e:
+                return DiagramUploadResult(
+                    success=False,
+                    message=f"Failed to parse {detected_format} format: {str(e)}"
+                )
+            
+            # Validate diagram structure
+            validation_errors = self._validate_diagram(domain_diagram)
+            if validation_errors:
+                return DiagramUploadResult(
+                    success=False,
+                    message=f"Validation failed: {'; '.join(validation_errors)}"
+                )
+            
+            if validate_only:
+                return DiagramUploadResult(
+                    success=True,
+                    message="Diagram is valid",
+                    node_count=len(domain_diagram.nodes),
+                    format_detected=detected_format
+                )
+            
+            # Convert to storage format (native dict)
+            storage_data = self._domain_to_storage_format(domain_diagram)
             
             # Save via diagram service
-            diagram_id = await context.diagram_service.save_diagram(diagram_data, filename)
+            diagram_id = await context.diagram_service.save_diagram(storage_data, filename)
             
-            # Get diagram info
-            saved_diagram = await context.diagram_service.get_diagram(diagram_id)
-            
-            logger.info(f"Diagram uploaded: {filename} -> {diagram_id}")
+            logger.info(f"Diagram uploaded: {filename} -> {diagram_id} (format: {detected_format})")
             
             return DiagramUploadResult(
                 success=True,
-                message=f"Diagram '{filename}' imported successfully",
+                message=f"Successfully uploaded {filename}",
                 diagram_id=diagram_id,
-                diagram_name=saved_diagram.get('metadata', {}).get('name', filename),
-                node_count=len(saved_diagram.get('nodes', {}))
+                diagram_name=storage_data.get('metadata', {}).get('name', filename),
+                node_count=len(domain_diagram.nodes),
+                format_detected=detected_format
             )
             
-        except yaml.YAMLError as e:
-            return DiagramUploadResult(
-                success=False,
-                message=f"Invalid YAML format: {str(e)}"
-            )
-        except json.JSONDecodeError as e:
-            return DiagramUploadResult(
-                success=False,
-                message=f"Invalid JSON format: {str(e)}"
-            )
         except Exception as e:
             logger.error(f"Diagram upload error: {str(e)}")
             return DiagramUploadResult(
                 success=False,
                 message=f"Upload failed: {str(e)}"
+            )
+    
+    @strawberry.mutation
+    async def export_diagram(
+        self,
+        diagram_id: str,
+        format: str = "native",
+        include_metadata: bool = True,
+        info: strawberry.Info = None
+    ) -> DiagramExportResult:
+        """
+        Export a diagram to specified format.
+        
+        Args:
+            diagram_id: ID of the diagram to export
+            format: Export format (native, light, readable, llm)
+            include_metadata: Whether to include metadata in export
+            info: GraphQL context info
+        """
+        context: GraphQLContext = info.context
+        
+        try:
+            # Get converter
+            converter = converter_registry.get(format)
+            if not converter:
+                return DiagramExportResult(
+                    success=False,
+                    error=f"Unknown format: {format}"
+                )
+            
+            # Check if format supports export
+            format_info = converter_registry.get_info(format)
+            if not format_info.get('supports_export', True):
+                return DiagramExportResult(
+                    success=False,
+                    error=f"Format '{format}' does not support export"
+                )
+            
+            # Fetch diagram
+            diagram_data = await context.diagram_service.get_diagram(diagram_id)
+            if not diagram_data:
+                return DiagramExportResult(
+                    success=False,
+                    error="Diagram not found"
+                )
+            
+            # Convert storage format to domain model
+            domain_diagram = self._storage_to_domain_format(diagram_data)
+            
+            # Remove metadata if requested
+            if not include_metadata:
+                domain_diagram.metadata = DiagramMetadata(version="2.0.0")
+            
+            # Serialize to requested format
+            content = converter.serialize(domain_diagram)
+            
+            # Generate filename
+            diagram_name = diagram_data.get('metadata', {}).get('name', 'diagram')
+            extension = format_info.get('extension', '.yaml')
+            filename = f"{diagram_name}{extension}"
+            
+            return DiagramExportResult(
+                success=True,
+                message=f"Exported as {format} format",
+                content=content,
+                format=format,
+                filename=filename
+            )
+            
+        except Exception as e:
+            logger.error(f"Export error: {str(e)}", exc_info=True)
+            return DiagramExportResult(
+                success=False,
+                error=str(e)
             )
     
     @strawberry.mutation
@@ -214,3 +334,63 @@ class UploadMutations:
             results.append(result)
         
         return results
+    
+    def _validate_diagram(self, diagram: DomainDiagram) -> List[str]:
+        """Validate diagram structure and return errors."""
+        errors = []
+        
+        # Check for at least one node
+        if not diagram.nodes:
+            errors.append("Diagram must have at least one node")
+        
+        # Validate node references in arrows
+        node_ids = set(diagram.nodes.keys())
+        handle_ids = set(diagram.handles.keys())
+        
+        for arrow_id, arrow in diagram.arrows.items():
+            # Check if source handle exists
+            if arrow.source not in handle_ids:
+                # Check if it's a node reference that needs handle
+                source_node_id = arrow.source.split(':')[0]
+                if source_node_id not in node_ids:
+                    errors.append(f"Arrow {arrow_id} references unknown source: {arrow.source}")
+            
+            # Check if target handle exists
+            if arrow.target not in handle_ids:
+                target_node_id = arrow.target.split(':')[0]
+                if target_node_id not in node_ids:
+                    errors.append(f"Arrow {arrow_id} references unknown target: {arrow.target}")
+        
+        # Validate handle node references
+        for handle_id, handle in diagram.handles.items():
+            if handle.nodeId not in node_ids:
+                errors.append(f"Handle {handle_id} references unknown node: {handle.nodeId}")
+        
+        # Validate person assignments
+        person_ids = set(diagram.persons.keys())
+        for node_id, node in diagram.nodes.items():
+            person_id = node.data.get('personId')
+            if person_id and person_id not in person_ids:
+                errors.append(f"Node {node_id} references unknown person: {person_id}")
+        
+        # Validate person API key references
+        api_key_ids = set(diagram.api_keys.keys())
+        for person_id, person in diagram.persons.items():
+            if person.apiKeyId and person.apiKeyId not in api_key_ids:
+                errors.append(f"Person {person_id} references unknown API key: {person.apiKeyId}")
+        
+        return errors
+    
+    def _domain_to_storage_format(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        """Convert domain diagram to storage format (dict)."""
+        # Use native converter for storage
+        converter = converter_registry.get('native')
+        yaml_str = converter.serialize(diagram)
+        return yaml.safe_load(yaml_str)
+    
+    def _storage_to_domain_format(self, data: Dict[str, Any]) -> DomainDiagram:
+        """Convert storage format to domain diagram."""
+        # Convert dict to YAML string then parse with native converter
+        yaml_str = yaml.dump(data, default_flow_style=False)
+        converter = converter_registry.get('native')
+        return converter.deserialize(yaml_str)

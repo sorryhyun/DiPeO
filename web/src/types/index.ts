@@ -67,4 +67,4 @@ export type {
   ForgettingMode,
   ExecutionStatus,
   EventType
-} from '@/generated/graphql';
+} from '@/__generated__/graphql';

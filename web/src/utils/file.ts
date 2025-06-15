@@ -8,7 +8,7 @@ import { getApiUrl, API_ENDPOINTS } from './api/config';
 import { createLookupTable } from './dispatchTable';
 import { shouldUseGraphQL } from '@/config/featureFlags';
 import { saveDiagramToBackendGraphQL } from './fileGraphQL';
-import type { DiagramID } from '@/generated/graphql';
+import type { DiagramID } from '@/__generated__/graphql';
 
 export type FileFormat = 'light' | 'native' | 'readable' | 'llm-readable';
 

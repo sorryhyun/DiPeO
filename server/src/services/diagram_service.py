@@ -411,3 +411,74 @@ class DiagramService(BaseService):
         except Exception as e:
             raise ValidationError(f"Failed to delete diagram: {e}")
     
+    async def save_diagram_with_id(self, diagram_dict: Dict[str, Any], filename: str) -> str:
+        """Save a diagram with generated ID.
+        
+        Args:
+            diagram_dict: Diagram data in dictionary format
+            filename: Original filename for reference
+            
+        Returns:
+            The diagram ID (which is the filename without extension)
+        """
+        # Extract name from metadata or use filename
+        name = (diagram_dict.get('metadata', {}).get('name') or 
+                Path(filename).stem)
+        
+        # Generate safe filename
+        safe_name = name.replace(' ', '_').replace('/', '_')
+        extension = '.yaml'  # Always save as YAML internally
+        
+        # Use ID from metadata if available, otherwise generate
+        diagram_id = diagram_dict.get('metadata', {}).get('id')
+        if diagram_id:
+            # Use ID as filename
+            path = f"{diagram_id}{extension}"
+        else:
+            # Generate unique filename
+            import uuid
+            unique_id = str(uuid.uuid4())
+            path = f"{safe_name}_{unique_id}{extension}"
+            diagram_id = Path(path).stem
+            
+            # Update metadata with ID
+            if 'metadata' not in diagram_dict:
+                diagram_dict['metadata'] = {}
+            diagram_dict['metadata']['id'] = diagram_id
+        
+        # Save using existing method
+        self.save_diagram(path, diagram_dict)
+        
+        return diagram_id
+    
+    async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]:
+        """Get a diagram by ID.
+        
+        Args:
+            diagram_id: The diagram ID (filename without extension)
+            
+        Returns:
+            Diagram dictionary or None if not found
+        """
+        # Try to find the diagram file
+        for ext in ['.yaml', '.yml', '.json']:
+            path = f"{diagram_id}{ext}"
+            file_path = self.diagrams_dir / path
+            if file_path.exists():
+                try:
+                    return self.load_diagram(path)
+                except Exception as e:
+                    logger.error(f"Failed to load diagram {path}: {e}")
+                    continue
+        
+        # If not found by exact ID, search in all diagram files
+        for file_info in self.list_diagram_files():
+            try:
+                diagram = self.load_diagram(file_info['path'])
+                if diagram.get('metadata', {}).get('id') == diagram_id:
+                    return diagram
+            except Exception:
+                continue
+        
+        return None
+    
