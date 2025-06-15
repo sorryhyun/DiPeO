@@ -179,7 +179,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
 
   // Person operations
-  const addPerson = (person: Omit<DomainPerson, 'id'>) => {
+  const addPerson = (person: { label: string; service: string; model: string }) => {
     return canvas.addPerson({
       label: person.label,
       service: person.service,
@@ -248,11 +248,11 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   };
 
   const isNodeSkipped = (nodeId: NodeID): boolean => {
-    return realtime.skippedNodes.some(skipped => skipped.nodeId === nodeId);
+    return realtime.skippedNodes.some((skipped: { nodeId: string; reason: string }) => skipped.nodeId === nodeId);
   };
 
   const getNodeExecutionState = (nodeId: NodeID) => {
-    const skippedNode = realtime.skippedNodes.find(skipped => skipped.nodeId === nodeId);
+    const skippedNode = realtime.skippedNodes.find((skipped: { nodeId: string; reason: string }) => skipped.nodeId === nodeId);
     return {
       isRunning: realtime.runningNodes.has(nodeId),
       isCurrentlyRunning: realtime.currentRunningNode === nodeId,

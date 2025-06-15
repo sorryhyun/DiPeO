@@ -14,7 +14,6 @@ import {
   HandleID,
   NodeKind,
   generateId,
-  handleId,
   nodeId,
   arrowId,
   parseHandleId,
@@ -75,7 +74,7 @@ export class DiagramAdapter {
       position: { ...node.position }, // Clone to prevent mutations
       data: {
         ...node.data,
-        label: (node.data as any).label || '',
+        label: ((node.data as Record<string, unknown>).label as string) || '',
         inputs,
         outputs,
         _handles: handles // Store original handles for reference
@@ -135,13 +134,13 @@ export class DiagramAdapter {
       return cached;
     }
 
-    const { inputs, outputs, _handles, ...nodeData } = rfNode.data || {};
+    const { _handles, ...nodeData } = rfNode.data || {};
     
     const domainNode = {
       id: rfNode.id as NodeID,
       type: (rfNode.type as NodeKind) || 'start',
       position: { ...rfNode.position },
-      data: nodeData as any,
+      data: nodeData as Record<string, unknown>,
       displayName: (nodeData.label || rfNode.id) as string
     } as DomainNode;
 
@@ -288,7 +287,7 @@ export class DiagramAdapter {
   /**
    * Generate handles for a node based on its type
    */
-  static generateHandles(node: DomainNode): DomainHandle[] {
+  static generateHandles(_node: DomainNode): DomainHandle[] {
     // This would be implemented based on node type configurations
     // For now, returning empty array as handles are provided separately
     return [];
@@ -313,11 +312,13 @@ export class DiagramAdapter {
       return false;
     }
     
-    return handles.every((h, i) => 
-      h.id === (cachedHandles as DomainHandle[])[i].id &&
-      h.label === (cachedHandles as DomainHandle[])[i].label &&
-      h.direction === (cachedHandles as DomainHandle[])[i].direction
-    );
+    return handles.every((h, i) => {
+      const cachedHandle = (cachedHandles as DomainHandle[])[i];
+      return cachedHandle && 
+        h.id === cachedHandle.id &&
+        h.label === cachedHandle.label &&
+        h.direction === cachedHandle.direction;
+    });
   }
 
   /**
@@ -344,3 +345,25 @@ export class DiagramAdapter {
     return arrows;
   }
 }
+
+// Static function exports for backward compatibility with existing code
+export const nodeToReact = (node: DomainNode, handles: DomainHandle[]) => 
+  DiagramAdapter.nodeToReactFlow(node, handles);
+
+export const arrowToReact = (arrow: DomainArrow) => 
+  DiagramAdapter.arrowToReactFlow(arrow);
+
+export const diagramToReact = (diagram: DomainDiagram) => 
+  DiagramAdapter.toReactFlow(diagram);
+
+export const reactToNode = (rfNode: RFNode) => 
+  DiagramAdapter.reactToNode(rfNode);
+
+export const reactToArrow = (rfEdge: RFEdge) => 
+  DiagramAdapter.reactToArrow(rfEdge);
+
+export const connectionToArrow = (connection: Connection) => 
+  DiagramAdapter.connectionToArrow(connection);
+
+export const validateConnection = (connection: Connection, diagram: DomainDiagram) => 
+  DiagramAdapter.validateConnection(connection, diagram);

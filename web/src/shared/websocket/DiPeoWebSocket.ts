@@ -7,7 +7,6 @@ import { EventEmitter } from 'events';
 import { 
   DomainDiagram, 
   ExecutionState, 
-  ExecutionMessage,
   WSMessage,
   NodeExecutionState
 } from '@/types';
@@ -100,48 +99,48 @@ export class DiPeoWebSocket extends EventEmitter {
     });
 
     // Execution messages
-    this.client.on('execution_started', (message: ExecutionMessage) => {
-      this.executionId = message.data?.executionId;
+    this.client.on('execution_started', (message: WSMessage) => {
+      this.executionId = (message as any).data?.executionId;
       this.emit('execution:started', message.data);
     });
 
-    this.client.on('execution_completed', (message: ExecutionMessage) => {
+    this.client.on('execution_completed', (message: WSMessage) => {
       this.emit('execution:completed', message.data);
       this.resolvePending('execute', message.data);
     });
 
-    this.client.on('execution_failed', (message: ExecutionMessage) => {
+    this.client.on('execution_failed', (message: WSMessage) => {
       this.emit('execution:failed', message.data);
-      this.rejectPending('execute', new Error(message.data?.error || 'Execution failed'));
+      this.rejectPending('execute', new Error((message as any).data?.error || 'Execution failed'));
     });
 
-    this.client.on('execution_paused', (message: ExecutionMessage) => {
+    this.client.on('execution_paused', (message: WSMessage) => {
       this.emit('execution:paused', message.data);
     });
 
-    this.client.on('execution_resumed', (message: ExecutionMessage) => {
+    this.client.on('execution_resumed', (message: WSMessage) => {
       this.emit('execution:resumed', message.data);
     });
 
     // Node execution events
-    this.client.on('node_started', (message: ExecutionMessage) => {
+    this.client.on('node_started', (message: WSMessage) => {
       this.emit('node:started', message.data);
     });
 
-    this.client.on('node_completed', (message: ExecutionMessage) => {
+    this.client.on('node_completed', (message: WSMessage) => {
       this.emit('node:completed', message.data);
     });
 
-    this.client.on('node_failed', (message: ExecutionMessage) => {
+    this.client.on('node_failed', (message: WSMessage) => {
       this.emit('node:failed', message.data);
     });
 
-    this.client.on('node_skipped', (message: ExecutionMessage) => {
+    this.client.on('node_skipped', (message: WSMessage) => {
       this.emit('node:skipped', message.data);
     });
 
     // Interactive prompts
-    this.client.on('prompt_request', (message: ExecutionMessage) => {
+    this.client.on('prompt_request', (message: WSMessage) => {
       this.emit('prompt:request', message.data);
     });
 

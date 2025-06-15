@@ -10,7 +10,8 @@ import { useSubscription, useMutation, ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID } from '@/types';
+import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID, ExecutionID } from '@/types';
+import { nodeId, executionId } from '@/types';
 import { NodeKind } from '@/types/primitives/enums';
 import { createCommonStoreSelector } from '@/stores/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/config/nodeMeta';
@@ -24,6 +25,7 @@ import {
   ExecutionUpdatesSubscription,
   NodeUpdatesSubscription,
   InteractivePromptsSubscription,
+  ExecutionStatus,
 } from '@/generated/graphql';
 
 // Types (same as original)
@@ -274,15 +276,15 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
     
     const update = executionData.executionUpdates;
     
-    if (update.status === 'completed') {
+    if (update.status === ExecutionStatus.Completed) {
       completeExecution(update.tokenUsage?.total);
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_complete', total_tokens: update.tokenUsage?.total });
-    } else if (update.status === 'failed' && update.error) {
+      onUpdate?.({ type: 'execution_complete', totalTokens: update.tokenUsage?.total });
+    } else if (update.status === ExecutionStatus.Failed && update.error) {
       errorExecution(update.error);
       executionActions.stopExecution();
       onUpdate?.({ type: 'execution_error', error: update.error });
-    } else if (update.status === 'aborted') {
+    } else if (update.status === ExecutionStatus.Aborted) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
       onUpdate?.({ type: 'execution_aborted' });
@@ -290,51 +292,51 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
   }, [executionData, completeExecution, errorExecution, executionActions, onUpdate]);
   
   // Throttled node update handlers
-  const handleNodeStart = useCallback(throttle((nodeId: string, nodeType: string) => {
+  const handleNodeStart = useCallback(throttle((nodeIdStr: string, nodeType: string) => {
     setExecution(prev => ({
       ...prev,
-      currentNode: nodeId,
+      currentNode: nodeIdStr,
     }));
     
     setNodeStates(prev => ({
       ...prev,
-      [nodeId]: {
+      [nodeIdStr]: {
         status: 'running',
         startTime: new Date(),
         endTime: null,
       }
     }));
     
-    currentRunningNodeRef.current = nodeId;
-    executionActions.updateNodeExecution(nodeId as NodeID, {
+    currentRunningNodeRef.current = nodeIdStr;
+    executionActions.updateNodeExecution(nodeId(nodeIdStr), {
       status: 'running',
       timestamp: Date.now()
     });
-    onUpdate?.({ type: 'node_start', node_id: nodeId, node_type: nodeType });
+    onUpdate?.({ type: 'node_start', nodeId: nodeId(nodeIdStr), nodeType: nodeType });
   }, 50), [executionActions, onUpdate]);
   
-  const handleNodeComplete = useCallback(throttle((nodeId: string, tokenCount?: number, output?: any) => {
+  const handleNodeComplete = useCallback(throttle((nodeIdStr: string, tokenCount?: number, output?: any) => {
     setExecution(prev => ({
       ...prev,
       completedNodes: prev.completedNodes + 1,
-      currentNode: prev.currentNode === nodeId ? null : prev.currentNode,
+      currentNode: prev.currentNode === nodeIdStr ? null : prev.currentNode,
     }));
     
     setNodeStates(prev => ({
       ...prev,
-      [nodeId]: {
-        ...(prev[nodeId] || { startTime: null, endTime: null }),
+      [nodeIdStr]: {
+        ...(prev[nodeIdStr] || { startTime: null, endTime: null }),
         status: 'completed' as const,
         endTime: new Date(),
         tokenCount,
       }
     }));
     
-    if (currentRunningNodeRef.current === nodeId) {
+    if (currentRunningNodeRef.current === nodeIdStr) {
       currentRunningNodeRef.current = null;
     }
     
-    executionActions.updateNodeExecution(nodeId as NodeID, {
+    executionActions.updateNodeExecution(nodeId(nodeIdStr), {
       status: 'completed',
       timestamp: Date.now()
     });
@@ -343,7 +345,7 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
       runContextRef.current = { ...runContextRef.current, ...output };
     }
     
-    onUpdate?.({ type: 'node_complete', node_id: nodeId, token_count: tokenCount, output });
+    onUpdate?.({ type: 'node_complete', nodeId: nodeId(nodeIdStr), tokens: tokenCount, output });
   }, 50), [executionActions, onUpdate]);
   
   // Process node subscription updates
@@ -367,17 +369,17 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
         }
       }));
       
-      executionActions.updateNodeExecution(update.nodeId as NodeID, {
+      executionActions.updateNodeExecution(nodeId(update.nodeId), {
         status: 'failed',
         timestamp: Date.now(),
-        error: update.error || undefined
+        error: update.error ?? undefined
       });
       
       if (showToasts) {
         toast.error(`Node ${update.nodeId.slice(0, 8)}... failed: ${update.error}`);
       }
       
-      onUpdate?.({ type: 'node_error', node_id: update.nodeId, error: update.error });
+      onUpdate?.({ type: 'node_error', nodeId: nodeId(update.nodeId), error: update.error || undefined });
     } else if (update.status === 'skipped') {
       setExecution(prev => ({
         ...prev,
@@ -394,12 +396,12 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
       }));
       
       skippedNodesRef.current.push({ nodeId: update.nodeId, reason: 'Skipped' });
-      executionActions.updateNodeExecution(update.nodeId as NodeID, {
+      executionActions.updateNodeExecution(nodeId(update.nodeId), {
         status: 'skipped',
         timestamp: Date.now()
       });
       
-      onUpdate?.({ type: 'node_skipped', node_id: update.nodeId });
+      onUpdate?.({ type: 'node_skipped', nodeId: nodeId(update.nodeId) });
     } else if (update.status === 'paused') {
       setNodeStates(prev => ({
         ...prev,
@@ -408,7 +410,7 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
           status: 'paused' as const
         }
       }));
-      onUpdate?.({ type: 'node_paused', node_id: update.nodeId });
+      onUpdate?.({ type: 'node_paused', nodeId: nodeId(update.nodeId) });
     }
     
     // Handle progress updates
@@ -418,9 +420,9 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
         [update.nodeId]: {
           ...prev[update.nodeId],
           progress: update.progress || undefined
-        }
+        } as NodeState
       }));
-      onUpdate?.({ type: 'node_progress', node_id: update.nodeId, progress: update.progress });
+      onUpdate?.({ type: 'node_progress', nodeId: nodeId(update.nodeId), progress: update.progress });
     }
   }, [nodeData, handleNodeStart, handleNodeComplete, executionActions, showToasts, onUpdate]);
   
@@ -430,12 +432,12 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
     
     const prompt = promptData.interactivePrompts;
     setInteractivePrompt({
-      execution_id: prompt.executionId,
-      node_id: prompt.nodeId,
+      executionId: executionId(prompt.executionId),
+      nodeId: nodeId(prompt.nodeId),
       prompt: prompt.prompt,
-      timeout_seconds: prompt.timeoutSeconds,
+      timeout: prompt.timeoutSeconds || undefined,
     });
-    onUpdate?.({ type: 'interactive_prompt_request', ...prompt });
+    onUpdate?.({ type: 'interactive_prompt_request', nodeId: nodeId(prompt.nodeId), message: prompt.prompt, executionId: executionId(prompt.executionId) });
   }, [promptData, onUpdate]);
   
   // Main Actions
@@ -455,10 +457,10 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
         variables: {
           input: {
             diagramId: diagram?.metadata?.id || 'current',
-            variables: options?.variables || {},
+            variables: (options as any)?.variables || {},
             debugMode: options?.debug || false,
-            timeout: options?.timeout,
-            maxIterations: options?.maxIterations
+            timeout: (options as any)?.timeout,
+            maxIterations: (options as any)?.maxIterations
           }
         }
       });
@@ -467,7 +469,7 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
         const totalNodes = diagram ? Object.keys(diagram.nodes).length : 0;
         startExecution(result.data.executeDiagram.executionId, totalNodes);
         executionActions.startExecution(result.data.executeDiagram.executionId);
-        onUpdate?.({ type: 'execution_started', execution_id: result.data.executeDiagram.executionId, total_nodes: totalNodes });
+        onUpdate?.({ type: 'execution_started', executionId: executionId(result.data.executeDiagram.executionId), total_nodes: totalNodes });
       } else {
         throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
       }
@@ -527,7 +529,7 @@ export function useExecutionGraphQL(options: UseExecutionOptions = {}): UseExecu
         variables: {
           input: {
             executionId: executionIdRef.current,
-            nodeId: interactivePrompt.node_id,
+            nodeId: interactivePrompt.nodeId,
             response
           }
         }

@@ -7,10 +7,10 @@
 
 import { createStoreOperationHook } from './factories';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { personId, type DomainPerson, type LLMService, type NodeID, type PersonID } from '@/types';
+import { personId, type DomainPerson, type NodeID, type PersonID } from '@/types';
 
 // Create the hook using our factory
-export const usePersonOperations = createStoreOperationHook<DomainPerson, [string, LLMService, string]>({
+export const usePersonOperations = createStoreOperationHook<DomainPerson, [string, string, string]>({
   entityName: 'Person',
   entityNamePlural: 'Persons',
   
@@ -29,7 +29,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
   }),
   
   // Validation
-  validateAdd: (label: string, service: LLMService, model: string) => {
+  validateAdd: (label: string, service: string, model: string) => {
     const errors: string[] = [];
     
     if (!label || label.trim().length === 0) {
@@ -45,7 +45,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
     }
     
     // Validate service is a valid LLM service
-    const validServices: LLMService[] = ['openai', 'claude', 'gemini', 'grok'];
+    const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'grok', 'deepseek', 'bedrock', 'vertex'];
     if (!validServices.includes(service)) {
       errors.push(`Invalid service: ${service}`);
     }
@@ -64,7 +64,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
     }
     
     if (updates.service !== undefined) {
-      const validServices: LLMService[] = ['openai', 'claude', 'gemini', 'grok'];
+      const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'grok', 'deepseek', 'bedrock', 'vertex'];
       if (!validServices.includes(updates.service)) {
         errors.push(`Invalid service: ${updates.service}`);
       }
@@ -81,12 +81,12 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
   },
   
   // Lifecycle hooks
-  beforeAdd: (label: string, service: LLMService, model: string) => {
+  beforeAdd: (label: string, service: string, model: string) => {
     // Trim the label and model before adding
     return [label.trim(), service, model.trim()];
   },
   
-  afterAdd: async (_id: string, label: string, _service: LLMService, model: string) => {
+  afterAdd: async (_id: string, label: string, _service: string, model: string) => {
     console.log(`Added person: ${label} using ${model}`);
   },
   
@@ -127,7 +127,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
   
   // Custom messages
   messages: {
-    addSuccess: (label: string, _service: LLMService, model: string) => 
+    addSuccess: (label: string, _service: string, model: string) =>
       `Added person "${label}" using ${model}`,
     updateSuccess: () => `Updated person`,
     deleteSuccess: () => `Removed person`,
@@ -152,7 +152,7 @@ export const usePersonUtils = () => {
   const store = useUnifiedStore();
   
   // Get persons by service
-  const getByService = (service: LLMService): DomainPerson[] => {
+  const getByService = (service: string): DomainPerson[] => {
     return items.filter(person => person.service === service);
   };
   
@@ -191,9 +191,9 @@ export const usePersonUtils = () => {
   };
   
   // Get all unique services being used
-  const getUniqueServices = (): LLMService[] => {
+  const getUniqueServices = (): string[] => {
     const services = new Set(items.map(person => person.service));
-    return Array.from(services) as LLMService[];
+    return Array.from(services);
   };
   
   return {

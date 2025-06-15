@@ -1,7 +1,7 @@
 // types/api.ts - API layer types
 
 import type { Dict } from './primitives';
-import type { DomainDiagram as Diagram } from './domain/diagram';
+import type { DomainDiagram as Diagram } from './graphql-mappings';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

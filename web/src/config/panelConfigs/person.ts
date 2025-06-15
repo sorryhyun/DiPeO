@@ -28,7 +28,7 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'network-only'
           });
-          return data.apiKeys.map(key => ({
+          return data.apiKeys.map((key: any) => ({
             value: key.id,
             label: `${key.label} (${key.service})`
           }));
@@ -54,7 +54,7 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'cache-first'
           });
-          const selectedKey = apiKeysData.apiKeys.find(k => k.id === data.apiKeyId);
+          const selectedKey = apiKeysData.apiKeys.find((k: any) => k.id === data.apiKeyId);
           if (!selectedKey) {
             return [];
           }
@@ -67,7 +67,7 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
             }
           });
           
-          return modelsData.availableModels.map(model => ({
+          return modelsData.availableModels.map((model: string) => ({
             value: model,
             label: model
           }));

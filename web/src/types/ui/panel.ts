@@ -70,17 +70,65 @@ export interface PanelConfig<_T extends Record<string, unknown> = Record<string,
  * Panel form data types - Maps domain models to form representations
  */
 
-import type {
-  StartNodeData,
-  PersonJobNodeData,
-  ConditionNodeData,
-  DBNodeData,
-  EndpointNodeData,
-  JobNodeData,
-  NotionNodeData,
-  UserResponseNodeData,
-  PersonBatchJobNodeData
-} from '../domain';
+// Define node data types locally
+interface StartNodeData {
+  title?: string;
+  output?: string;
+  [key: string]: unknown;
+}
+
+interface PersonJobNodeData {
+  label?: string;
+  personId?: string;
+  prompt?: string;
+  [key: string]: unknown;
+}
+
+interface ConditionNodeData {
+  conditionType?: string;
+  expression?: string;
+  maxIterations?: number;
+  [key: string]: unknown;
+}
+
+interface DBNodeData {
+  subType?: string;
+  filePath?: string;
+  operation?: string;
+  [key: string]: unknown;
+}
+
+interface EndpointNodeData {
+  label?: string;
+  [key: string]: unknown;
+}
+
+interface JobNodeData {
+  language?: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
+interface NotionNodeData {
+  operation?: string;
+  pageId?: string;
+  databaseId?: string;
+  [key: string]: unknown;
+}
+
+interface UserResponseNodeData {
+  prompt?: string;
+  timeout?: number;
+  [key: string]: unknown;
+}
+
+interface PersonBatchJobNodeData {
+  label?: string;
+  personId?: string;
+  processType?: string;
+  batchPrompt?: string;
+  [key: string]: unknown;
+}
 
 /**
  * Generic form data wrapper that allows UI-specific extensions

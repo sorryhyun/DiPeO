@@ -7,6 +7,7 @@ import { debounce } from 'lodash-es';
 import { shallow } from 'zustand/shallow';
 import type { UnifiedStore } from '../unifiedStore.types';
 import { DomainNode, DomainArrow, NodeID, ArrowID } from '@/types';
+import { useUnifiedStore } from '../unifiedStore';
 // TODO: Migrate to GraphQL - needs refactoring to use individual mutations
 // (createNode, updateNode, deleteNode, createArrow, deleteArrow, etc.)
 // instead of saving entire diagram at once
@@ -40,7 +41,7 @@ export class AutoSaveManager {
   private currentDiagramId: string | null = null;
 
   constructor(
-    private store: UnifiedStore,
+    private store: typeof useUnifiedStore,
     private options: AutoSaveOptions = {}
   ) {
     this.enabled = options.enabled ?? true;
@@ -145,7 +146,7 @@ export class AutoSaveManager {
       arrowCount: state.arrows.size,
       nodeIds: Array.from(state.nodes.keys()).sort(),
       connections: Array.from(state.arrows.values())
-        .map(arrow => `${arrow.source}->${arrow.target}`)
+        .map((arrow: DomainArrow) => `${arrow.source}->${arrow.target}`)
         .sort(),
       nodeTypes: this.getNodeTypeCounts(state.nodes),
       checksum: this.computeDataChecksum(state.nodes, state.arrows)
@@ -279,7 +280,10 @@ export class AutoSaveManager {
       };
 
       // Save to backend
-      await api.diagrams.save(this.currentDiagramId, diagram);
+      await api.diagrams.save({ 
+        diagram, 
+        filename: `diagram-${this.currentDiagramId}.json` 
+      });
       
       this.lastSaveTime = Date.now();
       logger.debug('[AutoSave] Saved successfully');

@@ -45,11 +45,13 @@ export const createPersonSlice: StateCreator<
     const person: DomainPerson = {
       id: generatePersonId(),
       label,
+      apiKeyId: '',
+      forgettingMode: 'no_forget',
       service,
       model,
-      maxTokens: undefined,
-      temperature: undefined,
-      forgettingMode: 'no_forget'
+      systemPrompt: '',
+      type: 'person',
+      maskedApiKey: null
     };
     
     set(state => {

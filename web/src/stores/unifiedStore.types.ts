@@ -1,7 +1,7 @@
 import type {
   NodeID,  ArrowID,  PersonID,  HandleID,  ApiKeyID,
   DomainNode,  DomainArrow,  DomainPerson,  DomainHandle,  DomainApiKey,
-  NodeKind,  Vec2,  LLMService,} from '@/types';
+  NodeKind,  Vec2,  LlmService,} from '@/types';
 import type { DiagramSlice } from './slices/diagramSlice';
 import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice, NodeState } from './slices/executionSlice';

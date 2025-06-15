@@ -5,8 +5,7 @@
  * from REST/WebSocket to GraphQL.
  */
 
-import { useExecutionGraphQL } from './useExecutionGraphQL';
-import type { UseExecutionOptions, UseExecutionReturn } from './useExecution';
+import { useExecutionGraphQL, type UseExecutionOptions, type UseExecutionReturn } from './useExecutionGraphQL';
 
 /**
  * Returns the GraphQL execution hook implementation.

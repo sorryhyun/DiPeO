@@ -13,7 +13,7 @@ export * from './useDiagram';
 
 // New unified hooks that combine multiple concerns
 export * from './useCanvasOperations'; // Combines useCanvas + useCanvasInteractions
-export * from './useExecution'; // Consolidated execution hook
+// useExecution has been removed - use useExecutionGraphQL or useExecutionProvider
 export * from './useExecutionGraphQL'; // GraphQL-based execution hook
 export * from './useExecutionProvider'; // Feature flag-based execution provider
 
@@ -35,7 +35,8 @@ export * from './usePropertyManager';
 export * from './useConversationData';
 
 // Entity operation hooks (using factory pattern)
-export * from './useApiKeyOperations';
+// useApiKeyOperations has been removed - use useApiKeyOperationsGraphQL
+export * from './useApiKeyOperationsGraphQL';
 export * from './usePersonOperations';
 
 // Hook factories

@@ -26,7 +26,7 @@ export const createHandleId = (nodeId: NodeID, handleName: string): HandleID => 
 export const parseHandleId = (id: HandleID): { nodeId: NodeID; handleName: string } => {
   const [nodeIdStr, ...handleNameParts] = String(id).split(':');
   return {
-    nodeId: nodeId(nodeIdStr),
+    nodeId: nodeId(nodeIdStr || ''),
     handleName: handleNameParts.join(':')
   };
 };

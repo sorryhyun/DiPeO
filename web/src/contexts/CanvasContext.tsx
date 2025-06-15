@@ -80,8 +80,8 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
         selectedNodeIds,
         activeCanvas: state.activeCanvas,
         readOnly: state.readOnly,
-        isExecuting: state.execution.isExecuting,
-        isPaused: state.execution.isPaused,
+        isExecuting: state.execution.isRunning,
+        isPaused: false, // TODO: Add isPaused to execution state
         zoom: 1, // TODO: Get from React Flow instance
         position: { x: 0, y: 0 }, // TODO: Get from React Flow instance
         showGrid: true, // TODO: Add to settings

@@ -12,7 +12,7 @@ export type ArrowKind = 'default' | 'straight' | 'step' | 'smoothstep' | 'bezier
 
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left';
 
-export type NodeExecutionState = 'pending' | 'running' | 'completed' | 'failed' | 
+export type NodeExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 
     'skipped' | 'paused';
 
 export type ConnectionMode = 'strict' | 'loose';

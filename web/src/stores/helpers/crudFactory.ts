@@ -2,12 +2,19 @@ import { Draft } from 'immer';
 import { UnifiedStore } from '../unifiedStore.types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { 
-  NodeID, ArrowID, PersonID, ApiKeyID,
+  NodeID, ArrowID, PersonID, ApiKeyID, HandleID,
   DomainNode, DomainArrow, DomainPerson, DomainApiKey, DomainHandle,
-  connectsToNode
+  NodeKind
 } from '@/types';
 import { generateNodeHandles } from '@/utils/node/handle-builder';
 import { getNodeConfig } from '@/config';
+
+// Helper function to check if an arrow connects to a specific node
+function connectsToNode(arrow: DomainArrow, nodeId: NodeID): boolean {
+  const sourceNodeId = arrow.source.split(':')[0];
+  const targetNodeId = arrow.target.split(':')[0];
+  return sourceNodeId === nodeId || targetNodeId === nodeId;
+}
 
 type EntityType = 'nodes' | 'arrows' | 'persons' | 'apiKeys';
 type EntityId = NodeID | ArrowID | PersonID | ApiKeyID;
@@ -81,11 +88,11 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
 export const nodeCrud = createCrudActions<DomainNode, NodeID>('nodes', {
   onAdd: (state, node) => {
     // Auto-generate handles
-    const nodeConfig = getNodeConfig(node.type);
+    const nodeConfig = getNodeConfig(node.type as NodeKind);
     if (nodeConfig) {
       const handles = generateNodeHandles(node.id, nodeConfig, node.type);
       handles.forEach((handle: DomainHandle) => {
-        const newHandles = updateMap(state.handles, handle.id, handle);
+        const newHandles = updateMap(state.handles, handle.id as HandleID, handle);
         state.handles = newHandles;
       });
     }
@@ -96,7 +103,7 @@ export const nodeCrud = createCrudActions<DomainNode, NodeID>('nodes', {
     const newHandles = new Map(state.handles);
     Array.from(state.handles.values()).forEach(handle => {
       if (handle.nodeId === nodeId) {
-        newHandles.delete(handle.id);
+        newHandles.delete(handle.id as HandleID);
       }
     });
     state.handles = newHandles;

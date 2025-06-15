@@ -24,12 +24,12 @@ import {
   createHandleId,
   type NodeKind,
   type Vec2,
-  type LLMService, 
   type DomainNode,
   type DomainArrow,
   type DomainPerson,
   type DomainHandle
 } from '@/types';
+import type { SelectableID, SelectableType } from '@/stores/slices/uiSlice';
 
 // Helper hook for efficient Map to Array conversion with caching
 function useCachedMapArray<K, V>(
@@ -126,7 +126,7 @@ export interface UseCanvasOperationsReturn {
   getArrowById: (id: ArrowID) => any;
   
   // Selection Operations
-  select: (id: string, type: 'node' | 'arrow' | 'person') => void;
+  select: (id: SelectableID, type: SelectableType) => void;
   clearSelection: () => void;
   
   // Execution State
@@ -201,7 +201,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
       storeState.addNode(type as NodeKind, position, data),
     
     addPerson: (person: { label: string; service: string; model: string }) =>
-      storeState.addPerson(person.label, person.service as LLMService, person.model),
+      storeState.addPerson(person.label, person.service, person.model),
     
     getPersonById: (id: PersonID) => storeState.persons.get(id),
     getArrowById: (id: ArrowID) => storeState.arrows.get(id),

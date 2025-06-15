@@ -27,7 +27,7 @@ import { useDiagram } from "@/hooks";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
-import { DomainArrow, arrowToReact, nodeId, arrowId } from "@/types";
+import { DomainArrow, arrowToReact, nodeId, arrowId, NodeKind } from "@/types";
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -261,11 +261,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Context‑menu helpers
    * --------------------------------------------------*/
-  const handleAddPerson = () => addPerson(
-    "New Person",
-    "openai",
-    "gpt-4.1-nano"
-  );
+  const handleAddPerson = () => addPerson({
+    label: "New Person",
+    service: "openai",
+    model: "gpt-4.1-nano"
+  });
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
   /** --------------------------------------------------

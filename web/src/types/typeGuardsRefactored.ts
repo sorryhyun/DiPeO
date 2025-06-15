@@ -17,14 +17,15 @@ import type {
   DomainApiKey, 
   DomainArrow, 
   DomainHandle, 
-  HandleDirection,
-  InputHandle, 
-  OutputHandle,
   DomainNode,
-  DomainPerson,
-  ApiService,
-  LLMService
-} from './domain';
+  DomainPerson
+} from './graphql-mappings';
+
+type HandleDirection = 'input' | 'output';
+type InputHandle = DomainHandle & { direction: 'input' };
+type OutputHandle = DomainHandle & { direction: 'output' };
+type ApiService = 'openai' | 'gemini' | 'claude' | 'grok';
+type LLMService = 'openai' | 'claude' | 'gemini' | 'grok';
 import type { NodeKind } from './primitives';
 import type { NodeID, HandleID, ArrowID, PersonID, ApiKeyID } from './branded';
 
@@ -83,9 +84,21 @@ export const isDomainHandle = createTypeGuard<DomainHandle>({
   ]
 });
 
-// Note: isDomainNode and isDomainPerson are already exported from domain module
+// Note: isDomainNode and isDomainPerson are already exported from graphql-mappings module
 // We import them here for use in collection guards but don't re-export to avoid conflicts
-import { isDomainNode, isDomainPerson } from './domain';
+import { isDomainNode } from './graphql-mappings';
+
+/**
+ * Type guard for domain person
+ */
+function isDomainPerson(obj: unknown): obj is DomainPerson {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const record = obj as Record<string, unknown>;
+  return typeof record.id === 'string' &&
+    typeof record.label === 'string' &&
+    typeof record.service === 'string' &&
+    typeof record.model === 'string';
+}
 
 /**
  * Type guard for input handles

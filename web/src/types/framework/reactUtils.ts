@@ -1,5 +1,5 @@
 import type { Node, Edge, Connection } from '@xyflow/react';
-import { DomainDiagram, DomainNode, DomainArrow } from '../domain';
+import { DomainDiagram, DomainNode, DomainArrow } from '../graphql-mappings';
 import { NodeID, ArrowID } from '../branded';
 
 /**

@@ -3,7 +3,7 @@ import { UnifiedStore } from '../unifiedStore.types';
 import { DiagramExporter } from '../diagramExporter';
 import { logger } from '@/utils/logger';
 import {
-  NodeID, ArrowID, PersonID, ApiKeyID,
+  NodeID, ArrowID, PersonID, ApiKeyID, HandleID,
   DomainNode, DomainArrow, DomainPerson, DomainHandle, DomainApiKey,
   NodeKind, Vec2, generateNodeId, generateArrowId, generatePersonId,
   entityIdGenerators, apiKeyId
@@ -82,11 +82,13 @@ export function createImportState() {
       persons.set(personId, {
         id: personId,
         label,
+        apiKeyId: '',
+        forgettingMode: 'no_forget',
         service: service as any,
         model,
         systemPrompt: '',
-        temperature: 0.1,
-        maxTokens: 4096
+        type: 'person',
+        maskedApiKey: null
       });
       return personId;
     },

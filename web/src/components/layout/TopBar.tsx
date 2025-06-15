@@ -17,9 +17,9 @@ const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   
-  // Use canvas operations for mode control
-  const { setReadOnly } = useCanvasOperations();
+  // Use UI state for mode control
   const { activeCanvas, setActiveCanvas } = useUIState();
+  const { setReadOnly } = useUnifiedStore();
   
   // Use only the diagram manager for file operations - much lighter weight
   const diagramManager = useDiagramManager({

@@ -1,11 +1,18 @@
-import type { DBFormData } from '@/types/ui';
 import { createUnifiedConfig } from '../unifiedConfig';
+
+// Define type inline to satisfy constraint
+type DBFormDataType = {
+  label?: string;
+  subType?: string;
+  sourceDetails?: string;
+  [key: string]: unknown;
+};
 
 /**
  * Unified configuration for Database node
  * This replaces both the node config and panel config
  */
-export const dbConfig = createUnifiedConfig<DBFormData>({
+export const dbConfig = createUnifiedConfig<DBFormDataType>({
   // Node configuration
   label: 'Database',
   icon: '💾',

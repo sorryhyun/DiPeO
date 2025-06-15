@@ -3,4 +3,15 @@
  */
 
 export * from './reactUtils';
-export * from './adapters';
+
+// Export adapter functions from DiagramAdapter
+export {
+  nodeToReact,
+  arrowToReact,
+  diagramToReact,
+  reactToNode,
+  reactToArrow,
+  connectionToArrow,
+  validateConnection,
+  DiagramAdapter
+} from '@/adapters/DiagramAdapter';

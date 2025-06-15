@@ -1,11 +1,20 @@
-import type { NotionFormData } from '@/types/ui';
 import { createUnifiedConfig } from '../unifiedConfig';
+
+// Define type inline to satisfy constraint
+type NotionFormDataType = {
+  label?: string;
+  operation?: string;
+  pageId?: string;
+  databaseId?: string;
+  prompt?: string;
+  [key: string]: unknown;
+};
 
 /**
  * Unified configuration for Notion node
  * This replaces both the node config and panel config
  */
-export const notionConfig = createUnifiedConfig<NotionFormData>({
+export const notionConfig = createUnifiedConfig<NotionFormDataType>({
   // Node configuration
   label: 'Notion',
   icon: '📄',

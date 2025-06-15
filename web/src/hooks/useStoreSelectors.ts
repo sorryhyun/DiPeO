@@ -21,10 +21,8 @@ export const useUIState = () => {
       activeView: state.activeView,
       showApiKeysModal: state.showApiKeysModal,
       showExecutionModal: state.showExecutionModal,
-      openApiKeysModal: state.openApiKeysModal,
-      closeApiKeysModal: state.closeApiKeysModal,
-      openExecutionModal: state.openExecutionModal,
-      closeExecutionModal: state.closeExecutionModal,
+      openModal: state.openModal,
+      closeModal: state.closeModal,
       selectedId: state.selectedId,
     }))
   );
@@ -43,6 +41,10 @@ export const useUIState = () => {
     activeCanvas: state.activeCanvas as 'main' | 'execution' | 'memory',
     toggleCanvas,
     hasSelection: state.selectedId !== null,
+    openApiKeysModal: () => state.openModal('apikeys'),
+    closeApiKeysModal: () => state.closeModal('apikeys'),
+    openExecutionModal: () => state.openModal('execution'),
+    closeExecutionModal: () => state.closeModal('execution'),
   };
 };
 
