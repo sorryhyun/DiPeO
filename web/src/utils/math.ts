@@ -9,77 +9,9 @@ export function isWithinTolerance(a: number, b: number, tolerance: number = 0.01
   return Math.abs(a - b) < tolerance;
 }
 
-/**
- * Snap a value to a grid
- * @param value Value to snap
- * @param gridSize Grid size (default: 10)
- * @returns Snapped value
- */
-export function snapToGrid(value: number, gridSize: number = 10): number {
-  return Math.round(value / gridSize) * gridSize;
-}
 
-/**
- * Clamp a value between min and max
- * @param value Value to clamp
- * @param min Minimum value
- * @param max Maximum value
- * @returns Clamped value
- */
-export function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
 
-/**
- * Linear interpolation between two values
- * @param start Start value
- * @param end End value
- * @param t Interpolation factor (0 to 1)
- * @returns Interpolated value
- */
-export function lerp(start: number, end: number, t: number): number {
-  return start + (end - start) * t;
-}
 
-/**
- * Map a value from one range to another
- * @param value Input value
- * @param inMin Input range minimum
- * @param inMax Input range maximum
- * @param outMin Output range minimum
- * @param outMax Output range maximum
- * @returns Mapped value
- */
-export function mapRange(
-  value: number,
-  inMin: number,
-  inMax: number,
-  outMin: number,
-  outMax: number
-): number {
-  return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
-}
-
-/**
- * Round a number to a specific number of decimal places
- * @param value Number to round
- * @param decimals Number of decimal places (default: 2)
- * @returns Rounded number
- */
-export function roundTo(value: number, decimals: number = 2): number {
-  const factor = Math.pow(10, decimals);
-  return Math.round(value * factor) / factor;
-}
-
-/**
- * Generate a random number between min and max
- * @param min Minimum value
- * @param max Maximum value
- * @returns Random number
- */
-export function randomRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 /**
  * Calculate the average of an array of numbers
@@ -91,31 +23,6 @@ export function average(values: number[]): number {
   return values.reduce((sum, val) => sum + val, 0) / values.length;
 }
 
-/**
- * Calculate standard deviation of an array of numbers
- * @param values Array of numbers
- * @returns Standard deviation
- */
-export function standardDeviation(values: number[]): number {
-  if (values.length === 0) return 0;
-  
-  const avg = average(values);
-  const squaredDiffs = values.map(val => Math.pow(val - avg, 2));
-  const avgSquaredDiff = average(squaredDiffs);
-  
-  return Math.sqrt(avgSquaredDiff);
-}
-
-/**
- * Get the sign of a number (-1, 0, or 1)
- * @param value Number to check
- * @returns Sign of the number
- */
-export function sign(value: number): number {
-  if (value > 0) return 1;
-  if (value < 0) return -1;
-  return 0;
-}
 
 /**
  * Debounce a function to limit how often it can be called
