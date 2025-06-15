@@ -10,11 +10,11 @@
     "preview:web": "pnpm --filter web serve",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
-    "typecheck": "cd apps/web && tsc --noEmit",
-    "convert": "cd apps/web && tsx src/utils/converters/convert-cli.ts"
+    "typecheck": "cd web && tsc --noEmit",
+    "convert": "cd web && tsx src/utils/converters/convert-cli.ts"
   },
   "workspaces": [
-    "apps/*"
+    "*"
   ],
   "devDependencies": {
     "@eslint/js": "^9.27.0",

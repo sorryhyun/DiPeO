@@ -20,21 +20,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import routers and middleware
-from apps.server.src.api.routers import (
+from .src.api.routers import (
     websocket_router,
     health_router
 )
-from apps.server.src.api.middleware import setup_middleware
+from .src.api.middleware import setup_middleware
 
 # Import lifespan from dependencies
-from apps.server.src.utils.dependencies import lifespan
+from .src.utils.dependencies import lifespan
 
 # Import GraphQL router
-from apps.server.src.graphql.schema import create_graphql_router
-from apps.server.src.graphql.context import get_graphql_context
+from .src.graphql.schema import create_graphql_router
+from .src.graphql.context import get_graphql_context
 
 # Import REST API configuration
-from apps.server.src.api.config import is_router_enabled
+from .src.api.config import is_router_enabled
 
 
 # Create FastAPI app
