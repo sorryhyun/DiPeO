@@ -12,7 +12,8 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "typecheck": "cd web && tsc --noEmit",
-    "convert": "cd web && tsx src/utils/converters/convert-cli.ts"
+    "convert": "cd web && tsx src/utils/converters/convert-cli.ts",
+    "codegen": "cd web && pnpm codegen"
   },
   "workspaces": [
     "*"

@@ -440,9 +440,9 @@ export class AutoSaveManagerGraphQL {
               diagramId: this.currentDiagramId!,
               input: {
                 type: node.type,
-                displayName: node.displayName,
                 position: node.position,
-                data: node.data
+                label: node.displayName || node.data?.label || 'Node',
+                properties: node.data
               }
             }
           })
@@ -456,9 +456,9 @@ export class AutoSaveManagerGraphQL {
             variables: {
               input: {
                 id: node.id,
-                displayName: node.displayName,
                 position: node.position,
-                data: node.data
+                label: node.displayName || node.data?.label,
+                properties: node.data
               }
             }
           })
@@ -474,7 +474,7 @@ export class AutoSaveManagerGraphQL {
               input: {
                 source: arrow.source,
                 target: arrow.target,
-                data: arrow.data
+                label: arrow.data?.label || null
               }
             }
           })

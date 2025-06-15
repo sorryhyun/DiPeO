@@ -12,6 +12,7 @@ export interface NodeState {
 export interface ExecutionState {
   id: string | null;
   isRunning: boolean;
+  isPaused: boolean;
   runningNodes: Set<NodeID>;
   nodeStates: Map<NodeID, NodeState>;
   context: Record<string, unknown>;
@@ -52,6 +53,7 @@ export const createExecutionSlice: StateCreator<
   execution: {
     id: null,
     isRunning: false,
+    isPaused: false,
     runningNodes: new Set(),
     nodeStates: new Map(),
     context: {}
@@ -62,6 +64,7 @@ export const createExecutionSlice: StateCreator<
     state.execution = {
       id: executionId,
       isRunning: true,
+      isPaused: false,
       runningNodes: new Set(),
       nodeStates: new Map(),
       context: {}
@@ -72,11 +75,13 @@ export const createExecutionSlice: StateCreator<
   
   stopExecution: () => set(state => {
     state.execution.isRunning = false;
+    state.execution.isPaused = false;
     state.execution.runningNodes.clear();
     state.executionReadOnly = false;
   }),
   
   pauseExecution: () => set(state => {
+    state.execution.isPaused = true;
     // Keep the execution state but pause all running nodes
     state.execution.runningNodes.forEach(nodeId => {
       const nodeState = state.execution.nodeStates.get(nodeId);
@@ -90,6 +95,7 @@ export const createExecutionSlice: StateCreator<
   }),
   
   resumeExecution: () => set(state => {
+    state.execution.isPaused = false;
     // Resume all paused nodes
     state.execution.nodeStates.forEach((nodeState, nodeId) => {
       if (nodeState.status === 'paused') {

@@ -74,3 +74,22 @@ mutation DeletePerson($id: PersonID!) {
     error
   }
 }
+
+mutation InitializeModel($personId: PersonID!) {
+  initializeModel(personId: $personId) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    message
+    error
+  }
+}

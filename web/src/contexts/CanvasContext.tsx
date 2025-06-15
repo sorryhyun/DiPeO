@@ -69,9 +69,9 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       activeCanvas: state.activeCanvas,
       readOnly: state.readOnly,
       isExecuting: state.execution.isRunning,
-      isPaused: false, // TODO: Add isPaused to execution state
-      zoom: 1, // TODO: Get from React Flow instance
-      position: { x: 0, y: 0 }, // TODO: Get from React Flow instance
+      isPaused: state.execution.isPaused,
+      zoom: state.zoom,
+      position: state.position,
       showGrid: true, // TODO: Add to settings
       showMinimap: false, // TODO: Add to settings
       showDebugInfo: false, // TODO: Add to settings

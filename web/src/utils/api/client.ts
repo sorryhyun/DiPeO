@@ -349,22 +349,8 @@ export const fetchAvailableModels = async (
   return modelOptions;
 };
 
-export const preInitializeModel = async (
-  service: string,
-  model: string,
-  apiKeyId: string
-): Promise<boolean> => {
-  try {
-    const data = await apiClient.post<{ success: boolean }>(
-      API_ENDPOINTS.INITIALIZE_MODEL,
-      { service, model, api_key_id: apiKeyId },
-      { errorContext: 'Initialize Model', skipErrorToast: true }
-    );
-    return data.success || false;
-  } catch {
-    return false;
-  }
-};
+// Model initialization is now handled via GraphQL
+// Use InitializeModelDocument mutation instead
 
 export const saveDiagram = async (
   diagram: DomainDiagram,
@@ -487,13 +473,8 @@ export const api = {
       ),
   },
 
-  // Model initialization
-  initializeModel: (data: { service: string; model: string; apiKeyId: string }) =>
-    apiClient.post<{ success: boolean }>(
-      API_ENDPOINTS.INITIALIZE_MODEL,
-      data,
-      { errorContext: 'Initialize Model' }
-    ),
+  // Model initialization is handled via GraphQL
+  // Use InitializeModelDocument mutation instead
 
   // Conversations
   conversations: {

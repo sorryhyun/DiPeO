@@ -19,6 +19,10 @@ export interface UISlice {
   activeCanvas: ActiveCanvas;
   dashboardTab: DashboardTab;
   
+  // Viewport state
+  zoom: number;
+  position: Vec2;
+  
   // Mode state
   readOnly: boolean;
   executionReadOnly: boolean;
@@ -42,6 +46,11 @@ export interface UISlice {
   setActiveView: (view: ActiveView) => void;
   setActiveCanvas: (canvas: ActiveCanvas) => void;
   setDashboardTab: (tab: DashboardTab) => void;
+  
+  // Viewport operations
+  setViewport: (zoom: number, position: Vec2) => void;
+  setZoom: (zoom: number) => void;
+  setPosition: (position: Vec2) => void;
   
   // Mode operations
   setReadOnly: (readOnly: boolean) => void;
@@ -74,6 +83,9 @@ export const createUISlice: StateCreator<
   activeView: 'diagram',
   activeCanvas: 'main',
   dashboardTab: 'properties',
+  
+  zoom: 1,
+  position: { x: 0, y: 0 },
   
   readOnly: false,
   executionReadOnly: false,
@@ -147,6 +159,20 @@ export const createUISlice: StateCreator<
   
   setDashboardTab: (tab) => set(state => {
     state.dashboardTab = tab;
+  }),
+  
+  // Viewport operations
+  setViewport: (zoom, position) => set(state => {
+    state.zoom = zoom;
+    state.position = position;
+  }),
+  
+  setZoom: (zoom) => set(state => {
+    state.zoom = zoom;
+  }),
+  
+  setPosition: (position) => set(state => {
+    state.position = position;
   }),
   
   // Mode operations

@@ -1,3 +1,34 @@
 # File Operations
-# Note: File upload mutations are not yet exposed in the GraphQL schema
-# They exist in the backend but need to be added to the schema export
+
+mutation UploadFile($input: FileUploadInput!) {
+  uploadFile(input: $input) {
+    success
+    path
+    sizeBytes
+    contentType
+    message
+    error
+  }
+}
+
+mutation UploadDiagram($file: Upload!, $format: String, $validateOnly: Boolean = false) {
+  uploadDiagram(file: $file, format: $format, validateOnly: $validateOnly) {
+    success
+    message
+    diagramId
+    diagramName
+    nodeCount
+    formatDetected
+  }
+}
+
+mutation UploadMultipleFiles($files: [Upload!]!, $category: String = "general") {
+  uploadMultipleFiles(files: $files, category: $category) {
+    success
+    path
+    sizeBytes
+    contentType
+    message
+    error
+  }
+}

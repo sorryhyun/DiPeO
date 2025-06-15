@@ -14,7 +14,7 @@ AGENTS.md
 *.db-wal
 *.db
 web/src/__generated__
-server/schema.graphql
+web/schema.graphql
 
 # Node.js
 node_modules/

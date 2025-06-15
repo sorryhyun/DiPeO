@@ -6,16 +6,8 @@
 ```bash
 # Start backend (single worker for WebSocket compatibility)
 ./run-server.sh
-
-# Start frontend (React dev server)
-pnpm dev:web
-```
-
-### =� GraphQL Schema
-```bash
-# Export GraphQL schema to frontend
-./export-schema.sh
-# Output: apps/web/src/graphql/schema.graphql
+# code generation + run front-end
+./front.sh
 ```
 
 ### <� Run Diagrams

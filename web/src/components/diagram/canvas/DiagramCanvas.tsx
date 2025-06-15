@@ -24,6 +24,7 @@ import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
+import { useUnifiedStore } from "@/stores/unifiedStore";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
@@ -218,7 +219,25 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * --------------------------------------------------*/
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-  const handleInit = (inst: ReactFlowInstance) => setRfInstance(inst);
+  
+  // Get viewport operations from store
+  const { setViewport, setZoom, setPosition } = useUnifiedStore(state => ({
+    setViewport: state.setViewport,
+    setZoom: state.setZoom,
+    setPosition: state.setPosition
+  }));
+  
+  const handleInit = (inst: ReactFlowInstance) => {
+    setRfInstance(inst);
+    // Sync initial viewport
+    const viewport = inst.getViewport();
+    setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
+  };
+  
+  // Handle viewport changes
+  const handleViewportChange = useCallback((viewport: { x: number; y: number; zoom: number }) => {
+    setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
+  }, [setViewport]);
 
   const projectPosition = useCallback(
     (x: number, y: number) => {
@@ -301,7 +320,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           <Panel defaultSize={40} minSize={20}>
             {/* Diagram view in execution mode */}
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
-              <ReactFlow {...flowProps} onInit={handleInit} />
+              <ReactFlow {...flowProps} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {renderContextMenu()}
@@ -328,7 +347,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         <PanelGroup direction="vertical">
           <Panel defaultSize={65} minSize={30}>
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
-              <ReactFlow {...flowProps} onInit={handleInit} />
+              <ReactFlow {...flowProps} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {renderContextMenu()}

@@ -5,8 +5,7 @@ import { useCanvasOperations } from '@/hooks';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument } from '@/__generated__/graphql';
-// TODO: preInitializeModel needs GraphQL migration
+import { GetApiKeysDocument, InitializeModelDocument } from '@/__generated__/graphql';
 import { createHandlerTable } from '@/utils/dispatchTable';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
@@ -88,14 +87,19 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     }
     
     // If this is a model selection for a person entity, pre-initialize the model
-    if (data.type === 'person' && name === 'model') {
-      const service = formData.service || data.service;
-      const apiKeyId = formData.apiKeyId || data.apiKeyId;
-      
-      if (service && value && apiKeyId) {
-        // TODO: Implement model pre-initialization with GraphQL
-        // The REST API preInitializeModel function needs to be migrated
-        console.log('Model pre-initialization not yet implemented in GraphQL', { service, value, apiKeyId });
+    if (data.type === 'person' && name === 'model' && value) {
+      try {
+        const personId = nodeId; // For person entities, nodeId is the person ID
+        const { data: result } = await apolloClient.mutate({
+          mutation: InitializeModelDocument,
+          variables: { personId }
+        });
+        
+        if (!result?.initializeModel?.success) {
+          console.error('Failed to initialize model:', result?.initializeModel?.error);
+        }
+      } catch (error) {
+        console.error('Error initializing model:', error);
       }
     }
   }, [updateField, formData, data]);
