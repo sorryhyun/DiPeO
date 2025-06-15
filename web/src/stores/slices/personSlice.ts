@@ -2,7 +2,10 @@ import { StateCreator } from 'zustand';
 import {
   type PersonID,
   type DomainPerson,
-  generatePersonId
+  generatePersonId,
+  NodeType,
+  ForgettingMode,
+  LlmService
 } from '@/types';
 import { UnifiedStore } from '../unifiedStore.types';
 
@@ -46,8 +49,8 @@ export const createPersonSlice: StateCreator<
       id: generatePersonId(),
       label,
       apiKeyId: '',
-      forgettingMode: 'no_forget',
-      service,
+      forgettingMode: ForgettingMode.NoForget,
+      service: service as LlmService,
       model,
       systemPrompt: '',
       type: 'person',
@@ -76,7 +79,7 @@ export const createPersonSlice: StateCreator<
   deletePerson: (id) => set(state => {
     // Check if person is in use
     const isInUse = Array.from(state.nodes.values()).some(
-      node => node.type === 'person_job' && node.data.personId === id
+      node => node.type === NodeType.PersonJob && node.data.personId === id
     );
     
     if (!isInUse && state.persons.delete(id)) {
@@ -130,7 +133,7 @@ export const createPersonSlice: StateCreator<
     const usedPersonIds = new Set<PersonID>();
     
     state.nodes.forEach(node => {
-      if (node.type === 'person_job' && node.data.personId) {
+      if (node.type === NodeType.PersonJob && node.data.personId) {
         usedPersonIds.add(node.data.personId);
       }
     });
@@ -144,7 +147,7 @@ export const createPersonSlice: StateCreator<
   isPersonInUse: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).some(
-      node => node.type === 'person_job' && node.data.personId === personId
+      node => node.type === NodeType.PersonJob && node.data.personId === personId
     );
   },
   

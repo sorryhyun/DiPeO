@@ -19,8 +19,11 @@ import {
   parseHandleId,
   createHandleId,
   areHandlesCompatible,
-  getNodeHandles
+  getNodeHandles,
+  nodeKindToGraphQLType,
+  graphQLTypeToNodeKind
 } from '@/types';
+import { HandleDirection } from '@/__generated__/graphql';
 import { DiPeoNode, DiPeoEdge, ValidatedConnection } from '@/types/framework/reactUtils';
 
 export class DiagramAdapter {
@@ -61,16 +64,16 @@ export class DiagramAdapter {
 
     // Generate handles map
     const inputs = handles
-      .filter(h => h.direction === 'input')
+      .filter(h => h.direction === HandleDirection.Input)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
     
     const outputs = handles
-      .filter(h => h.direction === 'output')
+      .filter(h => h.direction === HandleDirection.Output)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
 
     const reactNode: DiPeoNode = {
       id: node.id,
-      type: node.type,
+      type: graphQLTypeToNodeKind(node.type),
       position: { ...node.position }, // Clone to prevent mutations
       data: {
         ...node.data,
@@ -136,13 +139,14 @@ export class DiagramAdapter {
 
     const { _handles, ...nodeData } = rfNode.data || {};
     
-    const domainNode = {
+    const domainNode: DomainNode = {
       id: rfNode.id as NodeID,
-      type: (rfNode.type as NodeKind) || 'start',
+      type: nodeKindToGraphQLType((rfNode.type as NodeKind) || 'start'),
       position: { ...rfNode.position },
       data: nodeData as Record<string, unknown>,
-      displayName: (nodeData.label || rfNode.id) as string
-    } as DomainNode;
+      displayName: (nodeData.label || rfNode.id) as string,
+      handles: Array.isArray(_handles) ? _handles : []
+    };
 
     // Cache the result
     this.reverseNodeCache.set(rfNode, domainNode);

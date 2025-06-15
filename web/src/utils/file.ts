@@ -330,7 +330,11 @@ export const fileToBase64 = (file: File): Promise<string> => {
       const base64 = reader.result as string;
       // Remove the data URL prefix (e.g., "data:text/plain;base64,")
       const base64Content = base64.split(',')[1];
-      resolve(base64Content);
+      if (base64Content) {
+        resolve(base64Content);
+      } else {
+        reject(new Error('Failed to extract base64 content from file'));
+      }
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);

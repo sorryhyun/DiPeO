@@ -38,3 +38,28 @@ export interface PersonMemoryConfig {
   maxMessages?: number;
   temperature?: number;
 }
+
+// Execution options for running diagrams
+export interface ExecutionOptions {
+  mode?: 'normal' | 'debug' | 'monitor';
+  timeout?: number;
+  variables?: Record<string, any>;
+  debug?: boolean;
+}
+
+// Execution update event
+export interface ExecutionUpdate {
+  type: 'node_update' | 'execution_start' | 'execution_end' | 'error' | 
+        'execution_complete' | 'execution_error' | 'execution_aborted' |
+        'node_start' | 'node_complete' | 'node_error' | 'node_skipped' |
+        'node_paused' | 'node_progress' | 'interactive_prompt_request' |
+        'execution_started';
+  nodeId?: string;
+  status?: 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
+  result?: any;
+  error?: string;
+  timestamp?: string;
+  totalTokens?: number;
+  nodeType?: string;
+  tokens?: number;
+}

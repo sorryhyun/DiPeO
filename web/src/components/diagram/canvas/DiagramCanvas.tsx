@@ -25,6 +25,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useDiagram } from "@/hooks";
 import { useUnifiedStore } from "@/stores/unifiedStore";
+import { graphQLTypeToNodeKind } from "@/types";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
@@ -299,7 +300,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           selectedNodeId={selectedNodeId ? nodeId(selectedNodeId) : null}
           selectedArrowId={selectedArrowId ? arrowId(selectedArrowId) : null}
           containerRef={flowWrapperRef as React.RefObject<HTMLDivElement>}
-          onAddNode={(type, position) => addNode(type as NodeKind, position)}
+          onAddNode={(type, position) => addNode(graphQLTypeToNodeKind(type) as NodeKind, position)}
           onAddPerson={handleAddPerson}
           onDeleteNode={deleteNode}
           onDeleteArrow={deleteArrow}

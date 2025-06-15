@@ -5,7 +5,8 @@ import {
   type DomainNode,
   type DomainArrow,
   type DomainHandle,
-  type PersonID
+  type PersonID,
+  NodeType
 } from '@/types';
 import { UnifiedStore } from '../unifiedStore.types';
 
@@ -77,7 +78,7 @@ export const createComputedSlice: StateCreator<
   getNodesByPerson: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).filter(
-      node => node.type === 'person_job' && node.data.personId === personId
+      node => node.type === NodeType.PersonJob && node.data.personId === personId
     );
   },
   
@@ -160,7 +161,7 @@ export const createComputedSlice: StateCreator<
   
   getStartNodes: () => {
     const state = get();
-    return Array.from(state.nodes.values()).filter(node => node.type === 'start');
+    return Array.from(state.nodes.values()).filter(node => node.type === NodeType.Start);
   },
   
   getEndNodes: () => {

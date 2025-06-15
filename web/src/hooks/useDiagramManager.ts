@@ -98,45 +98,39 @@ function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolea
   }
   
   // Check for start node
-  const hasStartNode = exportFormat.nodes.some(node => node.type === 'start');
+  const hasStartNode = exportFormat.nodes.some((node: any) => node.type === 'start');
   if (!hasStartNode) {
     errors.push('Diagram must have at least one start node');
   }
   
   // Check for endpoint node
-  const hasEndpoint = exportFormat.nodes.some(node => node.type === 'endpoint');
+  const hasEndpoint = exportFormat.nodes.some((node: any) => node.type === 'endpoint');
   if (!hasEndpoint) {
     errors.push('Diagram should have at least one endpoint node');
   }
   
   // Check for unconnected nodes
   const connectedNodes = new Set<string>();
-  exportFormat.arrows.forEach(arrow => {
-    // Extract node labels from handle format "nodeLabel-handleName"
-    const sourceHandleParts = arrow.sourceHandle.split('-');
-    const targetHandleParts = arrow.targetHandle.split('-');
-    const sourceLabel = sourceHandleParts.length > 1 
-      ? sourceHandleParts.slice(0, -1).join('-') 
-      : sourceHandleParts[0];
-    const targetLabel = targetHandleParts.length > 1 
-      ? targetHandleParts.slice(0, -1).join('-') 
-      : targetHandleParts[0];
-    if (sourceLabel) connectedNodes.add(sourceLabel);
-    if (targetLabel) connectedNodes.add(targetLabel);
+  exportFormat.arrows.forEach((arrow: any) => {
+    // Extract node IDs from handle format "nodeId:handleName"
+    const sourceNodeId = arrow.source.split(':')[0];
+    const targetNodeId = arrow.target.split(':')[0];
+    if (sourceNodeId) connectedNodes.add(sourceNodeId);
+    if (targetNodeId) connectedNodes.add(targetNodeId);
   });
   
   const unconnectedNodes = exportFormat.nodes.filter(
-    node => !connectedNodes.has(node.label) && node.type !== 'start'
-  ).map(node => node.label);
+    (node: any) => !connectedNodes.has(node.id) && node.type !== 'start'
+  ).map((node: any) => node.displayName || node.id);
   
   if (unconnectedNodes.length > 0) {
     errors.push(`${unconnectedNodes.length} node(s) are not connected`);
   }
   
   // Check for person nodes without assigned persons
-  exportFormat.nodes.forEach(node => {
+  exportFormat.nodes.forEach((node: any) => {
     if ((node.type === 'person_job' || node.type === 'person_batch_job') && !node.data?.person) {
-      errors.push(`Node ${node.label} requires a person to be assigned`);
+      errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
     }
   });
   

@@ -350,7 +350,6 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
       importFromURL: fileOps.importFromURL,
       
       // Export operations  
-      exportDiagram: fileOps.exportDiagram,
       exportAndDownload: fileOps.exportAndDownload,
       saveDiagramToServer: fileOps.saveDiagramToServer,
       

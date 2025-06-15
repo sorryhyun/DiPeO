@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/components/ui';
-import { DomainApiKey, apiKeyId, createErrorHandlerFactory, ApiKeyID } from '@/types';
+import { DomainApiKey, apiKeyId, createErrorHandlerFactory, ApiKeyID, LlmService } from '@/types';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,11 +12,13 @@ interface ApiKeysModalProps {
 }
 
 const API_SERVICES = [
-  { value: 'anthropic', label: 'Claude (Anthropic)' },
-  { value: 'openai', label: 'ChatGPT (OpenAI)' },
-  { value: 'grok', label: 'Grok' },
-  { value: 'gemini', label: 'Gemini (Google)' },
-  { value: 'custom', label: 'Custom' },
+  { value: LlmService.Anthropic, label: 'Claude (Anthropic)' },
+  { value: LlmService.Openai, label: 'ChatGPT (OpenAI)' },
+  { value: LlmService.Grok, label: 'Grok' },
+  { value: LlmService.Google, label: 'Gemini (Google)' },
+  { value: LlmService.Bedrock, label: 'AWS Bedrock' },
+  { value: LlmService.Vertex, label: 'Google Vertex' },
+  { value: LlmService.Deepseek, label: 'DeepSeek' },
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
@@ -30,7 +32,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
     
   const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
     label: '',
-    service: 'openai',
+    service: LlmService.Openai,
     key: '',
   });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -66,14 +68,14 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       // Use GraphQL mutation
       await graphQLOperations.createApiKey(
         newKeyForm.label.trim(),
-        newKeyForm.service || 'openai',
+        newKeyForm.service || LlmService.Openai,
         newKeyForm.key.trim()
       );
       
       // Reset form
       setNewKeyForm({
         label: '',
-        service: 'openai',
+        service: LlmService.Openai,
         key: '',
       });
     } catch {
@@ -183,7 +185,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 Service
               </label>
               <Select
-                value={newKeyForm.service || 'claude'}
+                value={newKeyForm.service || LlmService.Openai}
                 onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as DomainApiKey['service'] })}
               >
                 {API_SERVICES.map((service) => (

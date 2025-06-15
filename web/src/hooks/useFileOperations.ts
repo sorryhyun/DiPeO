@@ -21,8 +21,8 @@ export const useFileOperations = () => {
   const store = useUnifiedStore();
   const [exportDiagramMutation] = useExportDiagramMutation();
 
-  // Get current diagram ID from store
-  const diagramId = store.diagram?.metadata?.id;
+  // Get current diagram ID from store or props
+  const diagramId = null; // TODO: Pass diagram ID from parent component
 
   // ===================
   // EXPORT OPERATIONS
@@ -170,7 +170,7 @@ export const useFileOperations = () => {
     setIsProcessing(true);
     try {
       const result = await saveDiagramToBackend(diagramId, {
-        format,
+        format: format || DiagramFormat.Native,
         filename
       });
       

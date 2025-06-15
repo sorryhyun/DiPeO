@@ -63,9 +63,6 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       Object.entries(groupedByPerson).forEach(([pid, convs]) => {
         transformed[pid as PersonID] = {
           personId: pid as PersonID,
-          label: '', // This would need to be fetched from person data
-          service: 'openai', // Default, should come from person data
-          model: 'gpt-4.1-nano', // Default, should come from person data
           messages: convs.map((conv: any) => ({
             id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
             role: 'assistant' as const,
@@ -78,14 +75,12 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
             executionId: conv.executionId,
             forgotten: conv.forgotten || false
           })),
-          conversationCount: convs.length,
           visibleMessages: convs.filter((c: any) => !c.forgotten).length,
           hasMore: conversationsData.has_more || false,
-          lastCleared: null,
-          memoryConfig: {
-            mode: 'sliding_window',
+          config: {
+            forgetMode: 'no_forget',
             maxMessages: 20
-          } as PersonMemoryConfig
+          }
         };
         
         // Update message counts
@@ -135,7 +130,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   }, [refetch, filters]);
 
   // Load more messages for pagination
-  const fetchMore = useCallback(async (personId: PersonID) => {
+  const loadMoreMessages = useCallback(async (personId: PersonID) => {
     const personData = conversationData[personId];
     if (!personData?.hasMore || isLoadingMore) return;
     
@@ -219,7 +214,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     fetchConversationData: refresh,
     addMessage,
     refresh,
-    fetchMore,
+    fetchMore: loadMoreMessages,
     applyFilters,
     enableRealtimeUpdates,
   };

@@ -14,15 +14,16 @@ import { createNodeDragGhost } from '@/utils/dragGhost';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { 
   nodeToReact,
+  graphQLTypeToNodeKind,
   type NodeID, 
   type ArrowID, 
   type HandleID, 
-  type PersonID, 
+  type PersonID,
+  type NodeKind, 
   nodeId, 
   personId, 
   handleId,
   createHandleId,
-  type NodeKind,
   type Vec2,
   type DomainNode,
   type DomainArrow,
@@ -450,7 +451,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     };
     
     const newNodeId = storeState.addNode(
-      node.type as NodeKind,
+      graphQLTypeToNodeKind(node.type) as NodeKind,
       newPosition,
       { ...node.data }
     );

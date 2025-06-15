@@ -65,8 +65,8 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Get diagram ID from store
-  const diagramId = useUnifiedStore(state => state.diagram.metadata?.id);
+  // Get diagram ID from file operations or state
+  const diagramId = useRef<string | null>(null);
 
   const [uploadDiagram] = useMutation(UPLOAD_DIAGRAM);
   const [exportDiagram] = useMutation(EXPORT_DIAGRAM);
@@ -106,6 +106,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
       }
 
       const { diagramId: newDiagramId, diagramName, nodeCount } = uploadResult.data.uploadDiagram;
+      diagramId.current = newDiagramId;
       
       toast.success(
         <div className="flex flex-col gap-1">
@@ -135,7 +136,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
   }, [uploadDiagram]);
 
   const handleExport = useCallback(async () => {
-    if (!diagramId) {
+    if (!diagramId.current) {
       toast.error('No diagram to export');
       return;
     }
@@ -143,7 +144,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
     try {
       const result = await exportDiagram({
         variables: {
-          diagramId,
+          diagramId: diagramId.current,
           format: selectedFormat,
           includeMetadata
         }
@@ -247,7 +248,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
             </label>
             <Select
               value={selectedFormat}
-              onChange={(e) => setSelectedFormat(e.target.value)}
+              onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat)}
               className="w-full"
             >
               {EXPORT_FORMATS.map(format => (
@@ -273,11 +274,11 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
 
           <Button
             onClick={handleExport}
-            disabled={!diagramId}
-            variant={diagramId ? 'primary' : 'secondary'}
+            disabled={!diagramId.current}
+            variant={diagramId.current ? 'default' : 'secondary'}
             className="w-full"
           >
-            {diagramId ? 'Export Diagram' : 'No diagram to export'}
+            {diagramId.current ? 'Export Diagram' : 'No diagram to export'}
           </Button>
         </div>
       </div>

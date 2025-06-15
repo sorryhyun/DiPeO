@@ -14,7 +14,7 @@ import type {
   Diagram,
   Vec2Input
 } from '@/__generated__/graphql';
-import { NodeType } from '@/__generated__/graphql';
+import { NodeType, HandleDirection, DataType } from '@/__generated__/graphql';
 import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from './branded';
 import type { Vec2 } from './primitives';
 
@@ -217,12 +217,12 @@ export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName:
 // Check if two handles are compatible for connection
 export function areHandlesCompatible(source: Handle, target: Handle): boolean {
   // Basic compatibility: output can connect to input
-  if (source.direction !== 'output' || target.direction !== 'input') {
+  if (source.direction !== HandleDirection.Output || target.direction !== HandleDirection.Input) {
     return false;
   }
   
   // Type compatibility
-  if (source.dataType === 'any' || target.dataType === 'any') {
+  if (source.dataType === DataType.Any || target.dataType === DataType.Any) {
     return true;
   }
   

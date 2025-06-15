@@ -5,8 +5,9 @@ import {
   NodeID, ArrowID, PersonID, ApiKeyID, HandleID,
   DomainNode, DomainArrow, DomainPerson, DomainHandle, DomainApiKey,
   NodeKind, Vec2, generateNodeId, generateArrowId, generatePersonId,
-  entityIdGenerators, apiKeyId
+  entityIdGenerators, apiKeyId, nodeKindToGraphQLType
 } from '@/types';
+import { ForgettingMode } from '@/__generated__/graphql';
 import { generateNodeLabel } from '@/config/nodeMeta';
 import { getNodeDefaults } from '@/config';
 
@@ -19,7 +20,7 @@ export function createNode(type: NodeKind, position: Vec2, initialData?: Record<
   
   return {
     id,
-    type,
+    type: nodeKindToGraphQLType(type),
     position: {
       x: position?.x ?? 0,
       y: position?.y ?? 0
@@ -29,7 +30,8 @@ export function createNode(type: NodeKind, position: Vec2, initialData?: Record<
       ...initialData,
       label,
     },
-    displayName: label
+    displayName: label,
+    handles: [] // Handles will be added separately
   };
 }
 
@@ -73,7 +75,7 @@ export function createImportState() {
         id: personId,
         label,
         apiKeyId: '',
-        forgettingMode: 'no_forget',
+        forgettingMode: ForgettingMode.NoForget,
         service: service as any,
         model,
         systemPrompt: '',

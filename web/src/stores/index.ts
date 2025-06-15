@@ -7,3 +7,6 @@ export type {
   NodeState,
   Snapshot
 } from './unifiedStore.types';
+
+// Re-export ExportFormat from types for backward compatibility
+export type { ExportFormat } from '@/types';

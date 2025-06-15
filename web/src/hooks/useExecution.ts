@@ -279,15 +279,15 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     if (update.status === ExecutionStatus.Completed) {
       completeExecution(update.tokenUsage?.total);
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_complete', totalTokens: update.tokenUsage?.total });
+      onUpdate?.({ type: 'execution_complete', totalTokens: update.tokenUsage?.total, timestamp: new Date().toISOString() });
     } else if (update.status === ExecutionStatus.Failed && update.error) {
       errorExecution(update.error);
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_error', error: update.error });
+      onUpdate?.({ type: 'execution_error', error: update.error, nodeId: '', status: 'failed', timestamp: new Date().toISOString() });
     } else if (update.status === ExecutionStatus.Aborted) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_aborted' });
+      onUpdate?.({ type: 'execution_aborted', nodeId: '', status: 'failed', timestamp: new Date().toISOString() });
     }
   }, [executionData, completeExecution, errorExecution, executionActions, onUpdate]);
   
@@ -312,7 +312,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       status: 'running',
       timestamp: Date.now()
     });
-    onUpdate?.({ type: 'node_start', nodeId: nodeId(nodeIdStr), nodeType });
+    onUpdate?.({ type: 'node_start', nodeId: nodeId(nodeIdStr), nodeType, status: 'running', timestamp: new Date().toISOString() });
   }, 50), [executionActions, onUpdate]);
   
   const handleNodeComplete = useCallback(throttle((nodeIdStr: string, tokenCount?: number, output?: any) => {
@@ -345,7 +345,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       runContextRef.current = { ...runContextRef.current, ...output };
     }
     
-    onUpdate?.({ type: 'node_complete', nodeId: nodeId(nodeIdStr), tokens: tokenCount, output });
+    onUpdate?.({ type: 'node_complete', nodeId: nodeId(nodeIdStr), tokens: tokenCount, result: output, status: 'completed', timestamp: new Date().toISOString() });
   }, 50), [executionActions, onUpdate]);
   
   // Process node subscription updates
@@ -379,7 +379,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         toast.error(`Node ${update.nodeId.slice(0, 8)}... failed: ${update.error}`);
       }
       
-      onUpdate?.({ type: 'node_error', nodeId: nodeId(update.nodeId), error: update.error || undefined });
+      onUpdate?.({ type: 'node_error', nodeId: nodeId(update.nodeId), error: update.error || undefined, status: 'failed', timestamp: new Date().toISOString() });
     } else if (update.status === 'skipped') {
       setExecution(prev => ({
         ...prev,
@@ -401,7 +401,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         timestamp: Date.now()
       });
       
-      onUpdate?.({ type: 'node_skipped', nodeId: nodeId(update.nodeId) });
+      onUpdate?.({ type: 'node_skipped', nodeId: nodeId(update.nodeId), status: 'skipped', timestamp: new Date().toISOString() });
     } else if (update.status === 'paused') {
       setNodeStates(prev => ({
         ...prev,
@@ -410,7 +410,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           status: 'paused' as const
         }
       }));
-      onUpdate?.({ type: 'node_paused', nodeId: nodeId(update.nodeId) });
+      onUpdate?.({ type: 'node_paused', nodeId: nodeId(update.nodeId), status: 'paused', timestamp: new Date().toISOString() });
     }
     
     // Handle progress updates
@@ -422,7 +422,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           progress: update.progress || undefined
         } as NodeState
       }));
-      onUpdate?.({ type: 'node_progress', nodeId: nodeId(update.nodeId), progress: update.progress });
+      onUpdate?.({ type: 'node_progress', nodeId: nodeId(update.nodeId), status: 'running', timestamp: new Date().toISOString() });
     }
   }, [nodeData, handleNodeStart, handleNodeComplete, executionActions, showToasts, onUpdate]);
   
@@ -437,7 +437,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       prompt: prompt.prompt,
       timeout: prompt.timeoutSeconds || undefined,
     });
-    onUpdate?.({ type: 'interactive_prompt_request', nodeId: nodeId(prompt.nodeId), message: prompt.prompt, executionId: executionId(prompt.executionId) });
+    onUpdate?.({ type: 'interactive_prompt_request', nodeId: nodeId(prompt.nodeId), status: 'paused', timestamp: new Date().toISOString() });
   }, [promptData, onUpdate]);
   
   // Main Actions
@@ -469,7 +469,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         const totalNodes = diagram ? Object.keys(diagram.nodes).length : 0;
         startExecution(result.data.executeDiagram.executionId, totalNodes);
         executionActions.startExecution(result.data.executeDiagram.executionId);
-        onUpdate?.({ type: 'execution_started', executionId: executionId(result.data.executeDiagram.executionId), total_nodes: totalNodes });
+        onUpdate?.({ type: 'execution_started', nodeId: '', status: 'running', timestamp: new Date().toISOString() });
       } else {
         throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
       }

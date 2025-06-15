@@ -138,3 +138,50 @@ export { isDomainNode, isDomainDiagram } from './graphql-mappings';
  * Utility types for working with nodes
  */
 export type NodeDataOfType<T extends NodeKind> = T extends keyof NodeData ? NodeData[T] : never;
+
+// Export format type for diagram export/import operations
+export interface ExportFormat {
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: Record<string, any>;
+    displayName?: string;
+  }>;
+  arrows: Array<{
+    id: string;
+    source: string;
+    target: string;
+    data?: Record<string, any>;
+  }>;
+  handles: Array<{
+    id: string;
+    nodeId: string;
+    name: string;
+    direction: string;
+    dataType: string;
+  }>;
+  persons: Array<{
+    id: string;
+    name: string;
+    displayName?: string;
+    service: string;
+    [key: string]: any;
+  }>;
+  apiKeys: Array<{
+    id: string;
+    label: string;
+    service: string;
+    maskedKey: string;
+  }>;
+  metadata?: {
+    id?: string;
+    name?: string;
+    description?: string;
+    version: string;
+    created: string;
+    modified: string;
+    author?: string;
+    tags?: string[];
+  };
+}

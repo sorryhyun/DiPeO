@@ -13,9 +13,8 @@ export * from './useDiagram';
 
 // New unified hooks that combine multiple concerns
 export * from './useCanvasOperations'; // Combines useCanvas + useCanvasInteractions
-// useExecution has been removed - use useExecution or useExecutionProvider
+// useExecution has been removed - use useExecution
 export * from './useExecution'; // GraphQL-based execution hook
-export * from './useExecutionProvider'; // Feature flag-based execution provider
 
 // High-level hooks organized by feature/use-case
 export * from './useDiagramManager'; // Diagram management operations
