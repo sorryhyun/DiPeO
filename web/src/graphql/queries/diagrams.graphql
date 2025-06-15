@@ -102,3 +102,18 @@ mutation DeleteDiagram($id: DiagramID!) {
   }
 }
 
+mutation SaveDiagram($diagramId: DiagramID!, $format: String) {
+  saveDiagram(diagramId: $diagramId, format: $format) {
+    success
+    diagram {
+      metadata {
+        id
+        name
+        modified
+      }
+    }
+    message
+    error
+  }
+}
+

@@ -15,20 +15,11 @@ import uuid
 import logging
 
 from ...services.diagram_service import DiagramService
-from ...models.domain import DiagramMetadata
-from ..context import Context
+from ...domain import DiagramMetadata
+from ..context import GraphQLContext
+from ..types.results import FileUploadResult
 
 logger = logging.getLogger(__name__)
-
-@strawberry.type
-class FileUploadResult:
-    """Result of a file upload operation."""
-    success: bool
-    message: str
-    file_id: Optional[str] = None
-    file_path: Optional[str] = None
-    file_type: Optional[str] = None
-    file_size: Optional[int] = None
 
 @strawberry.type
 class DiagramUploadResult:
@@ -131,7 +122,7 @@ class UploadMutations:
         Returns:
             DiagramUploadResult with diagram details
         """
-        context: Context = info.context
+        context: GraphQLContext = info.context
         
         try:
             # Read file

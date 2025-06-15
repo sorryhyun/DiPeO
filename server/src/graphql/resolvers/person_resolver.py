@@ -5,7 +5,7 @@ import logging
 from ..types.domain import Person, ApiKey
 from ..types.scalars import PersonID, ApiKeyID
 from ..context import GraphQLContext
-from server.src.domain import (
+from ...domain import (
     DomainApiKey, LLMService
 )
 

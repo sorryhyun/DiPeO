@@ -4,7 +4,7 @@ Utilities for converting between internal domain models and GraphQL models.
 from typing import Dict, Any
 import logging
 
-from server.src.domain import (
+from ..domain import (
     DomainNode, DomainHandle, DomainArrow,
     DomainPerson, DomainApiKey, DiagramMetadata,
     NodeType, HandleDirection, DataType, LLMService, ForgettingMode,

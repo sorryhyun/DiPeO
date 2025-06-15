@@ -7,7 +7,7 @@ from ..types.domain import ExecutionState, ExecutionEvent
 from ..types.scalars import ExecutionID
 from ..types.inputs import ExecutionFilterInput
 from ..context import GraphQLContext
-from server.src.domain import (
+from ...domain import (
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,
     TokenUsage as PydanticTokenUsage,

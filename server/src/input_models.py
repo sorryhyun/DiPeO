@@ -4,7 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 import base64
 
-from server.src.domain import (
+from .domain import (
     NodeType, HandleDirection, DataType, LLMService, 
     ForgettingMode, ExecutionStatus
 )

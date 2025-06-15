@@ -58,6 +58,7 @@ files/
 
 # GraphQL codegen
 web/src/generated/
+*.graphql.tsx.map
 
 pnpm-lock.yaml
 .claude

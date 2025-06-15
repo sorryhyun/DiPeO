@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-// TODO: Migrate to GraphQL when conversations query is available in the schema
-// Currently no GraphQL query exists for fetching conversation data
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import type { ConversationFilters, ConversationMessage, PersonMemoryConfig, PersonMemoryState, PersonID } from '@/types';
+import { useConversationDataGraphQL } from './useConversationDataGraphQL';
+import { shouldUseGraphQL } from '@/config/featureFlags';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -14,6 +14,10 @@ export interface UseConversationDataOptions {
 }
 
 export const useConversationData = (options: UseConversationDataOptions | ConversationFilters) => {
+  // Use GraphQL version if feature flag is enabled
+  if (shouldUseGraphQL()) {
+    return useConversationDataGraphQL(options);
+  }
   // Support both old and new API for backward compatibility
   const { filters, personId = null, enableRealtimeUpdates = true } = 
     'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true };

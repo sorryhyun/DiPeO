@@ -2,7 +2,7 @@ type ApiKey {
   maskedKey: String!
   id: String!
   label: String!
-  service: String!
+  service: LLMService!
 }
 
 """Unique identifier for an API key"""
@@ -16,10 +16,10 @@ type ApiKeyResult {
 }
 
 type Arrow {
+  data: JSONScalar
   id: String!
   source: String!
   target: String!
-  data: JSONScalar
 }
 
 """Unique identifier for an arrow"""
@@ -32,8 +32,8 @@ input CreateApiKeyInput {
 }
 
 input CreateArrowInput {
-  source: HandleID!
-  target: HandleID!
+  source: String!
+  target: String!
   label: String = null
 }
 
@@ -41,26 +41,46 @@ input CreateDiagramInput {
   name: String!
   description: String = null
   author: String = null
-  tags: [String!] = null
+  tags: [String!] = []
+}
+
+input CreateHandleInput {
+  nodeId: String!
+  label: String!
+  direction: HandleDirection!
+  dataType: DataType! = ANY
+  position: Vec2Input = null
+  maxConnections: Int = null
 }
 
 input CreateNodeInput {
   type: NodeType!
   position: Vec2Input!
   label: String!
-  properties: JSONScalar!
+
+  """Node-specific properties"""
+  properties: JSONScalar = {}
 }
 
 input CreatePersonInput {
   label: String!
   service: LLMService!
   model: String!
-  apiKeyId: ApiKeyID!
+  apiKeyId: String!
   systemPrompt: String = null
   forgettingMode: ForgettingMode! = NONE
   temperature: Float = null
   maxTokens: Int = null
   topP: Float = null
+}
+
+enum DataType {
+  ANY
+  STRING
+  NUMBER
+  BOOLEAN
+  OBJECT
+  ARRAY
 }
 
 """Date with time (isoformat)"""
@@ -74,16 +94,16 @@ type DeleteResult {
 }
 
 type Diagram {
+  nodeCount: Int!
+  arrowCount: Int!
+  personCount: Int!
+  estimatedCost: Float
   nodes: [Node!]!
   handles: [Handle!]!
   arrows: [Arrow!]!
   persons: [Person!]!
   apiKeys: [ApiKey!]!
   metadata: DiagramMetadata
-  nodeCount: Int!
-  arrowCount: Int!
-  personCount: Int!
-  estimatedCost: Float
 }
 
 input DiagramFilterInput {
@@ -103,8 +123,8 @@ type DiagramMetadata {
   name: String
   description: String
   version: String!
-  created: String!
-  modified: String!
+  created: DateTime!
+  modified: DateTime!
   author: String
   tags: [String!]
 }
@@ -114,6 +134,14 @@ type DiagramResult {
   diagram: Diagram
   message: String
   error: String
+}
+
+type DiagramUploadResult {
+  success: Boolean!
+  message: String!
+  diagramId: String
+  diagramName: String
+  nodeCount: Int
 }
 
 enum EventType {
@@ -132,31 +160,35 @@ enum EventType {
 }
 
 input ExecuteDiagramInput {
-  diagramId: DiagramID!
+  diagramId: String!
   variables: JSONScalar = null
   debugMode: Boolean! = false
-  timeout: Int = null
+
+  """Execution timeout in seconds"""
+  timeoutSeconds: Int = null
+
+  """Maximum iterations for execution"""
   maxIterations: Int = null
 }
 
 input ExecutionControlInput {
-  executionId: ExecutionID!
+  executionId: String!
   action: String!
-  nodeId: NodeID = null
+  nodeId: String = null
 }
 
 type ExecutionEvent {
-  executionId: ExecutionID!
+  data: JSONScalar
+  formattedMessage: String!
+  executionId: String!
   sequence: Int!
   eventType: String!
-  nodeId: NodeID
+  nodeId: String
   timestamp: DateTime!
-  data: JSONScalar!
-  formattedMessage: String!
 }
 
 input ExecutionFilterInput {
-  diagramId: DiagramID = null
+  diagramId: String = null
   status: ExecutionStatus = null
   startedAfter: DateTime = null
   startedBefore: DateTime = null
@@ -175,22 +207,22 @@ type ExecutionResult {
 }
 
 type ExecutionState {
-  id: ExecutionID!
-  status: ExecutionStatus!
-  diagramId: DiagramID
-  startedAt: DateTime!
-  endedAt: DateTime
-  runningNodes: [NodeID!]!
-  completedNodes: [NodeID!]!
-  skippedNodes: [NodeID!]!
-  pausedNodes: [NodeID!]!
-  failedNodes: [NodeID!]!
-  nodeOutputs: JSONScalar!
-  variables: JSONScalar!
-  tokenUsage: TokenUsage
-  error: String
+  nodeOutputs: JSONScalar
+  variables: JSONScalar
   durationSeconds: Float
   isActive: Boolean!
+  id: String!
+  status: ExecutionStatus!
+  diagramId: String
+  startedAt: DateTime!
+  endedAt: DateTime
+  runningNodes: [String!]!
+  completedNodes: [String!]!
+  skippedNodes: [String!]!
+  pausedNodes: [String!]!
+  failedNodes: [String!]!
+  tokenUsage: TokenUsage
+  error: String
 }
 
 enum ExecutionStatus {
@@ -202,7 +234,23 @@ enum ExecutionStatus {
   ABORTED
 }
 
+input FileUploadInput {
+  filename: String!
+  contentBase64: String!
+  contentType: String = null
+}
+
+type FileUploadResult {
+  success: Boolean!
+  path: String
+  sizeBytes: Int
+  contentType: String
+  message: String
+  error: String
+}
+
 enum ForgettingMode {
+  NO_FORGET
   NONE
   ON_EVERY_TURN
   UPON_REQUEST
@@ -212,13 +260,30 @@ type Handle {
   id: String!
   nodeId: String!
   label: String!
-  direction: String!
-  dataType: String!
+  direction: HandleDirection!
+  dataType: DataType!
   position: String
+}
+
+enum HandleDirection {
+  INPUT
+  OUTPUT
 }
 
 """Unique identifier for a handle (format: nodeId:handleName)"""
 scalar HandleID
+
+type HandleResult {
+  success: Boolean!
+  handle: Handle
+  message: String
+  error: String
+}
+
+input ImportYamlInput {
+  content: String!
+  filename: String = null
+}
 
 type InteractivePrompt {
   executionId: ExecutionID!
@@ -229,8 +294,8 @@ type InteractivePrompt {
 }
 
 input InteractiveResponseInput {
-  executionId: ExecutionID!
-  nodeId: NodeID!
+  executionId: String!
+  nodeId: String!
   response: String!
 }
 
@@ -241,7 +306,7 @@ enum LLMService {
   OPENAI
   ANTHROPIC
   GOOGLE
-  GROQ
+  GROK
   BEDROCK
   VERTEX
   DEEPSEEK
@@ -250,6 +315,9 @@ enum LLMService {
 type Mutation {
   createDiagram(input: CreateDiagramInput!): DiagramResult!
   deleteDiagram(id: DiagramID!): DeleteResult!
+  saveDiagram(diagramId: DiagramID!, format: String = null): DiagramResult!
+  convertDiagram(diagramId: DiagramID!, targetFormat: String!): DiagramResult!
+  importYamlDiagram(input: ImportYamlInput!): DiagramResult!
   createNode(diagramId: DiagramID!, input: CreateNodeInput!): NodeResult!
   updateNode(input: UpdateNodeInput!): NodeResult!
   deleteNode(id: NodeID!): DeleteResult!
@@ -258,21 +326,28 @@ type Mutation {
   createPerson(diagramId: DiagramID!, input: CreatePersonInput!): PersonResult!
   updatePerson(input: UpdatePersonInput!): PersonResult!
   deletePerson(id: PersonID!): DeleteResult!
+  initializeModel(personId: PersonID!): PersonResult!
   createApiKey(input: CreateApiKeyInput!): ApiKeyResult!
   testApiKey(id: ApiKeyID!): TestApiKeyResult!
   deleteApiKey(id: ApiKeyID!): DeleteResult!
   executeDiagram(input: ExecuteDiagramInput!): ExecutionResult!
   controlExecution(input: ExecutionControlInput!): ExecutionResult!
   submitInteractiveResponse(input: InteractiveResponseInput!): ExecutionResult!
+  createHandle(input: CreateHandleInput!): HandleResult!
+  deleteHandle(id: HandleID!): DeleteResult!
   clearConversations: DeleteResult!
+  uploadFile(input: FileUploadInput!): FileUploadResult!
+  uploadDiagram(file: Upload!): DiagramUploadResult!
+  uploadMultipleFiles(files: [Upload!]!, category: String! = "general"): [FileUploadResult!]!
 }
 
 type Node {
-  position: Vec2!
+  data: JSONScalar
   displayName: String!
+  handles: [Handle!]!
   id: String!
-  type: String!
-  data: JSONScalar!
+  type: NodeType!
+  position: Vec2!
 }
 
 type NodeExecution {
@@ -313,11 +388,11 @@ type Person {
   maskedApiKey: String
   id: String!
   label: String!
-  service: String!
+  service: LLMService!
   model: String!
   apiKeyId: String!
   systemPrompt: String
-  forgettingMode: String!
+  forgettingMode: ForgettingMode!
   type: String!
 }
 
@@ -343,6 +418,9 @@ type Query {
   apiKeys(service: String = null): [ApiKey!]!
   availableModels(service: String!, apiKeyId: ApiKeyID!): [String!]!
   systemInfo: JSONScalar!
+  executionCapabilities: JSONScalar!
+  health: JSONScalar!
+  conversations(personId: PersonID = null, executionId: ExecutionID = null, search: String = null, showForgotten: Boolean! = false, limit: Int! = 100, offset: Int! = 0, since: DateTime = null): JSONScalar!
 }
 
 type Subscription {
@@ -368,22 +446,25 @@ type TokenUsage {
 }
 
 input UpdateNodeInput {
-  id: NodeID!
+  id: String!
   position: Vec2Input = null
   label: String = null
   properties: JSONScalar = null
 }
 
 input UpdatePersonInput {
-  id: PersonID!
+  id: String!
   label: String = null
   model: String = null
-  apiKeyId: ApiKeyID = null
+  apiKeyId: String = null
   systemPrompt: String = null
   forgettingMode: ForgettingMode = null
   temperature: Float = null
   maxTokens: Int = null
+  topP: Float = null
 }
+
+scalar Upload
 
 type Vec2 {
   x: Float!

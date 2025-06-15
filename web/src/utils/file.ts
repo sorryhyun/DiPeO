@@ -6,6 +6,9 @@
 import { toast } from 'react-hot-toast';
 import { getApiUrl, API_ENDPOINTS } from './api/config';
 import { createLookupTable } from './dispatchTable';
+import { shouldUseGraphQL } from '@/config/featureFlags';
+import { saveDiagramToBackendGraphQL } from './fileGraphQL';
+import type { DiagramID } from '@/generated/graphql';
 
 export type FileFormat = 'light' | 'native' | 'readable' | 'llm-readable';
 
@@ -118,13 +121,19 @@ export const downloadEnhanced = async (
 
 /**
  * Save diagram to backend
- * @param diagram - The serialized diagram content (parsed YAML object)
+ * @param diagram - The serialized diagram content (parsed YAML object) or diagram ID for GraphQL
  * @param options - Save options including format and filename
  */
 export const saveDiagramToBackend = async (
   diagram: any,
   options: SaveFileOptions
 ): Promise<{ success: boolean; filename: string }> => {
+  // Use GraphQL if enabled and diagram is a string (diagram ID)
+  if (shouldUseGraphQL() && typeof diagram === 'string') {
+    return saveDiagramToBackendGraphQL(diagram as DiagramID, options);
+  }
+  
+  // Fall back to REST API
   try {
     const response = await fetch(getApiUrl(API_ENDPOINTS.SAVE_DIAGRAM), {
       method: 'POST',
