@@ -10,6 +10,11 @@ __pycache__/
 apikeys.json
 output.txt
 AGENTS.md
+*.db-shm
+*.db-wal
+*.db
+web/src/__generated__
+web/schema.graphql
 
 # Node.js
 node_modules/
@@ -27,8 +32,8 @@ out/
 execution_runner.cjs
 notion.md
 CLAUDE.md
-apps/web/CLAUDE.md
-apps/server/CLAUDE.md
+web/CLAUDE.md
+server/CLAUDE.md
 
 # Environment files
 .env
@@ -45,13 +50,17 @@ apps/server/CLAUDE.md
 *~
 
 # Project specific
-apps/server/.venv/
-apps/server/__pycache__/
-apps/server/src/__pycache__/
-apps/server/src/*/__pycache__/
-apps/web/dist/
+server/.venv/
+server/__pycache__/
+server/src/__pycache__/
+server/src/*/__pycache__/
+web/dist/
 # Project file storage - consolidated under files/
 files/
+
+# GraphQL codegen
+web/src/generated/
+*.graphql.tsx.map
 
 pnpm-lock.yaml
 .claude

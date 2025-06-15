@@ -23,11 +23,22 @@ git clone https://github.com/sorryhyun/DiPeO.git
 pnpm install
 pnpm dev:web
 
-python -m venv apps/server/.venv
-source apps/server/.venv/bin/activate
-pip install -r apps/server/requirements.txt
+python -m venv server/.venv
+source server/.venv/bin/activate
+pip install -r server/requirements.txt
 bash run-server.sh
 ```
+
+## 🚀 GraphQL Migration
+
+DiPeO is migrating from REST to GraphQL for better performance and developer experience:
+
+- **GraphQL Endpoint**: Available at `/graphql` with interactive playground
+- **Real-time Subscriptions**: <10ms latency with Redis pub/sub
+- **Feature Flags**: Use `?useGraphQL=true` to enable GraphQL mode in frontend
+- **Migration Guide**: See [docs/graphql-migration-guide.md](docs/graphql-migration-guide.md)
+
+REST endpoints are deprecated and will be removed in February 2025.
 
 ## Key Concepts
 
@@ -48,9 +59,15 @@ bash run-server.sh
 * Rather than merely creating diagrams, the inputs and outputs of each diagram can be exposed via API, enabling agent-based tools like Claude Code to leverage the diagrams. We aim to explore visual collaboration in which Claude Code can generate diagrams on its own or a human can modify a diagram created by Claude Code.
 
 
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
 DiPeO (Diagrammed People & Organizations) is a visual programming environment for building AI-powered agent workflows. It's a monorepo that enables users to create, execute, and monitor multi-agent systems through an intuitive drag-and-drop interface.
+
+**Active Migration**: The project is migrating from REST to GraphQL (completion target: February 2025).
 
 ## Development Commands
 
@@ -62,20 +79,21 @@ pnpm lint           # Run ESLint
 pnpm lint:fix       # Fix linting issues
 pnpm typecheck      # TypeScript type checking
 pnpm analyze        # Bundle size analysis (from apps/web)
+pnpm codegen        # Generate GraphQL types
 ```
 
 ### Backend (FastAPI + Python)
 ```bash
 # Always use python -m syntax for running the server
 # IMPORTANT: Use WORKERS=1 for development to avoid WebSocket connection issues
-WORKERS=1 python -m apps.server.main    # Development mode (single worker)
-python -m apps.server.main              # Default: 4 workers (production)
+cd server && WORKERS=1 python -m main    # Development mode (single worker)
+cd server && python -m main              # Default: 4 workers (production)
 
 # Alternative: Use the provided script
 bash run-server.sh
 
 # With hot reload
-RELOAD=true python -m apps.server.main
+cd server && RELOAD=true python -m main
 
 # Note: Multiple workers create isolated ConnectionManager instances which
 # breaks WebSocket connections if HTTP and WS requests hit different workers
@@ -87,9 +105,13 @@ RELOAD=true python -m apps.server.main
 python tool.py run files/diagrams/diagram.json
 python tool.py run files/diagrams/diagram.json --monitor
 python tool.py run files/diagrams/diagram.json --debug --timeout=10
+python tool.py run files/diagrams/diagram.json --headless
 
 # Convert between formats
 python tool.py convert input.yaml output.json
+
+# Check diagram validity
+python tool.py check diagram.json
 
 # Get diagram statistics
 python tool.py stats diagram.json
@@ -98,9 +120,42 @@ python tool.py stats diagram.json
 ### Testing
 ```bash
 # Backend tests (limited coverage)
-cd apps/server && python -m pytest
+cd server && python -m pytest
+
+# GraphQL testing
+# Access GraphQL playground at http://localhost:8100/graphql
 
 # Frontend tests: Not yet implemented
+```
+
+## GraphQL Migration
+
+### Current Status
+- GraphQL endpoint: `http://localhost:8100/graphql`
+- Interactive playground available at the same URL
+- Real-time subscriptions with <10ms latency using Redis pub/sub
+- Feature flag: `?useGraphQL=true` in URL or `VITE_USE_GRAPHQL=true` in env
+- REST endpoints deprecated, removal planned for February 2025
+
+### Common GraphQL Operations
+```graphql
+# Execute diagram
+mutation ExecuteDiagram($id: String!, $mode: ExecutionMode) {
+  executeDiagram(diagramId: $id, mode: $mode) {
+    executionId
+    status
+  }
+}
+
+# Subscribe to execution updates
+subscription ExecutionUpdates($id: String!) {
+  executionUpdates(executionId: $id) {
+    nodeId
+    status
+    result
+    error
+  }
+}
 ```
 
 ## Architecture Overview
@@ -110,10 +165,12 @@ cd apps/server && python -m pytest
 - **Handle System**: Connections are made between specific handles (format: `nodeId:handleName`), not between nodes directly
 - **WebSocket Execution**: Real-time execution with pause/resume/skip capabilities
 - **Memory Management**: 3D underground space metaphor with 1000 message limit and 24h TTL
+- **Executor Pattern**: Unified executor system with registry, handlers, and schema validation
 
 ### Node Types
 - `start`: Entry point with static data
 - `person_job`: LLM tasks with memory management
+- `person_batch_job`: Batch LLM processing (new)
 - `condition`: Branching logic
 - `job`: Code execution (Python/JS/Bash)
 - `endpoint`: Terminal operations
@@ -121,24 +178,34 @@ cd apps/server && python -m pytest
 - `user_response`: Interactive prompts
 - `notion`: Notion integration
 
+### Executor System
+- **Registry**: All node types registered in `src/executors/registry.py`
+- **Handlers**: Business logic separated in `src/executors/handlers/`
+- **Schemas**: Pydantic validation in `src/executors/schemas/`
+- **Services**: Core logic in `src/executors/services/`
+
 ### Directory Structure
 ```
-apps/
-├── server/          # FastAPI backend
-│   ├── src/
-│   │   ├── api/     # REST & WebSocket routes
-│   │   ├── engine/  # Execution engine & executors
-│   │   ├── llm/     # LLM provider adapters
-│   │   └── services/# Business logic services
-│   └── requirements.txt
-└── web/            # React frontend
-    ├── src/
-    │   ├── components/  # UI components
-    │   ├── hooks/      # React hooks
-    │   ├── stores/     # Zustand state management
-    │   ├── types/      # TypeScript types
-    │   └── utils/      # Utilities & converters
-    └── package.json
+
+server/          # FastAPI backend
+├── src/
+│   ├── api/     # REST & WebSocket routes
+│   ├── engine/  # Execution engine & executors
+│   ├── executors/  # Unified executor system
+│   │   ├── handlers/   # Node type handlers
+│   │   ├── schemas/    # Pydantic schemas
+│   │   └── registry.py # Node type registry
+│   ├── llm/     # LLM provider adapters
+│   └── services/# Business logic services
+└── requirements.txt
+web/            # React frontend
+├── src/
+│   ├── components/  # UI components
+│   ├── hooks/      # React hooks
+│   ├── stores/     # Zustand state management
+│   ├── types/      # TypeScript types
+│   └── utils/      # Utilities & converters
+└── package.json
 ```
 
 ### Important File Locations
@@ -163,13 +230,19 @@ apps/
 
 ### State Management
 - Frontend uses Zustand v5 with unified store pattern
-- Store is located at `apps/web/src/stores/unifiedStore.ts`
+- Store is located at `web/src/stores/unifiedStore.ts`
 - Use selector factory pattern for performance
+- Slices: diagram, execution, person, UI, history
+- Immer middleware for immutable updates
+- Auto-save functionality with persistence
 
 ### WebSocket Communication
-- WebSocket client: `apps/web/src/utils/websocket/client.ts`
+- WebSocket client: `web/src/utils/websocket/client.ts`
 - Event bus pattern for message handling
 - Execution control via WebSocket messages
+- Automatic reconnection with exponential backoff
+- Message queuing for offline resilience
+- Singleton pattern for global access
 
 ### Converter System
 The converter system follows a two-stage conversion pipeline:
@@ -179,18 +252,18 @@ The converter system follows a two-stage conversion pipeline:
 - **Export**: Store → Domain → Format
 
 #### Core Components
-- **StoreDomainConverter** (`apps/web/src/utils/converters/core/storeDomainConverter.ts`)
+- **StoreDomainConverter** (`web/src/utils/converters/core/storeDomainConverter.ts`)
   - Converts between React store (Maps) and domain format (Records)
   - Store format: Uses Maps for React Flow compatibility
   - Domain format: Uses Records for serialization
 
-- **Format Converters** (`apps/web/src/utils/converters/formats/`)
+- **Format Converters** (`web/src/utils/converters/formats/`)
   - `native-yaml`: Stores domain diagram as-is (full fidelity)
   - `light-yaml`: Simplified format using labels instead of IDs
   - `readable-yaml`: Human-friendly format with embedded connections
   - `llm-domain-yaml`: Optimized for AI understanding
 
-- **Registry System** (`apps/web/src/utils/converters/core/registry.ts`)
+- **Registry System** (`web/src/utils/converters/core/registry.ts`)
   - Centralized converter registration
   - Format metadata management
   - Runtime converter lookup
@@ -207,6 +280,12 @@ const domainDiagram = storeDomainConverter.storeToDomain(storeState);  // Store 
 const content = converter.serialize(domainDiagram);  // Domain → Format
 ```
 
+### Type System
+- **Domain Models**: `src/models/domain.py` (backend) matches frontend structure
+- **Branded Type IDs**: NodeID, ArrowID, PersonID for type safety
+- **GraphQL Types**: Generated with Strawberry framework
+- **TypeScript Path Aliases**: Use `@/` for `src/` imports
+
 ## Testing & Quality
 
 ### Code Quality
@@ -215,8 +294,15 @@ pnpm lint:fix      # Auto-fix linting issues
 pnpm typecheck     # Ensure type safety
 ```
 
+### Debugging
+- CLI: Use `--debug` flag for timing information
+- WebSocket: Monitor messages in browser DevTools
+- GraphQL: Use playground for query debugging
+- Execution: `--monitor` flag opens browser for visual debugging
+
 ### Development Notes
 - Project is in active development - backward compatibility not required
 - Recent refactoring in progress (check git status)
 - Use `dev` branch for development, `main` for PRs
 - No comprehensive test suite yet - testing infrastructure needs implementation
+- Redis required for GraphQL subscriptions (auto-started with server)

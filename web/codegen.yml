@@ -1,0 +1,53 @@
+overwrite: true
+schema: "./schema.graphql"
+documents: "src/**/*.graphql"
+generates:
+  src/__generated__/graphql.tsx:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      # Use branded types from DiPeO
+      scalars:
+        NodeID: string
+        HandleID: string
+        ArrowID: string
+        PersonID: string
+        ApiKeyID: string
+        ExecutionID: string
+        DiagramID: string
+      # Generate React hooks
+      withHooks: true
+      # Generate HOCs for components
+      withHOC: false
+      # Generate components
+      withComponent: false
+      # Use the Apollo Client 3.x API
+      apolloClientVersion: 3
+      # Better type safety
+      avoidOptionals: false
+      # Use TypeScript enums
+      enumsAsTypes: false
+      # Generate result types for better error handling
+      withResultType: true
+      # Add __typename for better cache management
+      addDocumentNodeToOperations: true
+      # Generate fragment matcher for unions
+      possibleTypes:
+        NodeDataUnion:
+          - StartNodeData
+          - PersonJobNodeData
+          - ConditionNodeData
+          - JobNodeData
+          - EndpointNodeData
+          - DBNodeData
+          - UserResponseNodeData
+          - NotionNodeData
+          - PersonBatchJobNodeData
+        DiagramOperationResult:
+          - Diagram
+          - OperationError
+        ExecutionOperationResult:
+          - ExecutionState
+          - OperationError

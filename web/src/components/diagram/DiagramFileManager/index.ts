@@ -1,0 +1,1 @@
+export { DiagramFileManager } from './DiagramFileManager';

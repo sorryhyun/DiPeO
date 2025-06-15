@@ -18,11 +18,13 @@ from datetime import datetime
 import yaml
 import websockets
 import requests
+import os
 
 
 # Constants
 API_URL = "http://localhost:8000"
 WS_URL = "ws://localhost:8000/api/ws"
+GRAPHQL_HOST = "localhost:8000"  # GraphQL server port (same as main server)
 DEFAULT_API_KEY = "APIKEY_387B73"
 DEFAULT_TIMEOUT = 300  # 5 minutes
 DEFAULT_MODEL = "gpt-4.1-nano"
@@ -48,33 +50,69 @@ class ExecutionOptions:
 
 
 class DiagramValidator:
-    """Validates diagram structure without transformation"""
+    """Validates diagram structure using Pydantic models"""
     
     @staticmethod
     def validate_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate diagram has required structure"""
-        # Ensure all required fields exist
-        if 'nodes' not in diagram:
-            diagram['nodes'] = {}
-        if 'arrows' not in diagram:
-            diagram['arrows'] = {}
-        if 'handles' not in diagram:
-            diagram['handles'] = {}
-        if 'persons' not in diagram:
-            diagram['persons'] = {}
-        if 'apiKeys' not in diagram:
-            diagram['apiKeys'] = {}
-        
-        # Add default API key if needed
-        if not diagram['apiKeys'] and diagram['persons']:
-            diagram['apiKeys'][DEFAULT_API_KEY] = {
-                'id': DEFAULT_API_KEY,
-                'label': 'Default API Key',
-                'service': 'openai',
-                'key': 'test-key'
-            }
-        
-        return diagram
+        """Validate diagram using Pydantic DomainDiagram model"""
+        try:
+            # Import the Pydantic model
+            from server.src.domain import DomainDiagram, DiagramMetadata
+            from datetime import datetime
+            
+            # Ensure all required fields exist with proper defaults
+            if 'nodes' not in diagram:
+                diagram['nodes'] = {}
+            if 'arrows' not in diagram:
+                diagram['arrows'] = {}
+            if 'handles' not in diagram:
+                diagram['handles'] = {}
+            if 'persons' not in diagram:
+                diagram['persons'] = {}
+            if 'apiKeys' not in diagram:
+                diagram['apiKeys'] = {}
+            
+            # Add default API key if needed
+            if not diagram['apiKeys'] and diagram['persons']:
+                diagram['apiKeys'][DEFAULT_API_KEY] = {
+                    'id': DEFAULT_API_KEY,
+                    'label': 'Default API Key',
+                    'service': 'openai',
+                    'key': 'test-key'
+                }
+            
+            # Add metadata if missing
+            if 'metadata' not in diagram:
+                diagram['metadata'] = {
+                    'name': 'CLI Diagram',
+                    'created': datetime.now().isoformat(),
+                    'modified': datetime.now().isoformat(),
+                    'version': '2.0.0'
+                }
+            
+            # Convert apiKeys to api_keys for Pydantic model
+            if 'apiKeys' in diagram:
+                diagram['api_keys'] = diagram.pop('apiKeys')
+            
+            # Validate using Pydantic model
+            domain_diagram = DomainDiagram(**diagram)
+            
+            # Convert back to dict format expected by the rest of the code
+            validated = domain_diagram.model_dump()
+            
+            # Convert api_keys back to apiKeys for backward compatibility
+            if 'api_keys' in validated:
+                validated['apiKeys'] = validated.pop('api_keys')
+            
+            return validated
+            
+        except ImportError:
+            # Fallback to basic validation if imports fail
+            print("⚠️  Warning: Could not import Pydantic models, using basic validation")
+            return diagram
+        except Exception as e:
+            print(f"⚠️  Warning: Pydantic validation failed ({str(e)}), using basic structure")
+            return diagram
 
 
 class DiagramLoader:
@@ -262,12 +300,193 @@ class WebSocketExecutor:
                 result['total_token_count'] = tokens.get('input', 0) + tokens.get('output', 0)
 
 
-class DiagramRunner:
-    """Main diagram execution orchestrator"""
+class GraphQLExecutor:
+    """Handles GraphQL-based diagram execution"""
     
     def __init__(self, options: ExecutionOptions):
         self.options = options
-        self.executor = WebSocketExecutor(options)
+        self.node_timings = {} if options.debug else None
+        self.last_activity_time = time.time()
+    
+    async def execute(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute diagram via GraphQL"""
+        try:
+            from cli.graphql_client import DiPeoGraphQLClient
+        except ImportError:
+            print("❌ GraphQL dependencies not installed. Run: pip install -r requirements-cli.txt")
+            sys.exit(1)
+        
+        result = {
+            "context": {},
+            "total_token_count": 0,
+            "messages": [],
+            "execution_id": None
+        }
+        
+        async with DiPeoGraphQLClient(host=GRAPHQL_HOST) as client:
+            try:
+                # Save the diagram first to get a diagram_id
+                if self.options.debug:
+                    print("🐛 Debug: Saving diagram to server...")
+                
+                diagram_id = await client.save_diagram(diagram)
+                
+                if self.options.debug:
+                    print(f"🐛 Debug: Diagram saved with ID: {diagram_id}")
+                
+                # Execute the saved diagram
+                execution_id = await client.execute_diagram(
+                    diagram_id=diagram_id,
+                    debug_mode=self.options.debug,
+                    timeout=self.options.timeout
+                )
+                
+                result['execution_id'] = execution_id
+                
+                if self.options.debug:
+                    print(f"🚀 Execution started with ID: {execution_id}")
+                
+                # Subscribe to node updates and interactive prompts concurrently
+                node_task = asyncio.create_task(self._handle_node_stream(client, execution_id, result))
+                prompt_task = asyncio.create_task(self._handle_prompt_stream(client, execution_id))
+                exec_task = asyncio.create_task(self._handle_execution_stream(client, execution_id, result))
+                
+                # Wait for execution to complete
+                tasks = [node_task, prompt_task, exec_task]
+                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                
+                # Cancel remaining tasks
+                for task in pending:
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # Check if execution completed successfully
+                if exec_task in done:
+                    exec_result = await exec_task
+                    if exec_result and 'error' in exec_result:
+                        result['error'] = exec_result['error']
+                    else:
+                        result.update(exec_result or {})
+                
+                if self.options.stream and not result.get('error'):
+                    print("\n✨ Execution completed successfully!")
+                    
+            except Exception as e:
+                if self.options.debug:
+                    print(f"❌ Error during execution: {str(e)}")
+                result['error'] = str(e)
+        
+        return result
+    
+    async def _handle_node_stream(self, client, execution_id: str, result: Dict[str, Any]) -> None:
+        """Handle node update stream"""
+        try:
+            async for update in client.subscribe_to_node_updates(execution_id):
+                self.last_activity_time = time.time()
+                
+                node_id = update.get('nodeId', 'unknown')
+                status = update.get('status', '')
+                
+                if status == 'started' and self.options.stream:
+                    print(f"\n🔄 Executing node: {node_id}")
+                    if self.options.debug:
+                        self.node_timings[node_id] = {'start': time.time()}
+                
+                elif status == 'completed':
+                    if self.options.stream:
+                        print(f"✅ Node {node_id} completed")
+                    
+                    if self.options.debug and node_id in self.node_timings:
+                        self.node_timings[node_id]['end'] = time.time()
+                        duration = self.node_timings[node_id]['end'] - self.node_timings[node_id]['start']
+                        print(f"   Duration: {duration:.2f}s")
+                    
+                    # Accumulate token count
+                    tokens_used = update.get('tokensUsed', 0)
+                    if tokens_used:
+                        result['total_token_count'] += tokens_used
+                
+                elif status == 'failed':
+                    error = update.get('error', 'Unknown error')
+                    print(f"❌ Node {node_id} failed: {error}")
+                
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            if self.options.debug:
+                print(f"Error in node stream: {e}")
+    
+    async def _handle_prompt_stream(self, client, execution_id: str) -> None:
+        """Handle interactive prompt stream"""
+        try:
+            async for prompt in client.subscribe_to_interactive_prompts(execution_id):
+                node_id = prompt.get('nodeId')
+                prompt_text = prompt.get('prompt', 'Input required:')
+                
+                print(f"\n💬 {prompt_text}")
+                user_input = input("Your response: ")
+                
+                await client.submit_interactive_response(execution_id, node_id, user_input)
+                
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            if self.options.debug:
+                print(f"Error in prompt stream: {e}")
+    
+    async def _handle_execution_stream(self, client, execution_id: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle execution state stream"""
+        try:
+            async for update in client.subscribe_to_execution(execution_id):
+                self.last_activity_time = time.time()
+                
+                status = update.get('status', '').upper()
+                
+                if status == 'COMPLETED':
+                    # Extract final results
+                    return {
+                        'context': update.get('nodeOutputs', {}),
+                        'total_token_count': update.get('totalTokens', 0)
+                    }
+                
+                elif status in ['FAILED', 'ABORTED']:
+                    return {'error': update.get('error', 'Execution failed')}
+                
+                # Check timeout
+                elapsed = time.time() - self.last_activity_time
+                if elapsed > self.options.timeout:
+                    print(f"\n⏱️  Timeout: No execution activity for {self.options.timeout} seconds")
+                    await client.control_execution(execution_id, 'abort')
+                    return {'error': f"Execution timeout after {self.options.timeout} seconds"}
+                    
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            if self.options.debug:
+                print(f"Error in execution stream: {e}")
+            return {'error': str(e)}
+        
+        return {}
+    
+
+
+class DiagramRunner:
+    """Main diagram execution orchestrator"""
+    
+    def __init__(self, options: ExecutionOptions, use_websocket: bool = False):
+        self.options = options
+        # Use WebSocket only if explicitly requested
+        if use_websocket or os.environ.get('DIPEO_USE_WEBSOCKET'):
+            self.executor = WebSocketExecutor(options)
+            if options.debug:
+                print("🐛 Debug: Using WebSocket executor (deprecated)")
+        else:
+            self.executor = GraphQLExecutor(options)
+            if options.debug:
+                print("🐛 Debug: Using GraphQL executor")
     
     async def run(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
         """Run diagram with specified options"""
@@ -345,13 +564,13 @@ class CommandHandler:
             sys.exit(1)
         
         file_path = args[0]
-        options = CommandHandler._parse_run_options(args[1:])
+        options, use_websocket = CommandHandler._parse_run_options(args[1:])
         
         # Load diagram
         diagram = DiagramLoader.load(file_path)
         
         # Run diagram
-        runner = DiagramRunner(options)
+        runner = DiagramRunner(options, use_websocket=use_websocket)
         result = await runner.run(diagram)
         
         print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
@@ -360,9 +579,10 @@ class CommandHandler:
         CommandHandler._save_results(result, options)
     
     @staticmethod
-    def _parse_run_options(args: List[str]) -> ExecutionOptions:
+    def _parse_run_options(args: List[str]) -> tuple[ExecutionOptions, bool]:
         """Parse command line options for run command"""
         options = ExecutionOptions()
+        use_websocket = False
         
         for arg in args:
             if arg == '--monitor':
@@ -381,6 +601,8 @@ class CommandHandler:
                 options.stream = False
             elif arg == '--debug':
                 options.debug = True
+            elif arg == '--use-websocket':
+                use_websocket = True
             elif arg.startswith('--timeout='):
                 try:
                     options.timeout = int(arg.split('=')[1])
@@ -389,7 +611,7 @@ class CommandHandler:
             elif not arg.startswith('--'):
                 options.output_file = arg
         
-        return options
+        return options, use_websocket
     
     @staticmethod
     def _save_results(result: Dict[str, Any], options: ExecutionOptions) -> None:
@@ -466,6 +688,7 @@ def print_usage():
     print("    --no-stream             - Disable streaming output")
     print("    --debug                 - Enable debug mode")
     print("    --timeout=<seconds>     - Set inactivity timeout (default: 300)")
+    print("    --use-websocket         - Use legacy WebSocket instead of GraphQL")
     print("  monitor                    - Open browser monitoring page")
     print("  convert <input> <output>   - Convert between JSON/YAML formats")
     print("  stats <file>               - Show diagram statistics")
