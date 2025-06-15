@@ -5,6 +5,7 @@ import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { API_ENDPOINTS, getApiUrl } from '@/utils/api';
 import { toast } from 'sonner';
+import { useApiKeyOperationsGraphQL } from '@/hooks/useApiKeyOperationsGraphQL';
 
 interface ApiKeysModalProps {
   isOpen: boolean;
@@ -20,10 +21,19 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const { apiKeys, deleteApiKey } = useUnifiedStore();
+  const { apiKeys } = useUnifiedStore();
+  
+  // Use GraphQL hook if feature flag is enabled
+  const useGraphQL = new URLSearchParams(window.location.search).get('useGraphQL') === 'true' ||
+                     import.meta.env.VITE_USE_GRAPHQL === 'true';
+  
+  const graphQLOperations = useGraphQL ? useApiKeyOperationsGraphQL() : null;
   
   // Convert Map to array for display
-  const apiKeysArray = Array.from(apiKeys.values());
+  const apiKeysArray = useGraphQL && graphQLOperations 
+    ? graphQLOperations.apiKeys 
+    : Array.from(apiKeys.values());
+    
   const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
     label: '',
     service: 'openai',
@@ -59,38 +69,49 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
     }
 
     try {
-      // Call backend API to create API key
-      const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          label: newKeyForm.label.trim(),
-          service: newKeyForm.service || 'claude',
-          key: newKeyForm.key.trim()
-        })
-      });
+      if (useGraphQL && graphQLOperations) {
+        // Use GraphQL mutation
+        await graphQLOperations.createApiKey(
+          newKeyForm.label.trim(),
+          newKeyForm.service || 'openai',
+          newKeyForm.key.trim()
+        );
+      } else {
+        // Fall back to REST API
+        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEYS), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            label: newKeyForm.label.trim(),
+            service: newKeyForm.service || 'claude',
+            key: newKeyForm.key.trim()
+          })
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        setErrors({ key: error.error || 'Failed to create API key' });
-        return;
+        if (!response.ok) {
+          const error = await response.json();
+          setErrors({ key: error.error || 'Failed to create API key' });
+          return;
+        }
+
+        const result = await response.json();
+        
+        // Directly add to store with backend ID - don't use addApiKey which generates its own ID
+        const newKey: DomainApiKey = {
+          id: apiKeyId(result.id),
+          label: result.label || newKeyForm.label.trim(),
+          service: result.service || newKeyForm.service || 'claude',
+          // key is optional - not stored in frontend for security
+        };
+
+        // Manually add to store with the backend's ID
+        const { apiKeys } = useUnifiedStore.getState();
+        const newApiKeys = new Map(apiKeys);
+        newApiKeys.set(newKey.id, newKey);
+        useUnifiedStore.setState({ apiKeys: newApiKeys });
+        
+        toast.success(`API key "${newKey.label}" added successfully`);
       }
-
-      const result = await response.json();
-      
-      // Directly add to store with backend ID - don't use addApiKey which generates its own ID
-      const newKey: DomainApiKey = {
-        id: apiKeyId(result.id),
-        label: result.label || newKeyForm.label.trim(),
-        service: result.service || newKeyForm.service || 'claude',
-        // key is optional - not stored in frontend for security
-      };
-
-      // Manually add to store with the backend's ID
-      const { apiKeys } = useUnifiedStore.getState();
-      const newApiKeys = new Map(apiKeys);
-      newApiKeys.set(newKey.id, newKey);
-      useUnifiedStore.setState({ apiKeys: newApiKeys });
       
       // Reset form
       setNewKeyForm({
@@ -98,8 +119,6 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         service: 'openai',
         key: '',
       });
-      
-      toast.success(`API key "${newKey.label}" added successfully`);
     } catch {
       setErrors({ keyReference: 'Network error: Failed to create API key' });
     }
@@ -108,17 +127,23 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   const handleDeleteKey = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this API key?')) {
       try {
-        // Call backend API to delete
-        const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEY_BY_ID(id)), {
-          method: 'DELETE'
-        });
+        if (useGraphQL && graphQLOperations) {
+          // Use GraphQL mutation
+          await graphQLOperations.deleteApiKey(id);
+        } else {
+          // Fall back to REST API
+          const response = await fetch(getApiUrl(API_ENDPOINTS.API_KEY_BY_ID(id)), {
+            method: 'DELETE'
+          });
 
-        if (!response.ok) {
-          throw new Error('Failed to delete API key');
+          if (!response.ok) {
+            throw new Error('Failed to delete API key');
+          }
+
+          // Remove from local store
+          const { deleteApiKey } = useUnifiedStore.getState();
+          deleteApiKey(apiKeyId(id));
         }
-
-        // Remove from local store
-        deleteApiKey(apiKeyId(id));
       } catch (error) {
         createErrorHandler(error);
       }
@@ -244,7 +269,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
             <Button
               onClick={handleAddKey}
               className="w-full"
-              disabled={!newKeyForm.label || !newKeyForm.key}
+              disabled={!newKeyForm.label || !newKeyForm.key || (useGraphQL && graphQLOperations?.creatingApiKey)}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add API Key

@@ -3,11 +3,11 @@ from typing import Optional, List
 import logging
 from datetime import datetime
 
-from ..types.domain import ExecutionState, ExecutionEvent, TokenUsage
-from ..types.scalars import ExecutionID, NodeID
+from ..types.domain import ExecutionState, ExecutionEvent
+from ..types.scalars import ExecutionID
 from ..types.inputs import ExecutionFilterInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import (
+from server.src.domain import (
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,
     TokenUsage as PydanticTokenUsage,

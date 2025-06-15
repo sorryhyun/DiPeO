@@ -7,8 +7,8 @@ import logging
 from ..types.domain import Diagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
-from apps.server.src.services.diagram_service import DiagramService
-from apps.server.src.utils.graphql_converters import DomainToGraphQLConverter
+from ...services.diagram_service import DiagramService
+from ...utils.graphql_converters import DomainToGraphQLConverter
 
 logger = logging.getLogger(__name__)
 

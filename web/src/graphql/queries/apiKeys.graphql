@@ -1,0 +1,55 @@
+# API Key Queries
+query GetApiKeys($service: String) {
+  apiKeys(service: $service) {
+    id
+    label
+    service
+    maskedKey
+  }
+}
+
+query GetApiKey($id: ApiKeyID!) {
+  apiKey(id: $id) {
+    id
+    label
+    service
+    maskedKey
+  }
+}
+
+query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
+  availableModels(service: $service, apiKeyId: $apiKeyId)
+}
+
+# API Key Mutations
+mutation CreateApiKey($input: CreateApiKeyInput!) {
+  createApiKey(input: $input) {
+    success
+    apiKey {
+      id
+      label
+      service
+      maskedKey
+    }
+    message
+    error
+  }
+}
+
+mutation TestApiKey($id: ApiKeyID!) {
+  testApiKey(id: $id) {
+    success
+    valid
+    availableModels
+    error
+  }
+}
+
+mutation DeleteApiKey($id: ApiKeyID!) {
+  deleteApiKey(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}

@@ -7,10 +7,10 @@ from ..types.results import NodeResult, DeleteResult
 from ..types.scalars import DiagramID, NodeID
 from ..types.inputs import CreateNodeInput, UpdateNodeInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import (
+from ...domain import (
     DomainNode, Vec2, NodeType
 )
-from ...models.input_models import (
+from ...input_models import (
     CreateNodeInput as PydanticCreateNodeInput,
     UpdateNodeInput as PydanticUpdateNodeInput
 )

@@ -1,6 +1,6 @@
 """GraphQL query definitions."""
 import strawberry
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime
 
 from .types.domain import (
@@ -8,7 +8,8 @@ from .types.domain import (
 )
 from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .types.inputs import DiagramFilterInput, ExecutionFilterInput
-from .types.enums import NodeType, LLMService
+# Import enums from the Pydantic models (single source of truth)
+from ..domain import NodeType, LLMService
 
 @strawberry.type
 class Query:

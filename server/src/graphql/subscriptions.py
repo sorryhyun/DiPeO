@@ -1,13 +1,14 @@
 """GraphQL subscription definitions for real-time updates."""
 import strawberry
-from typing import AsyncGenerator, Optional, List, Dict, Any
+from typing import AsyncGenerator, Optional, List
 import asyncio
 import logging
 from datetime import datetime
 
-from .types.domain import ExecutionState, ExecutionEvent, Node, Diagram, TokenUsage
+from .types.domain import ExecutionState, ExecutionEvent, Diagram
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
-from .types.enums import NodeType, EventType, ExecutionStatus
+from .types.enums import EventType  # EventType is GraphQL-specific
+from ..domain import NodeType, ExecutionStatus  # Import domain enums
 from .context import GraphQLContext
 from .redis_subscriptions import RedisSubscriptionManager
 
@@ -511,6 +512,6 @@ def _map_status(status: str) -> ExecutionStatus:
         'paused': ExecutionStatus.PAUSED,
         'completed': ExecutionStatus.COMPLETED,
         'failed': ExecutionStatus.FAILED,
-        'cancelled': ExecutionStatus.CANCELLED
+        'cancelled': ExecutionStatus.ABORTED
     }
     return status_map.get(status.lower(), ExecutionStatus.STARTED)

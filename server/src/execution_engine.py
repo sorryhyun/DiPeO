@@ -14,10 +14,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Set, Optional
 
-
-# ============================================================================
 # Core Types
-# ============================================================================
 
 @dataclass(slots=True)
 class Node:
@@ -82,10 +79,7 @@ class Ctx:
     def skip(self, nid, r):
         self.skipped[nid] = r
 
-
-# ============================================================================
 # Graph Building and Controllers
-# ============================================================================
 
 def build_graph(diagram: Dict[str, Any]) -> Graph:
     """Build a Graph from a diagram in Record format."""
@@ -102,7 +96,6 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
     # Only handle Record format (dict) for arrows
     arrows = diagram.get("arrows", {})
     for a in arrows.values():
-        # ------------------------------------------------------------------
         # Arrow source / target may come in two different shapes depending on
         # who created the diagram:
         #   1.  Modern format  →  {
@@ -116,7 +109,6 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
         #      the compact variant we therefore need to split it so that the
         #      rest of the engine sees consistent data irrespective of the
         #      client that produced the diagram.
-        # ------------------------------------------------------------------
 
         def _split_handle(field: str, handle: str | None) -> tuple[str, str]:
             """Return (node_id, handle_label) taking legacy `node:handle` into
@@ -197,10 +189,7 @@ def should_skip(node: Node, ctx: Ctx, lp: LoopBook) -> bool:
         return True
     return False
 
-
-# ============================================================================
 # Main Engine
-# ============================================================================
 
 class CompactEngine:
     """Compact execution engine for AgentDiagram diagrams."""
@@ -272,8 +261,6 @@ class CompactEngine:
                 "skipped": ctx.skipped
             })
 
-    # ------------------------------------------------------------------ helpers
-    
     def _deps_met(self, node: Node, ctx: Ctx) -> bool:
         """Check if all dependencies are satisfied for a node."""
         if node.is_start: 

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 from docx import Document
 import aiofiles
 
-from ...config import UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
+from config import UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
 from ..exceptions import ValidationError, FileOperationError
 from ..utils.base_service import BaseService
 

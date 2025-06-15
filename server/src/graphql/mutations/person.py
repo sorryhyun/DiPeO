@@ -2,16 +2,15 @@
 import strawberry
 import logging
 import uuid
-from datetime import datetime
 
 from ..types.results import PersonResult, DeleteResult
 from ..types.scalars import DiagramID, PersonID
 from ..types.inputs import CreatePersonInput, UpdatePersonInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import (
+from ...domain import (
     DomainPerson, LLMService, ForgettingMode
 )
-from ...models.input_models import (
+from ...input_models import (
     CreatePersonInput as PydanticCreatePersonInput,
     UpdatePersonInput as PydanticUpdatePersonInput
 )

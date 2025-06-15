@@ -1,0 +1,34 @@
+# File operation mutations
+mutation ImportDiagram($content: String!, $format: String!) {
+  importDiagram(content: $content, format: $format) {
+    success
+    diagram {
+      metadata {
+        id
+        name
+      }
+    }
+    message
+    error
+  }
+}
+
+mutation ExportDiagram($diagramId: DiagramID!, $format: String!) {
+  exportDiagram(diagramId: $diagramId, format: $format) {
+    success
+    content
+    message
+    error
+  }
+}
+
+# Upload file mutation (if available)
+mutation UploadFile($file: Upload!, $type: String!) {
+  uploadFile(file: $file, type: $type) {
+    success
+    filename
+    url
+    message
+    error
+  }
+}

@@ -6,8 +6,8 @@ from ..types.results import ApiKeyResult, DeleteResult, TestApiKeyResult
 from ..types.scalars import ApiKeyID
 from ..types.inputs import CreateApiKeyInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import DomainApiKey
-from ...models.input_models import CreateApiKeyInput as PydanticCreateApiKeyInput
+from ...domain import DomainApiKey
+from ...input_models import CreateApiKeyInput as PydanticCreateApiKeyInput
 
 logger = logging.getLogger(__name__)
 

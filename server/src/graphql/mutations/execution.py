@@ -5,11 +5,10 @@ import uuid
 from datetime import datetime
 
 from ..types.results import ExecutionResult
-from ..types.scalars import ExecutionID
 from ..types.inputs import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import ExecutionState as ExecutionStateForGraphQL, ExecutionStatus
-from ...models.input_models import (
+from ...domain import ExecutionState as ExecutionStateForGraphQL, ExecutionStatus
+from ...input_models import (
     ExecuteDiagramInput as PydanticExecuteDiagramInput,
     ExecutionControlInput as PydanticExecutionControlInput,
     InteractiveResponseInput as PydanticInteractiveResponseInput
@@ -350,7 +349,7 @@ def _map_status(status: str) -> ExecutionStatus:
         'paused': ExecutionStatus.PAUSED,
         'completed': ExecutionStatus.COMPLETED,
         'failed': ExecutionStatus.FAILED,
-        'cancelled': ExecutionStatus.CANCELLED
+        'cancelled': ExecutionStatus.ABORTED
     }
     return status_map.get(status.lower(), ExecutionStatus.STARTED)
 
@@ -364,8 +363,8 @@ def _map_action_to_status(action: str, current_status: str) -> ExecutionStatus:
     action_map = {
         'pause': ExecutionStatus.PAUSED,
         'resume': ExecutionStatus.RUNNING,
-        'abort': ExecutionStatus.CANCELLED,
-        'cancel': ExecutionStatus.CANCELLED,
+        'abort': ExecutionStatus.ABORTED,
+        'cancel': ExecutionStatus.ABORTED,
         'skip_node': current,  # Skip doesn't change overall execution status
     }
     

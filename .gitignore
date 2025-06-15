@@ -10,6 +10,9 @@ __pycache__/
 apikeys.json
 output.txt
 AGENTS.md
+*.db-shm
+*.db-wal
+*.db
 
 # Node.js
 node_modules/
@@ -27,8 +30,8 @@ out/
 execution_runner.cjs
 notion.md
 CLAUDE.md
-apps/web/CLAUDE.md
-apps/server/CLAUDE.md
+web/CLAUDE.md
+server/CLAUDE.md
 
 # Environment files
 .env
@@ -45,11 +48,11 @@ apps/server/CLAUDE.md
 *~
 
 # Project specific
-apps/server/.venv/
-apps/server/__pycache__/
-apps/server/src/__pycache__/
-apps/server/src/*/__pycache__/
-apps/web/dist/
+server/.venv/
+server/__pycache__/
+server/src/__pycache__/
+server/src/*/__pycache__/
+web/dist/
 # Project file storage - consolidated under files/
 files/
 

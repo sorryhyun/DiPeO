@@ -22,18 +22,6 @@ class NodeType(str, Enum):
 class HandleDirection(str, Enum):
     INPUT = "input"
     OUTPUT = "output"
-    # Map legacy values
-    IN = "in"
-    OUT = "out"
-    
-    @classmethod
-    def _missing_(cls, value):
-        """Handle legacy values."""
-        if value == "in":
-            return cls.INPUT
-        elif value == "out":
-            return cls.OUTPUT
-        return None
 
 class DataType(str, Enum):
     ANY = "any"
@@ -47,25 +35,10 @@ class LLMService(str, Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
-    GROQ = "groq"
+    GROK = "grok"
     BEDROCK = "bedrock"
     VERTEX = "vertex"
     DEEPSEEK = "deepseek"
-    # Map legacy values
-    CLAUDE = "claude"
-    GEMINI = "gemini"
-    GROK = "grok"
-    
-    @classmethod
-    def _missing_(cls, value):
-        """Handle legacy values."""
-        if value == "claude":
-            return cls.ANTHROPIC
-        elif value == "gemini":
-            return cls.GOOGLE
-        elif value == "grok":
-            return cls.GROQ
-        return None
 
 class ForgettingMode(str, Enum):
     NO_FORGET = "no_forget"
@@ -213,7 +186,7 @@ class DomainDiagram(BaseModel):
     handles: Dict[HandleID, DomainHandle]
     arrows: Dict[ArrowID, DomainArrow]
     persons: Dict[PersonID, DomainPerson]
-    apiKeys: Dict[ApiKeyID, DomainApiKey]
+    api_keys: Dict[ApiKeyID, DomainApiKey]
     metadata: Optional[DiagramMetadata] = None
     
     def to_graphql(self) -> DiagramForGraphQL:
@@ -223,7 +196,7 @@ class DomainDiagram(BaseModel):
             handles=list(self.handles.values()),
             arrows=list(self.arrows.values()),
             persons=list(self.persons.values()),
-            api_keys=list(self.apiKeys.values()),
+            api_keys=list(self.api_keys.values()),
             metadata=self.metadata
         )
     
@@ -235,7 +208,7 @@ class DomainDiagram(BaseModel):
             handles={handle.id: handle for handle in graphql_diagram.handles},
             arrows={arrow.id: arrow for arrow in graphql_diagram.arrows},
             persons={person.id: person for person in graphql_diagram.persons},
-            apiKeys={api_key.id: api_key for api_key in graphql_diagram.api_keys},
+            api_keys={api_key.id: api_key for api_key in graphql_diagram.api_keys},
             metadata=graphql_diagram.metadata
         )
 

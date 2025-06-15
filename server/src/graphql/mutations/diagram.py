@@ -2,17 +2,16 @@
 import strawberry
 from typing import Optional
 import logging
-import uuid
 from datetime import datetime
 
 from ..types.results import DiagramResult, DeleteResult
 from ..types.scalars import DiagramID
 from ..types.inputs import CreateDiagramInput, ImportYamlInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import (
-    DiagramForGraphQL, DiagramMetadata, DomainDiagram
+from ...domain import (
+    DiagramMetadata, DomainDiagram
 )
-from ...models.input_models import (
+from ...input_models import (
     CreateDiagramInput as PydanticCreateDiagramInput,
     ImportYamlInput as PydanticImportYamlInput
 )

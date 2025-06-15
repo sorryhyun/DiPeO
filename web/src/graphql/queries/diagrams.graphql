@@ -92,3 +92,12 @@ mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
     error
   }
 }
+
+mutation DeleteDiagram($id: DiagramID!) {
+  deleteDiagram(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}

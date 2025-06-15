@@ -1,14 +1,13 @@
 """Refactored handle-related GraphQL mutations using Pydantic models."""
 import strawberry
 import logging
-import uuid
 
 from ..types.results import HandleResult, DeleteResult
 from ..types.scalars import HandleID
 from ..types.inputs import CreateHandleInput
 from ..context import GraphQLContext
-from ...models.domain_graphql import DomainHandle, Vec2
-from ...models.input_models import CreateHandleInput as PydanticCreateHandleInput
+from ...domain import DomainHandle, Vec2
+from ...input_models import CreateHandleInput as PydanticCreateHandleInput
 
 logger = logging.getLogger(__name__)
 

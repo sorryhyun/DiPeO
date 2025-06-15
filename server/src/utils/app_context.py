@@ -14,7 +14,7 @@ from ..services.execution_service import ExecutionService
 from ..services.notion_service import NotionService
 from ..services.message_router import message_router
 from ..services.event_store import event_store
-from ...config import BASE_DIR
+import os
 
 
 class AppContext:
@@ -38,7 +38,7 @@ class AppContext:
         self.api_key_service = APIKeyService()
         self.memory_service = MemoryService()
         self.llm_service = LLMService(self.api_key_service)
-        self.file_service = FileService(base_dir=BASE_DIR)
+        self.file_service = FileService()
         self.diagram_service = DiagramService(
             self.llm_service, 
             self.api_key_service, 

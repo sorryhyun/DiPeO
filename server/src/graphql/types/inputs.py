@@ -1,9 +1,8 @@
 """Refactored input types for GraphQL mutations using Pydantic models."""
 import strawberry
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional
 
-from ...models.input_models import (
+from ...input_models import (
     Vec2Input as PydanticVec2Input,
     CreateNodeInput as PydanticCreateNodeInput,
     UpdateNodeInput as PydanticUpdateNodeInput,
@@ -23,13 +22,9 @@ from ...models.input_models import (
 )
 
 from .scalars import (
-    NodeID, HandleID, ArrowID, PersonID, ApiKeyID, 
-    DiagramID, ExecutionID, JSONScalar
+    JSONScalar
 )
-from .enums import (
-    NodeType, HandleDirection, DataType, LLMService, 
-    ForgettingMode, ExecutionStatus
-)
+# Enums are handled through Pydantic models, no need to import separately
 
 
 # Convert Pydantic input models to Strawberry GraphQL inputs
@@ -37,13 +32,19 @@ from .enums import (
 class Vec2Input:
     pass
 
-@strawberry.experimental.pydantic.input(model=PydanticCreateNodeInput, all_fields=True)
+@strawberry.experimental.pydantic.input(model=PydanticCreateNodeInput)
 class CreateNodeInput:
-    pass
+    type: strawberry.auto
+    position: strawberry.auto
+    label: strawberry.auto
+    properties: Optional[JSONScalar] = None
 
-@strawberry.experimental.pydantic.input(model=PydanticUpdateNodeInput, all_fields=True)
+@strawberry.experimental.pydantic.input(model=PydanticUpdateNodeInput)
 class UpdateNodeInput:
-    pass
+    id: strawberry.auto
+    position: strawberry.auto
+    label: strawberry.auto
+    properties: Optional[JSONScalar] = None
 
 @strawberry.experimental.pydantic.input(model=PydanticCreateHandleInput, all_fields=True)
 class CreateHandleInput:
@@ -69,9 +70,13 @@ class CreateApiKeyInput:
 class CreateDiagramInput:
     pass
 
-@strawberry.experimental.pydantic.input(model=PydanticExecuteDiagramInput, all_fields=True)
+@strawberry.experimental.pydantic.input(model=PydanticExecuteDiagramInput)
 class ExecuteDiagramInput:
-    pass
+    diagram_id: strawberry.auto
+    variables: Optional[JSONScalar] = None
+    debug_mode: strawberry.auto
+    timeout_seconds: strawberry.auto
+    max_iterations: strawberry.auto
 
 @strawberry.experimental.pydantic.input(model=PydanticExecutionControlInput, all_fields=True)
 class ExecutionControlInput:

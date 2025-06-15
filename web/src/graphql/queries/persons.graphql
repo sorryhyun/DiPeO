@@ -1,0 +1,80 @@
+# Person Queries
+query GetPerson($id: PersonID!) {
+  person(id: $id) {
+    id
+    label
+    service
+    model
+    apiKeyId
+    systemPrompt
+    temperature
+    maxTokens
+    topP
+    forgettingMode
+  }
+}
+
+query GetPersons($limit: Int = 100) {
+  persons(limit: $limit) {
+    id
+    label
+    service
+    model
+    apiKeyId
+    systemPrompt
+    temperature
+    maxTokens
+    topP
+    forgettingMode
+  }
+}
+
+# Person Mutations
+mutation CreatePerson($diagramId: DiagramID!, $input: CreatePersonInput!) {
+  createPerson(diagramId: $diagramId, input: $input) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      temperature
+      maxTokens
+      topP
+      forgettingMode
+    }
+    message
+    error
+  }
+}
+
+mutation UpdatePerson($input: UpdatePersonInput!) {
+  updatePerson(input: $input) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      temperature
+      maxTokens
+      topP
+      forgettingMode
+    }
+    message
+    error
+  }
+}
+
+mutation DeletePerson($id: PersonID!) {
+  deletePerson(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}

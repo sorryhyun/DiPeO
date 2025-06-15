@@ -2,7 +2,7 @@ from abc import ABC
 from typing import Any, Dict
 from pathlib import Path
 
-from ...config import BASE_DIR
+import os
 from ..exceptions import ValidationError
 from ..constants import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
 
@@ -19,7 +19,7 @@ class BaseService(ABC):
         if missing_fields:
             raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
     
-    def validate_file_path(self, file_path: str, allowed_base: Path = BASE_DIR) -> Path:
+    def validate_file_path(self, file_path: str, allowed_base: Path = '') -> Path:
         """Validate file path for security."""
         rel_path = Path(file_path)
         full_path = (allowed_base / rel_path).resolve()

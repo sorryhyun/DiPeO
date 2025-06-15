@@ -1,12 +1,11 @@
 """
 Utilities for converting between internal domain models and GraphQL models.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
 
-from ..models.domain import DomainDiagram as InternalDomainDiagram
-from ..models.domain_graphql import (
-    DomainDiagram, DomainNode, DomainHandle, DomainArrow, 
+from server.src.domain import (
+    DomainNode, DomainHandle, DomainArrow,
     DomainPerson, DomainApiKey, DiagramMetadata,
     NodeType, HandleDirection, DataType, LLMService, ForgettingMode,
     Vec2, DiagramForGraphQL

@@ -4,7 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 import base64
 
-from ..graphql.types.enums import (
+from server.src.domain import (
     NodeType, HandleDirection, DataType, LLMService, 
     ForgettingMode, ExecutionStatus
 )
@@ -169,8 +169,8 @@ class ExecuteDiagramInput(BaseModel):
     diagram_id: str
     variables: Optional[Dict[str, Any]] = None
     debug_mode: bool = False
-    timeout: Optional[int] = Field(None, gt=0)
-    max_iterations: Optional[int] = Field(None, gt=0)
+    timeout_seconds: Optional[int] = Field(None, gt=0, description="Execution timeout in seconds")
+    max_iterations: Optional[int] = Field(None, gt=0, description="Maximum iterations for execution")
 
 
 class ExecutionControlInput(BaseModel):

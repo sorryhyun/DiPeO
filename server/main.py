@@ -5,9 +5,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
 
-# Add parent directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
 # Load environment variables
 load_dotenv()
 
@@ -20,21 +17,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import routers and middleware
-from .src.api.routers import (
+from src.api.routers import (
     websocket_router,
     health_router
 )
-from .src.api.middleware import setup_middleware
+from src.api.middleware import setup_middleware
 
 # Import lifespan from dependencies
-from .src.utils.dependencies import lifespan
+from src.utils.dependencies import lifespan
 
 # Import GraphQL router
-from .src.graphql.schema import create_graphql_router
-from .src.graphql.context import get_graphql_context
+from src.graphql.schema import create_graphql_router
+from src.graphql.context import get_graphql_context
 
 # Import REST API configuration
-from .src.api.config import is_router_enabled
+from src.api.config import is_router_enabled
 
 
 # Create FastAPI app

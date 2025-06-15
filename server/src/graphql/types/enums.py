@@ -1,58 +1,16 @@
-"""Enum types for DiPeO GraphQL schema."""
+"""Enum types for DiPeO GraphQL schema.
+
+IMPORTANT: Most enums are defined in models/domain.py as Pydantic enums
+and are automatically converted to GraphQL enums by Strawberry when using
+@strawberry.experimental.pydantic.type decorator.
+
+This file only contains enums that are specific to GraphQL/subscriptions
+and not part of the core domain model.
+"""
 import strawberry
 from enum import Enum
 
-@strawberry.enum
-class NodeType(Enum):
-    START = "start"
-    PERSON_JOB = "person_job"
-    CONDITION = "condition"
-    JOB = "job"
-    ENDPOINT = "endpoint"
-    DB = "db"
-    USER_RESPONSE = "user_response"
-    NOTION = "notion"
-    PERSON_BATCH_JOB = "person_batch_job"
-
-@strawberry.enum
-class HandleDirection(Enum):
-    IN = "in"
-    OUT = "out"
-
-@strawberry.enum
-class DataType(Enum):
-    ANY = "any"
-    STRING = "string"
-    NUMBER = "number"
-    BOOLEAN = "boolean"
-    OBJECT = "object"
-    ARRAY = "array"
-
-@strawberry.enum
-class LLMService(Enum):
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    GOOGLE = "google"
-    GROQ = "groq"
-    BEDROCK = "bedrock"
-    VERTEX = "vertex"
-    DEEPSEEK = "deepseek"
-
-@strawberry.enum
-class ForgettingMode(Enum):
-    NONE = "none"
-    ON_EVERY_TURN = "on_every_turn"
-    UPON_REQUEST = "upon_request"
-
-@strawberry.enum
-class ExecutionStatus(Enum):
-    STARTED = "started"
-    RUNNING = "running"
-    PAUSED = "paused"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    ABORTED = "aborted"
-
+# EventType is specific to GraphQL subscriptions and not part of the core domain
 @strawberry.enum
 class EventType(Enum):
     EXECUTION_STARTED = "execution_started"

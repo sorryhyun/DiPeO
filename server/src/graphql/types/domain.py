@@ -3,11 +3,11 @@ Strawberry GraphQL types using Pydantic models as single source of truth.
 This replaces the manual type definitions with automatic conversions.
 """
 import strawberry
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from ..types.scalars import JSONScalar
 
-from apps.server.src.models.domain_graphql import (
+from ...domain import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
     DomainApiKey, DiagramMetadata, DiagramForGraphQL,
     ExecutionState as PydanticExecutionState,

@@ -18,11 +18,13 @@ from datetime import datetime
 import yaml
 import websockets
 import requests
+import os
 
 
 # Constants
 API_URL = "http://localhost:8000"
 WS_URL = "ws://localhost:8000/api/ws"
+GRAPHQL_HOST = "localhost:8100"  # GraphQL server port
 DEFAULT_API_KEY = "APIKEY_387B73"
 DEFAULT_TIMEOUT = 300  # 5 minutes
 DEFAULT_MODEL = "gpt-4.1-nano"
@@ -262,12 +264,128 @@ class WebSocketExecutor:
                 result['total_token_count'] = tokens.get('input', 0) + tokens.get('output', 0)
 
 
-class DiagramRunner:
-    """Main diagram execution orchestrator"""
+class GraphQLExecutor:
+    """Handles GraphQL-based diagram execution"""
     
     def __init__(self, options: ExecutionOptions):
         self.options = options
-        self.executor = WebSocketExecutor(options)
+        self.node_timings = {} if options.debug else None
+    
+    async def execute(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute diagram via GraphQL"""
+        try:
+            from cli.graphql_client import DiPeoGraphQLClient
+        except ImportError:
+            print("❌ GraphQL dependencies not installed. Run: pip install -r requirements-cli.txt")
+            sys.exit(1)
+        
+        result = {
+            "context": {},
+            "total_token_count": 0,
+            "messages": [],
+            "execution_id": None
+        }
+        
+        async with DiPeoGraphQLClient(host=GRAPHQL_HOST) as client:
+            try:
+                # For now, GraphQL execution requires a diagram_id
+                # In the future, we'll need to save the diagram first
+                # TODO: Implement diagram save/load functionality
+                print("⚠️  GraphQL execution currently requires a saved diagram ID.")
+                print("   Full GraphQL support is coming in the next phase.")
+                raise NotImplementedError("GraphQL execution requires diagram save functionality")
+                
+                result['execution_id'] = execution_id
+                
+                if self.options.debug:
+                    print(f"🚀 Execution started with ID: {execution_id}")
+                
+                # Subscribe to updates
+                async for update in client.subscribe_to_execution(execution_id):
+                    event_type = update['type']
+                    
+                    if self.options.debug:
+                        print(f"🐛 Debug: Event '{event_type}' - {json.dumps(update, indent=2)}")
+                    
+                    # Handle different event types
+                    if event_type == 'node_started' and self.options.stream:
+                        node_id = update['nodeId']
+                        print(f"\n🔄 Executing node: {node_id}")
+                        if self.options.debug:
+                            self.node_timings[node_id] = {'start': time.time()}
+                    
+                    elif event_type == 'node_completed':
+                        await self._handle_node_completed(update, result)
+                    
+                    elif event_type == 'node_failed':
+                        node_id = update['nodeId']
+                        error = update.get('error', 'Unknown error')
+                        print(f"❌ Node {node_id} failed: {error}")
+                    
+                    elif event_type == 'prompt_request':
+                        # Handle interactive prompts
+                        node_id = update['nodeId']
+                        prompt = update.get('data', {}).get('prompt', 'Input required:')
+                        print(f"\n💬 {prompt}")
+                        user_input = input("Your response: ")
+                        
+                        await client.respond_to_prompt(execution_id, node_id, user_input)
+                    
+                    elif event_type == 'execution_completed':
+                        result.update(update.get('data', {}))
+                        if self.options.stream:
+                            print("\n✨ Execution completed successfully!")
+                        break
+                    
+                    elif event_type == 'execution_failed':
+                        error = update.get('error', 'Unknown error')
+                        raise Exception(f"Execution failed: {error}")
+            
+            except Exception as e:
+                if self.options.debug:
+                    print(f"❌ Error during execution: {str(e)}")
+                result['error'] = str(e)
+        
+        return result
+    
+    async def _handle_node_completed(self, update: Dict[str, Any], result: Dict[str, Any]) -> None:
+        """Handle node completion event"""
+        node_id = update['nodeId']
+        node_result = update.get('data', {})
+        
+        if self.options.stream:
+            print(f"✅ Node {node_id} completed")
+            if node_result.get('output'):
+                print(f"   Output: {node_result['output']}")
+        
+        if self.options.debug and node_id in self.node_timings:
+            self.node_timings[node_id]['end'] = time.time()
+            duration = self.node_timings[node_id]['end'] - self.node_timings[node_id]['start']
+            print(f"   Duration: {duration:.2f}s")
+        
+        # Accumulate token count
+        if 'token_count' in node_result:
+            result['total_token_count'] += node_result['token_count']
+        elif 'cost' in node_result:
+            # Rough estimation from cost
+            estimated_tokens = int(node_result['cost'] * 100000)
+            result['total_token_count'] += estimated_tokens
+
+
+class DiagramRunner:
+    """Main diagram execution orchestrator"""
+    
+    def __init__(self, options: ExecutionOptions, use_graphql: bool = False):
+        self.options = options
+        # Use GraphQL if specified or if DIPEO_USE_GRAPHQL env var is set
+        if use_graphql or os.environ.get('DIPEO_USE_GRAPHQL'):
+            self.executor = GraphQLExecutor(options)
+            if options.debug:
+                print("🐛 Debug: Using GraphQL executor")
+        else:
+            self.executor = WebSocketExecutor(options)
+            if options.debug:
+                print("🐛 Debug: Using WebSocket executor")
     
     async def run(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
         """Run diagram with specified options"""
@@ -345,13 +463,13 @@ class CommandHandler:
             sys.exit(1)
         
         file_path = args[0]
-        options = CommandHandler._parse_run_options(args[1:])
+        options, use_graphql = CommandHandler._parse_run_options(args[1:])
         
         # Load diagram
         diagram = DiagramLoader.load(file_path)
         
         # Run diagram
-        runner = DiagramRunner(options)
+        runner = DiagramRunner(options, use_graphql=use_graphql)
         result = await runner.run(diagram)
         
         print(f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}")
@@ -360,9 +478,10 @@ class CommandHandler:
         CommandHandler._save_results(result, options)
     
     @staticmethod
-    def _parse_run_options(args: List[str]) -> ExecutionOptions:
+    def _parse_run_options(args: List[str]) -> tuple[ExecutionOptions, bool]:
         """Parse command line options for run command"""
         options = ExecutionOptions()
+        use_graphql = False
         
         for arg in args:
             if arg == '--monitor':
@@ -381,6 +500,8 @@ class CommandHandler:
                 options.stream = False
             elif arg == '--debug':
                 options.debug = True
+            elif arg == '--use-graphql':
+                use_graphql = True
             elif arg.startswith('--timeout='):
                 try:
                     options.timeout = int(arg.split('=')[1])
@@ -389,7 +510,7 @@ class CommandHandler:
             elif not arg.startswith('--'):
                 options.output_file = arg
         
-        return options
+        return options, use_graphql
     
     @staticmethod
     def _save_results(result: Dict[str, Any], options: ExecutionOptions) -> None:
@@ -466,6 +587,7 @@ def print_usage():
     print("    --no-stream             - Disable streaming output")
     print("    --debug                 - Enable debug mode")
     print("    --timeout=<seconds>     - Set inactivity timeout (default: 300)")
+    print("    --use-graphql           - Use GraphQL instead of WebSocket (experimental)")
     print("  monitor                    - Open browser monitoring page")
     print("  convert <input> <output>   - Convert between JSON/YAML formats")
     print("  stats <file>               - Show diagram statistics")

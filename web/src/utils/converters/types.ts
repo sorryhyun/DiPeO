@@ -9,22 +9,6 @@ import type {
   NodeKind 
 } from '@/types';
 
-/**
- * @deprecated Use DomainDiagram instead. This type will be removed in a future version.
- * The unified converter pipeline now works directly with DomainDiagram.
- */
-// Core converter types
-export interface ConverterDiagram {
-  id: string;
-  name: string;
-  description?: string;
-  nodes: DomainNode[];
-  arrows: DomainArrow[];
-  persons: DomainPerson[];
-  apiKeys: DomainApiKey[];
-  handles: DomainHandle[];
-}
-
 // Graph representation types
 export interface Edge {
   source: string;

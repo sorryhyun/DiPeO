@@ -45,6 +45,19 @@ export const notionConfig = createUnifiedConfig<NotionFormData>({
       type: 'select',
       options: async () => {
         try {
+          // Check if GraphQL should be used
+          const useGraphQL = new URLSearchParams(window.location.search).get('useGraphQL') === 'true' ||
+                           import.meta.env.VITE_USE_GRAPHQL === 'true';
+          
+          if (useGraphQL) {
+            // For GraphQL, we would need to use Apollo Client directly here
+            // Since this is a config file, we can't use hooks
+            // This would require refactoring to move the data fetching to the component level
+            console.warn('GraphQL support for API key fetching in config requires component-level refactoring');
+            // Fall back to REST for now
+          }
+          
+          // REST API call (current implementation)
           const response = await fetch('/api/apikeys');
           const keys = await response.json();
           return keys

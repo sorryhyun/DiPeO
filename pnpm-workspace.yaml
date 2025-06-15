@@ -1,5 +1,5 @@
 packages:
-  - web/*
+  - web
   - packages/*
 ignoredBuiltDependencies:
   - esbuild
