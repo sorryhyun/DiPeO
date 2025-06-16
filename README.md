@@ -20,13 +20,15 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ```bash
 git clone https://github.com/sorryhyun/DiPeO.git
-pnpm install
-pnpm dev:web
 
 python -m venv server/.venv
 source server/.venv/bin/activate
 pip install -r server/requirements.txt
-bash run-server.sh
+
+pnpm install
+bash ./front.sh
+
+bash ./run-server.sh
 ```
 
 ## 🚀 GraphQL Migration
