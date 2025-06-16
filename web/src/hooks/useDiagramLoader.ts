@@ -71,7 +71,7 @@ export function useDiagramLoader() {
         const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
         
         // Update store with all data at once
-        useUnifiedStore.setState({
+        useUnifiedStore.setState(state => ({
           nodes,
           handles,
           arrows,
@@ -80,8 +80,8 @@ export function useDiagramLoader() {
           nodesArray: reactDiagram.nodes || [],
           arrowsArray: reactDiagram.arrows || [],
           personsArray: reactDiagram.persons || [],
-          dataVersion: 1
-        });
+          dataVersion: state.dataVersion + 1  // Increment to trigger re-render
+        }));
         
         // Mark as loaded
         setHasLoaded(true);

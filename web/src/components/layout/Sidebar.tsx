@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/config';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
-import { LazyApiKeysModal, LazyDiagramFileModal } from '@/components/modals/LazyModals';
+import { LazyApiKeysModal } from '@/components/modals/LazyModals';
+import { FileOperations } from '@/components/sidebar/FileOperations';
 import type { PersonID } from '@/types/branded';
 import type { Node } from '@xyflow/react';
 
@@ -92,7 +93,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
   const [_conversationExpanded, _setConversationExpanded] = useState(true);
   const [_memoryExpanded, _setMemoryExpanded] = useState(true);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
-  const [isDiagramFileModalOpen, setIsDiagramFileModalOpen] = useState(false);
+  const [fileOperationsExpanded, setFileOperationsExpanded] = useState(false);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId as PersonID);
@@ -225,19 +226,26 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
         )}
       </div>
 
-      {/* File Operations Button */}
-      <div className="mb-4 px-2">
-        <Button 
-          variant="outline" 
-          className="w-full bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200 py-2"
-          onClick={() => setIsDiagramFileModalOpen(true)}
+      {/* File Operations Section */}
+      <div className="mb-4">
+        <h3 
+          className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
+          onClick={() => setFileOperationsExpanded(!fileOperationsExpanded)}
         >
-          📁 Import / Export
-        </Button>
+          <span className="flex items-center gap-2">
+            <span className="text-base">📁</span>
+            <span className="text-base font-medium">Import / Export</span>
+          </span>
+          {fileOperationsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
+        </h3>
+        {fileOperationsExpanded && (
+          <div className="mt-3 px-2">
+            <FileOperations />
+          </div>
+        )}
       </div>
       
       <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
-      <LazyDiagramFileModal isOpen={isDiagramFileModalOpen} onClose={() => setIsDiagramFileModalOpen(false)} />
     </aside>
   );
 });

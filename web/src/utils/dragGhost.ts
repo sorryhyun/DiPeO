@@ -41,7 +41,7 @@ export function createNodeDragGhost(nodeType: NodeKind, label?: string): HTMLEle
     if (ghost.parentNode) {
       document.body.removeChild(ghost);
     }
-  }, 0);
+  }, 100); // Increased delay to ensure drag image is properly captured
   
   return ghost;
 }

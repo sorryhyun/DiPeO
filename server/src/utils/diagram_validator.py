@@ -103,7 +103,7 @@ class DiagramValidator:
         """
         errors = self.validate(diagram, context)
         if errors:
-            from ..utils.exceptions import ValidationError
+            from ..exceptions import ValidationError
             raise ValidationError("; ".join(errors))
     
     def is_valid(self, diagram: Union[DomainDiagram, Dict[str, Any]], 

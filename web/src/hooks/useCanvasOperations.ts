@@ -434,9 +434,12 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     } else if (selectedArrowId) {
       storeState.deleteArrow(selectedArrowId);
       storeState.clearSelection();
+    } else if (selectedPersonId) {
+      storeState.deletePerson(selectedPersonId);
+      storeState.clearSelection();
     }
     closeContextMenu();
-  }, [enableInteractions, selectedNodeId, selectedArrowId, storeState, closeContextMenu]);
+  }, [enableInteractions, selectedNodeId, selectedArrowId, selectedPersonId, storeState, closeContextMenu]);
   
   const handleDuplicateNode = useCallback((nodeId: NodeID) => {
     if (!enableInteractions || storeState.isMonitorMode) return;

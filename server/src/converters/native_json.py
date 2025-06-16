@@ -75,14 +75,14 @@ class NativeJsonConverter(DiagramConverter):
             'arrows': {},
             'handles': {},
             'persons': {},
-            'apiKeys': {}
+            'api_keys': {}
         }
         
-        # Convert nodes using GraphQL enum format
+        # Convert nodes - preserve lowercase format for frontend compatibility
         for node_id, node in diagram.nodes.items():
             data['nodes'][node_id] = {
                 'id': node.id,
-                'type': self.NODE_TYPE_TO_GRAPHQL.get(node.type, node.type.value.upper()),
+                'type': node.type.value,  # Use lowercase enum value directly
                 'position': {'x': node.position.x, 'y': node.position.y},
                 'data': node.data
             }
@@ -96,36 +96,36 @@ class NativeJsonConverter(DiagramConverter):
                 'data': arrow.data or {}
             }
         
-        # Convert handles using GraphQL enum format
+        # Convert handles - preserve lowercase format for frontend compatibility
         for handle_id, handle in diagram.handles.items():
             data['handles'][handle_id] = {
                 'id': handle.id,
                 'nodeId': handle.nodeId,
                 'label': handle.label,
-                'direction': self.HANDLE_DIRECTION_TO_GRAPHQL.get(handle.direction, handle.direction.value.upper()),
-                'dataType': self.DATA_TYPE_TO_GRAPHQL.get(handle.dataType, handle.dataType.value.upper()),
+                'direction': handle.direction.value,  # Use lowercase enum value directly
+                'dataType': handle.dataType.value,  # Use lowercase enum value directly
                 'position': handle.position
             }
         
-        # Convert persons using GraphQL enum format
+        # Convert persons - preserve lowercase format for frontend compatibility
         for person_id, person in diagram.persons.items():
             data['persons'][person_id] = {
                 'id': person.id,
                 'label': person.label,
-                'service': self.LLM_SERVICE_TO_GRAPHQL.get(person.service, person.service.value.upper()),
+                'service': person.service.value,  # Use lowercase enum value directly
                 'model': person.model,
                 'apiKeyId': person.api_key_id,
                 'systemPrompt': person.systemPrompt,
-                'forgettingMode': self.FORGETTING_MODE_TO_GRAPHQL.get(person.forgettingMode, person.forgettingMode.value.upper()),
+                'forgettingMode': person.forgettingMode.value,  # Use lowercase enum value directly
                 'type': person.type
             }
         
-        # Convert API keys using GraphQL enum format
+        # Convert API keys - preserve lowercase format for frontend compatibility
         for key_id, api_key in diagram.api_keys.items():
-            data['apiKeys'][key_id] = {
+            data['api_keys'][key_id] = {
                 'id': api_key.id,
                 'label': api_key.label,
-                'service': self.LLM_SERVICE_TO_GRAPHQL.get(api_key.service, api_key.service.value.upper()),
+                'service': api_key.service.value,  # Use lowercase enum value directly
                 'key': api_key.key  # In real usage, this should be encrypted
             }
         

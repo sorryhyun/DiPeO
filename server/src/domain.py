@@ -3,7 +3,7 @@ Enhanced domain models for GraphQL integration using Pydantic as single source o
 These models will be used with @strawberry.experimental.pydantic.type decorator.
 """
 from typing import Dict, Optional, List, Any, Union, Final
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, ConfigDict
 from datetime import datetime
 from enum import Enum
 
@@ -135,10 +135,12 @@ class DomainPerson(BaseModel):
     label: str
     service: LLMService
     model: str
-    api_key_id: ApiKeyID
+    api_key_id: Optional[ApiKeyID] = Field(None, alias="apiKeyId")
     systemPrompt: Optional[str] = None
     forgettingMode: ForgettingMode = ForgettingMode.NO_FORGET
     type: str = "person"
+    
+    model_config = ConfigDict(populate_by_name=True)
     
     @computed_field
     @property
@@ -232,6 +234,11 @@ class DomainDiagram(BaseModel):
             api_keys={api_key.id: api_key for api_key in graphql_diagram.api_keys},
             metadata=graphql_diagram.metadata
         )
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'DomainDiagram':
+        """Create DomainDiagram from dictionary (Pydantic v2 compatibility)."""
+        return cls.model_validate(data)
 
 # Execution-related models
 class TokenUsage(BaseModel):

@@ -119,17 +119,55 @@ class DiagramMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Load the diagram
-            diagram_data = diagram_service.load_diagram(diagram_id)
+            # Get the diagram using the diagram_id
+            diagram_data = await diagram_service.get_diagram(diagram_id)
             if not diagram_data:
                 return DiagramResult(
                     success=False,
                     error=f"Diagram {diagram_id} not found"
                 )
             
-            # Save diagram (format is auto-detected from filename if not specified)
-            format_str = format.value if format else None
-            path = diagram_service.save_diagram(diagram_id, diagram_data, format_str)
+            # Determine filename and format
+            format_str = format.value if format else "native"
+            
+            # Map format to directory and extension
+            format_mapping = {
+                "native": ("", ".json"),
+                "light": ("light", ".light.yaml"),
+                "readable": ("readable", ".readable.yaml"),
+                "llm": ("llm", ".llm.yaml")
+            }
+            
+            directory, extension = format_mapping.get(format_str, ("", ".json"))
+            
+            # Generate filename with proper path
+            if directory:
+                filename = f"{directory}/{diagram_id}{extension}"
+            else:
+                filename = f"{diagram_id}{extension}"
+            
+            # Use the converter system to export in the desired format
+            from ...converters.registry import converter_registry
+            converter = converter_registry.get(format_str)
+            
+            if not converter:
+                return DiagramResult(
+                    success=False,
+                    error=f"Unknown format: {format_str}"
+                )
+            
+            # Convert to the desired format
+            domain_diagram = DomainDiagram.from_dict(diagram_data)
+            content = converter.serialize(domain_diagram)
+            
+            # Save to file
+            file_path = diagram_service.diagrams_dir / filename
+            # Ensure directory exists
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            path = str(filename)
             
             # Convert to GraphQL type using built-in method
             domain_diagram = DomainDiagram.from_dict(diagram_data)
@@ -155,8 +193,8 @@ class DiagramMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Load the diagram
-            diagram_data = diagram_service.load_diagram(diagram_id)
+            # Get the diagram using the diagram_id
+            diagram_data = await diagram_service.get_diagram(diagram_id)
             if not diagram_data:
                 return DiagramResult(
                     success=False,

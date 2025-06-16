@@ -132,6 +132,9 @@ function useCommonFlowProps({
       zoomOnScroll: true,
       zoomOnPinch: true,
       zoomOnDoubleClick: true,
+      // Add drag threshold to make dragging more responsive
+      nodeDragThreshold: 0,
+      selectNodesOnDrag: false,
     } as const;
 
     return {

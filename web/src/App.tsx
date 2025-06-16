@@ -125,18 +125,22 @@ function AppContent() {
 
 // Main App component that provides ReactFlowProvider
 function App() {
-  // Set up keyboard shortcuts for undo/redo
+  // Set up global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        useUnifiedStore.getState().undo();
+      // Skip if typing in input fields
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
       }
-      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+
+      // Ctrl/Cmd + S for quicksave
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        useUnifiedStore.getState().redo();
+        // Trigger quicksave through the unified store
+        const store = useUnifiedStore.getState();
+        // Save to quicksave.json
+        store.exportDiagram('quicksave', 'json');
       }
     };
     

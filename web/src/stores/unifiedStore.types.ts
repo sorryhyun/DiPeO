@@ -57,6 +57,8 @@ export interface UnifiedStore extends
   
   
   // History
+  canUndo: boolean;
+  canRedo: boolean;
   undo: () => void;
   redo: () => void;
   

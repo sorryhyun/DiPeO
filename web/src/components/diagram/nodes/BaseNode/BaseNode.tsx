@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/buttons';
@@ -120,20 +120,18 @@ StatusIndicator.displayName = 'StatusIndicator';
 const NodeHeader = React.memo(({ 
   icon, 
   label, 
-  id, 
   configLabel,
   isExecutionMode 
 }: { 
   icon: string;
   label?: string;
-  id: string;
   configLabel: string;
   isExecutionMode: boolean;
 }) => (
   <div className="flex items-center gap-2 mb-2">
     <span className="text-lg">{icon}</span>
     <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>
-      {label || `${configLabel} ${id}`}
+      {label || configLabel}
     </span>
   </div>
 ));
@@ -251,7 +249,6 @@ export function BaseNode({
         <NodeHeader 
           icon={config.icon}
           label={String(data.label || data.name || '')}
-          id={id}
           configLabel={config.label}
           isExecutionMode={isExecutionMode}
         />

@@ -81,6 +81,14 @@ export const useUnifiedStore = create<UnifiedStore>()(
         }),
 
         // === History Operations ===
+        get canUndo() {
+          return get().history.undoStack.length > 0;
+        },
+        
+        get canRedo() {
+          return get().history.redoStack.length > 0;
+        },
+        
         undo: () => set(state => {
           if (state.history.undoStack.length === 0) return;
 

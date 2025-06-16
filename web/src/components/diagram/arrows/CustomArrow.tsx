@@ -237,6 +237,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   return (
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={edgeStyle} />
+      {/* Always render the label element for dragging functionality */}
       <EdgeLabelRenderer>
         <div
           style={labelStyle}
@@ -250,6 +251,10 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
               {labelContent}
               {arrowData?.label && (
                 <span>{arrowData.label}</span>
+              )}
+              {/* Show a drag handle if no content */}
+              {!labelContent && !arrowData?.label && (
+                <span className="text-gray-400">⋮⋮</span>
               )}
             </div>
           </div>
