@@ -4,6 +4,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/layout';
 import { useExecution, useUnifiedStore } from './hooks';
 import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './contexts/CanvasContext';
+import { useDiagramLoader } from './hooks/useDiagramLoader';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
@@ -15,6 +16,9 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 function AppContent() {
   const { activeCanvas } = useCanvasUIState();
   const { setReadOnly, executionOps: execution } = useCanvasOperationsContext();
+  
+  // Load diagram from URL parameter
+  const { isLoading: isDiagramLoading } = useDiagramLoader();
   
   // Don't create another connection - use the existing execution instance from context
   
@@ -65,7 +69,16 @@ function AppContent() {
                   <div className="text-gray-500 animate-pulse">Loading diagram canvas...</div>
                 </div>
               }>
-                <LazyDiagramCanvas />
+                {isDiagramLoading ? (
+                  <div className="h-full bg-gradient-to-br from-slate-50 to-sky-100 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+                      <div className="text-gray-600">Loading diagram from server...</div>
+                    </div>
+                  </div>
+                ) : (
+                  <LazyDiagramCanvas />
+                )}
               </Suspense>
             ) : activeCanvas === 'execution' ? (
               <Suspense fallback={

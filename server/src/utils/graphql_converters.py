@@ -26,9 +26,15 @@ class DomainToGraphQLConverter:
                 position_data = node_data.get('position', {})
                 position = Vec2(x=position_data.get('x', 0), y=position_data.get('y', 0))
                 
+                # Handle case-insensitive node type
+                node_type = node_data.get('type', 'start')
+                if isinstance(node_type, str):
+                    # Convert to lowercase to match Python enum values
+                    node_type = node_type.lower()
+                
                 node = DomainNode(
                     id=node_id,
-                    type=NodeType(node_data.get('type', 'start')),
+                    type=NodeType(node_type),
                     position=position,
                     data=node_data.get('data', {})
                 )
@@ -39,6 +45,9 @@ class DomainToGraphQLConverter:
             for handle_id, handle_data in diagram_data.get('handles', {}).items():
                 # Map legacy direction values
                 direction_str = handle_data.get('direction', 'input')
+                if isinstance(direction_str, str):
+                    direction_str = direction_str.lower()
+                
                 if direction_str in ['in', 'input']:
                     direction = HandleDirection.INPUT
                 elif direction_str in ['out', 'output']:
@@ -46,12 +55,17 @@ class DomainToGraphQLConverter:
                 else:
                     direction = HandleDirection.INPUT
                 
+                # Handle case-insensitive data type
+                data_type = handle_data.get('dataType', 'any')
+                if isinstance(data_type, str):
+                    data_type = data_type.lower()
+                
                 handle = DomainHandle(
                     id=handle_id,
                     nodeId=handle_data.get('nodeId', ''),
                     label=handle_data.get('label', ''),
                     direction=direction,
-                    dataType=DataType(handle_data.get('dataType', 'any')),
+                    dataType=DataType(data_type),
                     position=handle_data.get('position')
                 )
                 handles.append(handle)
@@ -72,12 +86,15 @@ class DomainToGraphQLConverter:
             for person_id, person_data in diagram_data.get('persons', {}).items():
                 # Map legacy service values
                 service_str = person_data.get('service', 'openai')
+                if isinstance(service_str, str):
+                    service_str = service_str.lower()
+                
                 if service_str == 'claude':
                     service = LLMService.ANTHROPIC
                 elif service_str == 'gemini':
                     service = LLMService.GOOGLE
                 elif service_str == 'grok':
-                    service = LLMService.GROQ
+                    service = LLMService.GROK
                 else:
                     try:
                         service = LLMService(service_str)

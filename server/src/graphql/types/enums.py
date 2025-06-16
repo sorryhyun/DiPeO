@@ -21,7 +21,7 @@ DiagramFormat = strawberry.enum(DomainDiagramFormat)
 class EventType(Enum):
     EXECUTION_STARTED = "execution_started"
     NODE_STARTED = "node_started"
-    NODE_PROGRESS = "node_progress"
+    NODE_RUNNING = "node_running"
     NODE_COMPLETED = "node_completed"
     NODE_FAILED = "node_failed"
     NODE_SKIPPED = "node_skipped"

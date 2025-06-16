@@ -9,6 +9,14 @@ query GetDiagram($id: DiagramID!) {
       }
       displayName
       data
+      handles {
+        id
+        nodeId
+        label
+        direction
+        dataType
+        position
+      }
     }
     handles {
       id
@@ -33,6 +41,7 @@ query GetDiagram($id: DiagramID!) {
       apiKeyId
       forgettingMode
       maskedApiKey
+      type
     }
     apiKeys {
       id

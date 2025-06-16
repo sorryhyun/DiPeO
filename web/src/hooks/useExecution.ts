@@ -466,7 +466,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       });
       
       if (result.data?.executeDiagram.success && result.data.executeDiagram.executionId) {
-        const totalNodes = diagram ? Object.keys(diagram.nodes).length : 0;
+        const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(result.data.executeDiagram.executionId, totalNodes);
         executionActions.startExecution(result.data.executeDiagram.executionId);
         onUpdate?.({ type: 'execution_started', nodeId: '', status: 'running', timestamp: new Date().toISOString() });

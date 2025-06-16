@@ -135,7 +135,7 @@ class DomainPerson(BaseModel):
     label: str
     service: LLMService
     model: str
-    apiKeyId: ApiKeyID
+    api_key_id: ApiKeyID
     systemPrompt: Optional[str] = None
     forgettingMode: ForgettingMode = ForgettingMode.NO_FORGET
     type: str = "person"
@@ -144,9 +144,9 @@ class DomainPerson(BaseModel):
     @property
     def masked_api_key(self) -> Optional[str]:
         """Return masked API key for display."""
-        if not self.apiKeyId:
+        if not self.api_key_id:
             return None
-        return f"****{str(self.apiKeyId)[-4:]}"
+        return f"****{str(self.api_key_id)[-4:]}"
 
 class DomainApiKey(BaseModel):
     """API key configuration."""

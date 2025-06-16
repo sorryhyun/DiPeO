@@ -40,12 +40,12 @@ export class DiagramAdapter {
     nodes: DiPeoNode[];
     edges: DiPeoEdge[];
   } {
-    const nodes = Object.values(diagram.nodes).map(node => {
+    const nodes = (diagram.nodes || []).map(node => {
       const handles = getNodeHandles(diagram, node.id as NodeID);
       return this.nodeToReactFlow(node, handles);
     });
 
-    const edges = Object.values(diagram.arrows).map(arrow => 
+    const edges = (diagram.arrows || []).map(arrow => 
       this.arrowToReactFlow(arrow)
     );
 
@@ -241,8 +241,8 @@ export class DiagramAdapter {
     );
 
     // Find the actual handles
-    const sourceNode = diagram.nodes[connection.source as NodeID];
-    const targetNode = diagram.nodes[connection.target as NodeID];
+    const sourceNode = diagram.nodes.find(n => n.id === connection.source);
+    const targetNode = diagram.nodes.find(n => n.id === connection.target);
     
     if (!sourceNode || !targetNode) {
       validated.isValid = false;

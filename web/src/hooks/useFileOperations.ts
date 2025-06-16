@@ -200,9 +200,9 @@ export const useFileOperations = () => {
         format: DiagramFormat.Native,
         metadata: {
           id: DiagramFormat.Native,
-          displayName: 'Native YAML',
-          description: 'Full-fidelity format with all details',
-          fileExtension: '.yaml',
+          displayName: 'Native JSON',
+          description: 'Full-fidelity format with GraphQL schema compatibility',
+          fileExtension: '.json',
           supportsImport: true,
           supportsExport: true
         }

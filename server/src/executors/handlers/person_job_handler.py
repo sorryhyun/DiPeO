@@ -109,7 +109,7 @@ async def person_job_handler(
         logger.debug(f"PersonJob {node_id} execution #{execution_count}")
         
         # Get service from API key if not specified
-        service = person.service or await _get_service_from_api_key(person.apiKeyId, context)
+        service = person.service or await _get_service_from_api_key(person.api_key_id, context)
         
         response = await context.llm_service.call_llm(
             service=service,

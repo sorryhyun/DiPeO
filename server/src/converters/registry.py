@@ -1,7 +1,7 @@
 """Converter registry for managing diagram format converters."""
 from typing import Dict, Optional, List, Tuple
 from .base import DiagramConverter
-from .native_yaml import NativeYamlConverter
+from .native_json import NativeJsonConverter
 from .light_yaml import LightYamlConverter
 from .readable_yaml import ReadableYamlConverter
 from .llm_yaml import LLMYamlConverter
@@ -18,14 +18,14 @@ class ConverterRegistry:
     
     def _initialize_default_converters(self):
         """Register default converters."""
-        # Native YAML
+        # Native JSON
         self.register(
             DiagramFormat.NATIVE.value,
-            NativeYamlConverter(),
+            NativeJsonConverter(),
             {
-                'name': 'Native YAML',
-                'description': 'Full-fidelity format with all diagram details',
-                'extension': '.native.yaml',
+                'name': 'Native JSON',
+                'description': 'Full-fidelity format with GraphQL schema compatibility',
+                'extension': '.native.json',
                 'supports_import': True,
                 'supports_export': True
             }

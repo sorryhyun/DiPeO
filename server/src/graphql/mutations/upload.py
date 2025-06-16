@@ -386,12 +386,13 @@ class UploadMutations:
         """Convert domain diagram to storage format (dict)."""
         # Use native converter for storage
         converter = converter_registry.get(DiagramFormat.NATIVE.value)
-        yaml_str = converter.serialize(diagram)
-        return yaml.safe_load(yaml_str)
+        json_str = converter.serialize(diagram)
+        return json.loads(json_str)
     
     def _storage_to_domain_format(self, data: Dict[str, Any]) -> DomainDiagram:
         """Convert storage format to domain diagram."""
-        # Convert dict to YAML string then parse with native converter
-        yaml_str = yaml.dump(data, default_flow_style=False)
+        # Convert dict to string then parse with native converter
         converter = converter_registry.get(DiagramFormat.NATIVE.value)
-        return converter.deserialize(yaml_str)
+        # Native format is now JSON, so use JSON serialization
+        json_str = json.dumps(data, indent=2)
+        return converter.deserialize(json_str)

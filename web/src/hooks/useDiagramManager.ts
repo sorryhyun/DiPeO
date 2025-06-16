@@ -326,11 +326,14 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       // Get store state and convert to DomainDiagram format
       const store = useUnifiedStore.getState();
       const domainDiagram = {
-        nodes: Object.fromEntries(store.nodes),
-        arrows: Object.fromEntries(store.arrows),
-        persons: Object.fromEntries(store.persons),
-        handles: Object.fromEntries(store.handles),
-        apiKeys: Object.fromEntries(store.apiKeys)
+        nodes: Array.from(store.nodes.values()),
+        arrows: Array.from(store.arrows.values()),
+        persons: Array.from(store.persons.values()),
+        handles: Array.from(store.handles.values()),
+        apiKeys: Array.from(store.apiKeys.values()),
+        nodeCount: store.nodes.size,
+        arrowCount: store.arrows.size,
+        personCount: store.persons.size
       };
       
       // Execute with DomainDiagram format - the execute function will convert to backend format

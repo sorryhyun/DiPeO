@@ -27,7 +27,7 @@ class PersonMutations:
         self,
         diagram_id: DiagramID,
         input: CreatePersonInput,
-        info
+        info: strawberry.Info[GraphQLContext]
     ) -> PersonResult:
         """Create a new person (LLM agent)."""
         try:
@@ -64,7 +64,7 @@ class PersonMutations:
                 label=pydantic_input.label,  # Already trimmed by validation
                 service=pydantic_input.service,
                 model=pydantic_input.model,  # Already trimmed by validation
-                apiKeyId=pydantic_input.api_key_id,
+                api_key_id=pydantic_input.api_key_id,
                 systemPrompt=pydantic_input.system_prompt or "",
                 forgettingMode=pydantic_input.forgetting_mode,
                 type="person"
@@ -108,7 +108,7 @@ class PersonMutations:
             )
     
     @strawberry.mutation
-    async def update_person(self, input: UpdatePersonInput, info) -> PersonResult:
+    async def update_person(self, input: UpdatePersonInput, info: strawberry.Info[GraphQLContext]) -> PersonResult:
         """Update an existing person."""
         try:
             context: GraphQLContext = info.context
@@ -184,7 +184,7 @@ class PersonMutations:
                 label=person_data['label'],
                 service=service,
                 model=person_data.get('model', person_data.get('modelName', 'gpt-4')),
-                apiKeyId=person_data['apiKeyId'],
+                api_key_id=person_data['api_key_id'],
                 systemPrompt=person_data.get('systemPrompt', ''),
                 forgettingMode=forgetting_mode,
                 type=person_data.get('type', 'person')
@@ -224,7 +224,7 @@ class PersonMutations:
             )
     
     @strawberry.mutation
-    async def delete_person(self, id: PersonID, info) -> DeleteResult:
+    async def delete_person(self, id: PersonID, info: strawberry.Info[GraphQLContext]) -> DeleteResult:
         """Delete a person."""
         try:
             context: GraphQLContext = info.context

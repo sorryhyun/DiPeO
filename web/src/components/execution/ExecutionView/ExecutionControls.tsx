@@ -67,13 +67,16 @@ const ExecutionControls = () => {
           variant="outline" 
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
           onClick={() => {
-            // Convert Maps to Records for DomainDiagram format
+            // Convert Maps to arrays for DomainDiagram format
             const diagram = {
-              nodes: Object.fromEntries(nodes),
-              arrows: Object.fromEntries(arrows),
-              persons: Object.fromEntries(persons),
-              handles: Object.fromEntries(handles),
-              apiKeys: Object.fromEntries(apiKeys)
+              nodes: Array.from(nodes.values()),
+              arrows: Array.from(arrows.values()),
+              persons: Array.from(persons.values()),
+              handles: Array.from(handles.values()),
+              apiKeys: Array.from(apiKeys.values()),
+              nodeCount: nodes.size,
+              arrowCount: arrows.size,
+              personCount: persons.size
             };
             execution.execute(diagram);
           }}

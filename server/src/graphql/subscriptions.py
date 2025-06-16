@@ -37,6 +37,8 @@ class InteractivePrompt:
     timeout_seconds: Optional[int] = None
     timestamp: datetime
 
+
+# noinspection PyArgumentList
 @strawberry.type
 class Subscription:
     """Root subscription type for DiPeO GraphQL API."""
@@ -44,7 +46,7 @@ class Subscription:
     @strawberry.subscription
     async def execution_updates(
         self, 
-        info,
+        info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID
     ) -> AsyncGenerator[ExecutionState, None]:
         """Subscribe to execution state updates."""
@@ -56,7 +58,7 @@ class Subscription:
     @strawberry.subscription
     async def execution_events(
         self,
-        info,
+        info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
         event_types: Optional[List[EventType]] = None
     ) -> AsyncGenerator[ExecutionEvent, None]:
@@ -67,7 +69,7 @@ class Subscription:
     @strawberry.subscription
     async def node_updates(
         self,
-        info,
+        info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
         node_types: Optional[List[NodeType]] = None
     ) -> AsyncGenerator[NodeExecution, None]:
@@ -78,7 +80,7 @@ class Subscription:
     @strawberry.subscription
     async def diagram_changes(
         self,
-        info,
+        info: strawberry.Info[GraphQLContext],
         diagram_id: DiagramID
     ) -> AsyncGenerator[Diagram, None]:
         """Subscribe to diagram changes for collaborative editing."""
@@ -88,7 +90,7 @@ class Subscription:
     @strawberry.subscription
     async def interactive_prompts(
         self,
-        info,
+        info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID
     ) -> AsyncGenerator[InteractivePrompt, None]:
         """Subscribe to interactive prompts that need user input."""
@@ -97,7 +99,7 @@ class Subscription:
 
 
 # Stream implementation functions
-async def execution_stream(execution_id: ExecutionID, info) -> AsyncGenerator[ExecutionState, None]:
+async def execution_stream(execution_id: ExecutionID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[ExecutionState, None]:
     """Stream execution state updates."""
     context: GraphQLContext = info.context
     event_store = context.event_store
@@ -188,7 +190,7 @@ async def execution_stream(execution_id: ExecutionID, info) -> AsyncGenerator[Ex
 async def event_stream(
     execution_id: ExecutionID, 
     event_types: Optional[List[EventType]], 
-    info
+    info: strawberry.Info[GraphQLContext]
 ) -> AsyncGenerator[ExecutionEvent, None]:
     """Stream execution events."""
     context: GraphQLContext = info.context
@@ -272,7 +274,7 @@ async def event_stream(
 async def node_update_stream(
     execution_id: ExecutionID,
     node_types: Optional[List[NodeType]],
-    info
+    info: strawberry.Info[GraphQLContext]
 ) -> AsyncGenerator[NodeExecution, None]:
     """Stream node execution updates."""
     context: GraphQLContext = info.context
@@ -287,7 +289,7 @@ async def node_update_stream(
         EventType.NODE_FAILED,
         EventType.NODE_SKIPPED,
         EventType.NODE_PAUSED,
-        EventType.NODE_RESUMED
+        EventType.NODE_RUNNING
     ]
     
     if redis_client:
@@ -380,7 +382,7 @@ async def node_update_stream(
                     EventType.NODE_FAILED: 'failed',
                     EventType.NODE_SKIPPED: 'skipped',
                     EventType.NODE_PAUSED: 'paused',
-                    EventType.NODE_RESUMED: 'running'
+                    EventType.NODE_RUNNING: 'running'
                 }
                 status = status_map.get(EventType(event.event_type), 'running')
                 
@@ -412,7 +414,7 @@ async def node_update_stream(
         logger.error(f"Error in node update stream for {execution_id}: {e}")
         raise
 
-async def diagram_change_stream(diagram_id: DiagramID, info) -> AsyncGenerator[Diagram, None]:
+async def diagram_change_stream(diagram_id: DiagramID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[Diagram, None]:
     """Stream diagram changes."""
     # TODO: Implement collaborative editing support
     # This would require:
@@ -424,7 +426,7 @@ async def diagram_change_stream(diagram_id: DiagramID, info) -> AsyncGenerator[D
     while False:  # Never yields
         yield
 
-async def interactive_prompt_stream(execution_id: ExecutionID, info) -> AsyncGenerator[InteractivePrompt, None]:
+async def interactive_prompt_stream(execution_id: ExecutionID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[InteractivePrompt, None]:
     """Stream interactive prompts."""
     context: GraphQLContext = info.context
     event_store = context.event_store

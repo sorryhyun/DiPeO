@@ -85,7 +85,7 @@ class Person:
     label: strawberry.auto
     service: strawberry.auto
     model: strawberry.auto
-    apiKeyId: strawberry.auto
+    api_key_id: strawberry.auto
     systemPrompt: strawberry.auto
     forgettingMode: strawberry.auto
     type: strawberry.auto
@@ -93,9 +93,9 @@ class Person:
     @strawberry.field
     def masked_api_key(self) -> Optional[str]:
         """Return masked API key for display."""
-        if not self.apiKeyId:
+        if not self.api_key_id:
             return None
-        return f"****{str(self.apiKeyId)[-4:]}"
+        return f"****{str(self.api_key_id)[-4:]}"
 
 @strawberry.experimental.pydantic.type(model=DomainApiKey)
 class ApiKey:

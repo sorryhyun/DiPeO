@@ -7,6 +7,7 @@ from datetime import datetime
 from ..types.results import DiagramResult, DeleteResult
 from ..types.scalars import DiagramID
 from ..types.inputs import CreateDiagramInput, ImportYamlInput
+from ..types.enums import DiagramFormat
 from ..context import GraphQLContext
 from ...domain import (
     DiagramMetadata, DomainDiagram
@@ -55,7 +56,7 @@ class DiagramMutations:
                 arrows={},
                 handles={},
                 persons={},
-                apiKeys={},
+                api_keys={},
                 metadata=metadata
             )
             
@@ -112,7 +113,7 @@ class DiagramMutations:
             )
     
     @strawberry.mutation
-    async def save_diagram(self, info, diagram_id: DiagramID, format: Optional[str] = None) -> DiagramResult:
+    async def save_diagram(self, info, diagram_id: DiagramID, format: Optional[DiagramFormat] = None) -> DiagramResult:
         """Save diagram to file system (replaces REST endpoint)."""
         try:
             context: GraphQLContext = info.context
@@ -127,7 +128,8 @@ class DiagramMutations:
                 )
             
             # Save diagram (format is auto-detected from filename if not specified)
-            path = diagram_service.save_diagram(diagram_id, diagram_data, format)
+            format_str = format.value if format else None
+            path = diagram_service.save_diagram(diagram_id, diagram_data, format_str)
             
             # Convert to GraphQL type using converter
             graphql_diagram = DomainToGraphQLConverter.convert_diagram(diagram_data)
@@ -146,7 +148,7 @@ class DiagramMutations:
             )
     
     @strawberry.mutation
-    async def convert_diagram(self, info, diagram_id: DiagramID, target_format: str) -> DiagramResult:
+    async def convert_diagram(self, info, diagram_id: DiagramID, target_format: DiagramFormat) -> DiagramResult:
         """Convert diagram between formats (JSON, YAML, LLM-YAML)."""
         try:
             context: GraphQLContext = info.context
@@ -160,22 +162,25 @@ class DiagramMutations:
                     error=f"Diagram {diagram_id} not found"
                 )
             
-            # Validate target format
-            valid_formats = ['json', 'yaml', 'llm-yaml']
-            if target_format.lower() not in valid_formats:
-                return DiagramResult(
-                    success=False,
-                    error=f"Invalid format. Must be one of: {', '.join(valid_formats)}"
-                )
+            # Format validation is now handled by the enum type
             
             # Save in new format
             # Create new filename with target extension
             import os
             base_name = os.path.splitext(diagram_id)[0]
-            new_diagram_id = f"{base_name}.{target_format.lower().replace('llm-', '')}"
+            
+            # Map format to file extension
+            extension_map = {
+                DiagramFormat.NATIVE: '.json',
+                DiagramFormat.LIGHT: '.yaml',
+                DiagramFormat.READABLE: '.yaml', 
+                DiagramFormat.LLM: '.yaml'
+            }
+            extension = extension_map.get(target_format, '.yaml')
+            new_diagram_id = f"{base_name}{extension}"
             
             # Save diagram in new format
-            path = diagram_service.save_diagram(new_diagram_id, diagram_data, target_format)
+            path = diagram_service.save_diagram(new_diagram_id, diagram_data, target_format.value)
             
             # Load and return the converted diagram
             converted_data = diagram_service.load_diagram(new_diagram_id)
@@ -184,7 +189,7 @@ class DiagramMutations:
             return DiagramResult(
                 success=True,
                 diagram=graphql_diagram,
-                message=f"Diagram converted to {target_format} and saved to {path}"
+                message=f"Diagram converted to {target_format.value} and saved to {path}"
             )
             
         except Exception as e:

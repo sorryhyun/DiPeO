@@ -18,20 +18,21 @@ import { NodeType, HandleDirection, DataType } from '@/__generated__/graphql';
 import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from './branded';
 import type { Vec2 } from './primitives';
 
-// Re-export GraphQL types with Domain prefix for compatibility
+// Re-export GraphQL types as Domain types (they are the same - GraphQL IS our domain)
 export type DomainNode = Node;
 export type DomainArrow = Arrow;
 export type DomainHandle = Handle;
 export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
+export type DomainDiagram = Diagram;
 
-// Create compatible diagram type that matches old structure
-export interface DomainDiagram {
-  nodes: Record<NodeID, Node>;
-  handles: Record<HandleID, Handle>;
-  arrows: Record<ArrowID, Arrow>;
-  persons: Record<PersonID, Person>;
-  apiKeys: Record<ApiKeyID, ApiKey>;
+// Store format uses Maps for efficient lookups
+export interface StoreDiagram {
+  nodes: Map<NodeID, Node>;
+  handles: Map<HandleID, Handle>;
+  arrows: Map<ArrowID, Arrow>;
+  persons: Map<PersonID, Person>;
+  apiKeys: Map<ApiKeyID, ApiKey>;
   metadata?: {
     id?: DiagramID;
     name?: string;
@@ -44,61 +45,69 @@ export interface DomainDiagram {
   };
 }
 
-// Utility functions to convert between structures
-export function graphQLDiagramToDomain(diagram: Diagram): DomainDiagram {
-  const nodes: Record<NodeID, Node> = {};
-  const handles: Record<HandleID, Handle> = {};
-  const arrows: Record<ArrowID, Arrow> = {};
-  const persons: Record<PersonID, Person> = {};
-  const apiKeys: Record<ApiKeyID, ApiKey> = {};
+// Convert from GraphQL/Domain format (arrays) to Store format (Maps)
+export function diagramToStoreMaps(diagram: Partial<Diagram>): {
+  nodes: Map<NodeID, Node>;
+  handles: Map<HandleID, Handle>;
+  arrows: Map<ArrowID, Arrow>;
+  persons: Map<PersonID, Person>;
+  apiKeys: Map<ApiKeyID, ApiKey>;
+} {
+  const nodes = new Map<NodeID, Node>();
+  const handles = new Map<HandleID, Handle>();
+  const arrows = new Map<ArrowID, Arrow>();
+  const persons = new Map<PersonID, Person>();
+  const apiKeys = new Map<ApiKeyID, ApiKey>();
 
-  // Convert arrays to records
-  diagram.nodes.forEach(node => {
-    nodes[node.id as NodeID] = node;
+  // Convert arrays to maps with branded IDs as keys
+  diagram.nodes?.forEach(node => {
+    nodes.set(node.id as NodeID, node);
   });
 
-  diagram.handles.forEach(handle => {
-    handles[handle.id as HandleID] = handle;
+  diagram.handles?.forEach(handle => {
+    handles.set(handle.id as HandleID, handle);
   });
 
-  diagram.arrows.forEach(arrow => {
-    arrows[arrow.id as ArrowID] = arrow;
+  diagram.arrows?.forEach(arrow => {
+    arrows.set(arrow.id as ArrowID, arrow);
   });
 
-  diagram.persons.forEach(person => {
-    persons[person.id as PersonID] = person;
+  diagram.persons?.forEach(person => {
+    persons.set(person.id as PersonID, person);
   });
 
-  diagram.apiKeys.forEach(apiKey => {
-    apiKeys[apiKey.id as ApiKeyID] = apiKey;
+  diagram.apiKeys?.forEach(apiKey => {
+    apiKeys.set(apiKey.id as ApiKeyID, apiKey);
   });
 
+  return { nodes, handles, arrows, persons, apiKeys };
+}
+
+// Convert from Store format (Maps) back to GraphQL/Domain format (arrays)
+export function storeMapsToArrays(store: {
+  nodes: Map<NodeID, Node>;
+  handles: Map<HandleID, Handle>;
+  arrows: Map<ArrowID, Arrow>;
+  persons: Map<PersonID, Person>;
+  apiKeys: Map<ApiKeyID, ApiKey>;
+}): Partial<Diagram> {
   return {
-    nodes,
-    handles,
-    arrows,
-    persons,
-    apiKeys,
-    metadata: diagram.metadata ? {
-      id: diagram.metadata.id ? diagram.metadata.id as DiagramID : undefined,
-      name: diagram.metadata.name || undefined,
-      description: diagram.metadata.description || undefined,
-      version: diagram.metadata.version,
-      created: diagram.metadata.created,
-      modified: diagram.metadata.modified,
-      author: diagram.metadata.author || undefined,
-      tags: diagram.metadata.tags || undefined
-    } : undefined
+    nodes: Array.from(store.nodes.values()),
+    handles: Array.from(store.handles.values()),
+    arrows: Array.from(store.arrows.values()),
+    persons: Array.from(store.persons.values()),
+    apiKeys: Array.from(store.apiKeys.values())
   };
 }
 
+// Since GraphQL IS our domain format, this is just identity mapping
 export function domainDiagramToGraphQL(diagram: DomainDiagram): Partial<Diagram> {
   return {
-    nodes: Object.values(diagram.nodes),
-    handles: Object.values(diagram.handles),
-    arrows: Object.values(diagram.arrows),
-    persons: Object.values(diagram.persons),
-    apiKeys: Object.values(diagram.apiKeys),
+    nodes: diagram.nodes || [],
+    handles: diagram.handles || [],
+    arrows: diagram.arrows || [],
+    persons: diagram.persons || [],
+    apiKeys: diagram.apiKeys || [],
     metadata: diagram.metadata ? {
       __typename: 'DiagramMetadata',
       id: diagram.metadata.id || null,
@@ -111,6 +120,11 @@ export function domainDiagramToGraphQL(diagram: DomainDiagram): Partial<Diagram>
       tags: diagram.metadata.tags || null
     } : undefined
   };
+}
+
+// GraphQL to Domain is identity since GraphQL IS our domain
+export function graphQLDiagramToDomain(diagram: Partial<Diagram>): DomainDiagram {
+  return diagram as DomainDiagram;
 }
 
 // Node type mappings
@@ -180,11 +194,14 @@ export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
 // Utility functions matching old domain helpers
 export function createEmptyDiagram(): DomainDiagram {
   return {
-    nodes: {},
-    handles: {},
-    arrows: {},
-    persons: {},
-    apiKeys: {},
+    nodes: [],
+    handles: [],
+    arrows: [],
+    persons: [],
+    apiKeys: [],
+    nodeCount: 0,
+    arrowCount: 0,
+    personCount: 0,
     metadata: {
       version: '2.0.0',
       created: new Date().toISOString(),
@@ -197,13 +214,13 @@ export function getNodeHandles(
   diagram: DomainDiagram,
   nodeId: NodeID
 ): Handle[] {
-  return Object.values(diagram.handles).filter(
+  return (diagram.handles || []).filter(
     handle => handle.nodeId === nodeId
   );
 }
 
 export function getHandleById(diagram: DomainDiagram, handleId: HandleID): Handle | undefined {
-  return diagram.handles[handleId];
+  return (diagram.handles || []).find(handle => handle.id === handleId);
 }
 
 export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {

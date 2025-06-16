@@ -69,7 +69,7 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = options?.acceptedTypes || '.yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml';
+    input.accept = options?.acceptedTypes || '.json,.yaml,.yml,.native.json,.native.yaml,.readable.yaml,.llm-readable.yaml';
     
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -216,7 +216,7 @@ export const detectFileFormat = (content: string, filename?: string): FileFormat
   }
   
   // Check for specific format extensions in filename
-  if (filename.includes('.native.yaml') || filename.includes('.native.yml')) {
+  if (filename.includes('.native.json') || filename.includes('.native.yaml') || filename.includes('.native.yml')) {
     return { format: DiagramFormat.Native, isLLMFormat: false };
   }
   
@@ -241,14 +241,14 @@ export const detectFileFormat = (content: string, filename?: string): FileFormat
 // Create lookup tables for file format mappings
 const mimeTypeLookup = createLookupTable<DiagramFormat, string>({
   [DiagramFormat.Light]: 'text/yaml',
-  [DiagramFormat.Native]: 'text/yaml',
+  [DiagramFormat.Native]: 'application/json',
   [DiagramFormat.Readable]: 'text/yaml',
   [DiagramFormat.Llm]: 'text/yaml'
 });
 
 const fileExtensionLookup = createLookupTable<DiagramFormat, string>({
   [DiagramFormat.Light]: '.yaml',
-  [DiagramFormat.Native]: '.native.yaml',
+  [DiagramFormat.Native]: '.native.json',
   [DiagramFormat.Readable]: '.readable.yaml',
   [DiagramFormat.Llm]: '.llm-readable.yaml'
 });

@@ -28,7 +28,7 @@ class PersonConfig(BaseModel):
     name: Optional[str] = Field(None, description="Display name for the person")
     service: Optional[LLMService] = Field(None, description="LLM service provider")
     model: Optional[str] = Field(None, description="Model identifier", alias="modelName")
-    apiKeyId: str = Field(..., description="API key reference")
+    api_key_id: str = Field(..., description="API key reference")
     systemPrompt: Optional[str] = Field(None, description="System prompt for the LLM")
     temperature: Optional[float] = Field(None, ge=0, le=2, description="Sampling temperature")
     

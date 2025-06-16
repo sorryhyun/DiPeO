@@ -5,7 +5,7 @@ import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { useGetApiKeysQuery, useListDiagramsQuery } from '@/__generated__/graphql';
+import { useGetApiKeysQuery } from '@/__generated__/graphql';
 import { toast } from 'sonner';
 import { apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
 import { downloadFile } from '@/utils/file';
@@ -14,7 +14,6 @@ import { downloadFile } from '@/utils/file';
 const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
-  const [hasLoadedDiagram, setHasLoadedDiagram] = useState(false);
   
   // Use UI state for mode control
   const { activeCanvas, setActiveCanvas } = useUIState();
@@ -83,34 +82,8 @@ const TopBar = () => {
     }
   }, [apiKeysError]);
   
-  // Load the most recent diagram on startup
-  const { data: diagramsData } = useListDiagramsQuery({
-    variables: {
-      limit: 1, // Get only the most recent
-      offset: 0
-    },
-    skip: hasLoadedDiagram, // Only run once
-    fetchPolicy: 'cache-first'
-  });
-  
-  // Load the most recent diagram when we get the list
-  useEffect(() => {
-    if (!hasLoadedDiagram && diagramsData?.diagrams && diagramsData.diagrams.length > 0) {
-      const mostRecentDiagram = diagramsData.diagrams[0];
-      if (mostRecentDiagram?.metadata?.id) {
-        // Mark as loaded before attempting to load
-        setHasLoadedDiagram(true);
-        
-        // Check if we're not already loading a diagram via URL parameter
-        const params = new URLSearchParams(window.location.search);
-        if (!params.get('diagram')) {
-          // Redirect to load the most recent diagram
-          window.location.href = `/?diagram=${mostRecentDiagram.metadata.id}`;
-          toast.info(`Loading most recent diagram: ${mostRecentDiagram.metadata?.name || 'Untitled'}`);
-        }
-      }
-    }
-  }, [diagramsData, hasLoadedDiagram]);
+  // Removed automatic loading of most recent diagram - this is now handled by useDiagramLoader
+  // The user can explicitly load diagrams through the file menu or URL parameter
   
   // Handle monitor mode separately
   useEffect(() => {

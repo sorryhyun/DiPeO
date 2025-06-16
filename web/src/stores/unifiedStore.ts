@@ -19,7 +19,7 @@ import {
   apiKeyId
 } from "@/types";
 import { UnifiedStore, NodeState } from "./unifiedStore.types";
-import { loadAutoSavedDiagram, setupAutoSave } from "./persistedStore";
+// Removed deprecated imports - auto-save is now handled by the backend
 import { logger } from "@/utils/logger";
 
 // Import slices
@@ -216,25 +216,8 @@ export const useUnifiedStore = create<UnifiedStore>()(
   )
 );
 
-// Initialize store with auto-saved data
-const initializeStore = () => {
-  const autoSaved = loadAutoSavedDiagram();
-  if (autoSaved) {
-    try {
-      logger.info('Restoring auto-saved diagram from', autoSaved.metadata?.exported);
-      useUnifiedStore.getState().importDiagram(autoSaved);
-    } catch (e) {
-      logger.error('Failed to restore auto-saved diagram:', e);
-    }
-  }
-  
-  setupAutoSave(useUnifiedStore);
-};
-
-// Initialize on first import
-if (typeof window !== 'undefined') {
-  setTimeout(initializeStore, 0);
-}
+// Store initialization is now handled by the backend
+// Auto-save and diagram persistence are managed through GraphQL
 
 // === Selectors ===
 export const useNodeById = (nodeId: NodeID | null) =>

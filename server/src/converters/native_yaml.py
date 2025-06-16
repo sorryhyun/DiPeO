@@ -123,9 +123,15 @@ class NativeYamlConverter(DiagramConverter):
         if 'nodes' in data:
             for node_id, node_data in data['nodes'].items():
                 pos = node_data.get('position', {'x': 0, 'y': 0})
+                # Handle case-insensitive node type
+                node_type = node_data['type']
+                if isinstance(node_type, str):
+                    # Convert to lowercase to match Python enum values
+                    node_type = node_type.lower()
+                
                 diagram.nodes[node_id] = DomainNode(
                     id=node_data.get('id', node_id),
-                    type=NodeType(node_data['type']),
+                    type=NodeType(node_type),
                     position=Vec2(x=pos['x'], y=pos['y']),
                     data=node_data.get('data', {})
                 )
@@ -143,36 +149,59 @@ class NativeYamlConverter(DiagramConverter):
         # Parse handles
         if 'handles' in data:
             for handle_id, handle_data in data['handles'].items():
+                # Handle case-insensitive enums
+                direction = handle_data['direction']
+                if isinstance(direction, str):
+                    direction = direction.lower()
+                
+                data_type = handle_data.get('dataType', 'any')
+                if isinstance(data_type, str):
+                    data_type = data_type.lower()
+                
                 diagram.handles[handle_id] = DomainHandle(
                     id=handle_data.get('id', handle_id),
                     nodeId=handle_data['nodeId'],
                     label=handle_data['label'],
-                    direction=HandleDirection(handle_data['direction']),
-                    dataType=DataType(handle_data.get('dataType', 'any')),
+                    direction=HandleDirection(direction),
+                    dataType=DataType(data_type),
                     position=handle_data.get('position')
                 )
         
         # Parse persons
         if 'persons' in data:
             for person_id, person_data in data['persons'].items():
+                # Handle case-insensitive enums
+                service = person_data['service']
+                if isinstance(service, str):
+                    service = service.lower()
+                
+                forgetting_mode = person_data.get('forgettingMode', 'none')
+                if isinstance(forgetting_mode, str):
+                    forgetting_mode = forgetting_mode.lower()
+                
                 diagram.persons[person_id] = DomainPerson(
                     id=person_data.get('id', person_id),
                     label=person_data['label'],
-                    service=LLMService(person_data['service']),
+                    service=LLMService(service),
                     model=person_data['model'],
                     apiKeyId=person_data['apiKeyId'],
                     systemPrompt=person_data.get('systemPrompt'),
-                    forgettingMode=ForgettingMode(person_data.get('forgettingMode', 'none')),
+                    forgettingMode=ForgettingMode(forgetting_mode),
                     type=person_data.get('type', 'person')
                 )
         
         # Parse API keys
         if 'apiKeys' in data:
             for key_id, key_data in data['apiKeys'].items():
+                # Handle case-insensitive enums
+                service = key_data['service']
+                if isinstance(service, str):
+                    service = service.lower()
+                
                 diagram.api_keys[key_id] = DomainApiKey(
                     id=key_data.get('id', key_id),
                     label=key_data['label'],
-                    service=LLMService(key_data['service']),
+                    service=LLMService(service),
                     key=key_data['key']
                 )
         
