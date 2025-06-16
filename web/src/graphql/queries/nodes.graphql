@@ -1,0 +1,71 @@
+# Node Mutations
+mutation CreateNode($diagramId: DiagramID!, $input: CreateNodeInput!) {
+  createNode(diagramId: $diagramId, input: $input) {
+    success
+    node {
+      id
+      type
+      displayName
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+
+mutation UpdateNode($input: UpdateNodeInput!) {
+  updateNode(input: $input) {
+    success
+    node {
+      id
+      type
+      displayName
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+
+mutation DeleteNode($id: NodeID!) {
+  deleteNode(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+
+# Arrow Mutations
+mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
+  createArrow(diagramId: $diagramId, input: $input) {
+    success
+    diagram {
+      arrows {
+        id
+        source
+        target
+        data
+      }
+    }
+    message
+    error
+  }
+}
+
+mutation DeleteArrow($id: ArrowID!) {
+  deleteArrow(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}

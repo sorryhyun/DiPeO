@@ -1,0 +1,29 @@
+# Conversation Queries
+query GetConversations(
+  $personId: PersonID
+  $executionId: ExecutionID
+  $search: String
+  $showForgotten: Boolean = false
+  $limit: Int = 100
+  $offset: Int = 0
+  $since: DateTime
+) {
+  conversations(
+    personId: $personId
+    executionId: $executionId
+    search: $search
+    showForgotten: $showForgotten
+    limit: $limit
+    offset: $offset
+    since: $since
+  )
+}
+
+# Conversation Mutations
+mutation ClearConversations {
+  clearConversations {
+    success
+    message
+    error
+  }
+}

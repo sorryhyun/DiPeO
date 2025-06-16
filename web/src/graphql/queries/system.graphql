@@ -1,0 +1,13 @@
+# System Queries
+query GetSystemInfo {
+  systemInfo
+}
+
+# Clear Conversations Mutation
+mutation ClearConversations {
+  clearConversations {
+    success
+    message
+    error
+  }
+}

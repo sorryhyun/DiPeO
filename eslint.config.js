@@ -18,7 +18,9 @@ export default [
       '**/*.config.js',
       '**/*.config.ts',
       '**/vite.config.ts',
-      'apps/server/**', // Python backend
+      'server/**', // Python backend
+      '**/__generated__/**', // Generated GraphQL files
+      '**/server/.venv/**', // Python virtual environment
     ],
   },
 
@@ -46,8 +48,7 @@ export default [
         sourceType: 'module',
         project: [
           './tsconfig.json',
-          './apps/web/tsconfig.json',
-          './packages/*/tsconfig.json',
+          './web/tsconfig.json',
         ],
         tsconfigRootDir: import.meta.dirname,
       },
