@@ -6,7 +6,7 @@ load_dotenv()
 
 BASE_DIR = Path(
     os.getenv("BASE_DIR",
-              Path(__file__).resolve().parents[2].as_posix())
+              Path(__file__).resolve().parents[1].as_posix())
 ).resolve()
 
 # Unified file storage under files/ directory

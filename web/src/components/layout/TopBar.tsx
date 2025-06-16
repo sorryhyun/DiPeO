@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, TestTube } from 'lucide-react';
-import { Button, FileUploadButton } from '@/components/ui/buttons';
+import { Button } from '@/components/ui/buttons';
 import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
@@ -35,13 +35,6 @@ const TopBar = () => {
     isDirty
   } = diagramManager;
   
-  // Create onChange handler for FileUploadButton
-  const onImportYAML = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && importFile) {
-      void importFile(file);
-    }
-  };
   
   // Load API keys on mount - backend is the single source of truth
   const { data: apiKeysData, error: apiKeysError } = useGetApiKeysQuery({
@@ -118,20 +111,29 @@ const TopBar = () => {
           >
             📄 New
           </Button>
-          <FileUploadButton
-            accept=".yaml,.yml,.native.yaml,.readable.yaml,.llm-readable.yaml"
-            onChange={onImportYAML}
+          <Button
             variant="outline"
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            title="Open diagram from YAML file"
+            onClick={() => {
+              // Load quicksave.json by updating the URL parameter
+              const url = new URL(window.location.href);
+              url.searchParams.set('diagram', 'quicksave');
+              window.history.pushState({}, '', url.toString());
+              
+              // Trigger a popstate event to notify the diagram loader
+              window.dispatchEvent(new PopStateEvent('popstate'));
+              
+              toast.success('Loading quicksave...');
+            }}
+            title="Load quicksave.json"
           >
             📂 Open
-          </FileUploadButton>
+          </Button>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => onSaveToDirectory?.()?.catch(console.error)}
-            title="Save diagram to server (diagrams folder)"
+            onClick={() => onSaveToDirectory?.('quicksave')?.catch(console.error)}
+            title="Save diagram as quicksave.json"
           >
             💾 Save
           </Button>

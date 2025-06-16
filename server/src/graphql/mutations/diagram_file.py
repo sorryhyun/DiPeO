@@ -11,6 +11,7 @@ import uuid
 import logging
 
 from ...services.diagram_service import DiagramService
+from ...services.api_key_service import APIKeyService
 from ...domain import DomainDiagram, DiagramMetadata
 from ...converters import converter_registry
 from ..context import GraphQLContext
@@ -127,7 +128,7 @@ class DiagramFileMutations:
                 )
             
             # Validate diagram structure
-            validation_errors = self._validate_diagram(domain_diagram)
+            validation_errors = self._validate_diagram(domain_diagram, context.api_key_service)
             if validation_errors:
                 return DiagramUploadResult(
                     success=False,
@@ -263,7 +264,7 @@ class DiagramFileMutations:
     # Note: list_diagram_formats mutation has been removed.
     # Use the 'supportedFormats' query instead.
     
-    def _validate_diagram(self, diagram: DomainDiagram) -> List[str]:
+    def _validate_diagram(self, diagram: DomainDiagram, api_key_service: Optional[APIKeyService] = None) -> List[str]:
         """Validate diagram structure and return errors."""
         errors = []
         
@@ -310,10 +311,18 @@ class DiagramFileMutations:
                 if node.data['personId'] not in person_ids:
                     errors.append(f"Node {node_id} references unknown person: {node.data['personId']}")
         
-        # Validate API key references in persons
-        api_key_ids = set(diagram.api_keys.keys())
-        for person_id, person in diagram.persons.items():
-            if person.apiKeyId and person.apiKeyId not in api_key_ids:
-                errors.append(f"Person {person_id} references unknown API key: {person.apiKeyId}")
+        # Validate API key references in persons against external API key store
+        if api_key_service:
+            # Get all available API keys from the service
+            api_key_ids = set(api_key_service._store.keys())
+            for person_id, person in diagram.persons.items():
+                if person.api_key_id and person.api_key_id not in api_key_ids:
+                    errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
+        else:
+            # Fallback to checking embedded keys if no service provided
+            api_key_ids = set(diagram.api_keys.keys())
+            for person_id, person in diagram.persons.items():
+                if person.api_key_id and person.api_key_id not in api_key_ids:
+                    errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
         
         return errors

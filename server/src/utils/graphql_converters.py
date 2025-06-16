@@ -116,7 +116,7 @@ class DomainToGraphQLConverter:
                     label=person_data.get('label', ''),
                     service=service,
                     model=person_data.get('model', person_data.get('modelName', 'gpt-4')),
-                    apiKeyId=person_data.get('apiKeyId', ''),
+                    api_key_id=person_data.get('apiKeyId', ''),
                     systemPrompt=person_data.get('systemPrompt'),
                     forgettingMode=forgetting_mode,
                     type=person_data.get('type', 'person')

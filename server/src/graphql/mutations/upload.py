@@ -15,6 +15,7 @@ import uuid
 import logging
 
 from ...services.diagram_service import DiagramService
+from ...services.api_key_service import APIKeyService
 from ...domain import DiagramMetadata, DomainDiagram
 from ...converters import converter_registry
 from ..context import GraphQLContext
@@ -23,6 +24,75 @@ from ..types.scalars import DiagramID
 from ..types.enums import DiagramFormat
 
 logger = logging.getLogger(__name__)
+
+def validate_diagram(diagram: DomainDiagram, api_key_service: Optional[APIKeyService] = None) -> List[str]:
+    """Validate diagram structure and return errors."""
+    errors = []
+    
+    # Check for at least one node
+    if not diagram.nodes:
+        errors.append("Diagram must have at least one node")
+    
+    # Validate node references in arrows
+    node_ids = set(diagram.nodes.keys())
+    handle_ids = set(diagram.handles.keys())
+    
+    for arrow_id, arrow in diagram.arrows.items():
+        # Check if source handle exists
+        if arrow.source not in handle_ids:
+            # Check if it's a node reference that needs handle
+            source_node_id = arrow.source.split(':')[0]
+            if source_node_id not in node_ids:
+                errors.append(f"Arrow {arrow_id} references unknown source: {arrow.source}")
+        
+        # Check if target handle exists
+        if arrow.target not in handle_ids:
+            target_node_id = arrow.target.split(':')[0]
+            if target_node_id not in node_ids:
+                errors.append(f"Arrow {arrow_id} references unknown target: {arrow.target}")
+    
+    # Validate handle node references
+    for handle_id, handle in diagram.handles.items():
+        if handle.nodeId not in node_ids:
+            errors.append(f"Handle {handle_id} references unknown node: {handle.nodeId}")
+    
+    # Validate person assignments
+    person_ids = set(diagram.persons.keys())
+    for node_id, node in diagram.nodes.items():
+        person_id = node.data.get('personId')
+        if person_id and person_id not in person_ids:
+            errors.append(f"Node {node_id} references unknown person: {person_id}")
+    
+    # Validate person API key references against external API key store
+    if api_key_service:
+        # Get all available API keys from the service
+        api_key_ids = set(api_key_service._store.keys())
+        for person_id, person in diagram.persons.items():
+            if person.api_key_id and person.api_key_id not in api_key_ids:
+                errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
+    else:
+        # Fallback to checking embedded keys if no service provided
+        api_key_ids = set(diagram.api_keys.keys())
+        for person_id, person in diagram.persons.items():
+            if person.api_key_id and person.api_key_id not in api_key_ids:
+                errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
+    
+    return errors
+
+def domain_to_storage_format(diagram: DomainDiagram) -> Dict[str, Any]:
+    """Convert domain diagram to storage format (dict)."""
+    # Use native converter for storage
+    converter = converter_registry.get(DiagramFormat.NATIVE.value)
+    json_str = converter.serialize(diagram)
+    return json.loads(json_str)
+
+def storage_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
+    """Convert storage format to domain diagram."""
+    # Convert dict to string then parse with native converter
+    converter = converter_registry.get(DiagramFormat.NATIVE.value)
+    # Native format is now JSON, so use JSON serialization
+    json_str = json.dumps(data, indent=2)
+    return converter.deserialize(json_str)
 
 @strawberry.type
 class DiagramUploadResult:
@@ -197,7 +267,7 @@ class UploadMutations:
                 )
             
             # Validate diagram structure
-            validation_errors = self._validate_diagram(domain_diagram)
+            validation_errors = validate_diagram(domain_diagram, context.api_key_service)
             if validation_errors:
                 return DiagramUploadResult(
                     success=False,
@@ -213,10 +283,10 @@ class UploadMutations:
                 )
             
             # Convert to storage format (native dict)
-            storage_data = self._domain_to_storage_format(domain_diagram)
+            storage_data = domain_to_storage_format(domain_diagram)
             
             # Save via diagram service
-            diagram_id = await context.diagram_service.save_diagram(storage_data, filename)
+            diagram_id = await context.diagram_service.save_diagram_with_id(storage_data, filename)
             
             logger.info(f"Diagram uploaded: {filename} -> {diagram_id} (format: {detected_format})")
             
@@ -281,7 +351,7 @@ class UploadMutations:
                 )
             
             # Convert storage format to domain model
-            domain_diagram = self._storage_to_domain_format(diagram_data)
+            domain_diagram = storage_to_domain_format(diagram_data)
             
             # Remove metadata if requested
             if not include_metadata:
@@ -335,64 +405,3 @@ class UploadMutations:
             results.append(result)
         
         return results
-    
-    def _validate_diagram(self, diagram: DomainDiagram) -> List[str]:
-        """Validate diagram structure and return errors."""
-        errors = []
-        
-        # Check for at least one node
-        if not diagram.nodes:
-            errors.append("Diagram must have at least one node")
-        
-        # Validate node references in arrows
-        node_ids = set(diagram.nodes.keys())
-        handle_ids = set(diagram.handles.keys())
-        
-        for arrow_id, arrow in diagram.arrows.items():
-            # Check if source handle exists
-            if arrow.source not in handle_ids:
-                # Check if it's a node reference that needs handle
-                source_node_id = arrow.source.split(':')[0]
-                if source_node_id not in node_ids:
-                    errors.append(f"Arrow {arrow_id} references unknown source: {arrow.source}")
-            
-            # Check if target handle exists
-            if arrow.target not in handle_ids:
-                target_node_id = arrow.target.split(':')[0]
-                if target_node_id not in node_ids:
-                    errors.append(f"Arrow {arrow_id} references unknown target: {arrow.target}")
-        
-        # Validate handle node references
-        for handle_id, handle in diagram.handles.items():
-            if handle.nodeId not in node_ids:
-                errors.append(f"Handle {handle_id} references unknown node: {handle.nodeId}")
-        
-        # Validate person assignments
-        person_ids = set(diagram.persons.keys())
-        for node_id, node in diagram.nodes.items():
-            person_id = node.data.get('personId')
-            if person_id and person_id not in person_ids:
-                errors.append(f"Node {node_id} references unknown person: {person_id}")
-        
-        # Validate person API key references
-        api_key_ids = set(diagram.api_keys.keys())
-        for person_id, person in diagram.persons.items():
-            if person.apiKeyId and person.apiKeyId not in api_key_ids:
-                errors.append(f"Person {person_id} references unknown API key: {person.apiKeyId}")
-        
-        return errors
-    
-    def _domain_to_storage_format(self, diagram: DomainDiagram) -> Dict[str, Any]:
-        """Convert domain diagram to storage format (dict)."""
-        # Use native converter for storage
-        converter = converter_registry.get(DiagramFormat.NATIVE.value)
-        json_str = converter.serialize(diagram)
-        return json.loads(json_str)
-    
-    def _storage_to_domain_format(self, data: Dict[str, Any]) -> DomainDiagram:
-        """Convert storage format to domain diagram."""
-        # Convert dict to string then parse with native converter
-        converter = converter_registry.get(DiagramFormat.NATIVE.value)
-        # Native format is now JSON, so use JSON serialization
-        json_str = json.dumps(data, indent=2)
-        return converter.deserialize(json_str)

@@ -144,7 +144,7 @@ class LightYamlConverter(DiagramConverter):
                 service=LLMService(person_data['service']),
                 model=person_data['model'],
                 systemPrompt=person_data.get('systemPrompt'),
-                apiKeyId=api_key_id,
+                api_key_id=api_key_id,
                 forgettingMode=ForgettingMode(person_data.get('forgettingMode', 'none'))
             )
         

@@ -107,7 +107,7 @@ class ReadableYamlConverter(DiagramConverter):
                 service=LLMService(service),
                 model=model,
                 systemPrompt=agent.get('prompt'),
-                apiKeyId=api_key_id,
+                api_key_id=api_key_id,
                 forgettingMode=ForgettingMode(agent.get('memory', 'none'))
             )
             agent_map[agent['name']] = person_id

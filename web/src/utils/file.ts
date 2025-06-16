@@ -111,8 +111,15 @@ export const saveDiagramToBackend = async (
   try {
     // If we have diagram content, we need to upload it as a new diagram
     if (options.diagramContent) {
-      // Create a file from the diagram content
-      const filename = options.filename || options.defaultFilename || 'diagram.json';
+      // Special handling for quicksave - always save as native JSON format
+      let filename = options.filename || options.defaultFilename || 'diagram.json';
+      let actualFormat = options.format;
+      
+      if (options.filename === 'quicksave') {
+        filename = 'quicksave.json';
+        actualFormat = DiagramFormat.Native;
+      }
+      
       const content = typeof options.diagramContent === 'string' 
         ? options.diagramContent 
         : JSON.stringify(options.diagramContent, null, 2);
@@ -122,7 +129,7 @@ export const saveDiagramToBackend = async (
       });
       
       // Upload the diagram
-      const uploadResult = await uploadDiagram(file, options.format);
+      const uploadResult = await uploadDiagram(file, actualFormat);
       
       if (!uploadResult.success) {
         throw new Error(uploadResult.message || 'Failed to upload diagram');

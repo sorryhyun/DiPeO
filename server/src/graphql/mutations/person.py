@@ -184,7 +184,7 @@ class PersonMutations:
                 label=person_data['label'],
                 service=service,
                 model=person_data.get('model', person_data.get('modelName', 'gpt-4')),
-                api_key_id=person_data['api_key_id'],
+                api_key_id=person_data.get('apiKeyId', ''),
                 systemPrompt=person_data.get('systemPrompt', ''),
                 forgettingMode=forgetting_mode,
                 type=person_data.get('type', 'person')
@@ -339,7 +339,7 @@ class PersonMutations:
                 label=person_data.get('label', ''),
                 service=service,
                 model=model,
-                apiKeyId=api_key_id,
+                api_key_id=api_key_id,
                 systemPrompt=person_data.get('systemPrompt', ''),
                 forgettingMode=forgetting_mode,
                 type=person_data.get('type', 'person')

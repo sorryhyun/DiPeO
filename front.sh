@@ -51,11 +51,10 @@ else
     print_error "Failed to run codegen"
     exit 1
 fi
-cd ..
 
 print_status "GraphQL schema export and codegen completed successfully!"
 print_status "Generated files are in: web/src/__generated__/"
 
 # Step 3: Start the development server
 print_status "Starting frontend development server..."
-pnpm dev:web
+cd web && pnpm dev

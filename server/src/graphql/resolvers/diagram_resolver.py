@@ -18,11 +18,17 @@ class DiagramResolver:
     async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[Diagram]:
         """Get a single diagram by ID (loads from file path)."""
         try:
+            logger.info(f"Attempting to get diagram with ID: {diagram_id}")
             # Get diagram service from GraphQL context
             diagram_service: DiagramService = info.context.diagram_service
             
-            # Load diagram data
-            diagram_data = diagram_service.load_diagram(diagram_id)
+            # Load diagram data using get_diagram which handles ID to path conversion
+            diagram_data = await diagram_service.get_diagram(diagram_id)
+            
+            # Check if diagram was found
+            if not diagram_data:
+                logger.error(f"Diagram not found: {diagram_id}")
+                return None
             
             # If metadata is missing, create it
             if 'metadata' not in diagram_data or not diagram_data['metadata']:
@@ -53,10 +59,7 @@ class DiagramResolver:
                 arrows=graphql_diagram.arrows,
                 persons=graphql_diagram.persons,
                 api_keys=graphql_diagram.api_keys,
-                metadata=graphql_diagram.metadata,
-                node_count=graphql_diagram.node_count,
-                arrow_count=graphql_diagram.arrow_count,
-                person_count=graphql_diagram.person_count
+                metadata=graphql_diagram.metadata
             )
             
         except Exception as e:
@@ -133,10 +136,7 @@ class DiagramResolver:
                     arrows=[],
                     persons=[],
                     api_keys=[],
-                    metadata=metadata,
-                    node_count=0,
-                    arrow_count=0,
-                    person_count=0
+                    metadata=metadata
                 )
                 result.append(diagram)
             

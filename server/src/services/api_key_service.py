@@ -18,7 +18,7 @@ class APIKeyService(BaseService):
     
     def __init__(self, store_file: Optional[str] = None):
         super().__init__()
-        self.store_file = store_file or os.getenv("API_KEY_STORE_FILE", f"{BASE_DIR}/apikeys.json")
+        self.store_file = store_file or os.getenv("API_KEY_STORE_FILE", f"{BASE_DIR}/files/apikeys.json")
         self._store: Dict[str, dict] = {}
         self._load_store()
     

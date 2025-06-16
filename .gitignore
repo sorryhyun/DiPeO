@@ -16,6 +16,8 @@ AGENTS.md
 web/src/__generated__
 web/schema.graphql
 server/schema.graphql
+server/diagrams
+
 # Node.js
 node_modules/
 npm-debug.log*

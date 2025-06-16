@@ -113,7 +113,7 @@ async def person_job_handler(
         
         response = await context.llm_service.call_llm(
             service=service,
-            api_key_id=person.apiKeyId,
+            api_key_id=person.api_key_id,
             model=person.model,
             messages=messages,
             system_prompt=person.systemPrompt or ""

@@ -423,7 +423,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       
       autoSaveInterval$ef.current = setInterval(() => {
         if (isDirty && !execution.isRunning) {
-          saveDiagram();
+          saveDiagram('quicksave');
         }
       }, autoSaveInterval);
       
@@ -433,7 +433,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         }
       };
     }
-  }, [autoSave, autoSaveInterval, isDirty, execution.isRunning]);
+  }, [autoSave, autoSaveInterval, isDirty, execution.isRunning, saveDiagram]);
   
   return {
     // State

@@ -114,7 +114,7 @@ class NativeJsonConverter(DiagramConverter):
                 'label': person.label,
                 'service': self.LLM_SERVICE_TO_GRAPHQL.get(person.service, person.service.value.upper()),
                 'model': person.model,
-                'apiKeyId': person.apiKeyId,
+                'apiKeyId': person.api_key_id,
                 'systemPrompt': person.systemPrompt,
                 'forgettingMode': self.FORGETTING_MODE_TO_GRAPHQL.get(person.forgettingMode, person.forgettingMode.value.upper()),
                 'type': person.type
@@ -249,7 +249,7 @@ class NativeJsonConverter(DiagramConverter):
                     label=person_data['label'],
                     service=service,
                     model=person_data['model'],
-                    apiKeyId=person_data['apiKeyId'],
+                    api_key_id=person_data['apiKeyId'],
                     systemPrompt=person_data.get('systemPrompt'),
                     forgettingMode=forgetting_mode,
                     type=person_data.get('type', 'person')

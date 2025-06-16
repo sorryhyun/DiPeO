@@ -13,6 +13,7 @@ from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
 from ..domain import DiagramID
+from config import BASE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class DiagramService(BaseService):
         self.llm_service = llm_service
         self.api_key_service = api_key_service
         self.memory_service = memory_service
-        self.diagrams_dir = Path(os.environ.get('BASE_DIR', '.')).joinpath('files', 'diagrams')
+        self.diagrams_dir = BASE_DIR / 'files' / 'diagrams'
 
 
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
@@ -422,6 +423,20 @@ class DiagramService(BaseService):
         Returns:
             The diagram ID (which is the filename without extension)
         """
+        # Special handling for quicksave
+        if filename == 'quicksave.json':
+            path = 'quicksave.json'
+            diagram_id = 'quicksave'
+            
+            # Update metadata with ID
+            if 'metadata' not in diagram_dict:
+                diagram_dict['metadata'] = {}
+            diagram_dict['metadata']['id'] = diagram_id
+            
+            # Save using existing method
+            self.save_diagram(path, diagram_dict)
+            return diagram_id
+        
         # Extract name from metadata or use filename
         name = (diagram_dict.get('metadata', {}).get('name') or 
                 Path(filename).stem)

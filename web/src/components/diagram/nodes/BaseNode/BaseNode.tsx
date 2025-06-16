@@ -195,18 +195,6 @@ export function BaseNode({
     updateNodeInternals(id);
   }, [nId, id, data, isFlipped, canvas, updateNodeInternals]);
 
-  // Track previous data to detect changes
-  const prevDataRef = useRef(data);
-  
-  // Update node internals when data changes (except on first render)
-  useEffect(() => {
-    // Skip the first render
-    if (prevDataRef.current !== data) {
-      // Update node internals to recalculate handle positions and connections
-      updateNodeInternals(id);
-      prevDataRef.current = data;
-    }
-  }, [data, id, updateNodeInternals]);
   
   // Determine node appearance based on state using data attributes
   const nodeClassNames = useMemo(() => {

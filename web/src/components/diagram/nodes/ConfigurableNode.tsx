@@ -1,6 +1,7 @@
 import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { BaseNode } from './BaseNode';
+import { isEqual } from 'lodash-es';
 
 // Main component - memoized for performance
 const ConfigurableNode = React.memo<NodeProps>(({ id, type, data, selected }) => {
@@ -21,8 +22,8 @@ const ConfigurableNode = React.memo<NodeProps>(({ id, type, data, selected }) =>
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
-    // Deep comparison for data would be expensive, so we check reference
-    prevProps.data === nextProps.data
+    // Use deep comparison for data to prevent unnecessary re-renders
+    isEqual(prevProps.data, nextProps.data)
   );
 });
 
