@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useEffect,
 } from "react";
 import {
   Background,
@@ -23,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
-import { useDiagram } from "@/hooks";
+import { useCanvasContext } from "@/contexts/CanvasContext";
 import { useUnifiedStore } from "@/stores/unifiedStore";
 import { graphQLTypeToNodeKind } from "@/types";
 import ContextMenu from "../controls/ContextMenu";
@@ -185,8 +186,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Stores & Hooks
    * --------------------------------------------------*/
+  const context = useCanvasContext();
   const {
-    // diagram state & callbacks
     nodes,
     arrows,
     onNodesChange,
@@ -197,23 +198,24 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onNodeContextMenu,
     onEdgeContextMenu,
     onPaneContextMenu,
-    // node/edge utils
     addNode,
-    addPerson,
     deleteNode,
     deleteArrow,
+    contextMenu,
+    isContextMenuOpen,
+    closeContextMenu,
+    onNodeDragStartCanvas,
+    onNodeDragStopCanvas,
+    addPerson,
+  } = context.canvasOps;
+  
+  const {
     selectedNodeId,
     selectedArrowId,
     selectNode,
     selectArrow,
-    contextMenu,
-    isContextMenuOpen,
-    closeContextMenu,
     clearSelection,
-    // canvas drag handlers
-    onNodeDragStartCanvas,
-    onNodeDragStopCanvas,
-  } = useDiagram({ enableInteractions: true, enableFileOperations: true });
+  } = context;
 
   /** --------------------------------------------------
    * React Flow instance helpers
@@ -222,11 +224,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   
   // Get viewport operations from store
-  const { setViewport, setZoom, setPosition } = useUnifiedStore(state => ({
-    setViewport: state.setViewport,
-    setZoom: state.setZoom,
-    setPosition: state.setPosition
-  }));
+  const setViewport = useUnifiedStore(state => state.setViewport);
+  const setZoom = useUnifiedStore(state => state.setZoom);
+  const setPosition = useUnifiedStore(state => state.setPosition);
   
   const handleInit = (inst: ReactFlowInstance) => {
     setRfInstance(inst);
@@ -235,10 +235,12 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
   };
   
-  // Handle viewport changes
-  const handleViewportChange = useCallback((viewport: { x: number; y: number; zoom: number }) => {
-    setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
-  }, [setViewport]);
+  // Handle viewport changes - commented out to prevent infinite loops
+  // TODO: Implement proper viewport synchronization without causing re-render loops
+  const handleViewportChange = useCallback((_viewport: { x: number; y: number; zoom: number }) => {
+    // Temporarily disabled to prevent infinite loops
+    // The viewport state is not critical for functionality
+  }, []);
 
   const projectPosition = useCallback(
     (x: number, y: number) => {
@@ -272,8 +274,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onDrop,
     onNodeDragStart: onNodeDragStartCanvas,
     onNodeDragStop: onNodeDragStopCanvas,
-    selectNode,
-    selectArrow,
+    selectNode: (id: string) => selectNode(nodeId(id)),
+    selectArrow: (id: string) => selectArrow(arrowId(id)),
     executionMode,
     clearSelection,
   });

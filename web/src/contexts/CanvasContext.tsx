@@ -89,37 +89,41 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     return nodeIds;
   }, [uiState.multiSelectedIds, uiState.selectedType]);
 
-  // Get selection operations from store
-  const selectionOps = useUnifiedStore(
-    useShallow(state => ({
-      selectNode: (nodeId: NodeID | null) => {
-        if (nodeId) {
-          state.select(nodeId, 'node');
-        } else {
-          state.clearSelection();
-        }
-      },
-      selectArrow: (arrowId: ArrowID | null) => {
-        if (arrowId) {
-          state.select(arrowId, 'arrow');
-        } else {
-          state.clearSelection();
-        }
-      },
-      selectPerson: (personId: PersonID | null) => {
-        if (personId) {
-          state.select(personId, 'person');
-        } else {
-          state.clearSelection();
-        }
-      },
-      selectMultipleNodes: (nodeIds: NodeID[]) => {
-        state.multiSelect(nodeIds, 'node');
-      },
-      clearSelection: state.clearSelection,
-      setReadOnly: state.setReadOnly,
-    }))
-  );
+  // Get selection operations from store - extract functions directly
+  const select = useUnifiedStore(state => state.select);
+  const clearSelection = useUnifiedStore(state => state.clearSelection);
+  const multiSelect = useUnifiedStore(state => state.multiSelect);
+  const setReadOnly = useUnifiedStore(state => state.setReadOnly);
+  
+  // Create stable operation wrappers
+  const selectionOps = React.useMemo(() => ({
+    selectNode: (nodeId: NodeID | null) => {
+      if (nodeId) {
+        select(nodeId, 'node');
+      } else {
+        clearSelection();
+      }
+    },
+    selectArrow: (arrowId: ArrowID | null) => {
+      if (arrowId) {
+        select(arrowId, 'arrow');
+      } else {
+        clearSelection();
+      }
+    },
+    selectPerson: (personId: PersonID | null) => {
+      if (personId) {
+        select(personId, 'person');
+      } else {
+        clearSelection();
+      }
+    },
+    selectMultipleNodes: (nodeIds: NodeID[]) => {
+      multiSelect(nodeIds, 'node');
+    },
+    clearSelection,
+    setReadOnly,
+  }), [select, clearSelection, multiSelect, setReadOnly]);
 
   // Get hook-based operations
   const canvasOps = useCanvasOps();

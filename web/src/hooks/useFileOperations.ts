@@ -14,15 +14,14 @@ import {
   DiagramFormat
 } from '@/__generated__/graphql';
 import { apolloClient } from '@/graphql/client';
+import { diagramId } from '@/types';
+import { serializeDiagramState } from '@/utils/diagramSerializer';
 
 export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const store = useUnifiedStore();
   const [exportDiagramMutation] = useExportDiagramMutation();
-
-  // Get current diagram ID from store or props
-  const diagramId = null; // TODO: Pass diagram ID from parent component
 
   // ===================
   // EXPORT OPERATIONS
@@ -36,16 +35,14 @@ export const useFileOperations = () => {
     filename?: string,
     includeMetadata: boolean = true
   ) => {
-    if (!diagramId) {
-      toast.error('No diagram to export');
-      return;
-    }
+    // Generate diagramId from filename or use a default
+    const generatedDiagramId = diagramId(filename || `diagram_${Date.now()}`);
 
     setIsDownloading(true);
     try {
       const { data } = await exportDiagramMutation({
         variables: {
-          diagramId,
+          diagramId: generatedDiagramId,
           format,
           includeMetadata
         }
@@ -70,7 +67,7 @@ export const useFileOperations = () => {
     } finally {
       setIsDownloading(false);
     }
-  }, [diagramId, exportDiagramMutation]);
+  }, [exportDiagramMutation]);
 
   // ===================
   // IMPORT OPERATIONS
@@ -160,19 +157,23 @@ export const useFileOperations = () => {
    */
   const saveDiagramToServer = useCallback(async (
     format?: DiagramFormat,
-    filename?: string
+    filename?: string,
+    existingDiagramId?: string
   ) => {
-    if (!diagramId) {
-      toast.error('No diagram to save');
-      return;
-    }
-
     setIsProcessing(true);
     try {
-      const result = await saveDiagramToBackend(diagramId, {
-        format: format || DiagramFormat.Native,
-        filename
-      });
+      // Serialize the current diagram state
+      const diagramContent = serializeDiagramState(store);
+      
+      // If we have an existing diagram ID, use it; otherwise pass null to create new
+      const result = await saveDiagramToBackend(
+        existingDiagramId ? diagramId(existingDiagramId) : null,
+        {
+          format: format || DiagramFormat.Native,
+          filename,
+          diagramContent
+        }
+      );
       
       toast.success(`Saved to server as ${result.filename}`);
       return result;
@@ -183,7 +184,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [diagramId]);
+  }, [store]);
 
   // ===================
   // FORMAT INFORMATION

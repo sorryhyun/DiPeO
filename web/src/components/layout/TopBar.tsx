@@ -5,16 +5,16 @@ import { useUIState } from '@/hooks/useStoreSelectors';
 import { useDiagramManager } from '@/hooks/useDiagramManager';
 import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import { useGetApiKeysQuery } from '@/__generated__/graphql';
+import { useGetApiKeysQuery, useListDiagramsQuery } from '@/__generated__/graphql';
 import { toast } from 'sonner';
 import { apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
 import { downloadFile } from '@/utils/file';
 
 
 const TopBar = () => {
-  const [hasCheckedBackend, setHasCheckedBackend] = useState(false);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
+  const [hasLoadedDiagram, setHasLoadedDiagram] = useState(false);
   
   // Use UI state for mode control
   const { activeCanvas, setActiveCanvas } = useUIState();
@@ -23,14 +23,17 @@ const TopBar = () => {
   // Use only the diagram manager for file operations - much lighter weight
   const diagramManager = useDiagramManager({
     confirmOnNew: true,
-    confirmOnLoad: false
+    confirmOnLoad: false,
+    autoSave: true,
+    autoSaveInterval: 15000 // Auto-save every 15 seconds
   });
   
   // Extract what we need
   const {
     newDiagram: clearDiagram,
     saveDiagram: onSaveToDirectory,
-    loadDiagramFromFile: importFile
+    loadDiagramFromFile: importFile,
+    isDirty
   } = diagramManager;
   
   // Create onChange handler for FileUploadButton
@@ -42,33 +45,36 @@ const TopBar = () => {
   };
   
   // Load API keys on mount - backend is the single source of truth
-  const { data: apiKeysData, error: apiKeysError } = useGetApiKeysQuery();
+  const { data: apiKeysData, error: apiKeysError } = useGetApiKeysQuery({
+    fetchPolicy: 'cache-first'
+  });
   
-  useEffect(() => {
-    if (apiKeysData?.apiKeys) {
-      const backendKeys = apiKeysData.apiKeys;
-      console.log('[TopBar] Loaded API keys from GraphQL:', backendKeys);
+  // Temporarily commented out to debug infinite loop
+  // useEffect(() => {
+  //   if (apiKeysData?.apiKeys) {
+  //     const backendKeys = apiKeysData.apiKeys;
+  //     console.log('[TopBar] Loaded API keys from GraphQL:', backendKeys);
       
-      // Clear existing keys and load fresh from backend
-      // This ensures backend file is the single source of truth
-      const newApiKeys = new Map();
+  //     // Clear existing keys and load fresh from backend
+  //     // This ensures backend file is the single source of truth
+  //     const newApiKeys = new Map();
       
-      backendKeys.forEach(key => {
-        // Brand the ID properly
-        const brandedId = apiKeyId(key.id);
-        const brandedKey = { ...key, id: brandedId };
-        newApiKeys.set(brandedId, brandedKey);
-      });
+  //     backendKeys.forEach(key => {
+  //       // Brand the ID properly
+  //       const brandedId = apiKeyId(key.id);
+  //       const brandedKey = { ...key, id: brandedId };
+  //       newApiKeys.set(brandedId, brandedKey);
+  //     });
       
-      // Replace entire apiKeys state with backend data
-      useUnifiedStore.setState({ apiKeys: newApiKeys });
+  //     // Replace entire apiKeys state with backend data
+  //     useUnifiedStore.setState({ apiKeys: newApiKeys });
       
-      console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
-      if (backendKeys.length > 0) {
-        toast.success(`Loaded ${backendKeys.length} API keys`);
-      }
-    }
-  }, [apiKeysData]);
+  //     console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
+  //     if (backendKeys.length > 0) {
+  //       toast.success(`Loaded ${backendKeys.length} API keys`);
+  //     }
+  //   }
+  // }, []); // Only run once on mount
   
   useEffect(() => {
     if (apiKeysError) {
@@ -76,6 +82,35 @@ const TopBar = () => {
       toast.error(`Failed to load API keys: ${apiKeysError.message}`);
     }
   }, [apiKeysError]);
+  
+  // Load the most recent diagram on startup
+  const { data: diagramsData } = useListDiagramsQuery({
+    variables: {
+      limit: 1, // Get only the most recent
+      offset: 0
+    },
+    skip: hasLoadedDiagram, // Only run once
+    fetchPolicy: 'cache-first'
+  });
+  
+  // Load the most recent diagram when we get the list
+  useEffect(() => {
+    if (!hasLoadedDiagram && diagramsData?.diagrams && diagramsData.diagrams.length > 0) {
+      const mostRecentDiagram = diagramsData.diagrams[0];
+      if (mostRecentDiagram?.metadata?.id) {
+        // Mark as loaded before attempting to load
+        setHasLoadedDiagram(true);
+        
+        // Check if we're not already loading a diagram via URL parameter
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('diagram')) {
+          // Redirect to load the most recent diagram
+          window.location.href = `/?diagram=${mostRecentDiagram.metadata.id}`;
+          toast.info(`Loading most recent diagram: ${mostRecentDiagram.metadata?.name || 'Untitled'}`);
+        }
+      }
+    }
+  }, [diagramsData, hasLoadedDiagram]);
   
   // Handle monitor mode separately
   useEffect(() => {
@@ -90,53 +125,6 @@ const TopBar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
-  // Check backend API keys after initial render to avoid blocking
-  useEffect(() => {
-    if (hasCheckedBackend) return;
-
-    let cancelled = false;
-    
-    // Defer the API check to avoid blocking the initial render
-    const timeoutId = setTimeout(() => {
-      const checkBackendApiKeys = async () => {
-        try {
-          // Skip this check since we're already loading API keys with GraphQL
-          if (!cancelled && apiKeysData?.apiKeys) {
-            const backendKeys = apiKeysData.apiKeys;
-            
-            // Get current apiKeys length from store
-            const currentApiKeysLength = useUnifiedStore.getState().apiKeys.size;
-            
-            if (backendKeys.length > 0 && currentApiKeysLength === 0) {
-              // API keys are already loaded in the mount effect above
-              // This check is kept for compatibility but keys are not re-added
-            }
-          }
-        } catch (error) {
-          if (!cancelled) {
-            console.error('[Check Backend API Keys]', error);
-            toast.error(`Check Backend API Keys: ${(error as Error).message}`);
-          }
-        } finally {
-          if (!cancelled) {
-            setHasCheckedBackend(true);
-          }
-        }
-      };
-
-      checkBackendApiKeys().catch(error => {
-        if (!cancelled) {
-          console.error('[Check Backend API Keys - Unhandled]', error);
-        }
-      });
-    }, 100); // Small delay to let the UI render first
-
-    // Cleanup function
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
-  }, [hasCheckedBackend, apiKeysData]); // Add hasCheckedBackend and apiKeysData to dependencies
 
   // Keyboard shortcuts could be added here if needed
 
@@ -174,6 +162,20 @@ const TopBar = () => {
           >
             💾 Save
           </Button>
+          {/* Auto-save status indicator */}
+          <div className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600">
+            {isDirty ? (
+              <>
+                <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                <span>Unsaved changes</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Saved</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center space-x-4">

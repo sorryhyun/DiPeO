@@ -67,6 +67,11 @@ export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
             }
           });
           
+          if (!modelsData || !modelsData.availableModels) {
+            console.warn('No models data received from API');
+            return [];
+          }
+          
           return modelsData.availableModels.map((model: string) => ({
             value: model,
             label: model

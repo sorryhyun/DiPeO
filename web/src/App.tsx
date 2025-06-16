@@ -14,9 +14,9 @@ const LazyInteractivePromptModal = React.lazy(() => import('./components/executi
 // Inner component that uses React Flow hooks
 function AppContent() {
   const { activeCanvas } = useCanvasUIState();
-  const { setReadOnly } = useCanvasOperationsContext();
-  // Create the main execution connection (GraphQL-based)
-  const execution = useExecution({ autoConnect: true });
+  const { setReadOnly, executionOps: execution } = useCanvasOperationsContext();
+  
+  // Don't create another connection - use the existing execution instance from context
   
   useEffect(() => {
     const checkMonitorMode = () => {
@@ -93,7 +93,7 @@ function AppContent() {
         
         
         {/* Interactive Prompt Modal */}
-        {execution.interactivePrompt && (
+        {execution?.interactivePrompt && (
           <Suspense fallback={null}>
             <LazyInteractivePromptModal
               prompt={execution.interactivePrompt}

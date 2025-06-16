@@ -94,7 +94,7 @@ class PersonResolver:
             llm_service = context.llm_service
             
             # Get available models from LLM service
-            models = llm_service.get_available_models(
+            models = await llm_service.get_available_models(
                 service=service,
                 api_key_id=api_key_id
             )

@@ -58,4 +58,4 @@ print_status "Generated files are in: web/src/__generated__/"
 
 # Step 3: Start the development server
 print_status "Starting frontend development server..."
-pnpm dev
+pnpm dev:web

@@ -205,14 +205,35 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || 'diagram';
-      // Use 'light' format for simpler, label-based saving
-      await fileOps.saveDiagramToServer(DiagramFormat.Light, defaultFilename);
-      setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
-      setIsDirty(false);
-      toast.success('Diagram saved successfully');
+      
+      // Check if we have an existing diagram ID from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const existingDiagramId = urlParams.get('diagram');
+      
+      // Use 'native' format for full fidelity saving
+      const result = await fileOps.saveDiagramToServer(
+        DiagramFormat.Native, 
+        defaultFilename,
+        existingDiagramId || undefined
+      );
+      
+      // Only show success if save actually succeeded
+      if (result) {
+        setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
+        setIsDirty(false);
+        
+        // Update URL if we got a new diagram ID
+        if (result.diagramId && !existingDiagramId) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('diagram', result.diagramId);
+          window.history.replaceState({}, '', newUrl.toString());
+        }
+        
+        toast.success('Diagram saved successfully');
+      }
     } catch (error) {
       console.error('Failed to save diagram:', error);
-      toast.error('Failed to save diagram');
+      // Don't show another error toast - saveDiagramToServer already shows one
     }
   }, [fileOps]);
   

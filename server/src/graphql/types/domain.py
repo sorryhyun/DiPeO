@@ -44,13 +44,16 @@ class Node:
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         """Node data as JSON scalar."""
-        # Access the original pydantic model data
-        return self.__pydantic_model__.data
+        # Access the data field directly
+        return self.data if hasattr(self, 'data') else None
     
     @strawberry.field
     def display_name(self) -> str:
         """Computed display name for the node."""
-        return self.__pydantic_model__.display_name
+        # Get from data field if available
+        if hasattr(self, 'data') and self.data:
+            return self.data.get('label', f'{self.type} node')
+        return f'{self.type} node'
     
     @strawberry.field
     def handles(self, info) -> List[Handle]:
@@ -73,7 +76,7 @@ class Arrow:
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         """Arrow data as JSON scalar."""
-        return self.__pydantic_model__.data
+        return self.data if hasattr(self, 'data') else None
 
 @strawberry.experimental.pydantic.type(model=DomainPerson)
 class Person:
@@ -90,7 +93,9 @@ class Person:
     @strawberry.field
     def masked_api_key(self) -> Optional[str]:
         """Return masked API key for display."""
-        return self.__pydantic_model__.masked_api_key
+        if not self.apiKeyId:
+            return None
+        return f"****{str(self.apiKeyId)[-4:]}"
 
 @strawberry.experimental.pydantic.type(model=DomainApiKey)
 class ApiKey:
@@ -102,7 +107,7 @@ class ApiKey:
     @strawberry.field
     def masked_key(self) -> str:
         """Masked version of the key."""
-        return self.__pydantic_model__.masked_key
+        return f"{self.service.value}-****"
 
 @strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True)
 class DiagramMetadata:
@@ -122,17 +127,17 @@ class Diagram:
     @strawberry.field
     def node_count(self) -> int:
         """Total number of nodes."""
-        return self.__pydantic_model__.node_count
+        return len(self.nodes)
     
     @strawberry.field
     def arrow_count(self) -> int:
         """Total number of arrows."""
-        return self.__pydantic_model__.arrow_count
+        return len(self.arrows)
     
     @strawberry.field
     def person_count(self) -> int:
         """Total number of persons."""
-        return self.__pydantic_model__.person_count
+        return len(self.persons)
     
     @strawberry.field
     async def estimated_cost(self, info) -> Optional[float]:
@@ -159,22 +164,24 @@ class ExecutionState:
     @strawberry.field
     def node_outputs(self) -> Optional[JSONScalar]:
         """Node outputs as JSON scalar."""
-        return self.__pydantic_model__.node_outputs
+        return self.node_outputs if hasattr(self, 'node_outputs') else None
     
     @strawberry.field
     def variables(self) -> Optional[JSONScalar]:
         """Variables as JSON scalar."""
-        return self.__pydantic_model__.variables
+        return self.variables if hasattr(self, 'variables') else None
     
     @strawberry.field
     def duration_seconds(self) -> Optional[float]:
         """Execution duration in seconds."""
-        return self.__pydantic_model__.duration_seconds
+        if self.started_at and self.ended_at:
+            return (self.ended_at - self.started_at).total_seconds()
+        return None
     
     @strawberry.field
     def is_active(self) -> bool:
         """Whether execution is still active."""
-        return self.__pydantic_model__.is_active
+        return self.status in ['running', 'paused']
 
 @strawberry.experimental.pydantic.type(model=PydanticExecutionEvent)
 class ExecutionEvent:
@@ -188,11 +195,19 @@ class ExecutionEvent:
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         """Event data as JSON scalar."""
-        return self.__pydantic_model__.data
+        return self.data if hasattr(self, 'data') else None
     
     @strawberry.field
     def formatted_message(self) -> str:
         """Human-readable event message."""
-        return self.__pydantic_model__.formatted_message
+        # Format based on event type
+        if self.event_type == 'node_started':
+            return f"Node {self.node_id} started"
+        elif self.event_type == 'node_completed':
+            return f"Node {self.node_id} completed"
+        elif self.event_type == 'node_failed':
+            return f"Node {self.node_id} failed"
+        else:
+            return f"{self.event_type} for node {self.node_id}"
 
 # Note: Enums are handled by Pydantic models directly, no need to import from .enums

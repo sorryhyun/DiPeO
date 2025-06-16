@@ -156,7 +156,7 @@ class UploadMutations:
                 )
             
             # Detect or validate format
-            detected_format = format
+            detected_format = format.lower() if format else None
             if not detected_format:
                 detected_format = converter_registry.detect_format(content_str)
                 if not detected_format:

@@ -131,38 +131,73 @@ export const downloadEnhanced = async (
 
 /**
  * Save diagram to backend using GraphQL
- * @param diagramId - The diagram ID (file path)
+ * This function now properly handles both new and existing diagrams
+ * @param diagramId - The diagram ID (file path) - optional for new diagrams
  * @param options - Save options including format
  */
 export const saveDiagramToBackend = async (
-  diagramId: DiagramID,
-  options: SaveFileOptions
-): Promise<{ success: boolean; filename: string }> => {
+  diagramId: DiagramID | null,
+  options: SaveFileOptions & { diagramContent?: any }
+): Promise<{ success: boolean; filename: string; diagramId?: string }> => {
   try {
-    const { data } = await apolloClient.mutate<SaveDiagramMutation, SaveDiagramMutationVariables>({
-      mutation: SaveDiagramDocument,
-      variables: {
-        diagramId,
-        format: options.format || undefined
+    // If we have diagram content, we need to upload it as a new diagram
+    if (options.diagramContent) {
+      // Create a file from the diagram content
+      const filename = options.filename || options.defaultFilename || 'diagram.json';
+      const content = typeof options.diagramContent === 'string' 
+        ? options.diagramContent 
+        : JSON.stringify(options.diagramContent, null, 2);
+      
+      const file = new File([content], filename, { 
+        type: filename.endsWith('.json') ? 'application/json' : 'text/yaml' 
+      });
+      
+      // Upload the diagram
+      const uploadResult = await uploadDiagram(file, options.format);
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.message || 'Failed to upload diagram');
       }
-    });
-    
-    if (!data?.saveDiagram.success) {
-      throw new Error(data?.saveDiagram.error || 'Failed to save diagram');
+      
+      return {
+        success: true,
+        filename: uploadResult.diagramName || filename,
+        diagramId: uploadResult.diagramId
+      };
     }
     
-    // Extract filename from the message or use the diagram name
-    const filename = data.saveDiagram.diagram?.metadata?.name || 
-                    options.filename || 
-                    options.defaultFilename || 
-                    'diagram';
+    // If no content provided but we have a diagramId, use the existing save mutation
+    if (diagramId) {
+      const { data } = await apolloClient.mutate<SaveDiagramMutation, SaveDiagramMutationVariables>({
+        mutation: SaveDiagramDocument,
+        variables: {
+          diagramId,
+          format: options.format || undefined
+        }
+      });
+      
+      if (!data?.saveDiagram.success) {
+        throw new Error(data?.saveDiagram.error || 'Failed to save diagram');
+      }
+      
+      // Extract filename from the message or use the diagram name
+      const filename = data.saveDiagram.diagram?.metadata?.name || 
+                      options.filename || 
+                      options.defaultFilename || 
+                      'diagram';
+      
+      return {
+        success: true,
+        filename: filename.endsWith('.yaml') || filename.endsWith('.yml') || filename.endsWith('.json') 
+          ? filename 
+          : `${filename}.yaml`,
+        diagramId
+      };
+    }
     
-    return {
-      success: true,
-      filename: filename.endsWith('.yaml') || filename.endsWith('.yml') || filename.endsWith('.json') 
-        ? filename 
-        : `${filename}.yaml`
-    };
+    // No diagram ID and no content - error
+    throw new Error('Either diagramId or diagramContent must be provided');
+    
   } catch (error) {
     console.error('[Save diagram GraphQL]', error);
     toast.error(`Save diagram: ${(error as Error).message}`);
