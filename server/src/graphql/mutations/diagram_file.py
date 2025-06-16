@@ -260,21 +260,8 @@ class DiagramFileMutations:
                 error=str(e)
             )
     
-    @strawberry.mutation
-    async def list_diagram_formats(self) -> List[DiagramFormatInfo]:
-        """Get list of supported diagram formats."""
-        formats = converter_registry.list_formats()
-        return [
-            DiagramFormatInfo(
-                id=fmt['id'],
-                name=fmt['name'],
-                description=fmt['description'],
-                extension=fmt['extension'],
-                supports_import=fmt.get('supports_import', True),
-                supports_export=fmt.get('supports_export', True)
-            )
-            for fmt in formats
-        ]
+    # Note: list_diagram_formats mutation has been removed.
+    # Use the 'supportedFormats' query instead.
     
     def _validate_diagram(self, diagram: DomainDiagram) -> List[str]:
         """Validate diagram structure and return errors."""

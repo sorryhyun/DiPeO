@@ -4,7 +4,6 @@
  */
 
 import { toast } from 'react-hot-toast';
-import { createLookupTable } from './dispatchTable';
 import { apolloClient } from '@/graphql/client';
 import { 
   SaveDiagramDocument,
@@ -100,36 +99,6 @@ export const downloadFile = (content: string, filename: string, mimeType: string
 };
 
 /**
- * Enhanced download with File System Access API
- */
-export const downloadEnhanced = async (
-  content: string,
-  filename: string,
-  mimeType: string = 'text/plain'
-): Promise<void> => {
-  if ('showSaveFilePicker' in window && typeof window.showSaveFilePicker === 'function') {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: filename,
-        types: [{
-          description: 'Text files',
-          accept: { [mimeType]: [`.${filename.split('.').pop()}`] }
-        }]
-      });
-      const writable = await handle.createWritable();
-      await writable.write(content);
-      await writable.close();
-      return;
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        console.warn('File System Access API failed:', err);
-      }
-    }
-  }
-  downloadFile(content, filename, mimeType);
-};
-
-/**
  * Save diagram to backend using GraphQL
  * This function now properly handles both new and existing diagrams
  * @param diagramId - The diagram ID (file path) - optional for new diagrams
@@ -205,67 +174,6 @@ export const saveDiagramToBackend = async (
   }
 };
 
-/**
- * Detect file format from filename only
- * No content-based detection to avoid confusion
- */
-export const detectFileFormat = (content: string, filename?: string): FileFormatInfo => {
-  if (!filename) {
-    // Default to native format if no filename provided
-    return { format: DiagramFormat.Native, isLLMFormat: false };
-  }
-  
-  // Check for specific format extensions in filename
-  if (filename.includes('.native.json') || filename.includes('.native.yaml') || filename.includes('.native.yml')) {
-    return { format: DiagramFormat.Native, isLLMFormat: false };
-  }
-  
-  if (filename.includes('.readable.yaml') || filename.includes('.readable.yml')) {
-    return { format: DiagramFormat.Readable, isLLMFormat: false };
-  }
-  
-  if (filename.includes('.llm.yaml') || filename.includes('.llm.yml') || filename.includes('.llm-readable')) {
-    return { format: DiagramFormat.Llm, isLLMFormat: true };
-  }
-  
-  // For plain .yaml or .yml files, default to light format
-  const ext = filename.split('.').pop()?.toLowerCase();
-  if (ext === 'yaml' || ext === 'yml') {
-    return { format: DiagramFormat.Light, isLLMFormat: false };
-  }
-  
-  // Default to native format for unrecognized extensions
-  return { format: DiagramFormat.Native, isLLMFormat: false };
-};
-
-// Create lookup tables for file format mappings
-const mimeTypeLookup = createLookupTable<DiagramFormat, string>({
-  [DiagramFormat.Light]: 'text/yaml',
-  [DiagramFormat.Native]: 'application/json',
-  [DiagramFormat.Readable]: 'text/yaml',
-  [DiagramFormat.Llm]: 'text/yaml'
-});
-
-const fileExtensionLookup = createLookupTable<DiagramFormat, string>({
-  [DiagramFormat.Light]: '.yaml',
-  [DiagramFormat.Native]: '.native.json',
-  [DiagramFormat.Readable]: '.readable.yaml',
-  [DiagramFormat.Llm]: '.llm-readable.yaml'
-});
-
-/**
- * Get MIME type for format
- */
-export const getMimeType = (format: DiagramFormat): string => {
-  return mimeTypeLookup(format) || 'text/plain';
-};
-
-/**
- * Get file extension for format
- */
-export const getFileExtension = (format: DiagramFormat): string => {
-  return fileExtensionLookup(format) || '.txt';
-};
 
 /**
  * Upload diagram file using GraphQL

@@ -10,9 +10,9 @@ import { useSubscription, useMutation, ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
-import type { DomainDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID, ExecutionID, DiagramID } from '@/types';
+import type { ReactDiagram, InteractivePromptData, ExecutionOptions, ExecutionUpdate, NodeID, ExecutionID, DiagramID } from '@/types';
 import { nodeId, executionId, diagramId } from '@/types';
-import { NodeKind } from '@/types/primitives/enums';
+import { NodeKind } from '@/types';
 import { createCommonStoreSelector } from '@/stores/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/config/nodeMeta';
 import {
@@ -69,7 +69,7 @@ export interface UseExecutionReturn {
   duration: string;
   
   // Execution Actions
-  execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
+  execute: (diagram?: ReactDiagram, options?: ExecutionOptions) => Promise<void>;
   abort: () => void;
   
   // Node Actions
@@ -441,7 +441,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [promptData, onUpdate]);
   
   // Main Actions
-  const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
+  const execute = useCallback(async (diagram?: ReactDiagram, options?: ExecutionOptions) => {
     // Reset state
     setExecution(initialExecutionState);
     setNodeStates({});

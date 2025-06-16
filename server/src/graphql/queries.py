@@ -6,6 +6,7 @@ from datetime import datetime
 from .types.domain import (
     Diagram, ExecutionState, Person, ApiKey, ExecutionEvent
 )
+from .mutations.diagram_file import DiagramFormatInfo
 from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .types.inputs import DiagramFilterInput, ExecutionFilterInput
 # Import enums from the Pydantic models (single source of truth)
@@ -254,3 +255,21 @@ class Query:
             "offset": offset,
             "has_more": offset + limit < len(filtered)
         }
+    
+    @strawberry.field
+    async def supported_formats(self, info) -> List[DiagramFormatInfo]:
+        """Get list of supported diagram formats for import/export."""
+        from ..converters import converter_registry
+        
+        formats = converter_registry.list_formats()
+        return [
+            DiagramFormatInfo(
+                id=fmt['id'],
+                name=fmt['name'],
+                description=fmt['description'],
+                extension=fmt['extension'],
+                supports_import=fmt.get('supports_import', True),
+                supports_export=fmt.get('supports_export', True)
+            )
+            for fmt in formats
+        ]

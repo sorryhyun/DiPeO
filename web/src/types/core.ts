@@ -3,7 +3,7 @@
  * Single source of truth for all fundamental types
  */
 
-import type { NodeKind } from './primitives/enums';
+import type { NodeKind } from './generated/node-kinds';
 import type { PersonID } from './branded';
 
 // Re-export from graphql-mappings which provides compatibility layer
@@ -13,7 +13,7 @@ export type {
   DomainHandle,
   DomainPerson,
   DomainApiKey,
-  DomainDiagram,
+  ReactDiagram,
   ArrowData
 } from './graphql-mappings';
 
@@ -132,7 +132,7 @@ export interface NodeExecutionState {
 }
 
 // Type guards are now imported from graphql-mappings
-export { isDomainNode, isDomainDiagram } from './graphql-mappings';
+export { isDomainNode, isReactDiagram } from './graphql-mappings';
 
 /**
  * Utility types for working with nodes

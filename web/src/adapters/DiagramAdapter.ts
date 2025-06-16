@@ -3,12 +3,12 @@
  * Provides efficient, cached conversions with type safety
  */
 
-import { Node as RFNode, Edge as RFEdge, Connection } from '@xyflow/react';
+import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
 import { 
   DomainNode, 
   DomainArrow, 
   DomainHandle, 
-  DomainDiagram,
+  ReactDiagram,
   NodeID,
   ArrowID,
   HandleID,
@@ -24,7 +24,71 @@ import {
   graphQLTypeToNodeKind
 } from '@/types';
 import { HandleDirection } from '@/__generated__/graphql';
-import { DiPeoNode, DiPeoEdge, ValidatedConnection } from '@/types/framework/reactUtils';
+
+/**
+ * React Flow specific diagram representation
+ */
+export interface ReactFlowDiagram {
+  nodes: Node[];
+  edges: Edge[];
+}
+
+/**
+ * React node with DiPeO data
+ */
+export interface DiPeoNode extends Node {
+  data: Record<string, unknown> & {
+    label: string;
+    inputs?: Record<string, unknown>;
+    outputs?: Record<string, unknown>;
+  };
+  draggable?: boolean;
+  selectable?: boolean;
+  connectable?: boolean;
+  focusable?: boolean;
+  deletable?: boolean;
+}
+
+/**
+ * React edge with DiPeO data
+ */
+export interface DiPeoEdge extends Edge {
+  data?: {
+    label?: string;
+    dataType?: string;
+  };
+}
+
+/**
+ * Extended connection with validation
+ */
+export interface ValidatedConnection extends Connection {
+  isValid?: boolean;
+  validationMessage?: string;
+}
+
+/**
+ * React instance wrapper
+ */
+export interface DiPeoReactInstance {
+  nodes: DiPeoNode[];
+  edges: DiPeoEdge[];
+  getNode: (id: string) => DiPeoNode | undefined;
+  getEdge: (id: string) => DiPeoEdge | undefined;
+  getNodes: () => DiPeoNode[];
+  getEdges: () => DiPeoEdge[];
+}
+
+/**
+ * Type guards
+ */
+export function isDiPeoNode(node: Node): node is DiPeoNode {
+  return node && typeof node.data === 'object' && 'label' in node.data;
+}
+
+export function isDiPeoEdge(edge: Edge): edge is DiPeoEdge {
+  return edge && typeof edge === 'object';
+}
 
 export class DiagramAdapter {
   // Cache for performance optimization
@@ -36,7 +100,7 @@ export class DiagramAdapter {
   /**
    * Convert full domain diagram to React Flow format
    */
-  static toReactFlow(diagram: DomainDiagram): {
+  static toReactFlow(diagram: ReactDiagram): {
     nodes: DiPeoNode[];
     edges: DiPeoEdge[];
   } {
@@ -214,7 +278,7 @@ export class DiagramAdapter {
    */
   static validateConnection(
     connection: Connection,
-    diagram: DomainDiagram
+    diagram: ReactDiagram
   ): ValidatedConnection {
     const validated: ValidatedConnection = { ...connection };
 
@@ -357,7 +421,7 @@ export const nodeToReact = (node: DomainNode, handles: DomainHandle[]) =>
 export const arrowToReact = (arrow: DomainArrow) => 
   DiagramAdapter.arrowToReactFlow(arrow);
 
-export const diagramToReact = (diagram: DomainDiagram) => 
+export const diagramToReact = (diagram: ReactDiagram) => 
   DiagramAdapter.toReactFlow(diagram);
 
 export const reactToNode = (rfNode: RFNode) => 
@@ -369,5 +433,5 @@ export const reactToArrow = (rfEdge: RFEdge) =>
 export const connectionToArrow = (connection: Connection) => 
   DiagramAdapter.connectionToArrow(connection);
 
-export const validateConnection = (connection: Connection, diagram: DomainDiagram) => 
+export const validateConnection = (connection: Connection, diagram: ReactDiagram) => 
   DiagramAdapter.validateConnection(connection, diagram);

@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Upload, Download, FileUp, AlertCircle } from 'lucide-react';
-import { useMutation, gql } from '@apollo/client';
-import { toast } from 'react-hot-toast';
+import { useMutation, gql, useQuery } from '@apollo/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/buttons/Button';
 import { Select } from '@/components/ui/inputs/Select';
 import { useUnifiedStore } from '@/stores/unifiedStore';
-import { DiagramFormat } from '@/__generated__/graphql';
+import { DiagramFormat, useGetSupportedFormatsQuery } from '@/__generated__/graphql';
 
 // GraphQL mutations
 const UPLOAD_DIAGRAM = gql`
@@ -47,14 +47,6 @@ const LIST_FORMATS = gql`
   }
 `;
 
-// Format options
-const EXPORT_FORMATS = [
-  { value: DiagramFormat.Native, label: 'Native YAML', description: 'Full-fidelity format with all details' },
-  { value: DiagramFormat.Light, label: 'Light YAML', description: 'Simplified format using labels' },
-  { value: DiagramFormat.Readable, label: 'Readable Workflow', description: 'Human-friendly format' },
-  { value: DiagramFormat.Llm, label: 'LLM-Friendly', description: 'Optimized for AI understanding' },
-];
-
 interface DiagramFileManagerProps {
   className?: string;
 }
@@ -70,6 +62,9 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
 
   const [uploadDiagram] = useMutation(UPLOAD_DIAGRAM);
   const [exportDiagram] = useMutation(EXPORT_DIAGRAM);
+  
+  // Fetch supported formats from GraphQL
+  const { data: formatsData, loading: formatsLoading } = useGetSupportedFormatsQuery();
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -218,7 +213,11 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
                   Drop YAML/JSON file here or click to browse
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-500">
-                  Supports: native, light, readable, and LLM formats
+                  {formatsLoading ? 'Loading formats...' : 
+                   formatsData?.supportedFormats
+                     ?.filter(f => f.supportsImport)
+                     .map(f => f.id)
+                     .join(', ') || 'Multiple formats supported'}
                 </span>
               </div>
             )}
@@ -250,15 +249,18 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
               value={selectedFormat}
               onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat)}
               className="w-full"
+              disabled={formatsLoading}
             >
-              {EXPORT_FORMATS.map(format => (
-                <option key={format.value} value={format.value}>
-                  {format.label}
-                </option>
-              ))}
+              {formatsData?.supportedFormats
+                ?.filter(format => format.supportsExport)
+                .map(format => (
+                  <option key={format.id} value={format.id.toUpperCase() as DiagramFormat}>
+                    {format.name}
+                  </option>
+                )) || []}
             </Select>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {EXPORT_FORMATS.find(f => f.value === selectedFormat)?.description}
+              {formatsData?.supportedFormats?.find(f => f.id.toUpperCase() === selectedFormat)?.description}
             </p>
           </div>
 

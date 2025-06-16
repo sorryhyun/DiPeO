@@ -1,8 +1,10 @@
 /**
- * Type mappings and utilities for transitioning from domain types to GraphQL types
+ * Type mappings and utilities for GraphQL/Domain and React types
  * 
- * This file provides compatibility layer between the old domain types structure
- * (Record-based) and the new GraphQL types (Array-based).
+ * This file provides a clear separation between:
+ * - Domain/GraphQL types: Used for server communication (array-based)
+ * - React types: Used in React components and hooks (array-based, same structure as Domain)
+ * - Store types: Used for React state management (Map-based for efficient lookups)
  */
 
 import type {
@@ -16,15 +18,16 @@ import type {
 } from '@/__generated__/graphql';
 import { NodeType, HandleDirection, DataType } from '@/__generated__/graphql';
 import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from './branded';
-import type { Vec2 } from './primitives';
+import type { Vec2 } from './utilities';
 
-// Re-export GraphQL types as Domain types (they are the same - GraphQL IS our domain)
+// Domain types are GraphQL types - they are the same
+// React types are also the same structure but typed for React usage
 export type DomainNode = Node;
 export type DomainArrow = Arrow;
 export type DomainHandle = Handle;
 export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
-export type DomainDiagram = Diagram;
+export type ReactDiagram = Diagram;
 
 // Store format uses Maps for efficient lookups
 export interface StoreDiagram {
@@ -45,7 +48,7 @@ export interface StoreDiagram {
   };
 }
 
-// Convert from GraphQL/Domain format (arrays) to Store format (Maps)
+// Convert from Domain/React format (arrays) to Store format (Maps)
 export function diagramToStoreMaps(diagram: Partial<Diagram>): {
   nodes: Map<NodeID, Node>;
   handles: Map<HandleID, Handle>;
@@ -83,7 +86,7 @@ export function diagramToStoreMaps(diagram: Partial<Diagram>): {
   return { nodes, handles, arrows, persons, apiKeys };
 }
 
-// Convert from Store format (Maps) back to GraphQL/Domain format (arrays)
+// Convert from Store format (Maps) back to Domain/React format (arrays)
 export function storeMapsToArrays(store: {
   nodes: Map<NodeID, Node>;
   handles: Map<HandleID, Handle>;
@@ -100,8 +103,8 @@ export function storeMapsToArrays(store: {
   };
 }
 
-// Since GraphQL IS our domain format, this is just identity mapping
-export function domainDiagramToGraphQL(diagram: DomainDiagram): Partial<Diagram> {
+// Convert from React format to Domain/GraphQL format for server communication
+export function reactDiagramToDomain(diagram: ReactDiagram): Partial<Diagram> {
   return {
     nodes: diagram.nodes || [],
     handles: diagram.handles || [],
@@ -122,9 +125,9 @@ export function domainDiagramToGraphQL(diagram: DomainDiagram): Partial<Diagram>
   };
 }
 
-// GraphQL to Domain is identity since GraphQL IS our domain
-export function graphQLDiagramToDomain(diagram: Partial<Diagram>): DomainDiagram {
-  return diagram as DomainDiagram;
+// Convert from Domain/GraphQL format to React format for component usage
+export function domainToReactDiagram(diagram: Partial<Diagram>): ReactDiagram {
+  return diagram as ReactDiagram;
 }
 
 // Node type mappings
@@ -179,7 +182,7 @@ export function isDomainNode(obj: unknown): obj is Node {
   );
 }
 
-export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
+export function isReactDiagram(obj: unknown): obj is ReactDiagram {
   return (
     obj !== null &&
     typeof obj === 'object' &&
@@ -192,7 +195,7 @@ export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
 }
 
 // Utility functions matching old domain helpers
-export function createEmptyDiagram(): DomainDiagram {
+export function createEmptyDiagram(): ReactDiagram {
   return {
     nodes: [],
     handles: [],
@@ -211,7 +214,7 @@ export function createEmptyDiagram(): DomainDiagram {
 }
 
 export function getNodeHandles(
-  diagram: DomainDiagram,
+  diagram: ReactDiagram,
   nodeId: NodeID
 ): Handle[] {
   return (diagram.handles || []).filter(
@@ -219,7 +222,7 @@ export function getNodeHandles(
   );
 }
 
-export function getHandleById(diagram: DomainDiagram, handleId: HandleID): Handle | undefined {
+export function getHandleById(diagram: ReactDiagram, handleId: HandleID): Handle | undefined {
   return (diagram.handles || []).find(handle => handle.id === handleId);
 }
 

@@ -111,7 +111,7 @@ mutation DeleteDiagram($id: DiagramID!) {
   }
 }
 
-mutation SaveDiagram($diagramId: DiagramID!, $format: String) {
+mutation SaveDiagram($diagramId: DiagramID!, $format: DiagramFormat) {
   saveDiagram(diagramId: $diagramId, format: $format) {
     success
     diagram {

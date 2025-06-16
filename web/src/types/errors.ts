@@ -1,6 +1,6 @@
 // types/errors.ts - Error classes
 
-import type { Dict } from './primitives';
+import type { Dict } from './utilities';
 
 export class DiPeOError extends Error {
   constructor(message: string, readonly details?: Dict) {

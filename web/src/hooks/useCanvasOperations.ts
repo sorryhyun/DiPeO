@@ -401,9 +401,9 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
   const dragOffset = useRef({ x: 0, y: 0 });
   const shortcutHandlers = useRef<Map<string, () => void>>(new Map());
   
-  // =====================
+  
   // CONTEXT MENU
-  // =====================
+  
   
   const openContextMenu = useCallback((
     x: number, 
@@ -461,9 +461,9 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     closeContextMenu();
   }, [enableInteractions, storeState, closeContextMenu]);
   
-  // =====================
+  
   // DRAG AND DROP
-  // =====================
+  
   
   // Handle drag start for node types from sidebar
   // Handle dragging existing nodes on canvas
@@ -594,9 +594,9 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     });
   }, []);
   
-  // =====================
+  
   // KEYBOARD SHORTCUTS
-  // =====================
+  
   
   // Register a keyboard shortcut
   const registerShortcut = useCallback((key: string, handler: () => void) => {
@@ -718,11 +718,9 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     storeState,
     closeContextMenu
   ]);
-  
-  // =====================
+
   // CANVAS EVENTS
-  // =====================
-  
+
   // Handle canvas pane click
   const onPaneClick = useCallback(() => {
     storeState.clearSelection();
@@ -748,10 +746,8 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     event.stopPropagation();
     openContextMenu(event.clientX, event.clientY, 'edge', nodeId(edgeIdStr));
   }, [openContextMenu]);
-  
-  // =====================
+
   // RETURN INTERFACE
-  // =====================
   
   // Memoize the ID arrays to avoid recreating on every render
   // This is already optimized since persons is cached

@@ -4,17 +4,7 @@ import { useUnifiedStore } from '@/stores/unifiedStore';
 import { toast } from 'sonner';
 import { 
   diagramId,
-  nodeId,
-  handleId,
-  arrowId,
-  personId,
-  apiKeyId,
-  type NodeID,
-  type HandleID,
-  type ArrowID,
-  type PersonID,
-  type ApiKeyID,
-  graphQLDiagramToDomain,
+  domainToReactDiagram,
   diagramToStoreMaps
 } from '@/types';
 
@@ -71,14 +61,14 @@ export function useDiagramLoader() {
           arrowCount: data.diagram.arrows.length,
           personCount: data.diagram.persons.length
         };
-        const domainDiagram = graphQLDiagramToDomain(diagramWithCounts);
+        const reactDiagram = domainToReactDiagram(diagramWithCounts);
         
         // Clear existing data
         const store = useUnifiedStore.getState();
         store.clearAll();
         
         // Convert arrays to Maps for the store
-        const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(domainDiagram);
+        const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
         
         // Update store with all data at once
         useUnifiedStore.setState({
@@ -87,9 +77,9 @@ export function useDiagramLoader() {
           arrows,
           persons,
           apiKeys,
-          nodesArray: domainDiagram.nodes || [],
-          arrowsArray: domainDiagram.arrows || [],
-          personsArray: domainDiagram.persons || [],
+          nodesArray: reactDiagram.nodes || [],
+          arrowsArray: reactDiagram.arrows || [],
+          personsArray: reactDiagram.persons || [],
           dataVersion: 1
         });
         
@@ -97,7 +87,7 @@ export function useDiagramLoader() {
         setHasLoaded(true);
         
         // Show success message
-        const diagramName = domainDiagram.metadata?.name || 'Unnamed diagram';
+        const diagramName = reactDiagram.metadata?.name || 'Unnamed diagram';
         toast.success(`Loaded diagram: ${diagramName}`);
         
       } catch (err) {

@@ -1,4 +1,6 @@
 import { createUnifiedConfig } from '../unifiedConfig';
+import { apolloClient } from '@/graphql/client';
+import { GetApiKeysDocument } from '@/__generated__/graphql';
 
 // Define type inline to satisfy constraint
 type NotionFormDataType = {
@@ -54,27 +56,16 @@ export const notionConfig = createUnifiedConfig<NotionFormDataType>({
       type: 'select',
       options: async () => {
         try {
-          // Check if GraphQL should be used
-          const useGraphQL = new URLSearchParams(window.location.search).get('useGraphQL') === 'true' ||
-                           import.meta.env.VITE_USE_GRAPHQL === 'true';
+          const { data } = await apolloClient.query({
+            query: GetApiKeysDocument,
+            variables: { service: 'notion' },
+            fetchPolicy: 'network-only'
+          });
           
-          if (useGraphQL) {
-            // For GraphQL, we would need to use Apollo Client directly here
-            // Since this is a config file, we can't use hooks
-            // This would require refactoring to move the data fetching to the component level
-            console.warn('GraphQL support for API key fetching in config requires component-level refactoring');
-            // Fall back to REST for now
-          }
-          
-          // REST API call (current implementation)
-          const response = await fetch('/api/apikeys');
-          const keys = await response.json();
-          return keys
-            .filter((key: any) => key.type === 'notion')
-            .map((key: any) => ({
-              value: key.id,
-              label: key.name || key.id
-            }));
+          return data.apiKeys?.map((key: { id: string; label: string }) => ({
+            value: key.id,
+            label: key.label || key.id
+          })) || [];
         } catch (error) {
           console.error('Failed to load API keys:', error);
           return [];

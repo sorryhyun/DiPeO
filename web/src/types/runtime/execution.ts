@@ -1,4 +1,4 @@
-import type { Dict } from '../primitives';
+import type { Dict } from '../utilities';
 import type { NodeID, ExecutionID, PersonID } from '../branded';
 
 export interface ExecutionState<C = Dict> {

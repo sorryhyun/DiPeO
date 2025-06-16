@@ -56,9 +56,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     confirmOnLoad = true
   } = options;
 
-  // =====================
   // CORE HOOKS
-  // =====================
 
   // Canvas state and operations (includes nodes, arrows, persons, history, selection)
   const canvas = useCanvasOperations({ enableInteractions });
@@ -112,9 +110,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     // Additional interaction-specific methods are already in canvas
   } : null;
 
-  // =====================
   // CONVENIENCE METHODS
-  // =====================
 
   // Property manager factory
   const createPropertyManager = useCallback(<T extends Record<string, unknown>>(
@@ -128,16 +124,10 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
 
   // Get the export hook for diagram operations
   const exportHook = useExport();
-  
-  // Get diagram state - uses new export format
   const getDiagramState = exportHook.exportDiagram;
-
-  // Load diagram state - uses new import format
   const loadDiagramState = exportHook.importDiagram;
 
-  // =====================
   // ELEMENT OPERATIONS
-  // =====================
 
   // Node operations - stable store references, no useCallback needed
   const addNode = (type: NodeKind, position: { x: number; y: number }) => {
@@ -171,8 +161,6 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     }
   };
 
-  // Note: Arrow data is not directly available in the new architecture
-  // You should access arrow data through the store if needed
   const getArrow = (_arrowId: ArrowID): DomainArrow | undefined => {
     // Arrow data access would require direct store access
     return undefined;
@@ -202,9 +190,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     return canvas.getPersonById(personId);
   };
 
-  // =====================
   // EXECUTION CONTROL
-  // =====================
 
   // Direct delegation - realtime methods are stable
   const pauseNode = realtime.pauseNode;
@@ -239,9 +225,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
   
   const clearSelection = selection.clearSelection;
 
-  // =====================
   // STATE QUERIES
-  // =====================
 
   const isNodeRunning = (nodeId: NodeID): boolean => {
     return realtime.runningNodes.has(nodeId);
@@ -262,12 +246,9 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     };
   };
 
-  // =====================
   // RETURN INTERFACE
-  // =====================
 
   return {
-    // ===== DATA =====
     // Canvas data
     nodes: canvas.nodes,
     arrows: canvas.arrows,
@@ -296,7 +277,7 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     // Diagram operations
     getDiagramState,
     loadDiagramState,
-    clear: clearDiagram, // Note: clearDiagram is still valid to use
+    clear: clearDiagram,
     
     // Node operations
     addNode,

@@ -7,7 +7,7 @@ import { useCanvasOperations } from '@/hooks/useCanvasOperations';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import { useGetApiKeysQuery } from '@/__generated__/graphql';
 import { toast } from 'sonner';
-import { apiKeyId, type DomainDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
+import { apiKeyId, type ReactDiagram, type DomainNode, type DomainArrow, type DomainPerson, type DomainApiKey, type DomainHandle, type NodeID, type ArrowID, type PersonID, type ApiKeyID, type HandleID } from '@/types';
 import { downloadFile } from '@/utils/file';
 
 

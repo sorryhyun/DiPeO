@@ -23,9 +23,7 @@ export const useFileOperations = () => {
   const store = useUnifiedStore();
   const [exportDiagramMutation] = useExportDiagramMutation();
 
-  // ===================
   // EXPORT OPERATIONS
-  // ===================
 
   /**
    * Export and download diagram in specified format
@@ -69,9 +67,7 @@ export const useFileOperations = () => {
     }
   }, [exportDiagramMutation]);
 
-  // ===================
   // IMPORT OPERATIONS
-  // ===================
 
   /**
    * Import diagram from file using GraphQL
@@ -148,9 +144,9 @@ export const useFileOperations = () => {
     }
   }, [importFile]);
 
-  // ===================
+  
   // SAVE TO BACKEND
-  // ===================
+  
 
   /**
    * Save diagram to backend in specified format
@@ -186,9 +182,9 @@ export const useFileOperations = () => {
     }
   }, [store]);
 
-  // ===================
+  
   // FORMAT INFORMATION
-  // ===================
+  
 
   /**
    * Get available formats

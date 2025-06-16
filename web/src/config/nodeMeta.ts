@@ -6,7 +6,7 @@
  * eliminating the risk of inconsistencies.
  */
 
-import type { NodeKind } from '@/types/primitives/enums';
+import type { NodeKind } from '@/types';
 
 export interface NodeMetadata {
   icon: string;

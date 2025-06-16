@@ -1,0 +1,11 @@
+# Format Queries
+query GetSupportedFormats {
+  supportedFormats {
+    id
+    name
+    description
+    extension
+    supportsImport
+    supportsExport
+  }
+}

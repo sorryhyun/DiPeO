@@ -15,11 +15,10 @@ import { useExport } from './useExport';
 import { useUnifiedStore } from '@/hooks/useUnifiedStore';
 import type { ExecutionOptions } from '@/types';
 import type { ExportFormat } from '@/stores';
-import { DiagramFormat } from '@/__generated__/graphql';
+import { DiagramFormat, NodeType } from '@/__generated__/graphql';
+import { graphQLTypeToNodeKind } from '@/types/graphql-mappings';
 
-// =====================
 // TYPES
-// =====================
 
 export interface DiagramMetadata {
   name?: string;
@@ -84,12 +83,18 @@ export interface UseDiagramManagerReturn {
   _execution?: ReturnType<typeof useExecution>;
 }
 
-// =====================
+
 // HELPERS
-// =====================
+
 
 function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
+  
+  // Helper to handle both string and enum node types
+  const kind = (n: any) =>
+    typeof n.type === 'string'
+      ? n.type.toLowerCase()
+      : graphQLTypeToNodeKind(n.type as NodeType);
   
   // Check for empty diagram
   if (exportFormat.nodes.length === 0) {
@@ -98,13 +103,13 @@ function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolea
   }
   
   // Check for start node
-  const hasStartNode = exportFormat.nodes.some((node: any) => node.type === 'start');
+  const hasStartNode = exportFormat.nodes.some((node: any) => kind(node) === 'start');
   if (!hasStartNode) {
     errors.push('Diagram must have at least one start node');
   }
   
   // Check for endpoint node
-  const hasEndpoint = exportFormat.nodes.some((node: any) => node.type === 'endpoint');
+  const hasEndpoint = exportFormat.nodes.some((node: any) => kind(node) === 'endpoint');
   if (!hasEndpoint) {
     errors.push('Diagram should have at least one endpoint node');
   }
@@ -120,7 +125,7 @@ function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolea
   });
   
   const unconnectedNodes = exportFormat.nodes.filter(
-    (node: any) => !connectedNodes.has(node.id) && node.type !== 'start'
+    (node: any) => !connectedNodes.has(node.id) && kind(node) !== 'start'
   ).map((node: any) => node.displayName || node.id);
   
   if (unconnectedNodes.length > 0) {
@@ -129,7 +134,7 @@ function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolea
   
   // Check for person nodes without assigned persons
   exportFormat.nodes.forEach((node: any) => {
-    if ((node.type === 'person_job' || node.type === 'person_batch_job') && !node.data?.person) {
+    if ((kind(node) === 'person_job' || kind(node) === 'person_batch_job') && !node.data?.person) {
       errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
     }
   });
@@ -140,9 +145,7 @@ function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolea
   };
 }
 
-// =====================
 // MAIN HOOK
-// =====================
 
 export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDiagramManagerReturn {
   const {
@@ -323,7 +326,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
     
     try {
-      // Get store state and convert to DomainDiagram format
+      // Get store state and convert to ReactDiagram format
       const store = useUnifiedStore.getState();
       const domainDiagram = {
         nodes: Array.from(store.nodes.values()),
@@ -336,7 +339,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         personCount: store.persons.size
       };
       
-      // Execute with DomainDiagram format - the execute function will convert to backend format
+      // Execute with ReactDiagram format - the execute function will convert to backend format
       await execution.execute(domainDiagram, options);
     } catch (error) {
       console.error('Failed to execute diagram:', error);

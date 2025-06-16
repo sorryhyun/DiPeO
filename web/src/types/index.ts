@@ -4,12 +4,32 @@
 export * from './core';
 
 // Re-export all types from separate modules
-export * from './primitives';
 export * from './runtime';
 export * from './errors';
-export * from './framework';
 export * from './ui';
 export * from './config';
+
+// Export React Flow types and adapters from DiagramAdapter
+export type {
+  ReactFlowDiagram,
+  DiPeoNode,
+  DiPeoEdge,
+  ValidatedConnection,
+  DiPeoReactInstance
+} from '@/adapters/DiagramAdapter';
+
+export {
+  isDiPeoNode,
+  isDiPeoEdge,
+  nodeToReact,
+  arrowToReact,
+  diagramToReact,
+  reactToNode,
+  reactToArrow,
+  connectionToArrow,
+  validateConnection,
+  DiagramAdapter
+} from '@/adapters/DiagramAdapter';
 
 // Re-export branded types
 export type { 
@@ -45,10 +65,9 @@ export {
   parseHandleId,
 } from './branded';
 
-// Legacy exports for backward compatibility
+export * from './utilities'
 
-// Type guard factory types removed - file doesn't exist
-
+export type {NodeKind, NODE_KINDS} from './generated/node-kinds';
 // GraphQL type mappings and domain compatibility
 export * from './graphql-mappings';
 export type {
