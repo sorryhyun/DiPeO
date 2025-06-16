@@ -56,7 +56,7 @@ async def get_graphql_context(
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from ..utils.dependencies import get_app_context
+    from ..utils.app_context import get_app_context
     
     app_context = get_app_context()
     return GraphQLContext(

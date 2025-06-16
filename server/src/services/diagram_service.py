@@ -12,6 +12,7 @@ from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
 from ..utils.base_service import BaseService
+from ..utils.diagram_validator import DiagramValidator
 from ..domain import DiagramID
 from config import BASE_DIR
 
@@ -35,6 +36,7 @@ class DiagramService(BaseService):
         self.api_key_service = api_key_service
         self.memory_service = memory_service
         self.diagrams_dir = BASE_DIR / 'files' / 'diagrams'
+        self.validator = DiagramValidator(api_key_service)
 
 
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
@@ -66,17 +68,7 @@ class DiagramService(BaseService):
     
     def _validate_diagram(self, diagram: dict) -> None:
         """Validate diagram structure."""
-        if not isinstance(diagram, dict):
-            raise ValidationError("Diagram must be a dictionary")
-        
-        self.validate_required_fields(diagram, ["nodes", "arrows"])
-        
-        # Only accept dict (Record format)
-        if not isinstance(diagram["nodes"], dict):
-            raise ValidationError("Nodes must be a dictionary with node IDs as keys")
-        
-        if not isinstance(diagram["arrows"], dict):
-            raise ValidationError("Arrows must be a dictionary with arrow IDs as keys")
+        self.validator.validate_or_raise(diagram, context="storage")
     
     def import_yaml(self, yaml_text: str) -> dict:
         """Import YAML agent definitions and convert to diagram state."""

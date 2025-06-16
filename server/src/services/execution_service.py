@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator, Callable
 from typing import Any, Dict, Optional, Set
 
 from ..utils.base_service import BaseService
+from ..utils.diagram_validator import DiagramValidator
 from ..exceptions import ValidationError
 from .event_store import event_store, ExecutionEvent, EventType
 
@@ -35,6 +36,7 @@ class ExecutionService(BaseService):
         self.file_service = file_service
         self.diagram_service = diagram_service
         self.notion_service = notion_service
+        self.validator = DiagramValidator(api_key_service)
 
     # ------------------------------------------------ public entry-point
     async def execute_diagram(
@@ -125,22 +127,9 @@ class ExecutionService(BaseService):
             await engine_task
 
     # ----------------------------------------------------------------- helpers
-    @staticmethod
-    async def _validate_diagram(diagram: Dict[str, Any]) -> None:
-        """Cheap structural sanity-check before running the engine."""
-        if not isinstance(diagram, dict):
-            raise ValidationError("Diagram must be a dictionary")
-        nodes = diagram.get("nodes") or {}
-        if not isinstance(nodes, dict):
-            raise ValidationError("Nodes must be a dictionary with node IDs as keys")
-        if not nodes:
-            raise ValidationError("Diagram must contain at least one node")
-        # Record format - iterate over values
-        if not any(
-            n.get("type") == "start" or n.get("data", {}).get("type") == "start"
-            for n in nodes.values()
-        ):
-            raise ValidationError("Diagram must contain at least one start node")
+    async def _validate_diagram(self, diagram: Dict[str, Any]) -> None:
+        """Validate diagram structure for execution."""
+        self.validator.validate_or_raise(diagram, context="execution")
 
     async def _warm_up_models(self, diagram: Dict[str, Any]) -> None:
         """Pre-load each unique (service, model, api_key_id) once to cut latency."""

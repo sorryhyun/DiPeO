@@ -16,7 +16,7 @@ from ...input_models import (
     CreateDiagramInput as PydanticCreateDiagramInput,
     ImportYamlInput as PydanticImportYamlInput
 )
-from ...utils.graphql_converters import DomainToGraphQLConverter
+from ...domain import DomainDiagram
 
 logger = logging.getLogger(__name__)
 
@@ -131,8 +131,9 @@ class DiagramMutations:
             format_str = format.value if format else None
             path = diagram_service.save_diagram(diagram_id, diagram_data, format_str)
             
-            # Convert to GraphQL type using converter
-            graphql_diagram = DomainToGraphQLConverter.convert_diagram(diagram_data)
+            # Convert to GraphQL type using built-in method
+            domain_diagram = DomainDiagram.from_dict(diagram_data)
+            graphql_diagram = domain_diagram.to_graphql()
             
             return DiagramResult(
                 success=True,
@@ -184,7 +185,8 @@ class DiagramMutations:
             
             # Load and return the converted diagram
             converted_data = diagram_service.load_diagram(new_diagram_id)
-            graphql_diagram = DomainToGraphQLConverter.convert_diagram(converted_data)
+            domain_diagram = DomainDiagram.from_dict(converted_data)
+            graphql_diagram = domain_diagram.to_graphql()
             
             return DiagramResult(
                 success=True,
@@ -246,9 +248,10 @@ class DiagramMutations:
             # Save the diagram
             path = diagram_service.save_diagram(filename, diagram_data, 'yaml')
             
-            # Load and convert to GraphQL type using converter
+            # Load and convert to GraphQL type using built-in method
             loaded_diagram = diagram_service.load_diagram(filename)
-            graphql_diagram = DomainToGraphQLConverter.convert_diagram(loaded_diagram)
+            domain_diagram = DomainDiagram.from_dict(loaded_diagram)
+            graphql_diagram = domain_diagram.to_graphql()
             
             return DiagramResult(
                 success=True,

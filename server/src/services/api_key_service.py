@@ -3,8 +3,7 @@ import os
 import uuid
 from typing import Dict, List, Optional
 
-import os
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import BASE_DIR
 from ..exceptions import APIKeyError, ValidationError
 from ..utils.base_service import BaseService
 from ..domain import LLMService as LLMServiceEnum

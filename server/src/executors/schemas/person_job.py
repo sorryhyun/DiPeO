@@ -4,22 +4,9 @@ PersonJob node schema - LLM tasks with memory management
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Dict, Any, List, Literal
-from enum import Enum
 
 from .base import BaseNodeProps
-
-
-class LLMService(str, Enum):
-    OPENAI = "openai"
-    CLAUDE = "claude"
-    GEMINI = "gemini"
-    GROK = "grok"
-
-
-class ContextCleaningRule(str, Enum):
-    NO_FORGET = "no_forget"
-    ON_EVERY_TURN = "on_every_turn"
-    FORGET_OWN_MESSAGES = "forget_own_messages"
+from ...domain import LLMService, ContextCleaningRule
 
 
 class PersonConfig(BaseModel):

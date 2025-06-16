@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 from src.api.routers import health_router
 from src.api.middleware import setup_middleware
 
-# Import lifespan from dependencies
-from src.utils.dependencies import lifespan
+# Import lifespan from app_context
+from src.utils.app_context import lifespan
 
 # Import GraphQL router
 from src.graphql.schema import create_graphql_router

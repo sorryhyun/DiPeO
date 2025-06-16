@@ -8,9 +8,9 @@ import logging
 
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import ExecutionContext, ExecutorResult
-from ...utils.token_usage import TokenUsage
+from ...domain import TokenUsage
 from ...utils.output_processor import OutputProcessor
-from ...utils.dependencies import get_memory_service
+from ...utils.app_context import get_memory_service
 from ..executor_utils import get_input_values, substitute_variables
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 from typing import Any, List, Dict, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from .token_usage import TokenUsage
+    from ..domain import TokenUsage
 
 
 class OutputProcessor:
@@ -197,7 +197,7 @@ class OutputProcessor:
         """
         if isinstance(value, dict) and value.get('_type') == 'personjob_output':
             # Import here to avoid circular dependency
-            from ..utils.token_usage import TokenUsage
+            from ..domain import TokenUsage
             
             return TokenUsage(
                 input=value.get('input_tokens', 0),

@@ -14,6 +14,7 @@ from ...services.diagram_service import DiagramService
 from ...services.api_key_service import APIKeyService
 from ...domain import DomainDiagram, DiagramMetadata
 from ...converters import converter_registry
+from ...utils.diagram_validator import DiagramValidator
 from ..context import GraphQLContext
 from ..types.results import OperationError
 from ..types.scalars import DiagramID
@@ -266,63 +267,5 @@ class DiagramFileMutations:
     
     def _validate_diagram(self, diagram: DomainDiagram, api_key_service: Optional[APIKeyService] = None) -> List[str]:
         """Validate diagram structure and return errors."""
-        errors = []
-        
-        # Check for at least one node
-        if not diagram.nodes:
-            errors.append("Diagram must have at least one node")
-        
-        # Validate node references in arrows
-        node_ids = set(diagram.nodes.keys())
-        handle_ids = set(diagram.handles.keys())
-        
-        for arrow_id, arrow in diagram.arrows.items():
-            # Check if source handle exists
-            if arrow.source not in handle_ids:
-                # Check if it's a node:handle format
-                source_parts = arrow.source.split(':')
-                if len(source_parts) == 2:
-                    source_node_id = source_parts[0]
-                    if source_node_id not in node_ids:
-                        errors.append(f"Arrow {arrow_id} references unknown source node: {source_node_id}")
-                else:
-                    errors.append(f"Arrow {arrow_id} has invalid source format: {arrow.source}")
-            
-            # Check if target handle exists
-            if arrow.target not in handle_ids:
-                # Check if it's a node:handle format
-                target_parts = arrow.target.split(':')
-                if len(target_parts) == 2:
-                    target_node_id = target_parts[0]
-                    if target_node_id not in node_ids:
-                        errors.append(f"Arrow {arrow_id} references unknown target node: {target_node_id}")
-                else:
-                    errors.append(f"Arrow {arrow_id} has invalid target format: {arrow.target}")
-        
-        # Validate handle node references
-        for handle_id, handle in diagram.handles.items():
-            if handle.nodeId not in node_ids:
-                errors.append(f"Handle {handle_id} references unknown node: {handle.nodeId}")
-        
-        # Validate person references in nodes
-        person_ids = set(diagram.persons.keys())
-        for node_id, node in diagram.nodes.items():
-            if 'personId' in node.data and node.data['personId']:
-                if node.data['personId'] not in person_ids:
-                    errors.append(f"Node {node_id} references unknown person: {node.data['personId']}")
-        
-        # Validate API key references in persons against external API key store
-        if api_key_service:
-            # Get all available API keys from the service
-            api_key_ids = set(api_key_service._store.keys())
-            for person_id, person in diagram.persons.items():
-                if person.api_key_id and person.api_key_id not in api_key_ids:
-                    errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
-        else:
-            # Fallback to checking embedded keys if no service provided
-            api_key_ids = set(diagram.api_keys.keys())
-            for person_id, person in diagram.persons.items():
-                if person.api_key_id and person.api_key_id not in api_key_ids:
-                    errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
-        
-        return errors
+        validator = DiagramValidator(api_key_service)
+        return validator.validate(diagram, context="storage")

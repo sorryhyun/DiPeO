@@ -261,7 +261,7 @@ class MemoryService:
 
     async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str:
         """Save the current conversation state to a JSONL log file."""
-        from ..utils.dependencies import get_file_service
+        from ..utils.app_context import get_file_service
         
         file_service = get_file_service()
         

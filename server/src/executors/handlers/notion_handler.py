@@ -99,27 +99,21 @@ def _process_inputs(inputs: Dict[str, Any]) -> List[Any]:
 
 def _substitute_variables(text: str, inputs: List[Any]) -> str:
     """Substitute variables in text with input values"""
+    from ..executor_utils import substitute_variables
+    
     if not text:
         return text
     
-    # Create a mapping of variables to values
+    # Create a mapping of variables to values for the shared function
     variables = {}
     for i, value in enumerate(inputs):
-        variables[f"input{i}"] = str(value)
-        variables[f"{{{{input{i}}}}}"] = str(value)
+        variables[f"input{i}"] = value
         
         # Also support named variables if the input is a dict
         if isinstance(value, dict):
-            for k, v in value.items():
-                variables[k] = str(v)
-                variables[f"{{{{{k}}}}}"] = str(v)
+            variables.update(value)
     
-    # Substitute all variables
-    result = text
-    for key, value in variables.items():
-        result = result.replace(key, value)
-    
-    return result
+    return substitute_variables(text, variables)
 
 
 async def _read_page(

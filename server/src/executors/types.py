@@ -1,16 +1,10 @@
 """Core type definitions and protocols for the unified executor system."""
 
-from typing import Protocol, Type, Dict, Any, List, Optional, TypedDict
+from typing import Protocol, Type, Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 from datetime import datetime
-
-
-class TokenUsage(TypedDict, total=False):
-    """Token usage information from LLM calls."""
-    prompt_tokens: int
-    completion_tokens: int
-    total_tokens: int
+from ..domain import TokenUsage
 
 
 class ExecutorResult:
