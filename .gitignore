@@ -17,6 +17,7 @@ web/src/__generated__
 web/schema.graphql
 server/schema.graphql
 server/diagrams
+docs/deprecated
 
 # Node.js
 node_modules/

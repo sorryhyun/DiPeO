@@ -1,13 +1,29 @@
-// types/config.ts - Central export point for all types
+// types/index.ts - Central export point for all types
+// Provides backward compatibility during migration
 
-// Core types - single source of truth
-export * from './core';
+// Core types - now from core/types
+export * from '@/core/types';
 
-// Re-export all types from separate modules
-export * from './runtime';
-export * from './errors';
-export * from './ui';
-export * from './config';
+// Feature-specific types
+export * from '@/features/diagram-editor/types';
+export * from '@/features/execution-monitor/types';
+export * from '@/features/properties-editor/types';
+
+// Shared types
+export * from '@/shared/types';
+
+// GraphQL types - selectively export to avoid conflicts
+export {
+  domainToReactDiagram,
+  diagramToStoreMaps,
+  nodeKindToGraphQLType,
+  graphQLTypeToNodeKind,
+  getNodeHandles,
+  areHandlesCompatible,
+  isDomainNode,
+  isReactDiagram,
+  createEmptyDiagram
+} from '@/graphql/types';
 
 // Export React Flow types and adapters from DiagramAdapter
 export type {
@@ -16,7 +32,7 @@ export type {
   DiPeoEdge,
   ValidatedConnection,
   DiPeoReactInstance
-} from '@/adapters/DiagramAdapter';
+} from '@/features/diagram-editor/adapters/DiagramAdapter';
 
 export {
   isDiPeoNode,
@@ -29,47 +45,11 @@ export {
   connectionToArrow,
   validateConnection,
   DiagramAdapter
-} from '@/adapters/DiagramAdapter';
+} from '@/features/diagram-editor/adapters/DiagramAdapter';
 
-// Re-export branded types
-export type { 
-  Brand,
-  NodeID,
-  HandleID,
-  ArrowID,
-  PersonID,
-  ApiKeyID,
-  ExecutionID,
-  MessageID,
-  DiagramID
-} from './branded';
-
-export {
-  nodeId,
-  handleId,
-  arrowId,
-  personId,
-  apiKeyId,
-  executionId,
-  messageId,
-  diagramId,
-  isNodeId,
-  isHandleId,
-  isArrowId,
-  isPersonId,
-  isApiKeyId,
-  isExecutionId,
-  isMessageId,
-  isDiagramId,
-  createHandleId,
-  parseHandleId,
-} from './branded';
-
-export * from './utilities'
-
-export type {NodeKind, NODE_KINDS} from './generated/node-kinds';
-// GraphQL type mappings and domain compatibility
-export * from './graphql-mappings';
+// Note: Branded types are now re-exported from @/core/types
+// GraphQL mappings are now re-exported from @/graphql/types
+// Node kinds are now re-exported from @/features/diagram-editor/types
 export type {
   Node,
   Arrow,

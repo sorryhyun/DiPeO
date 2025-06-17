@@ -7,13 +7,13 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from fastapi import HTTPException
 
-from ..exceptions import ValidationError
+from ..shared.exceptions.exceptions import ValidationError
 from .llm_service import LLMService
 from .api_key_service import APIKeyService
 from .memory_service import MemoryService
-from ..utils.base_service import BaseService
-from ..utils.diagram_validator import DiagramValidator
-from ..domain import DiagramID
+from ..shared.utils.base_service import BaseService
+from ..shared.utils.diagram_validator import DiagramValidator
+from ..domains.diagram.models.domain import DiagramID
 from config import BASE_DIR
 
 logger = logging.getLogger(__name__)

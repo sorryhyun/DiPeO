@@ -4,16 +4,14 @@ Test script for GraphQL CLI migration
 Compares WebSocket and GraphQL execution results
 """
 import asyncio
-import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Any
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from tool import DiagramLoader, ExecutionOptions, WebSocketExecutor, GraphQLExecutor
+from docs.deprecated.tool import ExecutionOptions, WebSocketExecutor, GraphQLExecutor
 
 
 async def test_execution():

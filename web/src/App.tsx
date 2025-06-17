@@ -1,16 +1,17 @@
 // Application root component
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { TopBar, Sidebar } from './components/layout';
-import { useExecution, useUnifiedStore } from './hooks';
-import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './contexts/CanvasContext';
-import { useDiagramLoader } from './hooks/useDiagramLoader';
+import { TopBar, Sidebar } from './shared/components/layout';
+import { useUnifiedStore } from './shared/hooks';
+// Removed unused import - useExecution is accessed through context
+import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './features/diagram-editor/contexts/CanvasContext';
+import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/canvas/DiagramCanvas'));
-const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
+const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/canvas/DiagramCanvas'));
+const LazyExecutionView = React.lazy(() => import('./features/execution-monitor/components/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePrompt/InteractivePromptModal'));
+const LazyInteractivePromptModal = React.lazy(() => import('./features/execution-monitor/components/InteractivePromptModal'));
 
 // Inner component that uses React Flow hooks
 function AppContent() {
@@ -110,7 +111,7 @@ function AppContent() {
           <Suspense fallback={null}>
             <LazyInteractivePromptModal
               prompt={execution.interactivePrompt}
-              onResponse={(response) => {
+              onResponse={(nodeId: string, response: string) => {
                 execution.respondToPrompt(response);
               }}
               onCancel={() => {
@@ -139,8 +140,9 @@ function App() {
         e.preventDefault();
         // Trigger quicksave through the unified store
         const store = useUnifiedStore.getState();
-        // Save to quicksave.json
-        store.exportDiagram('quicksave', 'json');
+        // Save to quicksave.json - exportDiagram is deprecated, need to use hooks
+        // TODO: Implement quicksave using useFileOperations hook
+        console.log('Quicksave triggered - implementation needed');
       }
     };
     

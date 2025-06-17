@@ -6,7 +6,7 @@ from gql.transport.websockets import WebsocketsTransport
 from gql.transport.exceptions import TransportQueryError
 
 class DiPeoGraphQLClient:
-    def __init__(self, host: str = "localhost:8100"):
+    def __init__(self, host: str = "localhost:8000"):
         self.http_url = f"http://{host}/graphql"
         self.ws_url = f"ws://{host}/graphql"
         self._client: Optional[Client] = None

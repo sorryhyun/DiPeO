@@ -1,6 +1,15 @@
 """
-Test to ensure no new REST endpoints are added (except health/websocket).
-This enforces the hard freeze of REST surface during GraphQL migration.
+REST Endpoint Freeze Test
+
+Purpose: Ensure no new REST endpoints are added to maintain architectural consistency.
+After completing the GraphQL migration, this test serves as a guard to prevent
+REST endpoint creep and ensure all new functionality uses GraphQL.
+
+Only operational monitoring endpoints should remain as REST:
+- Health checks (/api/health/*) - Required for Kubernetes probes
+- Metrics (/metrics) - Required for Prometheus monitoring
+
+All business logic must be implemented via GraphQL.
 """
 import unittest
 import os
@@ -21,7 +30,6 @@ class TestRESTFreeze(unittest.TestCase):
         # Define allowed REST endpoints
         allowed_paths = {
             "/api/health",
-            "/api/ws", 
             "/metrics",
         }
         
@@ -73,27 +81,6 @@ class TestRESTFreeze(unittest.TestCase):
                 f"All new functionality should be implemented via GraphQL."
             )
     
-    def test_websocket_endpoint_exists(self):
-        """Ensure the WebSocket endpoint is still available for CLI compatibility."""
-        # Check that websocket router is imported and included in main.py
-        main_path = Path(__file__).parent.parent / "main.py"
-        if not main_path.exists():
-            self.skipTest("main.py not found")
-            
-        with open(main_path, 'r') as f:
-            content = f.read()
-            
-        # Check that WebSocket router is imported and included
-        self.assertIn('websocket_router', content, "WebSocket router must be imported")
-        self.assertIn('app.include_router(websocket_router)', content, "WebSocket router must be included")
-        
-        # Verify the actual endpoint in the router file
-        router_path = Path(__file__).parent.parent / "src" / "api" / "routers" / "websocket.py"
-        if router_path.exists():
-            with open(router_path, 'r') as f:
-                router_content = f.read()
-            self.assertIn('prefix="/api"', router_content, "WebSocket router must have /api prefix")
-            self.assertIn('@router.websocket("/ws")', router_content, "WebSocket endpoint /ws must exist")
     
     def test_health_endpoint_exists(self):
         """Ensure the health endpoint is still available for K8s/monitoring.""" 
@@ -115,6 +102,19 @@ class TestRESTFreeze(unittest.TestCase):
             with open(router_path, 'r') as f:
                 router_content = f.read()
             self.assertIn('prefix="/api/health"', router_content, "Health router must have /api/health prefix")
+    
+    def test_graphql_endpoint_exists(self):
+        """Ensure GraphQL endpoint is properly configured as the primary API."""
+        main_path = Path(__file__).parent.parent / "main.py"
+        if not main_path.exists():
+            self.skipTest("main.py not found")
+            
+        with open(main_path, 'r') as f:
+            content = f.read()
+            
+        # Check that GraphQL is configured
+        self.assertIn('GraphQL', content, "GraphQL must be imported")
+        self.assertIn('/graphql', content, "GraphQL endpoint must be configured at /graphql")
 
 if __name__ == "__main__":
     unittest.main()

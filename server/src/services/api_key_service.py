@@ -4,9 +4,9 @@ import uuid
 from typing import Dict, List, Optional
 
 from config import BASE_DIR
-from ..exceptions import APIKeyError, ValidationError
-from ..utils.base_service import BaseService
-from ..domain import LLMService as LLMServiceEnum
+from ..shared.exceptions.exceptions import APIKeyError, ValidationError
+from ..shared.utils.base_service import BaseService
+from ..domains.diagram.models.domain import LLMService as LLMServiceEnum
 
 
 class APIKeyService(BaseService):

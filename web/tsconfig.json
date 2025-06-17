@@ -26,7 +26,8 @@
       "@/stores/*": ["src/stores/*"],
       "@/types/*": ["src/types/*"],
       "@/utils/*": ["src/utils/*"],
-      "@/config/*": ["src/config/*"]
+      "@/config/*": ["src/config/*"],
+      "@dipeo/domain-models": ["../packages/domain-models/src"]
     }
   },
   "include": ["src", "vite.config.ts"]
