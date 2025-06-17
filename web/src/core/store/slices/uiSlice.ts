@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, NodeID, PersonID } from '@/core/types';
+import { ArrowID, NodeID, PersonID, Vec2 } from '@/core/types';
 import { UnifiedStore } from '../unifiedStore.types';
 
 export type SelectableID = NodeID | ArrowID | PersonID;
@@ -66,8 +66,6 @@ export interface UISlice {
   isSelected: (id: SelectableID) => boolean;
   getSelectionBounds: () => { min: Vec2; max: Vec2 } | null;
 }
-
-import { Vec2 } from '@/core/types';
 
 export const createUISlice: StateCreator<
   UnifiedStore,

@@ -139,7 +139,7 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         // Trigger quicksave through the unified store
-        const store = useUnifiedStore.getState();
+        const _store = useUnifiedStore.getState();
         // Save to quicksave.json - exportDiagram is deprecated, need to use hooks
         // TODO: Implement quicksave using useFileOperations hook
         console.log('Quicksave triggered - implementation needed');

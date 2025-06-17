@@ -19,8 +19,11 @@ export default [
       '**/*.config.ts',
       '**/vite.config.ts',
       'server/**', // Python backend
+      'cli/**', // Python CLI
       '**/__generated__/**', // Generated GraphQL files
       '**/server/.venv/**', // Python virtual environment
+      'files/**', // Diagram files
+      'docs/**' // Documentation
     ],
   },
 
@@ -46,10 +49,7 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: [
-          './tsconfig.json',
-          './web/tsconfig.json',
-        ],
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -221,9 +221,7 @@ export interface NotionNodeData extends BaseNodeData {
   databaseId?: string;
 }
 
-export interface PersonBatchJobNodeData extends PersonJobNodeData {
-  // Inherits all fields from PersonJobNodeData
-}
+export type PersonBatchJobNodeData = PersonJobNodeData;
 
 // Node data mapping
 export type NodeDataMap = {

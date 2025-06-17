@@ -11,7 +11,6 @@ import { useCanvasOperations } from './useCanvasOperations';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
 import { useFileOperations } from '@/shared/hooks/useFileOperations';
 import { clearDiagram } from './useDiagramOperations';
-import { useExport } from '@/shared/hooks/useExport';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import type { ExecutionOptions } from '@/features/execution-monitor/types';
 import type { ExportFormat } from '@/core/store';
@@ -159,7 +158,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const canvas = useCanvasOperations();
   const execution = useExecution({ showToasts: false });
   const fileOps = useFileOperations();
-  const exportHook = useExport();
   
   // Track dirty state locally since store doesn't have it
   
@@ -311,12 +309,52 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [fileOps]);
   
   const executeDiagram = useCallback(async (options?: ExecutionOptions) => {
-    // Get diagram in new export format
-    const diagram = exportHook.exportDiagram();
-    if (!diagram || diagram.nodes.length === 0) {
+    // Get store state directly
+    const store = useUnifiedStore.getState();
+    if (store.nodes.size === 0) {
       toast.error('No diagram to execute');
       return;
     }
+    
+    // Create diagram structure for validation
+    const diagram: ExportFormat = {
+      nodes: Array.from(store.nodes.values()).map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data,
+        displayName: n.displayName
+      })),
+      arrows: Array.from(store.arrows.values()).map(a => ({
+        id: a.id,
+        source: a.source,
+        target: a.target,
+        data: a.data
+      })),
+      handles: Array.from(store.handles.values()).map(h => ({
+        id: h.id,
+        nodeId: h.nodeId,
+        name: h.label,
+        direction: h.direction,
+        dataType: h.dataType
+      })),
+      persons: Array.from(store.persons.values()).map(p => ({
+        id: p.id,
+        name: p.label,
+        displayName: p.label,
+        service: p.service,
+        model: p.model,
+        apiKeyId: p.apiKeyId,
+        systemPrompt: p.systemPrompt,
+        forgettingMode: p.forgettingMode
+      })),
+      apiKeys: Array.from(store.apiKeys.values()).map(k => ({
+        id: k.id,
+        label: k.label,
+        service: k.service,
+        maskedKey: k.maskedKey
+      }))
+    };
     
     // Validate before execution
     const validation = validateDiagramStructure(diagram);
@@ -327,7 +365,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     
     try {
       // Get store state and convert to ReactDiagram format
-      const store = useUnifiedStore.getState();
       const domainDiagram = {
         nodes: Array.from(store.nodes.values()),
         arrows: Array.from(store.arrows.values()),
@@ -345,21 +382,61 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       console.error('Failed to execute diagram:', error);
       toast.error('Failed to execute diagram');
     }
-  }, [execution, exportHook]);
+  }, [execution]);
   
   const stopExecution = useCallback(() => {
     execution.abort();
   }, [execution]);
   
   const validateDiagram = useCallback(() => {
-    // Use new export format for validation
-    const diagram = exportHook.exportDiagram();
-    if (!diagram || diagram.nodes.length === 0) {
+    // Get store state directly
+    const store = useUnifiedStore.getState();
+    if (store.nodes.size === 0) {
       return { isValid: false, errors: ['No diagram to validate'] };
     }
     
+    // Create diagram structure for validation
+    const diagram: ExportFormat = {
+      nodes: Array.from(store.nodes.values()).map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data,
+        displayName: n.displayName
+      })),
+      arrows: Array.from(store.arrows.values()).map(a => ({
+        id: a.id,
+        source: a.source,
+        target: a.target,
+        data: a.data
+      })),
+      handles: Array.from(store.handles.values()).map(h => ({
+        id: h.id,
+        nodeId: h.nodeId,
+        name: h.label,
+        direction: h.direction,
+        dataType: h.dataType
+      })),
+      persons: Array.from(store.persons.values()).map(p => ({
+        id: p.id,
+        name: p.label,
+        displayName: p.label,
+        service: p.service,
+        model: p.model,
+        apiKeyId: p.apiKeyId,
+        systemPrompt: p.systemPrompt,
+        forgettingMode: p.forgettingMode
+      })),
+      apiKeys: Array.from(store.apiKeys.values()).map(k => ({
+        id: k.id,
+        label: k.label,
+        service: k.service,
+        maskedKey: k.maskedKey
+      }))
+    };
+    
     return validateDiagramStructure(diagram);
-  }, [exportHook]);
+  }, []);
   
   const updateMetadata = useCallback((updates: Partial<DiagramMetadata>) => {
     setMetadata(prev => ({ ...prev, ...updates, modifiedAt: new Date() }));

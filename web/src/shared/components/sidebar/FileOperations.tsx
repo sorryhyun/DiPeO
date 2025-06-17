@@ -1,33 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, Download, FileUp } from 'lucide-react';
-import { useMutation, gql } from '@apollo/client';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
-import { DiagramFormat } from '@/__generated__/graphql';
-// GraphQL mutations
-const UPLOAD_DIAGRAM = gql`
-  mutation UploadDiagram($file: Upload!, $format: String, $validateOnly: Boolean) {
-    uploadDiagram(file: $file, format: $format, validateOnly: $validateOnly) {
-      success
-      message
-      diagramId
-      diagramName
-      nodeCount
-      formatDetected
-    }
-  }
-`;
-
-const SAVE_DIAGRAM = gql`
-  mutation SaveDiagram($diagramId: DiagramID!, $format: DiagramFormat) {
-    saveDiagram(diagramId: $diagramId, format: $format) {
-      success
-      message
-      error
-    }
-  }
-`;
+import { 
+  DiagramFormat,
+  useUploadDiagramMutation,
+  useSaveDiagramMutation 
+} from '@/__generated__/graphql';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -38,8 +18,8 @@ export const FileOperations: React.FC = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const diagramId = searchParams.get('diagram');
 
-  const [uploadDiagram] = useMutation(UPLOAD_DIAGRAM);
-  const [saveDiagram] = useMutation(SAVE_DIAGRAM);
+  const [uploadDiagram] = useUploadDiagramMutation();
+  const [saveDiagram] = useSaveDiagramMutation();
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -112,7 +92,7 @@ export const FileOperations: React.FC = () => {
     try {
       const result = await saveDiagram({
         variables: {
-          diagramId,
+          diagramId: diagramId as any, // Type assertion needed for DiagramID type
           format: selectedFormat
         }
       });

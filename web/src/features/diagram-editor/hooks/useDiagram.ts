@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useUIState } from '@/shared/hooks/selectors/useUIState';
 import { clearDiagram } from './useDiagramOperations';
-import { useExport } from '@/shared/hooks/useExport';
 import { useDiagramManager } from './useDiagramManager';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
 import { usePropertyManager } from '@/features/properties-editor/hooks/usePropertyManager';
@@ -115,10 +114,6 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     return usePropertyManager(entityId, entityType, initialData, options);
   }, []);
 
-  // Get the export hook for diagram operations
-  const exportHook = useExport();
-  const getDiagramState = exportHook.exportDiagram;
-  const loadDiagramState = exportHook.importDiagram;
 
   // ELEMENT OPERATIONS
 
@@ -268,8 +263,6 @@ export const useDiagram = (options: UseDiagramOptions = {}) => {
     
     // ===== OPERATIONS =====
     // Diagram operations
-    getDiagramState,
-    loadDiagramState,
     clear: clearDiagram,
     
     // Node operations

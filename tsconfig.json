@@ -10,7 +10,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": true
+    "noEmit": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
   },
-  "exclude": ["node_modules", "dist", "build"]
+  "references": [
+    { "path": "./web" },
+    { "path": "./packages/domain-models" }
+  ],
+  "exclude": ["node_modules", "dist", "build", "server", "cli"]
 }

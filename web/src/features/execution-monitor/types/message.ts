@@ -1,5 +1,4 @@
-import type { Dict } from '@/core/types';
-import {NodeID, ExecutionID, PersonID} from '@/core/types';
+import { type Dict, type NodeID, type ExecutionID, type PersonID } from '@/core/types';
 
 export interface InteractivePromptData {
   nodeId: NodeID;

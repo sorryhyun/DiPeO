@@ -14,7 +14,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'cli'))
 
 try:
-    from cli.__main__ import main
+    from dipeo_cli.__main__ import main
 except ImportError:
     print("Error: DiPeO CLI package not found.")
     print("Please ensure the CLI package is installed:")

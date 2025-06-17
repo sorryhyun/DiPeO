@@ -34,11 +34,16 @@ dist/
 build/
 out/
 *.log
+*.tsbuildinfo
 execution_runner.cjs
 notion.md
 CLAUDE.md
 web/CLAUDE.md
 server/CLAUDE.md
+server.log
+dipeo_events.db
+packages/domain-models/dist/
+packages/domain-models/node_modules/
 
 # Environment files
 .env

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/shared/components/ui';
-import { ApiKeyID, DomainApiKey, apiKeyId, createErrorHandlerFactory } from '@/core/types';
+import { createErrorHandlerFactory, DomainApiKey } from '@/core/types';
 import { LlmService } from '@/__generated__/graphql';
-import { useUnifiedStore } from '@/shared/hooks';
+import { useUnifiedStore, useApiKeyOperations } from '@/shared/hooks';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
-import { useApiKeyOperations } from '@/shared/hooks';
 
 interface ApiKeysModalProps {
   isOpen: boolean;

@@ -1,7 +1,4 @@
-import { Draft } from 'immer';
-import { UnifiedStore } from '../unifiedStore.types';
-import { logger } from '@/shared/utils/logger';
-import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID, NodeID, PersonID, Vec2, apiKeyId } from '@/core/types';
+import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, NodeID, PersonID, Vec2, apiKeyId } from '@/core/types';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { nodeKindToGraphQLType } from '@/graphql/types';
@@ -119,8 +116,3 @@ export function createImportState() {
   };
 }
 
-// DEPRECATED: Import handler - use GraphQL operations instead
-export function importDiagram(state: Draft<UnifiedStore>, data: any) {
-  logger.warn('importDiagram helper is deprecated. Use GraphQL operations for import/export.');
-  // This function is no longer used as import/export is handled by the backend
-}

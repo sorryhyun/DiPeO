@@ -11,7 +11,8 @@ from src.domains.diagram.models.domain import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
     DomainApiKey, DiagramMetadata, DiagramForGraphQL,
     ExecutionState as PydanticExecutionState,
-    ExecutionEvent as PydanticExecutionEvent
+    ExecutionEvent as PydanticExecutionEvent,
+    TokenUsage as DiagramTokenUsage
 )
 from src.shared.domain import (
     TokenUsage as PydanticTokenUsage,
@@ -28,6 +29,11 @@ class Vec2:
 @strawberry.experimental.pydantic.type(model=PydanticTokenUsage, all_fields=True)
 class TokenUsage:
     """Token usage statistics."""
+    pass
+
+@strawberry.experimental.pydantic.type(model=DiagramTokenUsage, all_fields=True)
+class DiagramTokenUsageType:
+    """Token usage statistics for diagram execution."""
     pass
 
 # Convert domain models to Strawberry types
@@ -147,7 +153,23 @@ class Diagram:
         # TODO: Calculate based on persons and their models
         return None
 
-@strawberry.experimental.pydantic.type(model=PydanticExecutionState)
+@strawberry.experimental.pydantic.type(
+    model=PydanticExecutionState,
+    fields=[
+        "id",
+        "status", 
+        "diagram_id",
+        "started_at",
+        "ended_at",
+        "running_nodes",
+        "completed_nodes",
+        "skipped_nodes",
+        "paused_nodes",
+        "failed_nodes",
+        "token_usage",
+        "error"
+    ]
+)
 class ExecutionState:
     """Current state of a diagram execution."""
     id: ExecutionID
@@ -160,7 +182,7 @@ class ExecutionState:
     skipped_nodes: strawberry.auto
     paused_nodes: strawberry.auto
     failed_nodes: strawberry.auto
-    token_usage: strawberry.auto
+    token_usage: Optional[DiagramTokenUsageType]
     error: strawberry.auto
     
     @strawberry.field

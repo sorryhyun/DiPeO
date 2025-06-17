@@ -7,16 +7,18 @@
  * - Store types: Used for React state management (Map-based for efficient lookups)
  */
 
-import type {
-  Node,
-  Arrow,
-  Handle,
-  Person,
-  ApiKey,
-  Diagram,
-  Vec2Input
+import {
+  NodeType,
+  HandleDirection,
+  DataType,
+  type Node,
+  type Arrow,
+  type Handle,
+  type Person,
+  type ApiKey,
+  type Diagram,
+  type Vec2Input
 } from '@/__generated__/graphql';
-import { NodeType, HandleDirection, DataType } from '@/__generated__/graphql';
 import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from '@/core/types/branded';
 import type { Vec2 } from '@/core/types/utilities';
 

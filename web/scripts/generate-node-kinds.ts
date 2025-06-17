@@ -32,7 +32,7 @@ export function fromNodeKind(kind: NodeKind): NodeType {
 
 // Ensure the generated directory exists
 // eslint-disable-next-line no-undef
-const generatedDir = path.join(__dirname, '../src/types/generated');
+const generatedDir = path.join(__dirname, '../src/features/diagram-editor/types');
 if (!fs.existsSync(generatedDir)) {
   fs.mkdirSync(generatedDir, { recursive: true });
 }

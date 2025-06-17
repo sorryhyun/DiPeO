@@ -185,26 +185,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
         getArrows: () => get().arrowsArray,
         getPersons: () => get().personsArray,
 
-        // === Export/Import ===
-        exportDiagram: () => {
-          // Export functionality is now handled by GraphQL
-          console.warn('exportDiagram is deprecated. Use useFileOperations hook with GraphQL operations.');
-          return null;
-        },
-        exportAsYAML: () => {
-          // Export functionality is now handled by GraphQL
-          console.warn('exportAsYAML is deprecated. Use useFileOperations hook with GraphQL operations.');
-          return '';
-        },
-        importDiagram: (data, format) => {
-          // Import functionality is now handled by GraphQL
-          console.warn('importDiagram is deprecated. Use useFileOperations hook with GraphQL operations.');
-        },
-        validateExportData: (data) => {
-          // Validation is now handled by backend
-          console.warn('validateExportData is deprecated. Validation is handled by backend.');
-          return { valid: false, errors: ['Client-side validation is deprecated'] };
-        },
       }))
     )
   )

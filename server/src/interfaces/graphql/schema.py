@@ -42,6 +42,13 @@ def create_graphql_router(context_getter=None):
 
 # Export schema for code generation
 if __name__ == "__main__":
-    # This can be run to export the schema
-    with open("schema.graphql", "w") as f:
-        f.write(schema.as_str())
+    import sys
+    
+    output_path = sys.argv[1] if len(sys.argv) > 1 else "schema.graphql"
+    schema_str = schema.as_str()
+    
+    with open(output_path, "w") as f:
+        f.write(schema_str)
+    
+    print(f"GraphQL schema exported to {output_path}")
+    print(f"Schema length: {len(schema_str)} characters")

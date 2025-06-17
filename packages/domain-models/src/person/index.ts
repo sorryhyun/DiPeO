@@ -5,12 +5,11 @@
  */
 
 import { z } from 'zod';
-import type { PersonID, ApiKeyID, LLMService } from '../diagram';
-import { ForgettingMode } from '../diagram';
+import { ForgettingMode, type PersonID, type ApiKeyID, type LLMService } from '../diagram';
 
 // Re-export person-related types from diagram for convenience
-export type { PersonID, LLMService } from '../diagram';
-export { ForgettingMode } from '../diagram';
+export type { PersonID, LLMService };
+export { ForgettingMode };
 
 // Person-specific models (most are already in diagram domain)
 export interface PersonConfiguration {

@@ -1,51 +1,15 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Upload, Download, FileUp, AlertCircle } from 'lucide-react';
-import { useMutation, gql, useQuery } from '@apollo/client';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { DiagramFormat, useGetSupportedFormatsQuery } from '@/__generated__/graphql';
-
-// GraphQL mutations
-const UPLOAD_DIAGRAM = gql`
-  mutation UploadDiagram($file: Upload!, $format: String, $validateOnly: Boolean) {
-    uploadDiagram(file: $file, format: $format, validateOnly: $validateOnly) {
-      success
-      message
-      diagramId
-      diagramName
-      nodeCount
-      formatDetected
-    }
-  }
-`;
-
-const EXPORT_DIAGRAM = gql`
-  mutation ExportDiagram($diagramId: String!, $format: String!, $includeMetadata: Boolean) {
-    exportDiagram(diagramId: $diagramId, format: $format, includeMetadata: $includeMetadata) {
-      success
-      message
-      error
-      content
-      format
-      filename
-    }
-  }
-`;
-
-const LIST_FORMATS = gql`
-  mutation ListDiagramFormats {
-    listDiagramFormats {
-      id
-      name
-      description
-      extension
-      supports_import
-      supports_export
-    }
-  }
-`;
+import { 
+  DiagramFormat, 
+  useGetSupportedFormatsQuery,
+  useUploadDiagramMutation,
+  useExportDiagramMutation 
+} from '@/__generated__/graphql';
 
 interface DiagramFileManagerProps {
   className?: string;
@@ -60,8 +24,8 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
   // Get diagram ID from file operations or state
   const diagramId = useRef<string | null>(null);
 
-  const [uploadDiagram] = useMutation(UPLOAD_DIAGRAM);
-  const [exportDiagram] = useMutation(EXPORT_DIAGRAM);
+  const [uploadDiagram] = useUploadDiagramMutation();
+  const [exportDiagram] = useExportDiagramMutation();
   
   // Fetch supported formats from GraphQL
   const { data: formatsData, loading: formatsLoading } = useGetSupportedFormatsQuery();
@@ -101,7 +65,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
       }
 
       const { diagramId: newDiagramId, diagramName, nodeCount } = uploadResult.data.uploadDiagram;
-      diagramId.current = newDiagramId;
+      diagramId.current = newDiagramId || null;
       
       toast.success(
         <div className="flex flex-col gap-1">
@@ -139,8 +103,8 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
     try {
       const result = await exportDiagram({
         variables: {
-          diagramId: diagramId.current,
-          format: selectedFormat,
+          diagramId: diagramId.current as any, // Type assertion needed for DiagramID type
+          format: selectedFormat as any, // Type assertion needed for proper enum type
           includeMetadata
         }
       });
@@ -152,11 +116,11 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
       const { content, filename } = result.data.exportDiagram;
 
       // Create download link
-      const blob = new Blob([content], { type: 'text/yaml' });
+      const blob = new Blob([content || ''], { type: 'text/yaml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = filename || 'diagram.yaml';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

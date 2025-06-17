@@ -33,7 +33,7 @@ print_status "Starting GraphQL schema export process..."
 # Step 1: Export schema from server
 print_status "Exporting schema from server..."
 cd server
-python -m src.graphql.export_schema ../web/schema.graphql
+python -m src.interfaces.graphql.schema ../web/schema.graphql
 if [ $? -eq 0 ]; then
     print_status "Schema exported successfully to web/schema.graphql"
 else

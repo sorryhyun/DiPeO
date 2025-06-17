@@ -1,8 +1,7 @@
 import { StateCreator } from 'zustand';
 import { DomainPerson, PersonID } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
-import { ForgettingMode } from '@/__generated__/graphql';
-import { LlmService, NodeType } from '@/__generated__/graphql';
+import { ForgettingMode, LlmService, NodeType } from '@/__generated__/graphql';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 export interface PersonSlice {

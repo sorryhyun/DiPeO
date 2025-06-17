@@ -16,9 +16,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Import routers and middleware
-from src.api.routers import health_router
+# Import middleware
 from src.api.middleware import setup_middleware
+
+# Import health router from interfaces
+from src.interfaces.rest import health_router
 
 # Import lifespan from app_context
 from src.shared.utils.app_context import lifespan
@@ -27,8 +29,6 @@ from src.shared.utils.app_context import lifespan
 from src.interfaces.graphql.schema import create_graphql_router
 from src.interfaces.graphql.context import get_graphql_context
 
-# Import REST API configuration
-from src.api.config import is_router_enabled
 
 
 # Create FastAPI app
@@ -41,10 +41,9 @@ app = FastAPI(
 # Setup middleware
 setup_middleware(app)
 
-# Include essential routers
-if is_router_enabled("health"):
-    app.include_router(health_router)
-    logger.info("Health endpoints enabled")
+# Include health router (always enabled for Kubernetes)
+app.include_router(health_router)
+logger.info("Health endpoints enabled at /api/health")
 
 # Always include GraphQL router
 graphql_router = create_graphql_router(context_getter=get_graphql_context)

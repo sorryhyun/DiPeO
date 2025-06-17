@@ -1,12 +1,11 @@
 import type { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID, NodeID, PersonID, Vec2 } from '@/core/types';
 import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import type { LlmService } from '@/__generated__/graphql';
+import { type LlmService, DiagramFormat } from '@/__generated__/graphql';
 import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
 import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice, NodeState } from '@/features/execution-monitor/store/executionSlice';
 import type { PersonSlice } from '@/features/person-management/store/personSlice';
 import type { UISlice } from './slices/uiSlice';
-import { DiagramFormat } from '@/__generated__/graphql';
 
 // Re-export NodeState from executionSlice for backward compatibility
 export type { NodeState } from '@/features/execution-monitor/store/executionSlice';
@@ -74,9 +73,4 @@ export interface UnifiedStore extends
   getArrows: () => DomainArrow[];
   getPersons: () => DomainPerson[];
   
-  // Export/Import operations (deprecated - use GraphQL operations)
-  exportDiagram: () => any; // Deprecated - use useFileOperations hook
-  exportAsYAML: () => string; // Deprecated - use useFileOperations hook
-  importDiagram: (data: any, format?: DiagramFormat) => void; // Deprecated - use useFileOperations hook
-  validateExportData: (data: unknown) => { valid: boolean; errors: string[] }; // Deprecated - validation handled by backend
 }

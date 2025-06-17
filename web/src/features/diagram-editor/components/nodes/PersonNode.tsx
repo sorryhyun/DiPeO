@@ -1,8 +1,7 @@
 // Component for Person nodes (LLM instances)
 import React, { useCallback } from 'react';
 import { Position, NodeProps } from '@xyflow/react';
-import { DomainPerson } from '@/core/types';
-import { nodeId as createNodeId } from '@/core/types';
+import { DomainPerson, nodeId as createNodeId } from '@/core/types';
 import { User } from 'lucide-react';
 import { FlowHandle } from '../controls/FlowHandle';
 

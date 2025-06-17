@@ -1,5 +1,4 @@
-import type { Dict } from '@/core/types';
-import type { NodeID, ExecutionID, PersonID } from '@/core/types';
+import type { Dict, NodeID, ExecutionID, PersonID } from '@/core/types';
 
 export interface ExecutionState<C = Dict> {
   id: ExecutionID;

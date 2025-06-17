@@ -1,10 +1,7 @@
 import { Draft } from 'immer';
 import { UnifiedStore } from '../unifiedStore.types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
-import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID, NodeID, PersonID } from '@/core/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
-import { nodeKindToGraphQLType } from '@/graphql/types';
+import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainNode, DomainPerson, NodeID, PersonID } from '@/core/types';
 
 // Helper function to check if an arrow connects to a specific node
 function connectsToNode(arrow: DomainArrow, nodeId: NodeID): boolean {

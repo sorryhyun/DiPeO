@@ -2,7 +2,7 @@
 import React, { Suspense } from 'react';
 
 const ApiKeysModal = React.lazy(() => import('@/shared/components/modals/ApiKeysModal'));
-const DiagramFileModal = React.lazy(() => import('@/features/diagram-editor/components/modals/DiagramFileModal'));
+const DiagramFileModal = React.lazy(() => import('@/features/diagram-editor/components/modals/DiagramFileModal').then(module => ({ default: module.DiagramFileModal })));
 
 interface LazyApiKeysModalProps {
   isOpen: boolean;

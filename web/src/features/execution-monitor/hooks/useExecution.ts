@@ -10,9 +10,8 @@ import { useSubscription, useMutation, ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import type { DiagramID, ExecutionID, NodeID, ReactDiagram } from '@/core/types';
+import { type NodeID, type ReactDiagram, diagramId, executionId, nodeId } from '@/core/types';
 import type { ExecutionOptions, ExecutionUpdate, InteractivePromptData } from '@/features/execution-monitor/types';
-import { diagramId, executionId, nodeId } from '@/core/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/core/config/nodeMeta';
@@ -278,9 +277,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     const update = executionData.executionUpdates;
     
     if (update.status === ExecutionStatus.Completed) {
-      completeExecution(update.tokenUsage?.total);
+      const totalTokens = update.tokenUsage ? (update.tokenUsage.input + update.tokenUsage.output + (update.tokenUsage.cached || 0)) : undefined;
+      completeExecution(totalTokens);
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_complete', totalTokens: update.tokenUsage?.total, timestamp: new Date().toISOString() });
+      onUpdate?.({ type: 'execution_complete', totalTokens, timestamp: new Date().toISOString() });
     } else if (update.status === ExecutionStatus.Failed && update.error) {
       errorExecution(update.error);
       executionActions.stopExecution();
