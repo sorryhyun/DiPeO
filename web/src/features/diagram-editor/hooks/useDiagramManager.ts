@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import { useCanvasOperations } from './useCanvasOperations';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
 import { useFileOperations } from '@/shared/hooks/useFileOperations';
-import { clearDiagram } from './useDiagramOperations';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import type { ExecutionOptions } from '@/features/execution-monitor/types';
 import type { ExportFormat } from '@/core/store';
@@ -186,7 +185,16 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       }
     }
     
-    clearDiagram();
+    // Use the clearDiagram method from the store
+    const store = useUnifiedStore.getState();
+    store.transaction(() => {
+      store.clearDiagram();
+      store.handles.clear();
+      store.persons.clear();
+      store.apiKeys.clear();
+      store.clearSelection();
+    });
+    
     setMetadata({
       createdAt: new Date(),
       modifiedAt: new Date()

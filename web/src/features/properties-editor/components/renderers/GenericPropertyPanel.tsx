@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { PanelConfig, PanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { usePropertyManager } from '../../hooks';
-import { useCanvasOperations } from '@/features/diagram-editor/hooks';
+import { usePersonsData } from '@/shared/hooks/selectors';
 import { UnifiedFormField, type FieldValue } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
@@ -37,11 +37,10 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   config
 }: GenericPropertyPanelProps<T>) => {
 
-  const canvas = useCanvasOperations();
+  const { personsArray } = usePersonsData();
 
   // Convert persons to the format expected by UnifiedFormField
-  const persons = canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean);
-  const personsForSelect = persons.map(person => ({ id: person.id, label: person.label }));
+  const personsForSelect = personsArray.map(person => ({ id: person.id, label: person.label }));
   
   // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {

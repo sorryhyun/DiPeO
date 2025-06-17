@@ -4,8 +4,8 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, ReactDiagram, arrowId, nodeId, createHandleId } from '@/core/types';
-import { nodeKindToGraphQLType, graphQLTypeToNodeKind, parseHandleId, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, ReactDiagram, arrowId, nodeId, createHandleId, parseHandleId } from '@/core/types';
+import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { HandleDirection } from '@dipeo/domain-models';

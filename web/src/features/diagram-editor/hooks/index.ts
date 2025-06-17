@@ -1,7 +1,17 @@
 // Diagram Editor Hooks
-export * from './useDiagram';
+
+// Data hooks
 export * from './useDiagramLoader';
+
+// Feature hooks
 export * from './useDiagramManager';
-export * from './useDiagramOperations';
+
+// Canvas hooks
+export * from './useCanvas';
+export * from './useCanvasInteractions';
 export * from './useCanvasOperations';
-export * from './useDiagramData';
+
+// Operation hooks
+export * from './useNodeOperations';
+export * from './useArrowOperations';
+export * from './useSelectionOperations';

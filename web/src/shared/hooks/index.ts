@@ -12,7 +12,6 @@ export {
 export * from './useApiKeyOperations';
 export * from './useFileOperations';
 
-// Selectors (includes useIsExecuting and useNodeExecutionState)
 export * from './selectors';
 
 // Factories

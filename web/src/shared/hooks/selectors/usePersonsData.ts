@@ -6,15 +6,25 @@ import { NodeType } from '@dipeo/domain-models';
 interface PersonsData {
   // Maps and arrays
   persons: Map<PersonID, DomainPerson>;
+  personsMap: Map<PersonID, DomainPerson>; // Alias for backward compatibility
   personsArray: DomainPerson[];
+  personIds: PersonID[];
   
   // Statistics
   personCount: number;
   personsByService: Record<string, number>;
+  uniqueServices: string[];
+  uniqueModels: string[];
   
   // Usage info
   usedPersonIds: Set<PersonID>;
   unusedPersons: DomainPerson[];
+  
+  // Query methods
+  getPersonById: (id: PersonID) => DomainPerson | null;
+  getPersonByLabel: (label: string) => DomainPerson | null;
+  getPersonsByService: (service: string) => DomainPerson[];
+  getPersonsByModel: (model: string) => DomainPerson[];
 }
 
 /**
@@ -27,39 +37,75 @@ interface PersonsData {
  * ```
  */
 export const usePersonsData = (): PersonsData => {
-  return useUnifiedStore(
-    useShallow(state => {
-      // Calculate used persons
-      const usedPersonIds = new Set<PersonID>();
-      state.nodes.forEach(node => {
-        if (node.type === NodeType.PERSON_JOB && node.data.personId) {
-          usedPersonIds.add(node.data.personId);
-        }
-      });
-      
-      // Calculate persons by service
-      const personsByService: Record<string, number> = {};
-      const personsArray = state.personsArray || Array.from(state.persons.values());
-      
-      personsArray.forEach(person => {
-        personsByService[person.service] = (personsByService[person.service] || 0) + 1;
-      });
-      
-      // Get unused persons
-      const unusedPersons = personsArray.filter(
-        person => !usedPersonIds.has(person.id as PersonID)
-      );
-      
-      return {
-        persons: state.persons,
-        personsArray,
-        personCount: state.persons.size,
-        personsByService,
-        usedPersonIds,
-        unusedPersons
-      };
-    })
+  const { persons, nodes } = useUnifiedStore(
+    useShallow(state => ({
+      persons: state.persons,
+      nodes: state.nodes
+    }))
   );
+  
+  // Convert to array once
+  const personsArray = Array.from(persons.values());
+  
+  // Calculate used persons
+  const usedPersonIds = new Set<PersonID>();
+  nodes.forEach(node => {
+    if (node.type === NodeType.PERSON_JOB && node.data.personId) {
+      usedPersonIds.add(node.data.personId);
+    }
+  });
+  
+  // Calculate persons by service
+  const personsByService: Record<string, number> = {};
+  personsArray.forEach(person => {
+    personsByService[person.service] = (personsByService[person.service] || 0) + 1;
+  });
+  
+  // Get unused persons
+  const unusedPersons = personsArray.filter(
+    person => !usedPersonIds.has(person.id as PersonID)
+  );
+  
+  // Extract person IDs
+  const personIds = personsArray.map(p => p.id as PersonID);
+  
+  // Get unique services and models
+  const uniqueServices = Array.from(new Set(personsArray.map(p => p.service))).sort();
+  const uniqueModels = Array.from(new Set(personsArray.map(p => p.model))).sort();
+  
+  // Query functions
+  const getPersonById = (id: PersonID): DomainPerson | null => {
+    return persons.get(id) || null;
+  };
+  
+  const getPersonByLabel = (label: string): DomainPerson | null => {
+    return personsArray.find(p => p.label === label) || null;
+  };
+  
+  const getPersonsByService = (service: string): DomainPerson[] => {
+    return personsArray.filter(p => p.service === service);
+  };
+  
+  const getPersonsByModel = (model: string): DomainPerson[] => {
+    return personsArray.filter(p => p.model === model);
+  };
+  
+  return {
+    persons,
+    personsMap: persons, // Alias for backward compatibility
+    personsArray,
+    personIds,
+    personCount: persons.size,
+    personsByService,
+    uniqueServices,
+    uniqueModels,
+    usedPersonIds,
+    unusedPersons,
+    getPersonById,
+    getPersonByLabel,
+    getPersonsByService,
+    getPersonsByModel
+  };
 };
 
 /**

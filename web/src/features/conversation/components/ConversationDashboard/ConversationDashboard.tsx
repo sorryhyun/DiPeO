@@ -6,7 +6,6 @@ import {
 import { Button, Input, Select } from '@/shared/components/ui';
 import { downloadFile } from '@/shared/utils/file';
 import { toast } from 'sonner';
-import { useCanvasOperations } from '@/features/diagram-editor/hooks';
 import { useConversationData } from '../../hooks';
 import { useUIState, usePersonsData } from '@/shared/hooks/selectors';
 import { MessageList } from '../MessageList';
@@ -32,16 +31,12 @@ const ConversationDashboard: React.FC = () => {
     []
   );
 
-  const canvas = useCanvasOperations();
+  const { personsArray, personsMap, getPersonById } = usePersonsData();
   const { selectedId } = useUIState();
-  const { persons: personsMap } = usePersonsData();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Get persons from canvas with proper memoization
-  const persons = React.useMemo(
-    () => canvas.persons.map(id => canvas.getPersonById(id)).filter(Boolean),
-    [canvas]
-  );
+  // Use persons directly from the hook
+  const persons = personsArray;
   
   // Get selected person ID if a person is selected
   const selectedPersonId = React.useMemo(() => {
@@ -133,7 +128,7 @@ const ConversationDashboard: React.FC = () => {
     const person = dashboardSelectedPerson !== 'whole' ? persons.find(p => p.id === dashboardSelectedPerson) : null;
 
     const exportData = {
-      person: person?.name,
+      person: person?.label,
       personId: dashboardSelectedPerson,
       exportDate: new Date().toISOString(),
       messages: data.messages,
@@ -143,7 +138,7 @@ const ConversationDashboard: React.FC = () => {
     };
 
     const yamlContent = stringify(exportData, { lineWidth: 120, defaultStringType: 'PLAIN' });
-    downloadFile(yamlContent, `conversation-${person?.name || dashboardSelectedPerson}-${new Date().toISOString()}.yaml`, 'text/yaml');
+    downloadFile(yamlContent, `conversation-${person?.label || dashboardSelectedPerson}-${new Date().toISOString()}.yaml`, 'text/yaml');
     toast.success('Conversation exported as YAML');
   };
 
@@ -217,7 +212,7 @@ const ConversationDashboard: React.FC = () => {
           {selectedPerson && (
             <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
               <User className="h-4 w-4" />
-              <span className="text-sm font-medium">{selectedPerson.name}</span>
+              <span className="text-sm font-medium">{selectedPerson.label}</span>
               {conversationData[selectedPerson.id] && (
                 <div className="flex items-center space-x-1 text-xs">
                   <span className="opacity-70">•</span>
@@ -332,7 +327,7 @@ const ConversationDashboard: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
           <h3 className="font-medium text-sm text-gray-700">
-            Conversation for {selectedPersonForRender?.name}
+            Conversation for {selectedPersonForRender?.label}
           </h3>
           <div className="flex items-center space-x-4 text-xs text-gray-600">
             <span>{personMemory.visibleMessages} messages</span>

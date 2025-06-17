@@ -144,7 +144,7 @@ class DiagramMutations:
                 filename = f"{diagram_id}{extension}"
             
             # Use the converter system to export in the desired format
-            from domains.diagram.converters.registry import converter_registry
+            from src.domains.diagram.converters.registry import converter_registry
             converter = converter_registry.get(format_str)
             
             if not converter:

@@ -4,7 +4,7 @@ import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/buttons';
 import { getNodeConfig } from '@/core/config/helpers';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
-import { useCanvasOperations } from '../../../hooks';
+import { useNodeOperations } from '../../../hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import { useUIState } from '@/shared/hooks/selectors';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
@@ -177,7 +177,7 @@ export function BaseNode({
   className 
 }: BaseNodeProps) {
   // Store selectors
-  const canvas = useCanvasOperations();
+  const { updateNode } = useNodeOperations();
   const updateNodeInternals = useUpdateNodeInternals();
   const { activeCanvas } = useUIState();
   const isExecutionMode = activeCanvas === 'execution';
@@ -191,9 +191,9 @@ export function BaseNode({
   
   // Handle flip
   const handleFlip = useCallback(() => {
-    canvas.updateNode(nId, { data: { ...data, flipped: !isFlipped } });
+    updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
-  }, [nId, id, data, isFlipped, canvas, updateNodeInternals]);
+  }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
 
   
   // Determine node appearance based on state using data attributes
