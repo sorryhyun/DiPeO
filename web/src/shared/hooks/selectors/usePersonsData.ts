@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../useUnifiedStore';
 import type { DomainPerson, PersonID } from '@/core/types';
-import { NodeType } from '@/__generated__/graphql';
+import { NodeType } from '@dipeo/domain-models';
 
 interface PersonsData {
   // Maps and arrays
@@ -32,7 +32,7 @@ export const usePersonsData = (): PersonsData => {
       // Calculate used persons
       const usedPersonIds = new Set<PersonID>();
       state.nodes.forEach(node => {
-        if (node.type === NodeType.PersonJob && node.data.personId) {
+        if (node.type === NodeType.PERSON_JOB && node.data.personId) {
           usedPersonIds.add(node.data.personId);
         }
       });
@@ -76,7 +76,7 @@ export const useIsPersonInUse = (personId: PersonID): boolean => {
   return useUnifiedStore(state => 
     state.isPersonInUse?.(personId) ||
     Array.from(state.nodes.values()).some(
-      node => node.type === NodeType.PersonJob && node.data.personId === personId
+      node => node.type === NodeType.PERSON_JOB && node.data.personId === personId
     )
   );
 };
@@ -103,7 +103,7 @@ export const usePersonUsageStats = () => {
       const usageCount: Record<PersonID, number> = {};
       
       state.nodes.forEach(node => {
-        if (node.type === NodeType.PersonJob && node.data.personId) {
+        if (node.type === NodeType.PERSON_JOB && node.data.personId) {
           usageCount[node.data.personId] = (usageCount[node.data.personId] || 0) + 1;
         }
       });

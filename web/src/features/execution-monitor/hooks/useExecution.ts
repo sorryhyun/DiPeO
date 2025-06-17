@@ -25,8 +25,8 @@ import {
   ExecutionUpdatesSubscription,
   NodeUpdatesSubscription,
   InteractivePromptsSubscription,
-  ExecutionStatus,
 } from '@/__generated__/graphql';
+import { ExecutionStatus } from '@dipeo/domain-models';
 
 // Types (same as original)
 export interface ExecutionState {
@@ -276,16 +276,16 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     const update = executionData.executionUpdates;
     
-    if (update.status === ExecutionStatus.Completed) {
+    if (update.status === ExecutionStatus.COMPLETED) {
       const totalTokens = update.tokenUsage ? (update.tokenUsage.input + update.tokenUsage.output + (update.tokenUsage.cached || 0)) : undefined;
       completeExecution(totalTokens);
       executionActions.stopExecution();
       onUpdate?.({ type: 'execution_complete', totalTokens, timestamp: new Date().toISOString() });
-    } else if (update.status === ExecutionStatus.Failed && update.error) {
+    } else if (update.status === ExecutionStatus.FAILED && update.error) {
       errorExecution(update.error);
       executionActions.stopExecution();
       onUpdate?.({ type: 'execution_error', error: update.error, nodeId: '', status: 'failed', timestamp: new Date().toISOString() });
-    } else if (update.status === ExecutionStatus.Aborted) {
+    } else if (update.status === ExecutionStatus.ABORTED) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
       onUpdate?.({ type: 'execution_aborted', nodeId: '', status: 'failed', timestamp: new Date().toISOString() });

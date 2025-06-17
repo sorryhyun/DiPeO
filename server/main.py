@@ -19,9 +19,6 @@ logger = logging.getLogger(__name__)
 # Import middleware
 from src.api.middleware import setup_middleware
 
-# Import health router from interfaces
-from src.interfaces.rest import health_router
-
 # Import lifespan from app_context
 from src.shared.utils.app_context import lifespan
 
@@ -40,10 +37,6 @@ app = FastAPI(
 
 # Setup middleware
 setup_middleware(app)
-
-# Include health router (always enabled for Kubernetes)
-app.include_router(health_router)
-logger.info("Health endpoints enabled at /api/health")
 
 # Always include GraphQL router
 graphql_router = create_graphql_router(context_getter=get_graphql_context)

@@ -2,7 +2,7 @@ import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode,
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { nodeKindToGraphQLType } from '@/graphql/types';
-import { ForgettingMode } from '@/__generated__/graphql';
+import { ForgettingMode } from '@dipeo/domain-models';
 import { generateNodeLabel } from '@/core/config/nodeMeta';
 import { getNodeDefaults } from '@/core/config';
 
@@ -70,7 +70,7 @@ export function createImportState() {
         id: personId,
         label,
         apiKeyId: '',
-        forgettingMode: ForgettingMode.NoForget,
+        forgettingMode: ForgettingMode.NO_FORGET,
         service: service as any,
         model,
         systemPrompt: '',

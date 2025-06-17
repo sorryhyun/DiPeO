@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, PersonID } from '@/core/types';
-import { NodeType } from '@/__generated__/graphql';
+import { NodeType } from '@dipeo/domain-models';
 import { UnifiedStore } from '../unifiedStore.types';
 
 export interface ComputedSlice {
@@ -71,7 +71,7 @@ export const createComputedSlice: StateCreator<
   getNodesByPerson: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).filter(
-      node => node.type === NodeType.PersonJob && node.data.personId === personId
+      node => node.type === NodeType.PERSON_JOB && node.data.personId === personId
     );
   },
   
@@ -154,7 +154,7 @@ export const createComputedSlice: StateCreator<
   
   getStartNodes: () => {
     const state = get();
-    return Array.from(state.nodes.values()).filter(node => node.type === NodeType.Start);
+    return Array.from(state.nodes.values()).filter(node => node.type === NodeType.START);
   },
   
   getEndNodes: () => {

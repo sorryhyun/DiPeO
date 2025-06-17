@@ -8,7 +8,7 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, React
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, parseHandleId, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { HandleDirection } from '@/__generated__/graphql';
+import { HandleDirection } from '@dipeo/domain-models';
 
 /**
  * React Flow specific diagram representation
@@ -113,11 +113,11 @@ export class DiagramAdapter {
 
     // Generate handles map
     const inputs = handles
-      .filter(h => h.direction === HandleDirection.Input)
+      .filter(h => h.direction === HandleDirection.INPUT)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
     
     const outputs = handles
-      .filter(h => h.direction === HandleDirection.Output)
+      .filter(h => h.direction === HandleDirection.OUTPUT)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
 
     const reactNode: DiPeoNode = {

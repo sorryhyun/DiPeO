@@ -4,14 +4,14 @@ import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
 import { 
-  DiagramFormat,
   useUploadDiagramMutation,
   useSaveDiagramMutation 
 } from '@/__generated__/graphql';
+import { DiagramFormat } from '@dipeo/domain-models';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.Native);
+  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get current diagram ID from URL
@@ -111,10 +111,10 @@ export const FileOperations: React.FC = () => {
 
   // Define export formats for sidebar display
   const exportFormats = [
-    { value: DiagramFormat.Native, label: 'Native JSON' },
-    { value: DiagramFormat.Readable, label: 'Readable YAML' },
-    { value: DiagramFormat.Light, label: 'Light YAML' },
-    { value: DiagramFormat.Llm, label: 'LLM Domain' }
+    { value: DiagramFormat.NATIVE, label: 'Native JSON' },
+    { value: DiagramFormat.READABLE, label: 'Readable YAML' },
+    { value: DiagramFormat.LIGHT, label: 'Light YAML' },
+    { value: DiagramFormat.LLM, label: 'LLM Domain' }
   ];
 
   return (

@@ -1,6 +1,6 @@
 import type { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID, NodeID, PersonID, Vec2 } from '@/core/types';
 import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { type LlmService, DiagramFormat } from '@/__generated__/graphql';
+import { type LLMService, DiagramFormat } from '@dipeo/domain-models';
 import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
 import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice, NodeState } from '@/features/execution-monitor/store/executionSlice';

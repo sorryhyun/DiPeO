@@ -1,5 +1,5 @@
 overwrite: true
-schema: "./schema.graphql"
+schema: "http://localhost:8000/graphql"
 documents: 
   - "src/**/*.graphql"
   - "src/**/*.{ts,tsx}"
@@ -10,15 +10,34 @@ generates:
       - typescript-operations
       - typescript-react-apollo
     config:
-      # Use branded types from DiPeO
+      # Use branded types from @dipeo/domain-models
       scalars:
-        NodeID: string
-        HandleID: string
-        ArrowID: string
-        PersonID: string
-        ApiKeyID: string
-        ExecutionID: string
-        DiagramID: string
+        NodeID: "@dipeo/domain-models#NodeID"
+        HandleID: "@dipeo/domain-models#HandleID"
+        ArrowID: "@dipeo/domain-models#ArrowID"
+        PersonID: "@dipeo/domain-models#PersonID"
+        ApiKeyID: "@dipeo/domain-models#ApiKeyID"
+        ExecutionID: "@dipeo/domain-models#ExecutionID"
+        DiagramID: "@dipeo/domain-models#DiagramID"
+      # Import enums from @dipeo/domain-models
+      enumsAsTypes: false
+      enumValues:
+        NodeType: "@dipeo/domain-models#NodeType"
+        HandleDirection: "@dipeo/domain-models#HandleDirection"
+        DataType: "@dipeo/domain-models#DataType"
+        LLMService: "@dipeo/domain-models#LLMService"
+        ForgettingMode: "@dipeo/domain-models#ForgettingMode"
+        DiagramFormat: "@dipeo/domain-models#DiagramFormat"
+        ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
+        EventType: "@dipeo/domain-models#EventType"
+      # Skip generating TypeScript types for enums
+      skipTypename: false
+      # Use proper imports
+      useTypeImports: true
+      # Keep enum names as-is from schema
+      namingConvention:
+        enumValues: keep
+        typeNames: keep
       # Generate React hooks
       withHooks: true
       # Generate HOCs for components
@@ -29,8 +48,6 @@ generates:
       apolloClientVersion: 3
       # Better type safety
       avoidOptionals: false
-      # Use TypeScript enums
-      enumsAsTypes: false
       # Generate result types for better error handling
       withResultType: true
       # Add __typename for better cache management

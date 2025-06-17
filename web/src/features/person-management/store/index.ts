@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { DomainPerson, PersonID } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
-import { ForgettingMode, LlmService, NodeType } from '@/__generated__/graphql';
+import { ForgettingMode, LLMService, NodeType } from '@dipeo/domain-models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 export interface PersonSlice {
@@ -44,8 +44,8 @@ export const createPersonSlice: StateCreator<
       id: generatePersonId(),
       label,
       apiKeyId: '',
-      forgettingMode: ForgettingMode.NoForget,
-      service: service as LlmService,
+      forgettingMode: ForgettingMode.NO_FORGET,
+      service: service as LLMService,
       model,
       systemPrompt: '',
       type: 'person',
@@ -74,7 +74,7 @@ export const createPersonSlice: StateCreator<
   deletePerson: (id) => set(state => {
     // Check if person is in use
     const isInUse = Array.from(state.nodes.values()).some(
-      node => node.type === NodeType.PersonJob && node.data.personId === id
+      node => node.type === NodeType.PERSON_JOB && node.data.personId === id
     );
     
     if (!isInUse && state.persons.delete(id)) {
@@ -128,7 +128,7 @@ export const createPersonSlice: StateCreator<
     const usedPersonIds = new Set<PersonID>();
     
     state.nodes.forEach(node => {
-      if (node.type === NodeType.PersonJob && node.data.personId) {
+      if (node.type === NodeType.PERSON_JOB && node.data.personId) {
         usedPersonIds.add(node.data.personId);
       }
     });
@@ -142,7 +142,7 @@ export const createPersonSlice: StateCreator<
   isPersonInUse: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).some(
-      node => node.type === NodeType.PersonJob && node.data.personId === personId
+      node => node.type === NodeType.PERSON_JOB && node.data.personId === personId
     );
   },
   

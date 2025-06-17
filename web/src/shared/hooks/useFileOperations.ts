@@ -10,9 +10,9 @@ import {
 } from '@/shared/utils/file';
 import { 
   useExportDiagramMutation,
-  ExportDiagramDocument,
-  DiagramFormat
+  ExportDiagramDocument
 } from '@/__generated__/graphql';
+import { DiagramFormat } from '@dipeo/domain-models';
 import { apolloClient } from '@/graphql/client';
 import { diagramId } from '@/core/types';
 import { serializeDiagramState } from '@/shared/utils/diagramSerializer';
@@ -165,7 +165,7 @@ export const useFileOperations = () => {
       const result = await saveDiagramToBackend(
         existingDiagramId ? diagramId(existingDiagramId) : null,
         {
-          format: format || DiagramFormat.Native,
+          format: format || DiagramFormat.NATIVE,
           filename,
           diagramContent
         }
@@ -193,9 +193,9 @@ export const useFileOperations = () => {
     // Hardcode the formats that the backend supports
     return [
       {
-        format: DiagramFormat.Native,
+        format: DiagramFormat.NATIVE,
         metadata: {
-          id: DiagramFormat.Native,
+          id: DiagramFormat.NATIVE,
           displayName: 'Native JSON',
           description: 'Full-fidelity format with GraphQL schema compatibility',
           fileExtension: '.json',
@@ -204,9 +204,9 @@ export const useFileOperations = () => {
         }
       },
       {
-        format: DiagramFormat.Light,
+        format: DiagramFormat.LIGHT,
         metadata: {
-          id: DiagramFormat.Light,
+          id: DiagramFormat.LIGHT,
           displayName: 'Light YAML',
           description: 'Simplified format using labels',
           fileExtension: '.yaml',
@@ -215,9 +215,9 @@ export const useFileOperations = () => {
         }
       },
       {
-        format: DiagramFormat.Readable,
+        format: DiagramFormat.READABLE,
         metadata: {
-          id: DiagramFormat.Readable,
+          id: DiagramFormat.READABLE,
           displayName: 'Readable Workflow',
           description: 'Human-friendly format',
           fileExtension: '.yaml',
@@ -226,9 +226,9 @@ export const useFileOperations = () => {
         }
       },
       {
-        format: DiagramFormat.Llm,
+        format: DiagramFormat.LLM,
         metadata: {
-          id: DiagramFormat.Llm,
+          id: DiagramFormat.LLM,
           displayName: 'LLM-Friendly',
           description: 'Optimized for AI understanding',
           fileExtension: '.yaml',

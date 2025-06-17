@@ -14,7 +14,7 @@ import { clearDiagram } from './useDiagramOperations';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import type { ExecutionOptions } from '@/features/execution-monitor/types';
 import type { ExportFormat } from '@/core/store';
-import { DiagramFormat, NodeType } from '@/__generated__/graphql';
+import { DiagramFormat, NodeType } from '@dipeo/domain-models';
 import { graphQLTypeToNodeKind } from '@/graphql/types';
 
 // TYPES
@@ -213,7 +213,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       
       // Use 'native' format for full fidelity saving
       const result = await fileOps.saveDiagramToServer(
-        DiagramFormat.Native, 
+        DiagramFormat.NATIVE, 
         defaultFilename,
         existingDiagramId || undefined
       );
@@ -282,7 +282,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const exportDiagramAs = useCallback(async (format: DiagramFormat) => {
     try {
       // Use unified export method with format
-      if (format === DiagramFormat.Llm) {
+      if (format === DiagramFormat.LLM) {
         toast.error('LLM-readable format is not yet implemented');
         return;
       }

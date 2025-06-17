@@ -1,11 +1,11 @@
-// Auto-generated from GraphQL schema - DO NOT EDIT
+// Auto-generated from domain models - DO NOT EDIT
 // Run 'pnpm generate:node-kinds' to update
 
-import type { NodeType } from '@/__generated__/graphql';
+import type { NodeType } from '@dipeo/domain-models';
 
-export type NodeKind = 'condition' | 'db' | 'endpoint' | 'job' | 'notion' | 'person_batch_job' | 'person_job' | 'start' | 'user_response';
+export type NodeKind = 'start' | 'person_job' | 'condition' | 'job' | 'endpoint' | 'db' | 'user_response' | 'notion' | 'person_batch_job';
 
-export const NODE_KINDS = ['condition', 'db', 'endpoint', 'job', 'notion', 'person_batch_job', 'person_job', 'start', 'user_response'] as const;
+export const NODE_KINDS = ['start', 'person_job', 'condition', 'job', 'endpoint', 'db', 'user_response', 'notion', 'person_batch_job'] as const;
 
 export function isNodeKind(value: string): value is NodeKind {
   return NODE_KINDS.includes(value as NodeKind);

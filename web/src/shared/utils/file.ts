@@ -15,8 +15,8 @@ import {
   UploadDiagramDocument,
   type UploadDiagramMutation,
   type UploadDiagramMutationVariables,
-  DiagramFormat
 } from '@/__generated__/graphql';
+import { DiagramFormat } from '@dipeo/domain-models';
 import type { DiagramID } from '@/core/types';
 
 export type FileFormat = DiagramFormat;
@@ -117,7 +117,7 @@ export const saveDiagramToBackend = async (
       
       if (options.filename === 'quicksave') {
         filename = 'quicksave.json';
-        actualFormat = DiagramFormat.Native;
+        actualFormat = DiagramFormat.NATIVE;
       }
       
       const content = typeof options.diagramContent === 'string' 

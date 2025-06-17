@@ -12,39 +12,39 @@ export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
 // Enums
 export enum ExecutionStatus {
-  STARTED = 'started',
-  RUNNING = 'running',
-  PAUSED = 'paused',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  ABORTED = 'aborted'
+  STARTED = 'STARTED',
+  RUNNING = 'RUNNING',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  ABORTED = 'ABORTED'
 }
 
 export enum NodeExecutionStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  SKIPPED = 'skipped',
-  PAUSED = 'paused'
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED',
+  PAUSED = 'PAUSED'
 }
 
 export enum EventType {
-  EXECUTION_STARTED = 'execution_started',
-  NODE_STARTED = 'node_started',
-  NODE_RUNNING = 'node_running',
-  NODE_COMPLETED = 'node_completed',
-  NODE_FAILED = 'node_failed',
-  NODE_SKIPPED = 'node_skipped',
-  NODE_PAUSED = 'node_paused',
-  NODE_PROGRESS = 'node_progress',
-  EXECUTION_COMPLETED = 'execution_completed',
-  EXECUTION_FAILED = 'execution_failed',
-  EXECUTION_ABORTED = 'execution_aborted',
-  INTERACTIVE_PROMPT = 'interactive_prompt',
-  INTERACTIVE_RESPONSE = 'interactive_response',
-  EXECUTION_ERROR = 'execution_error',
-  EXECUTION_UPDATE = 'execution_update'
+  EXECUTION_STARTED = 'EXECUTION_STARTED',
+  NODE_STARTED = 'NODE_STARTED',
+  NODE_RUNNING = 'NODE_RUNNING',
+  NODE_COMPLETED = 'NODE_COMPLETED',
+  NODE_FAILED = 'NODE_FAILED',
+  NODE_SKIPPED = 'NODE_SKIPPED',
+  NODE_PAUSED = 'NODE_PAUSED',
+  NODE_PROGRESS = 'NODE_PROGRESS',
+  EXECUTION_COMPLETED = 'EXECUTION_COMPLETED',
+  EXECUTION_FAILED = 'EXECUTION_FAILED',
+  EXECUTION_ABORTED = 'EXECUTION_ABORTED',
+  INTERACTIVE_PROMPT = 'INTERACTIVE_PROMPT',
+  INTERACTIVE_RESPONSE = 'INTERACTIVE_RESPONSE',
+  EXECUTION_ERROR = 'EXECUTION_ERROR',
+  EXECUTION_UPDATE = 'EXECUTION_UPDATE'
 }
 
 // Core models
@@ -251,7 +251,7 @@ export const PersonMemoryStateSchema = z.object({
   visibleMessages: z.number(),
   hasMore: z.boolean().optional(),
   config: z.object({
-    forgetMode: z.enum(['no_forget', 'on_every_turn', 'upon_request']).optional(),
+    forgetMode: z.enum(['NO_FORGET', 'ON_EVERY_TURN', 'UPON_REQUEST']).optional(),
     maxMessages: z.number().optional(),
     temperature: z.number().optional()
   }).optional()

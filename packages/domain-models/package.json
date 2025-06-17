@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
@@ -17,8 +16,8 @@
     "zod": "^3.25.42"
   },
   "devDependencies": {
-    "@types/node": "^20.12.12",
-    "typescript": "^5.4.5"
+    "@types/node": "^22.15.32",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "zod": "^3.25.42"

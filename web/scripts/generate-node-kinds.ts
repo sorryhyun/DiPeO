@@ -1,17 +1,15 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import { NodeType } from '../src/__generated__/graphql';
+import { NodeType } from '@dipeo/domain-models';
 import fs from 'fs';
 import path from 'path';
 
-// Convert GraphQL enum to string union
+// Convert enum to string union
 const nodeTypes = Object.values(NodeType).map(t => t.toLowerCase());
 const unionType = nodeTypes.map(t => `'${t}'`).join(' | ');
 
-const content = `// Auto-generated from GraphQL schema - DO NOT EDIT
+const content = `// Auto-generated from domain models - DO NOT EDIT
 // Run 'pnpm generate:node-kinds' to update
 
-import type { NodeType } from '@/__generated__/graphql';
+import type { NodeType } from '@dipeo/domain-models';
 
 export type NodeKind = ${unionType};
 

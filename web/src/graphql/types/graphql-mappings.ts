@@ -7,18 +7,16 @@
  * - Store types: Used for React state management (Map-based for efficient lookups)
  */
 
-import {
-  NodeType,
-  HandleDirection,
-  DataType,
-  type Node,
-  type Arrow,
-  type Handle,
-  type Person,
-  type ApiKey,
-  type Diagram,
-  type Vec2Input
+import type {
+  Node,
+  Arrow,
+  Handle,
+  Person,
+  ApiKey,
+  Diagram,
+  Vec2Input
 } from '@/__generated__/graphql';
+import { NodeType, HandleDirection, DataType } from '@dipeo/domain-models';
 import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from '@/core/types/branded';
 import type { Vec2 } from '@/core/types/utilities';
 
@@ -135,30 +133,30 @@ export function domainToReactDiagram(diagram: Partial<Diagram>): ReactDiagram {
 // Node type mappings
 export function nodeKindToGraphQLType(kind: string): NodeType {
   const mapping: Record<string, NodeType> = {
-    'start': NodeType.Start,
-    'condition': NodeType.Condition,
-    'person_job': NodeType.PersonJob,
-    'person_batch_job': NodeType.PersonBatchJob,
-    'endpoint': NodeType.Endpoint,
-    'db': NodeType.Db,
-    'job': NodeType.Job,
-    'user_response': NodeType.UserResponse,
-    'notion': NodeType.Notion
+    'start': NodeType.START,
+    'condition': NodeType.CONDITION,
+    'person_job': NodeType.PERSON_JOB,
+    'person_batch_job': NodeType.PERSON_BATCH_JOB,
+    'endpoint': NodeType.ENDPOINT,
+    'db': NodeType.DB,
+    'job': NodeType.JOB,
+    'user_response': NodeType.USER_RESPONSE,
+    'notion': NodeType.NOTION
   };
-  return mapping[kind] || NodeType.Start;
+  return mapping[kind] || NodeType.START;
 }
 
 export function graphQLTypeToNodeKind(type: NodeType): string {
   const mapping: Record<NodeType, string> = {
-    [NodeType.Start]: 'start',
-    [NodeType.Condition]: 'condition',
-    [NodeType.PersonJob]: 'person_job',
-    [NodeType.PersonBatchJob]: 'person_batch_job',
-    [NodeType.Endpoint]: 'endpoint',
-    [NodeType.Db]: 'db',
-    [NodeType.Job]: 'job',
-    [NodeType.UserResponse]: 'user_response',
-    [NodeType.Notion]: 'notion'
+    [NodeType.START]: 'start',
+    [NodeType.CONDITION]: 'condition',
+    [NodeType.PERSON_JOB]: 'person_job',
+    [NodeType.PERSON_BATCH_JOB]: 'person_batch_job',
+    [NodeType.ENDPOINT]: 'endpoint',
+    [NodeType.DB]: 'db',
+    [NodeType.JOB]: 'job',
+    [NodeType.USER_RESPONSE]: 'user_response',
+    [NodeType.NOTION]: 'notion'
   };
   return mapping[type];
 }
@@ -239,12 +237,12 @@ export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName:
 // Check if two handles are compatible for connection
 export function areHandlesCompatible(source: Handle, target: Handle): boolean {
   // Basic compatibility: output can connect to input
-  if (source.direction !== HandleDirection.Output || target.direction !== HandleDirection.Input) {
+  if (source.direction !== HandleDirection.OUTPUT || target.direction !== HandleDirection.INPUT) {
     return false;
   }
   
   // Type compatibility
-  if (source.dataType === DataType.Any || target.dataType === DataType.Any) {
+  if (source.dataType === DataType.ANY || target.dataType === DataType.ANY) {
     return true;
   }
   

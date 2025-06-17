@@ -5,11 +5,11 @@ import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { 
-  DiagramFormat, 
   useGetSupportedFormatsQuery,
   useUploadDiagramMutation,
   useExportDiagramMutation 
 } from '@/__generated__/graphql';
+import { DiagramFormat } from '@dipeo/domain-models';
 
 interface DiagramFileManagerProps {
   className?: string;
@@ -17,7 +17,7 @@ interface DiagramFileManagerProps {
 
 export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ className }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.Native);
+  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
