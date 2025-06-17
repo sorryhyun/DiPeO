@@ -3,7 +3,7 @@ Stats command implementation for DiPeO CLI.
 """
 
 from typing import List
-from ..utils import DiagramLoader
+from .utils import DiagramLoader
 
 
 def stats_command(args: List[str]) -> None:

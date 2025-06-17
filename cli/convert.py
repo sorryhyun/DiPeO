@@ -3,7 +3,7 @@ Convert command implementation for DiPeO CLI.
 """
 
 from typing import List
-from ..utils import DiagramLoader
+from .utils import DiagramLoader
 
 
 def convert_command(args: List[str]) -> None:

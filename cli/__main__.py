@@ -8,7 +8,10 @@ import sys
 import asyncio
 from typing import List
 
-from .commands import run, monitor, convert, stats
+from .run import run_command as run
+from .monitor import monitor_command as monitor
+from .convert import convert_command as convert
+from .stats import stats_command as stats
 
 
 def print_usage():

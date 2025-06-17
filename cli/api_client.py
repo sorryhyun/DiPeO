@@ -2,7 +2,7 @@ import asyncio
 from typing import Dict, Any, Optional, AsyncGenerator, List
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
-from gql.transport.websockets import WebsocketsTransport
+from gql.transport.websockets import WebsocketsTransport  # For GraphQL subscriptions only
 from gql.transport.exceptions import TransportQueryError
 
 class DiPeoAPIClient:

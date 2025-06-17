@@ -13,8 +13,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-from ..api_client import DiPeoAPIClient
-from ..utils import DiagramLoader
+from .api_client import DiPeoAPIClient
+from .utils import DiagramLoader
 
 
 class ExecutionMode(Enum):

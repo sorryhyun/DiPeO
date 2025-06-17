@@ -17,7 +17,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dipeo/dipeo-cli",
-    packages=find_packages(),
+    packages=["cli"],
+    package_dir={"": ".."},
     python_requires=">=3.8",
     install_requires=[
         "pyyaml>=6.0",
@@ -37,7 +38,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dipeo=dipeo_cli.cli:main",
+            "dipeo=cli.__main__:main",
         ],
     },
     classifiers=[
