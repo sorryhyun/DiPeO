@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from ..shared.exceptions.exceptions import AgentDiagramException
+from src.shared.exceptions.exceptions import AgentDiagramException
 
 
 def setup_middleware(app: FastAPI):

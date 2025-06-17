@@ -4,7 +4,7 @@ from pathlib import Path
 
 import os
 from ..exceptions.exceptions import ValidationError
-from ...domains.diagram.models.domain import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
+from ..domain import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
 
 
 class BaseService(ABC):

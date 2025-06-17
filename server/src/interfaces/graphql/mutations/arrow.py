@@ -7,7 +7,7 @@ from ..types.results import DiagramResult, DeleteResult
 from ..types.scalars import DiagramID, ArrowID
 from ..types.inputs import CreateArrowInput
 from ..context import GraphQLContext
-from ....domains.diagram.models.domain import DomainArrow, DomainDiagram
+from src.domains.diagram.models.domain import DomainArrow, DomainDiagram
 from ..models.input_models import CreateArrowInput as PydanticCreateArrowInput
 
 logger = logging.getLogger(__name__)

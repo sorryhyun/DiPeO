@@ -2,8 +2,8 @@
 Central diagram validation utility
 """
 from typing import Dict, List, Optional, Any, Union
-from ...domains.diagram.models.domain import DomainDiagram
-from ...services.api_key_service import APIKeyService
+from src.domains.diagram.models.domain import DomainDiagram
+from src.shared.services.api_key_service import APIKeyService
 
 
 class DiagramValidator:

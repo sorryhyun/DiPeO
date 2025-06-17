@@ -10,7 +10,7 @@ from .mutations.diagram_file import DiagramFormatInfo
 from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .types.inputs import DiagramFilterInput, ExecutionFilterInput
 # Import enums from the Pydantic models (single source of truth)
-from ...domains.diagram.models.domain import NodeType, LLMService
+from src.shared.domain import NodeType, LLMService
 
 @strawberry.type
 class Query:
@@ -259,7 +259,7 @@ class Query:
     @strawberry.field
     async def supported_formats(self, info) -> List[DiagramFormatInfo]:
         """Get list of supported diagram formats for import/export."""
-        from ...domains.diagram.converters import converter_registry
+        from domains.diagram.converters import converter_registry
         
         formats = converter_registry.list_formats()
         return [

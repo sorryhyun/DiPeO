@@ -8,7 +8,7 @@ from datetime import datetime
 from .types.domain import ExecutionState, ExecutionEvent, Diagram
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
 from .types.enums import EventType  # EventType is GraphQL-specific
-from ...domains.diagram.models.domain import NodeType, ExecutionStatus  # Import domain enums
+from src.shared.domain import NodeType, ExecutionStatus  # Import domain enums
 from .context import GraphQLContext
 from .redis_subscriptions import RedisSubscriptionManager
 

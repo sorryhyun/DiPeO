@@ -9,14 +9,11 @@ from ..types.scalars import DiagramID
 from ..types.inputs import CreateDiagramInput, ImportYamlInput
 from ..types.enums import DiagramFormat
 from ..context import GraphQLContext
-from ....domains.diagram.models.domain import (
-    DiagramMetadata, DomainDiagram
-)
+from src.domains.diagram.models.domain import DiagramMetadata, DomainDiagram
 from ..models.input_models import (
     CreateDiagramInput as PydanticCreateDiagramInput,
     ImportYamlInput as PydanticImportYamlInput
 )
-from ....domains.diagram.models.domain import DomainDiagram
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +144,7 @@ class DiagramMutations:
                 filename = f"{diagram_id}{extension}"
             
             # Use the converter system to export in the desired format
-            from ....domains.diagram.converters.registry import converter_registry
+            from domains.diagram.converters.registry import converter_registry
             converter = converter_registry.get(format_str)
             
             if not converter:

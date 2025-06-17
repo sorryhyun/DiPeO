@@ -4,7 +4,7 @@ from .diagram import DiagramMutations
 from .node import NodeMutations
 from .arrow import ArrowMutations
 from .person import PersonMutations
-from .api_key import ApiKeyMutations
+from api_key import ApiKeyMutations
 from .execution import ExecutionMutations
 from .handle import HandleMutations
 from .utility import UtilityMutations

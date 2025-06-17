@@ -5,9 +5,8 @@ import logging
 from ..types.domain import Person, ApiKey
 from ..types.scalars import PersonID, ApiKeyID
 from ..context import GraphQLContext
-from ....domains.diagram.models.domain import (
-    DomainApiKey, LLMService
-)
+from src.domains.diagram.models.domain import DomainApiKey
+from src.shared.domain import LLMService
 
 logger = logging.getLogger(__name__)
 

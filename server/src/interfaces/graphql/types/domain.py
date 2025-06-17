@@ -7,11 +7,13 @@ from typing import Optional, List
 
 from ..types.scalars import JSONScalar, DiagramID, ExecutionID
 
-from ....domains.diagram.models.domain import (
+from src.domains.diagram.models.domain import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
     DomainApiKey, DiagramMetadata, DiagramForGraphQL,
     ExecutionState as PydanticExecutionState,
-    ExecutionEvent as PydanticExecutionEvent,
+    ExecutionEvent as PydanticExecutionEvent
+)
+from src.shared.domain import (
     TokenUsage as PydanticTokenUsage,
     Vec2 as PydanticVec2,
     DiagramFormat

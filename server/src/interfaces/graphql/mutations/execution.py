@@ -7,7 +7,8 @@ from datetime import datetime
 from ..types.results import ExecutionResult
 from ..types.inputs import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
 from ..context import GraphQLContext
-from ....domains.diagram.models.domain import ExecutionState as ExecutionStateForGraphQL, ExecutionStatus
+from src.domains.diagram.models.domain import ExecutionState as ExecutionStateForGraphQL
+from src.shared.domain import ExecutionStatus
 from ..models.input_models import (
     ExecuteDiagramInput as PydanticExecuteDiagramInput,
     ExecutionControlInput as PydanticExecutionControlInput,
@@ -58,7 +59,7 @@ class ExecutionMutations:
             }
             
             # Create initial execution state event
-            from ...services.event_store import ExecutionEvent
+            from domains.execution.services.event_store import ExecutionEvent
             initial_event = ExecutionEvent(
                 execution_id=execution_id,
                 sequence=0,
@@ -144,7 +145,7 @@ class ExecutionMutations:
                 )
             
             # Create control event based on action
-            from ...services.event_store import ExecutionEvent
+            from domains.execution.services.event_store import ExecutionEvent
             control_event = ExecutionEvent(
                 execution_id=pydantic_input.execution_id,
                 sequence=0,  # Will be set by event store
@@ -246,7 +247,7 @@ class ExecutionMutations:
                 )
             
             # Create interactive response event
-            from ...services.event_store import ExecutionEvent, EventType
+            from domains.execution.services.event_store import ExecutionEvent, EventType
             response_event = ExecutionEvent(
                 execution_id=pydantic_input.execution_id,
                 sequence=0,  # Will be set by event store

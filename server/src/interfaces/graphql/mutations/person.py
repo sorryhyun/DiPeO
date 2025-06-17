@@ -7,9 +7,8 @@ from ..types.results import PersonResult, DeleteResult
 from ..types.scalars import DiagramID, PersonID
 from ..types.inputs import CreatePersonInput, UpdatePersonInput
 from ..context import GraphQLContext
-from ....domains.diagram.models.domain import (
-    DomainPerson, LLMService, ForgettingMode
-)
+from src.domains.diagram.models.domain import DomainPerson
+from src.shared.domain import LLMService, ForgettingMode
 from ..models.input_models import (
     CreatePersonInput as PydanticCreatePersonInput,
     UpdatePersonInput as PydanticUpdatePersonInput

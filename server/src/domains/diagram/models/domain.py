@@ -7,95 +7,39 @@ from pydantic import BaseModel, Field, computed_field, ConfigDict
 from datetime import datetime
 from enum import Enum
 
-# Import enums to use as Pydantic enums
-class NodeType(str, Enum):
-    START = "start"
-    PERSON_JOB = "person_job"
-    CONDITION = "condition"
-    JOB = "job"
-    ENDPOINT = "endpoint"
-    DB = "db"
-    USER_RESPONSE = "user_response"
-    NOTION = "notion"
-    PERSON_BATCH_JOB = "person_batch_job"
-
-class HandleDirection(str, Enum):
-    INPUT = "input"
-    OUTPUT = "output"
-
-class DataType(str, Enum):
-    ANY = "any"
-    STRING = "string"
-    NUMBER = "number"
-    BOOLEAN = "boolean"
-    OBJECT = "object"
-    ARRAY = "array"
-
-class LLMService(str, Enum):
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    GOOGLE = "google"
-    GROK = "grok"
-    BEDROCK = "bedrock"
-    VERTEX = "vertex"
-    DEEPSEEK = "deepseek"
-
-class ForgettingMode(str, Enum):
-    NO_FORGET = "no_forget"
-    NONE = "none"
-    ON_EVERY_TURN = "on_every_turn"
-    UPON_REQUEST = "upon_request"
-    
-    @classmethod
-    def _missing_(cls, value):
-        """Handle legacy values."""
-        if value == "no_forget":
-            return cls.NONE
-        return None
-
-class DiagramFormat(str, Enum):
-    NATIVE = "native"
-    LIGHT = "light"
-    READABLE = "readable"
-    LLM = "llm"
-
-class ExecutionStatus(str, Enum):
-    STARTED = "started"
-    RUNNING = "running"
-    PAUSED = "paused"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    ABORTED = "aborted"
-
-class DBBlockSubType(str, Enum):
-    FIXED_PROMPT = "fixed_prompt"
-    FILE = "file"
-    CODE = "code"
-
-class ContentType(str, Enum):
-    VARIABLE = "variable"
-    RAW_TEXT = "raw_text"
-    CONVERSATION_STATE = "conversation_state"
-
-class ContextCleaningRule(str, Enum):
-    ON_EVERY_TURN = "on_every_turn"
-    UPON_REQUEST = "upon_request"
-    NO_FORGET = "no_forget"
-
-# Type aliases
-NodeID = str
-ArrowID = str
-HandleID = str
-PersonID = str
-ApiKeyID = str
-DiagramID = str
-ExecutionID = str
-
-# Basic types for GraphQL
-class Vec2(BaseModel):
-    """2D position vector."""
-    x: float
-    y: float
+# Import shared domain models
+from src.shared.domain import (
+    # Enums
+    NodeType,
+    HandleDirection,
+    DataType,
+    LLMService,
+    ForgettingMode,
+    DiagramFormat,
+    ExecutionStatus,
+    DBBlockSubType,
+    ContentType,
+    ContextCleaningRule,
+    # Type aliases
+    NodeID,
+    ArrowID,
+    HandleID,
+    PersonID,
+    ApiKeyID,
+    DiagramID,
+    ExecutionID,
+    # Base models
+    Vec2,
+    # Constants
+    API_BASE_PATH,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_TEMPERATURE,
+    SUPPORTED_DOC_EXTENSIONS,
+    SUPPORTED_CODE_EXTENSIONS,
+    SERVICE_TO_PROVIDER_MAP,
+    PROVIDER_TO_ENUM_MAP,
+    DEFAULT_SERVICE,
+)
 
 # Enhanced domain models with computed fields for GraphQL
 class DomainHandle(BaseModel):
@@ -355,39 +299,4 @@ class ExecutionEvent(BaseModel):
             return f"Node {self.node_id} failed: {error}"
         return self.event_type.replace("_", " ").title()
 
-# Constants from constants.py
-API_BASE_PATH: Final[str] = "/api"
-DEFAULT_MAX_TOKENS: Final[int] = 4096
-DEFAULT_TEMPERATURE: Final[float] = 0.7
-
-SUPPORTED_DOC_EXTENSIONS: Final[set[str]] = {".txt", ".md", ".docx", ".pdf"}
-SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {".py", ".js", ".ts", ".json", ".yaml", ".yml"}
-
-# Service name mapping for normalization
-SERVICE_TO_PROVIDER_MAP: Final[dict[str, str]] = {
-    "openai": "openai",
-    "chatgpt": "openai",
-    "claude": "anthropic",
-    "anthropic": "anthropic",
-    "gemini": "google",
-    "google": "google",
-    "grok": "xai",
-    "xai": "xai",
-    "bedrock": "bedrock",
-    "vertex": "vertex",
-    "deepseek": "deepseek"
-}
-
-# Provider to LLM service enum mapping
-PROVIDER_TO_ENUM_MAP: Final[dict[str, LLMService]] = {
-    "openai": LLMService.OPENAI,
-    "anthropic": LLMService.ANTHROPIC,
-    "google": LLMService.GOOGLE,
-    "xai": LLMService.GROK,
-    "bedrock": LLMService.BEDROCK,
-    "vertex": LLMService.VERTEX,
-    "deepseek": LLMService.DEEPSEEK
-}
-
-# Default service when none specified
-DEFAULT_SERVICE: Final[str] = "openai"
+# Constants are now imported from shared.domain.constants

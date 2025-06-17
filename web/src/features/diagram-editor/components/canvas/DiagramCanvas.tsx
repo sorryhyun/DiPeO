@@ -26,7 +26,6 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useCanvasContext } from "../../contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
-import {  } from "@/types";
 import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";

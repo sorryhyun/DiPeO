@@ -7,14 +7,15 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from fastapi import HTTPException
 
-from ....shared.exceptions.exceptions import ValidationError
-from ....services.llm_service import LLMService
-from ....services.api_key_service import APIKeyService
-from ....domains.person.memory.memory_service import MemoryService
-from ....shared.utils.base_service import BaseService
-from ....shared.utils.diagram_validator import DiagramValidator
-from ..models.domain import DiagramID
+from src.shared.exceptions.exceptions import ValidationError
+from src.domains.llm.services.llm_service import LLMService
+from src.shared.services.api_key_service import APIKeyService
+from src.domains.person.memory.memory_service import MemoryService
+from src.shared.utils.base_service import BaseService
+from src.shared.utils.diagram_validator import DiagramValidator
 from config import BASE_DIR
+from src.shared.domain import DiagramID
+from src.shared.interfaces import IDiagramService
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ def round_position(position: dict) -> dict:
     }
 
 
-class DiagramService(BaseService):
+class DiagramService(BaseService, IDiagramService):
     """Service for handling diagram operations."""
     
     def __init__(self, llm_service: LLMService, api_key_service: APIKeyService, memory_service: MemoryService):

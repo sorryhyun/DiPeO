@@ -3,20 +3,30 @@ from typing import Dict, Any
 from fastapi import Request
 from strawberry.fastapi import BaseContext
 
-from ...shared.utils.app_context import AppContext
-from ...services.api_key_service import APIKeyService
-from ...services.diagram_service import DiagramService
-from ...domains.execution.services.execution_service import ExecutionService
-from ...services.event_store import event_store
-from ...services.file_service import FileService
-from ...services.llm_service import LLMService
-from ...services.memory_service import MemoryService
-from ...services.notion_service import NotionService
-from ...services.message_router import message_router
+from src.shared.utils.app_context import AppContext
+from src.shared.interfaces import (
+    IAPIKeyService,
+    IDiagramService,
+    IExecutionService,
+    IFileService,
+    ILLMService,
+    IMemoryService,
+    INotionService
+)
+from src.domains.execution.services.event_store import event_store
+from src.domains.execution.services.message_router import message_router
 
 
 class GraphQLContext(BaseContext):
     """Context object provided to all GraphQL resolvers."""
+    
+    api_key_service: IAPIKeyService
+    diagram_service: IDiagramService
+    execution_service: IExecutionService
+    file_service: IFileService
+    llm_service: ILLMService
+    memory_service: IMemoryService
+    notion_service: INotionService
     
     def __init__(
         self,
@@ -56,7 +66,7 @@ async def get_graphql_context(
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from ...shared.utils.app_context import get_app_context
+    from src.shared.utils.app_context import get_app_context
     
     app_context = get_app_context()
     return GraphQLContext(

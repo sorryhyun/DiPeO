@@ -7,12 +7,11 @@ from ..types.domain import ExecutionState, ExecutionEvent
 from ..types.scalars import ExecutionID
 from ..types.inputs import ExecutionFilterInput
 from ..context import GraphQLContext
-from ....domains.diagram.models.domain import (
+from src.domains.diagram.models.domain import (
     ExecutionState as PydanticExecutionState,
-    ExecutionEvent as PydanticExecutionEvent,
-    TokenUsage as PydanticTokenUsage,
-    ExecutionStatus
+    ExecutionEvent as PydanticExecutionEvent
 )
+from src.shared.domain import TokenUsage as PydanticTokenUsage, ExecutionStatus
 
 logger = logging.getLogger(__name__)
 

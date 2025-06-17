@@ -7,8 +7,8 @@ import logging
 from ..types.domain import Diagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
-from ....services.diagram_service import DiagramService
-from ....domains.diagram.models.domain import DomainDiagram
+from src.domains.diagram.services.diagram_service import DiagramService
+from src.domains.diagram.models.domain import DomainDiagram
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ import strawberry
 from enum import Enum
 
 # Import domain enums that need to be exposed in GraphQL
-from ....domains.diagram.models.domain import DiagramFormat as DomainDiagramFormat
+from src.shared.domain import DiagramFormat as DomainDiagramFormat
 
 # Create strawberry enum from domain enum
 DiagramFormat = strawberry.enum(DomainDiagramFormat)
