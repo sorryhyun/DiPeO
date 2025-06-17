@@ -16,7 +16,6 @@ query GetExecution($id: ExecutionID!) {
       input
       output
       cached
-      total
     }
     error
     durationSeconds
@@ -45,7 +44,9 @@ subscription ExecutionUpdates($executionId: ExecutionID!) {
     failedNodes
     nodeOutputs
     tokenUsage {
-      total
+      input
+      output
+      cached
     }
     error
   }

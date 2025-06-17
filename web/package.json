@@ -15,10 +15,12 @@
     "typecheck": "tsc --noEmit",
     "codegen": "graphql-codegen --config codegen.yml && pnpm generate:node-kinds",
     "codegen:watch": "graphql-codegen --config codegen.yml --watch",
-    "generate:node-kinds": "tsx scripts/generate-node-kinds.ts"
+    "generate:node-kinds": "tsx scripts/generate-node-kinds.ts",
+    "download-schema": "graphql-codegen --config codegen.schema.yml"
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
+    "@dipeo/domain-models": "workspace:*",
     "@hookform/resolvers": "^5.0.1",
     "@tanstack/react-query": "^5.79.0",
     "@trpc/client": "^11.1.4",
@@ -45,11 +47,13 @@
     "react-resizable-panels": "^3.0.2",
     "react-window": "^1.8.11",
     "sonner": "^2.0.3",
+    "yaml": "^2.8.0",
     "zod": "^3.25.42",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.7",
+    "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/typescript": "^4.1.6",
     "@graphql-codegen/typescript-operations": "^4.6.1",
     "@graphql-codegen/typescript-react-apollo": "^4.3.3",

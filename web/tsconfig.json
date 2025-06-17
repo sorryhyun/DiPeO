@@ -21,12 +21,17 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
+      "@/features/*": ["src/features/*"],
+      "@/core/*": ["src/core/*"],
+      "@/shared/*": ["src/shared/*"],
+      "@/graphql/*": ["src/graphql/*"],
       "@/components/*": ["src/components/*"],
       "@/hooks/*": ["src/hooks/*"],
       "@/stores/*": ["src/stores/*"],
       "@/types/*": ["src/types/*"],
       "@/utils/*": ["src/utils/*"],
-      "@/config/*": ["src/config/*"]
+      "@/config/*": ["src/config/*"],
+      "@dipeo/domain-models": ["../packages/domain-models/src"]
     }
   },
   "include": ["src", "vite.config.ts"]

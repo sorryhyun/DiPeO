@@ -5,7 +5,7 @@ import { ApolloProvider } from '@apollo/client';
 import { enableMapSet } from 'immer';
 import App from './App';
 import './index.css';
-import { queryClient } from './utils/trpc';
+import { queryClient } from '@/shared/utils/trpc';
 import { apolloClient } from './graphql/client';
 
 // Enable Immer's MapSet plugin before any store initialization
