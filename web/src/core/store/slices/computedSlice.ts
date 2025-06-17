@@ -37,10 +37,10 @@ export interface ComputedSlice {
   
   // Statistics
   getDiagramStats: () => {
-    nodeCount: number;
-    arrowCount: number;
-    personCount: number;
+    totalNodes: number;
     nodesByType: Record<string, number>;
+    totalConnections: number;
+    unconnectedNodes: number;
   };
 }
 
@@ -231,11 +231,27 @@ export const createComputedSlice: StateCreator<
       nodesByType[node.type] = (nodesByType[node.type] || 0) + 1;
     });
     
+    // Find unconnected nodes
+    const connectedNodes = new Set<string>();
+    state.arrows.forEach(arrow => {
+      const sourceNodeId = arrow.source.split(':')[0];
+      const targetNodeId = arrow.target.split(':')[0];
+      if (sourceNodeId) connectedNodes.add(sourceNodeId);
+      if (targetNodeId) connectedNodes.add(targetNodeId);
+    });
+    
+    let unconnectedNodesCount = 0;
+    state.nodes.forEach((_node, nodeId) => {
+      if (!connectedNodes.has(nodeId)) {
+        unconnectedNodesCount++;
+      }
+    });
+    
     return {
-      nodeCount: state.nodes.size,
-      arrowCount: state.arrows.size,
-      personCount: state.persons.size,
-      nodesByType
+      totalNodes: state.nodes.size,
+      nodesByType,
+      totalConnections: state.arrows.size,
+      unconnectedNodes: unconnectedNodesCount
     };
   }
 });

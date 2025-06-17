@@ -7,14 +7,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useCanvasOperations } from './useCanvasOperations';
+import { useCanvas } from './useCanvas';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
 import { useFileOperations } from '@/shared/hooks/useFileOperations';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { ExecutionOptions } from '@/features/execution-monitor/types';
-import type { ExportFormat } from '@/core/store';
-import { DiagramFormat, NodeType } from '@dipeo/domain-models';
-import { graphQLTypeToNodeKind } from '@/graphql/types';
+import { DiagramFormat } from '@dipeo/domain-models';
 
 // TYPES
 
@@ -82,66 +81,6 @@ export interface UseDiagramManagerReturn {
 }
 
 
-// HELPERS
-
-
-function validateDiagramStructure(exportFormat: ExportFormat): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  // Helper to handle both string and enum node types
-  const kind = (n: any) =>
-    typeof n.type === 'string'
-      ? n.type.toLowerCase()
-      : graphQLTypeToNodeKind(n.type as NodeType);
-  
-  // Check for empty diagram
-  if (exportFormat.nodes.length === 0) {
-    errors.push('Diagram has no nodes');
-    return { isValid: false, errors };
-  }
-  
-  // Check for start node
-  const hasStartNode = exportFormat.nodes.some((node: any) => kind(node) === 'start');
-  if (!hasStartNode) {
-    errors.push('Diagram must have at least one start node');
-  }
-  
-  // Check for endpoint node
-  const hasEndpoint = exportFormat.nodes.some((node: any) => kind(node) === 'endpoint');
-  if (!hasEndpoint) {
-    errors.push('Diagram should have at least one endpoint node');
-  }
-  
-  // Check for unconnected nodes
-  const connectedNodes = new Set<string>();
-  exportFormat.arrows.forEach((arrow: any) => {
-    // Extract node IDs from handle format "nodeId:handleName"
-    const sourceNodeId = arrow.source.split(':')[0];
-    const targetNodeId = arrow.target.split(':')[0];
-    if (sourceNodeId) connectedNodes.add(sourceNodeId);
-    if (targetNodeId) connectedNodes.add(targetNodeId);
-  });
-  
-  const unconnectedNodes = exportFormat.nodes.filter(
-    (node: any) => !connectedNodes.has(node.id) && kind(node) !== 'start'
-  ).map((node: any) => node.displayName || node.id);
-  
-  if (unconnectedNodes.length > 0) {
-    errors.push(`${unconnectedNodes.length} node(s) are not connected`);
-  }
-  
-  // Check for person nodes without assigned persons
-  exportFormat.nodes.forEach((node: any) => {
-    if ((kind(node) === 'person_job' || kind(node) === 'person_batch_job') && !node.data?.person) {
-      errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
-    }
-  });
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
 
 // MAIN HOOK
 
@@ -154,11 +93,35 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   } = options;
   
   // Get hooks
-  const canvas = useCanvasOperations();
+  const canvas = useCanvas({ readOnly: false });
   const execution = useExecution({ showToasts: false });
   const fileOps = useFileOperations();
   
-  // Track dirty state locally since store doesn't have it
+  // Get store operations
+  const storeOps = useUnifiedStore(
+    useShallow(state => ({
+      // Data
+      nodes: state.nodes,
+      arrows: state.arrows,
+      handles: state.handles,
+      persons: state.persons,
+      apiKeys: state.apiKeys,
+      
+      // Operations
+      clearDiagram: state.clearDiagram,
+      validateDiagram: state.validateDiagram,
+      getDiagramStats: state.getDiagramStats,
+      transaction: state.transaction,
+      clearSelection: state.clearSelection,
+      clearAll: state.clearAll,
+      
+      // History
+      undo: state.undo,
+      redo: state.redo,
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+    }))
+  );
   
   // Local state
   const [metadata, setMetadata] = useState<DiagramMetadata>({
@@ -171,11 +134,11 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Computed values
-  const isEmpty = canvas.nodes.length === 0;
-  const canExecute = !execution.isRunning && canvas.nodes.length > 0;
-  const nodeCount = canvas.nodes.length;
-  const arrowCount = canvas.arrows.length;
-  const personCount = canvas.persons.length;
+  const isEmpty = canvas.nodesArray.length === 0;
+  const canExecute = !execution.isRunning && canvas.nodesArray.length > 0;
+  const nodeCount = canvas.nodesArray.length;
+  const arrowCount = canvas.arrowsArray.length;
+  const personCount = canvas.personsArray.length;
   
   // Operations
   const newDiagram = useCallback(() => {
@@ -185,15 +148,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       }
     }
     
-    // Use the clearDiagram method from the store
-    const store = useUnifiedStore.getState();
-    store.transaction(() => {
-      store.clearDiagram();
-      store.handles.clear();
-      store.persons.clear();
-      store.apiKeys.clear();
-      store.clearSelection();
-    });
+    // Clear all diagram data
+    storeOps.clearAll();
     
     setMetadata({
       createdAt: new Date(),
@@ -205,8 +161,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   const saveDiagram = useCallback(async (filename?: string) => {
     // Check if there's anything to save
-    const store = useUnifiedStore.getState();
-    if (store.nodes.size === 0) {
+    if (storeOps.nodes.size === 0) {
       toast.error('No diagram to save');
       return;
     }
@@ -317,55 +272,14 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [fileOps]);
   
   const executeDiagram = useCallback(async (options?: ExecutionOptions) => {
-    // Get store state directly
-    const store = useUnifiedStore.getState();
-    if (store.nodes.size === 0) {
+    // Check if there's a diagram to execute
+    if (storeOps.nodes.size === 0) {
       toast.error('No diagram to execute');
       return;
     }
     
-    // Create diagram structure for validation
-    const diagram: ExportFormat = {
-      nodes: Array.from(store.nodes.values()).map(n => ({
-        id: n.id,
-        type: n.type,
-        position: n.position,
-        data: n.data,
-        displayName: n.displayName
-      })),
-      arrows: Array.from(store.arrows.values()).map(a => ({
-        id: a.id,
-        source: a.source,
-        target: a.target,
-        data: a.data
-      })),
-      handles: Array.from(store.handles.values()).map(h => ({
-        id: h.id,
-        nodeId: h.nodeId,
-        name: h.label,
-        direction: h.direction,
-        dataType: h.dataType
-      })),
-      persons: Array.from(store.persons.values()).map(p => ({
-        id: p.id,
-        name: p.label,
-        displayName: p.label,
-        service: p.service,
-        model: p.model,
-        apiKeyId: p.apiKeyId,
-        systemPrompt: p.systemPrompt,
-        forgettingMode: p.forgettingMode
-      })),
-      apiKeys: Array.from(store.apiKeys.values()).map(k => ({
-        id: k.id,
-        label: k.label,
-        service: k.service,
-        maskedKey: k.maskedKey
-      }))
-    };
-    
     // Validate before execution
-    const validation = validateDiagramStructure(diagram);
+    const validation = storeOps.validateDiagram();
     if (!validation.isValid) {
       toast.error(`Cannot execute diagram: ${validation.errors[0]}`);
       return;
@@ -374,14 +288,14 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       // Get store state and convert to ReactDiagram format
       const domainDiagram = {
-        nodes: Array.from(store.nodes.values()),
-        arrows: Array.from(store.arrows.values()),
-        persons: Array.from(store.persons.values()),
-        handles: Array.from(store.handles.values()),
-        apiKeys: Array.from(store.apiKeys.values()),
-        nodeCount: store.nodes.size,
-        arrowCount: store.arrows.size,
-        personCount: store.persons.size
+        nodes: Array.from(storeOps.nodes.values()),
+        arrows: Array.from(storeOps.arrows.values()),
+        persons: Array.from(storeOps.persons.values()),
+        handles: Array.from(storeOps.handles.values()),
+        apiKeys: Array.from(storeOps.apiKeys.values()),
+        nodeCount: storeOps.nodes.size,
+        arrowCount: storeOps.arrows.size,
+        personCount: storeOps.persons.size
       };
       
       // Execute with ReactDiagram format - the execute function will convert to backend format
@@ -397,54 +311,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [execution]);
   
   const validateDiagram = useCallback(() => {
-    // Get store state directly
-    const store = useUnifiedStore.getState();
-    if (store.nodes.size === 0) {
-      return { isValid: false, errors: ['No diagram to validate'] };
-    }
-    
-    // Create diagram structure for validation
-    const diagram: ExportFormat = {
-      nodes: Array.from(store.nodes.values()).map(n => ({
-        id: n.id,
-        type: n.type,
-        position: n.position,
-        data: n.data,
-        displayName: n.displayName
-      })),
-      arrows: Array.from(store.arrows.values()).map(a => ({
-        id: a.id,
-        source: a.source,
-        target: a.target,
-        data: a.data
-      })),
-      handles: Array.from(store.handles.values()).map(h => ({
-        id: h.id,
-        nodeId: h.nodeId,
-        name: h.label,
-        direction: h.direction,
-        dataType: h.dataType
-      })),
-      persons: Array.from(store.persons.values()).map(p => ({
-        id: p.id,
-        name: p.label,
-        displayName: p.label,
-        service: p.service,
-        model: p.model,
-        apiKeyId: p.apiKeyId,
-        systemPrompt: p.systemPrompt,
-        forgettingMode: p.forgettingMode
-      })),
-      apiKeys: Array.from(store.apiKeys.values()).map(k => ({
-        id: k.id,
-        label: k.label,
-        service: k.service,
-        maskedKey: k.maskedKey
-      }))
-    };
-    
-    return validateDiagramStructure(diagram);
-  }, []);
+    return storeOps.validateDiagram();
+  }, [storeOps]);
   
   const updateMetadata = useCallback((updates: Partial<DiagramMetadata>) => {
     setMetadata(prev => ({ ...prev, ...updates, modifiedAt: new Date() }));
@@ -452,52 +320,13 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, []);
   
   const getDiagramStats = useCallback(() => {
-    // Work directly with store Maps for better performance
-    const store = useUnifiedStore.getState();
-    
-    if (store.nodes.size === 0) {
-      return {
-        totalNodes: 0,
-        nodesByType: {},
-        totalConnections: 0,
-        unconnectedNodes: 0
-      };
-    }
-    
-    // Count nodes by type
-    const nodesByType: Record<string, number> = {};
-    store.nodes.forEach(node => {
-      nodesByType[node.type] = (nodesByType[node.type] || 0) + 1;
-    });
-    
-    // Find unconnected nodes
-    const connectedNodes = new Set<string>();
-    store.arrows.forEach(arrow => {
-      const sourceNodeId = arrow.source.split(':')[0];
-      const targetNodeId = arrow.target.split(':')[0];
-      if (sourceNodeId) connectedNodes.add(sourceNodeId);
-      if (targetNodeId) connectedNodes.add(targetNodeId);
-    });
-    
-    let unconnectedNodes = 0;
-    store.nodes.forEach((_node, nodeId) => {
-      if (!connectedNodes.has(nodeId)) {
-        unconnectedNodes++;
-      }
-    });
-    
-    return {
-      totalNodes: store.nodes.size,
-      nodesByType,
-      totalConnections: store.arrows.size,
-      unconnectedNodes
-    };
-  }, []);
+    return storeOps.getDiagramStats();
+  }, [storeOps]);
   
   // Mark dirty when canvas changes
   useEffect(() => {
     setIsDirty(true);
-  }, [canvas.nodes, canvas.arrows]);
+  }, [canvas.nodesArray, canvas.arrowsArray]);
   
   // Auto-save setup
   useEffect(() => {
@@ -508,7 +337,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       
       autoSaveInterval$ef.current = setInterval(() => {
         if (isDirty && !execution.isRunning) {
-          saveDiagram('quicksave');
+          void saveDiagram('quicksave');
         }
       }, autoSaveInterval);
       
@@ -551,10 +380,10 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     updateMetadata,
     
     // History
-    undo: canvas.undo,
-    redo: canvas.redo,
-    canUndo: canvas.canUndo,
-    canRedo: canvas.canRedo,
+    undo: storeOps.undo,
+    redo: storeOps.redo,
+    canUndo: storeOps.canUndo,
+    canRedo: storeOps.canRedo,
     
     // Utils
     getDiagramStats,

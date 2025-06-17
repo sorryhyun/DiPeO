@@ -36,6 +36,7 @@ export interface DiagramSlice {
   
   // Utility
   clearDiagram: () => void;
+  validateDiagram: () => { isValid: boolean; errors: string[] };
 }
 
 export const createDiagramSlice: StateCreator<
@@ -181,5 +182,61 @@ export const createDiagramSlice: StateCreator<
     state.nodesArray = [];
     state.arrowsArray = [];
     state.dataVersion += 1;
-  })
+  }),
+
+  validateDiagram: () => {
+    const state = get();
+    const errors: string[] = [];
+    
+    // Check for empty diagram
+    if (state.nodes.size === 0) {
+      errors.push('Diagram has no nodes');
+      return { isValid: false, errors };
+    }
+    
+    // Check for start node
+    const hasStartNode = Array.from(state.nodes.values()).some(
+      node => node.type === 'START'
+    );
+    if (!hasStartNode) {
+      errors.push('Diagram must have at least one start node');
+    }
+    
+    // Check for endpoint node
+    const hasEndpoint = Array.from(state.nodes.values()).some(
+      node => node.type === 'ENDPOINT'
+    );
+    if (!hasEndpoint) {
+      errors.push('Diagram should have at least one endpoint node');
+    }
+    
+    // Check for unconnected nodes
+    const connectedNodes = new Set<string>();
+    state.arrows.forEach(arrow => {
+      const sourceNodeId = arrow.source.split(':')[0];
+      const targetNodeId = arrow.target.split(':')[0];
+      if (sourceNodeId) connectedNodes.add(sourceNodeId);
+      if (targetNodeId) connectedNodes.add(targetNodeId);
+    });
+    
+    const unconnectedNodes = Array.from(state.nodes.values()).filter(
+      node => !connectedNodes.has(node.id) && node.type !== 'START'
+    );
+    
+    if (unconnectedNodes.length > 0) {
+      errors.push(`${unconnectedNodes.length} node(s) are not connected`);
+    }
+    
+    // Check for person nodes without assigned persons
+    state.nodes.forEach(node => {
+      if ((node.type === 'PERSON_JOB' || node.type === 'PERSON_BATCH_JOB') && !node.data?.person) {
+        errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
+      }
+    });
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
 });

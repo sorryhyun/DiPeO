@@ -14,4 +14,3 @@ export * from './useCanvasOperations';
 // Operation hooks
 export * from './useNodeOperations';
 export * from './useArrowOperations';
-export * from './useSelectionOperations';
