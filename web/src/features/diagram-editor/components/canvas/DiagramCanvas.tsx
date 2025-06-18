@@ -30,9 +30,8 @@ import ContextMenu from "../controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
 import { DomainArrow, arrowId, nodeId } from '@/core/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { NodeType } from '@dipeo/domain-models';
 import { arrowToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
-import { graphQLTypeToNodeKind } from '@/graphql/types';
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -307,7 +306,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           selectedNodeId={selectedNodeId ? nodeId(selectedNodeId) : null}
           selectedArrowId={selectedArrowId ? arrowId(selectedArrowId) : null}
           containerRef={flowWrapperRef as React.RefObject<HTMLDivElement>}
-          onAddNode={(type, position) => addNode(graphQLTypeToNodeKind(type), position)}
+          onAddNode={(type, position) => addNode(type, position)}
           onAddPerson={handleAddPerson}
           onDeleteNode={deleteNode}
           onDeleteArrow={deleteArrow}

@@ -13,9 +13,8 @@
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "codegen": "graphql-codegen --config codegen.yml && pnpm generate:node-kinds",
+    "codegen": "graphql-codegen --config codegen.yml",
     "codegen:watch": "graphql-codegen --config codegen.yml --watch",
-    "generate:node-kinds": "tsx scripts/generate-node-kinds.ts",
     "download-schema": "graphql-codegen --config codegen.schema.yml"
   },
   "dependencies": {

@@ -3,15 +3,13 @@
  */
 
 import { nanoid } from 'nanoid';
-import { Vec2, DataType as DomainDataType } from '@dipeo/domain-models';
+import { Vec2, DataType as DomainDataType, ApiKeyID, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
 import {
   nodeId,
   arrowId,
   personId,
   apiKeyId
 } from './branded';
-
-import {ApiKeyID, ArrowID, NodeID, PersonID} from '@dipeo/domain-models';
 
 const DEFAULT_ID_LENGTH = 4;
 const SHORT_ID_LENGTH = 4;

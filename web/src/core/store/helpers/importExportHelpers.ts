@@ -1,14 +1,11 @@
 import {  DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson,  apiKeyId } from '@/core/types';
-import type { ApiKeyID, NodeID, ArrowID, PersonID } from '@dipeo/domain-models';
+import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, NodeType, ForgettingMode, Vec2 } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { nodeKindToGraphQLType } from '@/graphql/types';
-import { ForgettingMode, Vec2 } from '@dipeo/domain-models';
 import { generateNodeLabel } from '@/core/config/nodeMeta';
 import { getNodeDefaults } from '@/core/config';
 
 // Helper to create a node
-export function createNode(type: NodeKind, position: Vec2, initialData?: Record<string, unknown>): DomainNode {
+export function createNode(type: NodeType, position: Vec2, initialData?: Record<string, unknown>): DomainNode {
   const id = generateNodeId();
   const configDefaults = getNodeDefaults(type);
   
@@ -16,7 +13,7 @@ export function createNode(type: NodeKind, position: Vec2, initialData?: Record<
   
   return {
     id,
-    type: nodeKindToGraphQLType(type),
+    type,
     position: {
       x: position?.x ?? 0,
       y: position?.y ?? 0
@@ -47,7 +44,7 @@ export function createImportState() {
     apiKeys,
     
     // Minimal set of methods needed for import
-    addNode: (type: NodeKind, position: Vec2, initialData?: Record<string, unknown>) => {
+    addNode: (type: NodeType, position: Vec2, initialData?: Record<string, unknown>) => {
       const node = createNode(type, position, initialData);
       nodes.set(node.id as NodeID, node);
       

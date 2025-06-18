@@ -1,9 +1,9 @@
-import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import {
   PersonID,
-  ForgettingMode, 
-  NodeResult, 
+  ForgettingMode,
+  NodeResult,
   NodeExecutionStatus,
+  NodeType,
   StartNodeData as DomainStartNodeData,
   ConditionNodeData as DomainConditionNodeData,
   PersonJobNodeData as DomainPersonJobNodeData,
@@ -143,7 +143,7 @@ export { isDomainNode, isReactDiagram } from '@/graphql/types/graphql-mappings';
 /**
  * Utility types for working with nodes
  */
-export type NodeDataOfType<T extends NodeKind> = T extends keyof NodeData ? NodeData[T] : never;
+export type NodeDataOfType<T extends NodeType> = T extends keyof NodeData ? NodeData[T] : never;
 
 // Export format type for diagram export/import operations
 export interface ExportFormat {

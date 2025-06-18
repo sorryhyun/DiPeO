@@ -6,7 +6,7 @@
  * eliminating the risk of inconsistencies.
  */
 
-import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import type { NodeType } from '@dipeo/domain-models';
 
 export interface NodeMetadata {
   icon: string;
@@ -19,7 +19,7 @@ export interface NodeMetadata {
  * Comprehensive node metadata mapping
  * Used throughout the application for consistent node appearance and behavior
  */
-export const NODE_META: Record<NodeKind, NodeMetadata> = {
+export const NODE_META: Record<NodeType, NodeMetadata> = {
   start: {
     icon: '🚀',
     color: '#10b981',
@@ -79,15 +79,15 @@ export const NODE_META: Record<NodeKind, NodeMetadata> = {
 /**
  * Helper function to get node metadata with type safety
  */
-export function getNodeMeta(type: NodeKind): NodeMetadata {
+export function getNodeMeta(type: NodeType): NodeMetadata {
   return NODE_META[type];
 }
 
 /**
  * Get all available node types
  */
-export function getNodeKinds(): NodeKind[] {
-  return Object.keys(NODE_META) as NodeKind[];
+export function getNodeKinds(): NodeType[] {
+  return Object.keys(NODE_META) as NodeType[];
 }
 
 /**
@@ -96,7 +96,7 @@ export function getNodeKinds(): NodeKind[] {
  * @param id - The node ID (optional, used for unique suffix)
  * @returns A formatted label string
  */
-export function generateNodeLabel(type: NodeKind, id?: string): string {
+export function generateNodeLabel(type: NodeType, id?: string): string {
   const meta = NODE_META[type];
   if (!id) {
     return meta.label;
@@ -110,12 +110,12 @@ export function generateNodeLabel(type: NodeKind, id?: string): string {
 // Export individual collections for backward compatibility
 export const NODE_ICONS = Object.fromEntries(
   Object.entries(NODE_META).map(([key, value]) => [key, value.icon])
-) as Record<NodeKind, string>;
+) as Record<NodeType, string>;
 
 export const NODE_COLORS = Object.fromEntries(
   Object.entries(NODE_META).map(([key, value]) => [key, value.color])
-) as Record<NodeKind, string>;
+) as Record<NodeType, string>;
 
 export const NODE_LABELS = Object.fromEntries(
   Object.entries(NODE_META).map(([key, value]) => [key, value.label])
-) as Record<NodeKind, string>;
+) as Record<NodeType, string>;

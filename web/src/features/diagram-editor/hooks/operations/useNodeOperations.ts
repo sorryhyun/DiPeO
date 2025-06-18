@@ -5,13 +5,11 @@
 import { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { DomainNode } from '@/core/types';
-import { Vec2, NodeID } from '@dipeo/domain-models';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { graphQLTypeToNodeKind } from '@/graphql/types';
+import { Vec2, NodeID, NodeType } from '@dipeo/domain-models';
 
 export interface UseNodeOperationsReturn {
   // CRUD Operations
-  addNode: (type: NodeKind, position: Vec2, data?: Record<string, unknown>) => NodeID;
+  addNode: (type: NodeType, position: Vec2, data?: Record<string, unknown>) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
   duplicateNode: (id: NodeID) => NodeID | null;
@@ -31,7 +29,7 @@ export function useNodeOperations(): UseNodeOperationsReturn {
   const store = useUnifiedStore;
   
   const addNode = useCallback((
-    type: NodeKind, 
+    type: NodeType, 
     position: Vec2, 
     data?: Record<string, unknown>
   ): NodeID => {
@@ -60,7 +58,7 @@ export function useNodeOperations(): UseNodeOperationsReturn {
     };
     
     return state.addNode(
-      graphQLTypeToNodeKind(node.type) as NodeKind,
+      node.type,
       newPosition,
       { ...node.data }
     );

@@ -22,9 +22,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useCanvas } from './ui/useCanvas';
 import { useCanvasInteractions } from './ui/useCanvasInteractions';
 import { SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
-import { Vec2 } from '@dipeo/domain-models';
-import { graphQLTypeToNodeKind } from '@/graphql/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { Vec2, NodeType } from '@dipeo/domain-models';
 import type { NodeID, ArrowID, PersonID, HandleID  } from '@dipeo/domain-models';
 
 
@@ -168,7 +166,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     };
     
     const newNodeId = storeOps.addNode(
-      graphQLTypeToNodeKind(node.type) as NodeKind,
+      node.type,
       newPosition,
       { ...node.data }
     );
@@ -231,7 +229,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     
     // Store operations
     addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
-      storeOps.addNode(type as NodeKind, position, data),
+      storeOps.addNode(type as NodeType, position, data),
     updateNode: storeOps.updateNode,
     deleteNode: storeOps.deleteNode,
     duplicateNode,

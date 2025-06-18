@@ -5,10 +5,8 @@
 
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID } from '@/core/types';
-import { HandleDirection, DataType } from '@dipeo/domain-models';
+import { HandleDirection, DataType, NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { graphQLTypeToNodeKind } from '@/graphql/types';
 
 // Define DiagramMetadata locally to avoid circular dependencies
 interface DiagramMetadata {
@@ -62,8 +60,7 @@ function cleanNodeData(node: DomainNode): DomainNode {
  */
 function generateHandlesForNode(node: DomainNode): Record<string, DomainHandle> {
   const handles: Record<string, DomainHandle> = {};
-  const nodeKind = graphQLTypeToNodeKind(node.type) as NodeKind;
-  const config = UNIFIED_NODE_CONFIGS[nodeKind];
+  const config = UNIFIED_NODE_CONFIGS[node.type];
   
   if (!config?.handles) {
     return handles;

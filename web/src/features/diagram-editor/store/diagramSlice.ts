@@ -1,12 +1,11 @@
 import { StateCreator } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { ArrowID, DomainArrow, DomainNode, NodeID } from '@/core/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { NodeType, Vec2 } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { updateMap } from '@/core/store/helpers/entityHelpers';
+import { NodeType, Vec2 } from '@dipeo/domain-models';
 
 export interface DiagramSlice {
   // Core data structures
@@ -21,7 +20,7 @@ export interface DiagramSlice {
   dataVersion: number;
   
   // Node operations
-  addNode: (type: NodeKind, position: Vec2, initialData?: any) => NodeID;
+  addNode: (type: NodeType, position: Vec2, initialData?: any) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;

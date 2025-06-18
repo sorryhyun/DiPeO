@@ -1,11 +1,10 @@
 import type { DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
-import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
 import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice, NodeState } from '@/features/execution-monitor/store/executionSlice';
 import type { PersonSlice } from '@/features/person-management/store/personSlice';
 import type { UISlice } from './slices/uiSlice';
-import type { NodeID, ArrowID, PersonID, HandleID, ApiKeyID  } from '@dipeo/domain-models';
+import type { NodeID, ArrowID, PersonID, HandleID, ApiKeyID, NodeType } from '@dipeo/domain-models';
 
 // Re-export NodeState from executionSlice for backward compatibility
 export type { NodeState } from '@/features/execution-monitor/store/executionSlice';

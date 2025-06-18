@@ -26,7 +26,6 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, React
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { HandleDirection } from '@dipeo/domain-models';
 
 /**
@@ -209,7 +208,7 @@ export class DiagramAdapter {
     
     const domainNode: DomainNode = {
       id: rfNode.id as NodeID,
-      type: nodeKindToGraphQLType((rfNode.type as NodeKind) || 'start'),
+      type: nodeKindToGraphQLType(rfNode.type || 'start'),
       position: { ...rfNode.position },
       data: nodeData as Record<string, unknown>,
       displayName: (nodeData.label || rfNode.id) as string,

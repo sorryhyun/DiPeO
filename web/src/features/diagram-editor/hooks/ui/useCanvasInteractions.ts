@@ -10,9 +10,7 @@ import type { Node } from '@xyflow/react';
 import { createNodeDragGhost } from '@/shared/utils/dragGhost';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { NodeID, PersonID, ArrowID, nodeId, personId } from '@/core/types';
-import { Vec2 } from '@dipeo/domain-models';
-import { graphQLTypeToNodeKind } from '@/graphql/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { Vec2, NodeType } from '@dipeo/domain-models';
 import { useNodeOperations } from '../operations/useNodeOperations';
 import { useArrowOperations } from '../operations/useArrowOperations';
 import { usePersonOperations } from '../operations/usePersonOperations';
@@ -159,7 +157,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
       };
       
       const newNodeId = nodeOps.addNode(
-        graphQLTypeToNodeKind(node.type) as NodeKind,
+        node.type,
         newPosition,
         { ...node.data }
       );
@@ -176,7 +174,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
     
-    const ghost = createNodeDragGhost(nodeType as NodeKind);
+    const ghost = createNodeDragGhost(nodeType as NodeType);
     const ghostWidth = 200;
     const ghostHeight = 80;
     event.dataTransfer.setDragImage(ghost, ghostWidth / 2, ghostHeight / 2);
@@ -249,7 +247,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
       event.clientY - dragOffset.current.y
     );
     
-    nodeOps.addNode(type as NodeKind, dropPosition);
+    nodeOps.addNode(type as NodeType, dropPosition);
     
     setDragState({
       isDragging: false,

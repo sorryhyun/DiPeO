@@ -2,7 +2,7 @@
  * Unified node configurations that combine both node and panel configs
  */
 
-import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import type { NodeType } from '@dipeo/domain-models';
 import type { UnifiedNodeConfig } from '../unifiedConfig';
 
 // Import all unified configs
@@ -16,7 +16,7 @@ import { dbConfig } from './db';
 import { userResponseConfig } from './userResponse';
 import { notionConfig } from './notion';
 
-export const UNIFIED_NODE_CONFIGS: Record<NodeKind, UnifiedNodeConfig<any>> = {
+export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<any>> = {
   start: startConfig,
   condition: conditionConfig,
   job: jobConfig,

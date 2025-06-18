@@ -12,7 +12,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import {type ReactDiagram, diagramId, executionId, nodeId } from '@/core/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { NodeType } from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/core/config/nodeMeta';
 import {
@@ -576,11 +576,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [formatDuration]);
   
   const getNodeIcon = useCallback((nodeType: string): string => {
-    return NODE_ICONS[nodeType as NodeKind] || '📦';
+    return NODE_ICONS[nodeType as NodeType] || '📦';
   }, []);
   
   const getNodeColor = useCallback((nodeType: string): string => {
-    return NODE_COLORS[nodeType as NodeKind] || '#6b7280';
+    return NODE_COLORS[nodeType as NodeType] || '#6b7280';
   }, []);
   
   const getNodeExecutionState = useCallback((nodeId: string): NodeState | undefined => {

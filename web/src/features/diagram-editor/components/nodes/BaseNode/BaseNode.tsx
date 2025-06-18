@@ -7,9 +7,8 @@ import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../../hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import { useUIState } from '@/shared/hooks/selectors';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
 import { nodeId } from '@/core/types';
-import { NodeExecutionStatus } from '@dipeo/domain-models';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -39,7 +38,7 @@ function useNodeStatus(nodeId: string) {
 
 // Custom hook for handles generation
 function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
-  const config = getNodeConfig(nodeType as NodeKind);
+  const config = getNodeConfig(nodeType as NodeType);
   
   return useMemo(() => {
     const allHandles = [
@@ -186,7 +185,7 @@ export function BaseNode({
   // Use custom hooks
   const nId = nodeId(id);
   const status = useNodeStatus(id);
-  const config = getNodeConfig(type as NodeKind);
+  const config = getNodeConfig(type as NodeType);
   const isFlipped = data?.flipped === true;
   const handles = useHandles(id, type, isFlipped);
   
