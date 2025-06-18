@@ -15,7 +15,17 @@ import {
   PersonBatchJobNodeData as DomainPersonBatchJobNodeData
 } from "@dipeo/domain-models";
 
-// Re-export from graphql-mappings which provides compatibility layer
+// Re-export GraphQL types for use in core domain
+import type {
+  Node as DomainNode,
+  Arrow as DomainArrow,
+  Handle as DomainHandle,
+  Person as DomainPerson,
+  ApiKey as DomainApiKey,
+  DomainDiagramType as ReactDiagram,
+  ArrowData
+} from '@/graphql/types';
+
 export type {
   DomainNode,
   DomainArrow,
@@ -24,7 +34,7 @@ export type {
   DomainApiKey,
   ReactDiagram,
   ArrowData
-} from '@/graphql/types/graphql-mappings';
+};
 
 // Generic UI extension wrapper for domain models
 export type WithUI<T> = T & { 

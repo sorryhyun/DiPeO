@@ -17,9 +17,9 @@
  * - Visual representation concerns
  * 
  * TYPE CONVENTIONS:
- * - Domain* types: Direct GraphQL types from the server
- * - React* types: Same as Domain types, used in React components
+ * - GraphQL types: Direct types from @/__generated__/graphql (Node, Arrow, etc.)
  * - Store* types: Map-based versions for efficient state management
+ * - Domain/React prefixes: Used only for semantic clarity when needed
  * 
  * USAGE:
  * Import from here when working with data conversions or GraphQL types.
@@ -38,17 +38,20 @@ import type {
 import { NodeType, HandleDirection, DataType, Vec2,
   NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID} from '@dipeo/domain-models';
 
-// Domain types are GraphQL types - they are the same
-// React types are also the same structure but typed for React usage
+// For backward compatibility and semantic clarity, we create type aliases
+// These help distinguish between different contexts where the same types are used
+
+// Domain types represent the server's data model
 export type DomainNode = Node;
 export type DomainArrow = Arrow;
 export type DomainHandle = Handle;
 export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
 export type DomainDiagram = DomainDiagramType;
-// ReactDiagram is a frontend-specific type, different from DomainDiagram
+
 /**
- * ReactDiagram is currently an alias for DomainDiagram.
+ * ReactDiagram represents diagram data used in React components.
+ * Currently an alias for DomainDiagram, but kept separate for potential future divergence.
  * 
  * React Flow specific UI state (viewport, selection, etc.) is managed separately
  * in the UISlice of the store rather than being part of the diagram data structure.
@@ -56,7 +59,7 @@ export type DomainDiagram = DomainDiagramType;
  * 
  * The DiagramAdapter handles conversion between domain models and React Flow format.
  */
-export type ReactDiagram = DomainDiagram;
+export type ReactDiagram = DomainDiagramType;
 
 // Store format uses Maps for efficient lookups
 export interface StoreDiagram {
@@ -78,7 +81,7 @@ export interface StoreDiagram {
 }
 
 // Convert from Domain/React format (arrays) to Store format (Maps)
-export function diagramToStoreMaps(diagram: Partial<DomainDiagram>): {
+export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
   nodes: Map<NodeID, Node>;
   handles: Map<HandleID, Handle>;
   arrows: Map<ArrowID, Arrow>;
@@ -122,7 +125,7 @@ export function storeMapsToArrays(store: {
   arrows: Map<ArrowID, Arrow>;
   persons: Map<PersonID, Person>;
   apiKeys: Map<ApiKeyID, ApiKey>;
-}): Partial<DomainDiagram> {
+}): Partial<DomainDiagramType> {
   return {
     nodes: Array.from(store.nodes.values()),
     handles: Array.from(store.handles.values()),
@@ -133,7 +136,7 @@ export function storeMapsToArrays(store: {
 }
 
 // Convert from React format to Domain/GraphQL format for server communication
-export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagram> {
+export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagramType> {
   return {
     nodes: diagram.nodes || [],
     handles: diagram.handles || [],
@@ -155,7 +158,7 @@ export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagr
 }
 
 // Convert from Domain/GraphQL format to React format for component usage
-export function domainToReactDiagram(diagram: Partial<DomainDiagram>): ReactDiagram {
+export function domainToReactDiagram(diagram: Partial<DomainDiagramType>): ReactDiagram {
   return diagram as ReactDiagram;
 }
 
