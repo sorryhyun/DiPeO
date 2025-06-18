@@ -3,8 +3,8 @@ Shared domain models, enums, and types.
 This module contains the core domain vocabulary used across all domains.
 """
 
-# Export all enums
-from .enums import (
+# Import enums from generated models
+from src.__generated__.models import (
     NodeType,
     HandleDirection,
     DataType,

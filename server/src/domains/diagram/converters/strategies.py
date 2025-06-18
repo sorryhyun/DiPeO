@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import yaml
 import json
 
-from ..models.domain import DomainDiagram, DomainNode, DomainArrow
+from src.__generated__.models import DomainDiagram, DomainNode, DomainArrow
 from .shared_components import (
     HandleGenerator, PositionCalculator, NodeTypeMapper, ArrowBuilder
 )

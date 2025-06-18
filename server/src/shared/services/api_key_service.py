@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 from config import BASE_DIR
 from ..exceptions.exceptions import APIKeyError, ValidationError
 from ..utils.base_service import BaseService
-from ..domain import LLMService as LLMServiceEnum
+from ...__generated__.models import LLMService as LLMServiceEnum
 
 class APIKeyService(BaseService):
     """Service for managing API keys."""

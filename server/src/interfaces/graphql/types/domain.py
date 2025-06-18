@@ -7,17 +7,21 @@ from typing import Optional, List
 
 from ..types.scalars import JSONScalar, DiagramID, ExecutionID
 
-from src.domains.diagram.models.domain import (
+# Import generated models
+from src.__generated__.models import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
-    DomainApiKey, DiagramMetadata, DiagramForGraphQL,
+    DomainApiKey, DiagramMetadata, DomainDiagram,
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,
-    TokenUsage as DiagramTokenUsage
-)
-from src.shared.domain import (
     TokenUsage as PydanticTokenUsage,
     Vec2 as PydanticVec2,
     DiagramFormat
+)
+
+# Import domain-specific extensions
+from src.domains.diagram.models.domain import (
+    ExtendedTokenUsage as DiagramTokenUsage,
+    ExecutionID
 )
 
 # Convert basic types
@@ -31,10 +35,13 @@ class TokenUsage:
     """Token usage statistics."""
     pass
 
-@strawberry.experimental.pydantic.type(model=DiagramTokenUsage, all_fields=True)
+@strawberry.experimental.pydantic.type(model=DiagramTokenUsage)
 class DiagramTokenUsageType:
     """Token usage statistics for diagram execution."""
-    pass
+    input: strawberry.auto
+    output: strawberry.auto
+    cached: strawberry.auto
+    total: strawberry.auto
 
 # Convert domain models to Strawberry types
 @strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True)
@@ -122,8 +129,8 @@ class DiagramMetadata:
     """Metadata for a diagram."""
     pass
 
-@strawberry.experimental.pydantic.type(model=DiagramForGraphQL)
-class DomainDiagram:
+@strawberry.experimental.pydantic.type(model=DomainDiagram)
+class DomainDiagramType:
     """Complete diagram with all components (backend format)."""
     nodes: strawberry.auto
     handles: strawberry.auto

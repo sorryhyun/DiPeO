@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
 
-from .models import DomainDiagram
+from .models import CLIDiagram
 
 
 DEFAULT_API_KEY = "APIKEY_387B73"
@@ -19,59 +19,39 @@ class DiagramValidator:
     
     @staticmethod
     def validate_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate diagram using local DomainDiagram model"""
-        try:
-            # Ensure all required fields exist with proper defaults
-            if 'nodes' not in diagram:
-                diagram['nodes'] = {}
-            if 'arrows' not in diagram:
-                diagram['arrows'] = {}
-            if 'handles' not in diagram:
-                diagram['handles'] = {}
-            if 'persons' not in diagram:
-                diagram['persons'] = {}
-            if 'apiKeys' not in diagram:
-                diagram['apiKeys'] = {}
-            
-            # Add default API key if needed
-            if not diagram['apiKeys'] and diagram['persons']:
-                diagram['apiKeys'][DEFAULT_API_KEY] = {
-                    'id': DEFAULT_API_KEY,
-                    'label': 'Default API Key',
-                    'service': 'openai',
-                    'key': 'test-key'
-                }
-            
-            # Add metadata if missing
-            if 'metadata' not in diagram:
-                diagram['metadata'] = {
-                    'name': 'CLI Diagram',
-                    'created': datetime.now().isoformat(),
-                    'modified': datetime.now().isoformat(),
-                    'version': '2.0.0'
-                }
-            
-            # Convert apiKeys to api_keys for model
-            if 'apiKeys' in diagram:
-                diagram['api_keys'] = diagram.pop('apiKeys')
-            
-            # Validate using local model
-            domain_diagram = DomainDiagram(**diagram)
-            domain_diagram.validate()
-            
-            # Convert back to dict format
-            validated = domain_diagram.model_dump()
-            
-            # Convert api_keys back to apiKeys for backward compatibility
-            if 'api_keys' in validated:
-                validated['apiKeys'] = validated.pop('api_keys')
-            
-            return validated
-            
-        except Exception as e:
-            print(f"⚠️  Validation warning: {str(e)}")
-            # Return original diagram with defaults applied
-            return diagram
+        """Validate diagram structure and apply defaults"""
+        # Ensure all required fields exist with proper defaults
+        if 'nodes' not in diagram:
+            diagram['nodes'] = {}
+        if 'arrows' not in diagram:
+            diagram['arrows'] = {}
+        if 'handles' not in diagram:
+            diagram['handles'] = {}
+        if 'persons' not in diagram:
+            diagram['persons'] = {}
+        if 'apiKeys' not in diagram:
+            diagram['apiKeys'] = {}
+        
+        # Add default API key if needed
+        if not diagram['apiKeys'] and diagram['persons']:
+            diagram['apiKeys'][DEFAULT_API_KEY] = {
+                'id': DEFAULT_API_KEY,
+                'label': 'Default API Key',
+                'service': 'openai',
+                'key': 'test-key',
+                'masked_key': '***'
+            }
+        
+        # Add metadata if missing
+        if 'metadata' not in diagram:
+            diagram['metadata'] = {
+                'name': 'CLI Diagram',
+                'created': datetime.now().isoformat(),
+                'modified': datetime.now().isoformat(),
+                'version': '2.0.0'
+            }
+        
+        return diagram
 
 
 class DiagramLoader:

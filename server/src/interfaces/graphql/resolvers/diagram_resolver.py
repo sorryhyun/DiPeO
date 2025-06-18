@@ -4,11 +4,11 @@ from datetime import datetime
 from collections import defaultdict
 import logging
 
-from ..types.domain import DomainDiagram as GraphQLDiagram, DiagramMetadata
+from ..types.domain import DomainDiagramType as GraphQLDiagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
 from src.domains.diagram.services.diagram_service import DiagramService
-from src.domains.diagram.models.domain import DomainDiagram as DomainDiagramModel
+from src.domains.diagram.models.domain import ExtendedDiagramDict as DomainDiagramModel
 
 logger = logging.getLogger(__name__)
 

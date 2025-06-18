@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Dict, Any, List, Literal
 
 from .base import BaseNodeProps
-from ....diagram.models.domain import LLMService, ContextCleaningRule
+from src.__generated__.models import LLMService, ContextCleaningRule
 
 
 class PersonConfig(BaseModel):

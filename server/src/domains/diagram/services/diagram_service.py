@@ -14,7 +14,7 @@ from src.domains.person.memory.memory_service import MemoryService
 from src.shared.utils.base_service import BaseService
 from src.shared.utils.diagram_validator import DiagramValidator
 from config import BASE_DIR
-from src.shared.domain import DiagramID
+from src.__generated__.models import DiagramID
 
 logger = logging.getLogger(__name__)
 

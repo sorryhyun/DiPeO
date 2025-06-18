@@ -3,7 +3,7 @@
 from typing import Dict, List, Optional, Tuple, Any
 import logging
 
-from ..models.domain import DomainDiagram, DomainNode, DomainArrow
+from src.__generated__.models import DomainDiagram, DomainNode, DomainArrow
 from .base import DiagramConverter
 from .shared_components import (
     HandleGenerator, PositionCalculator, NodeTypeMapper, ArrowBuilder

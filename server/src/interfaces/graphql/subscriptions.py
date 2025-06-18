@@ -5,7 +5,7 @@ import asyncio
 import logging
 from datetime import datetime
 
-from .types.domain import ExecutionState, ExecutionEvent, DomainDiagram
+from src.__generated__.models import ExecutionState, ExecutionEvent, DomainDiagram
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
 from .types.enums import EventType
 from src.shared.domain import NodeType, ExecutionStatus

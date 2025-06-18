@@ -4,7 +4,7 @@ from typing import Protocol, Type, Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 from datetime import datetime
-from ...diagram.models.domain import TokenUsage
+from src.__generated__.models import TokenUsage
 
 
 @dataclass

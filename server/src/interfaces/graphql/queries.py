@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from .types.domain import (
-    DomainDiagram, ExecutionState, Person, ApiKey, ExecutionEvent
+    DomainDiagramType, ExecutionState, Person, ApiKey, ExecutionEvent
 )
 from .mutations.diagram_file import DiagramFormatInfo
 from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
@@ -17,7 +17,7 @@ class Query:
     """Root query type for DiPeO GraphQL API."""
     
     @strawberry.field
-    async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagram]:
+    async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
         """Get a single diagram by ID."""
         from .resolvers import diagram_resolver
         return await diagram_resolver.get_diagram(id, info)
@@ -29,7 +29,7 @@ class Query:
         filter: Optional[DiagramFilterInput] = None,
         limit: int = 100,
         offset: int = 0
-    ) -> List[DomainDiagram]:
+    ) -> List[DomainDiagramType]:
         """List diagrams with optional filtering."""
         from .resolvers import diagram_resolver
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)

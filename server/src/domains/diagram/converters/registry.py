@@ -2,7 +2,7 @@
 from typing import Dict, Optional, List, Tuple
 from .base import DiagramConverter
 from .unified_converter import UnifiedDiagramConverter
-from ..models.domain import DiagramFormat, DomainDiagram
+from src.__generated__.models import DiagramFormat, DomainDiagram
 
 
 class ConverterRegistry:

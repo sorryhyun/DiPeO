@@ -2,7 +2,7 @@
 Shared domain constants used across the system.
 """
 from typing import Final, Dict, Set
-from .enums import LLMService
+from ...__generated__.models import LLMService
 
 # API Configuration
 API_BASE_PATH: Final[str] = "/api"

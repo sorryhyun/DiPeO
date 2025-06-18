@@ -2,64 +2,60 @@
 Shared domain type aliases and base models.
 These types are used throughout the system to ensure consistency.
 """
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, NewType
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-# Type aliases for domain identifiers
-NodeID = str
-ArrowID = str
-HandleID = str
-PersonID = str
-ApiKeyID = str
-DiagramID = str
-ExecutionID = str
+# Import type aliases from generated models
+from src.__generated__.models import (
+    NodeID,
+    ArrowID,
+    HandleID,
+    PersonID,
+    ApiKeyID,
+    DiagramID,
+    Vec2,
+    TokenUsage as GeneratedTokenUsage,
+)
 
+# ExecutionID is not in generated models yet
+ExecutionID = NewType('ExecutionID', str)
 
-class Vec2(BaseModel):
-    """2D position vector used for node positioning."""
-    x: float
-    y: float
-
-
-class TokenUsage(BaseModel):
-    """Token usage tracking for LLM services."""
-    model_config = {"extra": "forbid"}
-    
-    prompt_tokens: int = Field(0, description="Number of tokens in the prompt")
-    completion_tokens: int = Field(0, description="Number of tokens in the completion")
-    total_tokens: int = Field(0, description="Total number of tokens used")
+# Extended TokenUsage with additional methods
+class TokenUsage(GeneratedTokenUsage):
+    """Token usage tracking for LLM services with additional utility methods."""
     
     @classmethod
     def zero(cls) -> 'TokenUsage':
         """Create a zero token usage instance."""
-        return cls(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        return cls(input=0, output=0, cached=0)
     
     def __add__(self, other: 'TokenUsage') -> 'TokenUsage':
         """Add two token usage instances."""
-        if not isinstance(other, TokenUsage):
+        if not isinstance(other, (TokenUsage, GeneratedTokenUsage)):
             return NotImplemented
         return TokenUsage(
-            prompt_tokens=self.prompt_tokens + other.prompt_tokens,
-            completion_tokens=self.completion_tokens + other.completion_tokens,
-            total_tokens=self.total_tokens + other.total_tokens
+            input=self.input + other.input,
+            output=self.output + other.output,
+            cached=(self.cached or 0) + (other.cached or 0)
         )
     
     def __iadd__(self, other: 'TokenUsage') -> 'TokenUsage':
         """In-place addition of token usage."""
-        if not isinstance(other, TokenUsage):
+        if not isinstance(other, (TokenUsage, GeneratedTokenUsage)):
             return NotImplemented
-        self.prompt_tokens += other.prompt_tokens
-        self.completion_tokens += other.completion_tokens
-        self.total_tokens += other.total_tokens
+        self.input += other.input
+        self.output += other.output
+        self.cached = (self.cached or 0) + (other.cached or 0)
         return self
     
     def to_dict(self) -> Dict[str, int]:
         """Convert to dictionary format."""
         return {
-            "prompt_tokens": self.prompt_tokens,
-            "completion_tokens": self.completion_tokens,
-            "total_tokens": self.total_tokens
+            "input": self.input,
+            "output": self.output,
+            "cached": self.cached or 0,
+            "total": self.total or (self.input + self.output)
         }
 
 

@@ -3,23 +3,26 @@ Diagram Domain Facade
 Provides backward-compatible imports during migration
 """
 
-from .models.domain import (
-    DomainDiagram, 
+from src.__generated__.models import (
+    DomainDiagram,
     DomainNode as Node, 
     DomainArrow as Edge,
     DomainPerson as Person,
     DomainApiKey as ApiKey,
     DomainHandle as Handle,
     ExecutionState,
-    DiagramForGraphQL as Diagram,
     # Export other necessary items
     NodeType,
     LLMService,
     DiagramFormat,
     ExecutionStatus,
+)
+from src.shared.domain import (
     SERVICE_TO_PROVIDER_MAP,
     DEFAULT_SERVICE
 )
+# Use DomainDiagram as Diagram for backward compatibility
+Diagram = DomainDiagram
 # from .services.diagram_service import DiagramService  # Import when needed to avoid circular deps
 # from .validators import validate_diagram  # TODO: Create validators module
 

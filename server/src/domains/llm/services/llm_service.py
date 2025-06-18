@@ -2,7 +2,9 @@ import time
 from typing import Any, List, Optional, Tuple, Union
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from src.shared.domain import LLMService as LLMServiceEnum, PROVIDER_TO_ENUM_MAP, TokenUsage
+from src.__generated__.models import LLMService as LLMServiceEnum
+from src.shared.domain.constants import PROVIDER_TO_ENUM_MAP
+from src.domains.diagram.models.domain import ExtendedTokenUsage as TokenUsage
 from src.shared.exceptions.exceptions import LLMServiceError, APIKeyError
 from src.domains.llm import ChatResult, create_adapter
 from src.shared.services.api_key_service import APIKeyService

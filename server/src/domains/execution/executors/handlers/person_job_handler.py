@@ -8,7 +8,7 @@ import logging
 
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import ExecutionContext, ExecutorResult
-from ....diagram.models.domain import TokenUsage
+from src.__generated__.models import TokenUsage
 from src.shared.utils.output_processor import OutputProcessor
 from src.shared.utils.app_context import get_memory_service
 from ..executor_utils import get_input_values, substitute_variables

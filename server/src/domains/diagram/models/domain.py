@@ -2,13 +2,22 @@
 Enhanced domain models for GraphQL integration using Pydantic as single source of truth.
 These models will be used with @strawberry.experimental.pydantic.type decorator.
 """
-from typing import Dict, Optional, List, Any, Union, Final
+from typing import Dict, Optional, List, Any, Union, Final, NewType
 from pydantic import BaseModel, Field, computed_field, ConfigDict
 from datetime import datetime
 from enum import Enum
 
-# Import shared domain models
-from src.shared.domain import (
+# Import all models from generated code
+from src.__generated__.models import (
+    # Core Models
+    DomainNode,
+    DomainArrow, 
+    DomainHandle,
+    DomainPerson,
+    DomainApiKey,
+    DomainDiagram,
+    DiagramDictFormat,
+    DiagramMetadata,
     # Enums
     NodeType,
     HandleDirection,
@@ -17,6 +26,8 @@ from src.shared.domain import (
     ForgettingMode,
     DiagramFormat,
     ExecutionStatus,
+    NodeExecutionStatus,
+    EventType,
     DBBlockSubType,
     ContentType,
     ContextCleaningRule,
@@ -27,9 +38,41 @@ from src.shared.domain import (
     PersonID,
     ApiKeyID,
     DiagramID,
-    ExecutionID,
     # Base models
     Vec2,
+    TokenUsage,
+    # Execution models
+    ExecutionState,
+    ExecutionEvent,
+    ExecutionResult,
+    NodeResult,
+    # Other models
+    PersonConfiguration,
+    PersonConversation,
+    ConversationMessage,
+    ConversationMetadata,
+    PersonExecutionContext,
+    ExecutionOptions,
+    InteractivePromptData,
+    InteractiveResponse,
+    PersonMemoryMessage,
+    PersonMemoryState,
+    PersonMemoryConfig,
+    ExecutionUpdate,
+    # Node data models
+    BaseNodeData,
+    StartNodeData,
+    ConditionNodeData,
+    PersonJobNodeData,
+    EndpointNodeData,
+    DBNodeData,
+    JobNodeData,
+    UserResponseNodeData,
+    NotionNodeData,
+)
+
+# Import constants from shared domain (not generated)
+from src.shared.domain import (
     # Constants
     API_BASE_PATH,
     DEFAULT_MAX_TOKENS,
@@ -41,124 +84,19 @@ from src.shared.domain import (
     DEFAULT_SERVICE,
 )
 
-# Enhanced domain models with computed fields for GraphQL
-class DomainHandle(BaseModel):
-    """Connection point on a node."""
-    id: HandleID
-    nodeId: NodeID
-    label: str
-    direction: HandleDirection
-    dataType: DataType = DataType.ANY
-    position: Optional[str] = None  # "left" | "right" | "top" | "bottom"
+# Type for ExecutionID (not in generated models yet)
+ExecutionID = NewType('ExecutionID', str)
 
-class DomainNode(BaseModel):
-    """Node in a diagram."""
-    id: NodeID
-    type: NodeType
-    position: Vec2
-    data: Dict[str, Any] = Field(default_factory=dict)
-    
-    @computed_field
-    @property
-    def display_name(self) -> str:
-        """Computed display name for the node."""
-        if 'label' in self.data:
-            return f"{self.type.value}: {self.data['label']}"
-        return self.type.value
+# Domain-specific extensions and aliases
+# The base models are imported from generated code above
 
-class DomainArrow(BaseModel):
-    """Connection between two handles."""
-    id: ArrowID
-    source: HandleID  # "nodeId:handleName" format
-    target: HandleID  # "nodeId:handleName" format
-    data: Optional[Dict[str, Any]] = None
-
-class DomainPerson(BaseModel):
-    """Person (LLM agent) configuration."""
-    id: PersonID
-    label: str
-    service: LLMService
-    model: str
-    api_key_id: Optional[ApiKeyID] = Field(None, alias="apiKeyId")
-    systemPrompt: Optional[str] = None
-    forgettingMode: ForgettingMode = ForgettingMode.NO_FORGET
-    type: str = "person"
+# Extended domain model with business logic for dictionary format
+class ExtendedDiagramDict(DiagramDictFormat):
+    """Main diagram model with dictionaries (internal format) - extended with business logic."""
     
-    model_config = ConfigDict(populate_by_name=True)
-    
-    @computed_field
-    @property
-    def masked_api_key(self) -> Optional[str]:
-        """Return masked API key for display."""
-        if not self.api_key_id:
-            return None
-        return f"****{str(self.api_key_id)[-4:]}"
-
-class DomainApiKey(BaseModel):
-    """API key configuration."""
-    id: ApiKeyID
-    label: str
-    service: LLMService
-    key: str = Field(exclude=True)  # Exclude from serialization by default
-    
-    @computed_field
-    @property
-    def masked_key(self) -> str:
-        """Masked version of the key."""
-        return f"{self.service.value}-****"
-
-class DiagramMetadata(BaseModel):
-    """Metadata for a diagram."""
-    id: Optional[DiagramID] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    version: str = "2.0.0"
-    created: datetime = Field(default_factory=datetime.now)
-    modified: datetime = Field(default_factory=datetime.now)
-    author: Optional[str] = None
-    tags: Optional[List[str]] = None
-
-# For GraphQL, we'll create separate list-based versions
-class DiagramForGraphQL(BaseModel):
-    """Diagram structure optimized for GraphQL with lists instead of dicts."""
-    nodes: List[DomainNode]
-    handles: List[DomainHandle]
-    arrows: List[DomainArrow]
-    persons: List[DomainPerson]
-    api_keys: List[DomainApiKey]
-    metadata: Optional[DiagramMetadata] = None
-    
-    @computed_field
-    @property
-    def node_count(self) -> int:
-        """Total number of nodes."""
-        return len(self.nodes)
-    
-    @computed_field
-    @property
-    def arrow_count(self) -> int:
-        """Total number of arrows."""
-        return len(self.arrows)
-    
-    @computed_field
-    @property
-    def person_count(self) -> int:
-        """Total number of persons."""
-        return len(self.persons)
-
-# Keep the original domain model for internal use
-class DomainDiagram(BaseModel):
-    """Main diagram model with dictionaries (internal format)."""
-    nodes: Dict[NodeID, DomainNode]
-    handles: Dict[HandleID, DomainHandle]
-    arrows: Dict[ArrowID, DomainArrow]
-    persons: Dict[PersonID, DomainPerson]
-    api_keys: Dict[ApiKeyID, DomainApiKey]
-    metadata: Optional[DiagramMetadata] = None
-    
-    def to_graphql(self) -> DiagramForGraphQL:
+    def to_graphql(self) -> DomainDiagram:
         """Convert to GraphQL-friendly format with lists."""
-        return DiagramForGraphQL(
+        return DomainDiagram(
             nodes=list(self.nodes.values()),
             handles=list(self.handles.values()),
             arrows=list(self.arrows.values()),
@@ -168,7 +106,7 @@ class DomainDiagram(BaseModel):
         )
     
     @classmethod
-    def from_graphql(cls, graphql_diagram: DiagramForGraphQL) -> 'DomainDiagram':
+    def from_graphql(cls, graphql_diagram: DomainDiagram) -> 'ExtendedDiagramDict':
         """Convert from GraphQL format back to domain format."""
         return cls(
             nodes={node.id: node for node in graphql_diagram.nodes},
@@ -180,29 +118,20 @@ class DomainDiagram(BaseModel):
         )
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'DomainDiagram':
-        """Create DomainDiagram from dictionary (Pydantic v2 compatibility)."""
+    def from_dict(cls, data: Dict[str, Any]) -> 'ExtendedDiagramDict':
+        """Create ExtendedDiagramDict from dictionary (Pydantic v2 compatibility)."""
         return cls.model_validate(data)
 
-# Execution-related models
-class TokenUsage(BaseModel):
-    """Token usage statistics."""
-    input: int = 0
-    output: int = 0
-    cached: Optional[int] = 0
-    
-    @computed_field
-    @property
-    def total(self) -> int:
-        """Total tokens used (input + output)"""
-        return self.input + self.output
+# Domain-specific methods for TokenUsage
+class ExtendedTokenUsage(TokenUsage):
+    """Extended TokenUsage with provider-specific parsing."""
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format"""
         return self.model_dump()
     
     @classmethod
-    def from_response(cls, response: dict) -> 'TokenUsage':
+    def from_response(cls, response: dict) -> 'ExtendedTokenUsage':
         """Create TokenUsage from LLM response dict"""
         return cls(
             input=response.get("input_tokens", 0),
@@ -211,7 +140,7 @@ class TokenUsage(BaseModel):
         )
     
     @classmethod
-    def from_usage(cls, usage: Any, service: str = None) -> 'TokenUsage':
+    def from_usage(cls, usage: Any, service: str = None) -> 'ExtendedTokenUsage':
         """Create from provider-specific usage object"""
         if not usage:
             return cls()
@@ -244,59 +173,5 @@ class TokenUsage(BaseModel):
             cached=cached_tokens
         )
 
-class ExecutionState(BaseModel):
-    """Current state of a diagram execution."""
-    id: ExecutionID
-    status: ExecutionStatus
-    diagram_id: Optional[DiagramID]
-    started_at: datetime
-    ended_at: Optional[datetime] = None
-    running_nodes: List[NodeID] = Field(default_factory=list)
-    completed_nodes: List[NodeID] = Field(default_factory=list)
-    skipped_nodes: List[NodeID] = Field(default_factory=list)
-    paused_nodes: List[NodeID] = Field(default_factory=list)
-    failed_nodes: List[NodeID] = Field(default_factory=list)
-    node_outputs: Dict[str, Any] = Field(default_factory=dict)
-    variables: Dict[str, Any] = Field(default_factory=dict)
-    token_usage: Optional[TokenUsage] = None
-    error: Optional[str] = None
-    
-    @computed_field
-    @property
-    def duration_seconds(self) -> Optional[float]:
-        """Execution duration in seconds."""
-        if self.ended_at:
-            return (self.ended_at - self.started_at).total_seconds()
-        return None
-    
-    @computed_field
-    @property
-    def is_active(self) -> bool:
-        """Whether execution is still active."""
-        return self.status in [
-            ExecutionStatus.STARTED, 
-            ExecutionStatus.RUNNING, 
-            ExecutionStatus.PAUSED
-        ]
-
-class ExecutionEvent(BaseModel):
-    """Event during diagram execution."""
-    execution_id: ExecutionID
-    sequence: int
-    event_type: str
-    node_id: Optional[NodeID] = None
-    timestamp: datetime
-    data: Dict[str, Any] = Field(default_factory=dict)
-    
-    @computed_field
-    @property
-    def formatted_message(self) -> str:
-        """Human-readable event message."""
-        if self.event_type == "node_completed":
-            return f"Node {self.node_id} completed"
-        elif self.event_type == "node_failed":
-            error = self.data.get('error', 'Unknown error') if isinstance(self.data, dict) else 'Unknown error'
-            return f"Node {self.node_id} failed: {error}"
-        return self.event_type.replace("_", " ").title()
-
-# Constants are now imported from shared.domain.constants
+# All other models are now imported from generated code
+# Only domain-specific extensions are defined in this file

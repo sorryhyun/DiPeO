@@ -145,8 +145,8 @@ export interface DiagramMetadata {
   tags?: string[] | null;
 }
 
-// Diagram structures
-export interface DiagramArrayFormat {
+// Main diagram type used in GraphQL API (array format)
+export interface DomainDiagram {
   nodes: DomainNode[];
   handles: DomainHandle[];
   arrows: DomainArrow[];
@@ -155,6 +155,7 @@ export interface DiagramArrayFormat {
   metadata?: DiagramMetadata | null;
 }
 
+// Dictionary format for internal use
 export interface DiagramDictFormat {
   nodes: Record<NodeID, DomainNode>;
   handles: Record<HandleID, DomainHandle>;
@@ -303,7 +304,7 @@ export const DiagramMetadataSchema = z.object({
   tags: z.array(z.string()).nullable().optional()
 });
 
-export const DiagramArrayFormatSchema = z.object({
+export const DomainDiagramSchema = z.object({
   nodes: z.array(DomainNodeSchema),
   handles: z.array(DomainHandleSchema),
   arrows: z.array(DomainArrowSchema),
@@ -313,7 +314,7 @@ export const DiagramArrayFormatSchema = z.object({
 });
 
 // Utility functions
-export function createEmptyDiagram(): DiagramArrayFormat {
+export function createEmptyDiagram(): DomainDiagram {
   return {
     nodes: [],
     handles: [],
@@ -328,7 +329,7 @@ export function createEmptyDiagram(): DiagramArrayFormat {
   };
 }
 
-export function arrayFormatToDictFormat(diagram: DiagramArrayFormat): DiagramDictFormat {
+export function domainDiagramToDictFormat(diagram: DomainDiagram): DiagramDictFormat {
   return {
     nodes: Object.fromEntries(diagram.nodes.map(node => [node.id, node])) as Record<NodeID, DomainNode>,
     handles: Object.fromEntries(diagram.handles.map(handle => [handle.id, handle])) as Record<HandleID, DomainHandle>,
@@ -339,7 +340,7 @@ export function arrayFormatToDictFormat(diagram: DiagramArrayFormat): DiagramDic
   };
 }
 
-export function dictFormatToArrayFormat(diagram: DiagramDictFormat): DiagramArrayFormat {
+export function dictFormatToDomainDiagram(diagram: DiagramDictFormat): DomainDiagram {
   return {
     nodes: Object.values(diagram.nodes),
     handles: Object.values(diagram.handles),
@@ -355,8 +356,8 @@ export function isDomainNode(obj: unknown): obj is DomainNode {
   return DomainNodeSchema.safeParse(obj).success;
 }
 
-export function isDiagramArrayFormat(obj: unknown): obj is DiagramArrayFormat {
-  return DiagramArrayFormatSchema.safeParse(obj).success;
+export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
+  return DomainDiagramSchema.safeParse(obj).success;
 }
 
 // Handle utilities

@@ -1,7 +1,6 @@
 """Shared components for diagram format converters."""
 from typing import Dict, Any, Optional
-from ..models.domain import DomainDiagram, DomainHandle, Vec2
-from src.shared.domain import HandleDirection, DataType, NodeType
+from src.__generated__.models import DomainDiagram, DomainHandle, Vec2, HandleDirection, DataType, NodeType
 
 
 class HandleGenerator:
