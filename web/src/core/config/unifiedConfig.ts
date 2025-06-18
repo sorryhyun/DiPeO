@@ -4,18 +4,20 @@
  */
 
 import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
-import type { TypedPanelConfig, TypedPanelFieldConfig, PanelFieldType } from '@/features/diagram-editor/types/panel';
+import type { TypedPanelConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import { FIELD_TYPES, DOMAIN_TO_UI_FIELD_TYPE, type FieldType } from '@/core/types/panel';
 
 /**
  * Maps domain field types to panel field types
+ * Uses the centralized mapping from core panel types
  */
-const fieldTypeMapping: Record<FieldConfig['type'], PanelFieldType> = {
-  string: 'text',
-  number: 'text', // Will add number validation
-  select: 'select',
-  textarea: 'variableTextArea',
-  person: 'personSelect',
-  boolean: 'checkbox'
+const fieldTypeMapping: Record<FieldConfig['type'], FieldType> = {
+  string: FIELD_TYPES.TEXT,
+  number: FIELD_TYPES.TEXT, // Will add number validation
+  select: FIELD_TYPES.SELECT,
+  textarea: FIELD_TYPES.VARIABLE_TEXTAREA,
+  person: FIELD_TYPES.PERSON_SELECT,
+  boolean: FIELD_TYPES.BOOLEAN
 };
 
 /**
@@ -46,7 +48,7 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
 
   const panelFields: Array<TypedPanelFieldConfig<T>> = [];
   const customFieldsMap = new Map(
-    (config.panelCustomFields || []).map(field => [field.type === 'labelPersonRow' ? 'labelPersonRow' : field.name || field.type, field])
+    (config.panelCustomFields || []).map(field => [field.type === FIELD_TYPES.LABEL_PERSON_ROW ? FIELD_TYPES.LABEL_PERSON_ROW : field.name || field.type, field])
   );
 
   
@@ -55,7 +57,7 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
     const panelFieldType = fieldTypeMapping[field.type];
     
     const panelField: TypedPanelFieldConfig<T> = {
-      type: panelFieldType,
+      type: panelFieldType as FieldType,
       name: field.name as keyof T & string,
       label: field.label,
       placeholder: field.placeholder,

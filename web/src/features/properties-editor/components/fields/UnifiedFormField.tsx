@@ -6,11 +6,32 @@ import {
   REQUIRED_ASTERISK, FLEX_CENTER_GAP 
 } from '../styles.constants';
 import { readFileAsText } from '@/shared/utils/file';
+import { FIELD_TYPES } from '@/core/types/panel';
 
 export type FieldValue = string | number | boolean | null | undefined;
 
+// Map UnifiedFormField types to base field types
+export type UnifiedFieldType = 
+  | typeof FIELD_TYPES.TEXT
+  | typeof FIELD_TYPES.SELECT
+  | typeof FIELD_TYPES.TEXTAREA
+  | typeof FIELD_TYPES.BOOLEAN
+  | typeof FIELD_TYPES.NUMBER
+  | typeof FIELD_TYPES.PERSON_SELECT
+  | typeof FIELD_TYPES.MAX_ITERATION
+  | typeof FIELD_TYPES.VARIABLE_TEXTAREA
+  | 'file'; // File is UI-specific, not in base types
+
+// Legacy type mapping for backward compatibility
+const LEGACY_TYPE_MAP: Record<string, UnifiedFieldType> = {
+  'checkbox': FIELD_TYPES.BOOLEAN,
+  'iteration-count': FIELD_TYPES.MAX_ITERATION,
+  'person-select': FIELD_TYPES.PERSON_SELECT,
+  'variable-textarea': FIELD_TYPES.VARIABLE_TEXTAREA,
+};
+
 export interface UnifiedFormFieldProps {
-  type: 'text' | 'select' | 'textarea' | 'checkbox' | 'number' | 'file' | 'person-select' | 'iteration-count' | 'variable-textarea';
+  type: UnifiedFieldType;
   name: string;
   label: string;
   value: FieldValue;
@@ -41,9 +62,14 @@ type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layo
   setLocalLoading: (loading: boolean) => void;
 };
 
+// Normalize legacy type names
+function normalizeFieldType(type: string): UnifiedFieldType {
+  return (LEGACY_TYPE_MAP[type] || type) as UnifiedFieldType;
+}
+
 // Widget lookup table for field types
-const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => React.JSX.Element | null> = {
-  text: (p) => (
+const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Element | null> = {
+  [FIELD_TYPES.TEXT]: (p) => (
     <Input
       id={p.fieldId}
       type="text"
@@ -56,7 +82,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     />
   ),
   
-  number: (p) => (
+  [FIELD_TYPES.NUMBER]: (p) => (
     <Input
       id={p.fieldId}
       type="number"
@@ -71,9 +97,9 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     />
   ),
   
-  'iteration-count': (p) => widgets.number(p),
+  [FIELD_TYPES.MAX_ITERATION]: (p) => widgets[FIELD_TYPES.NUMBER](p),
   
-  textarea: (p) => (
+  [FIELD_TYPES.TEXTAREA]: (p) => (
     <textarea
       id={p.fieldId}
       value={String(p.value || '')}
@@ -86,9 +112,9 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     />
   ),
   
-  'variable-textarea': (p) => widgets.textarea(p),
+  [FIELD_TYPES.VARIABLE_TEXTAREA]: (p) => widgets[FIELD_TYPES.TEXTAREA](p),
   
-  select: (p) => (
+  [FIELD_TYPES.SELECT]: (p) => (
     <Select
       id={p.fieldId}
       value={String(p.value || '')}
@@ -106,7 +132,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     </Select>
   ),
   
-  'person-select': (p) => (
+  [FIELD_TYPES.PERSON_SELECT]: (p) => (
     <Select
       id={p.fieldId}
       value={String(p.value || '')}
@@ -124,7 +150,7 @@ const widgets: Record<UnifiedFormFieldProps['type'], (props: WidgetProps) => Rea
     </Select>
   ),
   
-  checkbox: (p) => (
+  [FIELD_TYPES.BOOLEAN]: (p) => (
     <Switch
       id={p.fieldId}
       checked={!!p.value}
@@ -254,7 +280,9 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     setLocalLoading
   };
   
-  const fieldElement = widgets[type]?.(widgetProps) ?? null;
+  // Normalize field type for lookup
+  const normalizedType = normalizeFieldType(type);
+  const fieldElement = widgets[normalizedType]?.(widgetProps) ?? null;
   
   if (layout === 'vertical') {
     return (

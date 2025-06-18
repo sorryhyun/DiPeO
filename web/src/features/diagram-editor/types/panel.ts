@@ -10,86 +10,40 @@ import type {
   PersonBatchJobNodeData
 } from '@/core/types';
 
-/**
- * Extended field types for property panels
- * These map to specific UI components in the property panel
- */
-export type PanelFieldType = 
-  | 'text' 
-  | 'select' 
-  | 'textarea' 
-  | 'variableTextArea' 
-  | 'checkbox'
-  | 'maxIteration' 
-  | 'personSelect' 
-  | 'labelPersonRow' 
-  | 'row' 
-  | 'custom';
+// Import shared panel types
+import type {
+  FieldType,
+  PanelFormData,
+  ConditionalConfig,
+  OptionsConfig,
+  TypedPanelFieldConfig,
+  BasePanelFieldConfig,
+  PanelLayoutConfig
+} from '@/core/types/panel';
 
-/**
- * Conditional rendering configuration
- */
-export interface ConditionalConfig {
-  field: string;
-  values: unknown[];
-  operator?: 'equals' | 'notEquals' | 'includes';
-}
+export type {
+  FieldType as PanelFieldType,
+  PanelFormData,
+  ConditionalConfig,
+  OptionsConfig
+};
 
-/**
- * Options configuration for select fields
- */
-export type OptionsConfig<T = unknown> = 
-  | Array<{ value: string; label: string }>
-  | (() => Promise<Array<{ value: string; label: string }>>)
-  | ((formData: T) => Promise<Array<{ value: string; label: string }>>);
-
-/**
- * Panel-specific field configuration
- * This is a UI-specific configuration that maps to domain field properties
- */
-export interface PanelFieldConfig {
-  type: PanelFieldType;
+// Legacy interface for backward compatibility
+export interface PanelFieldConfig extends BasePanelFieldConfig {
   name?: string;
-  label?: string;
-  placeholder?: string;
   disabled?: boolean;
-  required?: boolean;
-  rows?: number;
-  min?: number;
-  max?: number;
-  className?: string;
   options?: OptionsConfig;
   dependsOn?: string[];
   conditional?: ConditionalConfig;
-  // For row type - allows nested field groups
   fields?: PanelFieldConfig[];
-  // For labelPersonRow type - special placeholders
-  labelPlaceholder?: string;
-  personPlaceholder?: string;
 }
 
-/**
- * Panel configuration for property forms
- */
-export interface PanelConfig<_T extends Record<string, unknown> = Record<string, unknown>> {
-  layout: 'single' | 'twoColumn';
+// Legacy interface for backward compatibility
+export interface PanelConfig<_T extends Record<string, unknown> = Record<string, unknown>> extends Omit<PanelLayoutConfig<_T>, 'fields' | 'leftColumn' | 'rightColumn'> {
   fields?: PanelFieldConfig[];
   leftColumn?: PanelFieldConfig[];
   rightColumn?: PanelFieldConfig[];
 }
-
-/**
- * Panel form data types - Maps domain models to form representations
- */
-
-/**
- * Generic form data wrapper that allows UI-specific extensions
- * while maintaining type safety with domain types
- */
-export type PanelFormData<T extends Record<string, unknown>> = Partial<T> & {
-  // Allow additional UI-specific fields for runtime flexibility
-  [key: string]: unknown;
-};
 
 // Node form data types - directly map to domain node data
 export type StartFormData = PanelFormData<StartNodeData>;
@@ -127,43 +81,12 @@ export interface PersonFormData extends Record<string, unknown> {
   apiKeyId?: string;
 }
 
-/**
- * Type-safe options loader - reuses OptionsConfig pattern
- */
+// Re-export typed versions from shared types
+export type {
+  TypedPanelFieldConfig,
+  PanelLayoutConfig as TypedPanelConfig
+} from '@/core/types/panel';
+
+// Legacy type aliases for backward compatibility
 export type OptionsLoader<T = unknown> = OptionsConfig<T>;
-
-/**
- * Type-safe conditional configuration
- */
-export interface TypedConditionalConfig<T> {
-  field: keyof T & string;
-  values: unknown[];
-  operator?: 'equals' | 'notEquals' | 'includes';
-}
-
-/**
- * Enhanced panel field config with generic type safety
- */
-export interface TypedPanelFieldConfig<T = unknown> extends Omit<PanelFieldConfig, 'name' | 'dependsOn' | 'conditional' | 'options' | 'fields' | 'disabled'> {
-  name?: keyof T & string;
-  disabled?: boolean | ((formData: T) => boolean);
-  options?: OptionsLoader<T>;
-  dependsOn?: Array<keyof T & string>;
-  conditional?: TypedConditionalConfig<T>;
-  // For row type - typed nested fields
-  fields?: Array<TypedPanelFieldConfig<T>>;
-  // Validation
-  validate?: (value: unknown, formData: T) => { isValid: boolean; error?: string };
-}
-
-/**
- * Enhanced panel config with type safety
- */
-export interface TypedPanelConfig<T extends Record<string, unknown> = Record<string, unknown>> {
-  layout: 'single' | 'twoColumn';
-  fields?: Array<TypedPanelFieldConfig<T>>;
-  leftColumn?: Array<TypedPanelFieldConfig<T>>;
-  rightColumn?: Array<TypedPanelFieldConfig<T>>;
-  // Global validation
-  validate?: (formData: T) => { isValid: boolean; errors?: Record<string, string> };
-}
+export type TypedConditionalConfig<T> = ConditionalConfig<T>;
