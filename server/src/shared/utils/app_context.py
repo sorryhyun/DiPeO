@@ -13,7 +13,7 @@ from src.domains.person.memory.memory_service import MemoryService
 from src.domains.execution.services.execution_service import ExecutionService
 from src.domains.integrations.notion.notion_service import NotionService
 from src.domains.execution.services.message_router import message_router
-from src.domains.execution.services.event_store import event_store
+from src.domains.execution.services.simple_state_store import state_store
 import os
 
 if TYPE_CHECKING:
@@ -42,8 +42,8 @@ class AppContext:
     
     async def startup(self):
         """Initialize all services on startup."""
-        # Initialize event store
-        await event_store.initialize()
+        # Initialize state store
+        await state_store.initialize()
         
         # Initialize services in dependency order
         self.api_key_service = APIKeyService()
@@ -70,8 +70,8 @@ class AppContext:
         # Cleanup message router connections
         await message_router.cleanup()
         
-        # Cleanup event store
-        await event_store.cleanup()
+        # Cleanup state store
+        await state_store.cleanup()
         
         # Add any other cleanup logic here if needed
         # For example, closing database connections, saving state, etc.

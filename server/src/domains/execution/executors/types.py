@@ -50,22 +50,6 @@ class NodeDefinition:
     description: str = ""
 
 
-class Middleware(Protocol):
-    """Protocol for execution middleware."""
-    
-    async def pre_execute(self, node: Dict[str, Any], context: 'ExecutionContext') -> None:
-        """Called before node execution."""
-        ...
-    
-    async def post_execute(
-        self, 
-        node: Dict[str, Any], 
-        context: 'ExecutionContext', 
-        result: ExecutorResult
-    ) -> None:
-        """Called after node execution."""
-        ...
-
 
 class ExecutionContext(Protocol):
     """Protocol for execution context provided to handlers."""

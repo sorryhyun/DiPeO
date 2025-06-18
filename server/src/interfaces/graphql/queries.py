@@ -153,21 +153,15 @@ class Query:
             "file_system": False
         }
         
-        # Check database (event store)
+        # Check database (state store)
         try:
-            await context.event_store.list_executions(limit=1)
+            await context.state_store.list_executions(limit=1)
             checks["database"] = True
         except:
             pass
         
-        # Check Redis
-        try:
-            redis_client = getattr(context.event_store, '_redis_client', None)
-            if redis_client:
-                await redis_client.ping()
-                checks["redis"] = True
-        except:
-            pass
+        # Check Redis (no longer used by state store)
+        checks["redis"] = False  # Redis is being removed
         
         # Check file system
         try:

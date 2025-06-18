@@ -22,10 +22,10 @@ class ExecutionResolver:
         """Get a single execution by ID."""
         try:
             context: GraphQLContext = info.context
-            event_store = context.event_store
+            state_store = context.state_store
             
-            # Replay execution state from events
-            execution_state = event_store.replay(execution_id)
+            # Get execution state
+            execution_state = await state_store.get_state(execution_id)
             
             if not execution_state:
                 logger.debug(f"No execution found with ID: {execution_id}")
@@ -33,25 +33,25 @@ class ExecutionResolver:
             
             # Create Pydantic model instance
             token_usage = None
-            if execution_state.token_usage:
+            if execution_state.total_tokens:
                 token_usage = PydanticTokenUsage(
-                    input=execution_state.token_usage.input,
-                    output=execution_state.token_usage.output,
-                    cached=execution_state.token_usage.cached,
-                    total=execution_state.token_usage.total
+                    input=execution_state.total_tokens.get('input', 0),
+                    output=execution_state.total_tokens.get('output', 0),
+                    cached=execution_state.total_tokens.get('cached', 0),
+                    total=sum(execution_state.total_tokens.values())
                 )
             
             pydantic_execution = PydanticExecutionState(
                 id=execution_state.execution_id,
                 status=self._map_status(execution_state.status),
-                diagram_id=execution_state.diagram_id,
-                started_at=execution_state.start_time,
-                ended_at=execution_state.end_time,
-                running_nodes=[str(n) for n in execution_state.running_nodes],
-                completed_nodes=[str(n) for n in execution_state.completed_nodes],
-                skipped_nodes=[str(n) for n in execution_state.skipped_nodes],
-                paused_nodes=[str(n) for n in execution_state.paused_nodes],
-                failed_nodes=[str(n) for n in execution_state.failed_nodes],
+                diagram_id=execution_state.diagram.get('id', ''),
+                started_at=datetime.fromtimestamp(execution_state.start_time),
+                ended_at=datetime.fromtimestamp(execution_state.end_time) if execution_state.end_time else None,
+                running_nodes=[nid for nid, status in execution_state.node_statuses.items() if status == 'started'],
+                completed_nodes=[nid for nid, status in execution_state.node_statuses.items() if status == 'completed'],
+                skipped_nodes=execution_state.skipped_nodes,
+                paused_nodes=execution_state.paused_nodes,
+                failed_nodes=[nid for nid, status in execution_state.node_statuses.items() if status == 'failed'],
                 node_outputs=execution_state.node_outputs,
                 variables=execution_state.variables,
                 token_usage=token_usage,
@@ -75,10 +75,10 @@ class ExecutionResolver:
         """List executions with optional filtering."""
         try:
             context: GraphQLContext = info.context
-            event_store = context.event_store
+            state_store = context.state_store
             
-            # Get all executions from event store
-            executions = event_store.list_executions(limit=limit + offset)
+            # Get all executions from state store
+            executions = await state_store.list_executions(limit=limit + offset)
             
             # Apply filtering if provided
             filtered_executions = executions
@@ -117,28 +117,28 @@ class ExecutionResolver:
             result = []
             for exec_summary in paginated_executions:
                 # Get full execution state
-                execution_state = event_store.replay(exec_summary['execution_id'])
+                execution_state = await state_store.get_state(exec_summary['execution_id'])
                 if execution_state:
                     token_usage = None
-                    if execution_state.token_usage:
+                    if execution_state.total_tokens:
                         token_usage = PydanticTokenUsage(
-                            input=execution_state.token_usage.input,
-                            output=execution_state.token_usage.output,
-                            cached=execution_state.token_usage.cached,
-                            total=execution_state.token_usage.total
+                            input=execution_state.total_tokens.get('input', 0),
+                            output=execution_state.total_tokens.get('output', 0),
+                            cached=execution_state.total_tokens.get('cached', 0),
+                            total=sum(execution_state.total_tokens.values())
                         )
                     
                     pydantic_execution = PydanticExecutionState(
                         id=execution_state.execution_id,
                         status=self._map_status(execution_state.status),
-                        diagram_id=execution_state.diagram_id,
-                        started_at=execution_state.start_time,
-                        ended_at=execution_state.end_time,
-                        running_nodes=[str(n) for n in execution_state.running_nodes],
-                        completed_nodes=[str(n) for n in execution_state.completed_nodes],
-                        skipped_nodes=[str(n) for n in execution_state.skipped_nodes],
-                        paused_nodes=[str(n) for n in execution_state.paused_nodes],
-                        failed_nodes=[str(n) for n in execution_state.failed_nodes],
+                        diagram_id=execution_state.diagram.get('id', ''),
+                        started_at=datetime.fromtimestamp(execution_state.start_time),
+                        ended_at=datetime.fromtimestamp(execution_state.end_time) if execution_state.end_time else None,
+                        running_nodes=[nid for nid, status in execution_state.node_statuses.items() if status == 'started'],
+                        completed_nodes=[nid for nid, status in execution_state.node_statuses.items() if status == 'completed'],
+                        skipped_nodes=execution_state.skipped_nodes,
+                        paused_nodes=execution_state.paused_nodes,
+                        failed_nodes=[nid for nid, status in execution_state.node_statuses.items() if status == 'failed'],
                         node_outputs=execution_state.node_outputs,
                         variables=execution_state.variables,
                         token_usage=token_usage,
@@ -160,38 +160,10 @@ class ExecutionResolver:
         info
     ) -> List[ExecutionEvent]:
         """Get execution events for a specific execution."""
-        try:
-            context: GraphQLContext = info.context
-            event_store = context.event_store
-            
-            # Get all events for this execution
-            all_events = event_store.get_events(execution_id)
-            
-            # Filter by sequence if provided
-            if since_sequence is not None:
-                all_events = [e for e in all_events if e.sequence > since_sequence]
-            
-            # Apply limit
-            limited_events = all_events[:limit] if limit > 0 else all_events
-            
-            # Convert to Pydantic ExecutionEvent objects
-            result = []
-            for event in limited_events:
-                pydantic_event = PydanticExecutionEvent(
-                    execution_id=event.execution_id,
-                    sequence=event.sequence,
-                    event_type=event.event_type,
-                    node_id=str(event.node_id) if event.node_id else None,
-                    timestamp=event.timestamp,
-                    data=event.data
-                )
-                result.append(pydantic_event)
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Failed to get execution events for {execution_id}: {e}")
-            return []
+        # Events are no longer stored with the new SimpleStateStore
+        # This method returns an empty list for backward compatibility
+        logger.info(f"get_execution_events called for {execution_id} - returning empty list (events no longer stored)")
+        return []
     
     def _map_status(self, status: str) -> ExecutionStatus:
         """Map internal status string to Pydantic ExecutionStatus enum."""

@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
-    from ..execution_engine import Ctx as ExecutionContext
+    from ..engine.engine import Ctx as ExecutionContext
 
 
 @dataclass

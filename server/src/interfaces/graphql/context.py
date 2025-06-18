@@ -4,7 +4,7 @@ from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 from src.shared.utils.app_context import AppContext
-from src.domains.execution.services.event_store import event_store
+from src.domains.execution.services.simple_state_store import state_store
 from src.domains.execution.services.message_router import message_router
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class GraphQLContext(BaseContext):
         self.api_key_service = app_context.api_key_service
         self.diagram_service = app_context.diagram_service
         self.execution_service = app_context.execution_service
-        self.event_store = event_store  # Use global instance
+        self.state_store = state_store  # Use global instance
         self.file_service = app_context.file_service
         self.llm_service = app_context.llm_service
         self.memory_service = app_context.memory_service

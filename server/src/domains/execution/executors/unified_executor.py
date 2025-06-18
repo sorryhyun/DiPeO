@@ -8,8 +8,7 @@ import logging
 from .types import (
     NodeDefinition, 
     ExecutorResult, 
-    ExecutionContext, 
-    Middleware
+    ExecutionContext
 )
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,6 @@ class UnifiedExecutor:
     
     def __init__(self):
         self._nodes: Dict[str, NodeDefinition] = {}
-        self._middleware: List[Middleware] = []
     
     def register(self, definition: NodeDefinition) -> None:
         """Register a node type."""
@@ -29,10 +27,6 @@ class UnifiedExecutor:
         self._nodes[definition.type] = definition
         logger.info(f"Registered node type: {definition.type}")
     
-    def add_middleware(self, middleware: Middleware) -> None:
-        """Add execution middleware."""
-        self._middleware.append(middleware)
-        logger.info(f"Added middleware: {type(middleware).__name__}")
     
     async def execute(
         self, 
@@ -43,12 +37,6 @@ class UnifiedExecutor:
         node_type = node["type"]
         node_id = node.get("id", "unknown")
         
-        # Apply pre-execution middleware
-        for mw in self._middleware:
-            try:
-                await mw.pre_execute(node, context)
-            except Exception as e:
-                logger.error(f"Pre-execution middleware failed: {e}")
         
         try:
             # Get node definition
@@ -116,12 +104,6 @@ class UnifiedExecutor:
                 metadata={"node_type": node_type}
             )
             
-            # Apply post-execution middleware
-            for mw in self._middleware:
-                try:
-                    await mw.post_execute(node, context, result)
-                except Exception as e:
-                    logger.error(f"Post-execution middleware failed: {e}")
             
             return result
             

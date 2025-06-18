@@ -102,10 +102,10 @@ class Subscription:
 async def execution_stream(execution_id: ExecutionID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[ExecutionState, None]:
     """Stream execution state updates."""
     context: GraphQLContext = info.context
-    event_store = context.event_store
+    state_store = context.state_store
     
-    # Check if Redis is available
-    redis_client = getattr(event_store, '_redis_client', None)
+    # Redis is no longer used for subscriptions
+    redis_client = None
     
     if redis_client:
         # Use Redis pub/sub for real-time updates
@@ -115,7 +115,7 @@ async def execution_stream(execution_id: ExecutionID, info: strawberry.Info[Grap
         try:
             async for event_data in subscription_manager.subscribe_to_execution(execution_id):
                 # Replay state after each event
-                state = await event_store.replay(execution_id)
+                state = await state_store.get_state(execution_id)
                 
                 if state:
                     # Convert to GraphQL ExecutionState
@@ -141,41 +141,36 @@ async def execution_stream(execution_id: ExecutionID, info: strawberry.Info[Grap
     # Fallback to polling if Redis is not available
     logger.info(f"Using polling for execution {execution_id}")
     
-    # Track last known state
-    last_sequence = -1
+    # Track last update time
+    last_update = 0
     
     try:
         while True:
-            # Get latest events
-            events = await event_store.get_events(execution_id)
-            new_events = [e for e in events if e.sequence > last_sequence]
+            # Get latest state
+            state = await state_store.get_state(execution_id)
             
-            if new_events:
-                # Update last sequence
-                last_sequence = max(e.sequence for e in new_events)
+            if state and state.last_updated > last_update:
+                # State has changed
+                last_update = state.last_updated
                 
-                # Replay full state
-                state = await event_store.replay(execution_id)
+                # Convert to GraphQL ExecutionState
+                yield ExecutionState(
+                    id=state.execution_id,
+                    status=_map_status(state.status),
+                    diagram_id=state.diagram.get('id') if state.diagram else None,
+                    started_at=datetime.fromtimestamp(state.start_time),
+                    ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
+                    current_node=state.current_node_id,
+                    node_outputs=state.node_outputs,
+                    variables=state.variables,
+                    total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
+                    error=state.error,
+                    progress=len([s for s in state.node_statuses.values() if s == 'completed']) / max(len(state.node_statuses), 1) * 100 if state.node_statuses else 0
+                )
                 
-                if state:
-                    # Convert to GraphQL ExecutionState
-                    yield ExecutionState(
-                        id=state.execution_id,
-                        status=_map_status(state.status),
-                        diagram_id=state.diagram_id if hasattr(state, 'diagram_id') else None,
-                        started_at=datetime.fromtimestamp(state.start_time),
-                        ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
-                        current_node=state.node_statuses.get('current'),
-                        node_outputs=state.node_outputs,
-                        variables=state.variables,
-                        total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
-                        error=state.error,
-                        progress=len([s for s in state.node_statuses.values() if s == 'completed']) / max(len(state.node_statuses), 1) * 100 if state.node_statuses else 0
-                    )
-                    
-                    # Check if execution is complete
-                    if state.status in ['completed', 'failed', 'aborted']:
-                        break
+                # Check if execution is complete
+                if state.status in ['completed', 'failed', 'aborted']:
+                    break
             
             # Poll interval (100ms)
             await asyncio.sleep(0.1)
@@ -194,10 +189,10 @@ async def event_stream(
 ) -> AsyncGenerator[ExecutionEvent, None]:
     """Stream execution events."""
     context: GraphQLContext = info.context
-    event_store = context.event_store
+    state_store = context.state_store
     
-    # Check if Redis is available
-    redis_client = getattr(event_store, '_redis_client', None)
+    # Redis is no longer used for subscriptions
+    redis_client = None
     
     if redis_client:
         # Use Redis pub/sub for real-time updates
@@ -226,39 +221,39 @@ async def event_stream(
             logger.error(f"Error in Redis event subscription for {execution_id}: {e}")
             # Fall back to polling
     
-    # Fallback to polling if Redis is not available
+    # Simplified event stream using state changes
     logger.info(f"Using polling for event stream {execution_id}")
     
-    # Track last event sequence
-    last_sequence = -1
+    # Track last update
+    last_update = 0
+    sequence = 0
     
     try:
         while True:
-            # Get latest events
-            events = await event_store.get_events(execution_id)
-            new_events = [e for e in events if e.sequence > last_sequence]
+            # Get latest state
+            state = await state_store.get_state(execution_id)
             
-            # Apply event type filtering if specified
-            if event_types and new_events:
-                new_events = [
-                    e for e in new_events 
-                    if EventType(e.event_type) in event_types
-                ]
-            
-            # Yield new events
-            for event in new_events:
-                last_sequence = event.sequence
+            if state and state.last_updated > last_update:
+                # State has changed - generate a synthetic event
+                last_update = state.last_updated
+                sequence += 1
+                
+                # Create a state change event
                 yield ExecutionEvent(
-                    execution_id=event.execution_id,
-                    sequence=event.sequence,
-                    event_type=EventType(event.event_type),
-                    node_id=NodeID(event.node_id) if event.node_id else None,
-                    timestamp=datetime.fromtimestamp(event.timestamp),
-                    data=event.data
+                    execution_id=execution_id,
+                    sequence=sequence,
+                    event_type=EventType.STATE_CHANGED,
+                    node_id=NodeID(state.current_node_id) if state.current_node_id else None,
+                    timestamp=datetime.fromtimestamp(state.last_updated),
+                    data={
+                        "status": state.status,
+                        "node_statuses": state.node_statuses,
+                        "variables": state.variables
+                    }
                 )
                 
                 # Check if execution is complete
-                if EventType(event.event_type) in [EventType.EXECUTION_COMPLETED, EventType.EXECUTION_FAILED, EventType.EXECUTION_ABORTED]:
+                if state.status in ['completed', 'failed', 'aborted']:
                     return
             
             # Poll interval (100ms)
@@ -278,10 +273,10 @@ async def node_update_stream(
 ) -> AsyncGenerator[NodeExecution, None]:
     """Stream node execution updates."""
     context: GraphQLContext = info.context
-    event_store = context.event_store
+    state_store = context.state_store
     
-    # Check if Redis is available
-    redis_client = getattr(event_store, '_redis_client', None)
+    # Redis is no longer used for subscriptions
+    redis_client = None
     
     node_event_types = [
         EventType.NODE_STARTED,
@@ -351,8 +346,8 @@ async def node_update_stream(
     
     try:
         while True:
-            # Get latest events
-            events = await event_store.get_events(execution_id)
+            # Get latest state
+            state = await state_store.get_state(execution_id)
             
             # Filter for node-related events
             node_events = [
@@ -429,10 +424,10 @@ async def diagram_change_stream(diagram_id: DiagramID, info: strawberry.Info[Gra
 async def interactive_prompt_stream(execution_id: ExecutionID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[InteractivePrompt, None]:
     """Stream interactive prompts."""
     context: GraphQLContext = info.context
-    event_store = context.event_store
+    state_store = context.state_store
     
-    # Check if Redis is available
-    redis_client = getattr(event_store, '_redis_client', None)
+    # Redis is no longer used for subscriptions
+    redis_client = None
     
     if redis_client:
         # Use Redis pub/sub for real-time updates
@@ -469,8 +464,8 @@ async def interactive_prompt_stream(execution_id: ExecutionID, info: strawberry.
     
     try:
         while True:
-            # Get latest events
-            events = await event_store.get_events(execution_id)
+            # Get latest state
+            state = await state_store.get_state(execution_id)
             
             # Filter for interactive prompt events
             prompt_events = [

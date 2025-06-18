@@ -31,3 +31,4 @@ class EventType(Enum):
     EXECUTION_ABORTED = "execution_aborted"
     INTERACTIVE_PROMPT = "interactive_prompt"
     INTERACTIVE_RESPONSE = "interactive_response"
+    STATE_CHANGED = "state_changed"  # Added for state-based subscriptions
