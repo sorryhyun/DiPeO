@@ -12,10 +12,17 @@ from ....diagram.models.domain import TokenUsage
 from src.shared.utils.output_processor import OutputProcessor
 from src.shared.utils.app_context import get_memory_service
 from ..executor_utils import get_input_values, substitute_variables
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="person_job",
+    schema=PersonJobProps,
+    description="Execute LLM task with person context and memory",
+    requires_services=["llm_service"]
+)
 async def person_job_handler(
     props: PersonJobProps,
     context: ExecutionContext,
@@ -167,6 +174,12 @@ async def person_job_handler(
         raise
 
 
+@node(
+    node_type="person_batch_job",
+    schema=PersonBatchJobProps,
+    description="Execute LLM task in batch mode",
+    requires_services=["llm_service"]
+)
 async def person_batch_job_handler(
     props: PersonBatchJobProps,
     context: ExecutionContext,

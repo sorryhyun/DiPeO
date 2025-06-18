@@ -1,4 +1,4 @@
-"""GraphQL subscription definitions for real-time updates."""
+"""GraphQL subscription definitions for real-time updates without Redis."""
 import strawberry
 from typing import AsyncGenerator, Optional, List
 import asyncio
@@ -7,10 +7,9 @@ from datetime import datetime
 
 from .types.domain import ExecutionState, ExecutionEvent, DomainDiagram
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
-from .types.enums import EventType  # EventType is GraphQL-specific
-from src.shared.domain import NodeType, ExecutionStatus  # Import domain enums
+from .types.enums import EventType
+from src.shared.domain import NodeType, ExecutionStatus
 from .context import GraphQLContext
-from .redis_subscriptions import RedisSubscriptionManager
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +37,9 @@ class InteractivePrompt:
     timestamp: datetime
 
 
-# noinspection PyArgumentList
 @strawberry.type
 class Subscription:
-    """Root subscription type for DiPeO GraphQL API."""
+    """Root subscription type for DiPeO GraphQL API using polling."""
     
     @strawberry.subscription
     async def execution_updates(
@@ -49,11 +47,53 @@ class Subscription:
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID
     ) -> AsyncGenerator[ExecutionState, None]:
-        """Subscribe to execution state updates."""
-        # This will connect to the existing event system
-        # and yield updates as they occur
-        async for update in execution_stream(execution_id, info):
-            yield update
+        """Subscribe to execution state updates using polling."""
+        context: GraphQLContext = info.context
+        state_store = context.state_store
+        
+        logger.info(f"Starting execution updates subscription for {execution_id}")
+        
+        # Track last update time
+        last_update = 0
+        
+        try:
+            while True:
+                # Get latest state
+                state = await state_store.get_state(execution_id)
+                
+                if state and state.last_updated > last_update:
+                    # State has changed
+                    last_update = state.last_updated
+                    
+                    # Convert to GraphQL ExecutionState
+                    yield ExecutionState(
+                        id=state.execution_id,
+                        status=_map_status(state.status),
+                        diagram_id=state.diagram.get('id') if state.diagram else None,
+                        started_at=datetime.fromtimestamp(state.start_time),
+                        ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
+                        current_node=state.current_node_id,
+                        node_outputs=state.node_outputs,
+                        variables=state.variables,
+                        total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
+                        error=state.error,
+                        progress=_calculate_progress(state)
+                    )
+                    
+                    # Check if execution is complete
+                    if state.status in ['completed', 'failed', 'aborted']:
+                        logger.info(f"Execution {execution_id} completed with status: {state.status}")
+                        break
+                
+                # Poll interval (100ms)
+                await asyncio.sleep(0.1)
+                
+        except asyncio.CancelledError:
+            logger.info(f"Subscription cancelled for execution {execution_id}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in execution stream for {execution_id}: {e}")
+            raise
     
     @strawberry.subscription
     async def execution_events(
@@ -62,9 +102,90 @@ class Subscription:
         execution_id: ExecutionID,
         event_types: Optional[List[EventType]] = None
     ) -> AsyncGenerator[ExecutionEvent, None]:
-        """Subscribe to specific execution events."""
-        async for event in event_stream(execution_id, event_types, info):
-            yield event
+        """Subscribe to specific execution events using state changes."""
+        context: GraphQLContext = info.context
+        state_store = context.state_store
+        
+        logger.info(f"Starting event stream subscription for {execution_id}")
+        
+        # Track last update and node states
+        last_update = 0
+        sequence = 0
+        last_node_statuses = {}
+        
+        try:
+            while True:
+                # Get latest state
+                state = await state_store.get_state(execution_id)
+                
+                if state and state.last_updated > last_update:
+                    # State has changed
+                    last_update = state.last_updated
+                    
+                    # Generate events based on state changes
+                    current_node_statuses = state.node_statuses or {}
+                    
+                    # Check for node status changes
+                    for node_id, status in current_node_statuses.items():
+                        old_status = last_node_statuses.get(node_id)
+                        
+                        if old_status != status:
+                            # Node status changed
+                            sequence += 1
+                            event_type = _get_event_type_for_status(status)
+                            
+                            # Filter by event types if specified
+                            if event_types and event_type not in event_types:
+                                continue
+                            
+                            yield ExecutionEvent(
+                                execution_id=execution_id,
+                                sequence=sequence,
+                                event_type=event_type,
+                                node_id=NodeID(node_id),
+                                timestamp=datetime.fromtimestamp(state.last_updated),
+                                data={
+                                    "status": status,
+                                    "output": state.node_outputs.get(node_id),
+                                    "error": state.node_errors.get(node_id) if hasattr(state, 'node_errors') else None
+                                }
+                            )
+                    
+                    # Update tracked statuses
+                    last_node_statuses = current_node_statuses.copy()
+                    
+                    # Check if execution is complete
+                    if state.status in ['completed', 'failed', 'aborted']:
+                        # Generate final event
+                        sequence += 1
+                        final_event_type = {
+                            'completed': EventType.EXECUTION_COMPLETED,
+                            'failed': EventType.EXECUTION_FAILED,
+                            'aborted': EventType.EXECUTION_ABORTED
+                        }.get(state.status, EventType.STATE_CHANGED)
+                        
+                        if not event_types or final_event_type in event_types:
+                            yield ExecutionEvent(
+                                execution_id=execution_id,
+                                sequence=sequence,
+                                event_type=final_event_type,
+                                node_id=None,
+                                timestamp=datetime.fromtimestamp(state.last_updated),
+                                data={"status": state.status, "error": state.error}
+                            )
+                        
+                        logger.info(f"Event stream completed for execution {execution_id}")
+                        break
+                
+                # Poll interval (100ms)
+                await asyncio.sleep(0.1)
+                
+        except asyncio.CancelledError:
+            logger.info(f"Event subscription cancelled for execution {execution_id}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in event stream for {execution_id}: {e}")
+            raise
     
     @strawberry.subscription
     async def node_updates(
@@ -74,8 +195,75 @@ class Subscription:
         node_types: Optional[List[NodeType]] = None
     ) -> AsyncGenerator[NodeExecution, None]:
         """Subscribe to node execution updates, optionally filtered by type."""
-        async for update in node_update_stream(execution_id, node_types, info):
-            yield update
+        context: GraphQLContext = info.context
+        state_store = context.state_store
+        
+        logger.info(f"Starting node updates subscription for {execution_id}")
+        
+        # Track last update and node states
+        last_update = 0
+        last_node_statuses = {}
+        
+        try:
+            while True:
+                # Get latest state
+                state = await state_store.get_state(execution_id)
+                
+                if state and state.last_updated > last_update:
+                    # State has changed
+                    last_update = state.last_updated
+                    
+                    # Check for node status changes
+                    current_node_statuses = state.node_statuses or {}
+                    
+                    for node_id, status in current_node_statuses.items():
+                        old_status = last_node_statuses.get(node_id)
+                        
+                        if old_status != status:
+                            # Node status changed
+                            # Get node type from diagram
+                            node_type = _get_node_type(state.diagram, node_id) if state.diagram else NodeType.JOB
+                            
+                            # Filter by node types if specified
+                            if node_types and node_type not in node_types:
+                                continue
+                            
+                            # Get node output and token usage
+                            output = state.node_outputs.get(node_id)
+                            tokens_used = None
+                            
+                            if output and isinstance(output, dict) and 'token_usage' in output:
+                                tokens_used = output['token_usage'].get('total')
+                            
+                            yield NodeExecution(
+                                execution_id=execution_id,
+                                node_id=NodeID(node_id),
+                                node_type=node_type,
+                                status=status,
+                                progress=None,  # Could calculate based on status
+                                output=output,
+                                error=state.node_errors.get(node_id) if hasattr(state, 'node_errors') else None,
+                                tokens_used=tokens_used,
+                                timestamp=datetime.fromtimestamp(state.last_updated)
+                            )
+                    
+                    # Update tracked statuses
+                    last_node_statuses = current_node_statuses.copy()
+                    
+                    # Check if execution is complete
+                    if state.status in ['completed', 'failed', 'aborted']:
+                        logger.info(f"Node updates completed for execution {execution_id}")
+                        break
+                
+                # Poll interval (100ms)
+                await asyncio.sleep(0.1)
+                
+        except asyncio.CancelledError:
+            logger.info(f"Node update subscription cancelled for execution {execution_id}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in node update stream for {execution_id}: {e}")
+            raise
     
     @strawberry.subscription
     async def diagram_changes(
@@ -83,9 +271,11 @@ class Subscription:
         info: strawberry.Info[GraphQLContext],
         diagram_id: DiagramID
     ) -> AsyncGenerator[DomainDiagram, None]:
-        """Subscribe to diagram changes for collaborative editing."""
-        async for change in diagram_change_stream(diagram_id, info):
-            yield change
+        """Subscribe to diagram changes - placeholder for future implementation."""
+        logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
+        # This would require file watching or version control integration
+        while False:  # Never yields
+            yield
     
     @strawberry.subscription
     async def interactive_prompts(
@@ -94,413 +284,50 @@ class Subscription:
         execution_id: ExecutionID
     ) -> AsyncGenerator[InteractivePrompt, None]:
         """Subscribe to interactive prompts that need user input."""
-        async for prompt in interactive_prompt_stream(execution_id, info):
-            yield prompt
-
-
-# Stream implementation functions
-async def execution_stream(execution_id: ExecutionID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[ExecutionState, None]:
-    """Stream execution state updates."""
-    context: GraphQLContext = info.context
-    state_store = context.state_store
-    
-    # Redis is no longer used for subscriptions
-    redis_client = None
-    
-    if redis_client:
-        # Use Redis pub/sub for real-time updates
-        logger.info(f"Using Redis pub/sub for execution {execution_id}")
-        subscription_manager = RedisSubscriptionManager(redis_client)
+        context: GraphQLContext = info.context
+        state_store = context.state_store
+        
+        logger.info(f"Starting interactive prompts subscription for {execution_id}")
+        
+        # Track processed prompts
+        processed_prompts = set()
         
         try:
-            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
-                # Replay state after each event
+            while True:
+                # Get latest state
                 state = await state_store.get_state(execution_id)
                 
-                if state:
-                    # Convert to GraphQL ExecutionState
-                    yield ExecutionState(
-                        id=state.execution_id,
-                        status=_map_status(state.status),
-                        diagram_id=state.diagram_id if hasattr(state, 'diagram_id') else None,
-                        started_at=datetime.fromtimestamp(state.start_time),
-                        ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
-                        current_node=state.node_statuses.get('current'),
-                        node_outputs=state.node_outputs,
-                        variables=state.variables,
-                        total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
-                        error=state.error,
-                        # Additional fields for compatibility
-                        progress=len([s for s in state.node_statuses.values() if s == 'completed']) / max(len(state.node_statuses), 1) * 100 if state.node_statuses else 0
-                    )
-                    
-        except Exception as e:
-            logger.error(f"Error in Redis subscription for {execution_id}: {e}")
-            # Fall back to polling
-    
-    # Fallback to polling if Redis is not available
-    logger.info(f"Using polling for execution {execution_id}")
-    
-    # Track last update time
-    last_update = 0
-    
-    try:
-        while True:
-            # Get latest state
-            state = await state_store.get_state(execution_id)
-            
-            if state and state.last_updated > last_update:
-                # State has changed
-                last_update = state.last_updated
-                
-                # Convert to GraphQL ExecutionState
-                yield ExecutionState(
-                    id=state.execution_id,
-                    status=_map_status(state.status),
-                    diagram_id=state.diagram.get('id') if state.diagram else None,
-                    started_at=datetime.fromtimestamp(state.start_time),
-                    ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
-                    current_node=state.current_node_id,
-                    node_outputs=state.node_outputs,
-                    variables=state.variables,
-                    total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
-                    error=state.error,
-                    progress=len([s for s in state.node_statuses.values() if s == 'completed']) / max(len(state.node_statuses), 1) * 100 if state.node_statuses else 0
-                )
+                if state and hasattr(state, 'interactive_prompts'):
+                    # Check for new prompts
+                    for prompt_id, prompt_data in state.interactive_prompts.items():
+                        if prompt_id not in processed_prompts:
+                            processed_prompts.add(prompt_id)
+                            
+                            yield InteractivePrompt(
+                                execution_id=execution_id,
+                                node_id=NodeID(prompt_data['node_id']),
+                                prompt=prompt_data['prompt'],
+                                timeout_seconds=prompt_data.get('timeout'),
+                                timestamp=datetime.fromtimestamp(prompt_data.get('timestamp', state.last_updated))
+                            )
                 
                 # Check if execution is complete
-                if state.status in ['completed', 'failed', 'aborted']:
+                if state and state.status in ['completed', 'failed', 'aborted']:
+                    logger.info(f"Interactive prompts completed for execution {execution_id}")
                     break
-            
-            # Poll interval (100ms)
-            await asyncio.sleep(0.1)
-            
-    except asyncio.CancelledError:
-        logger.info(f"Subscription cancelled for execution {execution_id}")
-        raise
-    except Exception as e:
-        logger.error(f"Error in execution stream for {execution_id}: {e}")
-        raise
-
-async def event_stream(
-    execution_id: ExecutionID, 
-    event_types: Optional[List[EventType]], 
-    info: strawberry.Info[GraphQLContext]
-) -> AsyncGenerator[ExecutionEvent, None]:
-    """Stream execution events."""
-    context: GraphQLContext = info.context
-    state_store = context.state_store
-    
-    # Redis is no longer used for subscriptions
-    redis_client = None
-    
-    if redis_client:
-        # Use Redis pub/sub for real-time updates
-        logger.info(f"Using Redis pub/sub for event stream {execution_id}")
-        subscription_manager = RedisSubscriptionManager(redis_client)
-        
-        try:
-            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
-                # Filter by event types if specified
-                if event_types:
-                    event_type_str = event_data.get("event_type")
-                    if event_type_str not in [et.value for et in event_types]:
-                        continue
                 
-                # Convert to GraphQL ExecutionEvent
-                yield ExecutionEvent(
-                    execution_id=event_data["execution_id"],
-                    sequence=event_data["sequence"],
-                    event_type=EventType(event_data["event_type"]),
-                    node_id=NodeID(event_data["node_id"]) if event_data.get("node_id") else None,
-                    timestamp=datetime.fromtimestamp(event_data["timestamp"]),
-                    data=event_data.get("data", {})
-                )
+                # Poll interval (100ms)
+                await asyncio.sleep(0.1)
                 
+        except asyncio.CancelledError:
+            logger.info(f"Interactive prompt subscription cancelled for execution {execution_id}")
+            raise
         except Exception as e:
-            logger.error(f"Error in Redis event subscription for {execution_id}: {e}")
-            # Fall back to polling
-    
-    # Simplified event stream using state changes
-    logger.info(f"Using polling for event stream {execution_id}")
-    
-    # Track last update
-    last_update = 0
-    sequence = 0
-    
-    try:
-        while True:
-            # Get latest state
-            state = await state_store.get_state(execution_id)
-            
-            if state and state.last_updated > last_update:
-                # State has changed - generate a synthetic event
-                last_update = state.last_updated
-                sequence += 1
-                
-                # Create a state change event
-                yield ExecutionEvent(
-                    execution_id=execution_id,
-                    sequence=sequence,
-                    event_type=EventType.STATE_CHANGED,
-                    node_id=NodeID(state.current_node_id) if state.current_node_id else None,
-                    timestamp=datetime.fromtimestamp(state.last_updated),
-                    data={
-                        "status": state.status,
-                        "node_statuses": state.node_statuses,
-                        "variables": state.variables
-                    }
-                )
-                
-                # Check if execution is complete
-                if state.status in ['completed', 'failed', 'aborted']:
-                    return
-            
-            # Poll interval (100ms)
-            await asyncio.sleep(0.1)
-            
-    except asyncio.CancelledError:
-        logger.info(f"Event subscription cancelled for execution {execution_id}")
-        raise
-    except Exception as e:
-        logger.error(f"Error in event stream for {execution_id}: {e}")
-        raise
-
-async def node_update_stream(
-    execution_id: ExecutionID,
-    node_types: Optional[List[NodeType]],
-    info: strawberry.Info[GraphQLContext]
-) -> AsyncGenerator[NodeExecution, None]:
-    """Stream node execution updates."""
-    context: GraphQLContext = info.context
-    state_store = context.state_store
-    
-    # Redis is no longer used for subscriptions
-    redis_client = None
-    
-    node_event_types = [
-        EventType.NODE_STARTED,
-        EventType.NODE_COMPLETED,
-        EventType.NODE_FAILED,
-        EventType.NODE_SKIPPED,
-        EventType.NODE_PAUSED,
-        EventType.NODE_RUNNING
-    ]
-    
-    if redis_client:
-        # Use Redis pub/sub for real-time updates
-        logger.info(f"Using Redis pub/sub for node updates {execution_id}")
-        subscription_manager = RedisSubscriptionManager(redis_client)
-        
-        try:
-            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
-                # Filter for node-related events
-                event_type_str = event_data.get("event_type")
-                if event_type_str not in [et.value for et in node_event_types]:
-                    continue
-                
-                # Extract node info from event data
-                node_id = event_data.get("node_id")
-                if not node_id:
-                    continue
-                    
-                node_type = event_data.get("data", {}).get('node_type', 'job')
-                
-                # Filter by node types if specified
-                if node_types and node_type not in [nt.value for nt in node_types]:
-                    continue
-                
-                # Map event type to status
-                status_map = {
-                    'node_started': 'started',
-                    'node_completed': 'completed',
-                    'node_failed': 'failed',
-                    'node_skipped': 'skipped',
-                    'node_paused': 'paused',
-                    'node_resumed': 'running'
-                }
-                status = status_map.get(event_type_str, 'running')
-                
-                # Create NodeExecution update
-                yield NodeExecution(
-                    execution_id=execution_id,
-                    node_id=NodeID(node_id),
-                    node_type=NodeType(node_type),
-                    status=status,
-                    progress=event_data.get("data", {}).get('progress'),
-                    output=event_data.get("data", {}).get('output'),
-                    error=event_data.get("data", {}).get('error'),
-                    tokens_used=event_data.get("data", {}).get('token_usage', {}).get('total'),
-                    timestamp=datetime.fromtimestamp(event_data["timestamp"])
-                )
-                
-        except Exception as e:
-            logger.error(f"Error in Redis node update subscription for {execution_id}: {e}")
-            # Fall back to polling
-    
-    # Fallback to polling if Redis is not available
-    logger.info(f"Using polling for node updates {execution_id}")
-    
-    # Track processed events
-    processed_events = set()
-    
-    try:
-        while True:
-            # Get latest state
-            state = await state_store.get_state(execution_id)
-            
-            # Filter for node-related events
-            node_events = [
-                e for e in events 
-                if EventType(e.event_type) in node_event_types
-                and e.sequence not in processed_events
-            ]
-            
-            for event in node_events:
-                processed_events.add(event.sequence)
-                
-                # Extract node info from event data
-                node_id = event.node_id
-                if not node_id:
-                    continue
-                    
-                node_type = event.data.get('node_type', 'job')
-                
-                # Filter by node types if specified
-                if node_types and node_type not in [nt.value for nt in node_types]:
-                    continue
-                
-                # Map event type to status
-                status_map = {
-                    EventType.NODE_STARTED: 'started',
-                    EventType.NODE_COMPLETED: 'completed',
-                    EventType.NODE_FAILED: 'failed',
-                    EventType.NODE_SKIPPED: 'skipped',
-                    EventType.NODE_PAUSED: 'paused',
-                    EventType.NODE_RUNNING: 'running'
-                }
-                status = status_map.get(EventType(event.event_type), 'running')
-                
-                # Create NodeExecution update
-                yield NodeExecution(
-                    execution_id=execution_id,
-                    node_id=NodeID(node_id),
-                    node_type=NodeType(node_type),
-                    status=status,
-                    progress=event.data.get('progress'),
-                    output=event.data.get('output'),
-                    error=event.data.get('error'),
-                    tokens_used=event.data.get('token_usage', {}).get('total'),
-                    timestamp=datetime.fromtimestamp(event.timestamp)
-                )
-                
-            # Check if execution is complete
-            state = await event_store.replay(execution_id)
-            if state and state.status in ['completed', 'failed', 'aborted']:
-                break
-            
-            # Poll interval (100ms)
-            await asyncio.sleep(0.1)
-            
-    except asyncio.CancelledError:
-        logger.info(f"Node update subscription cancelled for execution {execution_id}")
-        raise
-    except Exception as e:
-        logger.error(f"Error in node update stream for {execution_id}: {e}")
-        raise
-
-async def diagram_change_stream(diagram_id: DiagramID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[DomainDiagram, None]:
-    """Stream diagram changes."""
-    # TODO: Implement collaborative editing support
-    # This would require:
-    # 1. File watching on diagram files
-    # 2. Or a separate change tracking system
-    # 3. Or integration with version control
-    # For now, this is a placeholder
-    logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
-    while False:  # Never yields
-        yield
-
-async def interactive_prompt_stream(execution_id: ExecutionID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[InteractivePrompt, None]:
-    """Stream interactive prompts."""
-    context: GraphQLContext = info.context
-    state_store = context.state_store
-    
-    # Redis is no longer used for subscriptions
-    redis_client = None
-    
-    if redis_client:
-        # Use Redis pub/sub for real-time updates
-        logger.info(f"Using Redis pub/sub for interactive prompts {execution_id}")
-        subscription_manager = RedisSubscriptionManager(redis_client)
-        
-        try:
-            async for event_data in subscription_manager.subscribe_to_execution(execution_id):
-                # Filter for interactive prompt events
-                if event_data.get("event_type") != EventType.INTERACTIVE_PROMPT.value:
-                    continue
-                
-                node_id = event_data.get("node_id")
-                if not node_id:
-                    continue
-                
-                yield InteractivePrompt(
-                    execution_id=execution_id,
-                    node_id=NodeID(node_id),
-                    prompt=event_data.get("data", {}).get('prompt', 'User input required'),
-                    timeout_seconds=event_data.get("data", {}).get('timeout'),
-                    timestamp=datetime.fromtimestamp(event_data["timestamp"])
-                )
-                
-        except Exception as e:
-            logger.error(f"Error in Redis interactive prompt subscription for {execution_id}: {e}")
-            # Fall back to polling
-    
-    # Fallback to polling if Redis is not available
-    logger.info(f"Using polling for interactive prompts {execution_id}")
-    
-    # Track processed prompts
-    processed_prompts = set()
-    
-    try:
-        while True:
-            # Get latest state
-            state = await state_store.get_state(execution_id)
-            
-            # Filter for interactive prompt events
-            prompt_events = [
-                e for e in events 
-                if e.event_type == EventType.INTERACTIVE_PROMPT
-                and e.sequence not in processed_prompts
-            ]
-            
-            for event in prompt_events:
-                processed_prompts.add(event.sequence)
-                
-                yield InteractivePrompt(
-                    execution_id=execution_id,
-                    node_id=NodeID(event.node_id),
-                    prompt=event.data.get('prompt', 'User input required'),
-                    timeout_seconds=event.data.get('timeout'),
-                    timestamp=datetime.fromtimestamp(event.timestamp)
-                )
-            
-            # Check if execution is complete
-            state = await event_store.replay(execution_id)
-            if state and state.status in ['completed', 'failed', 'aborted']:
-                break
-            
-            # Poll interval (100ms)
-            await asyncio.sleep(0.1)
-            
-    except asyncio.CancelledError:
-        logger.info(f"Interactive prompt subscription cancelled for execution {execution_id}")
-        raise
-    except Exception as e:
-        logger.error(f"Error in interactive prompt stream for {execution_id}: {e}")
-        raise
+            logger.error(f"Error in interactive prompt stream for {execution_id}: {e}")
+            raise
 
 
+# Helper functions
 def _map_status(status: str) -> ExecutionStatus:
     """Map internal status string to GraphQL ExecutionStatus enum."""
     status_map = {
@@ -509,6 +336,46 @@ def _map_status(status: str) -> ExecutionStatus:
         'paused': ExecutionStatus.PAUSED,
         'completed': ExecutionStatus.COMPLETED,
         'failed': ExecutionStatus.FAILED,
-        'cancelled': ExecutionStatus.ABORTED
+        'cancelled': ExecutionStatus.ABORTED,
+        'aborted': ExecutionStatus.ABORTED
     }
     return status_map.get(status.lower(), ExecutionStatus.STARTED)
+
+
+def _calculate_progress(state) -> float:
+    """Calculate execution progress as percentage."""
+    if not state.node_statuses:
+        return 0.0
+    
+    total_nodes = len(state.node_statuses)
+    completed_nodes = len([s for s in state.node_statuses.values() if s == 'completed'])
+    
+    return (completed_nodes / total_nodes) * 100 if total_nodes > 0 else 0.0
+
+
+def _get_event_type_for_status(status: str) -> EventType:
+    """Map node status to event type."""
+    status_event_map = {
+        'started': EventType.NODE_STARTED,
+        'running': EventType.NODE_RUNNING,
+        'completed': EventType.NODE_COMPLETED,
+        'failed': EventType.NODE_FAILED,
+        'skipped': EventType.NODE_SKIPPED,
+        'paused': EventType.NODE_PAUSED
+    }
+    return status_event_map.get(status, EventType.STATE_CHANGED)
+
+
+def _get_node_type(diagram: dict, node_id: str) -> NodeType:
+    """Extract node type from diagram data."""
+    if not diagram or 'nodes' not in diagram:
+        return NodeType.JOB
+    
+    node = diagram['nodes'].get(node_id, {})
+    node_type_str = node.get('type', 'job')
+    
+    # Map string to NodeType enum
+    try:
+        return NodeType(node_type_str)
+    except ValueError:
+        return NodeType.JOB

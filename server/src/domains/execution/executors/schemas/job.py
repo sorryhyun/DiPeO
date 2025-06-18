@@ -5,6 +5,7 @@ Job node schema - defines properties for code execution nodes
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal, Dict, Any
 from enum import Enum
+from ..validation_helpers import CodeValidator
 
 
 class SupportedLanguage(str, Enum):
@@ -46,51 +47,13 @@ class JobNodeProps(BaseModel):
     @field_validator('code')
     @classmethod
     def validate_code_safety(cls, v: str, info) -> str:
-        """Basic validation for obviously dangerous patterns"""
+        """Validate code for dangerous patterns using simplified validator"""
         language = info.data.get('language', SupportedLanguage.PYTHON)
         
-        # Define dangerous patterns per language
-        dangerous_patterns = {
-            SupportedLanguage.PYTHON: [
-                ('import os', 'Direct OS imports are restricted'),
-                ('import subprocess', 'Subprocess imports are restricted'),
-                ('__import__', 'Dynamic imports are restricted'),
-                ('eval(', 'eval() is restricted'),
-                ('exec(', 'exec() is restricted'),
-                ('open(', 'File operations are restricted'),
-                ('compile(', 'compile() is restricted'),
-            ],
-            SupportedLanguage.JAVASCRIPT: [
-                ('require(', 'require() is restricted'),
-                ('import ', 'ES6 imports are restricted'),
-                ('process.', 'Process access is restricted'),
-                ('child_process', 'Child process operations are restricted'),
-                ('fs.', 'File system access is restricted'),
-                ('eval(', 'eval() is restricted'),
-            ],
-            SupportedLanguage.BASH: [
-                ('rm -rf', 'Destructive commands are restricted'),
-                ('sudo', 'Privileged operations are restricted'),
-                ('chmod', 'Permission changes are restricted'),
-                ('chown', 'Ownership changes are restricted'),
-                ('mkfs', 'Filesystem operations are restricted'),
-                ('dd ', 'Direct disk operations are restricted'),
-                ('curl', 'Network operations are restricted'),
-                ('wget', 'Network operations are restricted'),
-            ]
-        }
-        
-        # Check for dangerous patterns
-        patterns = dangerous_patterns.get(language, [])
-        for pattern, message in patterns:
-            if pattern in v.lower():
-                # For bash, we want to be stricter
-                if language == SupportedLanguage.BASH:
-                    raise ValueError(f"{message}: '{pattern}'")
-                # For other languages, we'll handle this in the handler with warnings
-                # but not block at schema level (except for the most dangerous ones)
-                elif pattern in ['__import__', 'eval(', 'exec(', 'compile(']:
-                    raise ValueError(f"{message}: '{pattern}'")
+        # Use the simplified CodeValidator
+        error = CodeValidator.validate(v, language.value, strict=True)
+        if error:
+            raise ValueError(error)
         
         return v
     

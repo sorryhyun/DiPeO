@@ -5,7 +5,7 @@ from strawberry.fastapi import BaseContext
 
 from src.shared.utils.app_context import AppContext
 from src.domains.execution.services.simple_state_store import state_store
-from src.domains.execution.services.message_router import message_router
+from src.domains.execution.services.message_router_simple import message_router
 
 if TYPE_CHECKING:
     from src.shared.service_types import (

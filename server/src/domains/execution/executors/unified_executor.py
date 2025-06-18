@@ -51,13 +51,16 @@ class UnifiedExecutor:
             try:
                 props = definition.schema(**node.get("properties", {}))
             except ValidationError as e:
+                # Simplify validation error reporting
+                errors = []
+                for err in e.errors():
+                    field_path = ".".join(str(loc) for loc in err["loc"])
+                    errors.append(f"{field_path}: {err['msg']}")
+                
                 return ExecutorResult(
-                    error="Validation failed",
-                    validation_errors=[
-                        {"field": err["loc"], "message": err["msg"]} 
-                        for err in e.errors()
-                    ],
-                    node_id=node_id
+                    error=f"Validation failed: {'; '.join(errors)}",
+                    node_id=node_id,
+                    metadata={"node_type": node_type, "validation_errors": e.errors()}
                 )
             
             # Check required services

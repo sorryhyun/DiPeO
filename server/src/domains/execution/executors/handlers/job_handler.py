@@ -10,10 +10,16 @@ import logging
 from typing import Dict, Any
 from ..schemas.job import JobNodeProps, SupportedLanguage
 from ..types import ExecutionContext
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="job",
+    schema=JobNodeProps,
+    description="Execute code in Python, JavaScript, or Bash"
+)
 async def job_handler(
     props: JobNodeProps,
     context: ExecutionContext,

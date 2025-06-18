@@ -1,17 +1,23 @@
 """
 Diagram format converters for backend.
-Mirrors the frontend converter system for consistency.
+Uses unified converter with strategy pattern for all format conversions.
 """
 from .base import DiagramConverter
-from .domain_json import EnhancedDomainJsonConverter as DomainJsonConverter
-from .light_yaml import LightYamlConverter
-from .readable_yaml import ReadableYamlConverter
+from .unified_converter import UnifiedDiagramConverter
 from .registry import converter_registry
+from .strategies import (
+    FormatStrategy,
+    NativeJsonStrategy,
+    LightYamlStrategy,
+    ReadableYamlStrategy
+)
 
 __all__ = [
     'DiagramConverter',
-    'DomainJsonConverter',
-    'LightYamlConverter',
-    'ReadableYamlConverter',
-    'converter_registry'
+    'UnifiedDiagramConverter',
+    'converter_registry',
+    'FormatStrategy',
+    'NativeJsonStrategy',
+    'LightYamlStrategy',
+    'ReadableYamlStrategy'
 ]

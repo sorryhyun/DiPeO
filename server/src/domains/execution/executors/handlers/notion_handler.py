@@ -7,10 +7,17 @@ import logging
 from typing import Dict, Any, List, Optional
 from ..schemas.notion import NotionNodeProps, NotionOperation
 from ..types import ExecutionContext
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="notion",
+    schema=NotionNodeProps,
+    description="Notion API operations including page, block, and database management",
+    requires_services=["notion_service"]
+)
 async def notion_handler(
     props: NotionNodeProps,
     context: ExecutionContext,

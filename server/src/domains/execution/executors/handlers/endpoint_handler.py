@@ -9,10 +9,17 @@ import logging
 from ..schemas.endpoint import EndpointNodeProps
 from ..types import ExecutionContext
 from ..executor_utils import substitute_variables
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="endpoint",
+    schema=EndpointNodeProps,
+    description="Terminal node for data output with optional file saving",
+    requires_services=["file_service"]
+)
 async def endpoint_handler(
     props: EndpointNodeProps,
     context: ExecutionContext,

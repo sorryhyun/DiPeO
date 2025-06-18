@@ -12,7 +12,7 @@ from src.shared.services.file_service import FileService
 from src.domains.person.memory.memory_service import MemoryService
 from src.domains.execution.services.execution_service import ExecutionService
 from src.domains.integrations.notion.notion_service import NotionService
-from src.domains.execution.services.message_router import message_router
+from src.domains.execution.services.message_router_simple import message_router
 from src.domains.execution.services.simple_state_store import state_store
 import os
 
@@ -44,6 +44,9 @@ class AppContext:
         """Initialize all services on startup."""
         # Initialize state store
         await state_store.initialize()
+        
+        # Initialize message router
+        await message_router.initialize()
         
         # Initialize services in dependency order
         self.api_key_service = APIKeyService()

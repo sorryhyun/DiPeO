@@ -12,6 +12,7 @@ import logging
 from .schemas.base import BaseNodeProps
 from .types import ExecutionContext
 from .executor_utils import substitute_variables
+from .decorators import node
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ class StartNodeProps(BaseNodeProps):
         return self.data if self.data is not None else {}
 
 
+@node(
+    node_type="start",
+    schema=StartNodeProps,
+    description="Provides initial data to the workflow"
+)
 async def start_handler(
     props: StartNodeProps,
     context: ExecutionContext,
@@ -75,6 +81,11 @@ class UserResponseNodeProps(BaseNodeProps):
     )
 
 
+@node(
+    node_type="user_response",
+    schema=UserResponseNodeProps,
+    description="Prompts user for interactive input"
+)
 async def user_response_handler(
     props: UserResponseNodeProps,
     context: ExecutionContext,
@@ -159,18 +170,4 @@ async def user_response_handler(
         }
 
 
-# Export node definitions for registration
-SIMPLE_NODE_DEFINITIONS = [
-    {
-        "type": "start",
-        "schema": StartNodeProps,
-        "handler": start_handler,
-        "description": "Provides initial data to the workflow"
-    },
-    {
-        "type": "user_response",
-        "schema": UserResponseNodeProps,
-        "handler": user_response_handler,
-        "description": "Prompts user for interactive input"
-    }
-]
+# Node definitions are now registered via decorators

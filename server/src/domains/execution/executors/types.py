@@ -7,25 +7,16 @@ from datetime import datetime
 from ...diagram.models.domain import TokenUsage
 
 
+@dataclass
 class ExecutorResult:
     """Result from executor execution."""
-    def __init__(
-        self,
-        output: Any = None,
-        error: Optional[str] = None,
-        node_id: Optional[str] = None,
-        execution_time: Optional[float] = None,
-        token_usage: Optional[TokenUsage] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        validation_errors: Optional[List[Dict[str, Any]]] = None
-    ):
-        self.output = output
-        self.error = error
-        self.node_id = node_id
-        self.execution_time = execution_time
-        self.token_usage = token_usage
-        self.metadata = metadata or {}
-        self.validation_errors = validation_errors or []
+    output: Any = None
+    error: Optional[str] = None
+    node_id: Optional[str] = None
+    execution_time: Optional[float] = None
+    token_usage: Optional[TokenUsage] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    validation_errors: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class NodeHandler(Protocol):
@@ -51,67 +42,36 @@ class NodeDefinition:
 
 
 
-class ExecutionContext(Protocol):
-    """Protocol for execution context provided to handlers."""
+@dataclass
+class ExecutionContext:
+    """Simplified execution context for handlers."""
+    edges: List[Dict[str, Any]]
+    results: Dict[str, Dict[str, Any]]
+    current_node_id: str
+    execution_id: str
+    exec_cnt: Dict[str, int] = field(default_factory=dict)  # Node execution counts
+    outputs: Dict[str, Any] = field(default_factory=dict)   # Node outputs
+    persons: Dict[str, Any] = field(default_factory=dict)   # Person configurations
+    api_keys: Dict[str, str] = field(default_factory=dict)  # API keys
     
-    @property
-    def edges(self) -> List[Dict[str, Any]]:
-        """Graph edges connecting nodes."""
-        ...
-    
-    @property
-    def results(self) -> Dict[str, Dict[str, Any]]:
-        """Results from executed nodes."""
-        ...
-    
-    @property
-    def current_node_id(self) -> str:
-        """ID of the currently executing node."""
-        ...
+    # Services are accessed via attributes for backward compatibility
+    llm_service: Optional[Any] = None
+    memory_service: Optional[Any] = None
+    person_service: Optional[Any] = None
+    code_execution_service: Optional[Any] = None
+    file_service: Optional[Any] = None
+    notion_service: Optional[Any] = None
+    user_interaction_service: Optional[Any] = None
+    interactive_handler: Optional[Any] = None
+    graph: Optional[Any] = None  # For graph operations
     
     def get_node_execution_count(self, node_id: str) -> int:
         """Get execution count for a specific node."""
-        ...
+        return self.exec_cnt.get(node_id, 0)
     
     def increment_node_execution_count(self, node_id: str) -> None:
         """Increment execution count for a specific node."""
-        ...
-    
-    # Service protocols (to be expanded based on actual services)
-    @property
-    def llm_service(self) -> Any:
-        """LLM service for AI calls."""
-        ...
-    
-    @property
-    def memory_service(self) -> Any:
-        """Memory service for conversation history."""
-        ...
-    
-    @property
-    def person_service(self) -> Any:
-        """Person service for managing person configurations."""
-        ...
-    
-    @property
-    def code_execution_service(self) -> Any:
-        """Service for executing code in various languages."""
-        ...
-    
-    @property
-    def file_service(self) -> Any:
-        """Service for file operations."""
-        ...
-    
-    @property
-    def notion_service(self) -> Any:
-        """Service for Notion integration."""
-        ...
-    
-    @property
-    def user_interaction_service(self) -> Any:
-        """Service for user interactions."""
-        ...
+        self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
 
 
 # Output types for specific handlers
