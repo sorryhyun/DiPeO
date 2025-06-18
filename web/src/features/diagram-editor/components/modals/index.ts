@@ -1,1 +1,0 @@
-export { DiagramFileModal as default } from './DiagramFileModal';

@@ -4,7 +4,7 @@ import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/buttons';
 import { getNodeConfig } from '@/core/config/helpers';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
-import { useNodeOperations } from '../../../hooks';
+import { useNodeOperations } from '../../hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import { useUIState } from '@/shared/hooks/selectors';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';

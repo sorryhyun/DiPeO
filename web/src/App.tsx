@@ -8,7 +8,7 @@ import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './
 import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
 
 // Lazy load heavy components
-const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/canvas/DiagramCanvas'));
+const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/DiagramCanvas'));
 const LazyExecutionView = React.lazy(() => import('./features/execution-monitor/components/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 const LazyInteractivePromptModal = React.lazy(() => import('./features/execution-monitor/components/InteractivePromptModal'));

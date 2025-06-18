@@ -4,5 +4,5 @@ export * from './hooks';
 export * from './store';
 
 // Main component exports
-export { DiagramCanvas } from './components/canvas';
-export { DiagramFileManager } from './components/managers/DiagramFileManager';
+export { default as DiagramCanvas } from './components/DiagramCanvas';
+export { DiagramFileManager } from './components/DiagramFileManager';
