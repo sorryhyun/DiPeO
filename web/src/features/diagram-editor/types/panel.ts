@@ -1,3 +1,15 @@
+import type {
+  StartNodeData,
+  ConditionNodeData,
+  PersonJobNodeData,
+  EndpointNodeData,
+  DBNodeData,
+  JobNodeData,
+  UserResponseNodeData,
+  NotionNodeData,
+  PersonBatchJobNodeData
+} from '@/core/types';
+
 /**
  * Extended field types for property panels
  * These map to specific UI components in the property panel
@@ -70,71 +82,11 @@ export interface PanelConfig<_T extends Record<string, unknown> = Record<string,
  * Panel form data types - Maps domain models to form representations
  */
 
-// Define node data types locally
-interface StartNodeData {
-  title?: string;
-  output?: string;
-  [key: string]: unknown;
-}
-
-interface PersonJobNodeData {
-  label?: string;
-  personId?: string;
-  prompt?: string;
-  [key: string]: unknown;
-}
-
-interface ConditionNodeData {
-  conditionType?: string;
-  expression?: string;
-  maxIterations?: number;
-  [key: string]: unknown;
-}
-
-interface DBNodeData {
-  subType?: string;
-  filePath?: string;
-  operation?: string;
-  [key: string]: unknown;
-}
-
-interface EndpointNodeData {
-  label?: string;
-  [key: string]: unknown;
-}
-
-interface JobNodeData {
-  language?: string;
-  code?: string;
-  [key: string]: unknown;
-}
-
-interface NotionNodeData {
-  operation?: string;
-  pageId?: string;
-  databaseId?: string;
-  [key: string]: unknown;
-}
-
-interface UserResponseNodeData {
-  prompt?: string;
-  timeout?: number;
-  [key: string]: unknown;
-}
-
-interface PersonBatchJobNodeData {
-  label?: string;
-  personId?: string;
-  processType?: string;
-  batchPrompt?: string;
-  [key: string]: unknown;
-}
-
 /**
  * Generic form data wrapper that allows UI-specific extensions
  * while maintaining type safety with domain types
  */
-export type PanelFormData<T extends Record<string, unknown>> = T & {
+export type PanelFormData<T extends Record<string, unknown>> = Partial<T> & {
   // Allow additional UI-specific fields for runtime flexibility
   [key: string]: unknown;
 };
@@ -146,22 +98,15 @@ export type ConditionFormData = PanelFormData<ConditionNodeData>;
 export type EndpointFormData = PanelFormData<EndpointNodeData>;
 export type JobFormData = PanelFormData<JobNodeData>;
 export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
+export type NotionFormData = PanelFormData<NotionNodeData>;
 export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;
 
 /**
  * DB form data with UI-specific field mapping
  */
-export interface DBFormData extends PanelFormData<DBNodeData> {
+export type DBFormData = PanelFormData<DBNodeData> & {
   sourceDetails?: string; // Maps to different fields based on subType
-}
-
-/**
- * Notion form data with UI-specific fields
- */
-export interface NotionFormData extends PanelFormData<NotionNodeData> {
-  pageId?: string;
-  content?: string;
-}
+};
 /**
  * Arrow form data - extends domain arrow with UI fields
  */

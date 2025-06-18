@@ -26,50 +26,23 @@ export type {
   ArrowData
 } from '@/graphql/types/graphql-mappings';
 
+// Generic UI extension wrapper for domain models
+export type WithUI<T> = T & { 
+  flipped?: boolean; 
+  [key: string]: unknown;
+};
+
 // Node data types - extend domain models with UI-specific properties
-export interface StartNodeData extends DomainStartNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface ConditionNodeData extends DomainConditionNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface PersonJobNodeData extends DomainPersonJobNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface EndpointNodeData extends DomainEndpointNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface DBNodeData extends DomainDBNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface JobNodeData extends DomainJobNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface UserResponseNodeData extends DomainUserResponseNodeData {
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface NotionNodeData extends DomainNotionNodeData {
-  [key: string]: unknown;
-}
-
-export interface PersonBatchJobNodeData extends DomainPersonBatchJobNodeData {
+export interface StartNodeData extends WithUI<DomainStartNodeData> {}
+export interface ConditionNodeData extends WithUI<DomainConditionNodeData> {}
+export interface PersonJobNodeData extends WithUI<DomainPersonJobNodeData> {}
+export interface EndpointNodeData extends WithUI<DomainEndpointNodeData> {}
+export interface DBNodeData extends WithUI<DomainDBNodeData> {}
+export interface JobNodeData extends WithUI<DomainJobNodeData> {}
+export interface UserResponseNodeData extends WithUI<DomainUserResponseNodeData> {}
+export interface NotionNodeData extends WithUI<DomainNotionNodeData> {}
+export interface PersonBatchJobNodeData extends WithUI<DomainPersonBatchJobNodeData> {
   ForgettingMode?: string; // Keep this for backward compatibility
-  flipped?: boolean;
-  [key: string]: unknown;
 }
 
 /**
