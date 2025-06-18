@@ -1,10 +1,9 @@
 """Converter registry for managing diagram format converters."""
 from typing import Dict, Optional, List, Tuple
 from .base import DiagramConverter
-from .react_json import ReactJsonConverter
+from .domain_json import DomainJsonConverter
 from .light_yaml import LightYamlConverter
 from .readable_yaml import ReadableYamlConverter
-from .native_yaml import NativeYamlConverter
 from ..models.domain import DiagramFormat
 
 
@@ -18,13 +17,13 @@ class ConverterRegistry:
     
     def _initialize_default_converters(self):
         """Register default converters."""
-        # Native JSON
+        # Domain JSON
         self.register(
             DiagramFormat.NATIVE.value,
-            ReactJsonConverter(),
+            DomainJsonConverter(),
             {
-                'name': 'Native JSON',
-                'description': 'Full-fidelity format with GraphQL schema compatibility',
+                'name': 'Domain JSON',
+                'description': 'Canonical format for diagram structure and execution',
                 'extension': '.json',
                 'supports_import': True,
                 'supports_export': True
@@ -52,19 +51,6 @@ class ConverterRegistry:
                 'name': 'Readable Workflow',
                 'description': 'Human-friendly workflow format',
                 'extension': '.readable.yaml',
-                'supports_import': True,
-                'supports_export': True
-            }
-        )
-        
-        # Native YAML
-        self.register(
-            DiagramFormat.NATIVE_YAML.value,
-            NativeYamlConverter(),
-            {
-                'name': 'Native YAML',
-                'description': 'Full-fidelity YAML format with GraphQL schema compatibility',
-                'extension': '.native.yaml',
                 'supports_import': True,
                 'supports_export': True
             }

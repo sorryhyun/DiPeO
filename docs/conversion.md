@@ -9,6 +9,8 @@ The canonical DomainDiagram format used throughout the system:
   - Includes node positions to preserve layout
   - Used by CLI tools and direct API calls
   - Saved with `.json` extension
+  - Stores nodes, arrows, handles, persons, and API keys as objects (not arrays) for easy ID-based access
+  - Uses lowercase enum values for compatibility across the system
 
 This is the persistent format that defines the diagram structure. React Flow UI properties (draggable, selectable, etc.) are applied at runtime by the DiagramAdapter but never persisted.
 
@@ -18,7 +20,7 @@ A simplified version of Domain JSON for better readability:
   - Position coordinates are rounded to integers
   - IDs are replaced with human-readable labels
   - Duplicate labels get suffixes (~1, ~2) to ensure uniqueness
-  - Maintains the same structural information as Domain YAML
+  - Maintains the same structural information as Domain JSON
 
 3. Readable YAML
 An alternative representation optimized for understanding workflows:

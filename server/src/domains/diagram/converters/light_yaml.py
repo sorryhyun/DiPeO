@@ -1,20 +1,160 @@
-"""Light YAML format converter - uses labels instead of IDs."""
-import yaml
-from typing import Dict, Any, Optional, List
-from .base import DiagramConverter
-from ..models.domain import (
-    DomainDiagram, DomainNode, DomainArrow, DomainHandle,
-    DomainPerson, DomainApiKey, DiagramMetadata, Vec2,
-    NodeType, HandleDirection, DataType, LLMService, ForgettingMode
-)
+"""Light YAML format converter - refactored to use enhanced base and shared components."""
 import uuid
+from typing import Dict, Any, List, Optional
+
+from .base import YamlBasedConverter
+from ..models.domain import (
+    DomainDiagram, DomainNode, DomainArrow, DomainPerson, 
+    DomainApiKey, DiagramMetadata, Vec2,
+    NodeType, LLMService, ForgettingMode
+)
 
 
-class LightYamlConverter(DiagramConverter):
-    """Converts between DomainDiagram and light YAML format."""
+class LightYamlConverter(YamlBasedConverter):
+    """Converts between DomainDiagram and light YAML format using shared components."""
     
-    def serialize(self, diagram: DomainDiagram) -> str:
-        """Convert domain diagram to light YAML."""
+    def __init__(self):
+        super().__init__()
+        self.label_to_node_id = {}
+        self.node_id_to_label = {}
+        self.person_label_to_id = {}
+        self.person_id_to_label = {}
+    
+    # Implement abstract methods from EnhancedDiagramConverter
+    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract node data from light YAML format."""
+        return data.get('nodes', [])
+    
+    def extract_arrows(self, data: Dict[str, Any], diagram: DomainDiagram) -> List[Dict[str, Any]]:
+        """Extract edge data from light YAML format connections."""
+        edges = []
+        for conn in data.get('connections', []):
+            source_id = self.label_to_node_id.get(conn['from'])
+            target_id = self.label_to_node_id.get(conn['to'])
+            
+            if source_id and target_id:
+                # Use default handles
+                source_handle = f"{source_id}:output"
+                target_handle = f"{target_id}:input"
+                
+                edges.append({
+                    'id': f"arrow_{uuid.uuid4().hex[:8]}",
+                    'source': source_handle,
+                    'target': target_handle,
+                    'data': conn.get('data', {})
+                })
+        
+        return edges
+    
+    def extract_node_id(self, node_data: Dict[str, Any], index: int) -> str:
+        """Generate node ID and maintain label mapping."""
+        node_id = f"{node_data.get('type', 'node')}_{uuid.uuid4().hex[:8]}"
+        label = node_data.get('label', f"Node_{index}")
+        
+        # Maintain bidirectional mapping
+        self.label_to_node_id[label] = node_id
+        self.node_id_to_label[node_id] = label
+        
+        return node_id
+    
+    def extract_node_properties(self, node_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract node properties including label and person assignment."""
+        properties = {'label': node_data.get('label', '')}
+        
+        # Assign person if specified
+        if 'person' in node_data and node_data['person'] in self.person_label_to_id:
+            properties['personId'] = self.person_label_to_id[node_data['person']]
+        
+        # Add props
+        if 'props' in node_data:
+            properties.update(node_data['props'])
+        
+        return properties
+    
+    def post_process_diagram(self, diagram: DomainDiagram, data: Dict[str, Any]) -> None:
+        """Process persons and metadata after nodes and edges."""
+        # Clear mappings for next use
+        self.label_to_node_id.clear()
+        self.node_id_to_label.clear()
+        
+        # Convert persons
+        self._process_persons(diagram, data)
+        
+        # Create metadata
+        diagram.metadata = DiagramMetadata(
+            name=data.get('name', 'Imported Diagram'),
+            description=data.get('description', ''),
+            version='2.0.0'
+        )
+        
+        # Convert arrows from edges
+        diagram.arrows = {}
+        for edge in diagram.edges.values():
+            arrow = DomainArrow(
+                id=edge.id,
+                source=edge.source,
+                target=edge.target,
+                data=edge.data if hasattr(edge, 'data') else {}
+            )
+            diagram.arrows[arrow.id] = arrow
+        
+        # Clear edges as light format uses arrows
+        diagram.edges = {}
+    
+    def _process_persons(self, diagram: DomainDiagram, data: Dict[str, Any]) -> None:
+        """Process persons from light YAML data."""
+        diagram.persons = {}
+        diagram.api_keys = {}
+        
+        for person_data in data.get('persons', []):
+            person_id = f"person_{uuid.uuid4().hex[:8]}"
+            label = person_data['label']
+            self.person_label_to_id[label] = person_id
+            self.person_id_to_label[person_id] = label
+            
+            # Create a default API key for the person
+            api_key_id = f"apikey_{uuid.uuid4().hex[:8]}"
+            diagram.api_keys[api_key_id] = DomainApiKey(
+                id=api_key_id,
+                label=f"{label}_key",
+                service=LLMService(person_data['service']),
+                key="YOUR_API_KEY_HERE"  # Placeholder
+            )
+            
+            diagram.persons[person_id] = DomainPerson(
+                id=person_id,
+                label=label,
+                service=LLMService(person_data['service']),
+                model=person_data['model'],
+                systemPrompt=person_data.get('systemPrompt'),
+                api_key_id=api_key_id,
+                forgettingMode=ForgettingMode(person_data.get('forgettingMode', 'none'))
+            )
+    
+    def _calculate_format_confidence(self, data: Dict[str, Any]) -> float:
+        """Calculate confidence that this is light YAML format."""
+        confidence = 0.0
+        
+        # Check for version marker
+        if data.get('version') == 'light':
+            confidence += 0.5
+        
+        # Check for expected structure
+        if 'nodes' in data and isinstance(data['nodes'], list):
+            confidence += 0.2
+            # Check if nodes use labels
+            if data['nodes'] and all('label' in node for node in data['nodes'][:3]):
+                confidence += 0.2
+        
+        # Check for connections instead of edges
+        if 'connections' in data and isinstance(data['connections'], list):
+            confidence += 0.1
+        
+        return min(confidence, 1.0)
+    
+    # Serialization methods
+    def diagram_to_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        """Convert diagram to light YAML data structure."""
         # Create label mappings
         node_labels = {node_id: node.data.get('label', f'Node_{idx}') 
                       for idx, (node_id, node) in enumerate(diagram.nodes.items())}
@@ -26,7 +166,7 @@ class LightYamlConverter(DiagramConverter):
         for node_id, node in diagram.nodes.items():
             light_node = {
                 'label': node_labels[node_id],
-                'type': node.type.value,
+                'type': node.type if isinstance(node.type, str) else node.type.value,
                 'position': {'x': node.position.x, 'y': node.position.y}
             }
             
@@ -45,7 +185,8 @@ class LightYamlConverter(DiagramConverter):
         
         # Convert arrows with label references
         connections = []
-        for arrow in diagram.arrows.values():
+        arrows = diagram.arrows if diagram.arrows else diagram.edges
+        for arrow in arrows.values():
             # Extract node IDs from handle IDs (format: "nodeId:handleName")
             source_node_id = arrow.source.split(':')[0]
             target_node_id = arrow.target.split(':')[0]
@@ -58,8 +199,9 @@ class LightYamlConverter(DiagramConverter):
                 'to': target_label
             }
             
-            if arrow.data:
-                light_arrow['data'] = arrow.data
+            arrow_data = arrow.data if hasattr(arrow, 'data') else {}
+            if arrow_data:
+                light_arrow['data'] = arrow_data
             
             connections.append(light_arrow)
         
@@ -96,178 +238,4 @@ class LightYamlConverter(DiagramConverter):
         if diagram.metadata and diagram.metadata.description:
             data['description'] = diagram.metadata.description
         
-        return yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
-    
-    def deserialize(self, content: str) -> DomainDiagram:
-        """Convert light YAML to domain diagram."""
-        data = yaml.safe_load(content)
-        
-        if not isinstance(data, dict):
-            raise ValueError("Invalid YAML: expected a dictionary at root level")
-        
-        diagram = DomainDiagram(
-            nodes={},
-            arrows={},
-            handles={},
-            persons={},
-            api_keys={}
-        )
-        
-        # Create metadata
-        diagram.metadata = DiagramMetadata(
-            name=data.get('name', 'Imported Diagram'),
-            description=data.get('description', ''),
-            version='2.0.0'
-        )
-        
-        # Create mappings
-        label_to_node_id = {}
-        person_label_to_id = {}
-        
-        # Convert persons first
-        for person_data in data.get('persons', []):
-            person_id = f"person_{uuid.uuid4().hex[:8]}"
-            person_label_to_id[person_data['label']] = person_id
-            
-            # Create a default API key for the person
-            api_key_id = f"apikey_{uuid.uuid4().hex[:8]}"
-            diagram.api_keys[api_key_id] = DomainApiKey(
-                id=api_key_id,
-                label=f"{person_data['label']}_key",
-                service=LLMService(person_data['service']),
-                key="YOUR_API_KEY_HERE"  # Placeholder
-            )
-            
-            diagram.persons[person_id] = DomainPerson(
-                id=person_id,
-                label=person_data['label'],
-                service=LLMService(person_data['service']),
-                model=person_data['model'],
-                systemPrompt=person_data.get('systemPrompt'),
-                api_key_id=api_key_id,
-                forgettingMode=ForgettingMode(person_data.get('forgettingMode', 'none'))
-            )
-        
-        # Convert nodes
-        for idx, node_data in enumerate(data.get('nodes', [])):
-            node_id = f"{node_data['type']}_{uuid.uuid4().hex[:8]}"
-            label = node_data.get('label', f"Node_{idx}")
-            label_to_node_id[label] = node_id
-            
-            # Build node data
-            node_data_dict = {'label': label}
-            
-            # Assign person if specified
-            if 'person' in node_data and node_data['person'] in person_label_to_id:
-                node_data_dict['personId'] = person_label_to_id[node_data['person']]
-            
-            # Add props
-            if 'props' in node_data:
-                node_data_dict.update(node_data['props'])
-            
-            pos = node_data.get('position', {'x': 100 + idx * 200, 'y': 100})
-            diagram.nodes[node_id] = DomainNode(
-                id=node_id,
-                type=NodeType(node_data['type']),
-                position=Vec2(x=pos['x'], y=pos['y']),
-                data=node_data_dict
-            )
-            
-            # Auto-generate handles based on node type
-            self._generate_handles_for_node(diagram, node_id, node_data['type'])
-        
-        # Convert connections to arrows
-        for idx, conn in enumerate(data.get('connections', [])):
-            source_id = label_to_node_id.get(conn['from'])
-            target_id = label_to_node_id.get(conn['to'])
-            
-            if source_id and target_id:
-                arrow_id = f"arrow_{uuid.uuid4().hex[:8]}"
-                # Use default handles
-                source_handle = f"{source_id}:output"
-                target_handle = f"{target_id}:input"
-                
-                diagram.arrows[arrow_id] = DomainArrow(
-                    id=arrow_id,
-                    source=source_handle,
-                    target=target_handle,
-                    data=conn.get('data', {})
-                )
-        
-        return diagram
-    
-    def _generate_handles_for_node(self, diagram: DomainDiagram, node_id: str, node_type: str):
-        """Generate default handles for a node based on its type."""
-        # Input handle (except for start nodes)
-        if node_type != 'start':
-            input_handle_id = f"{node_id}:input"
-            diagram.handles[input_handle_id] = DomainHandle(
-                id=input_handle_id,
-                nodeId=node_id,
-                label="input",
-                direction=HandleDirection.INPUT,
-                dataType=DataType.ANY,
-                position="left"
-            )
-        
-        # Output handle (except for endpoint nodes)
-        if node_type != 'endpoint':
-            output_handle_id = f"{node_id}:output"
-            diagram.handles[output_handle_id] = DomainHandle(
-                id=output_handle_id,
-                nodeId=node_id,
-                label="output",
-                direction=HandleDirection.OUTPUT,
-                dataType=DataType.ANY,
-                position="right"
-            )
-        
-        # Additional handles for condition nodes
-        if node_type == 'condition':
-            true_handle_id = f"{node_id}:true"
-            false_handle_id = f"{node_id}:false"
-            
-            diagram.handles[true_handle_id] = DomainHandle(
-                id=true_handle_id,
-                nodeId=node_id,
-                label="true",
-                direction=HandleDirection.OUTPUT,
-                dataType=DataType.BOOLEAN,
-                position="right"
-            )
-            
-            diagram.handles[false_handle_id] = DomainHandle(
-                id=false_handle_id,
-                nodeId=node_id,
-                label="false",
-                direction=HandleDirection.OUTPUT,
-                dataType=DataType.BOOLEAN,
-                position="right"
-            )
-    
-    def detect_format_confidence(self, content: str) -> float:
-        """Detect if content is light YAML format."""
-        try:
-            data = yaml.safe_load(content)
-            if not isinstance(data, dict):
-                return 0.0
-            
-            score = 0.0
-            
-            # Check for light format indicators
-            if data.get('version') == 'light':
-                score += 0.4
-            if 'nodes' in data and isinstance(data['nodes'], list):
-                score += 0.3
-                # Check if nodes use labels
-                if any('label' in node for node in data['nodes']):
-                    score += 0.1
-            if 'connections' in data and isinstance(data['connections'], list):
-                score += 0.2
-                # Check if connections use from/to
-                if any('from' in conn and 'to' in conn for conn in data['connections']):
-                    score += 0.1
-            
-            return min(score, 1.0)
-        except:
-            return 0.0
+        return data
