@@ -17,14 +17,6 @@ class ChatResult:
             self.prompt_tokens, self.completion_tokens, self.total_tokens
         ))
     
-    @property
-    def usage(self) -> Dict[str, int]:
-        """Return usage stats as a dict for compatibility."""
-        return {
-            'prompt_tokens': self.prompt_tokens or 0,
-            'completion_tokens': self.completion_tokens or 0,
-            'total_tokens': self.total_tokens or 0
-        }
 
 class BaseAdapter(ABC):
     """Minimal interface for an LLM adapter."""

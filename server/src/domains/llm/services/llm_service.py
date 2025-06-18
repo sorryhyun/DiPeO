@@ -131,12 +131,7 @@ class LLMService(BaseService):
             token_usage = self.get_token_counts(service or "chatgpt", usage)
             return {
                 "response": text,
-                "token_usage": token_usage,
-                # Keep these for backward compatibility
-                "token_count": token_usage.total,
-                "input_tokens": token_usage.input,
-                "output_tokens": token_usage.output,
-                "cached_tokens": token_usage.cached
+                "token_usage": token_usage
             }
             
         except Exception as e:

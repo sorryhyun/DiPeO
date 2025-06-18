@@ -140,12 +140,6 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
         
         executors[node_type] = UnifiedWrapper(unified_executor, node_type, services)
     
-    # Add variations for person job
-    if "person_job" in executors:
-        executors["personjob"] = executors["person_job"]
-    if "person_batch_job" in executors:
-        executors["personbatchjob"] = executors["person_batch_job"]
-    
     return executors
 
 

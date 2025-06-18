@@ -162,6 +162,61 @@ export interface ExecutionUpdate {
   data?: Record<string, any>;
 }
 
+// Executor-specific types
+export interface ExecutorResult {
+  output?: any;
+  error?: string | null;
+  nodeId?: NodeID | null;
+  executionTime?: number | null;
+  tokenUsage?: TokenUsage | null;
+  metadata?: Record<string, any>;
+  validationErrors?: Array<Record<string, any>>;
+}
+
+// Specific node output types
+export interface PersonJobOutput {
+  output?: string | null;
+  error?: string | null;
+  conversationHistory?: PersonMemoryMessage[];
+  tokenUsage?: TokenUsage | null;
+  metadata?: Record<string, any>;
+}
+
+export interface ConditionOutput {
+  result: boolean;
+  evaluatedExpression: string;
+  metadata?: Record<string, any>;
+}
+
+export interface JobOutput {
+  output: any;
+  error?: string | null;
+  executionTime?: number;
+  language?: string;
+  metadata?: Record<string, any>;
+}
+
+// Execution context for handlers
+export interface ExecutionContext {
+  edges: Array<Record<string, any>>;
+  results: Record<string, Record<string, any>>;
+  currentNodeId: NodeID;
+  executionId: string;
+  execCnt?: Record<string, number>; // Node execution counts
+  outputs?: Record<string, any>; // Node outputs
+  persons?: Record<string, any>; // Person configurations
+  apiKeys?: Record<string, string>; // API keys
+}
+
+// Node handler definition
+export interface NodeDefinition {
+  type: string;
+  schema: any; // Type reference to schema class
+  handler: any; // Handler function reference
+  requiresServices?: string[];
+  description?: string;
+}
+
 // Zod schemas for validation
 export const ExecutionStatusSchema = z.nativeEnum(ExecutionStatus);
 export const NodeExecutionStatusSchema = z.nativeEnum(NodeExecutionStatus);
@@ -304,6 +359,53 @@ export function isNodeExecutionActive(status: NodeExecutionStatus): boolean {
   ].includes(status);
 }
 
+// Executor-specific Zod schemas
+export const ExecutorResultSchema = z.object({
+  output: z.any().optional(),
+  error: z.string().nullable().optional(),
+  nodeId: z.string().nullable().optional(),
+  executionTime: z.number().nullable().optional(),
+  tokenUsage: TokenUsageSchema.nullable().optional(),
+  metadata: z.record(z.any()).optional(),
+  validationErrors: z.array(z.record(z.any())).optional()
+});
+
+export const PersonJobOutputSchema = z.object({
+  output: z.string().nullable().optional(),
+  error: z.string().nullable().optional(),
+  conversationHistory: z.array(z.object({
+    role: z.string(),
+    content: z.string()
+  })).optional(),
+  tokenUsage: TokenUsageSchema.nullable().optional(),
+  metadata: z.record(z.any()).optional()
+});
+
+export const ConditionOutputSchema = z.object({
+  result: z.boolean(),
+  evaluatedExpression: z.string(),
+  metadata: z.record(z.any()).optional()
+});
+
+export const JobOutputSchema = z.object({
+  output: z.any(),
+  error: z.string().nullable().optional(),
+  executionTime: z.number().optional(),
+  language: z.string().optional(),
+  metadata: z.record(z.any()).optional()
+});
+
+export const ExecutionContextSchema = z.object({
+  edges: z.array(z.record(z.any())),
+  results: z.record(z.record(z.any())),
+  currentNodeId: z.string(),
+  executionId: z.string(),
+  execCnt: z.record(z.number()).optional(),
+  outputs: z.record(z.any()).optional(),
+  persons: z.record(z.any()).optional(),
+  apiKeys: z.record(z.string()).optional()
+});
+
 // Type guards
 export function isTokenUsage(obj: unknown): obj is TokenUsage {
   return TokenUsageSchema.safeParse(obj).success;
@@ -315,4 +417,20 @@ export function isExecutionState(obj: unknown): obj is ExecutionState {
 
 export function isExecutionEvent(obj: unknown): obj is ExecutionEvent {
   return ExecutionEventSchema.safeParse(obj).success;
+}
+
+export function isExecutorResult(obj: unknown): obj is ExecutorResult {
+  return ExecutorResultSchema.safeParse(obj).success;
+}
+
+export function isPersonJobOutput(obj: unknown): obj is PersonJobOutput {
+  return PersonJobOutputSchema.safeParse(obj).success;
+}
+
+export function isConditionOutput(obj: unknown): obj is ConditionOutput {
+  return ConditionOutputSchema.safeParse(obj).success;
+}
+
+export function isJobOutput(obj: unknown): obj is JobOutput {
+  return JobOutputSchema.safeParse(obj).success;
 }

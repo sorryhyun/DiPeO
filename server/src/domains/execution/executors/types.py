@@ -4,9 +4,19 @@ from typing import Protocol, Type, Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 from datetime import datetime
-from src.__generated__.models import TokenUsage
+from src.__generated__.models import (
+    TokenUsage,
+    ExecutorResult as GeneratedExecutorResult,
+    NodeDefinition as GeneratedNodeDefinition,
+    ExecutionContext as GeneratedExecutionContext,
+    PersonJobOutput as GeneratedPersonJobOutput,
+    ConditionOutput as GeneratedConditionOutput,
+    JobOutput as GeneratedJobOutput
+)
 
 
+# ExecutorResult is kept as dataclass for internal use
+# If you need Pydantic validation, use GeneratedExecutorResult
 @dataclass
 class ExecutorResult:
     """Result from executor execution."""
@@ -31,6 +41,8 @@ class NodeHandler(Protocol):
         ...
 
 
+# NodeDefinition is kept as dataclass because it contains
+# runtime handler references which can't be serialized
 @dataclass
 class NodeDefinition:
     """Definition of a node type."""
@@ -42,6 +54,8 @@ class NodeDefinition:
 
 
 
+# ExecutionContext is kept as dataclass because it contains
+# runtime service references and methods
 @dataclass
 class ExecutionContext:
     """Simplified execution context for handlers."""
@@ -74,30 +88,7 @@ class ExecutionContext:
         self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
 
 
-# Output types for specific handlers
-@dataclass
-class PersonJobOutput:
-    """Output from PersonJob handler."""
-    output: Optional[str]
-    error: Optional[str] = None
-    conversation_history: List[Dict[str, str]] = field(default_factory=list)
-    token_usage: Optional[TokenUsage] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ConditionOutput:
-    """Output from Condition handler."""
-    result: bool
-    evaluated_expression: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class JobOutput:
-    """Output from Job handler."""
-    output: Any
-    error: Optional[str] = None
-    execution_time: float = 0.0
-    language: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+# Output types - use generated versions
+PersonJobOutput = GeneratedPersonJobOutput
+ConditionOutput = GeneratedConditionOutput
+JobOutput = GeneratedJobOutput

@@ -68,6 +68,22 @@ class PythonGenerator {
       return isOptional ? `Optional[List[${pythonInnerType}]]` : `List[${pythonInnerType}]`;
     }
 
+    // Handle Array<T> syntax
+    if (tsType.startsWith('Array<') && tsType.endsWith('>')) {
+      const innerType = tsType.slice(6, -1); // Remove 'Array<' and '>'
+      
+      // Handle inline object types like { role: string; content: string }
+      if (innerType.startsWith('{') && innerType.endsWith('}')) {
+        this.addImport('typing', 'Dict', 'List', 'Any');
+        // For now, convert inline objects to Dict[str, Any]
+        return isOptional ? 'Optional[List[Dict[str, Any]]]' : 'List[Dict[str, Any]]';
+      }
+      
+      const pythonInnerType = this.generatePythonType(innerType);
+      this.addImport('typing', 'List');
+      return isOptional ? `Optional[List[${pythonInnerType}]]` : `List[${pythonInnerType}]`;
+    }
+
     // Handle Record types
     if (tsType.startsWith('Record<')) {
       this.addImport('typing', 'Dict', 'Any');
@@ -228,7 +244,7 @@ class PythonGenerator {
     
     // Generate NewType for branded types
     const brandedTypes = [
-      'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 'DiagramID'
+      'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 'DiagramID', 'ExecutionID'
     ];
     
     this.addImport('typing', 'NewType');
