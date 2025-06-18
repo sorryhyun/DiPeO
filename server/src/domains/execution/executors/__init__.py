@@ -3,7 +3,7 @@ Executors for different node types in the unified execution engine.
 """
 from typing import Dict
 
-from .base_executor import BaseExecutor, ValidationResult, ExecutorResult
+from .validator import ValidationResult
 from .executor_utils import (
     get_input_values,
     substitute_variables,
@@ -20,14 +20,11 @@ from .validator import (
     validate_enum_field,
     validate_positive_integer,
     validate_file_path,
-    validate_either_required,
-    validate_json_field,
-    validate_dangerous_code,
     merge_validation_results,
 )
 
 
-def create_executors(llm_service=None, file_service=None, memory_service=None, notion_service=None, use_unified: bool = True) -> Dict[str, BaseExecutor]:
+def create_executors(llm_service=None, file_service=None, memory_service=None, notion_service=None) -> Dict[str, 'BaseExecutor']:
     """
     Create executor instances based on available services.
     
@@ -36,7 +33,6 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
         file_service: FileService instance for file operations
         memory_service: MemoryService instance for conversation history
         notion_service: NotionService instance for Notion API operations
-        use_unified: If True, use the unified executor system (default: True)
         
     Returns:
         Dictionary mapping node types to executor instances
@@ -116,7 +112,7 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
     
     for node_type in unified_executor.get_supported_types():
         # Create a wrapper that adapts the context
-        class UnifiedWrapper(BaseExecutor):
+        class UnifiedWrapper:
             def __init__(self, executor, node_type, services):
                 self.unified_executor = executor
                 self.node_type = node_type
@@ -139,15 +135,8 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
                 # Execute using unified executor
                 result = await self.unified_executor.execute(node, adapted_context)
                 
-                # Convert ExecutorResult to legacy format
-                from .base_executor import ExecutorResult as LegacyResult
-                return LegacyResult(
-                    output=result.output,
-                    error=result.error,
-                    metadata=result.metadata,
-                    execution_time=result.execution_time,
-                    token_usage=result.token_usage
-                )
+                # Return result directly
+                return result
         
         executors[node_type] = UnifiedWrapper(unified_executor, node_type, services)
     
@@ -161,9 +150,7 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
 
 
 __all__ = [
-    "BaseExecutor",
     "ValidationResult",
-    "ExecutorResult",
     "create_executors",
     # Utility functions
     "get_input_values",
@@ -179,8 +166,5 @@ __all__ = [
     "validate_enum_field", 
     "validate_positive_integer",
     "validate_file_path",
-    "validate_either_required",
-    "validate_json_field",
-    "validate_dangerous_code",
     "merge_validation_results",
 ]
