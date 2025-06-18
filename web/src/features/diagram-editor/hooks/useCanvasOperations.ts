@@ -21,9 +21,12 @@ import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useCanvas } from './ui/useCanvas';
 import { useCanvasInteractions } from './ui/useCanvasInteractions';
-import { NodeID, ArrowID, PersonID, Vec2, HandleID, SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
+import { SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
+import { Vec2 } from '@dipeo/domain-models';
 import { graphQLTypeToNodeKind } from '@/graphql/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import type { NodeID, ArrowID, PersonID, HandleID  } from '@dipeo/domain-models';
+
 
 // Type definitions
 

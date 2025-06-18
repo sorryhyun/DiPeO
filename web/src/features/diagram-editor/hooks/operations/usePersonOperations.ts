@@ -6,7 +6,8 @@
 
 import { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { PersonID, DomainPerson } from '@/core/types';
+import { DomainPerson } from '@/core/types';
+import type { PersonID  } from '@dipeo/domain-models';
 
 export interface UsePersonOperationsReturn {
   // CRUD operations

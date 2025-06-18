@@ -1,4 +1,6 @@
-import { type Dict, type NodeID, type ExecutionID, type PersonID } from '@/core/types';
+import { type Dict } from '@/core/types';
+import type { NodeID, ExecutionID, PersonID } from '@dipeo/domain-models';
+
 
 export interface InteractivePromptData {
   nodeId: NodeID;

@@ -1,10 +1,19 @@
-/**
- * Core types for DiPeO
- * Single source of truth for all fundamental types
- */
-
 import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import type { PersonID } from './branded';
+import {
+  PersonID,
+  ForgettingMode, 
+  NodeResult, 
+  NodeExecutionStatus,
+  StartNodeData as DomainStartNodeData,
+  ConditionNodeData as DomainConditionNodeData,
+  PersonJobNodeData as DomainPersonJobNodeData,
+  EndpointNodeData as DomainEndpointNodeData,
+  DBNodeData as DomainDBNodeData,
+  JobNodeData as DomainJobNodeData,
+  UserResponseNodeData as DomainUserResponseNodeData,
+  NotionNodeData as DomainNotionNodeData,
+  PersonBatchJobNodeData as DomainPersonBatchJobNodeData
+} from "@dipeo/domain-models";
 
 // Re-export from graphql-mappings which provides compatibility layer
 export type {
@@ -17,87 +26,48 @@ export type {
   ArrowData
 } from '@/graphql/types/graphql-mappings';
 
-// Node data types - these are still local definitions since GraphQL uses generic JSONScalar
-export interface StartNodeData {
-  label: string;
-  customData: { [key: string]: string | number | boolean };
-  outputDataStructure: { [key: string]: string };
+// Node data types - extend domain models with UI-specific properties
+export interface StartNodeData extends DomainStartNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface ConditionNodeData {
-  label: string;
-  conditionType: string;
-  detect_max_iterations: boolean;
-  expression?: string;
-  _node_indices?: string[];
+export interface ConditionNodeData extends DomainConditionNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface PersonJobNodeData {
-  label: string;
-  person?: PersonID;
-  firstOnlyPrompt: string;
-  defaultPrompt?: string;
-  maxIterations: number;
-  contextCleaningRule?: string;
+export interface PersonJobNodeData extends DomainPersonJobNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface EndpointNodeData {
-  label: string;
-  saveToFile: boolean;
-  fileName?: string;
+export interface EndpointNodeData extends DomainEndpointNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface DBNodeData {
-  label: string;
-  file?: string;
-  collection?: string;
-  subType: string;
-  operation: string;
-  query?: string;
-  data?: { [key: string]: any };
+export interface DBNodeData extends DomainDBNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface JobNodeData {
-  label: string;
-  codeType: string;
-  code: string;
+export interface JobNodeData extends DomainJobNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface UserResponseNodeData {
-  label: string;
-  prompt: string;
-  timeout: number;
+export interface UserResponseNodeData extends DomainUserResponseNodeData {
   flipped?: boolean;
   [key: string]: unknown;
 }
 
-export interface NotionNodeData {
-  label: string;
-  operation: string;
-  pageId?: string;
-  databaseId?: string;
+export interface NotionNodeData extends DomainNotionNodeData {
   [key: string]: unknown;
 }
 
-export interface PersonBatchJobNodeData {
-  label: string;
-  person?: PersonID;
-  firstOnlyPrompt: string;
-  defaultPrompt?: string;
-  maxIterations: number;
-  contextCleaningRule?: string;
+export interface PersonBatchJobNodeData extends DomainPersonBatchJobNodeData {
+  ForgettingMode?: string; // Keep this for backward compatibility
   flipped?: boolean;
   [key: string]: unknown;
 }
@@ -119,16 +89,52 @@ export type NodeData = {
 };
 
 /**
- * Node execution state
- * Tracks runtime state during diagram execution
+ * Legacy node execution state for backward compatibility.
+ * @deprecated Use NodeResult from @dipeo/domain-models instead
  */
 export interface NodeExecutionState {
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
+  status: NodeExecutionStatus;
   error?: string;
-  timestamp: number;
+  timestamp: number; // Keep as number for backward compatibility
   skipReason?: string;
-  tokenCount?: number;
+  tokenCount?: number; // Different from canonical tokenUsage
   progress?: string;
+}
+
+/**
+ * Convert NodeResult to legacy NodeExecutionState
+ */
+export function fromCanonicalNodeResult(nodeResult: NodeResult): NodeExecutionState {
+  return {
+    status: nodeResult.status,
+    error: nodeResult.error || undefined,
+    timestamp: new Date(nodeResult.timestamp).getTime(),
+    skipReason: nodeResult.skipReason || undefined,
+    tokenCount: nodeResult.tokenUsage?.total,
+    progress: nodeResult.progress || undefined,
+  };
+}
+
+/**
+ * Convert legacy NodeExecutionState to NodeResult
+ */
+export function toCanonicalNodeResult(
+  nodeId: string,
+  state: NodeExecutionState,
+): NodeResult {
+  return {
+    nodeId: nodeId as any, // NodeID branded type
+    status: state.status,
+    error: state.error || null,
+    timestamp: new Date(state.timestamp).toISOString(),
+    skipReason: state.skipReason || null,
+    progress: state.progress || null,
+    tokenUsage: state.tokenCount ? {
+      input: 0,
+      output: 0,
+      total: state.tokenCount,
+    } : null,
+  };
 }
 
 // Type guards are now imported from graphql-mappings

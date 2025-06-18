@@ -1,5 +1,6 @@
 import type { PersonJobFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
+import {ForgettingMode} from "@dipeo/domain-models";
 
 /**
  * Unified configuration for PersonJob node
@@ -22,7 +23,7 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     { name: 'firstOnlyPrompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
     { name: 'defaultPrompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' },
     { 
-      name: 'contextCleaningRule', 
+      name: 'forgettingMode',
       type: 'select', 
       label: 'Context Cleaning', 
       required: true,
@@ -38,17 +39,17 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     maxIteration: 1, 
     firstOnlyPrompt: '', 
     defaultPrompt: '', 
-    contextCleaningRule: 'no_forget' 
+    forgettingMode: 'no_forget'
   },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['labelPersonRow', 'contextCleaningRule', 'maxIteration', 'defaultPrompt', 'firstOnlyPrompt'],
+  panelFieldOrder: ['labelPersonRow', 'forgettingMode', 'maxIteration', 'defaultPrompt', 'firstOnlyPrompt'],
   panelFieldOverrides: {
     maxIteration: {
       type: 'maxIteration' // Use the special maxIteration component
     },
-    contextCleaningRule: {
+    forgettingMode: {
       label: 'Forget',
       options: [
         { value: 'upon_request', label: 'Upon This Request' },

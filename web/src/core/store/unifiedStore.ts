@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { ApiKeyID, ArrowID, DomainApiKey, NodeID, PersonID, Vec2, apiKeyId } from '@/core/types';
+import { ApiKeyID, ArrowID, DomainApiKey, NodeID, PersonID, apiKeyId } from '@/core/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { entityIdGenerators } from '@/core/types/utilities';
+import { Vec2 } from '@dipeo/domain-models';
 import { UnifiedStore, NodeState } from "./unifiedStore.types";
 // Removed deprecated imports - auto-save is now handled by the backend
 import { logger } from "@/shared/utils/logger";

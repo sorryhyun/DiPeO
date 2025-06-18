@@ -117,10 +117,6 @@ class ExtendedDiagramDict(DiagramDictFormat):
             metadata=graphql_diagram.metadata
         )
     
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ExtendedDiagramDict':
-        """Create ExtendedDiagramDict from dictionary (Pydantic v2 compatibility)."""
-        return cls.model_validate(data)
 
 # Domain-specific methods for TokenUsage
 class ExtendedTokenUsage(TokenUsage):

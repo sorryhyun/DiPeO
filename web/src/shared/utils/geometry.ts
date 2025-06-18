@@ -1,4 +1,4 @@
-import type { Vec2 } from '@/core/types';
+import type { Vec2 } from '@dipeo/domain-models';
 
 /**
  * Calculate a point on a quadratic bezier curve

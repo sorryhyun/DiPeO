@@ -1,13 +1,14 @@
+import {
+  NodeID,  HandleID,  ArrowID,  PersonID,  ApiKeyID,  DiagramID, ExecutionID,
+  createHandleId as domainCreateHandleId,
+  parseHandleId as domainParseHandleId
+} from '@dipeo/domain-models';
+
+
 export type Brand<K, T> = K & { __brand: T };
 
-export type NodeID = Brand<string, 'NodeID'>;
-export type HandleID = Brand<string, 'HandleID'>;
-export type ArrowID = Brand<string, 'ArrowID'>;
-export type PersonID = Brand<string, 'PersonID'>;
-export type ApiKeyID = Brand<string, 'ApiKeyID'>;
-export type ExecutionID = Brand<string, 'ExecutionID'>;
+// Local branded type not in domain models
 export type MessageID = Brand<string, 'MessageID'>;
-export type DiagramID = Brand<string, 'DiagramID'>;
 
 
 // Helper functions for creating branded types
@@ -20,18 +21,9 @@ export const executionId = (id: string): ExecutionID => id as ExecutionID;
 export const messageId = (id: string): MessageID => id as MessageID;
 export const diagramId = (id: string): DiagramID => id as DiagramID;
 
-// Handle ID utilities
-export const createHandleId = (nodeId: NodeID, handleName: string): HandleID => {
-  return handleId(`${nodeId}:${handleName}`);
-};
-
-export const parseHandleId = (id: HandleID): { nodeId: NodeID; handleName: string } => {
-  const [nodeIdStr, ...handleNameParts] = String(id).split(':');
-  return {
-    nodeId: nodeId(nodeIdStr || ''),
-    handleName: handleNameParts.join(':')
-  };
-};
+// Handle ID utilities - use domain model functions
+export const createHandleId = domainCreateHandleId;
+export const parseHandleId = domainParseHandleId;
 
 export const isValidHandleIdFormat = (id: string): boolean => {
   return id.includes(':') && id.split(':').length >= 2;

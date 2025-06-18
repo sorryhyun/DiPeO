@@ -146,7 +146,6 @@ export function shouldResetContext(
 ): boolean {
   switch (forgettingMode) {
     case ForgettingMode.NO_FORGET:
-    case ForgettingMode.NONE:
       return false;
     case ForgettingMode.ON_EVERY_TURN:
       return messageCount > 0;

@@ -1,8 +1,8 @@
 import { StateCreator } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ArrowID, DomainArrow, DomainNode, NodeID, Vec2 } from '@/core/types';
+import { ArrowID, DomainArrow, DomainNode, NodeID } from '@/core/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { NodeType } from '@dipeo/domain-models';
+import { NodeType, Vec2 } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';

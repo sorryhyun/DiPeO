@@ -5,10 +5,10 @@ import asyncio
 import logging
 from datetime import datetime
 
-from src.__generated__.models import ExecutionState, ExecutionEvent, DomainDiagram
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
-from .types.enums import EventType
+from .types.domain import ExecutionState, ExecutionEvent, DomainDiagramType
 from src.shared.domain import NodeType, ExecutionStatus
+from src.__generated__.models import EventType
 from .context import GraphQLContext
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ class Subscription:
                             'completed': EventType.EXECUTION_COMPLETED,
                             'failed': EventType.EXECUTION_FAILED,
                             'aborted': EventType.EXECUTION_ABORTED
-                        }.get(state.status, EventType.STATE_CHANGED)
+                        }.get(state.status, EventType.EXECUTION_UPDATE)
                         
                         if not event_types or final_event_type in event_types:
                             yield ExecutionEvent(
@@ -270,7 +270,7 @@ class Subscription:
         self,
         info: strawberry.Info[GraphQLContext],
         diagram_id: DiagramID
-    ) -> AsyncGenerator[DomainDiagram, None]:
+    ) -> AsyncGenerator[DomainDiagramType, None]:
         """Subscribe to diagram changes - placeholder for future implementation."""
         logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
         # This would require file watching or version control integration
@@ -363,7 +363,7 @@ def _get_event_type_for_status(status: str) -> EventType:
         'skipped': EventType.NODE_SKIPPED,
         'paused': EventType.NODE_PAUSED
     }
-    return status_event_map.get(status, EventType.STATE_CHANGED)
+    return status_event_map.get(status, EventType.EXECUTION_UPDATE)
 
 
 def _get_node_type(diagram: dict, node_id: str) -> NodeType:

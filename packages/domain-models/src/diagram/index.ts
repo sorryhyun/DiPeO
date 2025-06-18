@@ -45,7 +45,6 @@ export enum LLMService {
 
 export enum ForgettingMode {
   NO_FORGET = 'no_forget',
-  NONE = 'none',
   ON_EVERY_TURN = 'on_every_turn',
   UPON_REQUEST = 'upon_request'
 }
@@ -67,12 +66,6 @@ export enum ContentType {
   VARIABLE = 'variable',
   RAW_TEXT = 'raw_text',
   CONVERSATION_STATE = 'conversation_state'
-}
-
-export enum ContextCleaningRule {
-  ON_EVERY_TURN = 'on_every_turn',
-  UPON_REQUEST = 'upon_request',
-  NO_FORGET = 'no_forget'
 }
 
 // Basic types
@@ -189,7 +182,7 @@ export interface PersonJobNodeData extends BaseNodeData {
   firstOnlyPrompt: string;
   defaultPrompt?: string;
   maxIterations: number;
-  contextCleaningRule?: string;
+  forgettingMode?: string;
 }
 
 export interface EndpointNodeData extends BaseNodeData {

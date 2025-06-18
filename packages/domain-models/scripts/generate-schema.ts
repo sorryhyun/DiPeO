@@ -2,160 +2,167 @@
 
 /**
  * Generate JSON schemas from TypeScript interfaces
- * These schemas will be used as the source for generating code in other languages
+ * Refactored for:
+ *  • **Performance** – Cached lookups & batch processing
+ *  • **Compactness** – Consolidated extraction logic
+ *  • **Clarity** – Single responsibility methods
  */
 
-import { Project, Node, InterfaceDeclaration, EnumDeclaration } from 'ts-morph';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { Project, InterfaceDeclaration, EnumDeclaration, Type } from 'ts-morph';
+import { readdir, writeFile, mkdir } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-interface SchemaDefinition {
+//--- Types ----------------------------------------------------------
+export interface SchemaDefinition {
   name: string;
   type: 'interface' | 'enum';
-  properties?: Record<string, any>;
+  properties?: Record<string, PropertyInfo>;
   values?: string[];
   extends?: string[];
   description?: string;
 }
 
-async function extractTypesFromFile(filePath: string, project: Project): Promise<SchemaDefinition[]> {
-  const sourceFile = project.addSourceFileAtPath(filePath);
-  const schemas: SchemaDefinition[] = [];
-
-  // Extract interfaces
-  const interfaces = sourceFile.getInterfaces();
-  for (const int of interfaces) {
-    const schema = extractInterface(int);
-    if (schema) {
-      schemas.push(schema);
-    }
-  }
-
-  // Extract enums
-  const enums = sourceFile.getEnums();
-  for (const enumDecl of enums) {
-    const schema = extractEnum(enumDecl);
-    if (schema) {
-      schemas.push(schema);
-    }
-  }
-
-  return schemas;
+interface PropertyInfo {
+  type: string;
+  optional: boolean;
+  description?: string;
 }
 
-function extractInterface(int: InterfaceDeclaration): SchemaDefinition | null {
-  const name = int.getName();
-  const properties: Record<string, any> = {};
-  
-  // Get extends clauses
-  const extendsTypes = int.getExtends().map(ext => ext.getText());
-  
-  // Get JSDoc comment
-  const jsDocs = int.getJsDocs();
-  const description = jsDocs.length > 0 ? jsDocs[0].getDescription().trim() : undefined;
+//--- Schema Extractor -----------------------------------------------
+class SchemaExtractor {
+  private typeCache = new Map<string, string>();
 
-  // Extract properties
-  for (const prop of int.getProperties()) {
-    const propName = prop.getName();
-    const propType = prop.getType();
-    const isOptional = prop.hasQuestionToken();
-    const propJsDocs = prop.getJsDocs();
-    const propDescription = propJsDocs.length > 0 ? propJsDocs[0].getDescription().trim() : undefined;
+  constructor(private project: Project) {}
 
-    properties[propName] = {
-      type: getSimplifiedType(propType.getText()),
-      optional: isOptional,
-      description: propDescription
-    };
+  async extractFromFile(filePath: string): Promise<SchemaDefinition[]> {
+    const src = this.project.addSourceFileAtPath(filePath);
+    return [
+      ...src.getInterfaces().map(i => this.extractInterface(i)).filter(Boolean),
+      ...src.getEnums().map(e => this.extractEnum(e)).filter(Boolean)
+    ] as SchemaDefinition[];
   }
 
-  return {
-    name,
-    type: 'interface',
-    properties,
-    extends: extendsTypes.length > 0 ? extendsTypes : undefined,
-    description
-  };
-}
+  private extractInterface(decl: InterfaceDeclaration): SchemaDefinition | null {
+    const name = decl.getName();
+    const extends_ = decl.getExtends().map(e => e.getText());
+    const description = this.getJsDoc(decl);
 
-function extractEnum(enumDecl: EnumDeclaration): SchemaDefinition | null {
-  const name = enumDecl.getName();
-  const values = enumDecl.getMembers().map(member => member.getValue()?.toString() || member.getName());
-  
-  // Get JSDoc comment
-  const jsDocs = enumDecl.getJsDocs();
-  const description = jsDocs.length > 0 ? jsDocs[0].getDescription().trim() : undefined;
+    const properties: Record<string, PropertyInfo> = {};
 
-  return {
-    name,
-    type: 'enum',
-    values,
-    description
-  };
-}
-
-function getSimplifiedType(typeText: string): string {
-  // Keep the full type text for better generation
-  return typeText;
-}
-
-async function generateSchemas() {
-  const project = new Project({
-    tsConfigFilePath: path.join(__dirname, '..', 'tsconfig.json')
-  });
-
-  const srcDir = path.join(__dirname, '..', 'src');
-  const outputDir = path.join(__dirname, '..', '__generated__');
-  
-  // Ensure output directory exists
-  await fs.mkdir(outputDir, { recursive: true });
-
-  const allSchemas: SchemaDefinition[] = [];
-
-  // Process all TypeScript files
-  const files = await fs.readdir(srcDir, { recursive: true });
-  for (const file of files) {
-    if (typeof file === 'string' && file.endsWith('.ts') && !file.endsWith('.test.ts')) {
-      const filePath = path.join(srcDir, file);
-      const schemas = await extractTypesFromFile(filePath, project);
-      allSchemas.push(...schemas);
+    for (const prop of decl.getProperties()) {
+      properties[prop.getName()] = {
+        type: this.getTypeText(prop.getType()),
+        optional: prop.hasQuestionToken(),
+        description: this.getJsDoc(prop)
+      };
     }
+
+    return { name, type: 'interface', properties, extends: extends_.length ? extends_ : undefined, description };
   }
 
-  // Group schemas by module
-  const schemasByModule: Record<string, SchemaDefinition[]> = {};
-  
-  // For now, we'll group by extracting module name from file path
-  // This is a simplified approach - you might want to enhance this
-  for (const schema of allSchemas) {
-    const module = 'diagram'; // Simplified - you'd extract this from the actual file path
-    if (!schemasByModule[module]) {
-      schemasByModule[module] = [];
+  private extractEnum(decl: EnumDeclaration): SchemaDefinition | null {
+    const name = decl.getName();
+    const values = decl.getMembers().map(m => m.getValue()?.toString() ?? m.getName());
+    const description = this.getJsDoc(decl);
+
+    return { name, type: 'enum', values, description };
+  }
+
+  private getJsDoc(node: any): string | undefined {
+    const docs = node.getJsDocs?.();
+    return docs?.length ? docs[0].getDescription().trim() : undefined;
+  }
+
+  private getTypeText(type: Type): string {
+    const text = type.getText();
+    // Cache type text for repeated types
+    if (!this.typeCache.has(text)) {
+      this.typeCache.set(text, text);
     }
-    schemasByModule[module].push(schema);
+    return this.typeCache.get(text)!;
+  }
+}
+
+//--- Main Generator -------------------------------------------------
+class SchemaGenerator {
+  private project: Project;
+  private extractor: SchemaExtractor;
+
+  constructor(tsConfigPath: string) {
+    this.project = new Project({ tsConfigFilePath: tsConfigPath });
+    this.extractor = new SchemaExtractor(this.project);
   }
 
-  // Write schemas to files
-  await fs.writeFile(
-    path.join(outputDir, 'schemas.json'),
-    JSON.stringify(allSchemas, null, 2)
-  );
+  async generate(srcDir: string, outputDir: string): Promise<void> {
+    await mkdir(outputDir, { recursive: true });
 
-  // Write module-specific schemas
-  for (const [module, schemas] of Object.entries(schemasByModule)) {
-    await fs.writeFile(
-      path.join(outputDir, `${module}.schema.json`),
+    const files = await this.collectTsFiles(srcDir);
+    const schemas: SchemaDefinition[] = [];
+
+    // Batch process files
+    await Promise.all(
+      files.map(async file => {
+        const extracted = await this.extractor.extractFromFile(file);
+        schemas.push(...extracted);
+      })
+    );
+
+    // Write combined schema
+    await writeFile(
+      join(outputDir, 'schemas.json'),
       JSON.stringify(schemas, null, 2)
     );
+
+    // Write module schemas (simplified - just use 'diagram' for now)
+    const moduleSchemas = this.groupByModule(schemas);
+    await Promise.all(
+      Object.entries(moduleSchemas).map(([module, moduleSchemas]) =>
+        writeFile(
+          join(outputDir, `${module}.schema.json`),
+          JSON.stringify(moduleSchemas, null, 2)
+        )
+      )
+    );
+
+    console.log(`✅ Generated schemas for ${schemas.length} types`);
+    console.log(`📁 Output: ${outputDir}`);
   }
 
-  console.log(`Generated schemas for ${allSchemas.length} types`);
-  console.log(`Output written to ${outputDir}`);
+  private async collectTsFiles(dir: string): Promise<string[]> {
+    const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+    return entries
+      .filter(e => e.isFile() && e.name.endsWith('.ts') && !e.name.endsWith('.test.ts'))
+      .map(e => join(e.path, e.name));
+  }
+
+  private groupByModule(schemas: SchemaDefinition[]): Record<string, SchemaDefinition[]> {
+    // Simplified module extraction - enhance as needed
+    const modules: Record<string, SchemaDefinition[]> = {};
+
+    for (const schema of schemas) {
+      const module = 'diagram'; // Simplified
+      (modules[module] ??= []).push(schema);
+    }
+
+    return modules;
+  }
 }
 
-// Run if executed directly
-if (require.main === module) {
-  generateSchemas().catch(console.error);
+//--- Entry Point ----------------------------------------------------
+export async function generateSchemas() {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const tsConfig = join(__dirname, '../tsconfig.json');
+  const srcDir = join(__dirname, '../src');
+  const outputDir = join(__dirname, '../__generated__');
+
+  const generator = new SchemaGenerator(tsConfig);
+  await generator.generate(srcDir, outputDir);
 }
 
-export { generateSchemas, SchemaDefinition };
+if (import.meta.url === `file://${process.argv[1]}`) {
+  generateSchemas().catch(err => {
+    console.error('❌ Failed to generate schemas:', err);
+    process.exit(1);
+  });
+}

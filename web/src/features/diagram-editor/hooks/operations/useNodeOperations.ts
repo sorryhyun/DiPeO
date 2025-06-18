@@ -4,7 +4,8 @@
 
 import { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { NodeID, Vec2, DomainNode } from '@/core/types';
+import { DomainNode } from '@/core/types';
+import { Vec2, NodeID } from '@dipeo/domain-models';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { graphQLTypeToNodeKind } from '@/graphql/types';
 

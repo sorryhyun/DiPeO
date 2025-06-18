@@ -9,6 +9,7 @@ import { useExecution } from '@/features/execution-monitor/hooks';
 import { useUIState } from '@/shared/hooks/selectors';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { nodeId } from '@/core/types';
+import { NodeExecutionStatus } from '@dipeo/domain-models';
 import './BaseNode.css';
 
 // Unified props for the single node renderer

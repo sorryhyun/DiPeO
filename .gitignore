@@ -15,6 +15,7 @@ AGENTS.md
 *.db
 web/schema.graphql
 server/schema.graphql
+packages/domain-models/schema.graphql
 server/diagrams
 docs/deprecated
 TODO.md

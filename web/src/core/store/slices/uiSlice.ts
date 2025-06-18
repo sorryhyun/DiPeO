@@ -1,5 +1,6 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, NodeID, PersonID, Vec2 } from '@/core/types';
+import { ArrowID, NodeID, PersonID } from '@/core/types';
+import { Vec2 } from '@dipeo/domain-models';
 import { UnifiedStore } from '../unifiedStore.types';
 
 export type SelectableID = NodeID | ArrowID | PersonID;

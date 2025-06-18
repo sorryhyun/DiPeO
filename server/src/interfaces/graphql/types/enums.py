@@ -16,19 +16,4 @@ from src.shared.domain import DiagramFormat as DomainDiagramFormat
 # Create strawberry enum from domain enum
 DiagramFormat = strawberry.enum(DomainDiagramFormat)
 
-# EventType is specific to GraphQL subscriptions and not part of the core domain
-@strawberry.enum
-class EventType(Enum):
-    EXECUTION_STARTED = "execution_started"
-    NODE_STARTED = "node_started"
-    NODE_RUNNING = "node_running"
-    NODE_COMPLETED = "node_completed"
-    NODE_FAILED = "node_failed"
-    NODE_SKIPPED = "node_skipped"
-    NODE_PAUSED = "node_paused"
-    EXECUTION_COMPLETED = "execution_completed"
-    EXECUTION_FAILED = "execution_failed"
-    EXECUTION_ABORTED = "execution_aborted"
-    INTERACTIVE_PROMPT = "interactive_prompt"
-    INTERACTIVE_RESPONSE = "interactive_response"
-    STATE_CHANGED = "state_changed"  # Added for state-based subscriptions
+# EventType is already defined in generated models and will be auto-converted by Strawberry

@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useCanvasOperations as useCanvasOps } from '../hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
-import type { ArrowID, NodeID, PersonID, Vec2 } from '@/core/types';
+import type { Vec2, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
 
 interface CanvasUIState {
   // Selection state

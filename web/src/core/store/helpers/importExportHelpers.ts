@@ -1,8 +1,9 @@
-import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, NodeID, PersonID, Vec2, apiKeyId } from '@/core/types';
+import {  DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson,  apiKeyId } from '@/core/types';
+import type { ApiKeyID, NodeID, ArrowID, PersonID } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 import { nodeKindToGraphQLType } from '@/graphql/types';
-import { ForgettingMode } from '@dipeo/domain-models';
+import { ForgettingMode, Vec2 } from '@dipeo/domain-models';
 import { generateNodeLabel } from '@/core/config/nodeMeta';
 import { getNodeDefaults } from '@/core/config';
 

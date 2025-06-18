@@ -86,7 +86,7 @@ class CreatePersonInput(BaseModel):
     model: str
     api_key_id: str
     system_prompt: Optional[str] = None
-    forgetting_mode: ForgettingMode = ForgettingMode.NONE
+    forgetting_mode: ForgettingMode = ForgettingMode.NO_FORGET
     temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(None, ge=1)
     top_p: Optional[float] = Field(None, ge=0.0, le=1.0)

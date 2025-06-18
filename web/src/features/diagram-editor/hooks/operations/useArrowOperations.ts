@@ -4,7 +4,9 @@
 
 import { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { ArrowID, HandleID, DomainArrow } from '@/core/types';
+import { DomainArrow } from '@/core/types';
+import type {  ArrowID, HandleID  } from '@dipeo/domain-models';
+
 
 export interface UseArrowOperationsReturn {
   // CRUD Operations

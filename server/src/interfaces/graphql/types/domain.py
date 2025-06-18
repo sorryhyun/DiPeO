@@ -101,9 +101,13 @@ class Person:
     service: strawberry.auto
     model: strawberry.auto
     api_key_id: strawberry.auto
-    systemPrompt: strawberry.auto
-    forgettingMode: strawberry.auto
-    type: strawberry.auto
+    system_prompt: strawberry.auto
+    forgetting_mode: strawberry.auto
+    
+    @strawberry.field
+    def type(self) -> str:
+        """Return the type as string."""
+        return "person"
     
     @strawberry.field
     def masked_api_key(self) -> Optional[str]:

@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../useUnifiedStore';
-import type { NodeID } from '@/core/types';
 import type { NodeState } from '@/features/execution-monitor/store/executionSlice';
+import { NodeExecutionStatus, NodeID } from '@dipeo/domain-models';
 
 interface ExecutionData {
   // Execution state
@@ -37,8 +37,8 @@ export const useExecutionData = (): ExecutionData => {
     useShallow(state => {
       // Count node states
       const nodeStateArray = Array.from(state.execution.nodeStates.values());
-      const completedNodeCount = nodeStateArray.filter(s => s.status === 'completed').length;
-      const failedNodeCount = nodeStateArray.filter(s => s.status === 'failed').length;
+      const completedNodeCount = nodeStateArray.filter(s => s.status === NodeExecutionStatus.COMPLETED).length;
+      const failedNodeCount = nodeStateArray.filter(s => s.status === NodeExecutionStatus.FAILED).length;
       const totalNodeCount = state.nodes.size;
       
       return {

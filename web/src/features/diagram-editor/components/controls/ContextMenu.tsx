@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
-import { ArrowID, DomainNode, NodeID } from '@/core/types';
+import { DomainNode } from '@/core/types';
+import {ArrowID, NodeID} from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
 
 export interface ContextMenuProps {

@@ -32,12 +32,11 @@ import type {
   Handle,
   Person,
   ApiKey,
-  DomainDiagram,
+  DomainDiagramType,
   Vec2Input
 } from '@/__generated__/graphql';
-import { NodeType, HandleDirection, DataType } from '@dipeo/domain-models';
-import type { NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID } from '@/core/types/branded';
-import type { Vec2 } from '@/core/types/utilities';
+import { NodeType, HandleDirection, DataType, Vec2,
+  NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID} from '@dipeo/domain-models';
 
 // Domain types are GraphQL types - they are the same
 // React types are also the same structure but typed for React usage
@@ -46,6 +45,7 @@ export type DomainArrow = Arrow;
 export type DomainHandle = Handle;
 export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
+export type DomainDiagram = DomainDiagramType;
 // ReactDiagram is a frontend-specific type, different from DomainDiagram
 /**
  * ReactDiagram is currently an alias for DomainDiagram.
@@ -247,12 +247,12 @@ export function getNodeHandles(
   nodeId: NodeID
 ): Handle[] {
   return (diagram.handles || []).filter(
-    handle => handle.nodeId === nodeId
+    (handle: Handle) => handle.nodeId === nodeId
   );
 }
 
 export function getHandleById(diagram: ReactDiagram, handleId: HandleID): Handle | undefined {
-  return (diagram.handles || []).find(handle => handle.id === handleId);
+  return (diagram.handles || []).find((handle: Handle) => handle.id === handleId);
 }
 
 export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {

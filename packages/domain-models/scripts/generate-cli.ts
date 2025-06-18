@@ -2,348 +2,297 @@
 
 /**
  * Generate lightweight Python dataclasses for CLI from TypeScript interfaces
- * These are simpler than the Pydantic models and don't require heavy dependencies
+ * Refactored for:
+ *  • **Performance** – StringBuilder & memoization
+ *  • **Compactness** – consolidated helpers & hoisted constants
+ *  • **Clarity** – removed duplication, cleaner control flow
  */
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { SchemaDefinition } from './generate-schema';
 
+//--- Hoisted constants & regex patterns -----------------------------
+const PY_TYPE_MAP: Record<string, string> = {
+  string: 'str',
+  number: 'float',
+  boolean: 'bool',
+  any: 'Any',
+  unknown: 'Any',
+  null: 'None',
+  undefined: 'None',
+  object: 'Dict[str, Any]',
+  array: 'List[Any]',
+  void: 'None'
+} as const;
+
+const CLI_TYPES = new Set([
+  'DomainNode', 'DomainArrow', 'DomainHandle', 'DomainPerson', 'DomainApiKey',
+  'DiagramArrayFormat', 'DiagramMetadata', 'Vec2',
+  'StartNodeData', 'PersonJobNodeData', 'ConditionNodeData', 'EndpointNodeData',
+  'JobNodeData', 'DBNodeData', 'UserResponseNodeData'
+]);
+
+const RE_IMPORT = /import\([^)]+\)\.(\w+)/;
+const RE_BRAND = /&\s*\{/;
+const RE_ARRAY = /^(.+)\[\]$/;
+const RE_RECORD = /^Record</;
+
+//--- String Builder -------------------------------------------------
+class SB {
+  private buf: string[] = [];
+  add(...parts: (string | undefined | null)[]) {
+    for (const p of parts) if (p) this.buf.push(p);
+    return this;
+  }
+  nl() { this.buf.push('\n'); return this; }
+  toString() { return this.buf.join(''); }
+}
+
+//--- Main Generator -------------------------------------------------
 class CLIPythonGenerator {
-  private imports: Map<string, Set<string>> = new Map();
-  private generatedEnums: Set<string> = new Set();
-  private generatedClasses: Set<string> = new Set();
+  private imports = new Map<string, Set<string>>();
+  private typeCache = new Map<string, string>();
+  private schemaMap = new Map<string, SchemaDefinition>();
 
-  constructor(private schemas: SchemaDefinition[]) {}
-
-  addImport(module: string, ...items: string[]) {
-    if (!this.imports.has(module)) {
-      this.imports.set(module, new Set());
-    }
-    const imp = this.imports.get(module)!;
-    items.forEach(item => imp.add(item));
+  constructor(private schemas: SchemaDefinition[]) {
+    schemas.forEach(s => this.schemaMap.set(s.name, s));
   }
 
-  generatePythonType(tsType: string, isOptional: boolean = false): string {
-    // Clean up the type string
-    tsType = tsType.trim();
-    
-    // Remove import(...) wrapping if present
-    if (tsType.startsWith('import(')) {
-      const match = tsType.match(/import\([^)]+\)\.(\w+)/);
-      if (match) {
-        tsType = match[1];
-      }
-    }
-    
-    // Handle branded types
-    if (tsType.includes('& {')) {
-      tsType = 'str'; // Branded types are just strings in CLI
-      return isOptional ? `Optional[${tsType}]` : tsType;
-    }
+  private addImport(mod: string, ...items: string[]) {
+    const set = this.imports.get(mod) ?? new Set();
+    items.forEach(i => set.add(i));
+    this.imports.set(mod, set);
+  }
 
-    // Type mapping
-    const typeMap: Record<string, string> = {
-      'string': 'str',
-      'number': 'float',
-      'boolean': 'bool',
-      'any': 'Any',
-      'unknown': 'Any',
-      'null': 'None',
-      'undefined': 'None',
-      'object': 'Dict[str, Any]',
-      'array': 'List[Any]',
-      'void': 'None'
-    };
+  private pyType(ts: string, opt = false): string {
+    const key = `${ts}|${opt}`;
+    const cached = this.typeCache.get(key);
+    if (cached) return cached;
 
-    // Handle array types
-    if (tsType.endsWith('[]')) {
-      const innerType = tsType.slice(0, -2);
-      const pythonInnerType = this.generatePythonType(innerType);
+    ts = ts.trim().replace(RE_IMPORT, '$1').replace(RE_BRAND, 'str');
+
+    let result: string;
+
+    // Array types
+    const arrMatch = ts.match(RE_ARRAY);
+    if (arrMatch) {
       this.addImport('typing', 'List');
-      return isOptional ? `Optional[List[${pythonInnerType}]]` : `List[${pythonInnerType}]`;
+      result = `List[${this.pyType(arrMatch[1])}]`;
     }
-
-    // Handle Record types
-    if (tsType.startsWith('Record<')) {
+    // Record/object types
+    else if (RE_RECORD.test(ts) || ts === 'object') {
       this.addImport('typing', 'Dict', 'Any');
-      return isOptional ? 'Optional[Dict[str, Any]]' : 'Dict[str, Any]';
+      result = 'Dict[str, Any]';
     }
-
-    // Handle union types
-    if (tsType.includes('|') && !tsType.includes('"')) {
-      const types = tsType.split('|').map(t => t.trim());
-      
-      // If it's just type | null or type | undefined, use Optional
-      if (types.includes('null') || types.includes('undefined')) {
-        const nonNullType = types.find(t => t !== 'null' && t !== 'undefined');
-        if (nonNullType) {
-          this.addImport('typing', 'Optional');
-          return `Optional[${this.generatePythonType(nonNullType)}]`;
-        }
-      }
-      
-      this.addImport('typing', 'Union');
-      const pythonTypes = types.map(t => this.generatePythonType(t));
-      const unionType = `Union[${pythonTypes.join(', ')}]`;
-      return isOptional ? `Optional[${unionType}]` : unionType;
-    }
-
-    // Handle literal types
-    if (tsType.includes('"')) {
-      // For CLI, just use str for literal types
-      return isOptional ? 'Optional[str]' : 'str';
-    }
-
-    // Check if it's a custom type (enum or interface)
-    const customType = this.schemas.find(s => s.name === tsType);
-    if (customType) {
-      if (isOptional) {
+    // Union (non-literal)
+    else if (ts.includes('|') && !ts.includes('"')) {
+      const types = ts.split('|').map(t => t.trim());
+      if (types.some(t => t === 'null' || t === 'undefined')) {
+        const nonNull = types.find(t => t !== 'null' && t !== 'undefined');
         this.addImport('typing', 'Optional');
-        return `Optional[${tsType}]`;
+        return this.cache(key, `Optional[${this.pyType(nonNull!)}]`);
       }
-      return tsType;
+      this.addImport('typing', 'Union');
+      result = `Union[${types.map(t => this.pyType(t)).join(', ')}]`;
+    }
+    // Literal types -> str for CLI
+    else if (ts.includes('"')) {
+      result = 'str';
+    }
+    // Custom type or primitive
+    else {
+      result = this.schemaMap.has(ts) ? ts : (PY_TYPE_MAP[ts] ?? ts);
+      if (result === 'Any') this.addImport('typing', 'Any');
     }
 
-    // Map basic types
-    const pythonType = typeMap[tsType] || tsType;
-    
-    // Handle Any type
-    if (pythonType === 'Any') {
-      this.addImport('typing', 'Any');
-    }
-
-    if (isOptional) {
+    // Apply optional wrapper
+    if (opt) {
       this.addImport('typing', 'Optional');
-      return `Optional[${pythonType}]`;
+      result = `Optional[${result}]`;
     }
 
-    return pythonType;
+    return this.cache(key, result);
   }
 
-  generateEnum(schema: SchemaDefinition): string {
-    if (!schema.values) return '';
-    
-    this.addImport('enum', 'Enum');
-    this.generatedEnums.add(schema.name);
-
-    const lines: string[] = [];
-    
-    lines.push(`class ${schema.name}(str, Enum):`);
-    lines.push(`    """${schema.description || schema.name}"""`);
-    
-    for (const value of schema.values) {
-      const key = value.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
-      lines.push(`    ${key} = "${value}"`);
-    }
-    
-    return lines.join('\n');
+  private cache(key: string, value: string): string {
+    this.typeCache.set(key, value);
+    return value;
   }
 
-  generateDataclass(schema: SchemaDefinition): string {
-    if (!schema.properties) return '';
-    
-    this.addImport('dataclasses', 'dataclass', 'field');
-    this.generatedClasses.add(schema.name);
-
-    const lines: string[] = [];
-    
-    lines.push('@dataclass');
-    lines.push(`class ${schema.name}:`);
-    
-    if (schema.description) {
-      lines.push(`    """${schema.description}"""`);
-    }
-    
-    // Generate properties
-    const properties = Object.entries(schema.properties);
-    
-    if (properties.length === 0) {
-      lines.push('    pass');
-    } else {
-      for (const [propName, propInfo] of properties) {
-        const pythonName = this.toPythonName(propName);
-        const pythonType = this.generatePythonType(propInfo.type, propInfo.optional);
-        
-        let defaultValue = '';
-        if (propInfo.optional) {
-          defaultValue = ' = None';
-        } else if (pythonType.includes('List[')) {
-          defaultValue = ' = field(default_factory=list)';
-        } else if (pythonType.includes('Dict[')) {
-          defaultValue = ' = field(default_factory=dict)';
-        }
-        
-        lines.push(`    ${pythonName}: ${pythonType}${defaultValue}`);
-      }
-    }
-    
-    return lines.join('\n');
-  }
-
-  toPythonName(name: string): string {
-    // Convert camelCase to snake_case
+  private toSnake(name: string): string {
     return name.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
   }
 
-  generateImports(): string {
-    const lines: string[] = [];
-    
-    // Sort imports by module
-    const sortedImports = Array.from(this.imports.entries()).sort((a, b) => {
-      // Standard library first
-      const getPriority = (mod: string) => {
-        if (['typing', 'enum', 'dataclasses'].includes(mod)) return 0;
-        if (mod.startsWith('.')) return 2;
-        return 1;
-      };
-      return getPriority(a[0]) - getPriority(b[0]);
-    });
-    
-    for (const [module, items] of sortedImports) {
-      const itemList = Array.from(items).sort();
-      lines.push(`from ${module} import ${itemList.join(', ')}`);
+  private genEnum(s: SchemaDefinition): string {
+    if (!s.values) return '';
+    this.addImport('enum', 'Enum');
+
+    const sb = new SB();
+    sb.add(`class ${s.name}(str, Enum):`).nl();
+    sb.add(`    """${s.description || s.name}"""`).nl();
+
+    for (const v of s.values) {
+      const key = v.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+      sb.add(`    ${key} = "${v}"`).nl();
     }
-    
-    return lines.join('\n');
+
+    return sb.toString();
+  }
+
+  private genClass(s: SchemaDefinition): string {
+    if (!s.properties) return '';
+    this.addImport('dataclasses', 'dataclass', 'field');
+
+    const sb = new SB();
+    sb.add('@dataclass').nl();
+    sb.add(`class ${s.name}:`).nl();
+
+    if (s.description) sb.add(`    """${s.description}"""`).nl();
+
+    const props = Object.entries(s.properties);
+    if (!props.length) {
+      sb.add('    pass').nl();
+    } else {
+      for (const [name, info] of props) {
+        const pyName = this.toSnake(name);
+        const pyType = this.pyType(info.type, info.optional);
+
+        const defaultValue = info.optional ? ' = None'
+          : pyType.includes('List[') ? ' = field(default_factory=list)'
+          : pyType.includes('Dict[') ? ' = field(default_factory=dict)'
+          : '';
+
+        sb.add(`    ${pyName}: ${pyType}${defaultValue}`).nl();
+      }
+    }
+
+    return sb.toString();
+  }
+
+  private sortSchemas(schemas: SchemaDefinition[]): SchemaDefinition[] {
+    const sorted: SchemaDefinition[] = [];
+    const visited = new Set<string>();
+
+    const visit = (s: SchemaDefinition) => {
+      if (visited.has(s.name)) return;
+      visited.add(s.name);
+
+      // Visit dependencies first
+      if (s.extends) {
+        s.extends.forEach(ext => {
+          const dep = schemas.find(x => x.name === ext);
+          if (dep) visit(dep);
+        });
+      }
+
+      if (s.properties) {
+        Object.values(s.properties).forEach(p => {
+          const dep = schemas.find(x => x.name === p.type);
+          if (dep) visit(dep);
+        });
+      }
+
+      sorted.push(s);
+    };
+
+    schemas.forEach(visit);
+    return sorted;
   }
 
   generate(): string {
-    const sections: string[] = [];
-    
-    // Add header
-    sections.push('"""');
-    sections.push('Auto-generated lightweight Python models for CLI');
-    sections.push('DO NOT EDIT THIS FILE DIRECTLY');
-    sections.push('Generated by: packages/domain-models/scripts/generate-cli.ts');
-    sections.push('"""');
-    sections.push('');
-    
-    // Generate enums first
-    const enums = this.schemas.filter(s => s.type === 'enum');
-    for (const enumSchema of enums) {
-      const enumCode = this.generateEnum(enumSchema);
-      if (enumCode) {
-        sections.push(enumCode);
-        sections.push('');
-      }
-    }
-    
-    // Generate key dataclasses for CLI
-    const cliRelevantTypes = [
-      'DomainNode', 'DomainArrow', 'DomainHandle', 'DomainPerson', 'DomainApiKey',
-      'DiagramArrayFormat', 'DiagramMetadata', 'Vec2',
-      'StartNodeData', 'PersonJobNodeData', 'ConditionNodeData', 'EndpointNodeData',
-      'JobNodeData', 'DBNodeData', 'UserResponseNodeData'
-    ];
-    
-    const interfaces = this.schemas.filter(s => 
-      s.type === 'interface' && cliRelevantTypes.includes(s.name)
-    );
-    
-    // Sort interfaces to handle dependencies
-    const sortedInterfaces = this.topologicalSort(interfaces);
-    
-    for (const intSchema of sortedInterfaces) {
-      const classCode = this.generateDataclass(intSchema);
-      if (classCode) {
-        sections.push(classCode);
-        sections.push('');
-      }
-    }
-    
-    // Add utility functions
-    sections.push('# Utility functions for CLI');
-    sections.push('');
-    sections.push('def create_node_id() -> str:');
-    sections.push('    """Generate a new node ID"""');
-    sections.push('    import uuid');
-    sections.push('    return f"node_{uuid.uuid4().hex[:8]}"');
-    sections.push('');
-    sections.push('def create_arrow_id() -> str:');
-    sections.push('    """Generate a new arrow ID"""');
-    sections.push('    import uuid');
-    sections.push('    return f"arrow_{uuid.uuid4().hex[:8]}"');
-    sections.push('');
-    sections.push('def create_handle_id(node_id: str, handle_name: str) -> str:');
-    sections.push('    """Generate a handle ID from node ID and handle name"""');
-    sections.push('    return f"{node_id}:{handle_name}"');
-    
-    // Prepend imports
-    const imports = this.generateImports();
-    const fullCode = imports + '\n\n' + sections.join('\n');
-    
-    return fullCode.trim() + '\n';
-  }
+    const sb = new SB();
 
-  topologicalSort(interfaces: SchemaDefinition[]): SchemaDefinition[] {
-    // Simple topological sort to handle interface dependencies
-    const sorted: SchemaDefinition[] = [];
-    const visited = new Set<string>();
-    
-    const visit = (schema: SchemaDefinition) => {
-      if (visited.has(schema.name)) return;
-      visited.add(schema.name);
-      
-      // Visit dependencies first
-      if (schema.extends) {
-        for (const ext of schema.extends) {
-          const dep = interfaces.find(s => s.name === ext);
-          if (dep) visit(dep);
-        }
-      }
-      
-      // Also check property types for dependencies
-      if (schema.properties) {
-        for (const propInfo of Object.values(schema.properties)) {
-          const propType = propInfo.type;
-          const dep = interfaces.find(s => s.name === propType);
-          if (dep) visit(dep);
-        }
-      }
-      
-      sorted.push(schema);
-    };
-    
-    for (const schema of interfaces) {
-      visit(schema);
-    }
-    
-    return sorted;
+    // Header
+    sb.add('"""').nl();
+    sb.add('Auto-generated lightweight Python models for CLI').nl();
+    sb.add('DO NOT EDIT THIS FILE DIRECTLY').nl();
+    sb.add('Generated by: packages/domain-models/scripts/generate-cli.ts').nl();
+    sb.add('"""').nl().nl();
+
+    // Enums
+    this.schemas
+      .filter(s => s.type === 'enum')
+      .forEach(s => sb.add(this.genEnum(s)).nl());
+
+    // Classes (sorted)
+    const classes = this.schemas.filter(s =>
+      s.type === 'interface' && CLI_TYPES.has(s.name)
+    );
+
+    this.sortSchemas(classes).forEach(s =>
+      sb.add(this.genClass(s)).nl()
+    );
+
+    // Utilities
+    sb.add('# Utility functions for CLI').nl().nl();
+    sb.add(`def create_node_id() -> str:
+    """Generate a new node ID"""
+    import uuid
+    return f"node_{uuid.uuid4().hex[:8]}"
+
+def create_arrow_id() -> str:
+    """Generate a new arrow ID"""
+    import uuid
+    return f"arrow_{uuid.uuid4().hex[:8]}"
+
+def create_handle_id(node_id: str, handle_name: str) -> str:
+    """Generate a handle ID from node ID and handle name"""
+    return f"{node_id}:{handle_name}"`);
+
+    // Prepend imports
+    const imports = Array.from(this.imports.entries())
+      .sort(([a], [b]) => {
+        const order = (m: string) =>
+          ['typing', 'enum', 'dataclasses'].includes(m) ? 0 : m.startsWith('.') ? 2 : 1;
+        return order(a) - order(b);
+      })
+      .map(([mod, items]) => `from ${mod} import ${[...items].sort().join(', ')}`)
+      .join('\n');
+
+    return imports + '\n\n' + sb.toString().trim() + '\n';
   }
 }
 
-async function generateCLI() {
+// //--- Utility Functions Template -------------------------------------
+// const UTILITY_FUNCTIONS = `def create_node_id() -> str:
+//     """Generate a new node ID"""
+//     import uuid
+//     return f"node_{uuid.uuid4().hex[:8]}"
+//
+// def create_arrow_id() -> str:
+//     """Generate a new arrow ID"""
+//     import uuid
+//     return f"arrow_{uuid.uuid4().hex[:8]}"
+//
+// def create_handle_id(node_id: str, handle_name: str) -> str:
+//     """Generate a handle ID from node ID and handle name"""
+//     return f"{node_id}:{handle_name}"`;
+
+//--- Main Entry Point -----------------------------------------------
+export async function generateCLI() {
   try {
-    // Read schemas
-    const schemaPath = path.join(__dirname, '..', '__generated__', 'schemas.json');
-    const schemaData = await fs.readFile(schemaPath, 'utf-8');
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const schemaData = await readFile(join(__dirname, '../__generated__/schemas.json'), 'utf-8');
     const schemas: SchemaDefinition[] = JSON.parse(schemaData);
-    
-    // Generate CLI Python code
-    const generator = new CLIPythonGenerator(schemas);
-    const pythonCode = generator.generate();
-    
-    // Write to CLI package
-    const outputPath = path.join(__dirname, '..', '..', '..', 'cli', 'dipeo_cli', '__generated__', 'models.py');
-    await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, pythonCode);
-    
-    console.log(`Generated CLI models: ${outputPath}`);
-    
-    // Also generate __init__.py
+
+    const pythonCode = new CLIPythonGenerator(schemas).generate();
+
+    const outputPath = join(__dirname, '../../../cli/dipeo_cli/__generated__/models.py');
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, pythonCode);
+
     const initContent = '"""Auto-generated CLI models"""\n\nfrom .models import *\n';
-    await fs.writeFile(path.join(path.dirname(outputPath), '__init__.py'), initContent);
-    
+    await writeFile(join(dirname(outputPath), '__init__.py'), initContent);
+
+    console.log(`✅ Generated CLI models: ${outputPath}`);
   } catch (error) {
-    console.error('Error generating CLI models:', error);
+    console.error('❌ Error generating CLI models:', error);
     process.exit(1);
   }
 }
 
-// Run if executed directly
-if (require.main === module) {
-  generateCLI().catch(console.error);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  generateCLI();
 }
-
-export { generateCLI };

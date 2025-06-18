@@ -17,3 +17,14 @@ export * from './utilities';
 
 // Re-export UI types needed by hooks
 export type { SelectableID, SelectableType } from '@/core/store/slices/uiSlice';
+
+// Re-export ID types from domain models for convenience
+export type {
+  NodeID,
+  HandleID,
+  ArrowID,
+  PersonID,
+  ApiKeyID,
+  DiagramID,
+  ExecutionID
+} from '@dipeo/domain-models';

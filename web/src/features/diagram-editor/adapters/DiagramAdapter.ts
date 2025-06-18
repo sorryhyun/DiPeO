@@ -23,6 +23,7 @@
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
 import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, ReactDiagram, arrowId, nodeId, createHandleId, parseHandleId } from '@/core/types';
+
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
@@ -107,12 +108,12 @@ export class DiagramAdapter {
     nodes: DiPeoNode[];
     edges: DiPeoEdge[];
   } {
-    const nodes = (diagram.nodes || []).map(node => {
+    const nodes = (diagram.nodes || []).map((node: DomainNode) => {
       const handles = getNodeHandles(diagram, node.id as NodeID);
       return this.nodeToReactFlow(node, handles);
     });
 
-    const edges = (diagram.arrows || []).map(arrow => 
+    const edges = (diagram.arrows || []).map((arrow: DomainArrow) => 
       this.arrowToReactFlow(arrow)
     );
 
@@ -308,8 +309,8 @@ export class DiagramAdapter {
     );
 
     // Find the actual handles
-    const sourceNode = diagram.nodes.find(n => n.id === connection.source);
-    const targetNode = diagram.nodes.find(n => n.id === connection.target);
+    const sourceNode = diagram.nodes.find((n: DomainNode) => n.id === connection.source);
+    const targetNode = diagram.nodes.find((n: DomainNode) => n.id === connection.target);
     
     if (!sourceNode || !targetNode) {
       validated.isValid = false;
@@ -341,7 +342,7 @@ export class DiagramAdapter {
     }
 
     // Check for duplicate connections
-    const existingArrow = Object.values(diagram.arrows).find(arrow =>
+    const existingArrow = Object.values(diagram.arrows).find((arrow: DomainArrow) =>
       arrow.source === sourceHandleId && arrow.target === targetHandleId
     );
     

@@ -11,9 +11,11 @@ import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react
 import { isWithinTolerance } from '@/shared/utils/math';
 import { createHandlerTable } from '@/shared/utils/dispatchTable';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID, NodeID, PersonID, createHandleId, nodeId } from '@/core/types';
+import { DomainArrow, DomainHandle, DomainNode, DomainPerson,  createHandleId, nodeId } from '@/core/types';
 import { nodeToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
+import type { NodeID, ArrowID, PersonID, HandleID  } from '@dipeo/domain-models';
+
 
 // Helper hook for efficient Map to Array conversion
 function useCachedMapArray<K, V>(
