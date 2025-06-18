@@ -2,14 +2,15 @@
 
 from .unified_executor import UnifiedExecutor
 from .types import NodeDefinition
+from .simple_nodes import SIMPLE_NODE_DEFINITIONS
 from .schemas import (
-    StartNodeProps, PersonJobProps, PersonBatchJobProps, 
-    ConditionNodeProps, EndpointNodeProps, UserResponseNodeProps,
+    PersonJobProps, PersonBatchJobProps, 
+    ConditionNodeProps, EndpointNodeProps,
     JobNodeProps, DBNodeProps, NotionNodeProps
 )
 from .handlers import (
-    start_handler, person_job_handler, person_batch_job_handler,
-    condition_handler, endpoint_handler, user_response_handler,
+    person_job_handler, person_batch_job_handler,
+    condition_handler, endpoint_handler,
     job_handler, db_handler, notion_handler
 )
 
@@ -18,13 +19,9 @@ def create_executor() -> UnifiedExecutor:
     """Create and configure the unified executor with all node types."""
     executor = UnifiedExecutor()
     
-    # Register Start node type
-    executor.register(NodeDefinition(
-        type="start",
-        schema=StartNodeProps,
-        handler=start_handler,
-        description="Entry point node that provides initial data"
-    ))
+    # Register simple node types (start, user_response)
+    for node_def in SIMPLE_NODE_DEFINITIONS:
+        executor.register(NodeDefinition(**node_def))
     
     # Register PersonJob node type
     executor.register(NodeDefinition(
@@ -59,14 +56,6 @@ def create_executor() -> UnifiedExecutor:
         handler=endpoint_handler,
         requires_services=["file_service"],
         description="Terminal node for data output with optional file saving"
-    ))
-    
-    # Register UserResponse node type
-    executor.register(NodeDefinition(
-        type="user_response",
-        schema=UserResponseNodeProps,
-        handler=user_response_handler,
-        description="Interactive user input node"
     ))
     
     # Register Job node type

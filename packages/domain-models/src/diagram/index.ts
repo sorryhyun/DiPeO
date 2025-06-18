@@ -8,71 +8,71 @@ import { z } from 'zod';
 
 // Enums
 export enum NodeType {
-  START = 'START',
-  PERSON_JOB = 'PERSON_JOB',
-  CONDITION = 'CONDITION',
-  JOB = 'JOB',
-  ENDPOINT = 'ENDPOINT',
-  DB = 'DB',
-  USER_RESPONSE = 'USER_RESPONSE',
-  NOTION = 'NOTION',
-  PERSON_BATCH_JOB = 'PERSON_BATCH_JOB'
+  START = 'start',
+  PERSON_JOB = 'person_job',
+  CONDITION = 'condition',
+  JOB = 'job',
+  ENDPOINT = 'endpoint',
+  DB = 'db',
+  USER_RESPONSE = 'user_response',
+  NOTION = 'notion',
+  PERSON_BATCH_JOB = 'person_batch_job'
 }
 
 export enum HandleDirection {
-  INPUT = 'INPUT',
-  OUTPUT = 'OUTPUT'
+  INPUT = 'input',
+  OUTPUT = 'output'
 }
 
 export enum DataType {
-  ANY = 'ANY',
-  STRING = 'STRING',
-  NUMBER = 'NUMBER',
-  BOOLEAN = 'BOOLEAN',
-  OBJECT = 'OBJECT',
-  ARRAY = 'ARRAY'
+  ANY = 'any',
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  OBJECT = 'object',
+  ARRAY = 'array'
 }
 
 export enum LLMService {
-  OPENAI = 'OPENAI',
-  ANTHROPIC = 'ANTHROPIC',
-  GOOGLE = 'GOOGLE',
-  GROK = 'GROK',
-  BEDROCK = 'BEDROCK',
-  VERTEX = 'VERTEX',
-  DEEPSEEK = 'DEEPSEEK'
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  GOOGLE = 'google',
+  GROK = 'grok',
+  BEDROCK = 'bedrock',
+  VERTEX = 'vertex',
+  DEEPSEEK = 'deepseek'
 }
 
 export enum ForgettingMode {
-  NO_FORGET = 'NO_FORGET',
-  NONE = 'NONE',
-  ON_EVERY_TURN = 'ON_EVERY_TURN',
-  UPON_REQUEST = 'UPON_REQUEST'
+  NO_FORGET = 'no_forget',
+  NONE = 'none',
+  ON_EVERY_TURN = 'on_every_turn',
+  UPON_REQUEST = 'upon_request'
 }
 
 export enum DiagramFormat {
-  NATIVE = 'NATIVE',
-  LIGHT = 'LIGHT',
-  READABLE = 'READABLE',
-  NATIVE_YAML = 'NATIVE_YAML'
+  NATIVE = 'native',
+  LIGHT = 'light',
+  READABLE = 'readable',
+  NATIVE_YAML = 'native_yaml'
 }
 
 export enum DBBlockSubType {
-  FIXED_PROMPT = 'FIXED_PROMPT',
-  FILE = 'FILE',
-  CODE = 'CODE'
+  FIXED_PROMPT = 'fixed_prompt',
+  FILE = 'file',
+  CODE = 'code'
 }
 
 export enum ContentType {
-  VARIABLE = 'VARIABLE',
-  RAW_TEXT = 'RAW_TEXT',
-  CONVERSATION_STATE = 'CONVERSATION_STATE'
+  VARIABLE = 'variable',
+  RAW_TEXT = 'raw_text',
+  CONVERSATION_STATE = 'conversation_state'
 }
 
 export enum ContextCleaningRule {
-  ON_EVERY_TURN = 'ON_EVERY_TURN',
-  UPON_REQUEST = 'UPON_REQUEST',
-  NO_FORGET = 'NO_FORGET'
+  ON_EVERY_TURN = 'on_every_turn',
+  UPON_REQUEST = 'upon_request',
+  NO_FORGET = 'no_forget'
 }
 
 // Basic types

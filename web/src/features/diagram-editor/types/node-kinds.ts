@@ -12,9 +12,11 @@ export function isNodeKind(value: string): value is NodeKind {
 }
 
 export function toNodeKind(type: NodeType): NodeKind {
-  return type.toLowerCase() as NodeKind;
+  // NodeType values are already lowercase, just cast
+  return type as unknown as NodeKind;
 }
 
 export function fromNodeKind(kind: NodeKind): NodeType {
-  return kind.toUpperCase() as NodeType;
+  // NodeKind values match NodeType values, just cast
+  return kind as unknown as NodeType;
 }

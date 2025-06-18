@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Convert enum to string union
-const nodeTypes = Object.values(NodeType).map(t => t.toLowerCase());
+const nodeTypes = Object.values(NodeType);
 const unionType = nodeTypes.map(t => `'${t}'`).join(' | ');
 
 const content = `// Auto-generated from domain models - DO NOT EDIT
@@ -20,11 +20,13 @@ export function isNodeKind(value: string): value is NodeKind {
 }
 
 export function toNodeKind(type: NodeType): NodeKind {
-  return type.toLowerCase() as NodeKind;
+  // NodeType values are already lowercase, just cast
+  return type as unknown as NodeKind;
 }
 
 export function fromNodeKind(kind: NodeKind): NodeType {
-  return kind.toUpperCase() as NodeType;
+  // NodeKind values match NodeType values, just cast
+  return kind as unknown as NodeType;
 }
 `;
 

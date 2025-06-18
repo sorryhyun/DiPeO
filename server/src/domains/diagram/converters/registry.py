@@ -1,7 +1,7 @@
 """Converter registry for managing diagram format converters."""
 from typing import Dict, Optional, List, Tuple
 from .base import DiagramConverter
-from .domain_json import DomainJsonConverter
+from .domain_json import EnhancedDomainJsonConverter
 from .light_yaml import LightYamlConverter
 from .readable_yaml import ReadableYamlConverter
 from ..models.domain import DiagramFormat
@@ -20,7 +20,7 @@ class ConverterRegistry:
         # Domain JSON
         self.register(
             DiagramFormat.NATIVE.value,
-            DomainJsonConverter(),
+            EnhancedDomainJsonConverter(),
             {
                 'name': 'Domain JSON',
                 'description': 'Canonical format for diagram structure and execution',

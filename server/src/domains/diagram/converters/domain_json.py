@@ -1,8 +1,6 @@
-"""Domain JSON format converter."""
-import json
-from typing import Dict, Any, List
-from .base import DiagramConverter
-from .shared_components import HandleGenerator, PositionCalculator
+"""Enhanced Domain JSON format converter using the new base classes."""
+from typing import Dict, Any, List, Optional
+from .base import JsonBasedConverter
 from ..models.domain import (
     DomainDiagram, DomainNode, DomainArrow, DomainHandle,
     DomainPerson, DomainApiKey, DiagramMetadata,
@@ -11,21 +9,106 @@ from ..models.domain import (
 )
 
 
-class DomainJsonConverter(DiagramConverter):
-    """Converts between DomainDiagram and Domain JSON format.
+class EnhancedDomainJsonConverter(JsonBasedConverter):
+    """Enhanced Domain JSON converter that uses shared components.
     
     Domain JSON is the canonical format that preserves all diagram structure
     and data in JSON format, compatible with the backend execution engine.
     """
     
-    def __init__(self):
-        super().__init__()
-        self.handle_generator = HandleGenerator()
-        self.position_calculator = PositionCalculator()
+    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract node data from parsed content."""
+        nodes = data.get('nodes', {})
+        # Convert dict of nodes to list for processing
+        return list(nodes.values()) if isinstance(nodes, dict) else nodes
     
-    def serialize(self, diagram: DomainDiagram) -> str:
-        """Convert domain diagram to JSON format."""
-        # Convert to dict format with objects (not arrays) for easy access by ID
+    def extract_arrows(self, data: Dict[str, Any], diagram: DomainDiagram) -> List[Dict[str, Any]]:
+        """Extract arrow data from parsed content."""
+        arrows = data.get('arrows', {})
+        # Convert dict of arrows to list for processing
+        arrow_list = list(arrows.values()) if isinstance(arrows, dict) else arrows
+        
+        # For domain JSON, arrows already have all required fields
+        return arrow_list
+    
+    def should_generate_handles(self, node_data: Dict[str, Any]) -> bool:
+        """Domain JSON should not generate handles - they should be explicit."""
+        return False
+    
+    def post_process_diagram(self, diagram: DomainDiagram, original_data: Dict[str, Any]) -> None:
+        """Post-process to add handles, persons, and API keys."""
+        # Add handles from data
+        handles = original_data.get('handles', {})
+        for handle_id, handle_data in handles.items():
+            if isinstance(handle_data, dict):
+                handle = DomainHandle(
+                    id=handle_data.get('id', handle_id),
+                    nodeId=handle_data.get('nodeId', ''),
+                    direction=HandleDirection(handle_data.get('direction', 'inout'))
+                )
+                diagram.handles[handle.id] = handle
+        
+        # Add persons from data
+        persons = original_data.get('persons', {})
+        for person_id, person_data in persons.items():
+            if isinstance(person_data, dict):
+                person = DomainPerson(
+                    id=person_data.get('id', person_id),
+                    name=person_data.get('name', ''),
+                    api_key=person_data.get('api_key'),
+                    forgetting_mode=ForgettingMode(person_data.get('forgetting_mode', 'keep'))
+                )
+                diagram.persons[person.id] = person
+        
+        # Add API keys from data
+        api_keys = original_data.get('api_keys', {})
+        for key_id, key_data in api_keys.items():
+            if isinstance(key_data, dict):
+                api_key = DomainApiKey(
+                    id=key_data.get('id', key_id),
+                    name=key_data.get('name', ''),
+                    service=LLMService(key_data.get('service', 'openai')),
+                    api_key=key_data.get('api_key', ''),
+                    models=key_data.get('models', [])
+                )
+                diagram.api_keys[api_key.id] = api_key
+        
+        # Add metadata
+        metadata_data = original_data.get('metadata', {})
+        if metadata_data:
+            diagram.metadata = DiagramMetadata(
+                version=metadata_data.get('version', '2.0.0'),
+                created_at=metadata_data.get('created_at'),
+                updated_at=metadata_data.get('updated_at'),
+                title=metadata_data.get('title'),
+                description=metadata_data.get('description')
+            )
+    
+    def extract_node_type(self, node_data: Dict[str, Any]) -> str:
+        """Extract node type - Domain JSON uses lowercase enum values."""
+        node_type = node_data.get('type', 'unknown')
+        # Ensure it's a valid NodeType
+        try:
+            NodeType(node_type)
+            return node_type
+        except ValueError:
+            # Use mapper for fallback
+            return super().extract_node_type(node_data)
+    
+    def extract_node_position(self, node_data: Dict[str, Any], index: int) -> Dict[str, float]:
+        """Extract node position - Domain JSON always has positions."""
+        pos = node_data.get('position', {})
+        if isinstance(pos, dict) and 'x' in pos and 'y' in pos:
+            return pos
+        # Fallback to default positioning
+        return super().extract_node_position(node_data, index)
+    
+    def extract_node_properties(self, node_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract node properties - Domain JSON uses 'data' field."""
+        return node_data.get('data', {})
+    
+    def diagram_to_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        """Convert diagram to Domain JSON format."""
         data = {
             'version': diagram.metadata.version if diagram.metadata else '2.0.0',
             'nodes': {},
@@ -35,7 +118,7 @@ class DomainJsonConverter(DiagramConverter):
             'api_keys': {}
         }
         
-        # Convert nodes - use lowercase enum values for compatibility
+        # Convert nodes
         for node_id, node in diagram.nodes.items():
             data['nodes'][node_id] = {
                 'id': node.id,
@@ -47,15 +130,12 @@ class DomainJsonConverter(DiagramConverter):
                 'data': node.data or {}
             }
         
-        # Convert handles - use lowercase enum values for compatibility
+        # Convert handles
         for handle_id, handle in diagram.handles.items():
             data['handles'][handle_id] = {
                 'id': handle.id,
                 'nodeId': handle.nodeId,
-                'label': handle.label,
-                'direction': handle.direction.value,  # Use lowercase enum value
-                'dataType': handle.dataType.value,  # Use lowercase enum value
-                'position': handle.position
+                'direction': handle.direction.value
             }
         
         # Convert arrows
@@ -63,186 +143,60 @@ class DomainJsonConverter(DiagramConverter):
             data['arrows'][arrow_id] = {
                 'id': arrow.id,
                 'source': arrow.source,
-                'target': arrow.target,
-                'data': arrow.data or {}
+                'target': arrow.target
             }
         
-        # Convert persons - use lowercase enum values for compatibility
+        # Convert persons
         for person_id, person in diagram.persons.items():
-            data['persons'][person_id] = {
+            person_data = {
                 'id': person.id,
-                'label': person.label,
-                'service': person.service.value,  # Use lowercase enum value
-                'model': person.model,
-                'apiKeyId': person.api_key_id,
-                'systemPrompt': person.systemPrompt,
-                'forgettingMode': person.forgettingMode.value,  # Use lowercase enum value
-                'type': person.type
+                'name': person.name,
+                'forgetting_mode': person.forgetting_mode.value
             }
+            if person.api_key:
+                person_data['api_key'] = person.api_key
+            data['persons'][person_id] = person_data
         
-        # Convert API keys - use lowercase enum values for compatibility
+        # Convert API keys
         for key_id, api_key in diagram.api_keys.items():
             data['api_keys'][key_id] = {
                 'id': api_key.id,
-                'label': api_key.label,
-                'service': api_key.service.value,  # Use lowercase enum value
-                'key': api_key.key  # In real usage, this should be encrypted
+                'name': api_key.name,
+                'service': api_key.service.value,
+                'api_key': api_key.api_key,
+                'models': api_key.models or []
             }
         
         # Add metadata if present
         if diagram.metadata:
             data['metadata'] = {
-                'id': diagram.metadata.id,
-                'name': diagram.metadata.name,
-                'description': diagram.metadata.description,
                 'version': diagram.metadata.version,
-                'created': diagram.metadata.created.isoformat() if hasattr(diagram.metadata.created, 'isoformat') else str(diagram.metadata.created),
-                'modified': diagram.metadata.modified.isoformat() if hasattr(diagram.metadata.modified, 'isoformat') else str(diagram.metadata.modified),
-                'author': diagram.metadata.author,
-                'tags': diagram.metadata.tags
+                'created_at': diagram.metadata.created_at,
+                'updated_at': diagram.metadata.updated_at,
+                'title': diagram.metadata.title,
+                'description': diagram.metadata.description
             }
         
-        return json.dumps(data, indent=2, sort_keys=False)
+        return data
     
-    def deserialize(self, content: str) -> DomainDiagram:
-        """Convert JSON to domain diagram."""
-        data = json.loads(content)
+    def _calculate_format_confidence(self, data: Dict[str, Any]) -> float:
+        """Calculate confidence score for Domain JSON format."""
+        confidence = 0.0
         
-        if not isinstance(data, dict):
-            raise ValueError("Invalid JSON: expected a dictionary at root level")
+        # Check for version field (strong indicator)
+        if 'version' in data:
+            confidence += 0.3
         
-        # Initialize empty diagram
-        diagram = DomainDiagram(
-            nodes={},
-            arrows={},
-            handles={},
-            persons={},
-            api_keys={},
-            metadata=None
-        )
+        # Check for expected structure
+        expected_keys = {'nodes', 'handles', 'arrows'}
+        if expected_keys.issubset(data.keys()):
+            confidence += 0.4
         
-        # Parse metadata
-        if 'metadata' in data:
-            meta = data['metadata']
-            diagram.metadata = DiagramMetadata(
-                id=meta.get('id'),
-                name=meta.get('name'),
-                description=meta.get('description'),
-                version=meta.get('version', '2.0.0'),
-                author=meta.get('author'),
-                tags=meta.get('tags')
-            )
+        # Check if nodes have the expected structure
+        nodes = data.get('nodes', {})
+        if nodes and isinstance(nodes, dict):
+            sample_node = next(iter(nodes.values()), {})
+            if all(key in sample_node for key in ['id', 'type', 'position']):
+                confidence += 0.3
         
-        # Parse nodes
-        if 'nodes' in data:
-            node_index = 0
-            for node_id, node_data in data['nodes'].items():
-                # Use position from data, or calculate default position
-                pos = node_data.get('position')
-                if pos:
-                    position = Vec2(x=pos['x'], y=pos['y'])
-                else:
-                    # Use position calculator for default position
-                    position = self.position_calculator.calculate_grid_position(node_index)
-                    node_index += 1
-                
-                diagram.nodes[node_id] = DomainNode(
-                    id=node_data.get('id', node_id),
-                    type=NodeType(node_data['type']),
-                    position=position,
-                    data=node_data.get('data', {})
-                )
-        
-        # Parse handles
-        if 'handles' in data:
-            for handle_id, handle_data in data['handles'].items():
-                diagram.handles[handle_id] = DomainHandle(
-                    id=handle_data.get('id', handle_id),
-                    nodeId=handle_data['nodeId'],
-                    label=handle_data['label'],
-                    direction=HandleDirection(handle_data['direction']),
-                    dataType=DataType(handle_data.get('dataType', 'any')),
-                    position=handle_data.get('position')
-                )
-        
-        # Parse arrows
-        if 'arrows' in data:
-            for arrow_id, arrow_data in data['arrows'].items():
-                diagram.arrows[arrow_id] = DomainArrow(
-                    id=arrow_data.get('id', arrow_id),
-                    source=arrow_data['source'],
-                    target=arrow_data['target'],
-                    data=arrow_data.get('data')
-                )
-        
-        # Parse persons
-        if 'persons' in data:
-            for person_id, person_data in data['persons'].items():
-                # Handle forgetting mode with backward compatibility
-                forgetting_mode_str = person_data.get('forgettingMode', 'no_forget')
-                if forgetting_mode_str == 'no_forget':
-                    forgetting_mode = ForgettingMode.NONE
-                else:
-                    forgetting_mode = ForgettingMode(forgetting_mode_str)
-                
-                diagram.persons[person_id] = DomainPerson(
-                    id=person_data.get('id', person_id),
-                    label=person_data['label'],
-                    service=LLMService(person_data['service']),
-                    model=person_data['model'],
-                    api_key_id=person_data.get('apiKeyId'),
-                    systemPrompt=person_data.get('systemPrompt'),
-                    forgettingMode=forgetting_mode,
-                    type=person_data.get('type', 'person')
-                )
-        
-        # Parse API keys
-        if 'api_keys' in data:
-            for key_id, key_data in data['api_keys'].items():
-                diagram.api_keys[key_id] = DomainApiKey(
-                    id=key_data.get('id', key_id),
-                    label=key_data['label'],
-                    service=LLMService(key_data['service']),
-                    key=key_data['key']
-                )
-        
-        # Generate default handles for nodes that don't have handles
-        for node_id, node in diagram.nodes.items():
-            # Check if node has any handles
-            node_handles = [h for h in diagram.handles.values() if h.nodeId == node_id]
-            if not node_handles:
-                # Generate default handles based on node type
-                self.handle_generator.generate_for_node(diagram, node_id, node.type.value)
-        
-        return diagram
-    
-    def detect_format_confidence(self, content: str) -> float:
-        """Detect if content is Domain JSON format."""
-        try:
-            data = json.loads(content)
-            if not isinstance(data, dict):
-                return 0.0
-            
-            score = 0.0
-            
-            # Check for version field (strong indicator)
-            if 'version' in data:
-                score += 0.2
-            
-            # Check for required object-based structure (not arrays)
-            if 'nodes' in data and isinstance(data['nodes'], dict):
-                score += 0.3
-            if 'arrows' in data and isinstance(data['arrows'], dict):
-                score += 0.2
-            if 'handles' in data and isinstance(data['handles'], dict):
-                score += 0.1
-            
-            # Check for domain-specific fields
-            if 'persons' in data:
-                score += 0.1
-            if 'api_keys' in data:
-                score += 0.1
-            
-            return min(score, 1.0)
-        except:
-            return 0.0
+        return min(confidence, 1.0)

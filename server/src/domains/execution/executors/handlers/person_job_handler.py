@@ -9,8 +9,8 @@ import logging
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import ExecutionContext, ExecutorResult
 from ....diagram.models.domain import TokenUsage
-from shared.utils.output_processor import OutputProcessor
-from shared.utils.app_context import get_memory_service
+from src.shared.utils.output_processor import OutputProcessor
+from src.shared.utils.app_context import get_memory_service
 from ..executor_utils import get_input_values, substitute_variables
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,7 @@ async def _resolve_person(props: PersonJobProps, context: ExecutionContext) -> A
 async def _get_service_from_api_key(api_key_id: str, context: ExecutionContext) -> str:
     """Get service type from API key"""
     try:
-        from shared.utils.app_context import app_context
+        from src.shared.utils.app_context import app_context
         api_key_info = app_context.api_key_service.get_api_key(api_key_id)
         return api_key_info.get("service", "openai")
     except Exception as e:
