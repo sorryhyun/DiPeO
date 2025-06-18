@@ -236,8 +236,8 @@ class UploadMutations:
                         detected_format = DiagramFormat.LIGHT.value
                     elif 'readable' in filename:
                         detected_format = DiagramFormat.READABLE.value
-                    elif 'llm' in filename:
-                        detected_format = DiagramFormat.LLM.value
+                    elif 'native.yaml' in filename or 'native_yaml' in filename:
+                        detected_format = DiagramFormat.NATIVE_YAML.value
                     else:
                         detected_format = DiagramFormat.NATIVE.value  # Default
             

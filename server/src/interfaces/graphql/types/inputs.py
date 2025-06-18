@@ -72,7 +72,8 @@ class CreateDiagramInput:
 
 @strawberry.experimental.pydantic.input(model=PydanticExecuteDiagramInput)
 class ExecuteDiagramInput:
-    diagram_id: DiagramID
+    diagram_id: Optional[DiagramID] = None
+    diagram_data: Optional[JSONScalar] = None
     variables: Optional[JSONScalar] = None
     debug_mode: strawberry.auto
     timeout_seconds: strawberry.auto

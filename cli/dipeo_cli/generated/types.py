@@ -101,8 +101,8 @@ class DataType(Enum):
 
 class DiagramFormat(Enum):
     LIGHT = 'LIGHT'
-    LLM = 'LLM'
     NATIVE = 'NATIVE'
+    NATIVE_YAML = 'NATIVE_YAML'
     READABLE = 'READABLE'
 
 

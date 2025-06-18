@@ -68,7 +68,7 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = options?.acceptedTypes || '.json,.yaml,.yml,.native.json,.native.yaml,.readable.yaml,.llm-readable.yaml';
+    input.accept = options?.acceptedTypes || '.json,.yaml,.yml,.react.json,.native.yaml,.readable.yaml';
     
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -111,7 +111,7 @@ export const saveDiagramToBackend = async (
   try {
     // If we have diagram content, we need to upload it as a new diagram
     if (options.diagramContent) {
-      // Special handling for quicksave - always save as native JSON format
+      // Special handling for quicksave - always save as react JSON format
       let filename = options.filename || options.defaultFilename || 'diagram.json';
       let actualFormat = options.format;
       

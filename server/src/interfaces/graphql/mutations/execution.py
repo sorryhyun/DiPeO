@@ -35,17 +35,28 @@ class ExecutionMutations:
             # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticExecuteDiagramInput(
                 diagram_id=input.diagram_id,
+                diagram_data=input.diagram_data,
                 debug_mode=input.debug_mode,
                 max_iterations=input.max_iterations,
                 timeout_seconds=input.timeout_seconds
             )
             
-            # Load diagram
-            diagram_data = diagram_service.load_diagram(pydantic_input.diagram_id)
-            if not diagram_data:
+            # Get diagram data either from ID or directly from input
+            if pydantic_input.diagram_data:
+                # Use provided diagram data directly (in-memory execution)
+                diagram_data = pydantic_input.diagram_data
+            elif pydantic_input.diagram_id:
+                # Load diagram from file system
+                diagram_data = diagram_service.load_diagram(pydantic_input.diagram_id)
+                if not diagram_data:
+                    return ExecutionResult(
+                        success=False,
+                        error="Diagram not found"
+                    )
+            else:
                 return ExecutionResult(
                     success=False,
-                    error="Diagram not found"
+                    error="No diagram data provided"
                 )
             
             # Generate execution ID

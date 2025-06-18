@@ -54,7 +54,7 @@ export enum DiagramFormat {
   NATIVE = 'NATIVE',
   LIGHT = 'LIGHT',
   READABLE = 'READABLE',
-  LLM = 'LLM'
+  NATIVE_YAML = 'NATIVE_YAML'
 }
 
 export enum DBBlockSubType {

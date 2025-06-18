@@ -65,7 +65,7 @@ class DiagramFormat(str, Enum):
     NATIVE = "native"
     LIGHT = "light"
     READABLE = "readable"
-    LLM = "llm"
+    NATIVE_YAML = "native_yaml"
 
 
 class ExecutionStatus(str, Enum):

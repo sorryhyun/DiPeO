@@ -1,10 +1,29 @@
 /**
- * Type mappings and utilities for GraphQL/Domain and React types
+ * GraphQL Type Mappings and Data Conversions
  * 
- * This file provides a clear separation between:
- * - Domain/GraphQL types: Used for server communication (array-based)
- * - React types: Used in React components and hooks (array-based, same structure as Domain)
- * - Store types: Used for React state management (Map-based for efficient lookups)
+ * PURPOSE:
+ * This file handles data structure conversions and type mappings between
+ * different layers of the application, focusing on data representation.
+ * 
+ * RESPONSIBILITIES:
+ * - Define type aliases for GraphQL types (Domain*, React*)
+ * - Convert between array-based (GraphQL) and Map-based (Store) formats
+ * - Map between GraphQL enum values and internal string representations
+ * - Provide utility functions for working with diagram data structures
+ * 
+ * NOT RESPONSIBLE FOR:
+ * - React Flow specific conversions (see DiagramAdapter)
+ * - UI component logic
+ * - Visual representation concerns
+ * 
+ * TYPE CONVENTIONS:
+ * - Domain* types: Direct GraphQL types from the server
+ * - React* types: Same as Domain types, used in React components
+ * - Store* types: Map-based versions for efficient state management
+ * 
+ * USAGE:
+ * Import from here when working with data conversions or GraphQL types.
+ * For React Flow conversions, use DiagramAdapter instead.
  */
 
 import type {
@@ -13,7 +32,7 @@ import type {
   Handle,
   Person,
   ApiKey,
-  Diagram,
+  DomainDiagram,
   Vec2Input
 } from '@/__generated__/graphql';
 import { NodeType, HandleDirection, DataType } from '@dipeo/domain-models';
@@ -27,7 +46,8 @@ export type DomainArrow = Arrow;
 export type DomainHandle = Handle;
 export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
-export type ReactDiagram = Diagram;
+// ReactDiagram is a frontend-specific type, different from DomainDiagram
+export type ReactDiagram = DomainDiagram; // TODO: Define proper ReactDiagram type
 
 // Store format uses Maps for efficient lookups
 export interface StoreDiagram {
@@ -49,7 +69,7 @@ export interface StoreDiagram {
 }
 
 // Convert from Domain/React format (arrays) to Store format (Maps)
-export function diagramToStoreMaps(diagram: Partial<Diagram>): {
+export function diagramToStoreMaps(diagram: Partial<DomainDiagram>): {
   nodes: Map<NodeID, Node>;
   handles: Map<HandleID, Handle>;
   arrows: Map<ArrowID, Arrow>;
@@ -63,23 +83,23 @@ export function diagramToStoreMaps(diagram: Partial<Diagram>): {
   const apiKeys = new Map<ApiKeyID, ApiKey>();
 
   // Convert arrays to maps with branded IDs as keys
-  diagram.nodes?.forEach(node => {
+  diagram.nodes?.forEach((node: Node) => {
     nodes.set(node.id as NodeID, node);
   });
 
-  diagram.handles?.forEach(handle => {
+  diagram.handles?.forEach((handle: Handle) => {
     handles.set(handle.id as HandleID, handle);
   });
 
-  diagram.arrows?.forEach(arrow => {
+  diagram.arrows?.forEach((arrow: Arrow) => {
     arrows.set(arrow.id as ArrowID, arrow);
   });
 
-  diagram.persons?.forEach(person => {
+  diagram.persons?.forEach((person: Person) => {
     persons.set(person.id as PersonID, person);
   });
 
-  diagram.apiKeys?.forEach(apiKey => {
+  diagram.apiKeys?.forEach((apiKey: ApiKey) => {
     apiKeys.set(apiKey.id as ApiKeyID, apiKey);
   });
 
@@ -93,7 +113,7 @@ export function storeMapsToArrays(store: {
   arrows: Map<ArrowID, Arrow>;
   persons: Map<PersonID, Person>;
   apiKeys: Map<ApiKeyID, ApiKey>;
-}): Partial<Diagram> {
+}): Partial<DomainDiagram> {
   return {
     nodes: Array.from(store.nodes.values()),
     handles: Array.from(store.handles.values()),
@@ -104,7 +124,7 @@ export function storeMapsToArrays(store: {
 }
 
 // Convert from React format to Domain/GraphQL format for server communication
-export function reactDiagramToDomain(diagram: ReactDiagram): Partial<Diagram> {
+export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagram> {
   return {
     nodes: diagram.nodes || [],
     handles: diagram.handles || [],
@@ -126,7 +146,7 @@ export function reactDiagramToDomain(diagram: ReactDiagram): Partial<Diagram> {
 }
 
 // Convert from Domain/GraphQL format to React format for component usage
-export function domainToReactDiagram(diagram: Partial<Diagram>): ReactDiagram {
+export function domainToReactDiagram(diagram: Partial<DomainDiagram>): ReactDiagram {
   return diagram as ReactDiagram;
 }
 

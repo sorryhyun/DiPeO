@@ -196,7 +196,7 @@ export const useFileOperations = () => {
         format: DiagramFormat.NATIVE,
         metadata: {
           id: DiagramFormat.NATIVE,
-          displayName: 'Native JSON',
+          displayName: 'React JSON',
           description: 'Full-fidelity format with GraphQL schema compatibility',
           fileExtension: '.json',
           supportsImport: true,
@@ -226,13 +226,13 @@ export const useFileOperations = () => {
         }
       },
       {
-        format: DiagramFormat.LLM,
+        format: DiagramFormat.NATIVE_YAML,
         metadata: {
-          id: DiagramFormat.LLM,
-          displayName: 'LLM-Friendly',
-          description: 'Optimized for AI understanding',
+          id: DiagramFormat.NATIVE_YAML,
+          displayName: 'Native YAML',
+          description: 'Full-fidelity YAML format with GraphQL schema compatibility',
           fileExtension: '.yaml',
-          supportsImport: false,
+          supportsImport: true,
           supportsExport: true
         }
       }

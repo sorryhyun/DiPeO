@@ -454,10 +454,21 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     currentRunningNodeRef.current = null;
     
     try {
+      // Prepare diagram data for execution
+      const diagramData = diagram ? {
+        nodes: diagram.nodes.reduce((acc, node) => ({ ...acc, [node.id]: node }), {}),
+        arrows: diagram.arrows.reduce((acc, arrow) => ({ ...acc, [arrow.id]: arrow }), {}),
+        persons: diagram.persons.reduce((acc, person) => ({ ...acc, [person.id]: person }), {}),
+        handles: diagram.handles?.reduce((acc, handle) => ({ ...acc, [handle.id]: handle }), {}) || {},
+        apiKeys: diagram.apiKeys?.reduce((acc, key) => ({ ...acc, [key.id]: key }), {}) || {},
+        metadata: diagram.metadata
+      } : null;
+
       const result = await executeDiagramMutation({
         variables: {
           input: {
-            diagramId: diagram?.metadata?.id || diagramId('current'),
+            diagramData,
+            diagramId: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
             variables: (options as any)?.variables || {},
             debugMode: options?.debug || false,
             timeout: (options as any)?.timeout,

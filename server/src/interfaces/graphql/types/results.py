@@ -3,7 +3,7 @@ import strawberry
 from typing import Optional, List, Union
 
 from .domain import (
-    Node, Diagram, ExecutionState, Person, ApiKey, Handle
+    Node, DomainDiagram, ExecutionState, Person, ApiKey, Handle
 )
 from .scalars import ExecutionID, DiagramID, JSONScalar
 
@@ -33,7 +33,7 @@ class NodeResult:
 class DiagramResult:
     """Result of diagram operation."""
     success: bool
-    diagram: Optional[Diagram] = None
+    diagram: Optional[DomainDiagram] = None
     message: Optional[str] = None
     error: Optional[str] = None
 
@@ -99,7 +99,7 @@ class FileUploadResult:
 # Union types for flexible error handling
 DiagramOperationResult = strawberry.union(
     "DiagramOperationResult",
-    [Diagram, OperationError]
+    [DomainDiagram, OperationError]
 )
 
 ExecutionOperationResult = strawberry.union(

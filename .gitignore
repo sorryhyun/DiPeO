@@ -19,7 +19,7 @@ server/schema.graphql
 server/diagrams
 docs/deprecated
 TODO.md
-
+*.tsbuildinfo
 
 # Node.js
 node_modules/
@@ -34,7 +34,6 @@ dist/
 build/
 out/
 *.log
-*.tsbuildinfo
 execution_runner.cjs
 notion.md
 CLAUDE.md

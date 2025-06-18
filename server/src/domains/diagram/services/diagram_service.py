@@ -90,7 +90,7 @@ class DiagramService(BaseService, IDiagramService):
                 self._validate_diagram(data)
                 # Ensure all required fields are present
                 data.setdefault("persons", {})
-                data.setdefault("apiKeys", {})
+                data.setdefault("api_keys", {})
                 data.setdefault("handles", {})
                 return data
             
@@ -101,7 +101,7 @@ class DiagramService(BaseService, IDiagramService):
                 "arrows": {},
                 "handles": {},
                 "persons": {},
-                "apiKeys": {}
+                "api_keys": {}
             }
             
         except yaml.YAMLError as e:
@@ -289,8 +289,11 @@ class DiagramService(BaseService, IDiagramService):
                     data['persons'] = {p['id']: p for p in data['persons']}
                 if isinstance(data.get('handles'), list):
                     data['handles'] = {h['id']: h for h in data['handles']}
-                if isinstance(data.get('apiKeys'), list):
-                    data['apiKeys'] = {k['id']: k for k in data['apiKeys']}
+                # Handle both apiKeys (camelCase) and api_keys (underscore)
+                if 'apiKeys' in data and 'api_keys' not in data:
+                    data['api_keys'] = data.pop('apiKeys')
+                if isinstance(data.get('api_keys'), list):
+                    data['api_keys'] = {k['id']: k for k in data['api_keys']}
                 
                 # Validate and fix API keys
                 self._validate_and_fix_api_keys(data)
@@ -300,7 +303,7 @@ class DiagramService(BaseService, IDiagramService):
                 data.setdefault('arrows', {})
                 data.setdefault('handles', {})
                 data.setdefault('persons', {})
-                data.setdefault('apiKeys', {})
+                data.setdefault('api_keys', {})
                 
                 return data
             else:

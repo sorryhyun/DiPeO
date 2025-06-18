@@ -123,8 +123,8 @@ class DiagramMetadata:
     pass
 
 @strawberry.experimental.pydantic.type(model=DiagramForGraphQL)
-class Diagram:
-    """Complete diagram with all components."""
+class DomainDiagram:
+    """Complete diagram with all components (backend format)."""
     nodes: strawberry.auto
     handles: strawberry.auto
     arrows: strawberry.auto

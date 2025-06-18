@@ -10,7 +10,7 @@ import type { Node } from '@xyflow/react';
 import { createNodeDragGhost } from '@/shared/utils/dragGhost';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { NodeID, PersonID, ArrowID, Vec2, nodeId, personId } from '@/core/types';
-import { graphQLTypeToNodeKind } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { graphQLTypeToNodeKind } from '@/graphql/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 
 // Types

@@ -5,7 +5,7 @@ import asyncio
 import logging
 from datetime import datetime
 
-from .types.domain import ExecutionState, ExecutionEvent, Diagram
+from .types.domain import ExecutionState, ExecutionEvent, DomainDiagram
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
 from .types.enums import EventType  # EventType is GraphQL-specific
 from src.shared.domain import NodeType, ExecutionStatus  # Import domain enums
@@ -82,7 +82,7 @@ class Subscription:
         self,
         info: strawberry.Info[GraphQLContext],
         diagram_id: DiagramID
-    ) -> AsyncGenerator[Diagram, None]:
+    ) -> AsyncGenerator[DomainDiagram, None]:
         """Subscribe to diagram changes for collaborative editing."""
         async for change in diagram_change_stream(diagram_id, info):
             yield change
@@ -414,7 +414,7 @@ async def node_update_stream(
         logger.error(f"Error in node update stream for {execution_id}: {e}")
         raise
 
-async def diagram_change_stream(diagram_id: DiagramID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[Diagram, None]:
+async def diagram_change_stream(diagram_id: DiagramID, info: strawberry.Info[GraphQLContext]) -> AsyncGenerator[DomainDiagram, None]:
     """Stream diagram changes."""
     # TODO: Implement collaborative editing support
     # This would require:

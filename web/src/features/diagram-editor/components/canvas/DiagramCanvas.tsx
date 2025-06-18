@@ -31,7 +31,8 @@ import { CustomArrow as CustomArrowBase } from "../arrows/CustomArrow";
 import nodeTypes from "../nodes/nodeTypes";
 import { DomainArrow, arrowId, nodeId } from '@/core/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { arrowToReact, graphQLTypeToNodeKind } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { arrowToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { graphQLTypeToNodeKind } from '@/graphql/types';
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(

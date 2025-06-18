@@ -57,7 +57,7 @@ executor.register(NodeDefinition(
 
 ### Diagram Domain
 Handles diagram serialization/deserialization with multiple formats:
-- **Native JSON**: Full-fidelity GraphQL-compatible format
+- **React JSON**: Full-fidelity GraphQL-compatible format
 - **Light YAML**: Human-readable with labels instead of IDs
 - **LLM YAML**: Optimized for AI understanding
 

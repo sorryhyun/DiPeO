@@ -1,6 +1,6 @@
 
 This project aims to provide a tool that converts diagram flows into the following formats:
-- Native YAML (graphql native)
+- Native YAML (graphQL native)
 - Light YAML
 - Readable YAML
 - react JSON (react native)
@@ -22,4 +22,4 @@ While Light YAML is relatively easy to read, it's still not optimized for repres
   - Under the workflow, describe definitions for each node and person
 
 4. react JSON
-This is a file for checking how diagrams are actually rendered in the browser. It should include values such as draggable and selectable, and should be directly recognizable and renderable by React without separately defining handles.
+This is a file for checking how diagrams are actually rendered in the browser. It should include values such as draggable and selectable, and should be directly recognizable and renderable by React without separately defining handles. this format is for quicksave and quickload.

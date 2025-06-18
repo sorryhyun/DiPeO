@@ -3,17 +3,17 @@ Diagram format converters for backend.
 Mirrors the frontend converter system for consistency.
 """
 from .base import DiagramConverter
-from .native_json import NativeJsonConverter
+from .react_json import ReactJsonConverter
 from .light_yaml import LightYamlConverter
 from .readable_yaml import ReadableYamlConverter
-from .llm_yaml import LLMYamlConverter
+from .native_yaml import NativeYamlConverter
 from .registry import converter_registry
 
 __all__ = [
     'DiagramConverter',
-    'NativeJsonConverter',
+    'ReactJsonConverter',
     'LightYamlConverter',
     'ReadableYamlConverter',
-    'LLMYamlConverter',
+    'NativeYamlConverter',
     'converter_registry'
 ]

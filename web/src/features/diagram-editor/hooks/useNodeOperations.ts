@@ -6,7 +6,7 @@ import { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { NodeID, Vec2, DomainNode } from '@/core/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import { graphQLTypeToNodeKind } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { graphQLTypeToNodeKind } from '@/graphql/types';
 
 export interface UseNodeOperationsReturn {
   // CRUD Operations

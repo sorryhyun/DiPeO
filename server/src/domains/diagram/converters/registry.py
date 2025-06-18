@@ -1,10 +1,10 @@
 """Converter registry for managing diagram format converters."""
 from typing import Dict, Optional, List, Tuple
 from .base import DiagramConverter
-from .native_json import NativeJsonConverter
+from .react_json import ReactJsonConverter
 from .light_yaml import LightYamlConverter
 from .readable_yaml import ReadableYamlConverter
-from .llm_yaml import LLMYamlConverter
+from .native_yaml import NativeYamlConverter
 from ..models.domain import DiagramFormat
 
 
@@ -18,14 +18,14 @@ class ConverterRegistry:
     
     def _initialize_default_converters(self):
         """Register default converters."""
-        # Native JSON
+        # React JSON
         self.register(
             DiagramFormat.NATIVE.value,
-            NativeJsonConverter(),
+            ReactJsonConverter(),
             {
-                'name': 'Native JSON',
+                'name': 'React JSON',
                 'description': 'Full-fidelity format with GraphQL schema compatibility',
-                'extension': '.native.json',
+                'extension': '.react.json',
                 'supports_import': True,
                 'supports_export': True
             }
@@ -57,14 +57,14 @@ class ConverterRegistry:
             }
         )
         
-        # LLM YAML
+        # Native YAML
         self.register(
-            DiagramFormat.LLM.value,
-            LLMYamlConverter(),
+            DiagramFormat.NATIVE_YAML.value,
+            NativeYamlConverter(),
             {
-                'name': 'LLM-Friendly',
-                'description': 'Format optimized for AI/LLM understanding',
-                'extension': '.llm.yaml',
+                'name': 'Native YAML',
+                'description': 'Full-fidelity YAML format with GraphQL schema compatibility',
+                'extension': '.native.yaml',
                 'supports_import': True,
                 'supports_export': True
             }

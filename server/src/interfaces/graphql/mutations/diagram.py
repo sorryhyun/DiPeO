@@ -210,7 +210,7 @@ class DiagramMutations:
                 DiagramFormat.NATIVE: '.json',
                 DiagramFormat.LIGHT: '.yaml',
                 DiagramFormat.READABLE: '.yaml', 
-                DiagramFormat.LLM: '.yaml'
+                DiagramFormat.NATIVE_YAML: '.yaml'
             }
             extension = extension_map.get(target_format, '.yaml')
             new_diagram_id = f"{base_name}{extension}"

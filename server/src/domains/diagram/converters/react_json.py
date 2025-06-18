@@ -1,4 +1,4 @@
-"""Native JSON format converter - uses GraphQL schema format directly."""
+"""React JSON format converter - uses GraphQL schema format directly."""
 import json
 from typing import Dict, Any, List
 from .base import DiagramConverter
@@ -9,8 +9,8 @@ from ..models.domain import (
 )
 
 
-class NativeJsonConverter(DiagramConverter):
-    """Converts between DomainDiagram and native JSON format using GraphQL schema format."""
+class ReactJsonConverter(DiagramConverter):
+    """Converts between DomainDiagram and React JSON format using GraphQL schema format."""
     
     # GraphQL enum mappings
     NODE_TYPE_TO_GRAPHQL = {
@@ -67,7 +67,7 @@ class NativeJsonConverter(DiagramConverter):
     GRAPHQL_TO_FORGETTING_MODE = {v: k for k, v in FORGETTING_MODE_TO_GRAPHQL.items()}
     
     def serialize(self, diagram: DomainDiagram) -> str:
-        """Convert domain diagram to native JSON using GraphQL format."""
+        """Convert domain diagram to React JSON using GraphQL format."""
         # Convert to dict format for JSON serialization
         data = {
             'version': diagram.metadata.version if diagram.metadata else '2.0.0',
@@ -145,7 +145,7 @@ class NativeJsonConverter(DiagramConverter):
         return json.dumps(data, indent=2, sort_keys=False)
     
     def deserialize(self, content: str) -> DomainDiagram:
-        """Convert native JSON to domain diagram."""
+        """Convert React JSON to domain diagram."""
         data = json.loads(content)
         
         if not isinstance(data, dict):
@@ -274,7 +274,7 @@ class NativeJsonConverter(DiagramConverter):
         return diagram
     
     def detect_format_confidence(self, content: str) -> float:
-        """Detect if content is native JSON format."""
+        """Detect if content is React JSON format."""
         try:
             data = json.loads(content)
             if not isinstance(data, dict):

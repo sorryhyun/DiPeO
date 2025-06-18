@@ -11,7 +11,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useCanvas } from './useCanvas';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import { NodeID, ArrowID, PersonID, Vec2, HandleID, SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
-import { graphQLTypeToNodeKind } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { graphQLTypeToNodeKind } from '@/graphql/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
 
 // Type definitions

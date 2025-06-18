@@ -1,6 +1,24 @@
 /**
- * Centralized adapter for domain<->ReactFlow conversions
- * Provides efficient, cached conversions with type safety
+ * DiagramAdapter - React Flow Integration Layer
+ * 
+ * PURPOSE:
+ * This adapter handles conversions between DiPeO's domain models and React Flow's
+ * visual representation. It is specifically focused on the UI layer integration.
+ * 
+ * RESPONSIBILITIES:
+ * - Convert domain nodes/arrows to React Flow nodes/edges
+ * - Convert React Flow elements back to domain models
+ * - Validate connections according to business rules
+ * - Cache conversions for performance optimization
+ * 
+ * NOT RESPONSIBLE FOR:
+ * - GraphQL type conversions (see @/graphql/types)
+ * - Data structure conversions (Arrays <-> Maps)
+ * - Domain model definitions
+ * 
+ * USAGE:
+ * Import this adapter when working with React Flow components.
+ * For data conversions, import from '@/graphql/types' instead.
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
@@ -421,5 +439,5 @@ export const connectionToArrow = (connection: Connection) =>
 export const validateConnection = (connection: Connection, diagram: ReactDiagram) => 
   DiagramAdapter.validateConnection(connection, diagram);
 
-// Re-export utilities that are used elsewhere
-export { graphQLTypeToNodeKind, domainToReactDiagram, diagramToStoreMaps } from '@/graphql/types';
+// Note: Import data conversion functions directly from '@/graphql/types' when needed
+// This adapter focuses solely on React Flow conversions
