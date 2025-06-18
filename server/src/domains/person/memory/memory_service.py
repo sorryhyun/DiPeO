@@ -7,8 +7,6 @@ import json
 import redis
 import os
 
-from src.shared.interfaces import IMemoryService
-
 
 @dataclass
 class Message:
@@ -125,7 +123,7 @@ class PersonMemory:
         return visible_messages
 
 
-class MemoryService(IMemoryService):
+class MemoryService:
     """Service for managing conversation memory across persons and jobs."""
 
     def __init__(self, redis_url: Optional[str] = None):

@@ -55,8 +55,11 @@ export const useFileOperations = () => {
         throw new Error('No content returned from export');
       }
 
-      // Download the file
-      await downloadFile(content, exportFilename || filename || 'diagram.yaml', 'text/yaml');
+      // Download the file with appropriate mime type
+      const isJson = format === DiagramFormat.NATIVE;
+      const mimeType = isJson ? 'application/json' : 'text/yaml';
+      const defaultFilename = isJson ? 'diagram.json' : 'diagram.yaml';
+      await downloadFile(content, exportFilename || filename || defaultFilename, mimeType);
       toast.success(`Exported as ${format} format`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -196,7 +199,7 @@ export const useFileOperations = () => {
         format: DiagramFormat.NATIVE,
         metadata: {
           id: DiagramFormat.NATIVE,
-          displayName: 'React JSON',
+          displayName: 'Native JSON',
           description: 'Full-fidelity format with GraphQL schema compatibility',
           fileExtension: '.json',
           supportsImport: true,
@@ -220,17 +223,6 @@ export const useFileOperations = () => {
           id: DiagramFormat.READABLE,
           displayName: 'Readable Workflow',
           description: 'Human-friendly format',
-          fileExtension: '.yaml',
-          supportsImport: true,
-          supportsExport: true
-        }
-      },
-      {
-        format: DiagramFormat.NATIVE_YAML,
-        metadata: {
-          id: DiagramFormat.NATIVE_YAML,
-          displayName: 'Native YAML',
-          description: 'Full-fidelity YAML format with GraphQL schema compatibility',
           fileExtension: '.yaml',
           supportsImport: true,
           supportsExport: true

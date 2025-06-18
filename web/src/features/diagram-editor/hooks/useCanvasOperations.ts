@@ -1,4 +1,15 @@
 /**
+ * @deprecated Use explicit composition of useCanvas, useCanvasInteractions, and domain operation hooks instead.
+ * 
+ * Example:
+ * ```ts
+ * const canvas = useCanvas();
+ * const interactions = useCanvasInteractions();
+ * const nodeOps = useNodeOperations();
+ * const arrowOps = useArrowOperations();
+ * const personOps = usePersonOperations();
+ * ```
+ * 
  * useCanvasOperations - Composite hook that combines focused hooks
  * 
  * This hook provides backward compatibility by composing useCanvas and 
@@ -8,8 +19,8 @@
 import React, { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { useShallow } from 'zustand/react/shallow';
-import { useCanvas } from './useCanvas';
-import { useCanvasInteractions } from './useCanvasInteractions';
+import { useCanvas } from './ui/useCanvas';
+import { useCanvasInteractions } from './ui/useCanvasInteractions';
 import { NodeID, ArrowID, PersonID, Vec2, HandleID, SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
 import { graphQLTypeToNodeKind } from '@/graphql/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';

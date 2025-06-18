@@ -12,12 +12,11 @@ from src.shared.utils.base_service import BaseService
 from src.shared.utils.diagram_validator import DiagramValidator
 from src.shared.exceptions.exceptions import ValidationError
 from ..services.event_store import event_store, ExecutionEvent, EventType
-from src.shared.interfaces import IExecutionService
 
 log = logging.getLogger(__name__)
 
 
-class ExecutionService(BaseService, IExecutionService):
+class ExecutionService(BaseService):
     """Run a diagram and stream node-level updates back to the client."""
 
     # --------------------------------------------------------------------- init

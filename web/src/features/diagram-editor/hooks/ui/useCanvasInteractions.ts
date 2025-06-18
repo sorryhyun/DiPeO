@@ -12,6 +12,9 @@ import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { NodeID, PersonID, ArrowID, Vec2, nodeId, personId } from '@/core/types';
 import { graphQLTypeToNodeKind } from '@/graphql/types';
 import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { useNodeOperations } from '../operations/useNodeOperations';
+import { useArrowOperations } from '../operations/useArrowOperations';
+import { usePersonOperations } from '../operations/usePersonOperations';
 
 // Types
 export interface ContextMenuState {
@@ -87,6 +90,11 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   const selectedId = useUnifiedStore(state => state.selectedId);
   const selectedType = useUnifiedStore(state => state.selectedType);
   
+  // Domain operations hooks
+  const nodeOps = useNodeOperations();
+  const arrowOps = useArrowOperations();
+  const personOps = usePersonOperations();
+  
   // Local state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     position: null,
@@ -126,24 +134,22 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   const handleDeleteSelected = useCallback(() => {
     if (!enabled || isMonitorMode) return;
     
-    const state = store.getState();
     if (selectedType === 'node' && selectedId) {
-      state.deleteNode(selectedId as NodeID);
+      nodeOps.deleteNode(selectedId as NodeID);
     } else if (selectedType === 'arrow' && selectedId) {
-      state.deleteArrow(selectedId as ArrowID);
+      arrowOps.deleteArrow(selectedId as ArrowID);
     } else if (selectedType === 'person' && selectedId) {
-      state.deletePerson(selectedId as PersonID);
+      personOps.deletePerson(selectedId as PersonID);
     }
-    state.clearSelection();
+    store.getState().clearSelection();
     closeContextMenu();
-  }, [enabled, isMonitorMode, selectedId, selectedType, store, closeContextMenu]);
+  }, [enabled, isMonitorMode, selectedId, selectedType, nodeOps, arrowOps, personOps, store, closeContextMenu]);
   
   const handleDuplicateSelected = useCallback(() => {
     if (!enabled || isMonitorMode) return;
     
-    const state = store.getState();
     if (selectedType === 'node' && selectedId) {
-      const node = state.nodes.get(selectedId as NodeID);
+      const node = nodeOps.getNode(selectedId as NodeID);
       if (!node) return;
       
       const newPosition = {
@@ -151,16 +157,16 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
         y: (node.position?.y || 0) + 50
       };
       
-      const newNodeId = state.addNode(
+      const newNodeId = nodeOps.addNode(
         graphQLTypeToNodeKind(node.type) as NodeKind,
         newPosition,
         { ...node.data }
       );
       
-      state.select(newNodeId, 'node');
+      store.getState().select(newNodeId, 'node');
     }
     closeContextMenu();
-  }, [enabled, isMonitorMode, selectedId, selectedType, store, closeContextMenu]);
+  }, [enabled, isMonitorMode, selectedId, selectedType, nodeOps, store, closeContextMenu]);
   
   // Drag & Drop
   const onNodeDragStart = useCallback((event: React.DragEvent, nodeType: string) => {
@@ -242,14 +248,13 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
       event.clientY - dragOffset.current.y
     );
     
-    const state = store.getState();
-    state.addNode(type as NodeKind, dropPosition);
+    nodeOps.addNode(type as NodeKind, dropPosition);
     
     setDragState({
       isDragging: false,
       dragType: null,
     });
-  }, [enabled, isMonitorMode, store]);
+  }, [enabled, isMonitorMode, nodeOps]);
   
   const onPersonDrop = useCallback((
     event: React.DragEvent,
@@ -260,15 +265,14 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event.preventDefault();
     const personIdStr = event.dataTransfer.getData('application/person');
     if (personIdStr) {
-      const state = store.getState();
-      state.updateNode(nodeId, { data: { person: personId(personIdStr) } });
+      nodeOps.updateNode(nodeId, { data: { person: personId(personIdStr) } });
     }
     
     setDragState({
       isDragging: false,
       dragType: null,
     });
-  }, [enabled, isMonitorMode, store]);
+  }, [enabled, isMonitorMode, nodeOps]);
   
   const onDragEnd = useCallback(() => {
     setDragState({

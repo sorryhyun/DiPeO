@@ -115,12 +115,14 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
 
       const { content, filename } = result.data.exportDiagram;
 
-      // Create download link
-      const blob = new Blob([content || ''], { type: 'text/yaml' });
+      // Create download link with appropriate MIME type
+      const isJson = selectedFormat === DiagramFormat.NATIVE;
+      const mimeType = isJson ? 'application/json' : 'text/yaml';
+      const blob = new Blob([content || ''], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename || 'diagram.yaml';
+      a.download = filename || (isJson ? 'diagram.json' : 'diagram.yaml');
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -253,10 +255,9 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
       <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
         <p className="font-medium">Supported formats:</p>
         <ul className="ml-4 space-y-0.5">
-          <li>• <strong>Native:</strong> Complete diagram with all properties</li>
-          <li>• <strong>Light:</strong> Human-readable with label-based references</li>
-          <li>• <strong>Readable:</strong> Workflow-oriented format</li>
-          <li>• <strong>LLM:</strong> AI-optimized for language models</li>
+          <li>• <strong>Native JSON:</strong> Complete diagram with all properties (JSON format)</li>
+          <li>• <strong>Light:</strong> Human-readable with label-based references (YAML format)</li>
+          <li>• <strong>Readable:</strong> Workflow-oriented format (YAML format)</li>
         </ul>
       </div>
     </div>

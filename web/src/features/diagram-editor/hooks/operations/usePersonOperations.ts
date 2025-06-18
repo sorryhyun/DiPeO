@@ -1,25 +1,24 @@
 /**
- * usePersonOperationsSync - Synchronous adapter for person operations
+ * usePersonOperations - Person CRUD operations
  * 
- * This provides a sync API that matches the original useCanvasOperations interface
- * by directly using the store's synchronous person operations.
+ * Provides CRUD operations for managing persons in the diagram.
  */
 
 import { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { PersonID, DomainPerson } from '@/core/types';
 
-export interface UsePersonOperationsSyncReturn {
-  // Sync CRUD operations matching original API
+export interface UsePersonOperationsReturn {
+  // CRUD operations
   addPerson: (label: string, service: string, model: string) => PersonID;
   updatePerson: (id: PersonID, updates: { label?: string; service?: string; model?: string }) => void;
   deletePerson: (id: PersonID) => void;
 }
 
-export function usePersonOperationsSync(): UsePersonOperationsSyncReturn {
+export function usePersonOperations(): UsePersonOperationsReturn {
   const store = useUnifiedStore;
 
-  // Direct sync operations using store methods
+  // Direct operations using store methods
   const addPerson = useCallback((label: string, service: string, model: string): PersonID => {
     return store.getState().addPerson(label, service, model);
   }, []);

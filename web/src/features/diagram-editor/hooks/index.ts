@@ -6,11 +6,11 @@ export * from './useDiagramLoader';
 // Feature hooks
 export * from './useDiagramManager';
 
-// Canvas hooks
-export * from './useCanvas';
-export * from './useCanvasInteractions';
+// Canvas hooks (deprecated - use specific imports)
 export * from './useCanvasOperations';
 
 // Operation hooks
-export * from './useNodeOperations';
-export * from './useArrowOperations';
+export * from './operations';
+
+// UI hooks
+export * from './ui';

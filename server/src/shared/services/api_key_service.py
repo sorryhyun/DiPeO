@@ -7,10 +7,8 @@ from config import BASE_DIR
 from ..exceptions.exceptions import APIKeyError, ValidationError
 from ..utils.base_service import BaseService
 from ..domain import LLMService as LLMServiceEnum
-from ..interfaces import IAPIKeyService
 
-
-class APIKeyService(BaseService, IAPIKeyService):
+class APIKeyService(BaseService):
     """Service for managing API keys."""
     
     # Include both LLM services and other external services

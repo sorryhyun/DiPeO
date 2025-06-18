@@ -7,10 +7,9 @@ from src.shared.exceptions.exceptions import LLMServiceError, APIKeyError
 from src.domains.llm import ChatResult, create_adapter
 from src.shared.services.api_key_service import APIKeyService
 from src.shared.utils.base_service import BaseService
-from src.shared.interfaces import ILLMService
 
 
-class LLMService(BaseService, ILLMService):
+class LLMService(BaseService):
     """Service for handling LLM interactions."""
     
     def __init__(self, api_key_service: APIKeyService):

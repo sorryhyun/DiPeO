@@ -47,7 +47,16 @@ export type DomainHandle = Handle;
 export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
 // ReactDiagram is a frontend-specific type, different from DomainDiagram
-export type ReactDiagram = DomainDiagram; // TODO: Define proper ReactDiagram type
+/**
+ * ReactDiagram is currently an alias for DomainDiagram.
+ * 
+ * React Flow specific UI state (viewport, selection, etc.) is managed separately
+ * in the UISlice of the store rather than being part of the diagram data structure.
+ * This maintains a clean separation between domain data and UI state.
+ * 
+ * The DiagramAdapter handles conversion between domain models and React Flow format.
+ */
+export type ReactDiagram = DomainDiagram;
 
 // Store format uses Maps for efficient lookups
 export interface StoreDiagram {

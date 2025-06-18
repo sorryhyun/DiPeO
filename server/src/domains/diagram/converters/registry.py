@@ -18,14 +18,14 @@ class ConverterRegistry:
     
     def _initialize_default_converters(self):
         """Register default converters."""
-        # React JSON
+        # Native JSON
         self.register(
             DiagramFormat.NATIVE.value,
             ReactJsonConverter(),
             {
-                'name': 'React JSON',
+                'name': 'Native JSON',
                 'description': 'Full-fidelity format with GraphQL schema compatibility',
-                'extension': '.react.json',
+                'extension': '.json',
                 'supports_import': True,
                 'supports_export': True
             }

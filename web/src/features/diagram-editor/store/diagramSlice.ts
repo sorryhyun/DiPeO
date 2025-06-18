@@ -120,7 +120,11 @@ export const createDiagramSlice: StateCreator<
   updateArrow: (id, updates) => set(state => {
     const arrow = state.arrows.get(id);
     if (arrow) {
+      // Special handling for data property to merge instead of replace
       const updatedArrow = { ...arrow, ...updates };
+      if (updates.data && arrow.data) {
+        updatedArrow.data = { ...arrow.data, ...updates.data };
+      }
       state.arrows.set(id, updatedArrow);
       state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;

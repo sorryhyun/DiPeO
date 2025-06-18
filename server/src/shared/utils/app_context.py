@@ -1,7 +1,7 @@
 """Application context and dependency injection configuration."""
 
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, TYPE_CHECKING
 
 from fastapi import FastAPI
 
@@ -14,29 +14,31 @@ from src.domains.execution.services.execution_service import ExecutionService
 from src.domains.integrations.notion.notion_service import NotionService
 from src.domains.execution.services.message_router import message_router
 from src.domains.execution.services.event_store import event_store
-from src.shared.interfaces import (
-    IAPIKeyService,
-    ILLMService,
-    IDiagramService,
-    IFileService,
-    IMemoryService,
-    IExecutionService,
-    INotionService
-)
 import os
+
+if TYPE_CHECKING:
+    from src.shared.service_types import (
+        SupportsAPIKey,
+        SupportsLLM,
+        SupportsDiagram,
+        SupportsFile,
+        SupportsMemory,
+        SupportsExecution,
+        SupportsNotion
+    )
 
 
 class AppContext:
     """Application-wide common context for services."""
     
     def __init__(self):
-        self.api_key_service: Optional[IAPIKeyService] = None
-        self.llm_service: Optional[ILLMService] = None
-        self.diagram_service: Optional[IDiagramService] = None
-        self.file_service: Optional[IFileService] = None
-        self.memory_service: Optional[IMemoryService] = None
-        self.execution_service: Optional[IExecutionService] = None
-        self.notion_service: Optional[INotionService] = None
+        self.api_key_service: Optional['SupportsAPIKey'] = None
+        self.llm_service: Optional['SupportsLLM'] = None
+        self.diagram_service: Optional['SupportsDiagram'] = None
+        self.file_service: Optional['SupportsFile'] = None
+        self.memory_service: Optional['SupportsMemory'] = None
+        self.execution_service: Optional['SupportsExecution'] = None
+        self.notion_service: Optional['SupportsNotion'] = None
     
     async def startup(self):
         """Initialize all services on startup."""
@@ -90,49 +92,49 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
 
 # Dependency functions that use the state context
-def get_api_key_service() -> IAPIKeyService:
+def get_api_key_service() -> 'SupportsAPIKey':
     """Get APIKeyService instance from app context."""
     if app_context.api_key_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.api_key_service
 
 
-def get_llm_service() -> ILLMService:
+def get_llm_service() -> 'SupportsLLM':
     """Get LLMService instance from app context."""
     if app_context.llm_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.llm_service
 
 
-def get_diagram_service() -> IDiagramService:
+def get_diagram_service() -> 'SupportsDiagram':
     """Get DiagramService instance from app context."""
     if app_context.diagram_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.diagram_service
 
 
-def get_file_service() -> IFileService:
+def get_file_service() -> 'SupportsFile':
     """Get FileService instance from app context."""
     if app_context.file_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.file_service
 
 
-def get_memory_service() -> IMemoryService:
+def get_memory_service() -> 'SupportsMemory':
     """Get MemoryService instance from app context."""
     if app_context.memory_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.memory_service
 
 
-def get_execution_service() -> IExecutionService:
+def get_execution_service() -> 'SupportsExecution':
     """Get ExecutionService instance from app context."""
     if app_context.execution_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.execution_service
 
 
-def get_notion_service() -> INotionService:
+def get_notion_service() -> 'SupportsNotion':
     """Get NotionService instance from app context."""
     if app_context.notion_service is None:
         raise RuntimeError("Application context not initialized")

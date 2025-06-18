@@ -36,7 +36,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
   const { activeCanvas } = useUIState();
-  const { updateArrow } = useArrowOperations();
+  const { updateArrow, getArrow } = useArrowOperations();
   const isExecutionMode = activeCanvas === 'execution';
   
   const arrowData = data as ArrowData | undefined;
@@ -44,14 +44,18 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const controlPointOffsetY = Number(arrowData?.controlPointOffsetY ?? 0);
 
   // Create a type-safe wrapper that updates arrow data in the store
-  const handleUpdateData = useCallback((edgeId: string, data: Partial<ArrowData>) => {
-    if (!data) return;
+  const handleUpdateData = useCallback((edgeId: string, newData: Partial<ArrowData>) => {
+    if (!newData) return;
     
-    // Update the arrow's data property with the new ArrowData
+    // Get the current arrow to preserve existing data
+    const currentArrow = getArrow(arrowId(edgeId));
+    const currentData = (currentArrow?.data || {}) as ArrowData;
+    
+    // Merge the new data with existing data
     updateArrow(arrowId(edgeId), {
-      data: data as Record<string, unknown>
+      data: { ...currentData, ...newData } as Record<string, unknown>
     });
-  }, [updateArrow]);
+  }, [updateArrow, getArrow]);
 
   // Memoize path and label position calculations
   const { edgePath, labelX, labelY } = useMemo(() => {

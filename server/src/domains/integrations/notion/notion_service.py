@@ -2,13 +2,12 @@ from typing import Any, Dict, List, Optional
 from notion_client import Client
 from src.shared.utils.base_service import BaseService
 from src.shared.exceptions.exceptions import DiagramExecutionError
-from src.shared.interfaces import INotionService
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class NotionService(BaseService, INotionService):
+class NotionService(BaseService):
     def __init__(self):
         super().__init__()
         self._clients: Dict[str, Client] = {}

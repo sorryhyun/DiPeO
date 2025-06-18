@@ -10,10 +10,9 @@ import aiofiles
 from config import UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
 from ..exceptions.exceptions import ValidationError, FileOperationError
 from ..utils.base_service import BaseService
-from ..interfaces import IFileService
 
 
-class FileService(BaseService, IFileService):
+class FileService(BaseService):
     """Unified file service for all file operations."""
     
     def __init__(self, base_dir: Optional[Path] = None):

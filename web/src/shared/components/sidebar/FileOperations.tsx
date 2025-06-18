@@ -126,8 +126,7 @@ export const FileOperations: React.FC = () => {
 
   // Define export formats for sidebar display
   const exportFormats = [
-    { value: DiagramFormat.NATIVE, label: 'React JSON' },
-    { value: DiagramFormat.NATIVE_YAML, label: 'Native YAML' },
+    { value: DiagramFormat.NATIVE, label: 'Native JSON' },
     { value: DiagramFormat.READABLE, label: 'Readable YAML' },
     { value: DiagramFormat.LIGHT, label: 'Light YAML' }
   ];
@@ -181,7 +180,7 @@ export const FileOperations: React.FC = () => {
         >
           {exportFormats.map(format => (
             <option key={format.value} value={format.value}>
-              Save as {format.label}
+              {format.label}
             </option>
           ))}
         </Select>

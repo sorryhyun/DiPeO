@@ -152,6 +152,17 @@ export const saveDiagramToBackend = async (
         }
       });
       
+      // If saving quicksave, evict it from cache to ensure fresh load next time
+      if (diagramId === 'quicksave') {
+        apolloClient.cache.evict({ 
+          id: apolloClient.cache.identify({
+            __typename: 'Diagram',
+            metadata: { id: 'quicksave' }
+          })
+        });
+        apolloClient.cache.gc();
+      }
+      
       if (!data?.saveDiagram.success) {
         throw new Error(data?.saveDiagram.error || 'Failed to save diagram');
       }

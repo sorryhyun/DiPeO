@@ -15,7 +15,6 @@ from src.shared.utils.base_service import BaseService
 from src.shared.utils.diagram_validator import DiagramValidator
 from config import BASE_DIR
 from src.shared.domain import DiagramID
-from src.shared.interfaces import IDiagramService
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def round_position(position: dict) -> dict:
     }
 
 
-class DiagramService(BaseService, IDiagramService):
+class DiagramService(BaseService):
     """Service for handling diagram operations."""
     
     def __init__(self, llm_service: LLMService, api_key_service: APIKeyService, memory_service: MemoryService):
@@ -472,6 +471,15 @@ class DiagramService(BaseService, IDiagramService):
         Returns:
             Diagram dictionary or None if not found
         """
+        # Special handling for quicksave - always load .json first
+        if diagram_id == 'quicksave':
+            json_path = self.diagrams_dir / 'quicksave.json'
+            if json_path.exists():
+                try:
+                    return self.load_diagram('quicksave.json')
+                except Exception as e:
+                    logger.error(f"Failed to load quicksave.json: {e}")
+        
         # Try to find the diagram file
         for ext in ['.yaml', '.yml', '.json']:
             path = f"{diagram_id}{ext}"
