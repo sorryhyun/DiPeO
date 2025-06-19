@@ -7,7 +7,7 @@ from ..types.domain import ExecutionState, ExecutionEvent
 from ..types.scalars import ExecutionID
 from ..types.inputs import ExecutionFilterInput
 from ..context import GraphQLContext
-from src.domains.diagram.models.domain import (
+from src.domains.diagram.models import (
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent
 )

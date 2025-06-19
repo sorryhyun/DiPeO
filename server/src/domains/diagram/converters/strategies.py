@@ -258,6 +258,9 @@ class LightYamlStrategy(FormatStrategy):
 class ReadableYamlStrategy(FormatStrategy):
     """Strategy for readable YAML format."""
     
+    def __init__(self):
+        self.node_mapper = NodeTypeMapper()
+    
     @property
     def format_id(self) -> str:
         return "readable"
@@ -361,18 +364,10 @@ class ReadableYamlStrategy(FormatStrategy):
         return 0.1
     
     def _determine_node_type(self, step_data: Dict[str, Any]) -> str:
-        """Determine node type from step data."""
-        if 'prompt' in step_data:
-            if 'person' in step_data or 'model' in step_data:
-                return 'person_job'
-            return 'user_response'
-        elif 'code' in step_data:
-            return 'job'
-        elif 'condition' in step_data:
-            return 'condition'
-        elif 'data' in step_data and isinstance(step_data.get('data'), str):
-            return 'start'
-        return 'unknown'
+        """Determine node type from step data using shared NodeTypeMapper."""
+        # Use the shared mapper's intelligent type detection
+        node_type = self.node_mapper.determine_node_type(step_data)
+        return node_type.value
     
     def _extract_properties(self, step_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract properties from step data."""

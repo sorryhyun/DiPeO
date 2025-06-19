@@ -7,8 +7,9 @@ import logging
 from ..types.domain import DomainDiagramType as GraphQLDiagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
-from src.domains.diagram.services.diagram_service import DiagramService
-from src.domains.diagram.models.domain import ExtendedDiagramDict as DomainDiagramModel
+from src.domains.diagram.services import DiagramService
+from src.domains.diagram.converters import diagram_dict_to_graphql
+from src.__generated__.models import DiagramDictFormat
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,8 @@ class DiagramResolver:
                 }
             
             # Convert to DomainDiagram then to GraphQL format
-            domain_diagram = DomainDiagramModel.from_dict(diagram_data)
-            graphql_diagram = domain_diagram.to_graphql()
+            diagram_dict = DiagramDictFormat.from_dict(diagram_data)
+            graphql_diagram = diagram_dict_to_graphql(diagram_dict)
             
             # Build handle_index for nested view
             handle_index = defaultdict(list)

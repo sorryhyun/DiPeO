@@ -13,41 +13,23 @@ from src.__generated__.models import (
     DomainApiKey, DiagramMetadata, DomainDiagram,
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,
-    TokenUsage as PydanticTokenUsage,
     Vec2 as PydanticVec2,
-    DiagramFormat
+    DiagramFormat,
+    TokenUsage as GeneratedTokenUsage
 )
 
 # Import domain-specific extensions
-from src.domains.diagram.models.domain import (
-    ExtendedTokenUsage as DiagramTokenUsage,
-    ExecutionID
-)
+from src.shared.domain.types import TokenUsage as DiagramTokenUsage
 
 # Convert basic types
-@strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True)
-class Vec2:
-    """2D position vector."""
-    pass
-
-@strawberry.experimental.pydantic.type(model=PydanticTokenUsage, all_fields=True)
-class TokenUsage:
-    """Token usage statistics."""
-    pass
-
-@strawberry.experimental.pydantic.type(model=DiagramTokenUsage)
-class DiagramTokenUsageType:
-    """Token usage statistics for diagram execution."""
-    input: strawberry.auto
-    output: strawberry.auto
-    cached: strawberry.auto
-    total: strawberry.auto
+# Use the models directly with strawberry.experimental.pydantic
+Vec2 = strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True, description="2D position vector")
+TokenUsage = strawberry.experimental.pydantic.type(model=GeneratedTokenUsage, all_fields=True, description="Token usage statistics")
+DiagramTokenUsageType = strawberry.experimental.pydantic.type(model=DiagramTokenUsage, all_fields=True, description="Token usage statistics for diagram execution")
 
 # Convert domain models to Strawberry types
-@strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True)
-class Handle:
-    """Connection point on a node."""
-    pass
+# Direct conversion for simple types
+Handle = strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True, description="Connection point on a node")
 
 @strawberry.experimental.pydantic.type(model=DomainNode)
 class Node:
@@ -128,10 +110,8 @@ class ApiKey:
         """Masked version of the key."""
         return f"{self.service.value}-****"
 
-@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True)
-class DiagramMetadata:
-    """Metadata for a diagram."""
-    pass
+# Metadata can be used directly
+DiagramMetadata = strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True, description="Metadata for a diagram")
 
 @strawberry.experimental.pydantic.type(model=DomainDiagram)
 class DomainDiagramType:

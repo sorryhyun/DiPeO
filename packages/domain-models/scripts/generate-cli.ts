@@ -251,7 +251,7 @@ def create_handle_id(node_id: str, handle_name: str) -> str:
       .map(([mod, items]) => `from ${mod} import ${[...items].sort().join(', ')}`)
       .join('\n');
 
-    return imports + '\n\n' + sb.toString().trim() + '\n';
+    return `${imports  }\n\n${  sb.toString().trim()  }\n`;
   }
 }
 

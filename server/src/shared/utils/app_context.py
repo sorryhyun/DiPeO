@@ -6,12 +6,12 @@ from typing import AsyncGenerator, Optional, TYPE_CHECKING
 from fastapi import FastAPI
 
 from src.shared.services.api_key_service import APIKeyService
-from src.domains.llm.services.llm_service import LLMService
-from src.domains.diagram.services.diagram_service import DiagramService
+from src.domains.llm.services import LLMService
+from src.domains.diagram.services import DiagramService
 from src.shared.services.file_service import FileService
-from src.domains.person.memory.memory_service import MemoryService
+from src.domains.person.memory import MemoryService
 from src.domains.execution.services.execution_service import ExecutionService
-from src.domains.integrations.notion.notion_service import NotionService
+from src.domains.integrations.notion import NotionService
 from src.domains.execution.services.message_router_simple import message_router
 from src.domains.execution.services.simple_state_store import state_store
 import os

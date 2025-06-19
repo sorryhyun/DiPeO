@@ -8,9 +8,9 @@ from datetime import datetime
 from fastapi import HTTPException
 
 from src.shared.exceptions.exceptions import ValidationError
-from src.domains.llm.services.llm_service import LLMService
+from src.domains.llm.services import LLMService
 from src.shared.services.api_key_service import APIKeyService
-from src.domains.person.memory.memory_service import MemoryService
+from src.domains.person.memory import MemoryService
 from src.shared.utils.base_service import BaseService
 from src.shared.utils.diagram_validator import DiagramValidator
 from config import BASE_DIR

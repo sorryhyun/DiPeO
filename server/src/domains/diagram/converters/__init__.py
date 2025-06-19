@@ -11,6 +11,10 @@ from .strategies import (
     LightYamlStrategy,
     ReadableYamlStrategy
 )
+from .diagram_format_converter import (
+    diagram_dict_to_graphql,
+    graphql_to_diagram_dict
+)
 
 __all__ = [
     'DiagramConverter',
@@ -19,5 +23,7 @@ __all__ = [
     'FormatStrategy',
     'NativeJsonStrategy',
     'LightYamlStrategy',
-    'ReadableYamlStrategy'
+    'ReadableYamlStrategy',
+    'diagram_dict_to_graphql',
+    'graphql_to_diagram_dict'
 ]

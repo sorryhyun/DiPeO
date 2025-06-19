@@ -6,7 +6,7 @@ from ..types.results import HandleResult, DeleteResult
 from ..types.scalars import HandleID
 from ..types.inputs import CreateHandleInput
 from ..context import GraphQLContext
-from src.domains.diagram.models.domain import DomainHandle
+from src.domains.diagram.models import DomainHandle
 from src.shared.domain import Vec2
 from ..models.input_models import CreateHandleInput as PydanticCreateHandleInput
 
