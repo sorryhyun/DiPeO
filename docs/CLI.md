@@ -11,13 +11,13 @@ Command-line interface for DiPeO diagram operations.
 ./dipeo --help
 
 # Or install in editable mode
-cd cli && pip install -e .
+cd apps/cli && pip install -e .
 ```
 
 ### For Production
 
 ```bash
-cd cli && pip install .
+cd apps/cli && pip install .
 ```
 
 ## Usage
@@ -56,7 +56,7 @@ dipeo monitor
 
 The CLI package structure:
 ```
-cli/
+apps/cli/
 ├── dipeo/                 # Main package
 │   ├── __generated__/     # Auto-generated models
 │   ├── __main__.py        # Entry point

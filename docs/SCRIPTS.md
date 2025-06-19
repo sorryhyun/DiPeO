@@ -190,7 +190,7 @@ lsof -ti:8000 | xargs kill -9
 ### CLI not working
 ```bash
 # Reinstall CLI
-rm -rf cli/.venv
+rm -rf apps/cli/.venv
 ./dev.sh --install-cli
 ```
 

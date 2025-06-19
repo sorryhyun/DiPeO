@@ -32,10 +32,10 @@ print_status "Starting GraphQL schema export process..."
 
 # Step 1: Export schema from server
 print_status "Exporting schema from server..."
-cd server
-python -m src.interfaces.graphql.schema ../web/schema.graphql
+cd apps/server
+python -m src.interfaces.graphql.schema ../../apps/web/schema.graphql
 if [ $? -eq 0 ]; then
-    print_status "Schema exported successfully to web/schema.graphql"
+    print_status "Schema exported successfully to apps/web/schema.graphql"
 else
     print_error "Failed to export schema"
     exit 1
@@ -53,7 +53,7 @@ else
 fi
 
 print_status "GraphQL schema export and codegen completed successfully!"
-print_status "Generated files are in: web/src/__generated__/"
+print_status "Generated files are in: apps/web/src/__generated__/"
 
 # Optional: Start the development server if --dev flag is provided
 if [[ "$1" == "--dev" ]]; then

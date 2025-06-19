@@ -13,18 +13,18 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
-web/schema.graphql
-server/schema.graphql
+apps/web/schema.graphql
+apps/server/schema.graphql
 packages/domain-models/schema.graphql
 server/diagrams
 docs/deprecated
 TODO.md
 *.tsbuildinfo
 
-web/src/__generated__
-server/src/__generated__
-packages/domain-models/__generated__
-cli/dipeo/__generated__
+apps/web/src/__generated__
+apps/server/src/__generated__
+apps/packages/domain-models/__generated__
+apps/cli/dipeo/__generated__
 
 # Node.js
 node_modules/

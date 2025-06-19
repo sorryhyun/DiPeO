@@ -77,25 +77,21 @@ check_dependencies() {
 install_cli() {
     print_info "Setting up DiPeO CLI..."
     
-    cd "$SCRIPT_DIR/cli"
-    
-    # Create virtual environment if it doesn't exist
-    if [ ! -d ".venv" ]; then
+    # Create virtual environment in root if it doesn't exist
+    if [ ! -d "$SCRIPT_DIR/.venv" ]; then
         print_info "Creating Python virtual environment..."
-        python3 -m venv .venv
+        python3 -m venv "$SCRIPT_DIR/.venv"
     fi
     
     # Activate virtual environment
-    source .venv/bin/activate
+    source "$SCRIPT_DIR/.venv/bin/activate"
     
     # Install CLI in development mode
     print_info "Installing CLI in development mode..."
-    pip install -e .
+    pip install -e "$SCRIPT_DIR/apps/cli"
     
     print_success "CLI installed successfully"
     print_info "You can now use 'dipeo' command (in the virtual environment)"
-    
-    cd "$SCRIPT_DIR"
 }
 
 # Function to generate code
@@ -117,19 +113,19 @@ generate_code() {
 run_backend() {
     print_info "Starting backend server..."
     
-    cd "$SCRIPT_DIR/server"
-    
     # Check if virtual environment exists
-    if [ ! -d "../server/.venv" ]; then
-        print_warning "Backend virtual environment not found. Creating one..."
-        python3 -m venv ../.venv
-        source .venv/bin/activate
-        pip install -r requirements.txt
+    if [ ! -d "$SCRIPT_DIR/.venv" ]; then
+        print_warning "Virtual environment not found. Creating one..."
+        python3 -m venv "$SCRIPT_DIR/.venv"
+        source "$SCRIPT_DIR/.venv/bin/activate"
+        pip install -r "$SCRIPT_DIR/requirements.txt"
+        pip install -e "$SCRIPT_DIR/apps/cli"  # Install CLI in editable mode
     else
-        source .venv/bin/activate
+        source "$SCRIPT_DIR/.venv/bin/activate"
     fi
     
     # Run the backend
+    cd "$SCRIPT_DIR/apps/server"
     print_info "Starting FastAPI server on http://localhost:8000"
     python main.py
 }

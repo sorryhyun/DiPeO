@@ -1,0 +1,10 @@
+mutation ExportDiagramStateful($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
+  exportDiagramStateful(content: $content, format: $format, includeMetadata: $includeMetadata) {
+    success
+    message
+    error
+    content
+    format
+    filename
+  }
+}

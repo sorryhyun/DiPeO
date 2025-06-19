@@ -1,0 +1,83 @@
+# GraphQL Code Generation Configuration
+# 
+# This configuration generates TypeScript types from our GraphQL schema.
+# Key design decisions:
+# 1. Branded types (NodeID, HandleID, etc.) are imported from @dipeo/domain-models
+# 2. Enums are imported from @dipeo/domain-models for consistency
+# 3. Complex types (Node, Arrow, etc.) are generated from GraphQL schema
+#    because they need to match the exact GraphQL API structure
+#
+# For type usage guidelines, see docs/type-consolidation-plan.md
+
+overwrite: true
+schema: "./schema.graphql"
+documents: 
+  - "src/**/*.graphql"
+  - "src/**/*.{ts,tsx}"
+generates:
+  src/__generated__/graphql.tsx:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      # Use branded types from @dipeo/domain-models
+      scalars:
+        NodeID: "@dipeo/domain-models#NodeID"
+        HandleID: "@dipeo/domain-models#HandleID"
+        ArrowID: "@dipeo/domain-models#ArrowID"
+        PersonID: "@dipeo/domain-models#PersonID"
+        ApiKeyID: "@dipeo/domain-models#ApiKeyID"
+        ExecutionID: "@dipeo/domain-models#ExecutionID"
+        DiagramID: "@dipeo/domain-models#DiagramID"
+      # Import enums from @dipeo/domain-models
+      enumsAsTypes: false
+      enumValues:
+        NodeType: "@dipeo/domain-models#NodeType"
+        HandleDirection: "@dipeo/domain-models#HandleDirection"
+        DataType: "@dipeo/domain-models#DataType"
+        LLMService: "@dipeo/domain-models#LLMService"
+        ForgettingMode: "@dipeo/domain-models#ForgettingMode"
+        DiagramFormat: "@dipeo/domain-models#DiagramFormat"
+        ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
+        EventType: "@dipeo/domain-models#EventType"
+      # Skip generating TypeScript types for enums
+      skipTypename: false
+      # Use proper imports
+      useTypeImports: true
+      # Keep enum names as-is from schema
+      namingConvention:
+        enumValues: keep
+        typeNames: keep
+      # Generate React hooks
+      withHooks: true
+      # Generate HOCs for components
+      withHOC: false
+      # Generate components
+      withComponent: false
+      # Use the Apollo Client 3.x API
+      apolloClientVersion: 3
+      # Better type safety
+      avoidOptionals: false
+      # Generate result types for better error handling
+      withResultType: true
+      # Add __typename for better cache management
+      addDocumentNodeToOperations: true
+      # Generate fragment matcher for unions
+      possibleTypes:
+        NodeDataUnion:
+          - StartNodeData
+          - PersonJobNodeData
+          - ConditionNodeData
+          - JobNodeData
+          - EndpointNodeData
+          - DBNodeData
+          - UserResponseNodeData
+          - NotionNodeData
+          - PersonBatchJobNodeData
+        DiagramOperationResult:
+          - Diagram
+          - OperationError
+        ExecutionOperationResult:
+          - ExecutionState
+          - OperationError
