@@ -9,4 +9,72 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 2. diagram의 yaml 형태 표현 및 실행 tool 제공
 3. 다이어그램 엔드포인트를 활용한 A2A canvas 제공 (구현 예정)
 
+## Quickstart
+
+
+```bash
+# Start everything (first-time setup is automatic)
+./run.sh
+```
+
+That's it! This single command will:
+- Install dependencies if it's your first time
+- Generate required code
+- Start both frontend and backend services
+
+## Essential Scripts
+
+### `./run.sh` - The Simplest Option
+```bash
+./run.sh           # Start everything (default)
+./run.sh frontend  # Frontend only
+./run.sh backend   # Backend only
+```
+
+### `./dev.sh` - More Control
+```bash
+./dev.sh --all                    # Start both services
+./dev.sh --frontend --watch       # Frontend with hot reload
+./dev.sh --backend                # Backend only
+./dev.sh --generate               # Regenerate code
+./dev.sh --install-cli            # Setup CLI tool
+```
+
+### `./codegen.sh` - GraphQL Types
+```bash
+./codegen.sh       # Generate TypeScript types from GraphQL schema
+```
+
+### `./dipeo` - Run Diagrams
+```bash
+./dipeo run files/diagrams/example.yaml --debug
+```
+
+## Quick Development Workflows
+
+**Full-stack development:**
+```bash
+./run.sh  # Start everything in one command
+```
+
+**Frontend-only changes:**
+```bash
+./dev.sh --frontend --watch
+```
+
+**After changing GraphQL schema:**
+```bash
+./codegen.sh
+```
+
+**Working with diagrams:**
+```bash
+./dipeo run your-diagram.yaml --debug
+```
+
+## Requirements
+- Node.js 22+ with pnpm 10+
+- Python 3.12+
+- tmux (optional, for better parallel execution)
+
 

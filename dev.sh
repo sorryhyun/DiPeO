@@ -123,10 +123,10 @@ run_backend() {
     if [ ! -d "../server/.venv" ]; then
         print_warning "Backend virtual environment not found. Creating one..."
         python3 -m venv ../.venv
-        source ../.venv/bin/activate
+        source .venv/bin/activate
         pip install -r requirements.txt
     else
-        source ../.venv/bin/activate
+        source .venv/bin/activate
     fi
     
     # Run the backend
