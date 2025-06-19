@@ -10,9 +10,16 @@ import { useSubscription, useMutation, ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { type NodeID, type ReactDiagram, diagramId, executionId, nodeId } from '@/core/types';
-import type { ExecutionOptions, ExecutionUpdate, InteractivePromptData } from '@/features/execution-monitor/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import {type ReactDiagram, diagramId, executionId, nodeId } from '@/core/types';
+import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types';
+import {
+  NodeType,
+  ExecutionStatus,
+  EventType,
+  NodeExecutionStatus,
+  type ExecutionUpdate,
+  NodeID
+} from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/core/config/nodeMeta';
 import {
@@ -26,10 +33,9 @@ import {
   NodeUpdatesSubscription,
   InteractivePromptsSubscription,
 } from '@/__generated__/graphql';
-import { ExecutionStatus } from '@dipeo/domain-models';
 
-// Types (same as original)
-export interface ExecutionState {
+// Hook-specific execution state (not to be confused with canonical ExecutionState)
+export interface HookExecutionState {
   isRunning: boolean;
   executionId: string | null;
   totalNodes: number;
@@ -61,7 +67,7 @@ export interface UseExecutionOptions {
 
 export interface UseExecutionReturn {
   // State
-  execution: ExecutionState;
+  execution: HookExecutionState;
   nodeStates: Record<string, NodeState>;
   isRunning: boolean;
   isReconnecting: boolean;
@@ -100,11 +106,11 @@ export interface UseExecutionReturn {
   
   // Additional properties for compatibility
   runningNodes: Set<NodeID>;
-  nodes?: any[];
+  nodes?: Array<any>;
 }
 
 // Constants
-const initialExecutionState: ExecutionState = {
+const initialExecutionState: HookExecutionState = {
   isRunning: false,
   executionId: null,
   totalNodes: 0,
@@ -116,7 +122,7 @@ const initialExecutionState: ExecutionState = {
 };
 
 // Throttle utility
-function throttle<T extends (...args: any[]) => any>(fn: T, delay: number): T {
+function throttle<T extends (...args: Array<any>) => any>(fn: T, delay: number): T {
   let lastCall = 0;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let lastArgs: Parameters<T> | null = null;
@@ -154,7 +160,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   const executionActions = useUnifiedStore(useShallow(executionStoreSelector));
   
   // State
-  const [execution, setExecution] = useState<ExecutionState>(initialExecutionState);
+  const [execution, setExecution] = useState<HookExecutionState>(initialExecutionState);
   const [nodeStates, setNodeStates] = useState<Record<string, NodeState>>({});
   const [interactivePrompt, setInteractivePrompt] = useState<InteractivePromptData | null>(null);
   const [progress, setProgress] = useState(0);
@@ -280,15 +286,15 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       const totalTokens = update.tokenUsage ? (update.tokenUsage.input + update.tokenUsage.output + (update.tokenUsage.cached || 0)) : undefined;
       completeExecution(totalTokens);
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_complete', totalTokens, timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.EXECUTION_COMPLETED, executionId: executionId(executionIdRef.current!), totalTokens, timestamp: new Date().toISOString() });
     } else if (update.status === ExecutionStatus.FAILED && update.error) {
       errorExecution(update.error);
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_error', error: update.error, nodeId: '', status: 'failed', timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.EXECUTION_ERROR, executionId: executionId(executionIdRef.current!), error: update.error, timestamp: new Date().toISOString() });
     } else if (update.status === ExecutionStatus.ABORTED) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
-      onUpdate?.({ type: 'execution_aborted', nodeId: '', status: 'failed', timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.EXECUTION_ABORTED, executionId: executionId(executionIdRef.current!), timestamp: new Date().toISOString() });
     }
   }, [executionData, completeExecution, errorExecution, executionActions, onUpdate]);
   
@@ -310,13 +316,13 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     currentRunningNodeRef.current = nodeIdStr;
     executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-      status: 'running',
+      status: NodeExecutionStatus.RUNNING,
       timestamp: Date.now()
     });
-    onUpdate?.({ type: 'node_start', nodeId: nodeId(nodeIdStr), nodeType, status: 'running', timestamp: new Date().toISOString() });
+    onUpdate?.({ type: EventType.NODE_STARTED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(nodeIdStr), nodeType, status: NodeExecutionStatus.RUNNING, timestamp: new Date().toISOString() });
   }, 50), [executionActions, onUpdate]);
   
-  const handleNodeComplete = useCallback(throttle((nodeIdStr: string, tokenCount?: number, output?: any) => {
+  const handleNodeComplete = useCallback(throttle((nodeIdStr: string, tokenCount?: number, output?: unknown) => {
     setExecution(prev => ({
       ...prev,
       completedNodes: prev.completedNodes + 1,
@@ -338,7 +344,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     }
     
     executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-      status: 'completed',
+      status: NodeExecutionStatus.COMPLETED,
       timestamp: Date.now()
     });
     
@@ -346,7 +352,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       runContextRef.current = { ...runContextRef.current, ...output };
     }
     
-    onUpdate?.({ type: 'node_complete', nodeId: nodeId(nodeIdStr), tokens: tokenCount, result: output, status: 'completed', timestamp: new Date().toISOString() });
+    onUpdate?.({ type: EventType.NODE_COMPLETED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(nodeIdStr), tokens: tokenCount, result: output, status: NodeExecutionStatus.COMPLETED, timestamp: new Date().toISOString() });
   }, 50), [executionActions, onUpdate]);
   
   // Process node subscription updates
@@ -371,7 +377,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }));
       
       executionActions.updateNodeExecution(nodeId(update.nodeId), {
-        status: 'failed',
+        status: NodeExecutionStatus.FAILED,
         timestamp: Date.now(),
         error: update.error ?? undefined
       });
@@ -380,7 +386,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         toast.error(`Node ${update.nodeId.slice(0, 8)}... failed: ${update.error}`);
       }
       
-      onUpdate?.({ type: 'node_error', nodeId: nodeId(update.nodeId), error: update.error || undefined, status: 'failed', timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.NODE_FAILED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(update.nodeId), error: update.error || undefined, status: NodeExecutionStatus.FAILED, timestamp: new Date().toISOString() });
     } else if (update.status === 'skipped') {
       setExecution(prev => ({
         ...prev,
@@ -398,11 +404,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       
       skippedNodesRef.current.push({ nodeId: update.nodeId, reason: 'Skipped' });
       executionActions.updateNodeExecution(nodeId(update.nodeId), {
-        status: 'skipped',
+        status: NodeExecutionStatus.SKIPPED,
         timestamp: Date.now()
       });
       
-      onUpdate?.({ type: 'node_skipped', nodeId: nodeId(update.nodeId), status: 'skipped', timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.NODE_SKIPPED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(update.nodeId), status: NodeExecutionStatus.SKIPPED, timestamp: new Date().toISOString() });
     } else if (update.status === 'paused') {
       setNodeStates(prev => ({
         ...prev,
@@ -411,7 +417,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           status: 'paused' as const
         }
       }));
-      onUpdate?.({ type: 'node_paused', nodeId: nodeId(update.nodeId), status: 'paused', timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.NODE_PAUSED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(update.nodeId), status: NodeExecutionStatus.PAUSED, timestamp: new Date().toISOString() });
     }
     
     // Handle progress updates
@@ -423,7 +429,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           progress: update.progress || undefined
         } as NodeState
       }));
-      onUpdate?.({ type: 'node_progress', nodeId: nodeId(update.nodeId), status: 'running', timestamp: new Date().toISOString() });
+      onUpdate?.({ type: EventType.NODE_PROGRESS, executionId: executionId(executionIdRef.current!), nodeId: nodeId(update.nodeId), status: NodeExecutionStatus.RUNNING, timestamp: new Date().toISOString() });
     }
   }, [nodeData, handleNodeStart, handleNodeComplete, executionActions, showToasts, onUpdate]);
   
@@ -438,7 +444,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       prompt: prompt.prompt,
       timeout: prompt.timeoutSeconds || undefined,
     });
-    onUpdate?.({ type: 'interactive_prompt_request', nodeId: nodeId(prompt.nodeId), status: 'paused', timestamp: new Date().toISOString() });
+    onUpdate?.({ type: EventType.INTERACTIVE_PROMPT, executionId: executionId(executionIdRef.current!), nodeId: nodeId(prompt.nodeId), status: NodeExecutionStatus.PAUSED, timestamp: new Date().toISOString() });
   }, [promptData, onUpdate]);
   
   // Main Actions
@@ -454,14 +460,25 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     currentRunningNodeRef.current = null;
     
     try {
+      // Prepare diagram data for execution
+      const diagramData = diagram ? {
+        nodes: diagram.nodes.reduce((acc: Record<string, unknown>, node) => ({ ...acc, [node.id]: node }), {}),
+        arrows: diagram.arrows.reduce((acc: Record<string, unknown>, arrow) => ({ ...acc, [arrow.id]: arrow }), {}),
+        persons: diagram.persons.reduce((acc: Record<string, unknown>, person) => ({ ...acc, [person.id]: person }), {}),
+        handles: diagram.handles?.reduce((acc: Record<string, unknown>, handle) => ({ ...acc, [handle.id]: handle }), {}) || {},
+        apiKeys: diagram.apiKeys?.reduce((acc: Record<string, unknown>, key) => ({ ...acc, [key.id]: key }), {}) || {},
+        metadata: diagram.metadata
+      } : null;
+
       const result = await executeDiagramMutation({
         variables: {
           input: {
-            diagramId: diagram?.metadata?.id || diagramId('current'),
-            variables: (options as any)?.variables || {},
+            diagramData,
+            diagramId: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
+            variables: (options as ExecutionOptions & { variables?: Record<string, unknown> })?.variables || {},
             debugMode: options?.debug || false,
-            timeout: (options as any)?.timeout,
-            maxIterations: (options as any)?.maxIterations
+            timeout: (options as ExecutionOptions & { timeout?: number })?.timeout,
+            maxIterations: (options as ExecutionOptions & { maxIterations?: number })?.maxIterations
           }
         }
       });
@@ -470,7 +487,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(result.data.executeDiagram.executionId, totalNodes);
         executionActions.startExecution(result.data.executeDiagram.executionId);
-        onUpdate?.({ type: 'execution_started', nodeId: '', status: 'running', timestamp: new Date().toISOString() });
+        onUpdate?.({ type: EventType.EXECUTION_STARTED, executionId: executionId(result.data.executeDiagram.executionId), timestamp: new Date().toISOString() });
       } else {
         throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
       }
@@ -502,20 +519,20 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [controlExecutionMutation, showToasts]);
   
   const pauseNode = useCallback((nodeId: string) => {
-    controlExecution('pause', nodeId);
+    void controlExecution('pause', nodeId);
   }, [controlExecution]);
   
   const resumeNode = useCallback((nodeId: string) => {
-    controlExecution('resume', nodeId);
+    void controlExecution('resume', nodeId);
   }, [controlExecution]);
   
   const skipNode = useCallback((nodeId: string) => {
-    controlExecution('skip', nodeId);
+    void controlExecution('skip', nodeId);
   }, [controlExecution]);
   
   const abort = useCallback(() => {
     if (executionIdRef.current) {
-      controlExecution('abort');
+      void controlExecution('abort');
     } else if (execution.isRunning) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
@@ -559,11 +576,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [formatDuration]);
   
   const getNodeIcon = useCallback((nodeType: string): string => {
-    return NODE_ICONS[nodeType as NodeKind] || '📦';
+    return NODE_ICONS[nodeType as NodeType] || '📦';
   }, []);
   
   const getNodeColor = useCallback((nodeType: string): string => {
-    return NODE_COLORS[nodeType as NodeKind] || '#6b7280';
+    return NODE_COLORS[nodeType as NodeType] || '#6b7280';
   }, []);
   
   const getNodeExecutionState = useCallback((nodeId: string): NodeState | undefined => {

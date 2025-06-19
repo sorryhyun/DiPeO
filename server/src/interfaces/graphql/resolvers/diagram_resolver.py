@@ -4,18 +4,19 @@ from datetime import datetime
 from collections import defaultdict
 import logging
 
-from ..types.domain import Diagram, DiagramMetadata
+from ..types.domain import DomainDiagramType as GraphQLDiagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
-from src.domains.diagram.services.diagram_service import DiagramService
-from src.domains.diagram.models.domain import DomainDiagram
+from src.domains.diagram.services import DiagramService
+from src.domains.diagram.converters import diagram_dict_to_graphql
+from src.__generated__.models import DiagramDictFormat
 
 logger = logging.getLogger(__name__)
 
 class DiagramResolver:
     """Resolver for diagram-related queries and mutations."""
     
-    async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[Diagram]:
+    async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[GraphQLDiagram]:
         """Get a single diagram by ID (loads from file path)."""
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
@@ -42,8 +43,8 @@ class DiagramResolver:
                 }
             
             # Convert to DomainDiagram then to GraphQL format
-            domain_diagram = DomainDiagram.from_dict(diagram_data)
-            graphql_diagram = domain_diagram.to_graphql()
+            diagram_dict = DiagramDictFormat.from_dict(diagram_data)
+            graphql_diagram = diagram_dict_to_graphql(diagram_dict)
             
             # Build handle_index for nested view
             handle_index = defaultdict(list)
@@ -54,7 +55,7 @@ class DiagramResolver:
             info.context.handle_index = handle_index
             
             # Return as Strawberry type
-            return Diagram(
+            return GraphQLDiagram(
                 nodes=graphql_diagram.nodes,
                 handles=graphql_diagram.handles,
                 arrows=graphql_diagram.arrows,
@@ -73,7 +74,7 @@ class DiagramResolver:
         limit: int,
         offset: int,
         info
-    ) -> List[Diagram]:
+    ) -> List[GraphQLDiagram]:
         """List diagrams with optional filtering."""
         try:
             # Get diagram service from GraphQL context
@@ -131,7 +132,7 @@ class DiagramResolver:
                 )
                 
                 # Create a minimal Diagram object with just metadata
-                diagram = Diagram(
+                diagram = GraphQLDiagram(
                     nodes=[],
                     handles=[],
                     arrows=[],

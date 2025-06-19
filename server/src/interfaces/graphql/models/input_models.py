@@ -1,10 +1,10 @@
 """Pydantic models for GraphQL input types."""
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 import base64
 
-from src.shared.domain import (
+from src.common import (
     NodeType, HandleDirection, DataType, LLMService, 
     ForgettingMode, ExecutionStatus, DiagramID
 )
@@ -86,7 +86,7 @@ class CreatePersonInput(BaseModel):
     model: str
     api_key_id: str
     system_prompt: Optional[str] = None
-    forgetting_mode: ForgettingMode = ForgettingMode.NONE
+    forgetting_mode: ForgettingMode = ForgettingMode.NO_FORGET
     temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(None, ge=1)
     top_p: Optional[float] = Field(None, ge=0.0, le=1.0)
@@ -166,11 +166,21 @@ class CreateDiagramInput(BaseModel):
 
 class ExecuteDiagramInput(BaseModel):
     """Input for executing a diagram."""
-    diagram_id: DiagramID
+    diagram_id: Optional[DiagramID] = None
+    diagram_data: Optional[Dict[str, Any]] = None
     variables: Optional[Dict[str, Any]] = None
     debug_mode: bool = False
     timeout_seconds: Optional[int] = Field(None, gt=0, description="Execution timeout in seconds")
     max_iterations: Optional[int] = Field(None, gt=0, description="Maximum iterations for execution")
+    
+    @model_validator(mode='after')
+    def validate_diagram_source(self) -> 'ExecuteDiagramInput':
+        """Ensure either diagram_id or diagram_data is provided."""
+        if not self.diagram_id and not self.diagram_data:
+            raise ValueError("Either diagram_id or diagram_data must be provided")
+        if self.diagram_id and self.diagram_data:
+            raise ValueError("Only one of diagram_id or diagram_data should be provided")
+        return self
 
 
 class ExecutionControlInput(BaseModel):

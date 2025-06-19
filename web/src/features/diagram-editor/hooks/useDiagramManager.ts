@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useCanvas } from './useCanvas';
+import { useCanvas } from './ui/useCanvas';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
 import { useFileOperations } from '@/shared/hooks/useFileOperations';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
@@ -245,10 +245,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const exportDiagramAs = useCallback(async (format: DiagramFormat) => {
     try {
       // Use unified export method with format
-      if (format === DiagramFormat.LLM) {
-        toast.error('LLM-readable format is not yet implemented');
-        return;
-      }
       // Export to server with format-specific extension
       await fileOps.exportAndDownload(format);
     } catch (error) {

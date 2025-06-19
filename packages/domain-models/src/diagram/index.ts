@@ -8,71 +8,64 @@ import { z } from 'zod';
 
 // Enums
 export enum NodeType {
-  START = 'START',
-  PERSON_JOB = 'PERSON_JOB',
-  CONDITION = 'CONDITION',
-  JOB = 'JOB',
-  ENDPOINT = 'ENDPOINT',
-  DB = 'DB',
-  USER_RESPONSE = 'USER_RESPONSE',
-  NOTION = 'NOTION',
-  PERSON_BATCH_JOB = 'PERSON_BATCH_JOB'
+  START = 'start',
+  PERSON_JOB = 'person_job',
+  CONDITION = 'condition',
+  JOB = 'job',
+  ENDPOINT = 'endpoint',
+  DB = 'db',
+  USER_RESPONSE = 'user_response',
+  NOTION = 'notion',
+  PERSON_BATCH_JOB = 'person_batch_job'
 }
 
 export enum HandleDirection {
-  INPUT = 'INPUT',
-  OUTPUT = 'OUTPUT'
+  INPUT = 'input',
+  OUTPUT = 'output'
 }
 
 export enum DataType {
-  ANY = 'ANY',
-  STRING = 'STRING',
-  NUMBER = 'NUMBER',
-  BOOLEAN = 'BOOLEAN',
-  OBJECT = 'OBJECT',
-  ARRAY = 'ARRAY'
+  ANY = 'any',
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  OBJECT = 'object',
+  ARRAY = 'array'
 }
 
 export enum LLMService {
-  OPENAI = 'OPENAI',
-  ANTHROPIC = 'ANTHROPIC',
-  GOOGLE = 'GOOGLE',
-  GROK = 'GROK',
-  BEDROCK = 'BEDROCK',
-  VERTEX = 'VERTEX',
-  DEEPSEEK = 'DEEPSEEK'
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  GOOGLE = 'google',
+  GROK = 'grok',
+  BEDROCK = 'bedrock',
+  VERTEX = 'vertex',
+  DEEPSEEK = 'deepseek'
 }
 
 export enum ForgettingMode {
-  NO_FORGET = 'NO_FORGET',
-  NONE = 'NONE',
-  ON_EVERY_TURN = 'ON_EVERY_TURN',
-  UPON_REQUEST = 'UPON_REQUEST'
+  NO_FORGET = 'no_forget',
+  ON_EVERY_TURN = 'on_every_turn',
+  UPON_REQUEST = 'upon_request'
 }
 
 export enum DiagramFormat {
-  NATIVE = 'NATIVE',
-  LIGHT = 'LIGHT',
-  READABLE = 'READABLE',
-  LLM = 'LLM'
+  NATIVE = 'native',
+  LIGHT = 'light',
+  READABLE = 'readable',
+  NATIVE_YAML = 'native_yaml'
 }
 
 export enum DBBlockSubType {
-  FIXED_PROMPT = 'FIXED_PROMPT',
-  FILE = 'FILE',
-  CODE = 'CODE'
+  FIXED_PROMPT = 'fixed_prompt',
+  FILE = 'file',
+  CODE = 'code'
 }
 
 export enum ContentType {
-  VARIABLE = 'VARIABLE',
-  RAW_TEXT = 'RAW_TEXT',
-  CONVERSATION_STATE = 'CONVERSATION_STATE'
-}
-
-export enum ContextCleaningRule {
-  ON_EVERY_TURN = 'ON_EVERY_TURN',
-  UPON_REQUEST = 'UPON_REQUEST',
-  NO_FORGET = 'NO_FORGET'
+  VARIABLE = 'variable',
+  RAW_TEXT = 'raw_text',
+  CONVERSATION_STATE = 'conversation_state'
 }
 
 // Basic types
@@ -145,8 +138,8 @@ export interface DiagramMetadata {
   tags?: string[] | null;
 }
 
-// Diagram structures
-export interface DiagramArrayFormat {
+// Main diagram type used in GraphQL API (array format)
+export interface DomainDiagram {
   nodes: DomainNode[];
   handles: DomainHandle[];
   arrows: DomainArrow[];
@@ -155,6 +148,7 @@ export interface DiagramArrayFormat {
   metadata?: DiagramMetadata | null;
 }
 
+// Dictionary format for internal use
 export interface DiagramDictFormat {
   nodes: Record<NodeID, DomainNode>;
   handles: Record<HandleID, DomainHandle>;
@@ -180,7 +174,7 @@ export interface ConditionNodeData extends BaseNodeData {
   conditionType: string;
   detect_max_iterations: boolean;
   expression?: string;
-  _node_indices?: string[];
+  node_indices?: string[];
 }
 
 export interface PersonJobNodeData extends BaseNodeData {
@@ -188,7 +182,7 @@ export interface PersonJobNodeData extends BaseNodeData {
   firstOnlyPrompt: string;
   defaultPrompt?: string;
   maxIterations: number;
-  contextCleaningRule?: string;
+  forgettingMode?: string;
 }
 
 export interface EndpointNodeData extends BaseNodeData {
@@ -303,7 +297,7 @@ export const DiagramMetadataSchema = z.object({
   tags: z.array(z.string()).nullable().optional()
 });
 
-export const DiagramArrayFormatSchema = z.object({
+export const DomainDiagramSchema = z.object({
   nodes: z.array(DomainNodeSchema),
   handles: z.array(DomainHandleSchema),
   arrows: z.array(DomainArrowSchema),
@@ -313,7 +307,7 @@ export const DiagramArrayFormatSchema = z.object({
 });
 
 // Utility functions
-export function createEmptyDiagram(): DiagramArrayFormat {
+export function createEmptyDiagram(): DomainDiagram {
   return {
     nodes: [],
     handles: [],
@@ -328,7 +322,7 @@ export function createEmptyDiagram(): DiagramArrayFormat {
   };
 }
 
-export function arrayFormatToDictFormat(diagram: DiagramArrayFormat): DiagramDictFormat {
+export function domainDiagramToDictFormat(diagram: DomainDiagram): DiagramDictFormat {
   return {
     nodes: Object.fromEntries(diagram.nodes.map(node => [node.id, node])) as Record<NodeID, DomainNode>,
     handles: Object.fromEntries(diagram.handles.map(handle => [handle.id, handle])) as Record<HandleID, DomainHandle>,
@@ -339,7 +333,7 @@ export function arrayFormatToDictFormat(diagram: DiagramArrayFormat): DiagramDic
   };
 }
 
-export function dictFormatToArrayFormat(diagram: DiagramDictFormat): DiagramArrayFormat {
+export function dictFormatToDomainDiagram(diagram: DiagramDictFormat): DomainDiagram {
   return {
     nodes: Object.values(diagram.nodes),
     handles: Object.values(diagram.handles),
@@ -355,8 +349,8 @@ export function isDomainNode(obj: unknown): obj is DomainNode {
   return DomainNodeSchema.safeParse(obj).success;
 }
 
-export function isDiagramArrayFormat(obj: unknown): obj is DiagramArrayFormat {
-  return DiagramArrayFormatSchema.safeParse(obj).success;
+export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
+  return DomainDiagramSchema.safeParse(obj).success;
 }
 
 // Handle utilities

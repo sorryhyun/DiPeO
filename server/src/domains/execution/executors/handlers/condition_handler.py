@@ -9,10 +9,16 @@ import logging
 
 from ..schemas.condition import ConditionNodeProps, ConditionType
 from ..types import ExecutionContext
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="condition",
+    schema=ConditionNodeProps,
+    description="Conditional branching based on expression evaluation"
+)
 async def condition_handler(
     props: ConditionNodeProps,
     context: ExecutionContext,

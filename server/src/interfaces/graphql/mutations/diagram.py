@@ -9,7 +9,7 @@ from ..types.scalars import DiagramID
 from ..types.inputs import CreateDiagramInput, ImportYamlInput
 from ..types.enums import DiagramFormat
 from ..context import GraphQLContext
-from src.domains.diagram.models.domain import DiagramMetadata, DomainDiagram
+from src.domains.diagram.models import DiagramMetadata, DomainDiagram
 from ..models.input_models import (
     CreateDiagramInput as PydanticCreateDiagramInput,
     ImportYamlInput as PydanticImportYamlInput
@@ -210,7 +210,7 @@ class DiagramMutations:
                 DiagramFormat.NATIVE: '.json',
                 DiagramFormat.LIGHT: '.yaml',
                 DiagramFormat.READABLE: '.yaml', 
-                DiagramFormat.LLM: '.yaml'
+                DiagramFormat.NATIVE_YAML: '.yaml'
             }
             extension = extension_map.get(target_format, '.yaml')
             new_diagram_id = f"{base_name}{extension}"

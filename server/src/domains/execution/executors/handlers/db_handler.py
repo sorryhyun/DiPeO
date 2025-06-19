@@ -11,10 +11,17 @@ import logging
 from typing import Dict, Any, List
 from ..schemas.db import DBNodeProps, DBSubType
 from ..types import ExecutionContext
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="db",
+    schema=DBNodeProps,
+    description="Data source node for file operations and fixed prompts",
+    requires_services=["file_service"]
+)
 async def db_handler(
     props: DBNodeProps,
     context: ExecutionContext,

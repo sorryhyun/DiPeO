@@ -1,11 +1,11 @@
 import { StateCreator } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ArrowID, DomainArrow, DomainNode, NodeID, Vec2 } from '@/core/types';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { ArrowID, DomainArrow, DomainNode, NodeID } from '@/core/types';
 import { generateNodeId, generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { updateMap } from '@/core/store/helpers/entityHelpers';
+import { NodeType, Vec2 } from '@dipeo/domain-models';
 
 export interface DiagramSlice {
   // Core data structures
@@ -20,7 +20,7 @@ export interface DiagramSlice {
   dataVersion: number;
   
   // Node operations
-  addNode: (type: NodeKind, position: Vec2, initialData?: any) => NodeID;
+  addNode: (type: NodeType, position: Vec2, initialData?: any) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
@@ -120,7 +120,11 @@ export const createDiagramSlice: StateCreator<
   updateArrow: (id, updates) => set(state => {
     const arrow = state.arrows.get(id);
     if (arrow) {
+      // Special handling for data property to merge instead of replace
       const updatedArrow = { ...arrow, ...updates };
+      if (updates.data && arrow.data) {
+        updatedArrow.data = { ...arrow.data, ...updates.data };
+      }
       state.arrows.set(id, updatedArrow);
       state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
@@ -196,7 +200,7 @@ export const createDiagramSlice: StateCreator<
     
     // Check for start node
     const hasStartNode = Array.from(state.nodes.values()).some(
-      node => node.type === 'START'
+      node => node.type === NodeType.START
     );
     if (!hasStartNode) {
       errors.push('Diagram must have at least one start node');
@@ -204,7 +208,7 @@ export const createDiagramSlice: StateCreator<
     
     // Check for endpoint node
     const hasEndpoint = Array.from(state.nodes.values()).some(
-      node => node.type === 'ENDPOINT'
+      node => node.type === NodeType.ENDPOINT
     );
     if (!hasEndpoint) {
       errors.push('Diagram should have at least one endpoint node');
@@ -220,7 +224,7 @@ export const createDiagramSlice: StateCreator<
     });
     
     const unconnectedNodes = Array.from(state.nodes.values()).filter(
-      node => !connectedNodes.has(node.id) && node.type !== 'START'
+      node => !connectedNodes.has(node.id) && node.type !== NodeType.START
     );
     
     if (unconnectedNodes.length > 0) {
@@ -229,7 +233,7 @@ export const createDiagramSlice: StateCreator<
     
     // Check for person nodes without assigned persons
     state.nodes.forEach(node => {
-      if ((node.type === 'PERSON_JOB' || node.type === 'PERSON_BATCH_JOB') && !node.data?.person) {
+      if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && !node.data?.person) {
         errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
       }
     });

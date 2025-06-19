@@ -1,4 +1,4 @@
-# Requirements for DiPeO CLI tool (tool.py)
+# Requirements for DiPeO CLI
 # Install with: pip install -r requirements-cli.txt
 
 # Core dependencies

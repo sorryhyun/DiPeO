@@ -1,7 +1,7 @@
 """Main GraphQL schema definition for DiPeO."""
 import strawberry
 from strawberry.fastapi import GraphQLRouter
-from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL, GRAPHQL_WS_PROTOCOL
+from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
 from .queries import Query
 from .mutations import Mutation
@@ -29,10 +29,9 @@ def create_graphql_router(context_getter=None):
         context_getter=context_getter,
         # Enable GraphQL playground UI
         graphiql=True,
-        # Support both WebSocket protocols for subscriptions
+        # Support modern WebSocket protocol for subscriptions
         subscription_protocols=[
             GRAPHQL_TRANSPORT_WS_PROTOCOL,
-            GRAPHQL_WS_PROTOCOL,
         ],
         # Path for GraphQL endpoint
         path="/graphql",

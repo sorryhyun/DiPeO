@@ -1,7 +1,7 @@
 // packages/diagram-ui/src/components/FlowHandle.tsx
 import React, { useMemo } from 'react';
 import { Handle, Position, HandleProps } from '@xyflow/react';
-import { NodeID } from '@/core/types';
+import type { NodeID } from '@dipeo/domain-models';
 
 export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   nodeId: NodeID;

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 from src.api.middleware import setup_middleware
 
 # Import lifespan from app_context
-from src.shared.utils.app_context import lifespan
+from src.common.context import lifespan
 
 # Import GraphQL router
 from src.interfaces.graphql.schema import create_graphql_router

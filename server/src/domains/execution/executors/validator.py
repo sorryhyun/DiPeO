@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
-    from ..execution_engine import Ctx as ExecutionContext
+    from ..engine.engine import Ctx as ExecutionContext
 
 
 @dataclass
@@ -228,73 +228,6 @@ def validate_file_path(
     return errors
 
 
-def validate_either_required(
-    properties: Dict[str, Any],
-    field_groups: List[List[str]],
-    group_descriptions: Optional[List[str]] = None
-) -> List[str]:
-    """
-    Validate that at least one field from each group is provided.
-    
-    Args:
-        properties: Node properties
-        field_groups: List of field groups, where at least one field per group is required
-        group_descriptions: Optional descriptions for each group
-        
-    Returns:
-        List of error messages
-    """
-    errors = []
-    
-    for i, group in enumerate(field_groups):
-        has_value = any(
-            properties.get(field) and 
-            (not isinstance(properties.get(field), str) or properties.get(field).strip())
-            for field in group
-        )
-        
-        if not has_value:
-            if group_descriptions and i < len(group_descriptions):
-                errors.append(group_descriptions[i])
-            else:
-                errors.append(f"Either {' or '.join(group)} is required")
-    
-    return errors
-
-
-def validate_json_field(
-    properties: Dict[str, Any],
-    field_name: str,
-    required: bool = False
-) -> Tuple[Optional[Dict], Optional[str]]:
-    """
-    Validate and parse a JSON field.
-    
-    Args:
-        properties: Node properties
-        field_name: Name of the field containing JSON
-        required: Whether the field is required
-        
-    Returns:
-        Tuple of (parsed_json, error_message)
-    """
-    value = properties.get(field_name)
-    
-    if not value:
-        if required:
-            return None, f"{field_name} is required"
-        return None, None
-    
-    try:
-        if isinstance(value, str):
-            parsed = json.loads(value)
-        else:
-            parsed = value
-        return parsed, None
-    except json.JSONDecodeError as e:
-        return None, f"Invalid JSON in {field_name}: {str(e)}"
-
-
 def validate_numeric_range(
     properties: Dict[str, Any],
     field_name: str,
@@ -342,57 +275,6 @@ def validate_numeric_range(
         return f"{field_name} cannot exceed {max_value}"
     
     return None
-
-
-def validate_dangerous_code(
-    code: str,
-    language: str,
-    strict: bool = True
-) -> Tuple[List[str], List[str]]:
-    """
-    Check code for dangerous patterns.
-    
-    Args:
-        code: Code to validate
-        language: Programming language
-        strict: Whether to return errors (True) or warnings (False) for dangerous patterns
-        
-    Returns:
-        Tuple of (errors, warnings)
-    """
-    errors = []
-    warnings = []
-    
-    dangerous_patterns = {
-        "python": {
-            "high_risk": ["import os", "import subprocess", "__import__", "compile(", "globals("],
-            "medium_risk": ["exec(", "eval(", "open(", "file("]
-        },
-        "javascript": {
-            "high_risk": ["require('fs')", "require('child_process')", "eval("],
-            "medium_risk": ["Function(", "setTimeout(", "setInterval("]
-        },
-        "bash": {
-            "high_risk": ["rm -rf", "sudo", "> /dev/", "dd if=", "mkfs", ":(){ :|:& };:"],
-            "medium_risk": ["curl", "wget", "nc"]
-        }
-    }
-    
-    patterns = dangerous_patterns.get(language, {})
-    
-    for pattern in patterns.get("high_risk", []):
-        if pattern in code:
-            msg = f"Code contains dangerous operation: {pattern}"
-            if strict:
-                errors.append(msg)
-            else:
-                warnings.append(msg)
-    
-    for pattern in patterns.get("medium_risk", []):
-        if pattern in code:
-            warnings.append(f"Code contains potentially dangerous operation: {pattern}")
-    
-    return errors, warnings
 
 
 def merge_validation_results(*results: ValidationResult) -> ValidationResult:

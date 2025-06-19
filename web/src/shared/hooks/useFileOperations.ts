@@ -55,8 +55,11 @@ export const useFileOperations = () => {
         throw new Error('No content returned from export');
       }
 
-      // Download the file
-      await downloadFile(content, exportFilename || filename || 'diagram.yaml', 'text/yaml');
+      // Download the file with appropriate mime type
+      const isJson = format === DiagramFormat.NATIVE;
+      const mimeType = isJson ? 'application/json' : 'text/yaml';
+      const defaultFilename = isJson ? 'diagram.json' : 'diagram.yaml';
+      await downloadFile(content, exportFilename || filename || defaultFilename, mimeType);
       toast.success(`Exported as ${format} format`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -222,17 +225,6 @@ export const useFileOperations = () => {
           description: 'Human-friendly format',
           fileExtension: '.yaml',
           supportsImport: true,
-          supportsExport: true
-        }
-      },
-      {
-        format: DiagramFormat.LLM,
-        metadata: {
-          id: DiagramFormat.LLM,
-          displayName: 'LLM-Friendly',
-          description: 'Optimized for AI understanding',
-          fileExtension: '.yaml',
-          supportsImport: false,
           supportsExport: true
         }
       }

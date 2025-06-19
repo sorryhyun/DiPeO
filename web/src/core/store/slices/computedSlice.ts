@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, PersonID } from '@/core/types';
-import { NodeType } from '@dipeo/domain-models';
+import { DomainArrow, DomainHandle, DomainNode } from '@/core/types';
+import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID  } from '@dipeo/domain-models';
 import { UnifiedStore } from '../unifiedStore.types';
 
 export interface ComputedSlice {
@@ -210,7 +210,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
       const nodeState = state.execution.nodeStates.get(node.id as NodeID);
-      return nodeState?.status === 'completed';
+      return nodeState?.status === NodeExecutionStatus.COMPLETED;
     });
   },
   
@@ -218,7 +218,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
       const nodeState = state.execution.nodeStates.get(node.id as NodeID);
-      return nodeState?.status === 'failed';
+      return nodeState?.status === NodeExecutionStatus.FAILED;
     });
   },
   

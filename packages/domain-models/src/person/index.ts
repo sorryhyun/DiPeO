@@ -6,10 +6,14 @@
 
 import { z } from 'zod';
 import { ForgettingMode, type PersonID, type ApiKeyID, type LLMService } from '../diagram';
+import { Message, ConversationMetadata, Conversation } from './conversation';
 
 // Re-export person-related types from diagram for convenience
 export type { PersonID, LLMService };
 export { ForgettingMode };
+
+// Re-export conversation types
+export type { Message, Conversation, MemoryConfig, MemoryState } from './conversation';
 
 // Person-specific models (most are already in diagram domain)
 export interface PersonConfiguration {
@@ -27,28 +31,10 @@ export interface PersonConfiguration {
   presencePenalty?: number;
 }
 
-export interface PersonConversation {
-  personId: PersonID;
-  messages: ConversationMessage[];
-  metadata?: ConversationMetadata;
-}
-
-export interface ConversationMessage {
-  id: string;
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-  timestamp: string; // ISO datetime string
-  tokenCount?: number;
-  metadata?: Record<string, any>;
-}
-
-export interface ConversationMetadata {
-  startedAt: string;
-  lastMessageAt: string;
-  totalTokens: number;
-  messageCount: number;
-  contextResets: number;
-}
+// Use shared conversation types
+export type ConversationMessage = Message;
+export type { ConversationMetadata };
+export type PersonConversation = Conversation;
 
 export interface PersonExecutionContext {
   personId: PersonID;
@@ -77,10 +63,10 @@ export const PersonConfigurationSchema = z.object({
 });
 
 export const ConversationMessageSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   role: z.enum(['system', 'user', 'assistant']),
   content: z.string(),
-  timestamp: z.string(),
+  timestamp: z.string().optional(),
   tokenCount: z.number().optional(),
   metadata: z.record(z.any()).optional()
 });
@@ -146,7 +132,6 @@ export function shouldResetContext(
 ): boolean {
   switch (forgettingMode) {
     case ForgettingMode.NO_FORGET:
-    case ForgettingMode.NONE:
       return false;
     case ForgettingMode.ON_EVERY_TURN:
       return messageCount > 0;

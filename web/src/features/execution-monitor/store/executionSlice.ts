@@ -1,14 +1,28 @@
 import { StateCreator } from 'zustand';
 import { NodeID } from '@/core/types';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
+import {
+  NodeExecutionStatus,
+  ExecutionStatus,
+  type NodeResult,
+  type ExecutionState as CanonicalExecutionState,
+} from '@dipeo/domain-models';
 
+/**
+ * Store-specific node state that tracks execution state of individual nodes.
+ * This is a simplified version of NodeResult for store usage.
+ */
 export interface NodeState {
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
+  status: NodeExecutionStatus;
   error?: string;
-  timestamp: number;
+  timestamp: number; // Using number for performance in store
   skipReason?: string;
 }
 
+/**
+ * Store-specific execution state optimized for Zustand.
+ * Uses Set/Map for efficient updates and lookups.
+ */
 export interface ExecutionState {
   id: string | null;
   isRunning: boolean;
@@ -16,6 +30,78 @@ export interface ExecutionState {
   runningNodes: Set<NodeID>;
   nodeStates: Map<NodeID, NodeState>;
   context: Record<string, unknown>;
+}
+
+/**
+ * Convert store NodeState to canonical NodeResult
+ */
+export function toCanonicalNodeResult(nodeId: NodeID, nodeState: NodeState): NodeResult {
+  return {
+    nodeId,
+    status: nodeState.status,
+    error: nodeState.error || null,
+    timestamp: new Date(nodeState.timestamp).toISOString(),
+    skipReason: nodeState.skipReason || null,
+  };
+}
+
+/**
+ * Convert store ExecutionState to canonical ExecutionState
+ */
+export function toCanonicalExecutionState(
+  storeState: ExecutionState,
+  diagramId?: string | null,
+): CanonicalExecutionState {
+  const nodeResults: NodeResult[] = [];
+  const completedNodes: NodeID[] = [];
+  const skippedNodes: NodeID[] = [];
+  const failedNodes: NodeID[] = [];
+  const pausedNodes: NodeID[] = [];
+  
+  // Convert node states to appropriate arrays
+  storeState.nodeStates.forEach((nodeState, nodeId) => {
+    nodeResults.push(toCanonicalNodeResult(nodeId, nodeState));
+    
+    switch (nodeState.status) {
+      case NodeExecutionStatus.COMPLETED:
+        completedNodes.push(nodeId);
+        break;
+      case NodeExecutionStatus.SKIPPED:
+        skippedNodes.push(nodeId);
+        break;
+      case NodeExecutionStatus.FAILED:
+        failedNodes.push(nodeId);
+        break;
+      case NodeExecutionStatus.PAUSED:
+        pausedNodes.push(nodeId);
+        break;
+    }
+  });
+  
+  let status: ExecutionStatus;
+  if (storeState.isPaused) {
+    status = ExecutionStatus.PAUSED;
+  } else if (storeState.isRunning) {
+    status = ExecutionStatus.RUNNING;
+  } else if (failedNodes.length > 0) {
+    status = ExecutionStatus.FAILED;
+  } else {
+    status = ExecutionStatus.COMPLETED;
+  }
+  
+  return {
+    id: (storeState.id || '') as any, // ExecutionID branded type
+    status,
+    diagramId: diagramId as any, // DiagramID branded type
+    startedAt: new Date().toISOString(), // Store doesn't track this, using current time
+    runningNodes: Array.from(storeState.runningNodes) as any[], // NodeID[] branded type
+    completedNodes: completedNodes as any[], // NodeID[] branded type
+    skippedNodes: skippedNodes as any[], // NodeID[] branded type
+    pausedNodes: pausedNodes as any[], // NodeID[] branded type
+    failedNodes: failedNodes as any[], // NodeID[] branded type
+    nodeOutputs: storeState.context,
+    variables: {},
+  };
 }
 
 export interface ExecutionSlice {
@@ -85,10 +171,10 @@ export const createExecutionSlice: StateCreator<
     // Keep the execution state but pause all running nodes
     state.execution.runningNodes.forEach(nodeId => {
       const nodeState = state.execution.nodeStates.get(nodeId);
-      if (nodeState && nodeState.status === 'running') {
+      if (nodeState && nodeState.status === NodeExecutionStatus.RUNNING) {
         state.execution.nodeStates.set(nodeId, {
           ...nodeState,
-          status: 'paused'
+          status: NodeExecutionStatus.PAUSED
         });
       }
     });
@@ -98,10 +184,10 @@ export const createExecutionSlice: StateCreator<
     state.execution.isPaused = false;
     // Resume all paused nodes
     state.execution.nodeStates.forEach((nodeState, nodeId) => {
-      if (nodeState.status === 'paused') {
+      if (nodeState.status === NodeExecutionStatus.PAUSED) {
         state.execution.nodeStates.set(nodeId, {
           ...nodeState,
-          status: 'running'
+          status: NodeExecutionStatus.RUNNING
         });
         state.execution.runningNodes.add(nodeId);
       }
@@ -112,7 +198,7 @@ export const createExecutionSlice: StateCreator<
   updateNodeExecution: (nodeId, nodeState) => set(state => {
     state.execution.nodeStates.set(nodeId, nodeState);
     
-    if (nodeState.status === 'running') {
+    if (nodeState.status === NodeExecutionStatus.RUNNING) {
       state.execution.runningNodes.add(nodeId);
     } else {
       state.execution.runningNodes.delete(nodeId);
@@ -121,7 +207,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeRunning: (nodeId) => set(state => {
     const nodeState: NodeState = {
-      status: 'running',
+      status: NodeExecutionStatus.RUNNING,
       timestamp: Date.now()
     };
     state.execution.nodeStates.set(nodeId, nodeState);
@@ -130,7 +216,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeCompleted: (nodeId) => set(state => {
     const nodeState: NodeState = {
-      status: 'completed',
+      status: NodeExecutionStatus.COMPLETED,
       timestamp: Date.now()
     };
     state.execution.nodeStates.set(nodeId, nodeState);
@@ -139,7 +225,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeFailed: (nodeId, error) => set(state => {
     const nodeState: NodeState = {
-      status: 'failed',
+      status: NodeExecutionStatus.FAILED,
       timestamp: Date.now(),
       error
     };
@@ -149,7 +235,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeSkipped: (nodeId, reason) => set(state => {
     const nodeState: NodeState = {
-      status: 'skipped',
+      status: NodeExecutionStatus.SKIPPED,
       timestamp: Date.now(),
       skipReason: reason
     };
@@ -185,9 +271,9 @@ export const createExecutionSlice: StateCreator<
     const total = state.nodes.size;
     const completed = Array.from(state.execution.nodeStates.values())
       .filter(nodeState => 
-        nodeState.status === 'completed' || 
-        nodeState.status === 'skipped' ||
-        nodeState.status === 'failed'
+        nodeState.status === NodeExecutionStatus.COMPLETED || 
+        nodeState.status === NodeExecutionStatus.SKIPPED ||
+        nodeState.status === NodeExecutionStatus.FAILED
       ).length;
     
     return {

@@ -1,32 +1,34 @@
 """GraphQL context for providing access to services."""
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from fastapi import Request
 from strawberry.fastapi import BaseContext
 
-from src.shared.utils.app_context import AppContext
-from src.shared.interfaces import (
-    IAPIKeyService,
-    IDiagramService,
-    IExecutionService,
-    IFileService,
-    ILLMService,
-    IMemoryService,
-    INotionService
-)
-from src.domains.execution.services.event_store import event_store
-from src.domains.execution.services.message_router import message_router
+from src.common.context import AppContext
+from src.domains.execution.services.simple_state_store import state_store
+from src.domains.execution.services.message_router_simple import message_router
+
+if TYPE_CHECKING:
+    from src.common.service_types import (
+        SupportsAPIKey,
+        SupportsDiagram,
+        SupportsExecution,
+        SupportsFile,
+        SupportsLLM,
+        SupportsMemory,
+        SupportsNotion
+    )
 
 
 class GraphQLContext(BaseContext):
     """Context object provided to all GraphQL resolvers."""
     
-    api_key_service: IAPIKeyService
-    diagram_service: IDiagramService
-    execution_service: IExecutionService
-    file_service: IFileService
-    llm_service: ILLMService
-    memory_service: IMemoryService
-    notion_service: INotionService
+    api_key_service: 'SupportsAPIKey'
+    diagram_service: 'SupportsDiagram'
+    execution_service: 'SupportsExecution'
+    file_service: 'SupportsFile'
+    llm_service: 'SupportsLLM'
+    memory_service: 'SupportsMemory'
+    notion_service: 'SupportsNotion'
     
     def __init__(
         self,
@@ -41,7 +43,7 @@ class GraphQLContext(BaseContext):
         self.api_key_service = app_context.api_key_service
         self.diagram_service = app_context.diagram_service
         self.execution_service = app_context.execution_service
-        self.event_store = event_store  # Use global instance
+        self.state_store = state_store  # Use global instance
         self.file_service = app_context.file_service
         self.llm_service = app_context.llm_service
         self.memory_service = app_context.memory_service
@@ -66,7 +68,7 @@ async def get_graphql_context(
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from src.shared.utils.app_context import get_app_context
+    from src.common.context import get_app_context
     
     app_context = get_app_context()
     return GraphQLContext(

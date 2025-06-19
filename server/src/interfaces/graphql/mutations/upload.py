@@ -14,9 +14,9 @@ from pathlib import Path
 import uuid
 import logging
 
-from src.domains.diagram.services.diagram_service import DiagramService
-from src.shared.services.api_key_service import APIKeyService
-from src.domains.diagram.models.domain import DiagramMetadata, DomainDiagram
+from src.domains.diagram.services import DiagramService
+from src.common.services import APIKeyService
+from src.domains.diagram.models import DiagramMetadata, DomainDiagram
 from src.domains.diagram.converters import converter_registry
 from ..context import GraphQLContext
 from ..types.results import FileUploadResult
@@ -236,8 +236,8 @@ class UploadMutations:
                         detected_format = DiagramFormat.LIGHT.value
                     elif 'readable' in filename:
                         detected_format = DiagramFormat.READABLE.value
-                    elif 'llm' in filename:
-                        detected_format = DiagramFormat.LLM.value
+                    elif 'native.yaml' in filename or 'native_yaml' in filename:
+                        detected_format = DiagramFormat.NATIVE_YAML.value
                     else:
                         detected_format = DiagramFormat.NATIVE.value  # Default
             

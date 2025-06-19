@@ -4,28 +4,29 @@ from typing import Protocol, Type, Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 from datetime import datetime
-from ...diagram.models.domain import TokenUsage
+from src.__generated__.models import (
+    TokenUsage,
+    ExecutorResult as GeneratedExecutorResult,
+    NodeDefinition as GeneratedNodeDefinition,
+    ExecutionContext as GeneratedExecutionContext,
+    PersonJobOutput as GeneratedPersonJobOutput,
+    ConditionOutput as GeneratedConditionOutput,
+    JobOutput as GeneratedJobOutput
+)
 
 
+# ExecutorResult is kept as dataclass for internal use
+# If you need Pydantic validation, use GeneratedExecutorResult
+@dataclass
 class ExecutorResult:
     """Result from executor execution."""
-    def __init__(
-        self,
-        output: Any = None,
-        error: Optional[str] = None,
-        node_id: Optional[str] = None,
-        execution_time: Optional[float] = None,
-        token_usage: Optional[TokenUsage] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        validation_errors: Optional[List[Dict[str, Any]]] = None
-    ):
-        self.output = output
-        self.error = error
-        self.node_id = node_id
-        self.execution_time = execution_time
-        self.token_usage = token_usage
-        self.metadata = metadata or {}
-        self.validation_errors = validation_errors or []
+    output: Any = None
+    error: Optional[str] = None
+    node_id: Optional[str] = None
+    execution_time: Optional[float] = None
+    token_usage: Optional[TokenUsage] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    validation_errors: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class NodeHandler(Protocol):
@@ -40,6 +41,8 @@ class NodeHandler(Protocol):
         ...
 
 
+# NodeDefinition is kept as dataclass because it contains
+# runtime handler references which can't be serialized
 @dataclass
 class NodeDefinition:
     """Definition of a node type."""
@@ -50,110 +53,42 @@ class NodeDefinition:
     description: str = ""
 
 
-class Middleware(Protocol):
-    """Protocol for execution middleware."""
-    
-    async def pre_execute(self, node: Dict[str, Any], context: 'ExecutionContext') -> None:
-        """Called before node execution."""
-        ...
-    
-    async def post_execute(
-        self, 
-        node: Dict[str, Any], 
-        context: 'ExecutionContext', 
-        result: ExecutorResult
-    ) -> None:
-        """Called after node execution."""
-        ...
 
-
-class ExecutionContext(Protocol):
-    """Protocol for execution context provided to handlers."""
+# ExecutionContext is kept as dataclass because it contains
+# runtime service references and methods
+@dataclass
+class ExecutionContext:
+    """Simplified execution context for handlers."""
+    edges: List[Dict[str, Any]]
+    results: Dict[str, Dict[str, Any]]
+    current_node_id: str
+    execution_id: str
+    exec_cnt: Dict[str, int] = field(default_factory=dict)  # Node execution counts
+    outputs: Dict[str, Any] = field(default_factory=dict)   # Node outputs
+    persons: Dict[str, Any] = field(default_factory=dict)   # Person configurations
+    api_keys: Dict[str, str] = field(default_factory=dict)  # API keys
     
-    @property
-    def edges(self) -> List[Dict[str, Any]]:
-        """Graph edges connecting nodes."""
-        ...
-    
-    @property
-    def results(self) -> Dict[str, Dict[str, Any]]:
-        """Results from executed nodes."""
-        ...
-    
-    @property
-    def current_node_id(self) -> str:
-        """ID of the currently executing node."""
-        ...
+    # Services are accessed via attributes for backward compatibility
+    llm_service: Optional[Any] = None
+    memory_service: Optional[Any] = None
+    person_service: Optional[Any] = None
+    code_execution_service: Optional[Any] = None
+    file_service: Optional[Any] = None
+    notion_service: Optional[Any] = None
+    user_interaction_service: Optional[Any] = None
+    interactive_handler: Optional[Any] = None
+    graph: Optional[Any] = None  # For graph operations
     
     def get_node_execution_count(self, node_id: str) -> int:
         """Get execution count for a specific node."""
-        ...
+        return self.exec_cnt.get(node_id, 0)
     
     def increment_node_execution_count(self, node_id: str) -> None:
         """Increment execution count for a specific node."""
-        ...
-    
-    # Service protocols (to be expanded based on actual services)
-    @property
-    def llm_service(self) -> Any:
-        """LLM service for AI calls."""
-        ...
-    
-    @property
-    def memory_service(self) -> Any:
-        """Memory service for conversation history."""
-        ...
-    
-    @property
-    def person_service(self) -> Any:
-        """Person service for managing person configurations."""
-        ...
-    
-    @property
-    def code_execution_service(self) -> Any:
-        """Service for executing code in various languages."""
-        ...
-    
-    @property
-    def file_service(self) -> Any:
-        """Service for file operations."""
-        ...
-    
-    @property
-    def notion_service(self) -> Any:
-        """Service for Notion integration."""
-        ...
-    
-    @property
-    def user_interaction_service(self) -> Any:
-        """Service for user interactions."""
-        ...
+        self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
 
 
-# Output types for specific handlers
-@dataclass
-class PersonJobOutput:
-    """Output from PersonJob handler."""
-    output: Optional[str]
-    error: Optional[str] = None
-    conversation_history: List[Dict[str, str]] = field(default_factory=list)
-    token_usage: Optional[TokenUsage] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ConditionOutput:
-    """Output from Condition handler."""
-    result: bool
-    evaluated_expression: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class JobOutput:
-    """Output from Job handler."""
-    output: Any
-    error: Optional[str] = None
-    execution_time: float = 0.0
-    language: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+# Output types - use generated versions
+PersonJobOutput = GeneratedPersonJobOutput
+ConditionOutput = GeneratedConditionOutput
+JobOutput = GeneratedJobOutput

@@ -13,13 +13,18 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
-web/src/__generated__
 web/schema.graphql
 server/schema.graphql
+packages/domain-models/schema.graphql
 server/diagrams
 docs/deprecated
 TODO.md
+*.tsbuildinfo
 
+web/src/__generated__
+server/src/__generated__
+packages/domain-models/__generated__
+cli/dipeo/__generated__
 
 # Node.js
 node_modules/
@@ -34,7 +39,6 @@ dist/
 build/
 out/
 *.log
-*.tsbuildinfo
 execution_runner.cjs
 notion.md
 CLAUDE.md

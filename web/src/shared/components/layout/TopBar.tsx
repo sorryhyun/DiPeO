@@ -114,15 +114,14 @@ const TopBar = () => {
             variant="outline"
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
             onClick={() => {
-              // Load quicksave.json by updating the URL parameter
+              // Load quicksave.json by updating the URL parameter and refreshing
               const url = new URL(window.location.href);
               url.searchParams.set('diagram', 'quicksave');
-              window.history.pushState({}, '', url.toString());
-              
-              // Trigger a popstate event to notify the diagram loader
-              window.dispatchEvent(new PopStateEvent('popstate'));
               
               toast.success('Loading quicksave...');
+              
+              // Refresh the page with the new URL
+              window.location.href = url.toString();
             }}
             title="Load quicksave.json"
           >

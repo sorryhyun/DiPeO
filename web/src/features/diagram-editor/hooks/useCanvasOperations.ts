@@ -1,4 +1,15 @@
 /**
+ * @deprecated Use explicit composition of useCanvas, useCanvasInteractions, and domain operation hooks instead.
+ * 
+ * Example:
+ * ```ts
+ * const canvas = useCanvas();
+ * const interactions = useCanvasInteractions();
+ * const nodeOps = useNodeOperations();
+ * const arrowOps = useArrowOperations();
+ * const personOps = usePersonOperations();
+ * ```
+ * 
  * useCanvasOperations - Composite hook that combines focused hooks
  * 
  * This hook provides backward compatibility by composing useCanvas and 
@@ -8,15 +19,16 @@
 import React, { useCallback } from 'react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { useShallow } from 'zustand/react/shallow';
-import { useCanvas } from './useCanvas';
-import { useCanvasInteractions } from './useCanvasInteractions';
-import { NodeID, ArrowID, PersonID, Vec2, HandleID, SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
-import { graphQLTypeToNodeKind } from '@/features/diagram-editor/adapters/DiagramAdapter';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { useCanvas } from './ui/useCanvas';
+import { useCanvasInteractions } from './ui/useCanvasInteractions';
+import { SelectableID, SelectableType, personId, DomainNode, DomainPerson } from '@/core/types';
+import { Vec2, NodeType } from '@dipeo/domain-models';
+import type { NodeID, ArrowID, PersonID, HandleID  } from '@dipeo/domain-models';
+
 
 // Type definitions
 
-interface KeyboardShortcutsConfig {
+type KeyboardShortcutsConfig = {
   onDelete?: () => void;
   onEscape?: () => void;
   onSave?: () => void;
@@ -154,7 +166,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     };
     
     const newNodeId = storeOps.addNode(
-      graphQLTypeToNodeKind(node.type) as NodeKind,
+      node.type,
       newPosition,
       { ...node.data }
     );
@@ -217,7 +229,7 @@ export function useCanvasOperations(options: UseCanvasOperationsOptions = {}): U
     
     // Store operations
     addNode: (type: string, position: Vec2, data?: Record<string, unknown>) => 
-      storeOps.addNode(type as NodeKind, position, data),
+      storeOps.addNode(type as NodeType, position, data),
     updateNode: storeOps.updateNode,
     deleteNode: storeOps.deleteNode,
     duplicateNode,

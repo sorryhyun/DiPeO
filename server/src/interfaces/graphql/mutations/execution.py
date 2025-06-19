@@ -7,8 +7,8 @@ from datetime import datetime
 from ..types.results import ExecutionResult
 from ..types.inputs import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
 from ..context import GraphQLContext
-from src.domains.diagram.models.domain import ExecutionState as ExecutionStateForGraphQL
-from src.shared.domain import ExecutionStatus
+from src.domains.diagram.models import ExecutionState as ExecutionStateForGraphQL
+from src.common import ExecutionStatus
 from ..models.input_models import (
     ExecuteDiagramInput as PydanticExecuteDiagramInput,
     ExecutionControlInput as PydanticExecutionControlInput,
@@ -29,23 +29,34 @@ class ExecutionMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             execution_service = context.execution_service
-            event_store = context.event_store
+            state_store = context.state_store
             message_router = context.message_router
             
             # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticExecuteDiagramInput(
                 diagram_id=input.diagram_id,
+                diagram_data=input.diagram_data,
                 debug_mode=input.debug_mode,
                 max_iterations=input.max_iterations,
                 timeout_seconds=input.timeout_seconds
             )
             
-            # Load diagram
-            diagram_data = diagram_service.load_diagram(pydantic_input.diagram_id)
-            if not diagram_data:
+            # Get diagram data either from ID or directly from input
+            if pydantic_input.diagram_data:
+                # Use provided diagram data directly (in-memory execution)
+                diagram_data = pydantic_input.diagram_data
+            elif pydantic_input.diagram_id:
+                # Load diagram from file system
+                diagram_data = diagram_service.load_diagram(pydantic_input.diagram_id)
+                if not diagram_data:
+                    return ExecutionResult(
+                        success=False,
+                        error="Diagram not found"
+                    )
+            else:
                 return ExecutionResult(
                     success=False,
-                    error="Diagram not found"
+                    error="No diagram data provided"
                 )
             
             # Generate execution ID
@@ -58,21 +69,8 @@ class ExecutionMutations:
                 'timeout': pydantic_input.timeout_seconds  # Already validated >= 1
             }
             
-            # Create initial execution state event
-            from domains.execution.services.event_store import ExecutionEvent
-            initial_event = ExecutionEvent(
-                execution_id=execution_id,
-                sequence=0,
-                event_type='execution_started',
-                node_id=None,
-                timestamp=datetime.now(),
-                data={
-                    'diagram_id': pydantic_input.diagram_id,
-                    'options': options,
-                    'status': 'started'
-                }
-            )
-            event_store.append(initial_event)
+            # Create initial execution state
+            await state_store.create_execution(execution_id, diagram_data, options)
             
             # Start execution in background
             # Note: In a real implementation, this would start the execution
@@ -126,7 +124,7 @@ class ExecutionMutations:
         """Control a running execution (pause, resume, abort, skip)."""
         try:
             context: GraphQLContext = info.context
-            event_store = context.event_store
+            state_store = context.state_store
             message_router = context.message_router
             
             # Convert Strawberry input to Pydantic model for validation
@@ -137,28 +135,28 @@ class ExecutionMutations:
             )
             
             # Check if execution exists
-            execution = await event_store.get_execution_state(pydantic_input.execution_id)
-            if not execution:
+            state = await state_store.get_state(pydantic_input.execution_id)
+            if not state:
                 return ExecutionResult(
                     success=False,
                     error=f"Execution {pydantic_input.execution_id} not found"
                 )
             
-            # Create control event based on action
-            from domains.execution.services.event_store import ExecutionEvent
-            control_event = ExecutionEvent(
-                execution_id=pydantic_input.execution_id,
-                sequence=0,  # Will be set by event store
-                event_type=f'execution_{pydantic_input.action}',
-                node_id=pydantic_input.node_id,
-                timestamp=datetime.now(),
-                data={
-                    'action': pydantic_input.action,
-                    'node_id': pydantic_input.node_id,
-                    'requested_at': datetime.now().isoformat()
-                }
-            )
-            event_store.append(control_event)
+            # Update state based on action
+            if pydantic_input.action == 'pause':
+                if pydantic_input.node_id:
+                    await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, 'paused')
+                else:
+                    await state_store.update_status(pydantic_input.execution_id, 'paused')
+            elif pydantic_input.action == 'resume':
+                if pydantic_input.node_id:
+                    await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, 'resumed')
+                else:
+                    await state_store.update_status(pydantic_input.execution_id, 'started')
+            elif pydantic_input.action == 'abort':
+                await state_store.update_status(pydantic_input.execution_id, 'aborted')
+            elif pydantic_input.action == 'skip' and pydantic_input.node_id:
+                await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, 'skipped')
             
             # Broadcast control message via message router
             control_message = {
@@ -171,25 +169,25 @@ class ExecutionMutations:
             # Route message to execution
             await message_router.broadcast_to_execution(pydantic_input.execution_id, control_message)
             
-            # Update execution status based on action
-            new_status = _map_action_to_status(pydantic_input.action, execution.get('status'))
+            # Get updated state
+            updated_state = await state_store.get_state(pydantic_input.execution_id)
             
-            # Create updated execution state with Pydantic model
+            # Convert to GraphQL execution state
             execution_state = ExecutionStateForGraphQL(
                 id=pydantic_input.execution_id,
-                status=new_status,
-                diagram_id=execution.get('diagram_id'),
-                started_at=datetime.fromisoformat(execution.get('started_at')),
-                ended_at=datetime.fromisoformat(execution['ended_at']) if execution.get('ended_at') else None,
-                running_nodes=execution.get('running_nodes', []),
-                completed_nodes=execution.get('completed_nodes', []),
-                skipped_nodes=execution.get('skipped_nodes', []),
-                paused_nodes=execution.get('paused_nodes', []),
-                failed_nodes=execution.get('failed_nodes', []),
-                node_outputs=execution.get('node_outputs', {}),
-                variables=execution.get('variables', {}),
+                status=_map_status(updated_state.status),
+                diagram_id=updated_state.diagram.get('id'),
+                started_at=datetime.fromtimestamp(updated_state.start_time),
+                ended_at=datetime.fromtimestamp(updated_state.end_time) if updated_state.end_time else None,
+                running_nodes=[nid for nid, status in updated_state.node_statuses.items() if status == 'started'],
+                completed_nodes=[nid for nid, status in updated_state.node_statuses.items() if status == 'completed'],
+                skipped_nodes=updated_state.skipped_nodes,
+                paused_nodes=updated_state.paused_nodes,
+                failed_nodes=[nid for nid, status in updated_state.node_statuses.items() if status == 'failed'],
+                node_outputs=updated_state.node_outputs,
+                variables=updated_state.variables,
                 token_usage=None,
-                error=None
+                error=updated_state.error
             )
             
             return ExecutionResult(
@@ -221,7 +219,7 @@ class ExecutionMutations:
         """Submit a response to an interactive prompt."""
         try:
             context: GraphQLContext = info.context
-            event_store = context.event_store
+            state_store = context.state_store
             message_router = context.message_router
             
             # Convert Strawberry input to Pydantic model for validation
@@ -232,7 +230,7 @@ class ExecutionMutations:
             )
             
             # Check if execution exists by getting its state
-            execution_state = await event_store.replay(pydantic_input.execution_id)
+            execution_state = await state_store.get_state(pydantic_input.execution_id)
             if not execution_state:
                 return ExecutionResult(
                     success=False,
@@ -246,21 +244,8 @@ class ExecutionMutations:
                     error=f"Execution {pydantic_input.execution_id} is not running (status: {execution_state.status})"
                 )
             
-            # Create interactive response event
-            from domains.execution.services.event_store import ExecutionEvent, EventType
-            response_event = ExecutionEvent(
-                execution_id=pydantic_input.execution_id,
-                sequence=0,  # Will be set by event store
-                event_type=EventType.INTERACTIVE_RESPONSE,
-                node_id=pydantic_input.node_id,
-                timestamp=datetime.now().timestamp(),
-                data={
-                    'response': pydantic_input.response,  # Already trimmed by validation
-                    'node_id': pydantic_input.node_id,
-                    'responded_at': datetime.now().isoformat()
-                }
-            )
-            await event_store.append(response_event)
+            # Clear interactive prompt after receiving response
+            await state_store.clear_interactive_prompt(pydantic_input.execution_id)
             
             # Route the interactive response message to subscribed handlers
             interactive_message = {
@@ -275,7 +260,7 @@ class ExecutionMutations:
             await message_router.broadcast_to_execution(pydantic_input.execution_id, interactive_message)
             
             # Get updated execution state
-            updated_state = await event_store.replay(pydantic_input.execution_id)
+            updated_state = await state_store.get_state(pydantic_input.execution_id)
             
             # Convert to Pydantic ExecutionState model
             execution = ExecutionStateForGraphQL(

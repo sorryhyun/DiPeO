@@ -3,7 +3,7 @@ import { useGetDiagramQuery } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramId } from '@/core/types';
-import { domainToReactDiagram, diagramToStoreMaps } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { domainToReactDiagram, diagramToStoreMaps } from '@/graphql/types';
 
 /**
  * Hook that loads a diagram from the backend when a diagram ID is present in the URL
@@ -41,7 +41,8 @@ export function useDiagramLoader() {
   const { data, loading, error } = useGetDiagramQuery({
     variables: { id: diagramId(diagramIdFromUrl || '') },
     skip: !diagramIdFromUrl || hasLoaded,
-    fetchPolicy: 'cache-first'
+    // Use network-only for quicksave to always get fresh data
+    fetchPolicy: diagramIdFromUrl === 'quicksave' ? 'network-only' : 'cache-first'
   });
 
   // Load diagram data into store
@@ -65,7 +66,7 @@ export function useDiagramLoader() {
         store.clearAll();
         
         // Convert arrays to Maps for the store
-        const { nodes, handles, arrows, persons, apiKeys } = (reactDiagram);
+        const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
         
         // Update store with all data at once
         useUnifiedStore.setState(state => ({

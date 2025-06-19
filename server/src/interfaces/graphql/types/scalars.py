@@ -3,39 +3,50 @@ import strawberry
 from typing import NewType, Any
 import json
 
-# Branded ID types for type safety
+# Import the canonical NewTypes from generated models
+from src.__generated__.models import (
+    NodeID as _NodeID,
+    HandleID as _HandleID,
+    ArrowID as _ArrowID,
+    PersonID as _PersonID,
+    ApiKeyID as _ApiKeyID,
+    ExecutionID as _ExecutionID,
+    DiagramID as _DiagramID
+)
+
+# Wrap the existing NewTypes as Strawberry scalars
 NodeID = strawberry.scalar(
-    NewType("NodeID", str),
+    _NodeID,
     description="Unique identifier for a node"
 )
 
 HandleID = strawberry.scalar(
-    NewType("HandleID", str),
+    _HandleID,
     description="Unique identifier for a handle (format: nodeId:handleName)"
 )
 
 ArrowID = strawberry.scalar(
-    NewType("ArrowID", str),
+    _ArrowID,
     description="Unique identifier for an arrow"
 )
 
 PersonID = strawberry.scalar(
-    NewType("PersonID", str),
+    _PersonID,
     description="Unique identifier for a person (LLM agent)"
 )
 
 ApiKeyID = strawberry.scalar(
-    NewType("ApiKeyID", str),
+    _ApiKeyID,
     description="Unique identifier for an API key"
 )
 
 ExecutionID = strawberry.scalar(
-    NewType("ExecutionID", str),
+    _ExecutionID,
     description="Unique identifier for an execution"
 )
 
 DiagramID = strawberry.scalar(
-    NewType("DiagramID", str),
+    _DiagramID,
     description="Unique identifier for a diagram"
 )
 

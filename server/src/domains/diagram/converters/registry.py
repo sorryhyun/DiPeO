@@ -1,134 +1,73 @@
 """Converter registry for managing diagram format converters."""
 from typing import Dict, Optional, List, Tuple
 from .base import DiagramConverter
-from .native_json import NativeJsonConverter
-from .light_yaml import LightYamlConverter
-from .readable_yaml import ReadableYamlConverter
-from .llm_yaml import LLMYamlConverter
-from ..models.domain import DiagramFormat
+from .unified_converter import UnifiedDiagramConverter
+from src.__generated__.models import DiagramFormat, DomainDiagram
 
 
 class ConverterRegistry:
-    """Registry for diagram format converters."""
+    """Registry for diagram format converters using unified converter."""
     
     def __init__(self):
-        self._converters: Dict[str, DiagramConverter] = {}
-        self._format_info: Dict[str, Dict[str, str]] = {}
-        self._initialize_default_converters()
+        # Use a single unified converter instance
+        self._unified_converter = UnifiedDiagramConverter()
+        self._initialize()
     
-    def _initialize_default_converters(self):
-        """Register default converters."""
-        # Native JSON
-        self.register(
-            DiagramFormat.NATIVE.value,
-            NativeJsonConverter(),
-            {
-                'name': 'Native JSON',
-                'description': 'Full-fidelity format with GraphQL schema compatibility',
-                'extension': '.native.json',
-                'supports_import': True,
-                'supports_export': True
-            }
-        )
-        
-        # Light YAML
-        self.register(
-            DiagramFormat.LIGHT.value,
-            LightYamlConverter(),
-            {
-                'name': 'Light YAML',
-                'description': 'Simplified format using labels instead of IDs',
-                'extension': '.light.yaml',
-                'supports_import': True,
-                'supports_export': True
-            }
-        )
-        
-        # Readable YAML
-        self.register(
-            DiagramFormat.READABLE.value,
-            ReadableYamlConverter(),
-            {
-                'name': 'Readable Workflow',
-                'description': 'Human-friendly workflow format',
-                'extension': '.readable.yaml',
-                'supports_import': True,
-                'supports_export': True
-            }
-        )
-        
-        # LLM YAML
-        self.register(
-            DiagramFormat.LLM.value,
-            LLMYamlConverter(),
-            {
-                'name': 'LLM-Friendly',
-                'description': 'Format optimized for AI/LLM understanding',
-                'extension': '.llm.yaml',
-                'supports_import': True,
-                'supports_export': True
-            }
-        )
-    
-    def register(self, format_id: str, converter: DiagramConverter, 
-                info: Dict[str, str]):
-        """Register a converter with metadata."""
-        self._converters[format_id] = converter
-        self._format_info[format_id] = info
+    def _initialize(self):
+        """Initialize the registry (strategies are auto-registered in UnifiedDiagramConverter)."""
+        # The unified converter already has all strategies registered
+        pass
     
     def get(self, format_id: str) -> Optional[DiagramConverter]:
         """Get converter by format ID."""
-        return self._converters.get(format_id)
+        # Check if format exists
+        if format_id in [s.format_id for s in self._unified_converter.strategies.values()]:
+            # Set the active format on the unified converter
+            self._unified_converter.set_format(format_id)
+            return self._unified_converter
+        return None
     
     def get_info(self, format_id: str) -> Optional[Dict[str, str]]:
         """Get format metadata."""
-        return self._format_info.get(format_id)
+        strategy = self._unified_converter.strategies.get(format_id)
+        if strategy:
+            return strategy.format_info
+        return None
     
     def list_formats(self) -> List[Dict[str, str]]:
         """List all registered formats with their info."""
-        return [
-            {'id': fmt_id, **info}
-            for fmt_id, info in self._format_info.items()
-        ]
+        return self._unified_converter.get_supported_formats()
     
     def detect_format(self, content: str) -> Optional[str]:
         """
         Automatically detect format from content.
         Returns the format ID with highest confidence.
         """
-        confidences: List[Tuple[str, float]] = []
-        
-        for format_id, converter in self._converters.items():
-            try:
-                confidence = converter.detect_format_confidence(content)
-                confidences.append((format_id, confidence))
-            except:
-                confidences.append((format_id, 0.0))
-        
-        # Sort by confidence
-        confidences.sort(key=lambda x: x[1], reverse=True)
-        
-        # Return format with highest confidence if > 0.5
-        if confidences and confidences[0][1] > 0.5:
-            return confidences[0][0]
-        
-        return None
+        return self._unified_converter.detect_format(content)
     
     def get_export_formats(self) -> List[Dict[str, str]]:
         """Get formats that support export."""
-        return [
-            {'id': fmt_id, **info}
-            for fmt_id, info in self._format_info.items()
-            if info.get('supports_export', True)
-        ]
+        return self._unified_converter.get_export_formats()
     
     def get_import_formats(self) -> List[Dict[str, str]]:
         """Get formats that support import."""
-        return [
-            {'id': fmt_id, **info}
-            for fmt_id, info in self._format_info.items()
-            if info.get('supports_import', True)
-        ]
+        return self._unified_converter.get_import_formats()
+    
+    def convert(self, content: str, from_format: str, to_format: str) -> str:
+        """Convert content from one format to another."""
+        # Deserialize from source format
+        diagram = self._unified_converter.deserialize(content, from_format)
+        
+        # Serialize to target format
+        return self._unified_converter.serialize(diagram, to_format)
+    
+    def deserialize(self, content: str, format_id: Optional[str] = None) -> DomainDiagram:
+        """Deserialize content to domain diagram."""
+        return self._unified_converter.deserialize(content, format_id)
+    
+    def serialize(self, diagram: DomainDiagram, format_id: str) -> str:
+        """Serialize domain diagram to format."""
+        return self._unified_converter.serialize(diagram, format_id)
 
 
 # Global registry instance

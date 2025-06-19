@@ -4,20 +4,20 @@ from typing import Optional, List
 from datetime import datetime
 
 from .types.domain import (
-    Diagram, ExecutionState, Person, ApiKey, ExecutionEvent
+    DomainDiagramType, ExecutionState, Person, ApiKey, ExecutionEvent
 )
 from .mutations.diagram_file import DiagramFormatInfo
 from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .types.inputs import DiagramFilterInput, ExecutionFilterInput
 # Import enums from the Pydantic models (single source of truth)
-from src.shared.domain import NodeType, LLMService
+from src.common import NodeType, LLMService
 
 @strawberry.type
 class Query:
     """Root query type for DiPeO GraphQL API."""
     
     @strawberry.field
-    async def diagram(self, id: DiagramID, info) -> Optional[Diagram]:
+    async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
         """Get a single diagram by ID."""
         from .resolvers import diagram_resolver
         return await diagram_resolver.get_diagram(id, info)
@@ -29,7 +29,7 @@ class Query:
         filter: Optional[DiagramFilterInput] = None,
         limit: int = 100,
         offset: int = 0
-    ) -> List[Diagram]:
+    ) -> List[DomainDiagramType]:
         """List diagrams with optional filtering."""
         from .resolvers import diagram_resolver
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
@@ -153,21 +153,15 @@ class Query:
             "file_system": False
         }
         
-        # Check database (event store)
+        # Check database (state store)
         try:
-            await context.event_store.list_executions(limit=1)
+            await context.state_store.list_executions(limit=1)
             checks["database"] = True
         except:
             pass
         
-        # Check Redis
-        try:
-            redis_client = getattr(context.event_store, '_redis_client', None)
-            if redis_client:
-                await redis_client.ping()
-                checks["redis"] = True
-        except:
-            pass
+        # Check Redis (no longer used by state store)
+        checks["redis"] = False  # Redis is being removed
         
         # Check file system
         try:
@@ -203,57 +197,82 @@ class Query:
         context = info.context
         memory_service = context.memory_service
         
-        # Get all conversations
-        all_conversations = memory_service.get_all_conversations()
+        # Collect all conversations from person memories
+        all_conversations = []
         
-        # Filter conversations
-        filtered = []
-        for person_id_key, conversations in all_conversations.items():
+        # If no person memories exist yet, return empty result
+        if not hasattr(memory_service, 'person_memories') or not memory_service.person_memories:
+            return {
+                "conversations": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "has_more": False
+            }
+        
+        # Iterate through all person memories to collect messages
+        for person_id_key, person_memory in memory_service.person_memories.items():
             # Filter by person_id if specified
             if person_id and person_id_key != person_id:
                 continue
             
-            for conv in conversations:
+            # Process messages for this person
+            for message in person_memory.messages:
+                # Skip forgotten messages unless requested
+                is_forgotten = message.id in person_memory.forgotten_message_ids
+                if not show_forgotten and is_forgotten:
+                    continue
+                
                 # Filter by execution_id if specified
-                if execution_id and conv.get('executionId') != execution_id:
+                if execution_id and message.execution_id != execution_id:
                     continue
                 
                 # Filter by search term if specified
                 if search:
                     search_lower = search.lower()
                     if not any(search_lower in str(v).lower() for v in [
-                        conv.get('userPrompt', ''),
-                        conv.get('assistantResponse', ''),
-                        conv.get('nodeId', '')
+                        message.content,
+                        message.node_label or '',
+                        message.node_id or ''
                     ]):
                         continue
                 
-                # Filter by forgotten status
-                if not show_forgotten and conv.get('forgotten', False):
+                # Filter by time if specified
+                if since and message.timestamp < since:
                     continue
                 
-                # Filter by time if specified
-                if since:
-                    conv_time = datetime.fromisoformat(conv.get('timestamp', ''))
-                    if conv_time < since:
-                        continue
-                
-                # Add person_id to conversation for clarity
-                conv['personId'] = person_id_key
-                filtered.append(conv)
+                # Create conversation record
+                conversation = {
+                    "id": message.id,
+                    "personId": person_id_key,
+                    "executionId": message.execution_id,
+                    "nodeId": message.node_id,
+                    "nodeLabel": message.node_label,
+                    "timestamp": message.timestamp.isoformat(),
+                    "userPrompt": "",  # Not stored separately in new system
+                    "assistantResponse": message.content,
+                    "forgotten": is_forgotten,
+                    "tokenUsage": {
+                        "total": message.token_count or 0,
+                        "input": message.input_tokens or 0,
+                        "output": message.output_tokens or 0,
+                        "cached": message.cached_tokens or 0
+                    } if message.token_count else None
+                }
+                all_conversations.append(conversation)
         
         # Sort by timestamp (newest first)
-        filtered.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        all_conversations.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
         # Apply pagination
-        paginated = filtered[offset:offset + limit]
+        paginated = all_conversations[offset:offset + limit]
         
         return {
             "conversations": paginated,
-            "total": len(filtered),
+            "total": len(all_conversations),
             "limit": limit,
             "offset": offset,
-            "has_more": offset + limit < len(filtered)
+            "has_more": offset + limit < len(all_conversations)
         }
     
     @strawberry.field

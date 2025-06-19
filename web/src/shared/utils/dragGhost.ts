@@ -1,4 +1,4 @@
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { NodeType } from '@dipeo/domain-models';
 import { getNodeConfig } from '@/core/config/helpers';
 
 /**
@@ -6,7 +6,7 @@ import { getNodeConfig } from '@/core/config/helpers';
  * This generates an HTML element that looks like the node preview
  * to be used with dataTransfer.setDragImage()
  */
-export function createNodeDragGhost(nodeType: NodeKind, label?: string): HTMLElement {
+export function createNodeDragGhost(nodeType: NodeType, label?: string): HTMLElement {
   const config = getNodeConfig(nodeType);
   
   // Create container element
@@ -41,7 +41,7 @@ export function createNodeDragGhost(nodeType: NodeKind, label?: string): HTMLEle
     if (ghost.parentNode) {
       document.body.removeChild(ghost);
     }
-  }, 100); // Increased delay to ensure drag image is properly captured
+  }, 1); // Increased delay to ensure drag image is properly captured
   
   return ghost;
 }

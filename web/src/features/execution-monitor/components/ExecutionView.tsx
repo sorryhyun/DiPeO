@@ -1,5 +1,5 @@
 import React from 'react';
-import { DiagramCanvas } from '@/features/diagram-editor/components/canvas';
+import DiagramCanvas from '@/features/diagram-editor/components/DiagramCanvas';
 import { ExecutionControls } from './ExecutionControls';
 
 const ExecutionView = React.memo(() => {

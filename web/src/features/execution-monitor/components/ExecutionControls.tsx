@@ -1,18 +1,26 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/shared/components/ui/buttons';
 import { useExecution } from '../hooks';
 import { useDiagramData } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { nodeId } from '@/core/types';
+import { nodeId, ReactDiagram } from '@/core/types';
+import { useShallow } from 'zustand/react/shallow';
+import { useFileOperations } from '@/shared/hooks/useFileOperations';
+import { DiagramFormat } from '@dipeo/domain-models';
+import { diagramId } from '@/core/types/branded';
+import { toast } from 'sonner';
 
 const ExecutionControls = () => {
   const execution = useExecution({ showToasts: false });
   const { nodes, arrows } = useDiagramData();
-  const { persons, handles, apiKeys } = useUnifiedStore(state => ({
-    persons: state.persons,
-    handles: state.handles,
-    apiKeys: state.apiKeys
-  }));
+  const { persons, handles, apiKeys } = useUnifiedStore(
+    useShallow(state => ({
+      persons: state.persons,
+      handles: state.handles,
+      apiKeys: state.apiKeys
+    }))
+  );
+  const fileOps = useFileOperations();
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 
@@ -66,19 +74,37 @@ const ExecutionControls = () => {
         <Button 
           variant="outline" 
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
-          onClick={() => {
-            // Convert Maps to arrays for DomainDiagram format
-            const diagram = {
-              nodes: Array.from(nodes.values()),
-              arrows: Array.from(arrows.values()),
-              persons: Array.from(persons.values()),
-              handles: Array.from(handles.values()),
-              apiKeys: Array.from(apiKeys.values()),
-              nodeCount: nodes.size,
-              arrowCount: arrows.size,
-              personCount: persons.size
-            };
-            execution.execute(diagram);
+          onClick={async () => {
+            try {
+              // Create a ReactDiagram for in-memory execution
+              const diagramForExecution: ReactDiagram = {
+                metadata: {
+                  id: `temp-execution-${Date.now()}`,
+                  created: new Date().toISOString(),
+                  modified: new Date().toISOString(),
+                  version: '1.0',
+                  name: 'Execution Diagram',
+                  description: null,
+                  author: null,
+                  tags: []
+                },
+                nodes: Array.from(nodes.values()),
+                arrows: Array.from(arrows.values()),
+                persons: Array.from(persons.values()),
+                handles: Array.from(handles.values()),
+                apiKeys: Array.from(apiKeys.values()),
+                nodeCount: nodes.size,
+                arrowCount: arrows.size,
+                personCount: persons.size,
+                estimatedCost: null
+              };
+              
+              // Execute using the diagram data directly (no file save)
+              await execution.execute(diagramForExecution);
+            } catch (error) {
+              console.error('Failed to execute diagram:', error);
+              toast.error('Failed to execute diagram');
+            }
           }}
         >
           ▶️ Run Diagram

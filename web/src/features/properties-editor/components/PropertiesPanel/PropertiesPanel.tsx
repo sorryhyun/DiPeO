@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { ArrowData, Dict, DomainPerson } from '@/core/types';
 import { PanelConfig } from '@/features/diagram-editor/types/panel';
-import { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import { NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 
@@ -26,7 +26,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
     config: PanelConfig<Record<string, unknown>>;
   }>;
   
-  const panelConfig = getPanelConfig(nodeType as NodeKind | 'arrow' | 'person');
+  const panelConfig = getPanelConfig(nodeType as NodeType | 'arrow' | 'person');
   
   if (!panelConfig) {
     return (

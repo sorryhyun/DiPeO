@@ -8,16 +8,15 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from typing import Any, Dict, Optional, Set
 
-from src.shared.utils.base_service import BaseService
-from src.shared.utils.diagram_validator import DiagramValidator
-from src.shared.exceptions.exceptions import ValidationError
-from ..services.event_store import event_store, ExecutionEvent, EventType
-from src.shared.interfaces import IExecutionService
+from src.common.base import BaseService
+from src.common.validators import DiagramValidator
+from src.common.exceptions import ValidationError
+from ..services.simple_state_store import state_store
 
 log = logging.getLogger(__name__)
 
 
-class ExecutionService(BaseService, IExecutionService):
+class ExecutionService(BaseService):
     """Run a diagram and stream node-level updates back to the client."""
 
     # --------------------------------------------------------------------- init
@@ -55,16 +54,8 @@ class ExecutionService(BaseService, IExecutionService):
         await self._validate_diagram(diagram)
         await self._warm_up_models(diagram)
         
-        # Record execution start event
-        start_event = ExecutionEvent(
-            execution_id=execution_id,
-            sequence=0,  # Will be set by event store
-            event_type=EventType.EXECUTION_STARTED,
-            node_id=None,
-            data={"diagram": diagram, "options": options},
-            timestamp=asyncio.get_event_loop().time()
-        )
-        await event_store.append(start_event)
+        # Create execution state
+        await state_store.create_execution(execution_id, diagram, options)
 
         # 2️⃣ Enrich with API-keys + merge exec-options
         diagram = self._inject_api_keys(diagram)
@@ -72,14 +63,12 @@ class ExecutionService(BaseService, IExecutionService):
 
         # 3️⃣ Build executor registry *only* when needed
         from ..executors import create_executors  # lazy import
-        from ..executors.config import executor_config
         
         executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service,
             memory_service=self.memory_service,
-            notion_service=self.notion_service,
-            use_unified=executor_config.is_unified_enabled()
+            notion_service=self.notion_service
         )
 
         # 4️⃣ Instantiate compact engine
@@ -113,15 +102,7 @@ class ExecutionService(BaseService, IExecutionService):
                     break
         except Exception as e:
             # Record execution failure
-            fail_event = ExecutionEvent(
-                execution_id=execution_id,
-                sequence=0,
-                event_type=EventType.EXECUTION_FAILED,
-                node_id=None,
-                data={"error": str(e)},
-                timestamp=asyncio.get_event_loop().time()
-            )
-            await event_store.append(fail_event)
+            await state_store.update_status(execution_id, "failed", error=str(e))
             raise
         finally:
             # Propagate exceptions if the engine errored out
@@ -183,61 +164,29 @@ class ExecutionService(BaseService, IExecutionService):
         return merged
     
     async def _persist_event(self, msg: Dict[str, Any], execution_id: str) -> None:
-        """Convert engine messages to events and persist them."""
+        """Update execution state based on engine messages."""
         msg_type = msg.get("type", "")
         node_id = msg.get("node_id")
-        timestamp = asyncio.get_event_loop().time()
         
-        # Map message types to event types
-        event_type_map = {
-            "execution_started": EventType.EXECUTION_STARTED,
-            "execution_complete": EventType.EXECUTION_COMPLETED,
-            "node_start": EventType.NODE_STARTED,
-            "node_complete": EventType.NODE_COMPLETED,
-            "node_skipped": EventType.NODE_SKIPPED,
-            "node_paused": EventType.NODE_PAUSED,
-            "node_resumed": EventType.NODE_RESUMED,
-            "interactive_prompt": EventType.INTERACTIVE_PROMPT,
-            "interactive_response": EventType.INTERACTIVE_RESPONSE,
-        }
-        
-        event_type = event_type_map.get(msg_type)
-        if not event_type:
-            # Skip unknown message types
-            return
-            
-        # Extract relevant data based on message type
-        event_data = {}
-        if msg_type == "node_complete":
-            event_data["output"] = msg.get("output")
-            event_data["metadata"] = msg.get("metadata", {})
+        # Handle different message types
+        if msg_type == "execution_complete":
+            await state_store.update_status(execution_id, "completed")
+        elif msg_type == "node_start":
+            await state_store.update_node_status(execution_id, node_id, "started")
+        elif msg_type == "node_complete":
+            output = msg.get("output")
+            await state_store.update_node_status(execution_id, node_id, "completed", output)
             # Track token usage if available
             if "token_count" in msg:
-                token_event = ExecutionEvent(
-                    execution_id=execution_id,
-                    sequence=0,
-                    event_type=EventType.TOKEN_USAGE,
-                    node_id=node_id,
-                    data={"tokens": msg["token_count"]},
-                    timestamp=timestamp
-                )
-                await event_store.append(token_event)
+                await state_store.update_token_usage(execution_id, msg["token_count"])
         elif msg_type == "node_skipped":
-            event_data["reason"] = msg.get("reason")
-        elif msg_type == "execution_complete":
-            event_data["outputs"] = msg.get("outputs", {})
-            event_data["skipped"] = msg.get("skipped", [])
-        elif msg_type == "execution_started":
-            event_data["execution_order"] = msg.get("execution_order", [])
-            
-        # Create and persist the event
-        event = ExecutionEvent(
-            execution_id=execution_id,
-            sequence=0,  # Will be set by event store
-            event_type=event_type,
-            node_id=node_id,
-            data=event_data,
-            timestamp=timestamp
-        )
-        
-        await event_store.append(event)
+            await state_store.update_node_status(execution_id, node_id, "skipped")
+        elif msg_type == "node_paused":
+            await state_store.update_node_status(execution_id, node_id, "paused")
+        elif msg_type == "node_resumed":
+            await state_store.update_node_status(execution_id, node_id, "resumed")
+        elif msg_type == "interactive_prompt":
+            prompt = msg.get("prompt", "")
+            await state_store.set_interactive_prompt(execution_id, node_id, prompt)
+        elif msg_type == "interactive_response":
+            await state_store.clear_interactive_prompt(execution_id)

@@ -1,12 +1,31 @@
-/**
- * Core types for DiPeO
- * Single source of truth for all fundamental types
- */
+import {
+  PersonID,
+  ForgettingMode,
+  NodeResult,
+  NodeExecutionStatus,
+  NodeType,
+  StartNodeData as DomainStartNodeData,
+  ConditionNodeData as DomainConditionNodeData,
+  PersonJobNodeData as DomainPersonJobNodeData,
+  EndpointNodeData as DomainEndpointNodeData,
+  DBNodeData as DomainDBNodeData,
+  JobNodeData as DomainJobNodeData,
+  UserResponseNodeData as DomainUserResponseNodeData,
+  NotionNodeData as DomainNotionNodeData,
+  PersonBatchJobNodeData as DomainPersonBatchJobNodeData
+} from "@dipeo/domain-models";
 
-import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
-import type { PersonID } from './branded';
+// Re-export GraphQL types for use in core domain
+import type {
+  Node as DomainNode,
+  Arrow as DomainArrow,
+  Handle as DomainHandle,
+  Person as DomainPerson,
+  ApiKey as DomainApiKey,
+  DomainDiagramType as ReactDiagram,
+  ArrowData
+} from '@/graphql/types';
 
-// Re-export from graphql-mappings which provides compatibility layer
 export type {
   DomainNode,
   DomainArrow,
@@ -15,91 +34,25 @@ export type {
   DomainApiKey,
   ReactDiagram,
   ArrowData
-} from '@/graphql/types/graphql-mappings';
+};
 
-// Node data types - these are still local definitions since GraphQL uses generic JSONScalar
-export interface StartNodeData {
-  label: string;
-  customData: { [key: string]: string | number | boolean };
-  outputDataStructure: { [key: string]: string };
-  flipped?: boolean;
+// Generic UI extension wrapper for domain models
+export type WithUI<T> = T & { 
+  flipped?: boolean; 
   [key: string]: unknown;
-}
+};
 
-export interface ConditionNodeData {
-  label: string;
-  conditionType: string;
-  detect_max_iterations: boolean;
-  expression?: string;
-  _node_indices?: string[];
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface PersonJobNodeData {
-  label: string;
-  person?: PersonID;
-  firstOnlyPrompt: string;
-  defaultPrompt?: string;
-  maxIterations: number;
-  contextCleaningRule?: string;
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface EndpointNodeData {
-  label: string;
-  saveToFile: boolean;
-  fileName?: string;
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface DBNodeData {
-  label: string;
-  file?: string;
-  collection?: string;
-  subType: string;
-  operation: string;
-  query?: string;
-  data?: { [key: string]: any };
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface JobNodeData {
-  label: string;
-  codeType: string;
-  code: string;
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface UserResponseNodeData {
-  label: string;
-  prompt: string;
-  timeout: number;
-  flipped?: boolean;
-  [key: string]: unknown;
-}
-
-export interface NotionNodeData {
-  label: string;
-  operation: string;
-  pageId?: string;
-  databaseId?: string;
-  [key: string]: unknown;
-}
-
-export interface PersonBatchJobNodeData {
-  label: string;
-  person?: PersonID;
-  firstOnlyPrompt: string;
-  defaultPrompt?: string;
-  maxIterations: number;
-  contextCleaningRule?: string;
-  flipped?: boolean;
-  [key: string]: unknown;
+// Node data types - extend domain models with UI-specific properties
+export interface StartNodeData extends WithUI<DomainStartNodeData> {}
+export interface ConditionNodeData extends WithUI<DomainConditionNodeData> {}
+export interface PersonJobNodeData extends WithUI<DomainPersonJobNodeData> {}
+export interface EndpointNodeData extends WithUI<DomainEndpointNodeData> {}
+export interface DBNodeData extends WithUI<DomainDBNodeData> {}
+export interface JobNodeData extends WithUI<DomainJobNodeData> {}
+export interface UserResponseNodeData extends WithUI<DomainUserResponseNodeData> {}
+export interface NotionNodeData extends WithUI<DomainNotionNodeData> {}
+export interface PersonBatchJobNodeData extends WithUI<DomainPersonBatchJobNodeData> {
+  ForgettingMode?: string; // Keep this for backward compatibility
 }
 
 /**
@@ -119,16 +72,52 @@ export type NodeData = {
 };
 
 /**
- * Node execution state
- * Tracks runtime state during diagram execution
+ * Legacy node execution state for backward compatibility.
+ * @deprecated Use NodeResult from @dipeo/domain-models instead
  */
 export interface NodeExecutionState {
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
+  status: NodeExecutionStatus;
   error?: string;
-  timestamp: number;
+  timestamp: number; // Keep as number for backward compatibility
   skipReason?: string;
-  tokenCount?: number;
+  tokenCount?: number; // Different from canonical tokenUsage
   progress?: string;
+}
+
+/**
+ * Convert NodeResult to legacy NodeExecutionState
+ */
+export function fromCanonicalNodeResult(nodeResult: NodeResult): NodeExecutionState {
+  return {
+    status: nodeResult.status,
+    error: nodeResult.error || undefined,
+    timestamp: new Date(nodeResult.timestamp).getTime(),
+    skipReason: nodeResult.skipReason || undefined,
+    tokenCount: nodeResult.tokenUsage?.total,
+    progress: nodeResult.progress || undefined,
+  };
+}
+
+/**
+ * Convert legacy NodeExecutionState to NodeResult
+ */
+export function toCanonicalNodeResult(
+  nodeId: string,
+  state: NodeExecutionState,
+): NodeResult {
+  return {
+    nodeId: nodeId as any, // NodeID branded type
+    status: state.status,
+    error: state.error || null,
+    timestamp: new Date(state.timestamp).toISOString(),
+    skipReason: state.skipReason || null,
+    progress: state.progress || null,
+    tokenUsage: state.tokenCount ? {
+      input: 0,
+      output: 0,
+      total: state.tokenCount,
+    } : null,
+  };
 }
 
 // Type guards are now imported from graphql-mappings
@@ -137,7 +126,7 @@ export { isDomainNode, isReactDiagram } from '@/graphql/types/graphql-mappings';
 /**
  * Utility types for working with nodes
  */
-export type NodeDataOfType<T extends NodeKind> = T extends keyof NodeData ? NodeData[T] : never;
+export type NodeDataOfType<T extends NodeType> = T extends keyof NodeData ? NodeData[T] : never;
 
 // Export format type for diagram export/import operations
 export interface ExportFormat {

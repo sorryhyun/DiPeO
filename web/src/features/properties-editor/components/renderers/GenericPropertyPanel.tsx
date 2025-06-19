@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import { PanelConfig, PanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import { FIELD_TYPES } from '@/core/types/panel';
 import { usePropertyManager } from '../../hooks';
 import { usePersonsData } from '@/shared/hooks/selectors';
-import { UnifiedFormField, type FieldValue } from '../fields';
+import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
 import { GetApiKeysDocument, InitializeModelDocument } from '@/__generated__/graphql';
@@ -21,15 +22,15 @@ const conditionalOperators = createHandlerTable<string, [unknown, unknown[]], bo
   'includes': (fieldValue, values) => values.includes(fieldValue)
 }, (fieldValue, values) => values.includes(fieldValue)); // Default to 'includes'
 
-const fieldTypeMapping = createHandlerTable<string, [], string>({
-  'text': () => 'text',
-  'select': () => 'select',
-  'textarea': () => 'textarea',
-  'variableTextArea': () => 'variable-textarea',
-  'checkbox': () => 'checkbox',
-  'maxIteration': () => 'iteration-count',
-  'personSelect': () => 'person-select'
-}, () => 'text'); // Default to 'text'
+const fieldTypeMapping = createHandlerTable<string, [], UnifiedFieldType>({
+  'text': () => FIELD_TYPES.TEXT,
+  'select': () => FIELD_TYPES.SELECT,
+  'textarea': () => FIELD_TYPES.TEXTAREA,
+  'variableTextArea': () => FIELD_TYPES.VARIABLE_TEXTAREA,
+  'checkbox': () => FIELD_TYPES.BOOLEAN,
+  'maxIteration': () => FIELD_TYPES.MAX_ITERATION,
+  'personSelect': () => FIELD_TYPES.PERSON_SELECT
+}, () => FIELD_TYPES.TEXT); // Default to 'text'
 
 export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   nodeId,
@@ -114,8 +115,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   }, [formData]);
 
   // Convert field type to UnifiedFormField type
-  const getFieldType = (fieldConfig: PanelFieldConfig): "number" | "text" | "select" | "textarea" | "variable-textarea" | "checkbox" | "iteration-count" | "person-select" | "file" => {
-    return fieldTypeMapping.executeOrDefault(fieldConfig.type) as any;
+  const getFieldType = (fieldConfig: PanelFieldConfig): UnifiedFieldType => {
+    return fieldTypeMapping.executeOrDefault(fieldConfig.type);
   };
 
   // Render individual field
@@ -148,7 +149,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
             disabled={isReadOnly}
           />
           <UnifiedFormField
-            type="person-select"
+            type="personSelect"
             name="personId"
             label="Person"
             value={formData.personId as FieldValue}
@@ -190,7 +191,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         detectedVariables={formData.detectedVariables as string[] | undefined}
         className={fieldConfig.className}
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
-        persons={getFieldType(fieldConfig) === 'person-select' ? personsForSelect : undefined}
+        persons={getFieldType(fieldConfig) === FIELD_TYPES.PERSON_SELECT ? personsForSelect : undefined}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);

@@ -1,9 +1,9 @@
-import type { NodeKind } from '@/features/diagram-editor/types/node-kinds';
+import type { NodeType } from '@dipeo/domain-models';
 import { PANEL_CONFIGS } from './panelConfigs';
 import { derivePanelConfig } from './unifiedConfig';
 import { UNIFIED_NODE_CONFIGS } from './nodeConfigs';
 
-export function getNodeConfig(type: NodeKind) {
+export function getNodeConfig(type: NodeType) {
   // Check if unified config exists
   const unifiedConfig = UNIFIED_NODE_CONFIGS[type];
   if (unifiedConfig) {
@@ -15,7 +15,7 @@ export function getNodeConfig(type: NodeKind) {
   return UNIFIED_NODE_CONFIGS[type] || UNIFIED_NODE_CONFIGS.start;
 }
 
-export function validateNodeData(type: NodeKind, data: Record<string, any>) {
+export function validateNodeData(type: NodeType, data: Record<string, any>) {
   const config = getNodeConfig(type);
   const errors: string[] = [];
   
@@ -28,11 +28,11 @@ export function validateNodeData(type: NodeKind, data: Record<string, any>) {
   return { valid: errors.length === 0, errors };
 }
 
-export function getNodeDefaults(type: NodeKind) {
+export function getNodeDefaults(type: NodeType) {
   return { ...getNodeConfig(type).defaults };
 }
 
-export function getNodeColorClasses(type: NodeKind) {
+export function getNodeColorClasses(type: NodeType) {
   const color = getNodeConfig(type).color;
   return {
     border: `border-${color}-500`,
@@ -41,10 +41,10 @@ export function getNodeColorClasses(type: NodeKind) {
   };
 }
 
-export function getPanelConfig(type: NodeKind | 'arrow' | 'person') {
+export function getPanelConfig(type: NodeType | 'arrow' | 'person') {
   // Check if unified config exists for node types
   if (type !== 'arrow' && type !== 'person') {
-    const unifiedConfig = UNIFIED_NODE_CONFIGS[type as NodeKind];
+    const unifiedConfig = UNIFIED_NODE_CONFIGS[type as NodeType];
     if (unifiedConfig) {
       return derivePanelConfig(unifiedConfig);
     }

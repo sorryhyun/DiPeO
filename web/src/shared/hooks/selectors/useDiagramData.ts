@@ -1,6 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../useUnifiedStore';
-import type { ArrowID, DomainArrow, DomainNode, NodeID } from '@/core/types';
+import type { DomainArrow, DomainNode } from '@/core/types';
+import {ArrowID, NodeID} from '@dipeo/domain-models';
 
 interface DiagramData {
   // Maps for efficient lookups

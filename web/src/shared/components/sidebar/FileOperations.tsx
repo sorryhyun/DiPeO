@@ -1,13 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, Download, FileUp } from 'lucide-react';
+import { Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
 import { 
   useUploadDiagramMutation,
-  useSaveDiagramMutation 
+  useExportDiagramMutation 
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
+import { downloadFile } from '@/shared/utils/file';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -19,7 +20,7 @@ export const FileOperations: React.FC = () => {
   const diagramId = searchParams.get('diagram');
 
   const [uploadDiagram] = useUploadDiagramMutation();
-  const [saveDiagram] = useSaveDiagramMutation();
+  const [exportDiagram] = useExportDiagramMutation();
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -90,31 +91,44 @@ export const FileOperations: React.FC = () => {
     }
 
     try {
-      const result = await saveDiagram({
+      const result = await exportDiagram({
         variables: {
           diagramId: diagramId as any, // Type assertion needed for DiagramID type
-          format: selectedFormat
+          format: selectedFormat,
+          includeMetadata: true
         }
       });
 
-      if (!result.data?.saveDiagram?.success) {
-        throw new Error(result.data?.saveDiagram?.error || 'Save failed');
+      if (!result.data?.exportDiagram?.success) {
+        throw new Error(result.data?.exportDiagram?.error || 'Export failed');
       }
 
-      toast.success(result.data.saveDiagram.message || `Diagram saved as ${selectedFormat}`);
+      const { content } = result.data.exportDiagram;
+      if (!content) {
+        throw new Error('No content returned from export');
+      }
+
+      // Determine file extension based on format
+      const extension = selectedFormat === DiagramFormat.NATIVE ? '.json' : '.yaml';
+      const baseFilename = 'diagram';
+      const finalFilename = `${baseFilename}${extension}`;
+
+      // Download the file
+      downloadFile(content, finalFilename, extension === '.json' ? 'application/json' : 'text/yaml');
+      
+      toast.success(`Downloaded as ${finalFilename}`);
 
     } catch (error) {
       console.error('Save error:', error);
       toast.error(error instanceof Error ? error.message : 'Save failed');
     }
-  }, [diagramId, selectedFormat, saveDiagram]);
+  }, [diagramId, selectedFormat, exportDiagram]);
 
   // Define export formats for sidebar display
   const exportFormats = [
     { value: DiagramFormat.NATIVE, label: 'Native JSON' },
     { value: DiagramFormat.READABLE, label: 'Readable YAML' },
-    { value: DiagramFormat.LIGHT, label: 'Light YAML' },
-    { value: DiagramFormat.LLM, label: 'LLM Domain' }
+    { value: DiagramFormat.LIGHT, label: 'Light YAML' }
   ];
 
   return (
@@ -166,7 +180,7 @@ export const FileOperations: React.FC = () => {
         >
           {exportFormats.map(format => (
             <option key={format.value} value={format.value}>
-              Save as {format.label}
+              {format.label}
             </option>
           ))}
         </Select>

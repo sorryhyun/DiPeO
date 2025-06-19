@@ -1,6 +1,17 @@
 // Diagram Editor Components
-export * from './canvas/DiagramCanvas';
+
+// Canvas
+export * from './DiagramCanvas';
+
+// Nodes
 export * from './nodes';
-export * from './arrows';
+
+// Arrows
+export * from './CustomArrow';
+
+// Controls
 export * from './controls';
-export * from './managers/DiagramFileManager';
+
+// File Management
+export * from './DiagramFileManager';
+export * from './DiagramFileModal';

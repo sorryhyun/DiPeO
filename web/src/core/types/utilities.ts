@@ -3,11 +3,8 @@
  */
 
 import { nanoid } from 'nanoid';
+import { Vec2, DataType as DomainDataType, ApiKeyID, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
 import {
-  NodeID,
-  ArrowID,
-  PersonID,
-  ApiKeyID,
   nodeId,
   arrowId,
   personId,
@@ -73,10 +70,8 @@ export const entityIdGenerators = {
 
 export type Dict<V = unknown> = Record<string, V>;
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
+// Import base DataType from domain models and extend with UI-specific types
+export type ExtendedDataType = DomainDataType | 'text' | 'integer' | 'float' | 'json';
 
-export type DataType = 'any' | 'string' | 'number' | 'boolean' | 'array' | 'object' |
-    'text' | 'integer' | 'float' | 'json';
+// Keep DataType as alias for backward compatibility
+export type DataType = ExtendedDataType;

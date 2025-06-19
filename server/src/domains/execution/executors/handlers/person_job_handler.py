@@ -8,14 +8,22 @@ import logging
 
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import ExecutionContext, ExecutorResult
-from ....diagram.models.domain import TokenUsage
-from shared.utils.output_processor import OutputProcessor
-from shared.utils.app_context import get_memory_service
+from src.__generated__.models import TokenUsage
+from src.domains.llm.services.token_usage_service import TokenUsageService
+from src.common.utils.output_processor import OutputProcessor
+from src.common.utils.app_context import get_memory_service
 from ..executor_utils import get_input_values, substitute_variables
+from ..decorators import node
 
 logger = logging.getLogger(__name__)
 
 
+@node(
+    node_type="person_job",
+    schema=PersonJobProps,
+    description="Execute LLM task with person context and memory",
+    requires_services=["llm_service"]
+)
 async def person_job_handler(
     props: PersonJobProps,
     context: ExecutionContext,
@@ -38,7 +46,7 @@ async def person_job_handler(
                 "execution_count": execution_count,
                 "passthrough": True
             },
-            "tokens": TokenUsage(),
+            "tokens": TokenUsageService.zero(),
             "execution_time": time.time() - start_time
         }
     
@@ -49,7 +57,7 @@ async def person_job_handler(
             "output": None,
             "error": "No prompt available",
             "metadata": {"execution_count": execution_count},
-            "tokens": TokenUsage(),
+            "tokens": TokenUsageService.zero(),
             "execution_time": time.time() - start_time
         }
     
@@ -120,7 +128,7 @@ async def person_job_handler(
         )
         
         elapsed = time.time() - start_time
-        usage = TokenUsage.from_response(response)
+        usage = TokenUsageService.from_response(response)
         
         # Store in memory
         if memory_service and hasattr(context, 'execution_id'):
@@ -167,6 +175,12 @@ async def person_job_handler(
         raise
 
 
+@node(
+    node_type="person_batch_job",
+    schema=PersonBatchJobProps,
+    description="Execute LLM task in batch mode",
+    requires_services=["llm_service"]
+)
 async def person_batch_job_handler(
     props: PersonBatchJobProps,
     context: ExecutionContext,
@@ -212,7 +226,7 @@ async def _resolve_person(props: PersonJobProps, context: ExecutionContext) -> A
 async def _get_service_from_api_key(api_key_id: str, context: ExecutionContext) -> str:
     """Get service type from API key"""
     try:
-        from shared.utils.app_context import app_context
+        from src.common.utils.app_context import app_context
         api_key_info = app_context.api_key_service.get_api_key(api_key_id)
         return api_key_info.get("service", "openai")
     except Exception as e:

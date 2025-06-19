@@ -7,39 +7,33 @@ from typing import Optional, List
 
 from ..types.scalars import JSONScalar, DiagramID, ExecutionID
 
-from src.domains.diagram.models.domain import (
+# Import generated models
+from src.__generated__.models import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
-    DomainApiKey, DiagramMetadata, DiagramForGraphQL,
+    DomainApiKey, DiagramMetadata, DomainDiagram,
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,
-    TokenUsage as DiagramTokenUsage
-)
-from src.shared.domain import (
-    TokenUsage as PydanticTokenUsage,
     Vec2 as PydanticVec2,
-    DiagramFormat
+    DiagramFormat,
+    TokenUsage as GeneratedTokenUsage
 )
+
+# No longer need domain-specific extensions - using generated model directly
 
 # Convert basic types
-@strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True)
+# Use the models directly with strawberry.experimental.pydantic
+@strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True, description="2D position vector")
 class Vec2:
-    """2D position vector."""
     pass
 
-@strawberry.experimental.pydantic.type(model=PydanticTokenUsage, all_fields=True)
+@strawberry.experimental.pydantic.type(model=GeneratedTokenUsage, all_fields=True, description="Token usage statistics")
 class TokenUsage:
-    """Token usage statistics."""
-    pass
-
-@strawberry.experimental.pydantic.type(model=DiagramTokenUsage, all_fields=True)
-class DiagramTokenUsageType:
-    """Token usage statistics for diagram execution."""
     pass
 
 # Convert domain models to Strawberry types
-@strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True)
+# Direct conversion for simple types
+@strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True, description="Connection point on a node")
 class Handle:
-    """Connection point on a node."""
     pass
 
 @strawberry.experimental.pydantic.type(model=DomainNode)
@@ -94,9 +88,13 @@ class Person:
     service: strawberry.auto
     model: strawberry.auto
     api_key_id: strawberry.auto
-    systemPrompt: strawberry.auto
-    forgettingMode: strawberry.auto
-    type: strawberry.auto
+    system_prompt: strawberry.auto
+    forgetting_mode: strawberry.auto
+    
+    @strawberry.field
+    def type(self) -> str:
+        """Return the type as string."""
+        return "person"
     
     @strawberry.field
     def masked_api_key(self) -> Optional[str]:
@@ -117,14 +115,14 @@ class ApiKey:
         """Masked version of the key."""
         return f"{self.service.value}-****"
 
-@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True)
-class DiagramMetadata:
-    """Metadata for a diagram."""
+# Metadata can be used directly
+@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True, description="Metadata for a diagram")
+class DiagramMetadataType:
     pass
 
-@strawberry.experimental.pydantic.type(model=DiagramForGraphQL)
-class Diagram:
-    """Complete diagram with all components."""
+@strawberry.experimental.pydantic.type(model=DomainDiagram)
+class DomainDiagramType:
+    """Complete diagram with all components (backend format)."""
     nodes: strawberry.auto
     handles: strawberry.auto
     arrows: strawberry.auto
@@ -182,7 +180,7 @@ class ExecutionState:
     skipped_nodes: strawberry.auto
     paused_nodes: strawberry.auto
     failed_nodes: strawberry.auto
-    token_usage: Optional[DiagramTokenUsageType]
+    token_usage: Optional[TokenUsage]
     error: strawberry.auto
     
     @strawberry.field
