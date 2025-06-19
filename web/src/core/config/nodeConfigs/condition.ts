@@ -29,7 +29,13 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
         { value: 'detect_max_iterations', label: 'Detect Max Iterations' }
       ]
     },
-    { name: 'condition', type: 'string', label: 'Condition', required: true, placeholder: 'e.g., {{value}} > 10' }
+    { 
+      name: 'condition', 
+      type: 'string', 
+      label: 'Condition', 
+      required: true, 
+      placeholder: 'e.g., {{value}} > 10'
+    }
   ],
   defaults: { conditionType: 'simple', condition: '', label: '' },
   

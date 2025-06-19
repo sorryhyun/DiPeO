@@ -130,9 +130,9 @@ const NodeHeader = React.memo(({
   configLabel: string;
   isExecutionMode: boolean;
 }) => (
-  <div className="flex items-center gap-2 mb-2">
-    <span className="text-lg">{icon}</span>
-    <span className={`font-medium text-sm ${isExecutionMode ? 'text-gray-900' : ''}`}>
+  <div className="flex items-center justify-center gap-2 mb-2">
+    <span className="text-xl">{icon}</span>
+    <span className="font-medium text-base text-black">
       {label || configLabel}
     </span>
   </div>
@@ -159,7 +159,7 @@ const NodeBody = React.memo(({
         : String(value);
       
       return (
-        <div key={key} className={`text-xs ${isExecutionMode ? 'text-gray-700 font-medium' : 'text-gray-600'}`}>
+        <div key={key} className="text-sm text-black font-medium text-center">
           {displayValue}
         </div>
       );
@@ -260,7 +260,7 @@ export function BaseNode({
         
         {/* Progress or error message */}
         {(status.progress || status.error) && (
-          <div className="mt-2 text-xs text-gray-500 italic">
+          <div className="mt-2 text-sm text-black italic text-center">
             {status.progress || status.error}
           </div>
         )}

@@ -54,6 +54,7 @@ export interface UnifiedFormFieldProps {
   detectedVariables?: string[];
   onFileUpload?: (file: File) => Promise<void>;
   isLoading?: boolean;
+  showFieldKey?: boolean;
 }
 
 type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layout' | 'error' | 'helperText'> & {
@@ -245,7 +246,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   hint,
   detectedVariables,
   onFileUpload,
-  isLoading = false
+  isLoading = false,
+  showFieldKey = false
 }) => {
   const fieldId = `field-${name}`;
   const [localLoading, setLocalLoading] = useState(false);
@@ -289,6 +291,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
       <div className={`${SPACE_Y_2} ${className}`}>
         <label htmlFor={fieldId} className={`block ${LABEL_TEXT}`}>
           {label}
+          {showFieldKey && name && <span className="text-xs text-gray-500 ml-1">({name})</span>}
           {required && <span className={REQUIRED_ASTERISK}>*</span>}
         </label>
         {fieldElement}
@@ -303,6 +306,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     <div className={`flex items-center gap-4 ${className}`}>
       <label htmlFor={fieldId} className={`${LABEL_TEXT} min-w-[120px]`}>
         {label}
+        {showFieldKey && name && <span className="text-xs text-gray-500 ml-1">({name})</span>}
         {required && <span className={REQUIRED_ASTERISK}>*</span>}
       </label>
       <div className="flex-1">

@@ -7,7 +7,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node } from '@xyflow/react';
-import { createNodeDragGhost } from '@/shared/utils/dragGhost';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { NodeID, PersonID, ArrowID, nodeId, personId } from '@/core/types';
 import { Vec2, NodeType } from '@dipeo/domain-models';
@@ -173,11 +172,6 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
-    
-    const ghost = createNodeDragGhost(nodeType as NodeType);
-    const ghostWidth = 200;
-    const ghostHeight = 80;
-    event.dataTransfer.setDragImage(ghost, ghostWidth / 2, ghostHeight / 2);
     
     const rect = (event.target as HTMLElement).getBoundingClientRect();
     dragOffset.current = {

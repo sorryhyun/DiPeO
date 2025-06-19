@@ -1,10 +1,12 @@
 import React from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
 import { ArrowData, Dict, DomainPerson } from '@/core/types';
 import { PanelConfig } from '@/features/diagram-editor/types/panel';
 import { NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
+import { useCanvasOperations } from '@/features/diagram-editor/hooks';
+import { nodeId, arrowId, personId } from '@/core/types';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
@@ -15,9 +17,10 @@ interface UniversalPropertiesPanelProps {
   data: UniversalData;
 }
 
-export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = React.memo(({ nodeId, data }) => {
+export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = React.memo(({ nodeId: entityId, data }) => {
   const nodeType = data.type;
   const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
+  const canvas = useCanvasOperations();
   
   // Cast to a more permissive type that accepts the union
   const GenericPanel = GenericPropertyPanel as React.FC<{
@@ -42,17 +45,37 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
     );
   }
 
+  const handleDelete = () => {
+    if (data.type === 'person') {
+      canvas.deletePerson(personId(entityId));
+    } else if (data.type === 'arrow') {
+      canvas.deleteArrow(arrowId(entityId));
+    } else {
+      canvas.deleteNode(nodeId(entityId));
+    }
+    canvas.clearSelection();
+  };
+
   return (
     <div className="p-4 space-y-4">
-      <div className="flex items-center space-x-2 border-b pb-2">
-        <span>{nodeConfig?.icon || '⚙️'}</span>
-        <h3 className="text-lg font-semibold">
-          {nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
-        </h3>
+      <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex items-center space-x-2">
+          <span>{nodeConfig?.icon || '⚙️'}</span>
+          <h3 className="text-lg font-semibold">
+            {nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
+          </h3>
+        </div>
+        <button
+          onClick={handleDelete}
+          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
       <div className="space-y-4">
         <GenericPanel
-          nodeId={nodeId}
+          nodeId={entityId}
           data={data as Record<string, unknown>}
           config={panelConfig as PanelConfig<Record<string, unknown>>}
         />

@@ -123,19 +123,21 @@ function useCommonFlowProps({
       },
       onDragOver: onDragOver ?? undefined,
       onDrop,
-      // Ensure nodes are draggable and selectable
-      nodesDraggable: true,
+      // Ensure nodes are selectable but not draggable with left-click
+      nodesDraggable: false,
       nodesConnectable: true,
       nodesFocusable: true,
       elementsSelectable: true,
-      panOnDrag: true,
+      panOnDrag: true, // Use left mouse button with space/cmd key for panning
       panOnScroll: false,
       zoomOnScroll: true,
       zoomOnPinch: true,
       zoomOnDoubleClick: true,
-      // Add drag threshold to make dragging more responsive
+      // Remove drag threshold for immediate interaction
       nodeDragThreshold: 0,
       selectNodesOnDrag: false,
+      // Prevent delay on selection
+      connectionMode: 'loose',
     } as const;
 
     return {
@@ -148,21 +150,29 @@ function useCommonFlowProps({
         event: React.MouseEvent,
         node: ReactFlowNode
       ) => {
+        event.preventDefault();
         selectNode(node.id);
-        onNodeContextMenu?.(event, node.id);
+        // Disable context menu
+        // onNodeContextMenu?.(event, node.id);
       },
       onEdgeContextMenu: (
         event: React.MouseEvent,
         edge: Edge
       ) => {
+        event.preventDefault();
         selectArrow(edge.id);
-        onEdgeContextMenu?.(event, edge.id);
+        // Disable context menu
+        // onEdgeContextMenu?.(event, edge.id);
       },
       onPaneContextMenu: (evt: React.MouseEvent | MouseEvent) => {
-        clearSelection();
         if (evt && 'preventDefault' in evt) {
-          onPaneContextMenu?.(evt as React.MouseEvent);
+          evt.preventDefault();
         }
+        clearSelection();
+        // Disable context menu
+        // if (evt && 'preventDefault' in evt) {
+        //   onPaneContextMenu?.(evt as React.MouseEvent);
+        // }
       },
       className: executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100",
     } satisfies Parameters<typeof ReactFlow>[0];
@@ -330,7 +340,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               <ReactFlow {...flowProps} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-              {renderContextMenu()}
+              {/* Context menu disabled */}
+              {/* {renderContextMenu()} */}
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
@@ -357,7 +368,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
               <ReactFlow {...flowProps} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-              {renderContextMenu()}
+              {/* Context menu disabled */}
+              {/* {renderContextMenu()} */}
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />

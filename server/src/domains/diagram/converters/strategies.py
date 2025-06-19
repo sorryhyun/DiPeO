@@ -245,41 +245,44 @@ class LightYamlStrategy(FormatStrategy):
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
         nodes = []
         
+        # Create node lookup dictionary
+        nodes_dict = {node.id: node for node in diagram.nodes}
+        
         # Group arrows by source node
         arrows_by_source = {}
-        for arrow in diagram.arrows.values():
+        for arrow in diagram.arrows:
             source_node = arrow.source.split('_')[0]
             if source_node not in arrows_by_source:
                 arrows_by_source[source_node] = []
             
             target_node = arrow.target.split('_')[0]
-            target = diagram.nodes.get(target_node)
+            target = nodes_dict.get(target_node)
             if target:
                 arrows_by_source[source_node].append({
                     'to': target.data.get('label', target_node)
                 })
         
         # Build node list
-        for node_id, node in diagram.nodes.items():
+        for node in diagram.nodes:
             node_data = {
                 'type': node.type,
-                'label': node.data.get('label', node_id),
+                'label': node.data.get('label', node.id),
                 **{k: v for k, v in node.data.items() if k != 'label'}
             }
             
             # Add arrows if any
-            if node_id in arrows_by_source:
-                node_data['arrows'] = arrows_by_source[node_id]
+            if node.id in arrows_by_source:
+                node_data['arrows'] = arrows_by_source[node.id]
             
             nodes.append(node_data)
         
         result = {'nodes': nodes}
         
-        # Add persons and api_keys if present
+        # Add persons and api_keys if present - convert to list format
         if diagram.persons:
-            result['persons'] = diagram.persons
+            result['persons'] = [person.model_dump() for person in diagram.persons]
         if diagram.api_keys:
-            result['api_keys'] = diagram.api_keys
+            result['api_keys'] = [api_key.model_dump() for api_key in diagram.api_keys]
         
         return result
     
@@ -360,21 +363,24 @@ class ReadableYamlStrategy(FormatStrategy):
         return arrows
     
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        # Create node lookup dictionary
+        nodes_dict = {node.id: node for node in diagram.nodes}
+        
         # Build workflow section
         workflow = []
-        for node_id, node in diagram.nodes.items():
-            step_name = node.data.get('label', node_id)
+        for node in diagram.nodes:
+            step_name = node.data.get('label', node.id)
             step_data = self._build_step_data(node)
             workflow.append({step_name: step_data})
         
         # Build flow section
         flow = []
-        for arrow in diagram.arrows.values():
+        for arrow in diagram.arrows:
             source_node = arrow.source.split('_')[0]
             target_node = arrow.target.split('_')[0]
             
-            source = diagram.nodes.get(source_node)
-            target = diagram.nodes.get(target_node)
+            source = nodes_dict.get(source_node)
+            target = nodes_dict.get(target_node)
             
             if source and target:
                 source_label = source.data.get('label', source_node)
@@ -388,9 +394,9 @@ class ReadableYamlStrategy(FormatStrategy):
         # Add config section if needed
         config = {}
         if diagram.persons:
-            config['persons'] = diagram.persons
+            config['persons'] = [person.model_dump() for person in diagram.persons]
         if diagram.api_keys:
-            config['api_keys'] = diagram.api_keys
+            config['api_keys'] = [api_key.model_dump() for api_key in diagram.api_keys]
         
         if config:
             result['config'] = config

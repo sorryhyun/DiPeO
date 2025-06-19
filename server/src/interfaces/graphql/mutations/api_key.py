@@ -41,7 +41,8 @@ class ApiKeyMutations:
             api_key = DomainApiKey(
                 id=api_key_data['id'],
                 label=api_key_data['label'],
-                service=pydantic_input.service
+                service=pydantic_input.service,
+                masked_key=f"{pydantic_input.service.value}-****"
             )
             
             return ApiKeyResult(

@@ -19,17 +19,32 @@ export const startConfig = createUnifiedConfig<StartFormData>({
   defaults: { output: '', label: '' },
   
   // Panel configuration overrides
-  panelLayout: 'single',
-  panelFieldOrder: ['label'],
+  panelLayout: 'double',
+  panelFieldOrder: ['label', 'output'],
   panelCustomFields: [
     {
       type: 'text',
       name: 'label',
       label: 'Block Label',
       placeholder: 'Start',
+      column: 1,
       validate: (_value) => ({
         isValid: true // Label is optional
       })
+    },
+    {
+      type: 'textarea',
+      name: 'output',
+      label: 'Output Data',
+      placeholder: 'Enter static data to output',
+      column: 2,
+      rows: 3,
+      validate: (value) => {
+        if (!value || typeof value !== 'string' || value.trim().length === 0) {
+          return { isValid: false, error: 'Output data is required' };
+        }
+        return { isValid: true };
+      }
     }
   ]
 });

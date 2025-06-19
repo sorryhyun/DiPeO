@@ -192,6 +192,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         className={fieldConfig.className}
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
         persons={getFieldType(fieldConfig) === FIELD_TYPES.PERSON_SELECT ? personsForSelect : undefined}
+        showFieldKey={true}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);

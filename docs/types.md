@@ -7,10 +7,10 @@ All diagram formats use GraphQL as the canonical representation. Frontend and ba
 
 ### Frontend (TypeScript)
 ```typescript
-// GraphQL → React Flow (for rendering)
+// GraphQL → xyflow react (for rendering)
 interface Converter {
-  toReactFlow(diagram: DiagramQL): ReactFlowDiagram;
-  toGraphQL(reactFlow: ReactFlowDiagram): DiagramQL;
+  toReact(diagram: DiagramQL): ReactDiagram;
+  toGraphQL(react: ReactFlowDiagram): DiagramQL;
   toStorage(diagram: DiagramQL): CompressedDiagram;
 }
 ```

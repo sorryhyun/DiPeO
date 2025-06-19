@@ -57,13 +57,13 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
         offset={75}
         color="#2563eb"
       />
-      <div className="flex items-center space-x-2 mb-1">
+      <div className="flex items-center justify-center space-x-2 mb-1">
         <User className="h-5 w-5 text-green-600 flex-shrink-0" />
-        <strong className="text-sm truncate" title={personData.label || 'Person'}>
+        <strong className="text-base text-black truncate" title={personData.label || 'Person'}>
           {personData.label || 'Person'}
         </strong>
       </div>
-      <p className="text-xs text-gray-500 truncate">Model: {personData.model || 'Not set'}</p>
+      <p className="text-sm text-black truncate text-center">Model: {personData.model || 'Not set'}</p>
     </div>
   );
 }, (prevProps, nextProps) => {
