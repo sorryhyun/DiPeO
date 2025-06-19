@@ -11,8 +11,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from dipeo_cli.api_client import DiPeoAPIClient
-from dipeo_cli.utils import DiagramLoader
+from dipeo.api_client import DiPeoAPIClient
+from dipeo.utils import DiagramLoader
 
 
 async def test_execution():

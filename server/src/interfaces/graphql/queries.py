@@ -10,7 +10,7 @@ from .mutations.diagram_file import DiagramFormatInfo
 from .types.scalars import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .types.inputs import DiagramFilterInput, ExecutionFilterInput
 # Import enums from the Pydantic models (single source of truth)
-from src.shared.domain import NodeType, LLMService
+from src.common import NodeType, LLMService
 
 @strawberry.type
 class Query:

@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import type { NodeID, DiagramID, PersonID } from '../diagram';
+import type { Message, MemoryState, MemoryConfig } from '../person';
 
 // Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
@@ -124,28 +125,10 @@ export interface InteractiveResponse {
   timestamp: string;
 }
 
-// Person memory types
-export interface PersonMemoryMessage {
-  id?: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp?: string;
-  tokenCount?: number;
-}
-
-export interface PersonMemoryState {
-  personId: PersonID;
-  messages: PersonMemoryMessage[];
-  visibleMessages: number;
-  hasMore?: boolean;
-  config?: PersonMemoryConfig;
-}
-
-export interface PersonMemoryConfig {
-  forgetMode?: 'no_forget' | 'on_every_turn' | 'upon_request';
-  maxMessages?: number;
-  temperature?: number;
-}
+// Use shared conversation types from person domain
+export type PersonMemoryMessage = Message;
+export type PersonMemoryState = MemoryState;
+export type PersonMemoryConfig = MemoryConfig;
 
 // Update events for real-time communication
 export interface ExecutionUpdate {

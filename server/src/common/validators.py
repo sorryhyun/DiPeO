@@ -3,7 +3,7 @@ Central diagram validation utility
 """
 from typing import Dict, List, Optional, Any, Union
 from src.domains.diagram.models import DomainDiagram
-from src.shared.services.api_key_service import APIKeyService
+from .services import APIKeyService
 
 
 class DiagramValidator:
@@ -103,7 +103,7 @@ class DiagramValidator:
         """
         errors = self.validate(diagram, context)
         if errors:
-            from ..exceptions.exceptions import ValidationError
+            from .exceptions import ValidationError
             raise ValidationError("; ".join(errors))
     
     def is_valid(self, diagram: Union[DomainDiagram, Dict[str, Any]], 

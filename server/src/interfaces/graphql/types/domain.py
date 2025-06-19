@@ -18,14 +18,12 @@ from src.__generated__.models import (
     TokenUsage as GeneratedTokenUsage
 )
 
-# Import domain-specific extensions
-from src.shared.domain.types import TokenUsage as DiagramTokenUsage
+# No longer need domain-specific extensions - using generated model directly
 
 # Convert basic types
 # Use the models directly with strawberry.experimental.pydantic
 Vec2 = strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True, description="2D position vector")
 TokenUsage = strawberry.experimental.pydantic.type(model=GeneratedTokenUsage, all_fields=True, description="Token usage statistics")
-DiagramTokenUsageType = strawberry.experimental.pydantic.type(model=DiagramTokenUsage, all_fields=True, description="Token usage statistics for diagram execution")
 
 # Convert domain models to Strawberry types
 # Direct conversion for simple types

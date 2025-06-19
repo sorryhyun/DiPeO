@@ -12,7 +12,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import {type ReactDiagram, diagramId, executionId, nodeId } from '@/core/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types';
-import { NodeType } from '@dipeo/domain-models';
+import {
+  NodeType,
+  ExecutionStatus,
+  EventType,
+  NodeExecutionStatus,
+  type ExecutionUpdate,
+  NodeID
+} from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { NODE_ICONS, NODE_COLORS } from '@/core/config/nodeMeta';
 import {
@@ -26,13 +33,6 @@ import {
   NodeUpdatesSubscription,
   InteractivePromptsSubscription,
 } from '@/__generated__/graphql';
-import { 
-  ExecutionStatus,
-  EventType,
-  NodeExecutionStatus,
-  type ExecutionUpdate,
-  NodeID
-} from '@dipeo/domain-models';
 
 // Hook-specific execution state (not to be confused with canonical ExecutionState)
 export interface HookExecutionState {

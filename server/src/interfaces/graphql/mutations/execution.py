@@ -8,7 +8,7 @@ from ..types.results import ExecutionResult
 from ..types.inputs import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
 from ..context import GraphQLContext
 from src.domains.diagram.models import ExecutionState as ExecutionStateForGraphQL
-from src.shared.domain import ExecutionStatus
+from src.common import ExecutionStatus
 from ..models.input_models import (
     ExecuteDiagramInput as PydanticExecuteDiagramInput,
     ExecutionControlInput as PydanticExecutionControlInput,

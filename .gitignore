@@ -24,7 +24,7 @@ TODO.md
 web/src/__generated__
 server/src/__generated__
 packages/domain-models/__generated__
-cli/dipeo_cli/__generated__
+cli/dipeo/__generated__
 
 # Node.js
 node_modules/

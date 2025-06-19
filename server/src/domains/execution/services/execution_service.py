@@ -8,9 +8,9 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from typing import Any, Dict, Optional, Set
 
-from src.shared.utils.base_service import BaseService
-from src.shared.utils.diagram_validator import DiagramValidator
-from src.shared.exceptions.exceptions import ValidationError
+from src.common.base import BaseService
+from src.common.validators import DiagramValidator
+from src.common.exceptions import ValidationError
 from ..services.simple_state_store import state_store
 
 log = logging.getLogger(__name__)

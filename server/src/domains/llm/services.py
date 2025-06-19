@@ -3,12 +3,13 @@ from typing import Any, List, Optional, Tuple, Union
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from src.__generated__.models import LLMService as LLMServiceEnum
-from src.shared.domain.constants import PROVIDER_TO_ENUM_MAP
-from src.shared.domain.types import TokenUsage
-from src.shared.exceptions.exceptions import LLMServiceError, APIKeyError
+from src.common.constants import PROVIDER_TO_ENUM_MAP
+from src.__generated__.models import TokenUsage
+from src.domains.llm.service_utils.token_usage_service import TokenUsageService
+from src.common.exceptions import LLMServiceError, APIKeyError
 from src.domains.llm import ChatResult, create_adapter
-from src.shared.services.api_key_service import APIKeyService
-from src.shared.utils.base_service import BaseService
+from src.common.services import APIKeyService
+from src.common.base import BaseService
 
 
 class LLMService(BaseService):
@@ -64,7 +65,7 @@ class LLMService(BaseService):
         """Get token counts from LLM usage."""
         # Normalize the client/service name
         normalized_service = self.normalize_service_name(client_name)
-        return TokenUsage.from_usage(usage, normalized_service)
+        return TokenUsageService.from_usage(usage, normalized_service)
     
     def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
         """Extract text and usage from adapter result."""

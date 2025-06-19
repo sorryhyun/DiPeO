@@ -8,7 +8,7 @@ from ..types.scalars import DiagramID, PersonID
 from ..types.inputs import CreatePersonInput, UpdatePersonInput
 from ..context import GraphQLContext
 from src.domains.diagram.models import DomainPerson
-from src.shared.domain import LLMService, ForgettingMode
+from src.common import LLMService, ForgettingMode
 from ..models.input_models import (
     CreatePersonInput as PydanticCreatePersonInput,
     UpdatePersonInput as PydanticUpdatePersonInput

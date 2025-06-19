@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Export GraphQL Schema Script for DiPeO
-# This script exports the GraphQL schema from the server and runs codegen for the frontend
+# GraphQL Code Generation Script for DiPeO
+# This script exports the GraphQL schema from the server and generates TypeScript types for the frontend
 
 set -e  # Exit on error
 
@@ -55,6 +55,11 @@ fi
 print_status "GraphQL schema export and codegen completed successfully!"
 print_status "Generated files are in: web/src/__generated__/"
 
-# Step 3: Start the development server
-print_status "Starting frontend development server..."
-cd web && pnpm dev
+# Optional: Start the development server if --dev flag is provided
+if [[ "$1" == "--dev" ]]; then
+    print_status "Starting frontend development server..."
+    pnpm dev
+else
+    print_status "Run 'pnpm dev' to start the frontend development server"
+    print_status "Or use './dev.sh --frontend' to start the frontend"
+fi

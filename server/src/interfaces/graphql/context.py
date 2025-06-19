@@ -3,12 +3,12 @@ from typing import Dict, Any, TYPE_CHECKING
 from fastapi import Request
 from strawberry.fastapi import BaseContext
 
-from src.shared.utils.app_context import AppContext
+from src.common.utils.app_context import AppContext
 from src.domains.execution.services.simple_state_store import state_store
 from src.domains.execution.services.message_router_simple import message_router
 
 if TYPE_CHECKING:
-    from src.shared.service_types import (
+    from src.common.service_types import (
         SupportsAPIKey,
         SupportsDiagram,
         SupportsExecution,
@@ -68,7 +68,7 @@ async def get_graphql_context(
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from src.shared.utils.app_context import get_app_context
+    from src.common.utils.app_context import get_app_context
     
     app_context = get_app_context()
     return GraphQLContext(

@@ -2,14 +2,13 @@
  * Form field validation and utility types
  */
 
-import type { ValidationResult, FieldType } from '@/core/types/panel';
-import { FIELD_TYPES } from '@/core/types/panel';
+import { FIELD_TYPES, type ValidationResult, type FieldType } from '@/core/types/panel';
 
 /**
  * Legacy field validation result interface
  * @deprecated Use ValidationResult from @/core/types/panel
  */
-export interface FieldValidationResult extends Pick<ValidationResult, 'isValid' | 'error' | 'warning'> {}
+export type FieldValidationResult = Pick<ValidationResult, 'isValid' | 'error' | 'warning'>
 
 /**
  * Property field types for form rendering

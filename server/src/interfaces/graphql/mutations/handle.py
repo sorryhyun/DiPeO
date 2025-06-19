@@ -7,7 +7,7 @@ from ..types.scalars import HandleID
 from ..types.inputs import CreateHandleInput
 from ..context import GraphQLContext
 from src.domains.diagram.models import DomainHandle
-from src.shared.domain import Vec2
+from src.common import Vec2
 from ..models.input_models import CreateHandleInput as PydanticCreateHandleInput
 
 logger = logging.getLogger(__name__)

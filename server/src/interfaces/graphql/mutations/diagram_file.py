@@ -11,10 +11,10 @@ import uuid
 import logging
 
 from src.domains.diagram.services import DiagramService
-from src.shared.services.api_key_service import APIKeyService
+from src.common.services import APIKeyService
 from src.domains.diagram.models import DomainDiagram, DiagramMetadata
 from src.domains.diagram.converters import converter_registry
-from src.shared.utils.diagram_validator import DiagramValidator
+from src.common.validators import DiagramValidator
 from ..context import GraphQLContext
 from ..types.results import OperationError
 from ..types.scalars import DiagramID
@@ -129,7 +129,7 @@ class DiagramFileMutations:
                 )
             
             # Validate diagram structure
-            validation_errors = self._validate_diagram(domain_diagram, context.api_key_service)
+            validation_errors = self._validate_diagram(domain_diagram, info.context.api_key_service)
             if validation_errors:
                 return DiagramUploadResult(
                     success=False,

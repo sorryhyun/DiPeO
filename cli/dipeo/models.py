@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List, Union
 from dataclasses import dataclass, field
 
 # Import all models from generated code
-from dipeo_cli.__generated__.models import (
+from .__generated__.models import (
     # Enums
     NodeType,
     HandleDirection,
@@ -22,18 +22,15 @@ from dipeo_cli.__generated__.models import (
     EventType,
     DBBlockSubType,
     ContentType,
-    ContextCleaningRule,
     # Core models
     DomainNode as Node,
     DomainArrow as Arrow,
     DomainHandle as Handle,
     DomainPerson as Person,
     DomainApiKey as ApiKey,
-    DomainDiagram,
     DiagramMetadata as BaseMetadata,
     # Other models
     Vec2,
-    TokenUsage,
 )
 
 # CLI-specific extensions
@@ -77,27 +74,27 @@ class CLIDiagram:
             "metadata": self.metadata.to_dict() if self.metadata else None
         }
     
-    def to_array_format(self) -> DomainDiagram:
+    def to_array_format(self) -> Dict[str, Any]:
         """Convert to array format for GraphQL"""
-        return DomainDiagram(
-            nodes=list(self.nodes.values()),
-            arrows=list(self.arrows.values()),
-            handles=list(self.handles.values()),
-            persons=list(self.persons.values()),
-            api_keys=list(self.api_keys.values()),
-            metadata=self.metadata
-        )
+        return {
+            "nodes": list(self.nodes.values()),
+            "arrows": list(self.arrows.values()),
+            "handles": list(self.handles.values()),
+            "persons": list(self.persons.values()),
+            "api_keys": list(self.api_keys.values()),
+            "metadata": self.metadata
+        }
     
     @classmethod
-    def from_array_format(cls, array_format: DomainDiagram) -> 'CLIDiagram':
+    def from_array_format(cls, array_format: Dict[str, Any]) -> 'CLIDiagram':
         """Create from array format"""
         return cls(
-            nodes={node.id: node for node in array_format.nodes},
-            arrows={arrow.id: arrow for arrow in array_format.arrows},
-            handles={handle.id: handle for handle in array_format.handles},
-            persons={person.id: person for person in array_format.persons},
-            api_keys={api_key.id: api_key for api_key in array_format.api_keys},
-            metadata=array_format.metadata
+            nodes={node.id: node for node in array_format.get('nodes', [])},
+            arrows={arrow.id: arrow for arrow in array_format.get('arrows', [])},
+            handles={handle.id: handle for handle in array_format.get('handles', [])},
+            persons={person.id: person for person in array_format.get('persons', [])},
+            api_keys={api_key.id: api_key for api_key in array_format.get('api_keys', [])},
+            metadata=array_format.get('metadata')
         )
 
 

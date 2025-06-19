@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# DiPeO CLI wrapper script
+# This script provides a convenient way to run the DiPeO CLI
+
+set -e
+
+# Script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CLI_DIR="$SCRIPT_DIR/cli"
+VENV_DIR="$CLI_DIR/.venv"
+
+# Check if virtual environment exists
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Setting up DiPeO CLI for first use..."
+    cd "$CLI_DIR"
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -e . > /dev/null 2>&1
+    echo "CLI setup completed!"
+else
+    source "$VENV_DIR/bin/activate"
+fi
+
+# Run the CLI with all arguments
+exec dipeo "$@"

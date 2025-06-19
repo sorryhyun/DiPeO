@@ -7,12 +7,12 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from fastapi import HTTPException
 
-from src.shared.exceptions.exceptions import ValidationError
+from src.common.exceptions import ValidationError
 from src.domains.llm.services import LLMService
-from src.shared.services.api_key_service import APIKeyService
+from src.common.services import APIKeyService
 from src.domains.person.memory import MemoryService
-from src.shared.utils.base_service import BaseService
-from src.shared.utils.diagram_validator import DiagramValidator
+from src.common.base import BaseService
+from src.common.validators import DiagramValidator
 from config import BASE_DIR
 from src.__generated__.models import DiagramID
 
@@ -113,7 +113,7 @@ class DiagramService(BaseService):
         
         Note: This is a basic implementation. For sophisticated LLM YAML export,
         use the CLI tool which leverages the frontend TypeScript converters:
-        `python tool.py convert example.json output.llm-yaml`
+        `dipeo convert example.json output.llm-yaml`
         """
         try:
             # Basic LLM-friendly format export

@@ -16,10 +16,8 @@ from src.__generated__.models import (
     DiagramID,
     ExecutionID,
     Vec2,
+    TokenUsage,
 )
-
-# Import the consolidated TokenUsage implementation
-from .token_usage import TokenUsage
 
 
 class TimestampedModel(BaseModel):

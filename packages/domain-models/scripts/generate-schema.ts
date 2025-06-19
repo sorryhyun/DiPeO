@@ -12,6 +12,7 @@ import { Project, InterfaceDeclaration, EnumDeclaration, Type } from 'ts-morph';
 import { readdir, writeFile, mkdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import process from 'node:process';
 
 //--- Types ----------------------------------------------------------
 export interface SchemaDefinition {

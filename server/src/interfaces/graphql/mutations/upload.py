@@ -15,7 +15,7 @@ import uuid
 import logging
 
 from src.domains.diagram.services import DiagramService
-from src.shared.services.api_key_service import APIKeyService
+from src.common.services import APIKeyService
 from src.domains.diagram.models import DiagramMetadata, DomainDiagram
 from src.domains.diagram.converters import converter_registry
 from ..context import GraphQLContext

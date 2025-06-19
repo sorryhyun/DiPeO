@@ -71,7 +71,7 @@ from src.__generated__.models import (
 )
 
 # Import constants from shared domain (not generated)
-from src.shared.domain import (
+from src.common import (
     # Constants
     API_BASE_PATH,
     DEFAULT_MAX_TOKENS,
@@ -83,8 +83,9 @@ from src.shared.domain import (
     DEFAULT_SERVICE,
 )
 
-# Import ExecutionID and TokenUsage from shared domain types
-from src.shared.domain.types import ExecutionID, TokenUsage
+# Import ExecutionID from shared domain types and TokenUsage from generated models
+from src.common.types import ExecutionID
+from src.__generated__.models import TokenUsage
 
 # Domain-specific extensions and aliases
 # The base models are imported from generated code above

@@ -11,7 +11,7 @@ from src.domains.diagram.models import (
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent
 )
-from src.shared.domain import TokenUsage as PydanticTokenUsage, ExecutionStatus
+from src.common import TokenUsage as PydanticTokenUsage, ExecutionStatus
 
 logger = logging.getLogger(__name__)
 

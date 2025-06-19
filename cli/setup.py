@@ -10,7 +10,7 @@ readme_path = Path(__file__).parent / "README.md"
 long_description = readme_path.read_text() if readme_path.exists() else ""
 
 setup(
-    name="dipeo-cli",
+    name="dipeo",
     version="2.0.0",
     author="DiPeO Team",
     description="Command-line interface for DiPeO diagram operations",
@@ -37,7 +37,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dipeo=dipeo_cli.__main__:main",
+            "dipeo=dipeo.__main__:main",
         ],
     },
     classifiers=[

@@ -3,8 +3,8 @@ from typing import Any, Dict
 from pathlib import Path
 
 import os
-from ..exceptions.exceptions import ValidationError
-from ..domain import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
+from .exceptions import ValidationError
+from .constants import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
 
 
 class BaseService(ABC):

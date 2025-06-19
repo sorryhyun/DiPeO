@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 from notion_client import Client
-from src.shared.utils.base_service import BaseService
-from src.shared.exceptions.exceptions import DiagramExecutionError
+from src.common.base import BaseService
+from src.common.exceptions import DiagramExecutionError
 import logging
 
 logger = logging.getLogger(__name__)

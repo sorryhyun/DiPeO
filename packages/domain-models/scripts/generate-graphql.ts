@@ -11,6 +11,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import process from 'node:process';
 import { SchemaDefinition } from './generate-schema';
 
 const TYPE_MAP: Record<string, string> = {

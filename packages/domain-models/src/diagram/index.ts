@@ -174,7 +174,7 @@ export interface ConditionNodeData extends BaseNodeData {
   conditionType: string;
   detect_max_iterations: boolean;
   expression?: string;
-  _node_indices?: string[];
+  node_indices?: string[];
 }
 
 export interface PersonJobNodeData extends BaseNodeData {

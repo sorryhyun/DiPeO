@@ -7,7 +7,7 @@ from datetime import datetime
 
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
 from .types.domain import ExecutionState, ExecutionEvent, DomainDiagramType
-from src.shared.domain import NodeType, ExecutionStatus
+from src.common import NodeType, ExecutionStatus
 from src.__generated__.models import EventType
 from .context import GraphQLContext
 

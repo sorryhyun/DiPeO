@@ -8,7 +8,7 @@ from ..types.scalars import DiagramID, NodeID
 from ..types.inputs import CreateNodeInput, UpdateNodeInput
 from ..context import GraphQLContext
 from src.domains.diagram.models import DomainNode
-from src.shared.domain import Vec2, NodeType
+from src.common import Vec2, NodeType
 from ..models.input_models import (
     CreateNodeInput as PydanticCreateNodeInput,
     UpdateNodeInput as PydanticUpdateNodeInput

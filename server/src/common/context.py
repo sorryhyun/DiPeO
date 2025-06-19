@@ -5,10 +5,9 @@ from typing import AsyncGenerator, Optional, TYPE_CHECKING
 
 from fastapi import FastAPI
 
-from src.shared.services.api_key_service import APIKeyService
-from src.domains.llm.services import LLMService
+from .services import APIKeyService, FileService
+from src.domains.llm.services import LLMService  # Import from services.py file
 from src.domains.diagram.services import DiagramService
-from src.shared.services.file_service import FileService
 from src.domains.person.memory import MemoryService
 from src.domains.execution.services.execution_service import ExecutionService
 from src.domains.integrations.notion import NotionService
@@ -17,7 +16,7 @@ from src.domains.execution.services.simple_state_store import state_store
 import os
 
 if TYPE_CHECKING:
-    from src.shared.service_types import (
+    from .service_types import (
         SupportsAPIKey,
         SupportsLLM,
         SupportsDiagram,

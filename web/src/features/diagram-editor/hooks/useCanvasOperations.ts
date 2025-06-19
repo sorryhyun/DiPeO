@@ -28,7 +28,7 @@ import type { NodeID, ArrowID, PersonID, HandleID  } from '@dipeo/domain-models'
 
 // Type definitions
 
-interface KeyboardShortcutsConfig {
+type KeyboardShortcutsConfig = {
   onDelete?: () => void;
   onEscape?: () => void;
   onSave?: () => void;
