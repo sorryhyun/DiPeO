@@ -3,7 +3,7 @@
 from typing import Dict, List, Optional, Tuple, Any
 import logging
 
-from src.__generated__.models import DomainDiagram, DomainNode, DomainArrow
+from src.__generated__.models import DomainDiagram, DomainNode, DomainArrow, DiagramDictFormat
 from .base import DiagramConverter
 from .shared_components import (
     HandleGenerator, PositionCalculator, NodeTypeMapper, ArrowBuilder
@@ -11,6 +11,7 @@ from .shared_components import (
 from .strategies import (
     FormatStrategy, NativeJsonStrategy, LightYamlStrategy, ReadableYamlStrategy
 )
+from .diagram_format_converter import diagram_dict_to_graphql
 
 logger = logging.getLogger(__name__)
 
@@ -92,32 +93,67 @@ class UnifiedDiagramConverter(DiagramConverter):
         # Parse content
         data = strategy.parse(content)
         
-        # Create base diagram
-        diagram = DomainDiagram(
-            nodes={},
-            handles={},
-            arrows={},
-            persons=data.get('persons', {}),
-            api_keys=data.get('api_keys', {})
-        )
+        # Create dictionaries to store entities
+        nodes_dict = {}
+        arrows_dict = {}
+        
+        # Handle handles - can be dict or list
+        handles_data = data.get('handles', {})
+        if isinstance(handles_data, dict):
+            handles_dict = handles_data
+        elif isinstance(handles_data, list):
+            handles_dict = {handle.get('id', f'handle_{i}'): handle for i, handle in enumerate(handles_data)}
+        else:
+            handles_dict = {}
+        
+        # Handle persons - can be dict or list
+        persons_data = data.get('persons', {})
+        if isinstance(persons_data, dict):
+            persons_dict = persons_data
+        elif isinstance(persons_data, list):
+            persons_dict = {person.get('id', f'person_{i}'): person for i, person in enumerate(persons_data)}
+        else:
+            persons_dict = {}
+        
+        # Handle api_keys - can be dict or list
+        api_keys_data = data.get('api_keys', {})
+        if isinstance(api_keys_data, dict):
+            api_keys_dict = api_keys_data
+        elif isinstance(api_keys_data, list):
+            api_keys_dict = {key.get('id', f'key_{i}'): key for i, key in enumerate(api_keys_data)}
+        else:
+            api_keys_dict = {}
         
         # Extract and process nodes
         node_data_list = strategy.extract_nodes(data)
         for index, node_data in enumerate(node_data_list):
             node = self._create_node(node_data, index)
-            diagram.nodes[node.id] = node
-            
-            # Generate handles
-            self.handle_generator.generate_for_node(diagram, node.id, node.type)
+            nodes_dict[node.id] = node
+        
+        # Create diagram dict format first
+        diagram_dict = DiagramDictFormat(
+            nodes=nodes_dict,
+            handles=handles_dict,
+            arrows=arrows_dict,
+            persons=persons_dict,
+            api_keys=api_keys_dict,
+            metadata=data.get('metadata')
+        )
+        
+        # Generate handles for nodes only if none were provided
+        if not handles_dict:
+            for node_id, node in nodes_dict.items():
+                self.handle_generator.generate_for_node(diagram_dict, node_id, node.type)
         
         # Extract and process arrows
         arrow_data_list = strategy.extract_arrows(data, node_data_list)
         for arrow_data in arrow_data_list:
             arrow = self._create_arrow(arrow_data)
             if arrow:
-                diagram.arrows[arrow.id] = arrow
+                diagram_dict.arrows[arrow.id] = arrow
         
-        return diagram
+        # Convert to DomainDiagram (list format)
+        return diagram_dict_to_graphql(diagram_dict)
     
     def _create_node(self, node_data: Dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""

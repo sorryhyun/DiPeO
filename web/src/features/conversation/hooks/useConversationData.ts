@@ -182,7 +182,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     return refresh();
   }, [refresh]);
 
-  // Real-time message updates via WebSocket events
+  // Real-time message updates via events
   useEffect(() => {
     if (!enableRealtimeUpdates) return;
 

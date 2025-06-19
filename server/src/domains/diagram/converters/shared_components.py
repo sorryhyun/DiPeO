@@ -1,17 +1,18 @@
 """Shared components for diagram format converters."""
 from typing import Dict, Any, Optional
-from src.__generated__.models import DomainDiagram, DomainHandle, Vec2, HandleDirection, DataType, NodeType
+from src.__generated__.models import DomainDiagram, DiagramDictFormat, DomainHandle, Vec2, HandleDirection, DataType, NodeType
+from typing import Union
 
 
 class HandleGenerator:
     """Generates handles for nodes in a consistent way across all formats."""
     
-    def generate_for_node(self, diagram: DomainDiagram, node_id: str, node_type: str) -> None:
+    def generate_for_node(self, diagram: Union[DomainDiagram, DiagramDictFormat], node_id: str, node_type: str) -> None:
         """Generate default handles for a node based on its type."""
         # Input handle (except for start nodes)
         if node_type != 'start':
             input_handle_id = f"{node_id}:input"
-            diagram.handles[input_handle_id] = DomainHandle(
+            handle = DomainHandle(
                 id=input_handle_id,
                 nodeId=node_id,
                 label="input",
@@ -19,11 +20,15 @@ class HandleGenerator:
                 dataType=DataType.ANY,
                 position="left"
             )
+            if isinstance(diagram, DiagramDictFormat):
+                diagram.handles[input_handle_id] = handle
+            else:
+                diagram.handles.append(handle)
         
         # Output handle (except for endpoint nodes)
         if node_type != 'endpoint':
             output_handle_id = f"{node_id}:output"
-            diagram.handles[output_handle_id] = DomainHandle(
+            handle = DomainHandle(
                 id=output_handle_id,
                 nodeId=node_id,
                 label="output",
@@ -31,13 +36,17 @@ class HandleGenerator:
                 dataType=DataType.ANY,
                 position="right"
             )
+            if isinstance(diagram, DiagramDictFormat):
+                diagram.handles[output_handle_id] = handle
+            else:
+                diagram.handles.append(handle)
         
         # Additional handles for condition nodes
         if node_type == 'condition':
             true_handle_id = f"{node_id}:true"
             false_handle_id = f"{node_id}:false"
             
-            diagram.handles[true_handle_id] = DomainHandle(
+            true_handle = DomainHandle(
                 id=true_handle_id,
                 nodeId=node_id,
                 label="true",
@@ -46,7 +55,7 @@ class HandleGenerator:
                 position="right"
             )
             
-            diagram.handles[false_handle_id] = DomainHandle(
+            false_handle = DomainHandle(
                 id=false_handle_id,
                 nodeId=node_id,
                 label="false",
@@ -54,15 +63,22 @@ class HandleGenerator:
                 dataType=DataType.BOOLEAN,
                 position="right"
             )
+            
+            if isinstance(diagram, DiagramDictFormat):
+                diagram.handles[true_handle_id] = true_handle
+                diagram.handles[false_handle_id] = false_handle
+            else:
+                diagram.handles.append(true_handle)
+                diagram.handles.append(false_handle)
     
-    def add_custom_handle(self, diagram: DomainDiagram, node_id: str, 
+    def add_custom_handle(self, diagram: Union[DomainDiagram, DiagramDictFormat], node_id: str, 
                          handle_id: str, label: str, direction: HandleDirection,
                          data_type: DataType = DataType.ANY, position: str = None) -> None:
         """Add a custom handle to a node."""
         if position is None:
             position = "left" if direction == HandleDirection.INPUT else "right"
         
-        diagram.handles[handle_id] = DomainHandle(
+        handle = DomainHandle(
             id=handle_id,
             nodeId=node_id,
             label=label,
@@ -70,6 +86,11 @@ class HandleGenerator:
             dataType=data_type,
             position=position
         )
+        
+        if isinstance(diagram, DiagramDictFormat):
+            diagram.handles[handle_id] = handle
+        else:
+            diagram.handles.append(handle)
 
 
 class PositionCalculator:

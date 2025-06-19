@@ -82,59 +82,100 @@ class NativeJsonStrategy(FormatStrategy):
     
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         nodes = []
-        for node_id, node_data in data.get('nodes', {}).items():
-            node = {
-                'id': node_id,
-                'type': node_data.get('type', 'unknown'),
-                'position': node_data.get('position', {'x': 0, 'y': 0}),
-                **node_data.get('data', {})
-            }
-            nodes.append(node)
+        nodes_data = data.get('nodes', {})
+        
+        # Handle both dict and list formats
+        if isinstance(nodes_data, dict):
+            # Dictionary format (original)
+            for node_id, node_data in nodes_data.items():
+                node = {
+                    'id': node_id,
+                    'type': node_data.get('type', 'unknown'),
+                    'position': node_data.get('position', {'x': 0, 'y': 0}),
+                    **node_data.get('data', {})
+                }
+                nodes.append(node)
+        elif isinstance(nodes_data, list):
+            # Array format (from frontend)
+            for node_data in nodes_data:
+                node = {
+                    'id': node_data.get('id'),
+                    'type': node_data.get('type', 'unknown'),
+                    'position': node_data.get('position', {'x': 0, 'y': 0}),
+                    **node_data.get('data', {})
+                }
+                nodes.append(node)
+        
         return nodes
     
     def extract_arrows(self, data: Dict[str, Any], nodes: Dict[str, Any]) -> List[Dict[str, Any]]:
         arrows = []
-        for arrow_id, arrow_data in data.get('arrows', {}).items():
-            arrows.append({
-                'id': arrow_id,
-                'source': arrow_data.get('source'),
-                'target': arrow_data.get('target')
-            })
+        arrows_data = data.get('arrows', {})
+        
+        # Handle both dict and list formats
+        if isinstance(arrows_data, dict):
+            # Dictionary format (original)
+            for arrow_id, arrow_data in arrows_data.items():
+                arrows.append({
+                    'id': arrow_id,
+                    'source': arrow_data.get('source'),
+                    'target': arrow_data.get('target')
+                })
+        elif isinstance(arrows_data, list):
+            # Array format (from frontend)
+            for arrow_data in arrows_data:
+                arrows.append({
+                    'id': arrow_data.get('id'),
+                    'source': arrow_data.get('source'),
+                    'target': arrow_data.get('target')
+                })
+        
         return arrows
     
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        # DomainDiagram has lists, so we need to convert to dict format
         return {
             'nodes': {
-                node_id: {
+                node.id: {
                     'type': node.type,
-                    'position': node.position,
+                    'position': {'x': node.position.x, 'y': node.position.y} if hasattr(node.position, 'x') else node.position,
                     'data': node.data
                 }
-                for node_id, node in diagram.nodes.items()
+                for node in diagram.nodes
             },
             'handles': {
-                handle_id: {
-                    'node': handle.node,
-                    'type': handle.type,
-                    'side': handle.side
+                handle.id: {
+                    'nodeId': handle.node_id,
+                    'label': handle.label,
+                    'direction': handle.direction,
+                    'dataType': handle.data_type,
+                    'position': handle.position
                 }
-                for handle_id, handle in diagram.handles.items()
+                for handle in diagram.handles
             },
             'arrows': {
-                arrow_id: {
+                arrow.id: {
                     'source': arrow.source,
-                    'target': arrow.target
+                    'target': arrow.target,
+                    'data': arrow.data
                 }
-                for arrow_id, arrow in diagram.arrows.items()
+                for arrow in diagram.arrows
             },
-            'persons': diagram.persons,
-            'api_keys': diagram.api_keys
+            'persons': {person.id: person.model_dump() for person in diagram.persons},
+            'api_keys': {api_key.id: api_key.model_dump() for api_key in diagram.api_keys},
+            'metadata': diagram.metadata.model_dump() if diagram.metadata else None
         }
     
     def detect_confidence(self, data: Dict[str, Any]) -> float:
         # Check for expected structure
         if 'nodes' in data and 'handles' in data and 'arrows' in data:
-            return 0.9
+            # Higher confidence if using dict format (original)
+            nodes = data.get('nodes', {})
+            if isinstance(nodes, dict):
+                return 0.95
+            # Still high confidence for array format
+            elif isinstance(nodes, list):
+                return 0.9
         elif 'nodes' in data:
             return 0.5
         return 0.1

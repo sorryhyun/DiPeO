@@ -4,50 +4,38 @@
  */
 
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
-import { DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID } from '@/core/types';
-import { HandleDirection, DataType, NodeType } from '@dipeo/domain-models';
+import { HandleDirection, DataType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
+import { storeMapsToArrays } from '@/graphql/types';
 
-// Define DiagramMetadata locally to avoid circular dependencies
-interface DiagramMetadata {
-  name: string;
-  description: string;
-  author: string;
-  tags: string[];
-  created: string;
-  modified: string;
-  version?: string;
-  id?: string;
-}
-
+// The serialized diagram should match the GraphQL schema format
 export interface SerializedDiagram {
-  nodes: Record<string, DomainNode>;
-  arrows: Record<string, DomainArrow>;
-  persons: Record<string, DomainPerson>;
-  handles: Record<string, DomainHandle>;
-  apiKeys: Record<string, DomainApiKey>;
-  metadata: DiagramMetadata;
+  nodes: any[];
+  arrows: any[];
+  persons: any[];
+  handles: any[];
+  apiKeys: any[];
+  metadata: {
+    name?: string | null;
+    description?: string | null;
+    author?: string | null;
+    tags?: string[] | null;
+    created: string;
+    modified: string;
+    version: string;
+    id?: string | null;
+  };
 }
 
-/**
- * Converts Map to Record for serialization
- */
-function mapToRecord<K extends string, V>(map: Map<K, V>): Record<K, V> {
-  const record: Record<K, V> = {} as Record<K, V>;
-  map.forEach((value, key) => {
-    record[key] = value;
-  });
-  return record;
-}
 
 /**
  * Cleans node data by removing React Flow UI-specific properties
  */
-function cleanNodeData(node: DomainNode): DomainNode {
+function cleanNodeData(node: any): any {
   const { data, ...nodeProps } = node;
   
   // Remove UI-specific properties from data (but keep flipped for visual layout)
-  const { _handles, inputs, outputs, type, ...cleanData } = data as any;
+  const { _handles: _, inputs: _inputs, outputs: _outputs, type: _type, ...cleanData } = data as any;
   
   return {
     ...nodeProps,
@@ -58,9 +46,10 @@ function cleanNodeData(node: DomainNode): DomainNode {
 /**
  * Generates handles for a node based on its type configuration
  */
-function generateHandlesForNode(node: DomainNode): Record<string, DomainHandle> {
-  const handles: Record<string, DomainHandle> = {};
-  const config = UNIFIED_NODE_CONFIGS[node.type];
+function generateHandlesForNode(node: any): any[] {
+  const handles: any[] = [];
+  const nodeType = node.type as string;
+  const config = UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS];
   
   if (!config?.handles) {
     return handles;
@@ -68,31 +57,31 @@ function generateHandlesForNode(node: DomainNode): Record<string, DomainHandle> 
   
   // Generate input handles
   if (config.handles.input) {
-    config.handles.input.forEach(handleConfig => {
-      const handleId = `${node.id}:${handleConfig.id}` as HandleID;
-      handles[handleId] = {
+    config.handles.input.forEach((handleConfig: any) => {
+      const handleId = `${node.id}:${handleConfig.id}`;
+      handles.push({
         id: handleId,
         nodeId: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.INPUT,
         dataType: DataType.ANY,
         position: handleConfig.position || 'left'
-      };
+      });
     });
   }
   
   // Generate output handles
   if (config.handles.output) {
-    config.handles.output.forEach(handleConfig => {
-      const handleId = `${node.id}:${handleConfig.id}` as HandleID;
-      handles[handleId] = {
+    config.handles.output.forEach((handleConfig: any) => {
+      const handleId = `${node.id}:${handleConfig.id}`;
+      handles.push({
         id: handleId,
         nodeId: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.OUTPUT,
         dataType: DataType.ANY,
         position: handleConfig.position || 'right'
-      };
+      });
     });
   }
   
@@ -106,58 +95,50 @@ export function serializeDiagramState(store: UnifiedStore): SerializedDiagram {
   // Get current timestamp
   const now = new Date();
   
-  // Create metadata if it doesn't exist
-  const metadata: DiagramMetadata = {
+  // Create metadata
+  const metadata = {
     name: 'Untitled Diagram',
-    description: '',
-    author: '',
-    tags: [],
+    description: null,
+    author: null,
+    tags: null,
     created: now.toISOString(),
     modified: now.toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    id: null
   };
   
-  // Generate handles for all nodes and clean node data
-  const allHandles: Record<string, DomainHandle> = {};
-  const cleanNodes: Record<string, DomainNode> = {};
-  
-  store.nodes.forEach((node, nodeId) => {
-    // Generate handles for this node
-    const nodeHandles = generateHandlesForNode(node);
-    Object.assign(allHandles, nodeHandles);
-    
-    // Clean the node data
-    cleanNodes[nodeId] = cleanNodeData(node);
+  // Convert store Maps to arrays using GraphQL utility
+  const diagramArrays = storeMapsToArrays({
+    nodes: store.nodes,
+    handles: store.handles,
+    arrows: store.arrows,
+    persons: store.persons,
+    apiKeys: store.apiKeys
   });
   
-  // Serialize the state
+  // Clean node data and generate handles
+  const cleanNodes = diagramArrays.nodes?.map(node => cleanNodeData(node)) || [];
+  const generatedHandles: any[] = [];
+  
+  // Generate handles for all nodes
+  cleanNodes.forEach(node => {
+    const nodeHandles = generateHandlesForNode(node);
+    generatedHandles.push(...nodeHandles);
+  });
+  
+  // Use generated handles if store handles are empty
+  const handles = diagramArrays.handles && diagramArrays.handles.length > 0 
+    ? diagramArrays.handles 
+    : generatedHandles;
+  
+  // Return the serialized diagram
   return {
     nodes: cleanNodes,
-    arrows: mapToRecord(store.arrows),
-    persons: mapToRecord(store.persons),
-    handles: allHandles, // Use generated handles instead of store.handles
-    apiKeys: mapToRecord(store.apiKeys),
+    arrows: diagramArrays.arrows || [],
+    persons: diagramArrays.persons || [],
+    handles,
+    apiKeys: diagramArrays.apiKeys || [],
     metadata
   };
 }
 
-/**
- * Converts the serialized diagram to YAML string
- */
-export function serializeToYaml(diagram: SerializedDiagram): string {
-  // For now, we'll use JSON and let the backend handle conversion
-  // In the future, we could use a YAML library here
-  return JSON.stringify(diagram, null, 2);
-}
-
-/**
- * Creates a File object from the serialized diagram
- */
-export function createDiagramFile(
-  diagram: SerializedDiagram, 
-  filename: string = 'diagram.json'
-): File {
-  const content = JSON.stringify(diagram, null, 2);
-  const blob = new Blob([content], { type: 'application/json' });
-  return new File([blob], filename, { type: 'application/json' });
-}
