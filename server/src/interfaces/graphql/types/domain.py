@@ -22,12 +22,19 @@ from src.__generated__.models import (
 
 # Convert basic types
 # Use the models directly with strawberry.experimental.pydantic
-Vec2 = strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True, description="2D position vector")
-TokenUsage = strawberry.experimental.pydantic.type(model=GeneratedTokenUsage, all_fields=True, description="Token usage statistics")
+@strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True, description="2D position vector")
+class Vec2:
+    pass
+
+@strawberry.experimental.pydantic.type(model=GeneratedTokenUsage, all_fields=True, description="Token usage statistics")
+class TokenUsage:
+    pass
 
 # Convert domain models to Strawberry types
 # Direct conversion for simple types
-Handle = strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True, description="Connection point on a node")
+@strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True, description="Connection point on a node")
+class Handle:
+    pass
 
 @strawberry.experimental.pydantic.type(model=DomainNode)
 class Node:
@@ -109,7 +116,9 @@ class ApiKey:
         return f"{self.service.value}-****"
 
 # Metadata can be used directly
-DiagramMetadata = strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True, description="Metadata for a diagram")
+@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True, description="Metadata for a diagram")
+class DiagramMetadataType:
+    pass
 
 @strawberry.experimental.pydantic.type(model=DomainDiagram)
 class DomainDiagramType:
@@ -171,7 +180,7 @@ class ExecutionState:
     skipped_nodes: strawberry.auto
     paused_nodes: strawberry.auto
     failed_nodes: strawberry.auto
-    token_usage: Optional[DiagramTokenUsageType]
+    token_usage: Optional[TokenUsage]
     error: strawberry.auto
     
     @strawberry.field

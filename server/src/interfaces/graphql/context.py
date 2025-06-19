@@ -3,7 +3,7 @@ from typing import Dict, Any, TYPE_CHECKING
 from fastapi import Request
 from strawberry.fastapi import BaseContext
 
-from src.common.utils.app_context import AppContext
+from src.common.context import AppContext
 from src.domains.execution.services.simple_state_store import state_store
 from src.domains.execution.services.message_router_simple import message_router
 
@@ -68,7 +68,7 @@ async def get_graphql_context(
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from src.common.utils.app_context import get_app_context
+    from src.common.context import get_app_context
     
     app_context = get_app_context()
     return GraphQLContext(
