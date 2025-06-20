@@ -105,7 +105,7 @@ function useCommonFlowProps({
     const edges = arrows.map(arrow => arrowToReact(arrow)) as Edge[];
     
     const baseProps = {
-      fitView: true,
+      fitView: false, // We'll handle fitView manually
       nodes,
       edges,
       connectionLineStyle: { stroke: "#3b82f6", strokeWidth: 2 },
@@ -249,6 +249,29 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     const viewport = inst.getViewport();
     setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
   };
+  
+  // Track if we've fit the view and the previous node count
+  const hasFitView = useRef(false);
+  const prevNodeCount = useRef(0);
+  
+  // Fit view when nodes are loaded from URL
+  useEffect(() => {
+    // Check if nodes were just loaded (count increased from 0)
+    if (rfInstance && nodes.length > 0 && prevNodeCount.current === 0 && !hasFitView.current) {
+      // Check if we're loading from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('diagram')) {
+        hasFitView.current = true;
+        // Give ReactFlow a moment to position the nodes
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            rfInstance.fitView({ padding: 0.2, duration: 200 });
+          });
+        });
+      }
+    }
+    prevNodeCount.current = nodes.length;
+  }, [nodes.length, rfInstance]);
   
   // Handle viewport changes - commented out to prevent infinite loops
   // TODO: Implement proper viewport synchronization without causing re-render loops

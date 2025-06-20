@@ -22,7 +22,7 @@ mutation SaveDiagram($file: Upload!, $format: String, $validateOnly: Boolean = f
   }
 }
 
-mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat = NATIVE, $includeMetadata: Boolean = true) {
+mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat = native, $includeMetadata: Boolean = true) {
   convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
     success
     message

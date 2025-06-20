@@ -43,13 +43,13 @@ class DiagramResolver:
                 }
             
             # Convert to DomainDiagram then to GraphQL format
-            diagram_dict = DiagramDictFormat.from_dict(diagram_data)
+            diagram_dict = DiagramDictFormat.model_validate(diagram_data)
             graphql_diagram = diagram_dict_to_graphql(diagram_dict)
             
             # Build handle_index for nested view
             handle_index = defaultdict(list)
             for handle in graphql_diagram.handles:
-                handle_index[handle.nodeId].append(handle)
+                handle_index[handle.node_id].append(handle)
             
             # Store handle_index in context for Node.handles() resolver
             info.context.handle_index = handle_index

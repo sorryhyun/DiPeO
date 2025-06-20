@@ -133,6 +133,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Refs
   const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isLoadingDiagram = useRef(false);
   
   // Computed values
   const isEmpty = canvas.nodesArray.length === 0;
@@ -333,8 +334,14 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     return storeOps.getDiagramStats();
   }, [storeOps]);
   
-  // Track if this is the initial render
+  // Track if this is the initial render and the initial data version
   const isInitialMount = useRef(true);
+  const dataVersion = useUnifiedStore(state => state.dataVersion);
+  const initialDataVersion = useRef(dataVersion);
+  
+  // Check if diagram is being loaded from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasDiagramParam = urlParams.has('diagram');
   
   // Mark dirty when canvas changes and trigger debounced auto-save
   useEffect(() => {
@@ -344,13 +351,21 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       return;
     }
     
+    // If we have a diagram parameter and the dataVersion just increased by 1 or 2
+    // from the initial, this is likely the diagram being loaded from URL
+    if (hasDiagramParam && dataVersion <= initialDataVersion.current + 2) {
+      // Update the initial data version to the current one
+      initialDataVersion.current = dataVersion;
+      return; // Don't mark as dirty
+    }
+    
     setIsDirty(true);
     
     // Trigger debounced auto-save if enabled
     if (autoSave && !execution.isRunning) {
       debouncedSave('quicksave.json');
     }
-  }, [canvas.nodesArray, canvas.arrowsArray, canvas.personsArray]);
+  }, [canvas.nodesArray, canvas.arrowsArray, canvas.personsArray, dataVersion, hasDiagramParam, autoSave, execution.isRunning, debouncedSave]);
   
   // Clean up pending saves on unmount
   useEffect(() => {

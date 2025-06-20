@@ -12,6 +12,11 @@ export const createCommonStoreSelector = () => (state: UnifiedStore) => ({
   persons: state.persons,
   apiKeys: state.apiKeys,
   
+  // === Array versions ===
+  nodesArray: state.nodesArray,
+  arrowsArray: state.arrowsArray,
+  personsArray: state.personsArray,
+  
   // === Version tracking ===
   dataVersion: state.dataVersion,
   

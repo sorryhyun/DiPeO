@@ -262,8 +262,9 @@ class DiagramService(BaseService):
             Diagram data in domain format
         """
         file_path = self.diagrams_dir / path
-        
+
         if not file_path.exists():
+            logger.error(f"Diagram file not found: {file_path}")
             raise ValidationError(f"Diagram file not found: {path}")
         
         try:
@@ -471,14 +472,25 @@ class DiagramService(BaseService):
         Returns:
             Diagram dictionary or None if not found
         """
+        logger.info(f"get_diagram called with diagram_id: {diagram_id}")
+        logger.info(f"diagrams_dir: {self.diagrams_dir}")
+        
         # Special handling for quicksave - always load .json first
         if diagram_id == 'quicksave':
             json_path = self.diagrams_dir / 'quicksave.json'
+            logger.info(f"Checking quicksave.json at: {json_path}")
+            logger.info(f"File exists: {json_path.exists()}")
+            
             if json_path.exists():
                 try:
-                    return self.load_diagram('quicksave.json')
+                    logger.info("Loading quicksave.json...")
+                    result = self.load_diagram('quicksave.json')
+                    logger.info(f"Successfully loaded quicksave.json, metadata: {result.get('metadata', {})}")
+                    return result
                 except Exception as e:
-                    logger.error(f"Failed to load quicksave.json: {e}")
+                    logger.error(f"Failed to load quicksave.json: {e}", exc_info=True)
+        
+        logger.info(f"Continuing to search for diagram_id: {diagram_id}")
         
         # Try to find the diagram file
         for ext in ['.yaml', '.yml', '.json']:

@@ -22,23 +22,27 @@ function useCachedMapArray<K, V>(
   map: Map<K, V>,
   mapVersion?: number
 ): V[] {
-  const cacheRef = useRef<{ array: V[]; size: number; version?: number }>({
+  const cacheRef = useRef<{ array: V[]; size: number; version?: number; mapRef: Map<K, V> | null }>({
     array: [],
     size: -1,
-    version: -1
+    version: -1,
+    mapRef: null
   });
   
   return React.useMemo(() => {
-    if (cacheRef.current.size !== map.size || 
+    // Check if map reference changed, size changed, or version changed
+    if (cacheRef.current.mapRef !== map ||
+        cacheRef.current.size !== map.size || 
         (mapVersion !== undefined && cacheRef.current.version !== mapVersion)) {
       cacheRef.current = {
         array: Array.from(map.values()),
         size: map.size,
-        version: mapVersion
+        version: mapVersion,
+        mapRef: map
       };
     }
     return cacheRef.current.array;
-  }, [map.size, mapVersion]);
+  }, [map, map.size, mapVersion]);
 }
 
 export interface UseCanvasOptions {
@@ -75,10 +79,10 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
   const storeSelector = React.useMemo(() => createCommonStoreSelector(), []);
   const storeState = useUnifiedStore(useShallow(storeSelector));
   
-  // Convert Maps to arrays with efficient caching
-  const nodesArray = useCachedMapArray(storeState.nodesMap, storeState.dataVersion) as DomainNode[];
-  const arrowsArray = useCachedMapArray(storeState.arrows, storeState.dataVersion) as DomainArrow[];
-  const personsArray = useCachedMapArray(storeState.persons, storeState.dataVersion) as DomainPerson[];
+  // Use arrays directly from store - no conversion needed
+  const nodesArray = storeState.nodesArray || [];
+  const arrowsArray = storeState.arrowsArray || [];
+  const personsArray = storeState.personsArray || [];
   const handlesArray = useCachedMapArray(storeState.handlesMap, storeState.dataVersion) as DomainHandle[];
   
   // Position update batching

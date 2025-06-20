@@ -53,7 +53,7 @@ class CreateHandleInput(BaseModel):
     node_id: str
     label: str
     direction: HandleDirection
-    data_type: DataType = DataType.ANY
+    data_type: DataType = DataType.any
     position: Optional[Vec2Input] = None
     max_connections: Optional[int] = Field(None, ge=1)
     
@@ -86,7 +86,7 @@ class CreatePersonInput(BaseModel):
     model: str
     api_key_id: str
     system_prompt: Optional[str] = None
-    forgetting_mode: ForgettingMode = ForgettingMode.NO_FORGET
+    forgetting_mode: ForgettingMode = ForgettingMode.no_forget
     temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(None, ge=1)
     top_p: Optional[float] = Field(None, ge=0.0, le=1.0)

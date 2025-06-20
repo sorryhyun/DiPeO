@@ -68,7 +68,7 @@ export const useApiKeyOperations = () => {
       variables: {
         input: {
           label,
-          service: service.toUpperCase(),
+          service,
           key
         }
       }

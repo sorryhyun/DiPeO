@@ -33,13 +33,13 @@ SERVICE_TO_PROVIDER_MAP: Final[Dict[str, str]] = {
 
 # Provider to LLM service enum mapping
 PROVIDER_TO_ENUM_MAP: Final[Dict[str, LLMService]] = {
-    "openai": LLMService.OPENAI,
-    "anthropic": LLMService.ANTHROPIC,
-    "google": LLMService.GOOGLE,
-    "xai": LLMService.GROK,
-    "bedrock": LLMService.BEDROCK,
-    "vertex": LLMService.VERTEX,
-    "deepseek": LLMService.DEEPSEEK
+    "openai": LLMService.openai,
+    "anthropic": LLMService.anthropic,
+    "google": LLMService.google,
+    "xai": LLMService.grok,
+    "bedrock": LLMService.bedrock,
+    "vertex": LLMService.vertex,
+    "deepseek": LLMService.deepseek
 }
 
 # Default service when none specified

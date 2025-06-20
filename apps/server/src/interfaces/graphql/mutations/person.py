@@ -169,13 +169,13 @@ class PersonMutations:
             try:
                 service = LLMService(person_data['service'].lower())
             except ValueError:
-                service = LLMService.OPENAI
+                service = LLMService.openai
             
             # Map forgetting mode using Pydantic enum
             try:
                 forgetting_mode = ForgettingMode(person_data.get('forgettingMode', 'none'))
             except ValueError:
-                forgetting_mode = ForgettingMode.NONE
+                forgetting_mode = ForgettingMode.no_forget
             
             # Create updated Pydantic model
             updated_person = DomainPerson(
@@ -324,13 +324,13 @@ class PersonMutations:
             try:
                 service = LLMService(service_str.lower())
             except ValueError:
-                service = LLMService.OPENAI
+                service = LLMService.openai
             
             # Map forgetting mode using Pydantic enum
             try:
                 forgetting_mode = ForgettingMode(person_data.get('forgettingMode', 'none'))
             except ValueError:
-                forgetting_mode = ForgettingMode.NONE
+                forgetting_mode = ForgettingMode.no_forget
             
             # Create Pydantic model for response
             person = DomainPerson(

@@ -24,7 +24,7 @@ const DEFAULT_NODE_TYPES = Object.keys(UNIFIED_NODE_CONFIGS);
 const DEFAULT_NODE_LABELS = Object.fromEntries(
   DEFAULT_NODE_TYPES.map(key => [
     key, 
-    key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    key.replace(/_/g, ' ').replace(/\b\w/g, l => l)
   ])
 );
 

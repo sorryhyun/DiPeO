@@ -44,8 +44,7 @@ class PersonResolver:
             pydantic_api_key = DomainApiKey(
                 id=api_key_data['id'],
                 label=api_key_data['label'],
-                service=self._map_service(api_key_data['service']),
-                key=api_key_data.get('key', '')  # Will be excluded in GraphQL
+                service=self._map_service(api_key_data['service'])
             )
             
             # Strawberry will handle the conversion from Pydantic to GraphQL
@@ -74,8 +73,7 @@ class PersonResolver:
                 pydantic_api_key = DomainApiKey(
                     id=key_data['id'],
                     label=key_data['label'],
-                    service=self._map_service(key_data['service']),
-                    key=key_data.get('key', '')  # Will be excluded in GraphQL
+                    service=self._map_service(key_data['service'])
                 )
                 result.append(pydantic_api_key)
             
@@ -109,7 +107,7 @@ class PersonResolver:
         try:
             return LLMService(service.lower())
         except ValueError:
-            # Fallback to OPENAI if unknown service
-            return LLMService.OPENAI
+            # Fallback to openai if unknown service
+            return LLMService.openai
 
 person_resolver = PersonResolver()

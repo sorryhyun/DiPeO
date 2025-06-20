@@ -45,55 +45,76 @@ export function useDiagramLoader() {
     fetchPolicy: 'cache-first'
   });
 
-  // Load diagram data into store
+  // Load diagram data into store - delay until after mount
   useEffect(() => {
     if (!loading && data?.diagram && !hasLoaded && diagramIdFromUrl) {
       setIsLoading(true);
       
-      try {
-        // Convert GraphQL diagram to domain format (identity mapping since GraphQL IS domain)
-        // Add missing count fields that aren't in the query result
-        const diagramWithCounts = {
-          ...data.diagram,
-          nodeCount: data.diagram.nodes.length,
-          arrowCount: data.diagram.arrows.length,
-          personCount: data.diagram.persons.length
-        };
-        const reactDiagram = domainToReactDiagram(diagramWithCounts);
-        
-        // Clear existing data
-        const store = useUnifiedStore.getState();
-        store.clearAll();
-        
-        // Convert arrays to Maps for the store
-        const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
-        
-        // Update store with all data at once
-        useUnifiedStore.setState(state => ({
-          nodes,
-          handles,
-          arrows,
-          persons,
-          apiKeys,
-          nodesArray: reactDiagram.nodes || [],
-          arrowsArray: reactDiagram.arrows || [],
-          personsArray: reactDiagram.persons || [],
-          dataVersion: state.dataVersion + 1  // Increment to trigger re-render
-        }));
-        
-        // Mark as loaded
-        setHasLoaded(true);
-        
-        // Show success message
-        const diagramName = reactDiagram.metadata?.name || 'Unnamed diagram';
-        toast.success(`Loaded diagram: ${diagramName}`);
-        
-      } catch (err) {
-        console.error('Failed to load diagram:', err);
-        toast.error('Failed to load diagram');
-      } finally {
-        setIsLoading(false);
-      }
+      // Delay loading until after the component tree has mounted
+      const loadTimer = setTimeout(() => {
+        try {
+          // Convert GraphQL diagram to domain format (identity mapping since GraphQL IS domain)
+          // Add missing count fields that aren't in the query result
+          const diagramWithCounts = {
+            ...data.diagram,
+            nodeCount: data.diagram.nodes.length,
+            arrowCount: data.diagram.arrows.length,
+            personCount: data.diagram.persons.length
+          };
+          const reactDiagram = domainToReactDiagram(diagramWithCounts);
+          
+          // Convert arrays to Maps for the store
+          const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
+          
+          // Update store with all data at once in a single transaction
+          const store = useUnifiedStore.getState();
+          store.transaction(() => {
+            // First clear existing data
+            store.clearAll();
+            
+            // Then set all new data in one atomic update
+            useUnifiedStore.setState(state => ({
+              nodes,
+              handles,
+              arrows,
+              persons,
+              apiKeys,
+              nodesArray: reactDiagram.nodes || [],
+              arrowsArray: reactDiagram.arrows || [],
+              personsArray: reactDiagram.persons || [],
+              dataVersion: state.dataVersion + 1  // Single increment
+            }));
+          });
+          
+          // Debug logging
+          console.log('Diagram loaded:', {
+            nodeCount: nodes.size,
+            handleCount: handles.size,
+            arrowCount: arrows.size,
+            personCount: persons.size,
+            apiKeyCount: apiKeys.size,
+            nodes: Array.from(nodes.entries()),
+            handles: Array.from(handles.entries())
+          });
+          
+          // Mark as loaded after store is updated
+          setHasLoaded(true);
+          
+          // Show success message
+          const diagramName = reactDiagram.metadata?.name || 'Unnamed diagram';
+          toast.success(`Loaded diagram: ${diagramName}`);
+          
+        } catch (err) {
+          console.error('Failed to load diagram:', err);
+          toast.error('Failed to load diagram');
+        } finally {
+          // Always clear loading state
+          setIsLoading(false);
+        }
+      }, 250); // Give component tree time to mount and ReactFlow to initialize
+      
+      // Cleanup timer on unmount
+      return () => clearTimeout(loadTimer);
     }
   }, [data, loading, hasLoaded, diagramIdFromUrl]);
 

@@ -151,7 +151,7 @@ class LLMService(BaseService):
         raw_key = self._get_api_key(api_key_id)
         normalized_service = self.normalize_service_name(service)
         
-        if normalized_service == LLMServiceEnum.OPENAI.value:
+        if normalized_service == LLMServiceEnum.openai.value:
             try:
                 import openai
                 client = openai.OpenAI(api_key=raw_key)

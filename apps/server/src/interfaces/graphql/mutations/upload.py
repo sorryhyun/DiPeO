@@ -83,7 +83,7 @@ def validate_diagram(diagram: DomainDiagram, api_key_service: Optional[APIKeySer
 def domain_to_storage_format(diagram: DomainDiagram) -> Dict[str, Any]:
     """Convert domain diagram to storage format (dict)."""
     # Use native converter for storage
-    converter = converter_registry.get(DiagramFormat.NATIVE.value)
+    converter = converter_registry.get(DiagramFormat.native.value)
     json_str = converter.serialize(diagram)
     data = json.loads(json_str)
     
@@ -104,7 +104,7 @@ def domain_to_storage_format(diagram: DomainDiagram) -> Dict[str, Any]:
 def storage_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
     """Convert storage format to domain diagram."""
     # Convert dict to string then parse with native converter
-    converter = converter_registry.get(DiagramFormat.NATIVE.value)
+    converter = converter_registry.get(DiagramFormat.native.value)
     # Native format is now JSON, so use JSON serialization
     json_str = json.dumps(data, indent=2)
     return converter.deserialize(json_str)
@@ -248,13 +248,13 @@ class UploadMutations:
                     # Try to infer from extension
                     ext = Path(filename).suffix.lower()
                     if 'light' in filename:
-                        detected_format = DiagramFormat.LIGHT.value
+                        detected_format = DiagramFormat.light.value
                     elif 'readable' in filename:
-                        detected_format = DiagramFormat.READABLE.value
+                        detected_format = DiagramFormat.readable.value
                     elif 'native.yaml' in filename or 'native_yaml' in filename:
-                        detected_format = DiagramFormat.NATIVE_YAML.value
+                        detected_format = DiagramFormat.native_yaml.value
                     else:
-                        detected_format = DiagramFormat.NATIVE.value  # Default
+                        detected_format = DiagramFormat.native.value  # Default
             
             # Get converter
             converter = converter_registry.get(detected_format)
@@ -325,7 +325,7 @@ class UploadMutations:
     async def convert_diagram(
         self,
         content: JSONScalar,
-        format: DiagramFormat = DiagramFormat.NATIVE,
+        format: DiagramFormat = DiagramFormat.native,
         include_metadata: bool = True,
         info: strawberry.Info = None
     ) -> DiagramConvertResult:

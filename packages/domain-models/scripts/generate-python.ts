@@ -195,7 +195,9 @@ export class PythonGenerator {
       lines.push(`class ${schema.name}(str, Enum):`);
       if (schema.values && schema.values.length > 0) {
         schema.values.forEach(value => {
-          const enumKey = value.toUpperCase().replace(/-/g, '_');
+          // Use the value as-is for the attribute name to match GraphQL expectations
+          // Replace hyphens with underscores for valid Python identifiers
+          const enumKey = value.replace(/-/g, '_');
           lines.push(`    ${enumKey} = "${value}"`);
         });
       } else {

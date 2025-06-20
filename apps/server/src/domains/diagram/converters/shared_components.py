@@ -16,8 +16,8 @@ class HandleGenerator:
                 id=input_handle_id,
                 nodeId=node_id,
                 label="input",
-                direction=HandleDirection.INPUT,
-                dataType=DataType.ANY,
+                direction=HandleDirection.input,
+                dataType=DataType.any,
                 position="left"
             )
             if isinstance(diagram, DiagramDictFormat):
@@ -32,8 +32,8 @@ class HandleGenerator:
                 id=output_handle_id,
                 nodeId=node_id,
                 label="output",
-                direction=HandleDirection.OUTPUT,
-                dataType=DataType.ANY,
+                direction=HandleDirection.output,
+                dataType=DataType.any,
                 position="right"
             )
             if isinstance(diagram, DiagramDictFormat):
@@ -50,8 +50,8 @@ class HandleGenerator:
                 id=true_handle_id,
                 nodeId=node_id,
                 label="true",
-                direction=HandleDirection.OUTPUT,
-                dataType=DataType.BOOLEAN,
+                direction=HandleDirection.output,
+                dataType=DataType.boolean,
                 position="right"
             )
             
@@ -59,8 +59,8 @@ class HandleGenerator:
                 id=false_handle_id,
                 nodeId=node_id,
                 label="false",
-                direction=HandleDirection.OUTPUT,
-                dataType=DataType.BOOLEAN,
+                direction=HandleDirection.output,
+                dataType=DataType.boolean,
                 position="right"
             )
             
@@ -73,10 +73,10 @@ class HandleGenerator:
     
     def add_custom_handle(self, diagram: Union[DomainDiagram, DiagramDictFormat], node_id: str, 
                          handle_id: str, label: str, direction: HandleDirection,
-                         data_type: DataType = DataType.ANY, position: str = None) -> None:
+                         data_type: DataType = DataType.any, position: str = None) -> None:
         """Add a custom handle to a node."""
         if position is None:
-            position = "left" if direction == HandleDirection.INPUT else "right"
+            position = "left" if direction == HandleDirection.input else "right"
         
         handle = DomainHandle(
             id=handle_id,
@@ -135,24 +135,24 @@ class NodeTypeMapper:
     # Common mappings across different formats
     TYPE_MAPPINGS = {
         # Direct mappings
-        'start': NodeType.START,
-        'person_job': NodeType.PERSON_JOB,
-        'personjob': NodeType.PERSON_JOB,
-        'person': NodeType.PERSON_JOB,
-        'llm': NodeType.PERSON_JOB,
-        'condition': NodeType.CONDITION,
-        'if': NodeType.CONDITION,
-        'branch': NodeType.CONDITION,
-        'endpoint': NodeType.ENDPOINT,
-        'end': NodeType.ENDPOINT,
-        'finish': NodeType.ENDPOINT,
+        'start': NodeType.start,
+        'person_job': NodeType.person_job,
+        'personjob': NodeType.person_job,
+        'person': NodeType.person_job,
+        'llm': NodeType.person_job,
+        'condition': NodeType.condition,
+        'if': NodeType.condition,
+        'branch': NodeType.condition,
+        'endpoint': NodeType.endpoint,
+        'end': NodeType.endpoint,
+        'finish': NodeType.endpoint,
     }
     
     @classmethod
     def map_type(cls, type_str: str) -> NodeType:
         """Map a string type to NodeType enum."""
-        normalized = type_str.lower().replace('-', '_').replace(' ', '_')
-        return cls.TYPE_MAPPINGS.get(normalized, NodeType.JOB)
+        normalized = type_str
+        return cls.TYPE_MAPPINGS.get(normalized, NodeType.job)
     
     @classmethod
     def determine_node_type(cls, step_data: Dict[str, Any], is_first: bool = False) -> NodeType:
@@ -163,18 +163,18 @@ class NodeTypeMapper:
         
         # Infer from step structure
         if is_first and 'input' in step_data:
-            return NodeType.START
+            return NodeType.start
         elif 'condition' in step_data or 'if' in step_data:
-            return NodeType.CONDITION
+            return NodeType.condition
         elif 'person' in step_data or 'llm' in step_data:
-            return NodeType.PERSON_JOB
+            return NodeType.person_job
         elif 'notion' in step_data:
-            return NodeType.NOTION
+            return NodeType.notion
         elif 'end' in step_data or 'finish' in step_data:
-            return NodeType.ENDPOINT
+            return NodeType.endpoint
         
         # Default to JOB for unknown types
-        return NodeType.JOB
+        return NodeType.job
 
 
 class ArrowBuilder:
