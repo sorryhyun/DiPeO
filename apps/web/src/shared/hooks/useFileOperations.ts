@@ -1,114 +1,48 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { gql } from '@apollo/client';
-import { useUnifiedStore } from './useUnifiedStore';
 import {
-  readFileAsText,
   selectFile,
-  downloadFile,
-  uploadDiagram,
-  saveDiagramToBackend
+  saveDiagram as saveDiagramFile,
+  downloadFile
 } from '@/shared/utils/file';
-import { 
-  useExportDiagramMutation,
-  ExportDiagramDocument
-} from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
+import { serializeDiagram } from '@/shared/utils/diagramSerializer';
 import { apolloClient } from '@/graphql/client';
-import { diagramId } from '@/core/types';
-import { serializeDiagramState } from '@/shared/utils/diagramSerializer';
+import { 
+  ConvertDiagramDocument,
+  type ConvertDiagramMutation,
+  type ConvertDiagramMutationVariables
+} from '@/__generated__/graphql';
 
 export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const store = useUnifiedStore();
-  const [exportDiagramMutation] = useExportDiagramMutation();
 
-  // EXPORT OPERATIONS
+  // LOAD OPERATIONS (from file to browser via server upload)
 
   /**
-   * Export and download diagram in specified format
+   * Load diagram from file to browser (uploads to server first)
    */
-  const exportAndDownload = useCallback(async (
-    format: DiagramFormat,
-    filename?: string,
-    includeMetadata: boolean = true
-  ) => {
-    setIsDownloading(true);
-    try {
-      // Serialize the current diagram state
-      const diagramContent = serializeDiagramState(store);
-      
-      // Use the stateful export mutation - directly from current state
-      const { data } = await apolloClient.mutate({
-        mutation: gql`
-          mutation ExportDiagramStateful($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
-            exportDiagramStateful(content: $content, format: $format, includeMetadata: $includeMetadata) {
-              success
-              message
-              error
-              content
-              format
-              filename
-            }
-          }
-        `,
-        variables: {
-          content: diagramContent,
-          format,
-          includeMetadata
-        }
-      });
-
-      if (!data?.exportDiagramStateful.success) {
-        throw new Error(data?.exportDiagramStateful.error || 'Export failed');
-      }
-
-      const { content, filename: exportFilename } = data.exportDiagramStateful;
-      if (!content) {
-        throw new Error('No content returned from export');
-      }
-
-      // Download the file with appropriate mime type
-      const isJson = format === DiagramFormat.NATIVE;
-      const mimeType = isJson ? 'application/json' : 'text/yaml';
-      const defaultFilename = isJson ? 'diagram.json' : 'diagram.yaml';
-      await downloadFile(content, exportFilename || filename || defaultFilename, mimeType);
-      toast.success(`Exported as ${format} format`);
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast.error(`Export failed: ${(error as Error).message}`);
-      throw error;
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [store]);
-
-  // IMPORT OPERATIONS
-
-  /**
-   * Import diagram from file using GraphQL
-   */
-  const importFile = useCallback(async (file: File) => {
+  const loadFile = useCallback(async (file: File) => {
     setIsProcessing(true);
     try {
-      const result = await uploadDiagram(file);
+      // Save the file to server first
+      const result = await saveDiagramFile(file);
       
       if (!result.success) {
-        throw new Error(result.message || 'Import failed');
+        throw new Error(result.message || 'Failed to upload diagram to server');
       }
 
-      // Reload the page to load the new diagram
+      // Then load it in the browser by navigating to it
       if (result.diagramId) {
         window.location.href = `/?diagram=${result.diagramId}`;
       }
 
       toast.success(
-        `Imported ${result.diagramName || 'diagram'} (${result.nodeCount} nodes)`
+        `Saved and loaded ${result.diagramName || 'diagram'} (${result.nodeCount} nodes)`
       );
     } catch (error) {
-      console.error('[Import file]', error);
-      toast.error(`Import failed: ${(error as Error).message}`);
+      console.error('[Load file]', error);
+      toast.error(`Load failed: ${(error as Error).message}`);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -116,14 +50,14 @@ export const useFileOperations = () => {
   }, []);
 
   /**
-   * Import via file selection dialog
+   * Load via file selection dialog
    */
-  const importWithDialog = useCallback(async () => {
+  const loadWithDialog = useCallback(async () => {
     try {
       const file = await selectFile({
         acceptedTypes: '.yaml,.yml,.json'
       });
-      await importFile(file);
+      await loadFile(file);
     } catch (error) {
       // User cancelled or error occurred
       if (error instanceof Error && error.message !== 'No file selected') {
@@ -131,12 +65,12 @@ export const useFileOperations = () => {
         throw error;
       }
     }
-  }, [importFile]);
+  }, [loadFile]);
 
   /**
-   * Import from URL
+   * Load from URL
    */
-  const importFromURL = useCallback(async (url: string) => {
+  const loadFromURL = useCallback(async (url: string) => {
     setIsProcessing(true);
     try {
       const response = await fetch(url);
@@ -147,57 +81,159 @@ export const useFileOperations = () => {
       const content = await response.text();
       
       // Create a virtual file object for unified processing
-      const virtualFile = new File([content], url.split('/').pop() || 'imported-file', {
+      const virtualFile = new File([content], url.split('/').pop() || 'loaded-file', {
         type: 'text/plain'
       });
       
-      await importFile(virtualFile);
+      await loadFile(virtualFile);
     } catch (error) {
-      console.error('[Import from URL]', error);
-      toast.error(`Import from URL: ${(error as Error).message}`);
+      console.error('[Load from URL]', error);
+      toast.error(`Load from URL: ${(error as Error).message}`);
       throw error;
     } finally {
       setIsProcessing(false);
     }
-  }, [importFile]);
+  }, [loadFile]);
 
   
-  // SAVE TO BACKEND
+  // UPLOAD OPERATIONS
   
 
   /**
-   * Save diagram to backend in specified format
+   * Save current diagram to backend
    */
-  const saveDiagramToServer = useCallback(async (
-    format?: DiagramFormat,
+  const saveDiagram = useCallback(async (
     filename?: string,
-    existingDiagramId?: string
+    format?: DiagramFormat
   ) => {
     setIsProcessing(true);
     try {
       // Serialize the current diagram state
-      const diagramContent = serializeDiagramState(store);
+      const diagramContent = serializeDiagram();
       
-      // If we have an existing diagram ID, use it; otherwise pass null to create new
-      const result = await saveDiagramToBackend(
-        existingDiagramId ? diagramId(existingDiagramId) : null,
-        {
-          format: format || DiagramFormat.NATIVE,
-          filename,
-          diagramContent
-        }
-      );
+      // Use the regular upload for all saves
+      const actualFilename = filename || 'diagram.json';
+      const actualFormat = format || DiagramFormat.NATIVE;
       
-      toast.success(`Saved to server as ${result.filename}`);
-      return result;
+      const content = JSON.stringify(diagramContent, null, 2);
+      
+      const file = new File([content], actualFilename, { 
+        type: actualFilename.endsWith('.json') ? 'application/json' : 'text/yaml' 
+      });
+      
+      // Save the diagram
+      const saveResult = await saveDiagramFile(file, actualFormat);
+      
+      if (!saveResult.success) {
+        throw new Error(saveResult.message || 'Failed to save diagram');
+      }
+      
+      toast.success(`Saved as ${saveResult.diagramName || actualFilename}`);
+      return saveResult;
     } catch (error) {
-      console.error('[Save to server]', error);
-      toast.error(`Save failed: ${(error as Error).message}`);
+      console.error('[Upload diagram]', error);
+      toast.error(`Upload failed: ${(error as Error).message}`);
       throw error;
     } finally {
       setIsProcessing(false);
     }
-  }, [store]);
+  }, []);
+
+  
+  // EXPORT OPERATIONS
+  
+
+  /**
+   * Export current diagram and download as file
+   */
+  /**
+   * Download diagram in specified format
+   */
+  const downloadAs = useCallback(async (
+    format: DiagramFormat = DiagramFormat.NATIVE,
+    filename?: string,
+    includeMetadata: boolean = true
+  ) => {
+    setIsProcessing(true);
+    try {
+      // Serialize the current diagram state
+      const diagramContent = serializeDiagram();
+      
+      // Export via GraphQL
+      const { data } = await apolloClient.mutate<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
+        mutation: ConvertDiagramDocument,
+        variables: {
+          content: diagramContent,
+          format,
+          includeMetadata
+        }
+      });
+      
+      if (!data?.convertDiagram.success) {
+        throw new Error(data?.convertDiagram.error || 'Failed to convert diagram');
+      }
+      
+      const exportResult = data.convertDiagram;
+      
+      // Determine filename
+      const actualFilename = filename || exportResult.filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
+      
+      // Download the file
+      if (exportResult.content) {
+        downloadFile(exportResult.content, actualFilename);
+        toast.success(`Exported as ${actualFilename}`);
+      }
+      
+      return {
+        success: true,
+        filename: actualFilename,
+        format: exportResult.format
+      };
+    } catch (error) {
+      console.error('[Export diagram]', error);
+      toast.error(`Export failed: ${(error as Error).message}`);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
+
+  /**
+   * Convert diagram to specified format (without downloading)
+   */
+  const convertFormat = useCallback(async (
+    format: DiagramFormat = DiagramFormat.NATIVE,
+    includeMetadata: boolean = true
+  ): Promise<{ content: string; format: string; filename: string }> => {
+    try {
+      const diagramContent = serializeDiagram();
+      
+      const { data } = await apolloClient.mutate<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
+        mutation: ConvertDiagramDocument,
+        variables: {
+          content: diagramContent,
+          format,
+          includeMetadata
+        }
+      });
+      
+      if (!data?.convertDiagram.success) {
+        throw new Error(data?.convertDiagram.error || 'Failed to convert diagram');
+      }
+      
+      const result = data.convertDiagram;
+      
+      return {
+        content: result.content || '',
+        format: result.format || format,
+        filename: result.filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`
+      };
+    } catch (error) {
+      console.error('[Convert format]', error);
+      toast.error(`Conversion failed: ${(error as Error).message}`);
+      throw error;
+    }
+  }, []);
 
   
   // FORMAT INFORMATION
@@ -248,18 +284,18 @@ export const useFileOperations = () => {
   return {
     // State
     isProcessing,
-    isDownloading,
+    
+    // Load operations
+    loadDiagram: loadFile,
+    loadWithDialog,
+    loadFromURL,
+    
+    // Save operations
+    saveDiagram,
     
     // Export operations
-    exportAndDownload,
-    
-    // Import operations
-    importFile,
-    importWithDialog,
-    importFromURL,
-    
-    // Backend operations
-    saveDiagramToServer,
+    downloadAs,
+    convertFormat,
     
     // Format information
     getAvailableFormats

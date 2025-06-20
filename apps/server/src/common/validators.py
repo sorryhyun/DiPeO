@@ -29,7 +29,7 @@ class DiagramValidator:
         # Convert dict to DomainDiagram if needed
         if isinstance(diagram, dict):
             try:
-                diagram = DomainDiagram.from_dict(diagram)
+                diagram = DomainDiagram.model_validate(diagram)
             except Exception as e:
                 errors.append(f"Invalid diagram format: {str(e)}")
                 return errors

@@ -4,7 +4,6 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { z } from 'zod';
 
 // Enums
 export enum NodeType {
@@ -230,81 +229,6 @@ export type NodeDataMap = {
   [NodeType.PERSON_BATCH_JOB]: PersonBatchJobNodeData;
 };
 
-// Zod schemas for validation
-export const Vec2Schema = z.object({
-  x: z.number(),
-  y: z.number()
-});
-
-export const HandleDirectionSchema = z.nativeEnum(HandleDirection);
-export const DataTypeSchema = z.nativeEnum(DataType);
-export const NodeTypeSchema = z.nativeEnum(NodeType);
-export const LLMServiceSchema = z.nativeEnum(LLMService);
-export const ForgettingModeSchema = z.nativeEnum(ForgettingMode);
-
-export const DomainHandleSchema = z.object({
-  id: z.string(),
-  nodeId: z.string(),
-  label: z.string(),
-  direction: HandleDirectionSchema,
-  dataType: DataTypeSchema,
-  position: z.string().nullable().optional()
-});
-
-export const DomainNodeSchema = z.object({
-  id: z.string(),
-  type: NodeTypeSchema,
-  position: Vec2Schema,
-  data: z.record(z.any()),
-  displayName: z.string().optional()
-});
-
-export const DomainArrowSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  data: z.record(z.any()).nullable().optional()
-});
-
-export const DomainPersonSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  service: LLMServiceSchema,
-  model: z.string(),
-  apiKeyId: z.string().nullable().optional(),
-  systemPrompt: z.string().nullable().optional(),
-  forgettingMode: ForgettingModeSchema,
-  type: z.literal('person'),
-  maskedApiKey: z.string().nullable().optional()
-});
-
-export const DomainApiKeySchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  service: LLMServiceSchema,
-  key: z.string().optional(),
-  maskedKey: z.string()
-});
-
-export const DiagramMetadataSchema = z.object({
-  id: z.string().nullable().optional(),
-  name: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  version: z.string(),
-  created: z.string(),
-  modified: z.string(),
-  author: z.string().nullable().optional(),
-  tags: z.array(z.string()).nullable().optional()
-});
-
-export const DomainDiagramSchema = z.object({
-  nodes: z.array(DomainNodeSchema),
-  handles: z.array(DomainHandleSchema),
-  arrows: z.array(DomainArrowSchema),
-  persons: z.array(DomainPersonSchema),
-  apiKeys: z.array(DomainApiKeySchema),
-  metadata: DiagramMetadataSchema.nullable().optional()
-});
 
 // Utility functions
 export function createEmptyDiagram(): DomainDiagram {
@@ -322,35 +246,21 @@ export function createEmptyDiagram(): DomainDiagram {
   };
 }
 
-export function domainDiagramToDictFormat(diagram: DomainDiagram): DiagramDictFormat {
-  return {
-    nodes: Object.fromEntries(diagram.nodes.map(node => [node.id, node])) as Record<NodeID, DomainNode>,
-    handles: Object.fromEntries(diagram.handles.map(handle => [handle.id, handle])) as Record<HandleID, DomainHandle>,
-    arrows: Object.fromEntries(diagram.arrows.map(arrow => [arrow.id, arrow])) as Record<ArrowID, DomainArrow>,
-    persons: Object.fromEntries(diagram.persons.map(person => [person.id, person])) as Record<PersonID, DomainPerson>,
-    apiKeys: Object.fromEntries(diagram.apiKeys.map(apiKey => [apiKey.id, apiKey])) as Record<ApiKeyID, DomainApiKey>,
-    metadata: diagram.metadata
-  };
-}
-
-export function dictFormatToDomainDiagram(diagram: DiagramDictFormat): DomainDiagram {
-  return {
-    nodes: Object.values(diagram.nodes),
-    handles: Object.values(diagram.handles),
-    arrows: Object.values(diagram.arrows),
-    persons: Object.values(diagram.persons),
-    apiKeys: Object.values(diagram.apiKeys),
-    metadata: diagram.metadata
-  };
-}
 
 // Type guards
 export function isDomainNode(obj: unknown): obj is DomainNode {
-  return DomainNodeSchema.safeParse(obj).success;
-}
-
-export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
-  return DomainDiagramSchema.safeParse(obj).success;
+  // Simple type guard without Zod
+  if (!obj || typeof obj !== 'object') return false;
+  const node = obj as any;
+  return (
+    typeof node.id === 'string' &&
+    typeof node.type === 'string' &&
+    node.position &&
+    typeof node.position.x === 'number' &&
+    typeof node.position.y === 'number' &&
+    node.data &&
+    typeof node.data === 'object'
+  );
 }
 
 // Handle utilities

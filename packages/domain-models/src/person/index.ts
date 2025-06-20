@@ -4,7 +4,6 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { z } from 'zod';
 import { ForgettingMode, type PersonID, type ApiKeyID, type LLMService } from '../diagram';
 import { Message, ConversationMetadata, Conversation } from './conversation';
 
@@ -46,54 +45,6 @@ export interface PersonExecutionContext {
   maxTokens?: number;
 }
 
-// Zod schemas for validation
-export const PersonConfigurationSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  service: z.string(),
-  model: z.string(),
-  apiKeyId: z.string().nullable().optional(),
-  systemPrompt: z.string().nullable().optional(),
-  forgettingMode: z.string(),
-  temperature: z.number().optional(),
-  maxTokens: z.number().optional(),
-  topP: z.number().optional(),
-  frequencyPenalty: z.number().optional(),
-  presencePenalty: z.number().optional()
-});
-
-export const ConversationMessageSchema = z.object({
-  id: z.string().optional(),
-  role: z.enum(['system', 'user', 'assistant']),
-  content: z.string(),
-  timestamp: z.string().optional(),
-  tokenCount: z.number().optional(),
-  metadata: z.record(z.any()).optional()
-});
-
-export const ConversationMetadataSchema = z.object({
-  startedAt: z.string(),
-  lastMessageAt: z.string(),
-  totalTokens: z.number(),
-  messageCount: z.number(),
-  contextResets: z.number()
-});
-
-export const PersonConversationSchema = z.object({
-  personId: z.string(),
-  messages: z.array(ConversationMessageSchema),
-  metadata: ConversationMetadataSchema.optional()
-});
-
-export const PersonExecutionContextSchema = z.object({
-  personId: z.string(),
-  nodeId: z.string(),
-  conversationId: z.string().optional(),
-  forgettingMode: z.string(),
-  systemPrompt: z.string().nullable().optional(),
-  temperature: z.number().optional(),
-  maxTokens: z.number().optional()
-});
 
 // Utility functions
 export function createConversationMessage(
@@ -142,15 +93,3 @@ export function shouldResetContext(
   }
 }
 
-// Type guards
-export function isPersonConfiguration(obj: unknown): obj is PersonConfiguration {
-  return PersonConfigurationSchema.safeParse(obj).success;
-}
-
-export function isPersonConversation(obj: unknown): obj is PersonConversation {
-  return PersonConversationSchema.safeParse(obj).success;
-}
-
-export function isConversationMessage(obj: unknown): obj is ConversationMessage {
-  return ConversationMessageSchema.safeParse(obj).success;
-}

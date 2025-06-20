@@ -229,7 +229,8 @@
         "type": "any",
         "optional": true
       }
-    }
+    },
+    "description": "Shared LLM domain models\nThese interfaces serve as the single source of truth for LLM-related types\nUsed by both frontend (TypeScript) and backend (Python via code generation)"
   },
   {
     "name": "LLMMessage",
@@ -1263,7 +1264,8 @@
       "user_response",
       "notion",
       "person_batch_job"
-    ]
+    ],
+    "description": "Shared diagram domain models\nThese interfaces serve as the single source of truth for diagram-related types\nUsed by both frontend (TypeScript) and backend (Python via code generation)"
   },
   {
     "name": "HandleDirection",

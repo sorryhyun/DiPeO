@@ -1,31 +1,3 @@
-/**
- * GraphQL Type Mappings and Data Conversions
- * 
- * PURPOSE:
- * This file handles data structure conversions and type mappings between
- * different layers of the application, focusing on data representation.
- * 
- * RESPONSIBILITIES:
- * - Define type aliases for GraphQL types (Domain*, React*)
- * - Convert between array-based (GraphQL) and Map-based (Store) formats
- * - Map between GraphQL enum values and internal string representations
- * - Provide utility functions for working with diagram data structures
- * 
- * NOT RESPONSIBLE FOR:
- * - React Flow specific conversions (see DiagramAdapter)
- * - UI component logic
- * - Visual representation concerns
- * 
- * TYPE CONVENTIONS:
- * - GraphQL types: Direct types from @/__generated__/graphql (Node, Arrow, etc.)
- * - Store* types: Map-based versions for efficient state management
- * - Domain/React prefixes: Used only for semantic clarity when needed
- * 
- * USAGE:
- * Import from here when working with data conversions or GraphQL types.
- * For React Flow conversions, use DiagramAdapter instead.
- */
-
 import type {
   DomainNode as Node,
   DomainArrow as Arrow,

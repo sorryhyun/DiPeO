@@ -4,26 +4,18 @@ import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
 import { 
-  useUploadDiagramMutation,
-  useExportDiagramMutation 
+  useSaveDiagramMutation
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
-import { downloadFile } from '@/shared/utils/file';
 import { useFileOperations } from '@/shared/hooks/useFileOperations';
-import { exportDiagramAsGraphQLSchema } from '@/utils/graphqlSchemaExporter';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat | 'GRAPHQL'>(DiagramFormat.NATIVE);
+  const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Get current diagram ID from URL
-  const searchParams = new URLSearchParams(window.location.search);
-  const diagramId = searchParams.get('diagram');
 
-  const [uploadDiagram] = useUploadDiagramMutation();
-  const { exportAndDownload } = useFileOperations();
+  const [saveDiagramMutation] = useSaveDiagramMutation();
+  const { downloadAs } = useFileOperations();
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -33,37 +25,37 @@ export const FileOperations: React.FC = () => {
     
     try {
       // First validate the file
-      const validateResult = await uploadDiagram({
+      const validateResult = await saveDiagramMutation({
         variables: {
           file,
           validateOnly: true
         }
       });
 
-      if (!validateResult.data?.uploadDiagram?.success) {
-        throw new Error(validateResult.data?.uploadDiagram?.message || 'Validation failed');
+      if (!validateResult.data?.saveDiagram?.success) {
+        throw new Error(validateResult.data?.saveDiagram?.message || 'Validation failed');
       }
 
       // Show validation success
-      toast.success(`Valid ${validateResult.data.uploadDiagram.formatDetected} format detected`);
+      toast.success(`Valid ${validateResult.data.saveDiagram.formatDetected} format detected`);
 
-      // Now upload for real
-      const uploadResult = await uploadDiagram({
+      // Now save for real
+      const saveResult = await saveDiagramMutation({
         variables: {
           file,
           validateOnly: false
         }
       });
 
-      if (!uploadResult.data?.uploadDiagram?.success) {
-        throw new Error(uploadResult.data?.uploadDiagram?.message || 'Upload failed');
+      if (!saveResult.data?.saveDiagram?.success) {
+        throw new Error(saveResult.data?.saveDiagram?.message || 'Save failed');
       }
 
-      const { diagramId: newDiagramId, diagramName, nodeCount } = uploadResult.data.uploadDiagram;
+      const { diagramId: newDiagramId, diagramName, nodeCount } = saveResult.data.saveDiagram;
       
       toast.success(
         <div className="flex flex-col gap-1">
-          <span className="font-medium">Upload successful!</span>
+          <span className="font-medium">Save successful!</span>
           <span className="text-sm opacity-80">
             {diagramName} • {nodeCount} nodes
           </span>
@@ -76,8 +68,8 @@ export const FileOperations: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : 'Upload failed');
+      console.error('Save error:', error);
+      toast.error(error instanceof Error ? error.message : 'Save failed');
     } finally {
       setIsUploading(false);
       // Reset file input
@@ -85,49 +77,26 @@ export const FileOperations: React.FC = () => {
         fileInputRef.current.value = '';
       }
     }
-  }, [uploadDiagram]);
+  }, [saveDiagramMutation]);
 
-  const handleSave = useCallback(async () => {
+  const handleExport = useCallback(async () => {
     try {
-      // Handle GraphQL schema export specially (client-side)
-      if (selectedFormat === 'GRAPHQL') {
-        // Get current diagram state
-        const store = useUnifiedStore.getState();
-        const diagramState = {
-          nodes: Array.from(store.nodes.values()),
-          arrows: Array.from(store.arrows.values()),
-          handles: Array.from(store.handles.values())
-        };
-        
-        // Generate GraphQL schema
-        const schema = exportDiagramAsGraphQLSchema(diagramState);
-        
-        // Download the schema file
-        downloadFile(schema, 'schema.graphql', 'text/plain');
-        toast.success('GraphQL schema exported successfully');
-        return;
-      }
-
-      // For other formats, use the stateful export
-      await exportAndDownload(selectedFormat as DiagramFormat, undefined, true);
-
+      await downloadAs(selectedFormat, undefined, true);
     } catch (error) {
-      console.error('Save error:', error);
-      toast.error(error instanceof Error ? error.message : 'Save failed');
+      console.error('Export error:', error);
+      toast.error(error instanceof Error ? error.message : 'Export failed');
     }
-  }, [selectedFormat, exportAndDownload]);
+  }, [selectedFormat, downloadAs]);
 
-  // Define export formats for sidebar display
   const exportFormats = [
     { value: DiagramFormat.NATIVE, label: 'Native JSON' },
     { value: DiagramFormat.READABLE, label: 'Readable YAML' },
-    { value: DiagramFormat.LIGHT, label: 'Light YAML' },
-    { value: 'GRAPHQL', label: 'GraphQL Schema' }
+    { value: DiagramFormat.LIGHT, label: 'Light YAML' }
   ];
 
   return (
     <div className="space-y-3">
-      {/* Import */}
+      {/* Upload file */}
       <div className="relative">
         <input
           ref={fileInputRef}
@@ -153,12 +122,12 @@ export const FileOperations: React.FC = () => {
           {isUploading ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-              <span>Importing...</span>
+              <span>Loading...</span>
             </>
           ) : (
             <>
               <Upload className="w-4 h-4" />
-              <span>Import Diagram</span>
+              <span>Convert and Load</span>
             </>
           )}
         </label>
@@ -168,7 +137,7 @@ export const FileOperations: React.FC = () => {
       <div className="space-y-2">
         <Select
           value={selectedFormat}
-          onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat | 'GRAPHQL')}
+          onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat)}
           className="w-full text-sm"
         >
           {exportFormats.map(format => (
@@ -179,13 +148,13 @@ export const FileOperations: React.FC = () => {
         </Select>
         
         <Button
-          onClick={handleSave}
+          onClick={handleExport}
           variant="outline"
           className="w-full text-sm"
           size="sm"
         >
           <Download className="w-4 h-4 mr-2" />
-          Export
+          Convert and Save
         </Button>
       </div>
     </div>

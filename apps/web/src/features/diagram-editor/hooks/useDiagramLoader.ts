@@ -41,8 +41,8 @@ export function useDiagramLoader() {
   const { data, loading, error } = useGetDiagramQuery({
     variables: { id: diagramId(diagramIdFromUrl || '') },
     skip: !diagramIdFromUrl || hasLoaded,
-    // Use network-only for quicksave to always get fresh data
-    fetchPolicy: diagramIdFromUrl === 'quicksave' ? 'network-only' : 'cache-first'
+    // Always use cache-first for better performance
+    fetchPolicy: 'cache-first'
   });
 
   // Load diagram data into store

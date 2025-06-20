@@ -4,10 +4,7 @@ import { Button } from '@/shared/components/ui/buttons';
 import { useUIState } from '@/shared/hooks/selectors';
 import { useDiagramManager, useCanvasOperations } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/shared/hooks';
-import { useGetApiKeysQuery } from '@/__generated__/graphql';
 import { toast } from 'sonner';
-import { ApiKeyID, ArrowID, DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson, HandleID, NodeID, PersonID, ReactDiagram, apiKeyId } from '@/core/types';
-import { downloadFile } from '@/shared/utils/file';
 
 
 const TopBar = () => {
@@ -19,6 +16,7 @@ const TopBar = () => {
   const { setReadOnly, setActiveCanvas } = useUnifiedStore();
   
   // Use only the diagram manager for file operations - much lighter weight
+  // NOTE: This is the ONLY place where auto-save should be enabled to avoid duplicate saves
   const diagramManager = useDiagramManager({
     confirmOnNew: true,
     confirmOnLoad: false,
@@ -29,50 +27,11 @@ const TopBar = () => {
   // Extract what we need
   const {
     newDiagram: clearDiagram,
-    saveDiagram: onSaveToDirectory,
+    saveDiagram: onUploadToDirectory,
     loadDiagramFromFile: importFile,
     isDirty
   } = diagramManager;
   
-  
-  // Load API keys on mount - backend is the single source of truth
-  const { data: apiKeysData, error: apiKeysError } = useGetApiKeysQuery({
-    fetchPolicy: 'cache-first'
-  });
-  
-  // Temporarily commented out to debug infinite loop
-  // useEffect(() => {
-  //   if (apiKeysData?.apiKeys) {
-  //     const backendKeys = apiKeysData.apiKeys;
-  //     console.log('[TopBar] Loaded API keys from GraphQL:', backendKeys);
-      
-  //     // Clear existing keys and load fresh from backend
-  //     // This ensures backend file is the single source of truth
-  //     const newApiKeys = new Map();
-      
-  //     backendKeys.forEach(key => {
-  //       // Brand the ID properly
-  //       const brandedId = apiKeyId(key.id);
-  //       const brandedKey = { ...key, id: brandedId };
-  //       newApiKeys.set(brandedId, brandedKey);
-  //     });
-      
-  //     // Replace entire apiKeys state with backend data
-  //     useUnifiedStore.setState({ apiKeys: newApiKeys });
-      
-  //     console.log(`[TopBar] Loaded ${backendKeys.length} API keys from backend`);
-  //     if (backendKeys.length > 0) {
-  //       toast.success(`Loaded ${backendKeys.length} API keys`);
-  //     }
-  //   }
-  // }, []); // Only run once on mount
-  
-  useEffect(() => {
-    if (apiKeysError) {
-      console.error('[TopBar] Load API Keys error:', apiKeysError);
-      toast.error(`Failed to load API keys: ${apiKeysError.message}`);
-    }
-  }, [apiKeysError]);
   
   // Removed automatic loading of most recent diagram - this is now handled by useDiagramLoader
   // The user can explicitly load diagrams through the file menu or URL parameter
@@ -118,22 +77,22 @@ const TopBar = () => {
               const url = new URL(window.location.href);
               url.searchParams.set('diagram', 'quicksave');
               
-              toast.success('Loading quicksave...');
+              toast.success('Getting quicksave from server...');
               
               // Refresh the page with the new URL
               window.location.href = url.toString();
             }}
-            title="Load quicksave.json"
+            title="Get quicksave.json from server"
           >
-            📂 Open
+            📂 Load Quicksave
           </Button>
           <Button 
             variant="outline" 
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => onSaveToDirectory?.('quicksave')?.catch(console.error)}
-            title="Save diagram as quicksave.json"
+            onClick={() => onUploadToDirectory?.('quicksave.json')?.catch(console.error)}
+            title="Upload diagram as quicksave.json"
           >
-            💾 Save
+            💾 Quicksave
           </Button>
           {/* Auto-save status indicator */}
           <div className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600">

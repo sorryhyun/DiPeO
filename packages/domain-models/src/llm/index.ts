@@ -4,7 +4,6 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { z } from 'zod';
 
 // LLM chat result
 export interface ChatResult {
@@ -44,30 +43,6 @@ export const DEFAULT_MODELS: Record<string, string[]> = {
   deepseek: ['deepseek-chat', 'deepseek-coder']
 };
 
-// Zod schemas for validation
-export const ChatResultSchema = z.object({
-  text: z.string(),
-  promptTokens: z.number().nullable().optional(),
-  completionTokens: z.number().nullable().optional(),
-  totalTokens: z.number().nullable().optional(),
-  rawResponse: z.any().nullable().optional()
-});
-
-export const LLMMessageSchema = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
-  content: z.string()
-});
-
-export const LLMProviderConfigSchema = z.object({
-  modelName: z.string(),
-  apiKey: z.string(),
-  baseUrl: z.string().nullable().optional(),
-  temperature: z.number().optional(),
-  maxTokens: z.number().optional(),
-  topP: z.number().optional(),
-  frequencyPenalty: z.number().optional(),
-  presencePenalty: z.number().optional()
-});
 
 // Utility functions
 export function createChatResult(
@@ -97,15 +72,3 @@ export function getUsageStats(result: ChatResult): Record<string, number> {
   };
 }
 
-// Type guards
-export function isChatResult(obj: unknown): obj is ChatResult {
-  return ChatResultSchema.safeParse(obj).success;
-}
-
-export function isLLMMessage(obj: unknown): obj is LLMMessage {
-  return LLMMessageSchema.safeParse(obj).success;
-}
-
-export function isLLMProviderConfig(obj: unknown): obj is LLMProviderConfig {
-  return LLMProviderConfigSchema.safeParse(obj).success;
-}

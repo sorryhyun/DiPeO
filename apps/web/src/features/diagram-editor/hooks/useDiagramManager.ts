@@ -151,11 +151,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       const urlParams = new URLSearchParams(window.location.search);
       const existingDiagramId = urlParams.get('diagram');
       
-      await fileOps.saveDiagramToServer(
-        DiagramFormat.NATIVE, 
-        filename,
-        existingDiagramId || undefined
-      );
+      await fileOps.saveDiagram(filename, DiagramFormat.NATIVE);
       
       setIsDirty(false);
     },
@@ -192,42 +188,33 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || 'diagram';
       
-      // If it's quicksave, use debounced save immediately (cancels any pending)
-      if (defaultFilename === 'quicksave') {
-        await saveImmediately(defaultFilename);
-      } else {
-        // For regular saves, save directly
-        // Check if we have an existing diagram ID from URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        const existingDiagramId = urlParams.get('diagram');
+      // Save directly for all cases
+      // Check if we have an existing diagram ID from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const existingDiagramId = urlParams.get('diagram');
+      
+      // Save the diagram  
+      const result = await fileOps.saveDiagram(defaultFilename, DiagramFormat.NATIVE);
+      
+      // Only show success if save actually succeeded
+      if (result) {
+        setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
+        setIsDirty(false);
         
-        // Use 'native' format for full fidelity saving
-        const result = await fileOps.saveDiagramToServer(
-          DiagramFormat.NATIVE, 
-          defaultFilename,
-          existingDiagramId || undefined
-        );
-        
-        // Only show success if save actually succeeded
-        if (result) {
-          setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
-          setIsDirty(false);
-          
-          // Update URL if we got a new diagram ID
-          if (result.diagramId && !existingDiagramId) {
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.set('diagram', result.diagramId);
-            window.history.replaceState({}, '', newUrl.toString());
-          }
-          
-          toast.success('Diagram saved successfully');
+        // Update URL if we got a new diagram ID
+        if (result.diagramId && !existingDiagramId) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('diagram', result.diagramId);
+          window.history.replaceState({}, '', newUrl.toString());
         }
+        
+        toast.success('Diagram saved successfully');
       }
     } catch (error) {
       console.error('Failed to save diagram:', error);
-      // Don't show another error toast - saveDiagramToServer already shows one
+      // Don't show another error toast - saveDiagram already shows one
     }
-  }, [fileOps, saveImmediately]);
+  }, [fileOps]);
   
   const loadDiagramFromFile = useCallback(async (file: File) => {
     if (confirmOnLoad && isDirty) {
@@ -237,7 +224,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
     
     try {
-      await fileOps.importFile(file);
+      await fileOps.loadDiagram(file);
       setMetadata({
         name: file.name,
         modifiedAt: new Date()
@@ -258,7 +245,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
     
     try {
-      await fileOps.importFromURL(url);
+      await fileOps.loadFromURL(url);
       setMetadata({
         modifiedAt: new Date()
       });
@@ -274,7 +261,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       // Use unified export method with format
       // Export to server with format-specific extension
-      await fileOps.exportAndDownload(format);
+      await fileOps.downloadAs(format);
     } catch (error) {
       console.error('Failed to export diagram:', error);
       toast.error('Failed to export diagram');
@@ -283,7 +270,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   const importDiagramFile = useCallback(async () => {
     try {
-      await fileOps.importWithDialog();
+      await fileOps.loadWithDialog();
       setMetadata({
         modifiedAt: new Date()
       });
@@ -353,7 +340,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     
     // Trigger debounced auto-save if enabled
     if (autoSave && !execution.isRunning) {
-      debouncedSave('quicksave');
+      debouncedSave('autosave.json');
     }
   }, [canvas.nodesArray, canvas.arrowsArray, autoSave, execution.isRunning, debouncedSave]);
   

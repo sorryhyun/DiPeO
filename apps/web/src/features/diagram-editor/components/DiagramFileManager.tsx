@@ -3,11 +3,9 @@ import { Upload, Download, FileUp, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useFileOperations } from '@/shared/hooks/useFileOperations';
 import { 
-  useGetSupportedFormatsQuery,
-  useUploadDiagramMutation,
-  useExportDiagramMutation 
+  useGetSupportedFormatsQuery
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
 
@@ -24,8 +22,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
   // Get diagram ID from file operations or state
   const diagramId = useRef<string | null>(null);
 
-  const [uploadDiagram] = useUploadDiagramMutation();
-  const [exportDiagram] = useExportDiagramMutation();
+  const { saveDiagram, downloadAs } = useFileOperations();
   
   // Fetch supported formats from GraphQL
   const { data: formatsData, loading: formatsLoading } = useGetSupportedFormatsQuery();
@@ -37,34 +34,14 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
     setIsUploading(true);
     
     try {
-      // First validate the file
-      const validateResult = await uploadDiagram({
-        variables: {
-          file,
-          validateOnly: true
-        }
-      });
-
-      if (!validateResult.data?.uploadDiagram?.success) {
-        throw new Error(validateResult.data?.uploadDiagram?.message || 'Validation failed');
+      // Use file operations hook to handle the file
+      const result = await saveDiagram(file.name, selectedFormat);
+      
+      if (!result || !result.diagramId) {
+        throw new Error('Failed to save diagram');
       }
 
-      // Show validation success
-      toast.success(`Valid ${validateResult.data.uploadDiagram.formatDetected} format detected`);
-
-      // Now upload for real
-      const uploadResult = await uploadDiagram({
-        variables: {
-          file,
-          validateOnly: false
-        }
-      });
-
-      if (!uploadResult.data?.uploadDiagram?.success) {
-        throw new Error(uploadResult.data?.uploadDiagram?.message || 'Upload failed');
-      }
-
-      const { diagramId: newDiagramId, diagramName, nodeCount } = uploadResult.data.uploadDiagram;
+      const { diagramId: newDiagramId, diagramName, nodeCount } = result;
       diagramId.current = newDiagramId || null;
       
       toast.success(
@@ -77,7 +54,6 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
       );
 
       // Reload the page to load the new diagram
-      // This is a simple approach that ensures all state is properly reset
       if (newDiagramId) {
         window.location.href = `/?diagram=${newDiagramId}`;
       }
@@ -92,49 +68,16 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
         fileInputRef.current.value = '';
       }
     }
-  }, [uploadDiagram]);
+  }, [saveDiagram, selectedFormat]);
 
   const handleExport = useCallback(async () => {
-    if (!diagramId.current) {
-      toast.error('No diagram to export');
-      return;
-    }
-
     try {
-      const result = await exportDiagram({
-        variables: {
-          diagramId: diagramId.current as any, // Type assertion needed for DiagramID type
-          format: selectedFormat as any, // Type assertion needed for proper enum type
-          includeMetadata
-        }
-      });
-
-      if (!result.data?.exportDiagram?.success) {
-        throw new Error(result.data?.exportDiagram?.error || 'Export failed');
-      }
-
-      const { content, filename } = result.data.exportDiagram;
-
-      // Create download link with appropriate MIME type
-      const isJson = selectedFormat === DiagramFormat.NATIVE;
-      const mimeType = isJson ? 'application/json' : 'text/yaml';
-      const blob = new Blob([content || ''], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || (isJson ? 'diagram.json' : 'diagram.yaml');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success(`Exported as ${filename}`);
-
+      // Use file operations hook to download
+      await downloadAs(selectedFormat, undefined, includeMetadata);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error(error instanceof Error ? error.message : 'Export failed');
     }
-  }, [diagramId, selectedFormat, includeMetadata, exportDiagram]);
+  }, [selectedFormat, includeMetadata, downloadAs]);
 
   return (
     <div className={`flex flex-col gap-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm ${className}`}>

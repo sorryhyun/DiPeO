@@ -7,13 +7,13 @@ import json
 
 from ..types.results import DiagramResult, DeleteResult
 from ..types.scalars import DiagramID, JSONScalar as JSON
-from ..types.inputs import CreateDiagramInput, ImportYamlInput
+from ..types.inputs import CreateDiagramInput
 from ..types.enums import DiagramFormat
 from ..context import GraphQLContext
-from src.domains.diagram.models import DiagramMetadata, DomainDiagram
+from src.domains.diagram.models import DiagramMetadata, DomainDiagram, DiagramDictFormat
+from src.domains.diagram.converters import diagram_dict_to_graphql
 from ..models.input_models import (
-    CreateDiagramInput as PydanticCreateDiagramInput,
-    ImportYamlInput as PydanticImportYamlInput
+    CreateDiagramInput as PydanticCreateDiagramInput
 )
 
 logger = logging.getLogger(__name__)
@@ -50,11 +50,11 @@ class DiagramMutations:
             
             # Create empty diagram structure using Pydantic model
             diagram_model = DomainDiagram(
-                nodes={},
-                arrows={},
-                handles={},
-                persons={},
-                api_keys={},
+                nodes=[],
+                arrows=[],
+                handles=[],
+                persons=[],
+                api_keys=[],
                 metadata=metadata
             )
             
@@ -65,7 +65,8 @@ class DiagramMutations:
             path = diagram_service.create_diagram(pydantic_input.name, diagram_data)
             
             # Convert to GraphQL format
-            graphql_diagram = diagram_model.to_graphql()
+            # diagram_model is already a DomainDiagram with lists, not dicts
+            graphql_diagram = diagram_model
             
             return DiagramResult(
                 success=True,
@@ -110,275 +111,3 @@ class DiagramMutations:
                 error=f"Failed to delete diagram: {str(e)}"
             )
     
-    @strawberry.mutation
-    async def save_diagram(self, info, diagram_id: DiagramID, format: Optional[DiagramFormat] = None) -> DiagramResult:
-        """Save diagram to file system (replaces REST endpoint)."""
-        try:
-            context: GraphQLContext = info.context
-            diagram_service = context.diagram_service
-            
-            # Get the diagram using the diagram_id
-            diagram_data = await diagram_service.get_diagram(diagram_id)
-            if not diagram_data:
-                return DiagramResult(
-                    success=False,
-                    error=f"Diagram {diagram_id} not found"
-                )
-            
-            # Determine filename and format
-            format_str = format.value if format else "native"
-            
-            # Map format to directory and extension
-            format_mapping = {
-                "native": ("", ".json"),
-                "light": ("light", ".light.yaml"),
-                "readable": ("readable", ".readable.yaml"),
-                "llm": ("llm", ".llm.yaml")
-            }
-            
-            directory, extension = format_mapping.get(format_str, ("", ".json"))
-            
-            # Generate filename with proper path
-            if directory:
-                filename = f"{directory}/{diagram_id}{extension}"
-            else:
-                filename = f"{diagram_id}{extension}"
-            
-            # Use the converter system to export in the desired format
-            from src.domains.diagram.converters.registry import converter_registry
-            converter = converter_registry.get(format_str)
-            
-            if not converter:
-                return DiagramResult(
-                    success=False,
-                    error=f"Unknown format: {format_str}"
-                )
-            
-            # Convert to the desired format
-            domain_diagram = DomainDiagram.from_dict(diagram_data)
-            content = converter.serialize(domain_diagram)
-            
-            # Save to file
-            file_path = diagram_service.diagrams_dir / filename
-            # Ensure directory exists
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            
-            path = str(filename)
-            
-            # Convert to GraphQL type using built-in method
-            domain_diagram = DomainDiagram.from_dict(diagram_data)
-            graphql_diagram = domain_diagram.to_graphql()
-            
-            return DiagramResult(
-                success=True,
-                diagram=graphql_diagram,
-                message=f"Diagram saved to {path}"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to save diagram: {e}")
-            return DiagramResult(
-                success=False,
-                error=f"Failed to save diagram: {str(e)}"
-            )
-    
-    @strawberry.mutation
-    async def convert_diagram(self, info, diagram_id: DiagramID, target_format: DiagramFormat) -> DiagramResult:
-        """Convert diagram between formats (JSON, YAML, LLM-YAML)."""
-        try:
-            context: GraphQLContext = info.context
-            diagram_service = context.diagram_service
-            
-            # Get the diagram using the diagram_id
-            diagram_data = await diagram_service.get_diagram(diagram_id)
-            if not diagram_data:
-                return DiagramResult(
-                    success=False,
-                    error=f"Diagram {diagram_id} not found"
-                )
-            
-            # Format validation is now handled by the enum type
-            
-            # Save in new format
-            # Create new filename with target extension
-            import os
-            base_name = os.path.splitext(diagram_id)[0]
-            
-            # Map format to file extension
-            extension_map = {
-                DiagramFormat.NATIVE: '.json',
-                DiagramFormat.LIGHT: '.yaml',
-                DiagramFormat.READABLE: '.yaml', 
-                DiagramFormat.NATIVE_YAML: '.yaml'
-            }
-            extension = extension_map.get(target_format, '.yaml')
-            new_diagram_id = f"{base_name}{extension}"
-            
-            # Save diagram in new format
-            path = diagram_service.save_diagram(new_diagram_id, diagram_data, target_format.value)
-            
-            # Load and return the converted diagram
-            converted_data = diagram_service.load_diagram(new_diagram_id)
-            domain_diagram = DomainDiagram.from_dict(converted_data)
-            graphql_diagram = domain_diagram.to_graphql()
-            
-            return DiagramResult(
-                success=True,
-                diagram=graphql_diagram,
-                message=f"Diagram converted to {target_format.value} and saved to {path}"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to convert diagram: {e}")
-            return DiagramResult(
-                success=False,
-                error=f"Failed to convert diagram: {str(e)}"
-            )
-    
-    @strawberry.mutation
-    async def import_yaml_diagram(self, input: ImportYamlInput, info) -> DiagramResult:
-        """Import a YAML diagram (replaces REST endpoint)."""
-        try:
-            import yaml
-            from pathlib import Path
-            
-            context: GraphQLContext = info.context
-            diagram_service = context.diagram_service
-            
-            # Convert Strawberry input to Pydantic model for validation
-            pydantic_input = PydanticImportYamlInput(
-                content=input.content,
-                filename=input.filename
-            )
-            
-            # Parse YAML content - validated content is guaranteed non-empty
-            try:
-                diagram_data = yaml.safe_load(pydantic_input.content)
-            except yaml.YAMLError as e:
-                return DiagramResult(
-                    success=False,
-                    error=f"Invalid YAML format: {str(e)}"
-                )
-            
-            # Validate it's a diagram
-            if not isinstance(diagram_data, dict):
-                return DiagramResult(
-                    success=False,
-                    error="YAML content must be a dictionary representing a diagram"
-                )
-            
-            # Generate filename if not provided
-            if pydantic_input.filename:
-                # Validated filename is guaranteed clean
-                filename = pydantic_input.filename
-                if not filename.endswith(('.yaml', '.yml')):
-                    filename += '.yaml'
-            else:
-                # Generate filename from diagram name or timestamp
-                diagram_name = diagram_data.get('metadata', {}).get('name', 'imported')
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"{diagram_name}_{timestamp}.yaml"
-            
-            # Save the diagram
-            path = diagram_service.save_diagram(filename, diagram_data, 'yaml')
-            
-            # Load and convert to GraphQL type using built-in method
-            loaded_diagram = diagram_service.load_diagram(filename)
-            domain_diagram = DomainDiagram.from_dict(loaded_diagram)
-            graphql_diagram = domain_diagram.to_graphql()
-            
-            return DiagramResult(
-                success=True,
-                diagram=graphql_diagram,
-                message=f"YAML diagram imported successfully as {filename}"
-            )
-            
-        except ValueError as e:
-            # Pydantic validation error
-            logger.error(f"Validation error importing YAML: {e}")
-            return DiagramResult(
-                success=False,
-                error=f"Validation error: {str(e)}"
-            )
-        except Exception as e:
-            logger.error(f"Failed to import YAML diagram: {e}")
-            return DiagramResult(
-                success=False,
-                error=f"Failed to import YAML diagram: {str(e)}"
-            )
-    
-    @strawberry.mutation
-    async def quicksave_diagram(
-        self,
-        content: JSON,
-        existing_diagram_id: Optional[DiagramID] = None,
-        info: strawberry.Info = None
-    ) -> DiagramResult:
-        """
-        Quicksave a diagram directly from JSON content without file upload.
-        Optimized for frequent saves from the frontend.
-        
-        Args:
-            content: The diagram content as JSON
-            existing_diagram_id: Optional ID of existing diagram to update
-            info: GraphQL context info
-            
-        Returns:
-            DiagramResult with save status
-        """
-        try:
-            context: GraphQLContext = info.context
-            diagram_service = context.diagram_service
-            
-            # Validate content is a dict
-            if not isinstance(content, dict):
-                return DiagramResult(
-                    success=False,
-                    error="Content must be a JSON object representing a diagram"
-                )
-            
-            # Validate diagram structure by converting to domain model
-            try:
-                domain_diagram = DomainDiagram.from_dict(content)
-            except Exception as e:
-                return DiagramResult(
-                    success=False,
-                    error=f"Invalid diagram structure: {str(e)}"
-                )
-            
-            # Update metadata
-            if not domain_diagram.metadata:
-                domain_diagram.metadata = DiagramMetadata()
-            domain_diagram.metadata.modified = datetime.now()
-            
-            # Convert back to dict for storage
-            diagram_data = domain_diagram.model_dump()
-            
-            # Determine the save path
-            if existing_diagram_id:
-                # Update existing diagram
-                diagram_id = existing_diagram_id
-            else:
-                # Default to quicksave.json
-                diagram_id = "quicksave"
-            
-            # Save the diagram
-            path = diagram_service.save_diagram(diagram_id, diagram_data, 'native')
-            
-            # Convert to GraphQL type
-            graphql_diagram = domain_diagram.to_graphql()
-            
-            return DiagramResult(
-                success=True,
-                diagram=graphql_diagram,
-                message=f"Diagram saved to {path}"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to quicksave diagram: {e}")
-            return DiagramResult(
-                success=False,
-                error=f"Failed to quicksave diagram: {str(e)}"
-            )

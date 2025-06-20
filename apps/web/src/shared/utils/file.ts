@@ -5,20 +5,15 @@
 
 import { toast } from 'react-hot-toast';
 import { apolloClient } from '@/graphql/client';
-import { gql } from '@apollo/client';
 import { 
-  SaveDiagramDocument,
-  type SaveDiagramMutation,
-  type SaveDiagramMutationVariables,
   UploadFileDocument,
   type UploadFileMutation,
   type UploadFileMutationVariables,
-  UploadDiagramDocument,
-  type UploadDiagramMutation,
-  type UploadDiagramMutationVariables,
+  SaveDiagramDocument,
+  type SaveDiagramMutation,
+  type SaveDiagramMutationVariables,
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
-import type { DiagramID } from '@/core/types';
 
 export type FileFormat = DiagramFormat;
 
@@ -99,162 +94,12 @@ export const downloadFile = (content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 };
 
-/**
- * GraphQL mutation for quicksave
- */
-const QUICKSAVE_DIAGRAM_MUTATION = gql`
-  mutation QuicksaveDiagram($content: JSONScalar!, $existingDiagramId: DiagramID) {
-    quicksaveDiagram(content: $content, existingDiagramId: $existingDiagramId) {
-      success
-      error
-      message
-      diagram {
-        metadata {
-          id
-          name
-          description
-          author
-          created
-          modified
-          version
-          tags
-        }
-        nodeCount
-        arrowCount
-        personCount
-      }
-    }
-  }
-`;
-
-/**
- * Save diagram to backend using GraphQL
- * This function now properly handles both new and existing diagrams
- * @param diagramId - The diagram ID (file path) - optional for new diagrams
- * @param options - Save options including format
- */
-export const saveDiagramToBackend = async (
-  diagramId: DiagramID | null,
-  options: SaveFileOptions & { diagramContent?: any }
-): Promise<{ success: boolean; filename: string; diagramId?: string }> => {
-  try {
-    // If we have diagram content, we need to upload it as a new diagram
-    if (options.diagramContent) {
-      // Special handling for quicksave - use the new quicksave mutation
-      if (options.filename === 'quicksave') {
-        const content = typeof options.diagramContent === 'string' 
-          ? JSON.parse(options.diagramContent)
-          : options.diagramContent;
-        
-        const { data } = await apolloClient.mutate({
-          mutation: QUICKSAVE_DIAGRAM_MUTATION,
-          variables: {
-            content,
-            existingDiagramId: diagramId || undefined
-          }
-        });
-        
-        if (!data?.quicksaveDiagram.success) {
-          throw new Error(data?.quicksaveDiagram.error || 'Failed to quicksave diagram');
-        }
-        
-        // Clear the cache for quicksave to ensure fresh load next time
-        apolloClient.cache.evict({ 
-          id: apolloClient.cache.identify({
-            __typename: 'Diagram',
-            metadata: { id: 'quicksave' }
-          })
-        });
-        apolloClient.cache.gc();
-        
-        return {
-          success: true,
-          filename: 'quicksave.json',
-          diagramId: 'quicksave'
-        };
-      }
-      
-      // For non-quicksave, use the regular upload
-      let filename = options.filename || options.defaultFilename || 'diagram.json';
-      let actualFormat = options.format;
-      
-      const content = typeof options.diagramContent === 'string' 
-        ? options.diagramContent 
-        : JSON.stringify(options.diagramContent, null, 2);
-      
-      const file = new File([content], filename, { 
-        type: filename.endsWith('.json') ? 'application/json' : 'text/yaml' 
-      });
-      
-      // Upload the diagram
-      const uploadResult = await uploadDiagram(file, actualFormat);
-      
-      if (!uploadResult.success) {
-        throw new Error(uploadResult.message || 'Failed to upload diagram');
-      }
-      
-      return {
-        success: true,
-        filename: uploadResult.diagramName || filename,
-        diagramId: uploadResult.diagramId
-      };
-    }
-    
-    // If no content provided but we have a diagramId, use the existing save mutation
-    if (diagramId) {
-      const { data } = await apolloClient.mutate<SaveDiagramMutation, SaveDiagramMutationVariables>({
-        mutation: SaveDiagramDocument,
-        variables: {
-          diagramId,
-          format: options.format || undefined
-        }
-      });
-      
-      // If saving quicksave, evict it from cache to ensure fresh load next time
-      if (diagramId === 'quicksave') {
-        apolloClient.cache.evict({ 
-          id: apolloClient.cache.identify({
-            __typename: 'Diagram',
-            metadata: { id: 'quicksave' }
-          })
-        });
-        apolloClient.cache.gc();
-      }
-      
-      if (!data?.saveDiagram.success) {
-        throw new Error(data?.saveDiagram.error || 'Failed to save diagram');
-      }
-      
-      // Extract filename from the message or use the diagram name
-      const filename = data.saveDiagram.diagram?.metadata?.name || 
-                      options.filename || 
-                      options.defaultFilename || 
-                      'diagram';
-      
-      return {
-        success: true,
-        filename: filename.endsWith('.yaml') || filename.endsWith('.yml') || filename.endsWith('.json') 
-          ? filename 
-          : `${filename}.yaml`,
-        diagramId
-      };
-    }
-    
-    // No diagram ID and no content - error
-    throw new Error('Either diagramId or diagramContent must be provided');
-    
-  } catch (error) {
-    console.error('[Save diagram GraphQL]', error);
-    toast.error(`Save diagram: ${(error as Error).message}`);
-    throw error;
-  }
-};
 
 
 /**
- * Upload diagram file using GraphQL
+ * Save diagram file to server using GraphQL
  */
-export const uploadDiagram = async (file: File, format?: DiagramFormat): Promise<{
+export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
   success: boolean;
   diagramId?: string;
   diagramName?: string;
@@ -262,8 +107,8 @@ export const uploadDiagram = async (file: File, format?: DiagramFormat): Promise
   message: string;
 }> => {
   try {
-    const { data } = await apolloClient.mutate<UploadDiagramMutation, UploadDiagramMutationVariables>({
-      mutation: UploadDiagramDocument,
+    const { data } = await apolloClient.mutate<SaveDiagramMutation, SaveDiagramMutationVariables>({
+      mutation: SaveDiagramDocument,
       variables: {
         file,
         format,
@@ -271,21 +116,21 @@ export const uploadDiagram = async (file: File, format?: DiagramFormat): Promise
       }
     });
     
-    if (!data?.uploadDiagram.success) {
-      throw new Error(data?.uploadDiagram.message || 'Failed to upload diagram');
+    if (!data?.saveDiagram.success) {
+      throw new Error(data?.saveDiagram.message || 'Failed to save diagram');
     }
     
     return {
       success: true,
-      diagramId: data.uploadDiagram.diagramId || undefined,
-      diagramName: data.uploadDiagram.diagramName || undefined,
-      nodeCount: data.uploadDiagram.nodeCount || undefined,
-      message: data.uploadDiagram.message
+      diagramId: data.saveDiagram.diagramId || undefined,
+      diagramName: data.saveDiagram.diagramName || undefined,
+      nodeCount: data.saveDiagram.nodeCount || undefined,
+      message: data.saveDiagram.message
     };
   } catch (error) {
-    console.error('[Upload diagram GraphQL]', error);
+    console.error('[Save diagram GraphQL]', error);
     const message = (error as Error).message;
-    toast.error(`Upload diagram: ${message}`);
+    toast.error(`Save diagram: ${message}`);
     return {
       success: false,
       message

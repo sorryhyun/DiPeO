@@ -235,7 +235,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
         >
           <span className="flex items-center gap-2">
             <span className="text-base">📁</span>
-            <span className="text-base font-medium">Import / Export</span>
+            <span className="text-base font-medium">Other formats</span>
           </span>
           {fileOperationsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
         </h3>

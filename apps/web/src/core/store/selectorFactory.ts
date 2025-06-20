@@ -1,9 +1,6 @@
 import type { UnifiedStore } from './unifiedStore.types';
 
-/**
- * Common store selector factory to eliminate duplication across hooks
- * This reduces ~120 lines and ensures all hooks stay in sync
- */
+
 
 export const createCommonStoreSelector = () => (state: UnifiedStore) => ({
   // === Raw data from store ===

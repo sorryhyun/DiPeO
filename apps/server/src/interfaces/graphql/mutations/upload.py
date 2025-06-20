@@ -16,8 +16,8 @@ import logging
 
 from src.domains.diagram.services import DiagramService
 from src.common.services import APIKeyService
-from src.domains.diagram.models import DiagramMetadata, DomainDiagram
-from src.domains.diagram.converters import converter_registry
+from src.domains.diagram.models import DiagramMetadata, DomainDiagram, DiagramDictFormat
+from src.domains.diagram.converters import converter_registry, diagram_dict_to_graphql
 from ..context import GraphQLContext
 from ..types.results import FileUploadResult
 from ..types.scalars import DiagramID, JSONScalar
@@ -95,8 +95,8 @@ def storage_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
     return converter.deserialize(json_str)
 
 @strawberry.type
-class DiagramUploadResult:
-    """Result of a diagram file upload."""
+class DiagramSaveResult:
+    """Result of a diagram file save."""
     success: bool
     message: str
     diagram_id: Optional[DiagramID] = None
@@ -195,19 +195,19 @@ class UploadMutations:
             )
     
     @strawberry.mutation
-    async def upload_diagram(
+    async def save_diagram(
         self,
         file: Upload,
         format: Optional[str] = None,
         validate_only: bool = False,
         info: strawberry.Info = None
-    ) -> DiagramUploadResult:
+    ) -> DiagramSaveResult:
         """
-        Upload a diagram file (YAML/JSON) and convert to executable format.
+        Save a diagram file (YAML/JSON) to the server.
         
         Args:
-            file: The uploaded file
-            format: Optional format hint (native, light, readable, llm)
+            file: The diagram file to save
+            format: Optional format hint (native, light, readable)
             validate_only: If true, only validate without saving
             info: GraphQL context info
             
@@ -224,7 +224,7 @@ class UploadMutations:
             
             # Validate file size (5MB limit for diagrams)
             if len(content) > 5 * 1024 * 1024:
-                return DiagramUploadResult(
+                return DiagramSaveResult(
                     success=False,
                     message="Diagram file exceeds 5MB limit"
                 )
@@ -248,7 +248,7 @@ class UploadMutations:
             # Get converter
             converter = converter_registry.get(detected_format)
             if not converter:
-                return DiagramUploadResult(
+                return DiagramSaveResult(
                     success=False,
                     message=f"Unknown format: {detected_format}"
                 )
@@ -256,7 +256,7 @@ class UploadMutations:
             # Check if format supports import
             format_info = converter_registry.get_info(detected_format)
             if not format_info.get('supports_import', True):
-                return DiagramUploadResult(
+                return DiagramSaveResult(
                     success=False,
                     message=f"Format '{detected_format}' does not support import"
                 )
@@ -265,7 +265,7 @@ class UploadMutations:
             try:
                 domain_diagram = converter.deserialize(content_str)
             except Exception as e:
-                return DiagramUploadResult(
+                return DiagramSaveResult(
                     success=False,
                     message=f"Failed to parse {detected_format} format: {str(e)}"
                 )
@@ -273,13 +273,13 @@ class UploadMutations:
             # Validate diagram structure
             validation_errors = validate_diagram(domain_diagram, context.api_key_service)
             if validation_errors:
-                return DiagramUploadResult(
+                return DiagramSaveResult(
                     success=False,
                     message=f"Validation failed: {'; '.join(validation_errors)}"
                 )
             
             if validate_only:
-                return DiagramUploadResult(
+                return DiagramSaveResult(
                     success=True,
                     message="Diagram is valid",
                     node_count=len(domain_diagram.nodes),
@@ -292,11 +292,11 @@ class UploadMutations:
             # Save via diagram service
             diagram_id = await context.diagram_service.save_diagram_with_id(storage_data, filename)
             
-            logger.info(f"Diagram uploaded: {filename} -> {diagram_id} (format: {detected_format})")
+            logger.info(f"Diagram saved: {filename} -> {diagram_id} (format: {detected_format})")
             
-            return DiagramUploadResult(
+            return DiagramSaveResult(
                 success=True,
-                message=f"Successfully uploaded {filename}",
+                message=f"Successfully saved {filename}",
                 diagram_id=diagram_id,
                 diagram_name=storage_data.get('metadata', {}).get('name', filename),
                 node_count=len(domain_diagram.nodes),
@@ -304,10 +304,10 @@ class UploadMutations:
             )
             
         except Exception as e:
-            logger.error(f"Diagram upload error: {str(e)}")
-            return DiagramUploadResult(
+            logger.error(f"Diagram save error: {str(e)}")
+            return DiagramSaveResult(
                 success=False,
-                message=f"Upload failed: {str(e)}"
+                message=f"Save failed: {str(e)}"
             )
     
     @strawberry.mutation
@@ -385,7 +385,7 @@ class UploadMutations:
             )
     
     @strawberry.mutation
-    async def export_diagram_stateful(
+    async def convert_diagram(
         self,
         content: JSONScalar,
         format: DiagramFormat = DiagramFormat.NATIVE,
@@ -393,11 +393,11 @@ class UploadMutations:
         info: strawberry.Info = None
     ) -> DiagramExportResult:
         """
-        Export a diagram directly from provided content without saving.
+        Convert a diagram to specified format.
         
         Args:
             content: The diagram content as JSON
-            format: Export format (native, light, readable, llm)
+            format: Target format (native, light, readable, native_yaml)
             include_metadata: Whether to include metadata in export
             info: GraphQL context info
         """
@@ -429,7 +429,8 @@ class UploadMutations:
             
             # Convert content to domain model
             try:
-                domain_diagram = DomainDiagram.from_dict(content)
+                diagram_dict_format = DiagramDictFormat.model_validate(content)
+                domain_diagram = diagram_dict_to_graphql(diagram_dict_format)
             except Exception as e:
                 return DiagramExportResult(
                     success=False,

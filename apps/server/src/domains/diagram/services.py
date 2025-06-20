@@ -70,8 +70,8 @@ class DiagramService(BaseService):
         """Validate diagram structure."""
         self.validator.validate_or_raise(diagram, context="storage")
     
-    def import_yaml(self, yaml_text: str) -> dict:
-        """Import YAML agent definitions and convert to diagram state."""
+    def convert_from_yaml(self, yaml_text: str) -> dict:
+        """Convert YAML content to diagram state."""
         try:
             # Parse YAML content
             data = yaml.safe_load(yaml_text)
@@ -108,8 +108,8 @@ class DiagramService(BaseService):
         except Exception as e:
             raise ValidationError(f"Failed to import YAML: {e}")
     
-    def export_llm_yaml(self, diagram: dict) -> str:
-        """Export diagram to LLM-friendly YAML format.
+    def convert_to_llm_yaml(self, diagram: dict) -> str:
+        """Convert diagram to LLM-friendly YAML format.
         
         Note: This is a basic implementation. For sophisticated LLM YAML export,
         use the CLI tool which leverages the frontend TypeScript converters:
@@ -418,7 +418,7 @@ class DiagramService(BaseService):
         Returns:
             The diagram ID (which is the filename without extension)
         """
-        # Special handling for quicksave
+        # Handle quicksave.json as a regular file
         if filename == 'quicksave.json':
             path = 'quicksave.json'
             diagram_id = 'quicksave'

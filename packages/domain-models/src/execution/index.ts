@@ -4,7 +4,6 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { z } from 'zod';
 import type { NodeID, DiagramID, PersonID } from '../diagram';
 import type { Message, MemoryState, MemoryConfig } from '../person';
 
@@ -200,100 +199,6 @@ export interface NodeDefinition {
   description?: string;
 }
 
-// Zod schemas for validation
-export const ExecutionStatusSchema = z.nativeEnum(ExecutionStatus);
-export const NodeExecutionStatusSchema = z.nativeEnum(NodeExecutionStatus);
-export const EventTypeSchema = z.nativeEnum(EventType);
-
-export const TokenUsageSchema = z.object({
-  input: z.number(),
-  output: z.number(),
-  cached: z.number().nullable().optional(),
-  total: z.number().optional()
-});
-
-export const NodeResultSchema = z.object({
-  nodeId: z.string(),
-  status: NodeExecutionStatusSchema,
-  output: z.any().optional(),
-  error: z.string().nullable().optional(),
-  timestamp: z.string(),
-  tokenUsage: TokenUsageSchema.nullable().optional(),
-  skipReason: z.string().nullable().optional(),
-  progress: z.string().nullable().optional()
-});
-
-export const ExecutionResultSchema = z.object({
-  executionId: z.string(),
-  status: ExecutionStatusSchema,
-  results: z.array(NodeResultSchema),
-  error: z.string().nullable().optional(),
-  metadata: z.record(z.any()),
-  totalTokenUsage: TokenUsageSchema.nullable().optional()
-});
-
-export const ExecutionStateSchema = z.object({
-  id: z.string(),
-  status: ExecutionStatusSchema,
-  diagramId: z.string().nullable().optional(),
-  startedAt: z.string(),
-  endedAt: z.string().nullable().optional(),
-  runningNodes: z.array(z.string()),
-  completedNodes: z.array(z.string()),
-  skippedNodes: z.array(z.string()),
-  pausedNodes: z.array(z.string()),
-  failedNodes: z.array(z.string()),
-  nodeOutputs: z.record(z.any()),
-  variables: z.record(z.any()),
-  tokenUsage: TokenUsageSchema.nullable().optional(),
-  error: z.string().nullable().optional(),
-  durationSeconds: z.number().nullable().optional(),
-  isActive: z.boolean().optional()
-});
-
-export const ExecutionEventSchema = z.object({
-  executionId: z.string(),
-  sequence: z.number(),
-  eventType: EventTypeSchema,
-  nodeId: z.string().nullable().optional(),
-  timestamp: z.string(),
-  data: z.record(z.any()),
-  formattedMessage: z.string().optional()
-});
-
-export const ExecutionOptionsSchema = z.object({
-  mode: z.enum(['normal', 'debug', 'monitor']).optional(),
-  timeout: z.number().optional(),
-  variables: z.record(z.any()).optional(),
-  debug: z.boolean().optional()
-});
-
-export const InteractivePromptDataSchema = z.object({
-  nodeId: z.string(),
-  prompt: z.string(),
-  timeout: z.number().optional(),
-  defaultValue: z.string().nullable().optional()
-});
-
-export const PersonMemoryMessageSchema = z.object({
-  id: z.string().optional(),
-  role: z.enum(['user', 'assistant', 'system']),
-  content: z.string(),
-  timestamp: z.string().optional(),
-  tokenCount: z.number().optional()
-});
-
-export const PersonMemoryStateSchema = z.object({
-  personId: z.string(),
-  messages: z.array(PersonMemoryMessageSchema),
-  visibleMessages: z.number(),
-  hasMore: z.boolean().optional(),
-  config: z.object({
-    forgetMode: z.enum(['NO_FORGET', 'ON_EVERY_TURN', 'UPON_REQUEST']).optional(),
-    maxMessages: z.number().optional(),
-    temperature: z.number().optional()
-  }).optional()
-});
 
 // Utility functions
 export function createTokenUsage(input: number, output: number, cached?: number): TokenUsage {
@@ -342,78 +247,5 @@ export function isNodeExecutionActive(status: NodeExecutionStatus): boolean {
   ].includes(status);
 }
 
-// Executor-specific Zod schemas
-export const ExecutorResultSchema = z.object({
-  output: z.any().optional(),
-  error: z.string().nullable().optional(),
-  nodeId: z.string().nullable().optional(),
-  executionTime: z.number().nullable().optional(),
-  tokenUsage: TokenUsageSchema.nullable().optional(),
-  metadata: z.record(z.any()).optional(),
-  validationErrors: z.array(z.record(z.any())).optional()
-});
-
-export const PersonJobOutputSchema = z.object({
-  output: z.string().nullable().optional(),
-  error: z.string().nullable().optional(),
-  conversationHistory: z.array(z.object({
-    role: z.string(),
-    content: z.string()
-  })).optional(),
-  tokenUsage: TokenUsageSchema.nullable().optional(),
-  metadata: z.record(z.any()).optional()
-});
-
-export const ConditionOutputSchema = z.object({
-  result: z.boolean(),
-  evaluatedExpression: z.string(),
-  metadata: z.record(z.any()).optional()
-});
-
-export const JobOutputSchema = z.object({
-  output: z.any(),
-  error: z.string().nullable().optional(),
-  executionTime: z.number().optional(),
-  language: z.string().optional(),
-  metadata: z.record(z.any()).optional()
-});
-
-export const ExecutionContextSchema = z.object({
-  edges: z.array(z.record(z.any())),
-  results: z.record(z.record(z.any())),
-  currentNodeId: z.string(),
-  executionId: z.string(),
-  execCnt: z.record(z.number()).optional(),
-  outputs: z.record(z.any()).optional(),
-  persons: z.record(z.any()).optional(),
-  apiKeys: z.record(z.string()).optional()
-});
-
 // Type guards
-export function isTokenUsage(obj: unknown): obj is TokenUsage {
-  return TokenUsageSchema.safeParse(obj).success;
-}
 
-export function isExecutionState(obj: unknown): obj is ExecutionState {
-  return ExecutionStateSchema.safeParse(obj).success;
-}
-
-export function isExecutionEvent(obj: unknown): obj is ExecutionEvent {
-  return ExecutionEventSchema.safeParse(obj).success;
-}
-
-export function isExecutorResult(obj: unknown): obj is ExecutorResult {
-  return ExecutorResultSchema.safeParse(obj).success;
-}
-
-export function isPersonJobOutput(obj: unknown): obj is PersonJobOutput {
-  return PersonJobOutputSchema.safeParse(obj).success;
-}
-
-export function isConditionOutput(obj: unknown): obj is ConditionOutput {
-  return ConditionOutputSchema.safeParse(obj).success;
-}
-
-export function isJobOutput(obj: unknown): obj is JobOutput {
-  return JobOutputSchema.safeParse(obj).success;
-}

@@ -27,6 +27,29 @@ import {
   apiKeyCrud 
 } from "./helpers/crudFactory";
 
+// Custom serializer for Redux DevTools to handle Maps
+const devtoolsOptions = {
+  serialize: {
+    // Custom replacer to handle Map serialization
+    replacer: (key: string, value: any) => {
+      if (value instanceof Map) {
+        return {
+          _type: 'Map',
+          _value: Array.from(value.entries())
+        };
+      }
+      return value;
+    },
+    // Custom reviver to restore Maps
+    reviver: (key: string, value: any) => {
+      if (value && typeof value === 'object' && value._type === 'Map') {
+        return new Map(value._value);
+      }
+      return value;
+    }
+  }
+};
+
 export const useUnifiedStore = create<UnifiedStore>()(
   devtools(
     subscribeWithSelector(
@@ -186,7 +209,8 @@ export const useUnifiedStore = create<UnifiedStore>()(
         getPersons: () => get().personsArray,
 
       }))
-    )
+    ),
+    devtoolsOptions
   )
 );
 

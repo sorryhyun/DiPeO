@@ -9,7 +9,6 @@ from .execution import ExecutionMutations
 from .handle import HandleMutations
 from .utility import UtilityMutations
 from .upload import UploadMutations
-from .diagram_file import DiagramFileMutations
 
 # Import the main Mutation class from the parent module
 import strawberry
@@ -25,8 +24,7 @@ class Mutation(
     ExecutionMutations,
     HandleMutations,
     UtilityMutations,
-    UploadMutations,
-    DiagramFileMutations
+    UploadMutations
 ):
     """Root mutation type for DiPeO GraphQL API.
     
@@ -47,5 +45,4 @@ __all__ = [
     'HandleMutations',
     'UtilityMutations',
     'UploadMutations',
-    'DiagramFileMutations',
 ]

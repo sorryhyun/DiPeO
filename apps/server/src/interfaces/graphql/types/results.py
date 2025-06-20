@@ -28,6 +28,16 @@ class ValidationError:
     message: str
     code: Optional[str] = None
 
+@strawberry.type
+class DiagramFormatInfo:
+    """Information about a diagram format."""
+    id: str
+    name: str
+    description: str
+    extension: str
+    supports_import: bool
+    supports_export: bool
+
 # Convert Pydantic models to Strawberry types
 @strawberry.experimental.pydantic.type(
     model=OperationErrorModel,

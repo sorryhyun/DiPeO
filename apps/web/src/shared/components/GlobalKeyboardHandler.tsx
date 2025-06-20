@@ -6,7 +6,7 @@ export function GlobalKeyboardHandler() {
   const { saveDiagram } = useDiagramManager({
     confirmOnNew: true,
     confirmOnLoad: false,
-    autoSave: true,
+    autoSave: false, // Disable auto-save here since TopBar already handles it
     autoSaveInterval: 15000
   });
 
@@ -18,15 +18,15 @@ export function GlobalKeyboardHandler() {
         return;
       }
 
-      // Ctrl/Cmd + S for quicksave
+      // Ctrl/Cmd + S for upload
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         try {
-          await saveDiagram('quicksave');
+          await saveDiagram();
           // Success toast is already shown by saveDiagram
         } catch (error) {
-          console.error('Failed to save diagram:', error);
-          toast.error('Failed to save diagram');
+          console.error('Failed to upload diagram:', error);
+          toast.error('Failed to upload diagram');
         }
       }
     };

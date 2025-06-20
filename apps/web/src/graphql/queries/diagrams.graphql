@@ -111,29 +111,3 @@ mutation DeleteDiagram($id: DiagramID!) {
   }
 }
 
-mutation SaveDiagram($diagramId: DiagramID!, $format: DiagramFormat) {
-  saveDiagram(diagramId: $diagramId, format: $format) {
-    success
-    diagram {
-      metadata {
-        id
-        name
-        modified
-      }
-    }
-    message
-    error
-  }
-}
-
-mutation ExportDiagram($diagramId: DiagramID!, $format: DiagramFormat!, $includeMetadata: Boolean) {
-  exportDiagram(diagramId: $diagramId, format: $format, includeMetadata: $includeMetadata) {
-    success
-    message
-    error
-    content
-    format
-    filename
-  }
-}
-

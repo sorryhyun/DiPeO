@@ -7,7 +7,8 @@ from ..types.results import DiagramResult, DeleteResult
 from ..types.scalars import DiagramID, ArrowID
 from ..types.inputs import CreateArrowInput
 from ..context import GraphQLContext
-from src.domains.diagram.models import DomainArrow, DomainDiagram
+from src.domains.diagram.models import DomainArrow, DomainDiagram, DiagramDictFormat
+from src.domains.diagram.converters import diagram_dict_to_graphql
 from ..models.input_models import CreateArrowInput as PydanticCreateArrowInput
 
 logger = logging.getLogger(__name__)
@@ -81,8 +82,8 @@ class ArrowMutations:
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             # Convert entire diagram to GraphQL type for return
-            domain_diagram = DomainDiagram.from_dict(diagram_data)
-            graphql_diagram = domain_diagram.to_graphql()
+            diagram_dict_format = DiagramDictFormat.model_validate(diagram_data)
+            graphql_diagram = diagram_dict_to_graphql(diagram_dict_format)
             
             return DiagramResult(
                 success=True,
