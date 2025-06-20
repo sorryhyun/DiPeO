@@ -36,7 +36,7 @@ function useNodeStatus(nodeId: string) {
   }), [nodeState]);
 }
 
-// Custom hook for handles generation
+// Custom hook for handles generation with auto-spacing
 function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
   const config = getNodeConfig(nodeType as NodeType);
   
@@ -46,33 +46,75 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
       ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
     ];
     
-    return allHandles.map((handle) => {
-      const isVertical = handle.position === 'top' || handle.position === 'bottom';
-      const position = isFlipped && !isVertical
-        ? (handle.position === 'left' ? Position.Right : Position.Left)
-        : (handle.position === 'left' ? Position.Left : 
-           handle.position === 'right' ? Position.Right :
-           handle.position === 'top' ? Position.Top : Position.Bottom);
+    // Group handles by position to calculate auto-spacing
+    const handlesByPosition = allHandles.reduce((acc, handle) => {
+      const pos = handle.position || 'right';
+      if (!acc[pos]) acc[pos] = [];
+      acc[pos].push(handle);
+      return acc;
+    }, {} as Record<string, typeof allHandles>);
+    
+    // Process each handle with proper spacing
+    const processedHandles: Array<{
+      type: 'input' | 'output';
+      position: Position;
+      id: string;
+      name: string;
+      style: Record<string, unknown>;
+      offset: number;
+      color?: string;
+    }> = [];
+    
+    Object.entries(handlesByPosition).forEach(([pos, handles]) => {
+      const count = handles.length;
       
-      const offset = handle.offset || { x: 0, y: 0 };
-      const offsetPercentage = isVertical 
-        ? 50 + (offset.x / 2)
-        : 50 + (offset.y / 2);
-      
-      const handleName = handle.id || 'default';
-      // Generate unique ID by combining nodeId, handle type, and handleName
-      const uniqueId = `${nodeId}:${handle.type}:${handleName}`;
-      
-      return {
-        type: handle.type,
-        position,
-        id: uniqueId,
-        name: handle.label || handleName,
-        style: {},
-        offset: offsetPercentage,
-        color: handle.color
-      };
+      handles.forEach((handle, index) => {
+        const isVertical = pos === 'top' || pos === 'bottom';
+        const position = isFlipped && !isVertical
+          ? (handle.position === 'left' ? Position.Right : Position.Left)
+          : (handle.position === 'left' ? Position.Left : 
+             handle.position === 'right' ? Position.Right :
+             handle.position === 'top' ? Position.Top : Position.Bottom);
+        
+        let offsetPercentage: number;
+        
+        if (handle.offset) {
+          // Use explicit offset with better scaling for pill-shaped handles
+          const offset = handle.offset;
+          const scaleFactor = 0.8; // Increased from 0.5 to give more spacing
+          offsetPercentage = isVertical 
+            ? 50 + (offset.x * scaleFactor)
+            : 50 + (offset.y * scaleFactor);
+        } else {
+          // Auto-space handles when no offset is defined
+          if (count === 1) {
+            offsetPercentage = 50;
+          } else {
+            // Distribute evenly with padding from edges
+            const padding = 20; // percentage from edge
+            const availableSpace = 100 - (2 * padding);
+            const spacing = availableSpace / (count - 1);
+            offsetPercentage = padding + (index * spacing);
+          }
+        }
+        
+        const handleName = handle.id || 'default';
+        // Generate unique ID by combining nodeId, handle type, and handleName
+        const uniqueId = `${nodeId}:${handle.type}:${handleName}`;
+        
+        processedHandles.push({
+          type: handle.type,
+          position,
+          id: uniqueId,
+          name: handle.label || handleName,
+          style: {},
+          offset: offsetPercentage,
+          color: handle.color
+        });
+      });
     });
+    
+    return processedHandles;
   }, [nodeId, config, isFlipped]);
 }
 

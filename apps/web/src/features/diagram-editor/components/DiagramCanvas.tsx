@@ -142,8 +142,18 @@ function useCommonFlowProps({
 
     return {
       ...baseProps,
-      onNodeClick: (_: React.MouseEvent, n: ReactFlowNode) => selectNode(n.id),
-      onEdgeClick: (_: React.MouseEvent, e: Edge) => selectArrow(e.id),
+      onNodeClick: (event: React.MouseEvent, n: ReactFlowNode) => {
+        // Only select on left click for moving/connecting
+        if (event.button === 0) {
+          selectNode(n.id);
+        }
+      },
+      onEdgeClick: (event: React.MouseEvent, e: Edge) => {
+        // Only select on left click
+        if (event.button === 0) {
+          selectArrow(e.id);
+        }
+      },
       onNodeDragStart,
       onNodeDragStop,
       onNodeContextMenu: (
@@ -151,18 +161,22 @@ function useCommonFlowProps({
         node: ReactFlowNode
       ) => {
         event.preventDefault();
+        // Select node and show properties on right-click
         selectNode(node.id);
-        // Disable context menu
-        // onNodeContextMenu?.(event, node.id);
+        // Ensure properties tab is shown
+        const { setDashboardTab } = useUnifiedStore.getState();
+        setDashboardTab('properties');
       },
       onEdgeContextMenu: (
         event: React.MouseEvent,
         edge: Edge
       ) => {
         event.preventDefault();
+        // Select arrow and show properties on right-click
         selectArrow(edge.id);
-        // Disable context menu
-        // onEdgeContextMenu?.(event, edge.id);
+        // Ensure properties tab is shown
+        const { setDashboardTab } = useUnifiedStore.getState();
+        setDashboardTab('properties');
       },
       onPaneContextMenu: (evt: React.MouseEvent | MouseEvent) => {
         if (evt && 'preventDefault' in evt) {

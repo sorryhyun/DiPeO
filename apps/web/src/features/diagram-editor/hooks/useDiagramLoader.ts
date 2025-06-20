@@ -53,8 +53,10 @@ export function useDiagramLoader() {
       // Delay loading until after the component tree has mounted
       const loadTimer = setTimeout(() => {
         try {
-          // Convert GraphQL diagram to domain format (identity mapping since GraphQL IS domain)
-          // Add missing count fields that aren't in the query result
+          // TypeScript needs reassurance that data.diagram is still defined
+          if (!data?.diagram) return;
+          
+          // Convert GraphQL diagram to domain format
           const diagramWithCounts = {
             ...data.diagram,
             nodeCount: data.diagram.nodes.length,
