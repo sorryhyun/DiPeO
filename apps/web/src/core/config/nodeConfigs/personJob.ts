@@ -1,6 +1,5 @@
 import type { PersonJobFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
-import {ForgettingMode} from "@dipeo/domain-models";
 
 /**
  * Unified configuration for PersonJob node

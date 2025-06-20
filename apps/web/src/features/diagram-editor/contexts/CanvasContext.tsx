@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useCanvasOperations as useCanvasOps } from '../hooks';
+import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations } from '../hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import type { Vec2, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
 
@@ -44,8 +44,12 @@ interface CanvasOperations {
   // Mode operations
   setReadOnly: (readOnly: boolean) => void;
   
-  // Canvas operations from hooks
-  canvasOps: ReturnType<typeof useCanvasOps>;
+  // Canvas operations from focused hooks
+  canvas: ReturnType<typeof useCanvas>;
+  interactions: ReturnType<typeof useCanvasInteractions>;
+  nodeOps: ReturnType<typeof useNodeOperations>;
+  arrowOps: ReturnType<typeof useArrowOperations>;
+  personOps: ReturnType<typeof usePersonOperations>;
   executionOps: ReturnType<typeof useExecution>;
 }
 
@@ -126,7 +130,11 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   }), [select, clearSelection, multiSelect, setReadOnly]);
 
   // Get hook-based operations
-  const canvasOps = useCanvasOps();
+  const canvas = useCanvas();
+  const interactions = useCanvasInteractions();
+  const nodeOps = useNodeOperations();
+  const arrowOps = useArrowOperations();
+  const personOps = usePersonOperations();
   const executionOps = useExecution();
 
   // Memoize context value
@@ -138,10 +146,14 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       
       // Operations
       ...selectionOps,
-      canvasOps,
+      canvas,
+      interactions,
+      nodeOps,
+      arrowOps,
+      personOps,
       executionOps,
     }),
-    [uiState, selectedNodeIds, selectionOps, canvasOps, executionOps]
+    [uiState, selectedNodeIds, selectionOps, canvas, interactions, nodeOps, arrowOps, personOps, executionOps]
   );
 
   return (
@@ -197,7 +209,11 @@ export function useCanvasOperationsContext() {
     selectMultipleNodes: context.selectMultipleNodes,
     clearSelection: context.clearSelection,
     setReadOnly: context.setReadOnly,
-    canvasOps: context.canvasOps,
+    canvas: context.canvas,
+    interactions: context.interactions,
+    nodeOps: context.nodeOps,
+    arrowOps: context.arrowOps,
+    personOps: context.personOps,
     executionOps: context.executionOps,
   };
 }

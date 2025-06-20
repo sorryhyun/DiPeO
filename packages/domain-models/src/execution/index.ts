@@ -4,7 +4,7 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import type { NodeID, DiagramID, PersonID } from '../diagram';
+import type { NodeID, DiagramID } from '../diagram';
 import type { Message, MemoryState, MemoryConfig } from '../person';
 
 // Type aliases

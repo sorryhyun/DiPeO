@@ -128,7 +128,7 @@ export const useFileOperations = () => {
         throw new Error(saveResult.message || 'Failed to save diagram');
       }
       
-      toast.success(`Saved as ${saveResult.diagramName || actualFilename}`);
+      // Silent save - no toast notification
       return saveResult;
     } catch (error) {
       console.error('[Upload diagram]', error);
@@ -159,12 +159,12 @@ export const useFileOperations = () => {
       // Serialize the current diagram state
       const diagramContent = serializeDiagram();
       
-      // Export via GraphQL
+      // Export via GraphQL - convert format to uppercase for GraphQL enum
       const { data } = await apolloClient.mutate<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
         mutation: ConvertDiagramDocument,
         variables: {
           content: diagramContent,
-          format,
+          format: format.toUpperCase() as any, // GraphQL expects uppercase enum values
           includeMetadata
         }
       });
@@ -212,7 +212,7 @@ export const useFileOperations = () => {
         mutation: ConvertDiagramDocument,
         variables: {
           content: diagramContent,
-          format,
+          format: format.toUpperCase() as any, // GraphQL expects uppercase enum values
           includeMetadata
         }
       });

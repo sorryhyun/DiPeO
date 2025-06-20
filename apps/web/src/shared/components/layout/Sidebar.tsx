@@ -4,10 +4,11 @@ import { Button } from '@/shared/components/ui/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/core/config';
 import { NodeType } from '@dipeo/domain-models';
-import { useCanvasOperations } from '@/features/diagram-editor/hooks';
+import { useCanvas, useCanvasInteractions, usePersonOperations } from '@/features/diagram-editor/hooks';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { LazyApiKeysModal } from '@/shared/components/modals/LazyModals';
 import { FileOperations } from '@/shared/components/sidebar/FileOperations';
-import type { PersonID } from '@/core/types';
+import { PersonID, DomainPerson, personId } from '@/core/types';
 import type { Node } from '@xyflow/react';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
@@ -16,7 +17,7 @@ import type { UniversalData } from '@/features/properties-editor/components/Prop
 
 // Memoized draggable block component
 export const DraggableBlock = React.memo<{ type: string; label: string }>(({ type, label }) => {
-  const { onNodeDragStart } = useCanvasOperations();
+  const { onNodeDragStart } = useCanvasInteractions();
 
   // Extract emoji from label (assuming it's the first character(s))
   const icon = label.split(' ')[0] || '';
@@ -68,17 +69,18 @@ const PersonItem = React.memo<{
 PersonItem.displayName = 'PersonItem';
 
 const Sidebar = React.memo<SidebarProps>(({ position }) => {
-  const canvas = useCanvasOperations();
-  const { 
-    nodes, 
-    persons, 
-    addPerson,
-    selectedId,
-    selectedType,
-    select,
-    clearSelection,
-    getPersonById
-  } = canvas;
+  const { nodes, personsArray } = useCanvas();
+  const { addPerson } = usePersonOperations();
+  const { selectedId, selectedType, select, clearSelection, persons: personsMap } = useUnifiedStore();
+  
+  // Helper to get person by ID
+  const getPersonById = (id: PersonID) => personsMap.get(id) || null;
+  
+  // Convert persons array to PersonID array like the old hook did
+  const persons = React.useMemo(
+    () => personsArray.map((p: DomainPerson) => personId(p.id)),
+    [personsArray]
+  );
   
   // Derive selected IDs based on selectedType
   const selectedNodeId = selectedType === 'node' ? selectedId : null;
@@ -215,11 +217,11 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
               variant="outline"
               className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               size="sm"
-              onClick={() => addPerson({
-                label: `Person ${persons.length + 1}`,
-                model: 'gpt-4.1-nano',
-                service: 'openai',
-              })}
+              onClick={() => addPerson(
+                `Person ${persons.length + 1}`,
+                'openai',
+                'gpt-4.1-nano'
+              )}
             >
               <span className="mr-1">➕</span> Add Person
             </Button>

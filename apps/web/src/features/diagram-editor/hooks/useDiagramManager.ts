@@ -129,7 +129,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     createdAt: new Date(),
     modifiedAt: new Date()
   });
-  const [isDirty, setIsDirty] = useState(false);
+  const [isDirty, setIsDirty] = useState(false); // Start with false - diagram is fresh from server
   
   // Refs
   const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -143,17 +143,16 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   // Debounced save for auto-save
   const { debouncedSave, saveImmediately, cancelPendingSave } = useDebouncedSave({
-    delay: 1000, // 1 second debounce
+    delay: autoSaveInterval, // Use the configured interval
     onSave: async (filename: string) => {
       if (storeOps.nodes.size === 0) return;
       
-      // Check if we have an existing diagram ID from URL params
-      const urlParams = new URLSearchParams(window.location.search);
-      const existingDiagramId = urlParams.get('diagram');
-      
-      await fileOps.saveDiagram(filename, DiagramFormat.NATIVE);
-      
-      setIsDirty(false);
+      try {
+        await fileOps.saveDiagram(filename, DiagramFormat.NATIVE);
+        setIsDirty(false);
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
     },
     enabled: autoSave
   });
@@ -174,8 +173,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       modifiedAt: new Date()
     });
     setIsDirty(false);
-    toast.success('New diagram created');
-  }, [confirmOnNew, isDirty]);
+    // Status shown in indicator
+  }, [confirmOnNew, isDirty, storeOps]);
   
   const saveDiagram = useCallback(async (filename?: string) => {
     // Check if there's anything to save
@@ -208,7 +207,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
           window.history.replaceState({}, '', newUrl.toString());
         }
         
-        toast.success('Diagram saved successfully');
+        // Silent save - status shown in top bar
       }
     } catch (error) {
       console.error('Failed to save diagram:', error);
@@ -334,15 +333,24 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     return storeOps.getDiagramStats();
   }, [storeOps]);
   
+  // Track if this is the initial render
+  const isInitialMount = useRef(true);
+  
   // Mark dirty when canvas changes and trigger debounced auto-save
   useEffect(() => {
+    // Skip the initial mount - diagram is fresh from server
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
     setIsDirty(true);
     
     // Trigger debounced auto-save if enabled
     if (autoSave && !execution.isRunning) {
-      debouncedSave('autosave.json');
+      debouncedSave('quicksave.json');
     }
-  }, [canvas.nodesArray, canvas.arrowsArray, autoSave, execution.isRunning, debouncedSave]);
+  }, [canvas.nodesArray, canvas.arrowsArray, canvas.personsArray]);
   
   // Clean up pending saves on unmount
   useEffect(() => {

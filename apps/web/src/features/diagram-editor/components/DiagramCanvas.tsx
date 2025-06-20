@@ -201,27 +201,28 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
    * Stores & Hooks
    * --------------------------------------------------*/
   const context = useCanvasContext();
+  
+  // Extract from canvas hook
+  const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = context.canvas;
+  
+  // Extract from interactions hook
   const {
-    nodes,
-    arrows,
-    onNodesChange,
-    onArrowsChange,
-    onConnect,
     onDragOver,
     onNodeDrop,
     onNodeContextMenu,
     onEdgeContextMenu,
     onPaneContextMenu,
-    addNode,
-    deleteNode,
-    deleteArrow,
     contextMenu,
     isContextMenuOpen,
     closeContextMenu,
     onNodeDragStartCanvas,
     onNodeDragStopCanvas,
-    addPerson,
-  } = context.canvasOps;
+  } = context.interactions;
+  
+  // Extract from operation hooks
+  const { addNode, deleteNode } = context.nodeOps;
+  const { deleteArrow } = context.arrowOps;
+  const { addPerson } = context.personOps;
   
   const {
     selectedNodeId,
@@ -297,11 +298,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   /** --------------------------------------------------
    * Context‑menu helpers
    * --------------------------------------------------*/
-  const handleAddPerson = () => addPerson({
-    label: "New Person",
-    service: "openai",
-    model: "gpt-4.1-nano"
-  });
+  const handleAddPerson = () => addPerson(
+    "New Person",
+    "openai",
+    "gpt-4.1-nano"
+  );
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
   /** --------------------------------------------------

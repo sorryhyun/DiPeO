@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { useCanvasOperations } from '@/features/diagram-editor/hooks/useCanvasOperations';
+import { useNodeOperations, useArrowOperations, usePersonOperations, useCanvas } from '@/features/diagram-editor/hooks';
 import { DomainApiKey, arrowId, nodeId, personId } from '@/core/types';
 import { PanelConfig, PanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
@@ -56,8 +56,10 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   } = options;
 
   // Store selectors
-  const canvas = useCanvasOperations();
-  const { updateNode, updateArrow, updatePerson, isMonitorMode } = canvas;
+  const { updateNode } = useNodeOperations();
+  const { updateArrow } = useArrowOperations();
+  const { updatePerson } = usePersonOperations();
+  const { isMonitorMode } = useCanvas();
   const { apiKeys } = useUnifiedStore();
 
   // Form state

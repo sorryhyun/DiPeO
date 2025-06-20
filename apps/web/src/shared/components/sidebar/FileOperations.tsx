@@ -36,10 +36,7 @@ export const FileOperations: React.FC = () => {
         throw new Error(validateResult.data?.saveDiagram?.message || 'Validation failed');
       }
 
-      // Show validation success
-      toast.success(`Valid ${validateResult.data.saveDiagram.formatDetected} format detected`);
-
-      // Now save for real
+      // Validation successful, now save for real
       const saveResult = await saveDiagramMutation({
         variables: {
           file,
@@ -53,14 +50,7 @@ export const FileOperations: React.FC = () => {
 
       const { diagramId: newDiagramId, diagramName, nodeCount } = saveResult.data.saveDiagram;
       
-      toast.success(
-        <div className="flex flex-col gap-1">
-          <span className="font-medium">Save successful!</span>
-          <span className="text-sm opacity-80">
-            {diagramName} • {nodeCount} nodes
-          </span>
-        </div>
-      );
+      toast.success(`Loaded ${diagramName}`);
 
       // Reload the page to load the new diagram
       if (newDiagramId) {

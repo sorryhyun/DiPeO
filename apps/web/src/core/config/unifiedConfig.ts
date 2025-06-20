@@ -5,7 +5,7 @@
 
 import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
 import type { TypedPanelConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { FIELD_TYPES, DOMAIN_TO_UI_FIELD_TYPE, type FieldType } from '@/core/types/panel';
+import { FIELD_TYPES, type FieldType } from '@/core/types/panel';
 
 /**
  * Maps domain field types to panel field types

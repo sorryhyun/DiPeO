@@ -22,17 +22,6 @@ mutation SaveDiagram($file: Upload!, $format: String, $validateOnly: Boolean = f
   }
 }
 
-mutation UploadMultipleFiles($files: [Upload!]!, $category: String = "general") {
-  uploadMultipleFiles(files: $files, category: $category) {
-    success
-    path
-    sizeBytes
-    contentType
-    message
-    error
-  }
-}
-
 mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat = NATIVE, $includeMetadata: Boolean = true) {
   convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
     success

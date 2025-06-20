@@ -86,17 +86,11 @@ class TestApiKeyResultModel(BaseModel):
 class FileUploadResultModel(BaseModel):
     """Result of a file upload operation."""
     success: bool
-    diagram_id: Optional[DiagramID] = Field(None, alias="diagramId")
-    file_id: Optional[str] = Field(None, alias="fileId")
-    file_path: Optional[str] = Field(None, alias="filePath")
-    path: Optional[str] = None  # For compatibility with frontend
-    file_type: Optional[str] = Field(None, alias="fileType")
-    file_size: Optional[int] = Field(None, alias="fileSize")
-    size_bytes: Optional[int] = Field(None, alias="sizeBytes")  # For compatibility with frontend
-    content_type: Optional[str] = Field(None, alias="contentType")  # For compatibility with frontend
+    path: Optional[str] = None
+    size_bytes: Optional[int] = Field(None, alias="sizeBytes")
+    content_type: Optional[str] = Field(None, alias="contentType")
     message: Optional[str] = None
-    error: Optional[str] = None  # For single error messages
-    errors: Optional[List[str]] = None  # For multiple errors
+    error: Optional[str] = None
 
 
 class OperationErrorModel(BaseModel):

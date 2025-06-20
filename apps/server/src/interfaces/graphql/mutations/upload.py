@@ -34,48 +34,49 @@ def validate_diagram(diagram: DomainDiagram, api_key_service: Optional[APIKeySer
         errors.append("Diagram must have at least one node")
     
     # Validate node references in arrows
-    node_ids = set(diagram.nodes.keys())
-    handle_ids = set(diagram.handles.keys())
+    # DomainDiagram has lists, not dicts
+    node_ids = set(node.id for node in diagram.nodes)
+    handle_ids = set(handle.id for handle in diagram.handles)
     
-    for arrow_id, arrow in diagram.arrows.items():
+    for arrow in diagram.arrows:
         # Check if source handle exists
         if arrow.source not in handle_ids:
             # Check if it's a node reference that needs handle
             source_node_id = arrow.source.split(':')[0]
             if source_node_id not in node_ids:
-                errors.append(f"Arrow {arrow_id} references unknown source: {arrow.source}")
+                errors.append(f"Arrow {arrow.id} references unknown source: {arrow.source}")
         
         # Check if target handle exists
         if arrow.target not in handle_ids:
             target_node_id = arrow.target.split(':')[0]
             if target_node_id not in node_ids:
-                errors.append(f"Arrow {arrow_id} references unknown target: {arrow.target}")
+                errors.append(f"Arrow {arrow.id} references unknown target: {arrow.target}")
     
     # Validate handle node references
-    for handle_id, handle in diagram.handles.items():
-        if handle.nodeId not in node_ids:
-            errors.append(f"Handle {handle_id} references unknown node: {handle.nodeId}")
+    for handle in diagram.handles:
+        if handle.node_id not in node_ids:
+            errors.append(f"Handle {handle.id} references unknown node: {handle.node_id}")
     
     # Validate person assignments
-    person_ids = set(diagram.persons.keys())
-    for node_id, node in diagram.nodes.items():
-        person_id = node.data.get('personId')
+    person_ids = set(person.id for person in diagram.persons)
+    for node in diagram.nodes:
+        person_id = node.data.get('personId') if node.data else None
         if person_id and person_id not in person_ids:
-            errors.append(f"Node {node_id} references unknown person: {person_id}")
+            errors.append(f"Node {node.id} references unknown person: {person_id}")
     
     # Validate person API key references against external API key store
     if api_key_service:
         # Get all available API keys from the service
         api_key_ids = set(api_key_service._store.keys())
-        for person_id, person in diagram.persons.items():
+        for person in diagram.persons:
             if person.api_key_id and person.api_key_id not in api_key_ids:
-                errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
+                errors.append(f"Person {person.id} references unknown API key: {person.api_key_id}")
     else:
         # Fallback to checking embedded keys if no service provided
-        api_key_ids = set(diagram.api_keys.keys())
-        for person_id, person in diagram.persons.items():
+        api_key_ids = set(api_key.id for api_key in diagram.api_keys)
+        for person in diagram.persons:
             if person.api_key_id and person.api_key_id not in api_key_ids:
-                errors.append(f"Person {person_id} references unknown API key: {person.api_key_id}")
+                errors.append(f"Person {person.id} references unknown API key: {person.api_key_id}")
     
     return errors
 
@@ -84,7 +85,21 @@ def domain_to_storage_format(diagram: DomainDiagram) -> Dict[str, Any]:
     # Use native converter for storage
     converter = converter_registry.get(DiagramFormat.NATIVE.value)
     json_str = converter.serialize(diagram)
-    return json.loads(json_str)
+    data = json.loads(json_str)
+    
+    # Ensure all collections are in dict format, not lists
+    if isinstance(data.get('nodes'), list):
+        data['nodes'] = {node['id']: node for node in data['nodes']}
+    if isinstance(data.get('arrows'), list):
+        data['arrows'] = {arrow['id']: arrow for arrow in data['arrows']}
+    if isinstance(data.get('handles'), list):
+        data['handles'] = {handle['id']: handle for handle in data['handles']}
+    if isinstance(data.get('persons'), list):
+        data['persons'] = {person['id']: person for person in data['persons']}
+    if isinstance(data.get('api_keys'), list):
+        data['api_keys'] = {api_key['id']: api_key for api_key in data['api_keys']}
+    
+    return data
 
 def storage_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
     """Convert storage format to domain diagram."""
@@ -105,8 +120,8 @@ class DiagramSaveResult:
     format_detected: Optional[str] = None
 
 @strawberry.type  
-class DiagramExportResult:
-    """Result of diagram export operation."""
+class DiagramConvertResult:
+    """Result of diagram conversion operation."""
     success: bool
     message: str = ""
     error: Optional[str] = None
@@ -177,13 +192,9 @@ class UploadMutations:
             return FileUploadResult(
                 success=True,
                 message=f"File '{filename}' uploaded successfully",
-                file_id=file_id,
-                file_path=str(file_path),
-                path=str(file_path),  # For compatibility
-                file_type=file_type,
-                file_size=file_size,
-                size_bytes=file_size,  # For compatibility
-                content_type=file_type  # For compatibility
+                path=str(file_path),
+                size_bytes=file_size,
+                content_type=file_type
             )
             
         except Exception as e:
@@ -311,87 +322,13 @@ class UploadMutations:
             )
     
     @strawberry.mutation
-    async def export_diagram(
-        self,
-        diagram_id: DiagramID,
-        format: DiagramFormat = DiagramFormat.NATIVE,
-        include_metadata: bool = True,
-        info: strawberry.Info = None
-    ) -> DiagramExportResult:
-        """
-        Export a diagram to specified format.
-        
-        Args:
-            diagram_id: ID of the diagram to export
-            format: Export format (native, light, readable, llm)
-            include_metadata: Whether to include metadata in export
-            info: GraphQL context info
-        """
-        context: GraphQLContext = info.context
-        
-        try:
-            # Get converter
-            converter = converter_registry.get(format.value)
-            if not converter:
-                return DiagramExportResult(
-                    success=False,
-                    error=f"Unknown format: {format.value}"
-                )
-            
-            # Check if format supports export
-            format_info = converter_registry.get_info(format.value)
-            if not format_info.get('supports_export', True):
-                return DiagramExportResult(
-                    success=False,
-                    error=f"Format '{format.value}' does not support export"
-                )
-            
-            # Fetch diagram
-            diagram_data = await context.diagram_service.get_diagram(diagram_id)
-            if not diagram_data:
-                return DiagramExportResult(
-                    success=False,
-                    error="Diagram not found"
-                )
-            
-            # Convert storage format to domain model
-            domain_diagram = storage_to_domain_format(diagram_data)
-            
-            # Remove metadata if requested
-            if not include_metadata:
-                domain_diagram.metadata = DiagramMetadata(version="2.0.0")
-            
-            # Serialize to requested format
-            content = converter.serialize(domain_diagram)
-            
-            # Generate filename
-            diagram_name = diagram_data.get('metadata', {}).get('name', 'diagram')
-            extension = format_info.get('extension', '.yaml')
-            filename = f"{diagram_name}{extension}"
-            
-            return DiagramExportResult(
-                success=True,
-                message=f"Exported as {format.value} format",
-                content=content,
-                format=format.value,
-                filename=filename
-            )
-            
-        except Exception as e:
-            logger.error(f"Export error: {str(e)}", exc_info=True)
-            return DiagramExportResult(
-                success=False,
-                error=str(e)
-            )
-    
-    @strawberry.mutation
     async def convert_diagram(
         self,
         content: JSONScalar,
         format: DiagramFormat = DiagramFormat.NATIVE,
         include_metadata: bool = True,
         info: strawberry.Info = None
-    ) -> DiagramExportResult:
+    ) -> DiagramConvertResult:
         """
         Convert a diagram to specified format.
         
@@ -406,7 +343,7 @@ class UploadMutations:
         try:
             # Validate content is a dict
             if not isinstance(content, dict):
-                return DiagramExportResult(
+                return DiagramConvertResult(
                     success=False,
                     error="Content must be a JSON object representing a diagram"
                 )
@@ -414,7 +351,7 @@ class UploadMutations:
             # Get converter
             converter = converter_registry.get(format.value)
             if not converter:
-                return DiagramExportResult(
+                return DiagramConvertResult(
                     success=False,
                     error=f"Unknown format: {format.value}"
                 )
@@ -422,7 +359,7 @@ class UploadMutations:
             # Check if format supports export
             format_info = converter_registry.get_info(format.value)
             if not format_info.get('supports_export', True):
-                return DiagramExportResult(
+                return DiagramConvertResult(
                     success=False,
                     error=f"Format '{format.value}' does not support export"
                 )
@@ -432,7 +369,7 @@ class UploadMutations:
                 diagram_dict_format = DiagramDictFormat.model_validate(content)
                 domain_diagram = diagram_dict_to_graphql(diagram_dict_format)
             except Exception as e:
-                return DiagramExportResult(
+                return DiagramConvertResult(
                     success=False,
                     error=f"Invalid diagram structure: {str(e)}"
                 )
@@ -449,7 +386,7 @@ class UploadMutations:
             extension = format_info.get('extension', '.yaml')
             filename = f"{diagram_name}{extension}"
             
-            return DiagramExportResult(
+            return DiagramConvertResult(
                 success=True,
                 message=f"Exported as {format.value} format",
                 content=content_str,
@@ -459,33 +396,7 @@ class UploadMutations:
             
         except Exception as e:
             logger.error(f"Stateful export error: {str(e)}", exc_info=True)
-            return DiagramExportResult(
+            return DiagramConvertResult(
                 success=False,
                 error=str(e)
             )
-    
-    @strawberry.mutation
-    async def upload_multiple_files(
-        self,
-        files: List[Upload],
-        category: str = "general",
-        info: strawberry.Info = None
-    ) -> List[FileUploadResult]:
-        """
-        Upload multiple files at once.
-        
-        Args:
-            files: List of files to upload
-            category: Category for organizing uploads
-            info: GraphQL context info
-            
-        Returns:
-            List of FileUploadResult for each file
-        """
-        results = []
-        
-        for file in files:
-            result = await self.upload_file(file, category, info)
-            results.append(result)
-        
-        return results

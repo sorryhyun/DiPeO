@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layers, TestTube } from 'lucide-react';
 import { Button } from '@/shared/components/ui/buttons';
 import { useUIState } from '@/shared/hooks/selectors';
-import { useDiagramManager, useCanvasOperations } from '@/features/diagram-editor/hooks';
+import { useDiagramManager } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/shared/hooks';
 import { toast } from 'sonner';
 
@@ -62,7 +62,7 @@ const TopBar = () => {
             onClick={() => {
               if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
                 clearDiagram();
-                toast.success('Created new diagram');
+                // Status shown in indicator
               }
             }}
             title="Create a new diagram"
@@ -77,7 +77,7 @@ const TopBar = () => {
               const url = new URL(window.location.href);
               url.searchParams.set('diagram', 'quicksave');
               
-              toast.success('Getting quicksave from server...');
+              // Loading quicksave
               
               // Refresh the page with the new URL
               window.location.href = url.toString();

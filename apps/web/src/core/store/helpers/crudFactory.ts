@@ -3,12 +3,6 @@ import { UnifiedStore } from '../unifiedStore.types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { DomainApiKey, DomainArrow, DomainNode, DomainPerson } from '@/core/types';
 import {ApiKeyID, ArrowID, NodeID, PersonID} from '@dipeo/domain-models';
-// Helper function to check if an arrow connects to a specific node
-function connectsToNode(arrow: DomainArrow, nodeId: NodeID): boolean {
-  const sourceNodeId = arrow.source.split(':')[0];
-  const targetNodeId = arrow.target.split(':')[0];
-  return sourceNodeId === nodeId || targetNodeId === nodeId;
-}
 
 type EntityType = 'nodes' | 'arrows' | 'persons' | 'apiKeys';
 type EntityId = NodeID | ArrowID | PersonID | ApiKeyID;

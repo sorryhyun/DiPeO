@@ -186,16 +186,8 @@ export function serializeDiagram(): SerializedDiagram {
   
   // Get store state with properly typed Maps
   const storeMaps = getStoreStateWithMaps();
-  
-  console.log('[serializeDiagramStateFromStore] storeMaps:', storeMaps);
-  console.log('[serializeDiagramStateFromStore] storeMaps.nodes instanceof Map:', storeMaps.nodes instanceof Map);
-  
-  // Convert store Maps to arrays using GraphQL utility
   const diagramArrays = storeMapsToArrays(storeMaps);
-  
-  console.log('[serializeDiagramStateFromStore] diagramArrays:', diagramArrays);
-  console.log('[serializeDiagramStateFromStore] diagramArrays.nodes is array:', Array.isArray(diagramArrays.nodes));
-  
+
   // Clean node data and generate handles
   const cleanNodes = diagramArrays.nodes?.map(node => cleanNodeData(node)) || [];
   const generatedHandles: any[] = [];

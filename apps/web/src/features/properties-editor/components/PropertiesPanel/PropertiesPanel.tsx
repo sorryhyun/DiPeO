@@ -5,7 +5,8 @@ import { PanelConfig } from '@/features/diagram-editor/types/panel';
 import { NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
-import { useCanvasOperations } from '@/features/diagram-editor/hooks';
+import { useNodeOperations, useArrowOperations, usePersonOperations } from '@/features/diagram-editor/hooks';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { nodeId, arrowId, personId } from '@/core/types';
 
 // Union type for all possible data types
@@ -20,7 +21,10 @@ interface UniversalPropertiesPanelProps {
 export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> = React.memo(({ nodeId: entityId, data }) => {
   const nodeType = data.type;
   const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
-  const canvas = useCanvasOperations();
+  const { deleteNode } = useNodeOperations();
+  const { deleteArrow } = useArrowOperations();
+  const { deletePerson } = usePersonOperations();
+  const { clearSelection } = useUnifiedStore();
   
   // Cast to a more permissive type that accepts the union
   const GenericPanel = GenericPropertyPanel as React.FC<{
@@ -47,13 +51,13 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
 
   const handleDelete = () => {
     if (data.type === 'person') {
-      canvas.deletePerson(personId(entityId));
+      deletePerson(personId(entityId));
     } else if (data.type === 'arrow') {
-      canvas.deleteArrow(arrowId(entityId));
+      deleteArrow(arrowId(entityId));
     } else {
-      canvas.deleteNode(nodeId(entityId));
+      deleteNode(nodeId(entityId));
     }
-    canvas.clearSelection();
+    clearSelection();
   };
 
   return (

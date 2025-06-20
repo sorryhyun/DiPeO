@@ -6,8 +6,7 @@ export * from './useDiagramLoader';
 // Feature hooks
 export * from './useDiagramManager';
 
-// Canvas hooks (deprecated - use specific imports)
-export * from './useCanvasOperations';
+// Canvas hooks (deprecated - use specific imports from operations and ui folders)
 
 // Operation hooks
 export * from './operations';
