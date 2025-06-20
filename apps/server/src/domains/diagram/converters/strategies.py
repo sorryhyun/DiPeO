@@ -86,7 +86,6 @@ class NativeJsonStrategy(FormatStrategy):
         
         # Handle both dict and list formats
         if isinstance(nodes_data, dict):
-            # Dictionary format (original)
             for node_id, node_data in nodes_data.items():
                 node = {
                     'id': node_id,
@@ -96,7 +95,6 @@ class NativeJsonStrategy(FormatStrategy):
                 }
                 nodes.append(node)
         elif isinstance(nodes_data, list):
-            # Array format (from frontend)
             for node_data in nodes_data:
                 node = {
                     'id': node_data.get('id'),
@@ -114,7 +112,6 @@ class NativeJsonStrategy(FormatStrategy):
         
         # Handle both dict and list formats
         if isinstance(arrows_data, dict):
-            # Dictionary format (original)
             for arrow_id, arrow_data in arrows_data.items():
                 arrows.append({
                     'id': arrow_id,
@@ -122,7 +119,6 @@ class NativeJsonStrategy(FormatStrategy):
                     'target': arrow_data.get('target')
                 })
         elif isinstance(arrows_data, list):
-            # Array format (from frontend)
             for arrow_data in arrows_data:
                 arrows.append({
                     'id': arrow_data.get('id'),
@@ -133,7 +129,6 @@ class NativeJsonStrategy(FormatStrategy):
         return arrows
     
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
-        # DomainDiagram has lists, so we need to convert to dict format
         return {
             'nodes': {
                 node.id: {
@@ -167,13 +162,10 @@ class NativeJsonStrategy(FormatStrategy):
         }
     
     def detect_confidence(self, data: Dict[str, Any]) -> float:
-        # Check for expected structure
         if 'nodes' in data and 'handles' in data and 'arrows' in data:
-            # Higher confidence if using dict format (original)
             nodes = data.get('nodes', {})
             if isinstance(nodes, dict):
                 return 0.95
-            # Still high confidence for array format
             elif isinstance(nodes, list):
                 return 0.9
         elif 'nodes' in data:
@@ -223,7 +215,6 @@ class LightYamlStrategy(FormatStrategy):
         arrows = []
         node_by_label = {n.get('label', n['id']): n['id'] for n in nodes}
         
-        # Extract arrows from node definitions
         for node_data in data.get('nodes', []):
             if isinstance(node_data, dict) and 'arrows' in node_data:
                 source_label = node_data.get('label')
@@ -245,10 +236,8 @@ class LightYamlStrategy(FormatStrategy):
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
         nodes = []
         
-        # Create node lookup dictionary
         nodes_dict = {node.id: node for node in diagram.nodes}
         
-        # Group arrows by source node
         arrows_by_source = {}
         for arrow in diagram.arrows:
             source_node = arrow.source.split('_')[0]
@@ -270,7 +259,6 @@ class LightYamlStrategy(FormatStrategy):
                 **{k: v for k, v in node.data.items() if k != 'label'}
             }
             
-            # Add arrows if any
             if node.id in arrows_by_source:
                 node_data['arrows'] = arrows_by_source[node.id]
             
@@ -278,7 +266,6 @@ class LightYamlStrategy(FormatStrategy):
         
         result = {'nodes': nodes}
         
-        # Add persons and api_keys if present - convert to list format
         if diagram.persons:
             result['persons'] = [person.model_dump() for person in diagram.persons]
         if diagram.api_keys:
@@ -288,7 +275,6 @@ class LightYamlStrategy(FormatStrategy):
     
     def detect_confidence(self, data: Dict[str, Any]) -> float:
         if 'nodes' in data and isinstance(data['nodes'], list):
-            # Check if nodes have labels and arrows
             has_labels = any(
                 isinstance(n, dict) and 'label' in n 
                 for n in data['nodes']
@@ -328,7 +314,6 @@ class ReadableYamlStrategy(FormatStrategy):
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         nodes = []
         
-        # Extract from workflow section
         workflow = data.get('workflow', [])
         for index, step in enumerate(workflow):
             if isinstance(step, dict):
@@ -347,7 +332,6 @@ class ReadableYamlStrategy(FormatStrategy):
         arrows = []
         node_ids = {n['id'] for n in nodes}
         
-        # Extract from flow section
         flow = data.get('flow', [])
         for connection in flow:
             if isinstance(connection, str) and ' -> ' in connection:
@@ -363,17 +347,14 @@ class ReadableYamlStrategy(FormatStrategy):
         return arrows
     
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
-        # Create node lookup dictionary
         nodes_dict = {node.id: node for node in diagram.nodes}
         
-        # Build workflow section
         workflow = []
         for node in diagram.nodes:
             step_name = node.data.get('label', node.id)
             step_data = self._build_step_data(node)
             workflow.append({step_name: step_data})
         
-        # Build flow section
         flow = []
         for arrow in diagram.arrows:
             source_node = arrow.source.split('_')[0]
@@ -391,7 +372,6 @@ class ReadableYamlStrategy(FormatStrategy):
         if flow:
             result['flow'] = flow
         
-        # Add config section if needed
         config = {}
         if diagram.persons:
             config['persons'] = [person.model_dump() for person in diagram.persons]
@@ -412,13 +392,11 @@ class ReadableYamlStrategy(FormatStrategy):
     
     def _determine_node_type(self, step_data: Dict[str, Any]) -> str:
         """Determine node type from step data using shared NodeTypeMapper."""
-        # Use the shared mapper's intelligent type detection
         node_type = self.node_mapper.determine_node_type(step_data)
         return node_type.value
     
     def _extract_properties(self, step_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract properties from step data."""
-        # Map readable format fields to internal properties
         props = {}
         
         if 'prompt' in step_data:
@@ -442,7 +420,6 @@ class ReadableYamlStrategy(FormatStrategy):
         """Build step data from node."""
         data = {}
         
-        # Map node properties to readable format
         if node.type == 'person_job':
             if 'prompt' in node.data:
                 data['prompt'] = node.data['prompt']

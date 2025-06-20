@@ -30,11 +30,9 @@ class UnifiedDiagramConverter(DiagramConverter):
         self.node_mapper = NodeTypeMapper()
         self.arrow_builder = ArrowBuilder()
         
-        # Register default strategies
         self._register_default_strategies()
     
     def _register_default_strategies(self):
-        """Register built-in format strategies."""
         self.register_strategy(NativeJsonStrategy())
         self.register_strategy(LightYamlStrategy())
         self.register_strategy(ReadableYamlStrategy())
@@ -64,25 +62,20 @@ class UnifiedDiagramConverter(DiagramConverter):
     
     def serialize(self, diagram: DomainDiagram, format_id: Optional[str] = None) -> str:
         """Convert domain diagram to format-specific string."""
-        # Use format_id if provided, otherwise use active format
         fmt = format_id or getattr(self, 'active_format', None)
         if not fmt:
             raise ValueError("No format specified for serialization")
             
         strategy = self.get_strategy(fmt)
         
-        # Build export data using strategy
         data = strategy.build_export_data(diagram)
         
-        # Format to string
         return strategy.format(data)
     
     def deserialize(self, content: str, format_id: Optional[str] = None) -> DomainDiagram:
         """Convert format-specific string to domain diagram."""
-        # Use format_id if provided, otherwise try active format or auto-detect
         fmt = format_id or getattr(self, 'active_format', None)
         
-        # Auto-detect format if not specified
         if not fmt:
             fmt = self.detect_format(content)
             if not fmt:
@@ -90,14 +83,11 @@ class UnifiedDiagramConverter(DiagramConverter):
         
         strategy = self.get_strategy(fmt)
         
-        # Parse content
         data = strategy.parse(content)
         
-        # Create dictionaries to store entities
         nodes_dict = {}
         arrows_dict = {}
         
-        # Handle handles - can be dict or list
         handles_data = data.get('handles', {})
         if isinstance(handles_data, dict):
             handles_dict = handles_data
@@ -106,7 +96,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             handles_dict = {}
         
-        # Handle persons - can be dict or list
         persons_data = data.get('persons', {})
         if isinstance(persons_data, dict):
             persons_dict = persons_data
@@ -115,7 +104,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             persons_dict = {}
         
-        # Handle api_keys - can be dict or list
         api_keys_data = data.get('api_keys', {})
         if isinstance(api_keys_data, dict):
             api_keys_dict = api_keys_data
@@ -124,13 +112,11 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             api_keys_dict = {}
 
-        # Extract and process nodes
         node_data_list = strategy.extract_nodes(data)
         for index, node_data in enumerate(node_data_list):
             node = self._create_node(node_data, index)
             nodes_dict[node.id] = node
 
-        # Handle arrows - can be dict or list
         arrows_data = data.get('arrows', {})
         if isinstance(arrows_data, dict):
             arrows_dict = arrows_data
@@ -139,7 +125,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             arrows_dict = {}
 
-        # Create diagram dict format first
         diagram_dict = DiagramDictFormat(
             nodes=nodes_dict,
             handles=handles_dict,
@@ -149,12 +134,10 @@ class UnifiedDiagramConverter(DiagramConverter):
             metadata=data.get('metadata')
         )
         
-        # Generate handles for nodes only if none were provided
         if not handles_dict:
             for node_id, node in nodes_dict.items():
                 self.handle_generator.generate_for_node(diagram_dict, node_id, node.type)
 
-        # Convert to DomainDiagram (list format)
         return diagram_dict_to_graphql(diagram_dict)
     
     def _create_node(self, node_data: Dict[str, Any], index: int) -> DomainNode:
@@ -162,13 +145,11 @@ class UnifiedDiagramConverter(DiagramConverter):
         node_id = node_data.get('id', f'node_{index}')
         node_type = node_data.get('type', 'unknown')
         
-        # Extract position
         position = node_data.get('position')
         if not position:
             vec2_pos = self.position_calculator.calculate_grid_position(index)
             position = {"x": vec2_pos.x, "y": vec2_pos.y}
         
-        # Extract properties (everything except structural fields)
         exclude_fields = {'id', 'type', 'position', 'handles', 'arrows'}
         properties = {k: v for k, v in node_data.items() if k not in exclude_fields}
         
@@ -209,17 +190,14 @@ class UnifiedDiagramConverter(DiagramConverter):
         
         for format_id, strategy in self.strategies.items():
             try:
-                # Try to parse with each strategy
                 data = strategy.parse(content)
                 confidence = strategy.detect_confidence(data)
                 confidences.append((format_id, confidence))
             except:
                 confidences.append((format_id, 0.0))
         
-        # Sort by confidence
         confidences.sort(key=lambda x: x[1], reverse=True)
         
-        # Return format with highest confidence if > 0.5
         if confidences and confidences[0][1] > 0.5:
             return confidences[0][0]
         

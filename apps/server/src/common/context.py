@@ -42,13 +42,10 @@ class AppContext:
     
     async def startup(self):
         """Initialize all services on startup."""
-        # Initialize state store
         await state_store.initialize()
         
-        # Initialize message router
         await message_router.initialize()
         
-        # Initialize services in dependency order
         self.api_key_service = APIKeyService()
         self.memory_service = MemoryService()
         self.llm_service = LLMService(self.api_key_service)
@@ -68,7 +65,6 @@ class AppContext:
             self.notion_service
         )
         
-        # Register services with the service factory for executor usage
         service_factory.register_service('api_key_service', self.api_key_service)
         service_factory.register_service('llm_service', self.llm_service)
         service_factory.register_service('memory_service', self.memory_service)
@@ -79,17 +75,11 @@ class AppContext:
     
     async def shutdown(self):
         """Cleanup resources on shutdown."""
-        # Cleanup message router connections
         await message_router.cleanup()
         
-        # Cleanup state store
         await state_store.cleanup()
-        
-        # Add any other cleanup logic here if needed
-        # For example, closing database connections, saving state, etc.
 
 
-# Global application context instance
 app_context = AppContext()
 
 
@@ -103,7 +93,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await app_context.shutdown()
 
 
-# Dependency functions that use the state context
 def get_api_key_service() -> 'SupportsAPIKey':
     """Get APIKeyService instance from app context."""
     if app_context.api_key_service is None:

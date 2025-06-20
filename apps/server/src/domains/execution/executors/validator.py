@@ -21,16 +21,6 @@ def validate_required_properties(
     node: Dict[str, Any], 
     required_props: List[str]
 ) -> ValidationResult:
-    """
-    Validate that required properties exist in the node.
-    
-    Args:
-        node: The node to validate
-        required_props: List of required property names
-        
-    Returns:
-        ValidationResult
-    """
     errors = []
     properties = node.get("properties", {})
     
@@ -48,16 +38,6 @@ def validate_property_types(
     node: Dict[str, Any],
     type_specs: Dict[str, type]
 ) -> ValidationResult:
-    """
-    Validate property types match expected types.
-    
-    Args:
-        node: The node to validate
-        type_specs: Dictionary mapping property names to expected types
-        
-    Returns:
-        ValidationResult
-    """
     errors = []
     warnings = []
     properties = node.get("properties", {})
@@ -90,16 +70,6 @@ def validate_property_types(
 
 
 async def check_api_keys(required_keys: List[str], context: 'ExecutionContext') -> ValidationResult:
-    """
-    Check if required API keys are available.
-    
-    Args:
-        required_keys: List of required API key names
-        context: Execution context
-        
-    Returns:
-        ValidationResult
-    """
     errors = []
     
     # Check API keys from context or environment
@@ -120,17 +90,6 @@ def validate_required_fields(
     required_fields: List[str],
     field_descriptions: Optional[Dict[str, str]] = None
 ) -> List[str]:
-    """
-    Validate that required fields exist and are non-empty.
-    
-    Args:
-        properties: Node properties to validate
-        required_fields: List of required field names
-        field_descriptions: Optional mapping of field names to descriptions
-        
-    Returns:
-        List of error messages
-    """
     errors = []
     for field in required_fields:
         value = properties.get(field)

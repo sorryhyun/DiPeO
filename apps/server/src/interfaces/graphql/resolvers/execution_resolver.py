@@ -26,15 +26,12 @@ class ExecutionResolver:
             context: GraphQLContext = info.context
             state_store = context.state_store
             
-            # Get execution state - now returns generated ExecutionState directly
             execution_state = await state_store.get_state(execution_id)
             
             if not execution_state:
                 logger.debug(f"No execution found with ID: {execution_id}")
                 return None
             
-            # The state store now returns the Pydantic ExecutionState directly
-            # Just return it - Strawberry will handle the conversion
             return execution_state
             
         except Exception as e:
@@ -53,27 +50,22 @@ class ExecutionResolver:
             context: GraphQLContext = info.context
             state_store = context.state_store
             
-            # Get all executions from state store
             executions = await state_store.list_executions(limit=limit + offset)
             
-            # Apply filtering if provided
             filtered_executions = executions
             if filter:
-                # Filter by status
                 if filter.status:
                     filtered_executions = [
                         e for e in filtered_executions
                         if e['status'] == filter.status.value
                     ]
                 
-                # Filter by diagram ID
                 if filter.diagram_id:
                     filtered_executions = [
                         e for e in filtered_executions
                         if e.get('diagram_id') == filter.diagram_id
                     ]
                 
-                # Filter by date range
                 if filter.started_after:
                     filtered_executions = [
                         e for e in filtered_executions
@@ -86,13 +78,10 @@ class ExecutionResolver:
                         if datetime.fromisoformat(e['started_at']) <= filter.started_before
                     ]
             
-            # Apply pagination
             paginated_executions = filtered_executions[offset:offset + limit]
             
-            # Convert to Pydantic ExecutionState objects
             result = []
             for exec_summary in paginated_executions:
-                # Get full execution state
                 execution_state = await state_store.get_state(exec_summary['execution_id'])
                 if execution_state:
                     result.append(execution_state)

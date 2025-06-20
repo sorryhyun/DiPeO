@@ -14,17 +14,13 @@ class PersonResolver:
     
     async def get_person(self, person_id: PersonID, info) -> Optional[DomainPerson]:
         """Get a single person by ID."""
-        # Note: Persons are typically defined within diagrams, not as standalone entities
-        # This would require loading all diagrams and searching for the person
-        # For now, return None as this is not a common use case
+        # Persons are diagram-scoped, not standalone entities
         logger.warning(f"get_person called for {person_id} - persons are diagram-scoped")
         return None
     
     async def list_persons(self, limit: int, info) -> List[DomainPerson]:
         """List all persons."""
-        # Note: Persons are defined within diagrams, not globally
-        # To implement this, we'd need to load all diagrams and extract persons
-        # This is not efficient and likely not the intended use case
+        # Persons are diagram-scoped, not global entities
         logger.warning("list_persons called - persons are diagram-scoped")
         return []
     
@@ -34,20 +30,17 @@ class PersonResolver:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
             
-            # Get API key from service
             api_key_data = api_key_service.get_api_key(api_key_id)
             
             if not api_key_data:
                 return None
             
-            # Create Pydantic model instance
             pydantic_api_key = DomainApiKey(
                 id=api_key_data['id'],
                 label=api_key_data['label'],
                 service=self._map_service(api_key_data['service'])
             )
             
-            # Strawberry will handle the conversion from Pydantic to GraphQL
             return pydantic_api_key
             
         except Exception as e:
@@ -60,14 +53,11 @@ class PersonResolver:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
             
-            # Get all API keys
             all_keys = api_key_service.list_api_keys()
             
-            # Filter by service if provided
             if service:
                 all_keys = [k for k in all_keys if k['service'] == service]
             
-            # Convert to Pydantic models
             result = []
             for key_data in all_keys:
                 pydantic_api_key = DomainApiKey(
@@ -89,7 +79,6 @@ class PersonResolver:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
             
-            # Get available models from LLM service
             models = await llm_service.get_available_models(
                 service=service,
                 api_key_id=api_key_id

@@ -140,17 +140,6 @@ class UploadMutations:
         category: str = "general",
         info: strawberry.Info = None
     ) -> FileUploadResult:
-        """
-        Upload a general file to the server.
-        
-        Args:
-            file: The file to upload (via multipart form)
-            category: Category for organizing uploads (general, images, data, etc.)
-            info: GraphQL context info
-            
-        Returns:
-            FileUploadResult with upload details
-        """
         try:
             # Read file info
             filename = file.filename
@@ -213,18 +202,6 @@ class UploadMutations:
         validate_only: bool = False,
         info: strawberry.Info = None
     ) -> DiagramSaveResult:
-        """
-        Save a diagram file (YAML/JSON) to the server.
-        
-        Args:
-            file: The diagram file to save
-            format: Optional format hint (native, light, readable)
-            validate_only: If true, only validate without saving
-            info: GraphQL context info
-            
-        Returns:
-            DiagramUploadResult with diagram details
-        """
         context: GraphQLContext = info.context
         
         try:
@@ -329,15 +306,6 @@ class UploadMutations:
         include_metadata: bool = True,
         info: strawberry.Info = None
     ) -> DiagramConvertResult:
-        """
-        Convert a diagram to specified format.
-        
-        Args:
-            content: The diagram content as JSON
-            format: Target format (native, light, readable, native_yaml)
-            include_metadata: Whether to include metadata in export
-            info: GraphQL context info
-        """
         context: GraphQLContext = info.context
         
         try:

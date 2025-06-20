@@ -11,6 +11,8 @@ class AgentDiagramException(Exception):
         self.details = details or {}
 
 
+# These exceptions serve as semantic markers for different error types,
+# allowing specific exception handling in different parts of the codebase
 class ValidationError(AgentDiagramException):
     """Raised when input validation fails."""
     pass

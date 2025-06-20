@@ -115,11 +115,9 @@ class Query:
         """Get information about execution capabilities (replaces REST endpoint)."""
         context = info.context
         
-        # Get available person IDs
         diagram_service = context.diagram_service
         persons_list = []
         
-        # Scan diagrams for persons
         diagrams = diagram_service.list_diagram_files()
         for diagram_meta in diagrams:
             diagram = diagram_service.load_diagram(diagram_meta['path'])
@@ -149,24 +147,20 @@ class Query:
         """Health check endpoint (replaces REST endpoint)."""
         context = info.context
         
-        # Check various services
         checks = {
             "database": False,
             "redis": False,
             "file_system": False
         }
         
-        # Check database (state store)
         try:
             await context.state_store.list_executions(limit=1)
             checks["database"] = True
         except:
             pass
         
-        # Check Redis (no longer used by state store)
         checks["redis"] = False  # Redis is being removed
         
-        # Check file system
         try:
             import os
             os.path.exists("files/diagrams")
@@ -174,7 +168,6 @@ class Query:
         except:
             pass
         
-        # Overall status
         all_healthy = all(checks.values())
         
         return {
@@ -200,10 +193,8 @@ class Query:
         context = info.context
         memory_service = context.memory_service
         
-        # Collect all conversations from person memories
         all_conversations = []
         
-        # If no person memories exist yet, return empty result
         if not hasattr(memory_service, 'person_memories') or not memory_service.person_memories:
             return {
                 "conversations": [],
@@ -213,24 +204,18 @@ class Query:
                 "has_more": False
             }
         
-        # Iterate through all person memories to collect messages
         for person_id_key, person_memory in memory_service.person_memories.items():
-            # Filter by person_id if specified
             if person_id and person_id_key != person_id:
                 continue
             
-            # Process messages for this person
             for message in person_memory.messages:
-                # Skip forgotten messages unless requested
                 is_forgotten = message.id in person_memory.forgotten_message_ids
                 if not show_forgotten and is_forgotten:
                     continue
                 
-                # Filter by execution_id if specified
                 if execution_id and message.execution_id != execution_id:
                     continue
                 
-                # Filter by search term if specified
                 if search:
                     search_lower = search.lower()
                     if not any(search_lower in str(v).lower() for v in [
@@ -240,11 +225,9 @@ class Query:
                     ]):
                         continue
                 
-                # Filter by time if specified
                 if since and message.timestamp < since:
                     continue
                 
-                # Create conversation record
                 conversation = {
                     "id": message.id,
                     "personId": person_id_key,
@@ -264,10 +247,8 @@ class Query:
                 }
                 all_conversations.append(conversation)
         
-        # Sort by timestamp (newest first)
         all_conversations.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
-        # Apply pagination
         paginated = all_conversations[offset:offset + limit]
         
         return {

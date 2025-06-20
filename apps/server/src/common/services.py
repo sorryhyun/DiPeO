@@ -19,7 +19,6 @@ from .constants import VALID_LLM_SERVICES
 class APIKeyService(BaseService):
     """Service for managing API keys."""
     
-    # Include both LLM services and other external services
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
     
     def __init__(self, store_file: Optional[str] = None):
@@ -57,7 +56,6 @@ class APIKeyService(BaseService):
             raise APIKeyError(f"API key '{key_id}' not found")
         
         info = self._store[key_id]
-        # Ensure the returned format is consistent
         if isinstance(info, dict):
             return {
                 "id": key_id,
@@ -75,7 +73,7 @@ class APIKeyService(BaseService):
             if isinstance(info, dict) and "service" in info:
                 result.append({
                     "id": key_id,
-                    "label": info.get("label", key_id),  # Use key_id as fallback name
+                    "label": info.get("label", key_id),
                     "service": info["service"]
                 })
         return result
@@ -194,7 +192,6 @@ class FileService(BaseService):
             else:
                 format = 'text'
         
-        # Write based on format
         if format == 'json':
             await self._write_json(file_path, content, encoding)
         elif format == 'yaml':
@@ -204,7 +201,6 @@ class FileService(BaseService):
         else:
             await self._write_text(file_path, content, encoding)
         
-        # Return relative path from base directory
         return str(file_path.relative_to(self.base_dir))
     
     def _resolve_and_validate_path(self, 
@@ -221,19 +217,16 @@ class FileService(BaseService):
         
         base_path = base_map.get(relative_to, self.base_dir)
         
-        # Resolve the path
         if Path(path).is_absolute():
             resolved = Path(path).resolve()
         else:
             resolved = (base_path / path).resolve()
         
-        # Validate it's within allowed directory
         try:
             resolved.relative_to(self.base_dir)
         except ValueError:
             raise ValidationError(f"Path outside allowed directory: {path}")
         
-        # Create parent directories if requested
         if create_parents and not resolved.parent.exists():
             resolved.parent.mkdir(parents=True, exist_ok=True)
         
@@ -279,7 +272,6 @@ class FileService(BaseService):
         if not rows:
             raise ValidationError("No data to write to CSV")
         
-        # Get all unique keys
         all_keys = set()
         for row in rows:
             all_keys.update(row.keys())
@@ -287,7 +279,6 @@ class FileService(BaseService):
         fieldnames = sorted(all_keys)
         
         async with aiofiles.open(file_path, 'w', encoding=encoding, newline='') as f:
-            # Write CSV content as string
             output = io.StringIO()
             writer = csv.DictWriter(output, fieldnames=fieldnames)
             writer.writeheader()
@@ -315,7 +306,6 @@ class FileService(BaseService):
                 create_parents=True
             )
         
-        # Write file content
         async with aiofiles.open(file_path, 'wb') as f:
             await f.write(content)
         

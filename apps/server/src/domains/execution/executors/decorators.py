@@ -92,30 +92,3 @@ def get_registered_nodes() -> List[NodeDefinition]:
     return _node_registry.copy()
 
 
-def clear_registry() -> None:
-    """Clear the node registry (useful for testing)."""
-    global _node_registry
-    _node_registry.clear()
-
-
-def combine_handler_schema(schema_class: Type[BaseNodeProps], handler_func: Callable) -> Type:
-    """
-    Create a combined class that includes both schema and handler.
-    This allows for cleaner organization where related code stays together.
-    """
-    # Check handler signature
-    sig = inspect.signature(handler_func)
-    params_count = len(sig.parameters)
-    
-    class CombinedNode(schema_class):
-        @classmethod
-        async def execute(cls, props: schema_class, context: ExecutionContext, inputs: Dict[str, Any], services: Dict[str, Any] = None) -> Any:
-            if params_count == 3:
-                # Old signature
-                return await handler_func(props, context, inputs)
-            else:
-                # New signature
-                return await handler_func(props, context, inputs, services or {})
-    
-    CombinedNode.__name__ = f"{schema_class.__name__}Handler"
-    return CombinedNode
