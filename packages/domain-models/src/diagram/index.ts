@@ -171,7 +171,6 @@ export interface StartNodeData extends BaseNodeData {
 
 export interface ConditionNodeData extends BaseNodeData {
   conditionType: string;
-  detect_max_iterations: boolean;
   expression?: string;
   node_indices?: string[];
 }
@@ -180,7 +179,7 @@ export interface PersonJobNodeData extends BaseNodeData {
   person?: PersonID;
   firstOnlyPrompt: string;
   defaultPrompt?: string;
-  maxIterations: number;
+  maxIteration: number;
   forgettingMode?: string;
 }
 

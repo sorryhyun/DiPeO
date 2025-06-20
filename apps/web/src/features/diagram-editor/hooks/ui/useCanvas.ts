@@ -163,15 +163,16 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
             !isWithinTolerance(node.position?.x || 0, change.position.x, tolerance) ||
             !isWithinTolerance(node.position?.y || 0, change.position.y, tolerance);
           
-          if (positionChanged && !change.dragging) {
-            batchPositionUpdate(change.id as NodeID, change.position);
+          if (positionChanged) {
+            // Update position immediately for natural movement
+            storeState.updateNode(change.id as NodeID, { position: change.position });
           }
         }
       } else {
         nodeChangeHandlers.execute(change.type, change, storeState);
       }
     });
-  }, [readOnly, storeState, batchPositionUpdate, nodeChangeHandlers]);
+  }, [readOnly, storeState, nodeChangeHandlers]);
   
   const onArrowsChange = useCallback((changes: EdgeChange[]) => {
     if (readOnly || storeState.isMonitorMode || storeState.isExecutionMode) return;

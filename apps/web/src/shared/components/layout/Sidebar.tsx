@@ -8,7 +8,7 @@ import { useCanvas, useCanvasInteractions, usePersonOperations } from '@/feature
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { LazyApiKeysModal } from '@/shared/components/modals/LazyModals';
 import { FileOperations } from '@/shared/components/sidebar/FileOperations';
-import { PersonID, DomainPerson, personId } from '@/core/types';
+import { PersonID, DomainPerson, DomainArrow, personId } from '@/core/types';
 import type { Node } from '@xyflow/react';
 
 // Lazy load UniversalPropertiesPanel as it's only used in right sidebar
@@ -69,7 +69,7 @@ const PersonItem = React.memo<{
 PersonItem.displayName = 'PersonItem';
 
 const Sidebar = React.memo<SidebarProps>(({ position }) => {
-  const { nodes, personsArray } = useCanvas();
+  const { nodes, arrows, personsArray } = useCanvas();
   const { addPerson } = usePersonOperations();
   const { selectedId, selectedType, select, clearSelection, persons: personsMap } = useUnifiedStore();
   
@@ -114,10 +114,21 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
         selectedData = { ...node.data, type: node.type || 'unknown' };
       }
     } else if (selectedArrowId) {
-      // For arrows, we need to get the arrow data from the store
-      // Since arrows array only contains IDs, we'll skip arrow properties for now
-      selectedId = selectedArrowId;
-      selectedData = { type: 'arrow' };
+      // Get arrow data from the arrows array
+      const arrow = arrows.find((a: DomainArrow) => a.id === selectedArrowId);
+      if (arrow) {
+        selectedId = selectedArrowId;
+        // Parse handle ID to get source node ID
+        const [sourceNodeId] = arrow.source.split(':');
+        const sourceNode = nodes.find((n: Node) => n.id === sourceNodeId);
+        
+        selectedData = { 
+          ...arrow.data,
+          id: arrow.id,
+          type: 'arrow' as const,
+          _sourceNodeType: sourceNode?.type
+        };
+      }
     } else if (selectedPersonId) {
       const person = getPersonById(selectedPersonId as PersonID);
       if (person) {

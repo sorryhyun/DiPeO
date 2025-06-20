@@ -30,7 +30,6 @@ from src.__generated__.models import (
     EventType,
     DBBlockSubType,
     ContentType,
-    ContextCleaningRule,
     # Type aliases
     NodeID,
     ArrowID,

@@ -44,17 +44,12 @@ const BRANDED_IDS = [
 
 // Additional enums not in TypeScript but needed in Python
 const ADDITIONAL_ENUMS = [
-  {
-    name: 'ContextCleaningRule',
-    values: ['on_every_turn', 'upon_request', 'no_forget']
-  }
+  // No additional enums needed - all enums should be defined in TypeScript
 ];
 
 // Additional fields to add to certain interfaces
 const ADDITIONAL_FIELDS: Record<string, Array<{name: string, type: string, optional: boolean}>> = {
-  'PersonJobNodeData': [
-    { name: 'contextCleaningRule', type: 'string', optional: true }
-  ]
+  // No additional fields needed - all fields should be defined in TypeScript
 };
 
 export class PythonGenerator {

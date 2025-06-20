@@ -216,8 +216,11 @@ export function BaseNode({
   
   // Get node display data
   const displayData = useMemo(() => {
-    const entries = Object.entries(data).filter(([key]) => 
-      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage', 'label', 'name'].includes(key)
+    const entries = Object.entries(data).filter(([key, value]) => 
+      // Filter out system keys and personId
+      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
+      // Filter out blank values (null, undefined, empty string)
+      value !== null && value !== undefined && value !== ''
     );
     
     return entries.slice(0, 3); // Limit to 3 fields for cleaner display
@@ -255,8 +258,10 @@ export function BaseNode({
           isExecutionMode={isExecutionMode}
         />
         
-        {/* Node data display */}
-        <NodeBody data={displayData} isExecutionMode={isExecutionMode} />
+        {/* Node data display - only show if there's data to display */}
+        {displayData.length > 0 && (
+          <NodeBody data={displayData} isExecutionMode={isExecutionMode} />
+        )}
         
         {/* Progress or error message */}
         {(status.progress || status.error) && (

@@ -123,13 +123,22 @@ class UnifiedDiagramConverter(DiagramConverter):
             api_keys_dict = {key.get('id', f'key_{i}'): key for i, key in enumerate(api_keys_data)}
         else:
             api_keys_dict = {}
-        
+
         # Extract and process nodes
         node_data_list = strategy.extract_nodes(data)
         for index, node_data in enumerate(node_data_list):
             node = self._create_node(node_data, index)
             nodes_dict[node.id] = node
-        
+
+        # Handle arrows - can be dict or list
+        arrows_data = data.get('arrows', {})
+        if isinstance(arrows_data, dict):
+            arrows_dict = arrows_data
+        elif isinstance(arrows_data, list):
+            arrows_dict = {key.get('id', f'key_{i}'): key for i, key in enumerate(arrows_data)}
+        else:
+            arrows_dict = {}
+
         # Create diagram dict format first
         diagram_dict = DiagramDictFormat(
             nodes=nodes_dict,
@@ -144,14 +153,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         if not handles_dict:
             for node_id, node in nodes_dict.items():
                 self.handle_generator.generate_for_node(diagram_dict, node_id, node.type)
-        
-        # Extract and process arrows
-        arrow_data_list = strategy.extract_arrows(data, node_data_list)
-        for arrow_data in arrow_data_list:
-            arrow = self._create_arrow(arrow_data)
-            if arrow:
-                diagram_dict.arrows[arrow.id] = arrow
-        
+
         # Convert to DomainDiagram (list format)
         return diagram_dict_to_graphql(diagram_dict)
     

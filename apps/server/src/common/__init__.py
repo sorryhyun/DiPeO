@@ -11,7 +11,6 @@ from src.__generated__.models import (
     ExecutionStatus,
     DBBlockSubType,
     ContentType,
-    ContextCleaningRule,
 )
 
 # Export all type aliases and base models
@@ -126,7 +125,6 @@ __all__ = [
     "ExecutionStatus",
     "DBBlockSubType",
     "ContentType",
-    "ContextCleaningRule",
     # Types
     "NodeID",
     "ArrowID",

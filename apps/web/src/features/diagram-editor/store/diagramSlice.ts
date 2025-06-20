@@ -107,7 +107,7 @@ export const createDiagramSlice: StateCreator<
       id: generateArrowId(),
       source,
       target,
-      data: data || {}
+      data: data || null  // Match Python model's default
     };
     set(state => {
       state.arrows.set(arrow.id as ArrowID, arrow);

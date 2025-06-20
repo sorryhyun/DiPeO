@@ -55,11 +55,10 @@ function cleanNodeData(node: any): any {
       break;
     case 'condition':
       nodeData.conditionType = nodeData.conditionType || 'simple';
-      nodeData.detect_max_iterations = nodeData.detect_max_iterations ?? false;
       break;
     case 'person_job':
       nodeData.firstOnlyPrompt = nodeData.firstOnlyPrompt || '';
-      nodeData.maxIterations = nodeData.maxIterations || 1;
+      nodeData.maxIteration = nodeData.maxIteration || 1;
       break;
     case 'endpoint':
       nodeData.saveToFile = nodeData.saveToFile ?? false;
