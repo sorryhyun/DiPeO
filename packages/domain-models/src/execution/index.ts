@@ -55,6 +55,40 @@ export interface TokenUsage {
   total?: number; // Computed field
 }
 
+// Simplified node state tracking
+export interface NodeState {
+  status: NodeExecutionStatus;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  error?: string | null;
+  skipReason?: string | null;
+  tokenUsage?: TokenUsage | null;
+}
+
+// Single output format for ALL nodes
+export interface NodeOutput {
+  value: any;  // The actual output
+  metadata?: Record<string, any>;  // Flexible metadata
+}
+
+// Simplified execution state
+export interface ExecutionState {
+  id: ExecutionID;
+  status: ExecutionStatus;
+  diagramId?: DiagramID | null;
+  startedAt: string;
+  endedAt?: string | null;
+  // Simplified node tracking
+  nodeStates: Record<string, NodeState>;
+  nodeOutputs: Record<string, NodeOutput>;
+  tokenUsage: TokenUsage;
+  error?: string | null;
+  variables: Record<string, any>;
+  durationSeconds?: number | null; // Computed field
+  isActive?: boolean; // Computed field
+}
+
+// Legacy types for backward compatibility (will be removed)
 export interface NodeResult {
   nodeId: NodeID;
   status: NodeExecutionStatus;
@@ -73,25 +107,6 @@ export interface ExecutionResult {
   error?: string | null;
   metadata: Record<string, any>;
   totalTokenUsage?: TokenUsage | null;
-}
-
-export interface ExecutionState {
-  id: ExecutionID;
-  status: ExecutionStatus;
-  diagramId?: DiagramID | null;
-  startedAt: string; // ISO datetime string
-  endedAt?: string | null; // ISO datetime string
-  runningNodes: NodeID[];
-  completedNodes: NodeID[];
-  skippedNodes: NodeID[];
-  pausedNodes: NodeID[];
-  failedNodes: NodeID[];
-  nodeOutputs: Record<string, any>;
-  variables: Record<string, any>;
-  tokenUsage?: TokenUsage | null;
-  error?: string | null;
-  durationSeconds?: number | null; // Computed field
-  isActive?: boolean; // Computed field
 }
 
 export interface ExecutionEvent {
@@ -144,50 +159,13 @@ export interface ExecutionUpdate {
   data?: Record<string, any>;
 }
 
-// Executor-specific types
-export interface ExecutorResult {
-  output?: any;
-  error?: string | null;
-  nodeId?: NodeID | null;
-  executionTime?: number | null;
-  tokenUsage?: TokenUsage | null;
-  metadata?: Record<string, any>;
-  validationErrors?: Array<Record<string, any>>;
-}
-
-// Specific node output types
-export interface PersonJobOutput {
-  output?: string | null;
-  error?: string | null;
-  conversationHistory?: PersonMemoryMessage[];
-  tokenUsage?: TokenUsage | null;
-  metadata?: Record<string, any>;
-}
-
-export interface ConditionOutput {
-  result: boolean;
-  evaluatedExpression: string;
-  metadata?: Record<string, any>;
-}
-
-export interface JobOutput {
-  output: any;
-  error?: string | null;
-  executionTime?: number;
-  language?: string;
-  metadata?: Record<string, any>;
-}
-
-// Execution context for handlers
+// Simplified execution context (data only, no services)
 export interface ExecutionContext {
-  edges: Array<Record<string, any>>;
-  results: Record<string, Record<string, any>>;
-  currentNodeId: NodeID;
-  executionId: string;
-  execCnt?: Record<string, number>; // Node execution counts
-  outputs?: Record<string, any>; // Node outputs
-  persons?: Record<string, any>; // Person configurations
-  apiKeys?: Record<string, string>; // API keys
+  executionId: ExecutionID;
+  diagramId: DiagramID;
+  nodeStates: Record<string, NodeState>;
+  nodeOutputs: Record<string, any>;
+  variables: Record<string, any>;
 }
 
 // Node handler definition
@@ -218,15 +196,11 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
     diagramId: diagramId ?? null,
     startedAt: now,
     endedAt: null,
-    runningNodes: [],
-    completedNodes: [],
-    skippedNodes: [],
-    pausedNodes: [],
-    failedNodes: [],
+    nodeStates: {},
     nodeOutputs: {},
-    variables: {},
-    tokenUsage: null,
+    tokenUsage: { input: 0, output: 0, cached: null, total: 0 },
     error: null,
+    variables: {},
     isActive: true
   };
 }

@@ -52,55 +52,53 @@ export function toCanonicalExecutionState(
   storeState: ExecutionState,
   diagramId?: string | null,
 ): CanonicalExecutionState {
-  const nodeResults: NodeResult[] = [];
-  const completedNodes: NodeID[] = [];
-  const skippedNodes: NodeID[] = [];
-  const failedNodes: NodeID[] = [];
-  const pausedNodes: NodeID[] = [];
-  
-  // Convert node states to appropriate arrays
-  storeState.nodeStates.forEach((nodeState, nodeId) => {
-    nodeResults.push(toCanonicalNodeResult(nodeId, nodeState));
-    
-    switch (nodeState.status) {
-      case NodeExecutionStatus.COMPLETED:
-        completedNodes.push(nodeId);
-        break;
-      case NodeExecutionStatus.SKIPPED:
-        skippedNodes.push(nodeId);
-        break;
-      case NodeExecutionStatus.FAILED:
-        failedNodes.push(nodeId);
-        break;
-      case NodeExecutionStatus.PAUSED:
-        pausedNodes.push(nodeId);
-        break;
-    }
-  });
-  
   let status: ExecutionStatus;
   if (storeState.isPaused) {
     status = ExecutionStatus.PAUSED;
   } else if (storeState.isRunning) {
     status = ExecutionStatus.RUNNING;
-  } else if (failedNodes.length > 0) {
-    status = ExecutionStatus.FAILED;
   } else {
-    status = ExecutionStatus.COMPLETED;
+    // Check if any nodes failed
+    const hasFailed = Array.from(storeState.nodeStates.values()).some(
+      state => state.status === NodeExecutionStatus.FAILED
+    );
+    status = hasFailed ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
   }
+  
+  // Convert Map to dictionary for nodeStates
+  const nodeStatesDict: Record<string, any> = {};
+  storeState.nodeStates.forEach((nodeState, nodeId) => {
+    nodeStatesDict[nodeId] = {
+      status: nodeState.status,
+      startedAt: new Date(nodeState.timestamp).toISOString(),
+      endedAt: nodeState.status !== NodeExecutionStatus.RUNNING ? new Date(nodeState.timestamp).toISOString() : null,
+      error: nodeState.error || null,
+      skipReason: nodeState.skipReason || null,
+      tokenUsage: null,
+    };
+  });
+  
+  // Convert context to nodeOutputs with proper NodeOutput format
+  const nodeOutputsDict: Record<string, any> = {};
+  Object.entries(storeState.context).forEach(([nodeId, value]) => {
+    nodeOutputsDict[nodeId] = {
+      value: value,
+      metadata: {},
+    };
+  });
   
   return {
     id: (storeState.id || '') as any, // ExecutionID branded type
     status,
     diagramId: diagramId as any, // DiagramID branded type
     startedAt: new Date().toISOString(), // Store doesn't track this, using current time
-    runningNodes: Array.from(storeState.runningNodes) as any[], // NodeID[] branded type
-    completedNodes: completedNodes as any[], // NodeID[] branded type
-    skippedNodes: skippedNodes as any[], // NodeID[] branded type
-    pausedNodes: pausedNodes as any[], // NodeID[] branded type
-    failedNodes: failedNodes as any[], // NodeID[] branded type
-    nodeOutputs: storeState.context,
+    nodeStates: nodeStatesDict,
+    nodeOutputs: nodeOutputsDict,
     variables: {},
+    tokenUsage: { input: 0, output: 0, cached: null, total: 0 },
+    error: null,
+    endedAt: status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED ? new Date().toISOString() : null,
+    isActive: storeState.isRunning,
   };
 }
 

@@ -8,8 +8,10 @@ import logging
 from .types import (
     NodeDefinition, 
     ExecutorResult, 
-    ExecutionContext
+    ExecutionContext,
+    NodeOutput
 )
+from ..services.service_factory import service_factory
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +65,15 @@ class UnifiedExecutor:
                     metadata={"node_type": node_type, "validation_errors": e.errors()}
                 )
             
-            # Check required services
+            # Get required services from service factory
+            services = {}
             missing_services = []
-            for service in definition.requires_services:
-                if not hasattr(context, service):
-                    missing_services.append(service)
+            for service_name in definition.requires_services:
+                service = service_factory.get_service(service_name)
+                if service is None:
+                    missing_services.append(service_name)
+                else:
+                    services[service_name] = service
             
             if missing_services:
                 return ExecutorResult(
@@ -78,34 +84,36 @@ class UnifiedExecutor:
             # Get inputs from connected nodes
             inputs = await self._get_input_values(node, context)
             
-            # Execute handler
+            # Execute handler with services
             start_time = time.time()
-            output = await definition.handler(props, context, inputs)
+            output = await definition.handler(props, context, inputs, services)
             execution_time = time.time() - start_time
             
-            # Extract token usage if present
-            token_usage = None
-            if hasattr(output, 'token_usage'):
-                token_usage = output.token_usage
-            
-            # Extract error if present
-            error = None
-            if hasattr(output, 'error'):
-                error = output.error
-            
-            # Extract actual output
-            actual_output = output
-            if hasattr(output, 'output'):
-                actual_output = output.output
-            
-            result = ExecutorResult(
-                output=actual_output,
-                error=error,
-                node_id=node_id,
-                execution_time=execution_time,
-                token_usage=token_usage,
-                metadata={"node_type": node_type}
-            )
+            # Handle NodeOutput format
+            if isinstance(output, NodeOutput):
+                # Extract token usage from metadata if present
+                token_usage = None
+                if output.metadata and "tokenUsage" in output.metadata:
+                    token_usage = output.metadata["tokenUsage"]
+                
+                result = ExecutorResult(
+                    output=output.value,
+                    error=None,
+                    node_id=node_id,
+                    execution_time=execution_time,
+                    token_usage=token_usage,
+                    metadata=output.metadata or {"node_type": node_type}
+                )
+            else:
+                # Backward compatibility for direct outputs
+                result = ExecutorResult(
+                    output=output,
+                    error=None,
+                    node_id=node_id,
+                    execution_time=execution_time,
+                    token_usage=None,
+                    metadata={"node_type": node_type}
+                )
             
             
             return result

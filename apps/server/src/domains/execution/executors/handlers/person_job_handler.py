@@ -8,9 +8,9 @@ import logging
 
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import ExecutionContext, ExecutorResult
-from src.__generated__.models import TokenUsage
+from src.__generated__.models import TokenUsage, NodeOutput
 from src.domains.llm.services.token_usage_service import TokenUsageService
-from src.common.utils.output_processor import OutputProcessor
+from src.common.processors import OutputProcessor
 from src.common.utils.app_context import get_memory_service
 from ..executor_utils import get_input_values, substitute_variables
 from ..decorators import node
@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
     node_type="person_job",
     schema=PersonJobProps,
     description="Execute LLM task with person context and memory",
-    requires_services=["llm_service"]
+    requires_services=["llm_service", "memory_service", "interactive_handler"]
 )
 async def person_job_handler(
     props: PersonJobProps,
     context: ExecutionContext,
-    inputs: Dict[str, Any]
+    inputs: Dict[str, Any],
+    services: Dict[str, Any]
 ) -> Any:
     """Handle PersonJob execution with LLM"""
     
@@ -38,28 +39,30 @@ async def person_job_handler(
     # Check execution limit
     if props.maxIteration and execution_count >= props.maxIteration:
         last_output = context.outputs.get(node_id, "No previous output")
-        return {
-            "output": last_output,
-            "metadata": {
+        return NodeOutput(
+            value=last_output,
+            metadata={
                 "skipped": True,
                 "reason": f"Max iterations ({props.maxIteration}) reached",
-                "execution_count": execution_count,
-                "passthrough": True
-            },
-            "tokens": TokenUsageService.zero(),
-            "execution_time": time.time() - start_time
-        }
+                "executionCount": execution_count,
+                "passthrough": True,
+                "tokenUsage": TokenUsageService.zero().model_dump(),
+                "executionTime": time.time() - start_time
+            }
+        )
     
     # Get the appropriate prompt
     prompt = props.get_effective_prompt(execution_count)
     if not prompt:
-        return {
-            "output": None,
-            "error": "No prompt available",
-            "metadata": {"execution_count": execution_count},
-            "tokens": TokenUsageService.zero(),
-            "execution_time": time.time() - start_time
-        }
+        return NodeOutput(
+            value=None,
+            metadata={
+                "error": "No prompt available",
+                "executionCount": execution_count,
+                "tokenUsage": TokenUsageService.zero().model_dump(),
+                "executionTime": time.time() - start_time
+            }
+        )
     
     # Resolve person configuration
     person = await _resolve_person(props, context)
@@ -73,12 +76,10 @@ async def person_job_handler(
     # Substitute variables in prompt
     final_prompt = props.substitute_variables(prompt, inputs)
     
-    # Handle memory cleanup
-    try:
-        memory_service = get_memory_service()
-    except RuntimeError:
-        # Memory service not available (e.g., in tests)
-        memory_service = None
+    # Get services
+    llm_service = services.get("llm_service")
+    memory_service = services.get("memory_service")
+    interactive_handler = services.get("interactive_handler")
     
     person_id = person.id or node_id
     
@@ -96,8 +97,8 @@ async def person_job_handler(
     messages = history + conversation_inputs + [{"role": "user", "content": final_prompt}]
     
     # Handle interactive mode
-    if props.interactive and hasattr(context, 'interactive_handler'):
-        interactive_response = await context.interactive_handler(
+    if props.interactive and interactive_handler:
+        interactive_response = await interactive_handler(
             node_id=node_id,
             prompt=final_prompt,
             context={
@@ -119,7 +120,7 @@ async def person_job_handler(
         # Get service from API key if not specified
         service = person.service or await _get_service_from_api_key(person.api_key_id, context)
         
-        response = await context.llm_service.call_llm(
+        response = await llm_service.call_llm(
             service=service,
             api_key_id=person.api_key_id,
             model=person.model,
@@ -159,16 +160,17 @@ async def person_job_handler(
         # Update execution count
         context.exec_cnt[node_id] = execution_count + 1
         
-        # Build output using OutputProcessor
-        output = OutputProcessor.create_personjob_output_from_tokens(
-            text=response["response"],
-            token_usage=usage,
-            conversation_history=messages[:-1],
-            model=person.model,
-            execution_time=elapsed
+        # Return unified NodeOutput format
+        return NodeOutput(
+            value=response["response"],
+            metadata={
+                "tokenUsage": usage.model_dump() if usage else None,
+                "executionTime": elapsed,
+                "conversationHistory": messages[:-1],
+                "model": person.model,
+                "service": service
+            }
         )
-        
-        return output
         
     except Exception as e:
         logger.error(f"LLM call failed for node {node_id}: {str(e)}")
@@ -179,17 +181,18 @@ async def person_job_handler(
     node_type="person_batch_job",
     schema=PersonBatchJobProps,
     description="Execute LLM task in batch mode",
-    requires_services=["llm_service"]
+    requires_services=["llm_service", "memory_service", "interactive_handler"]
 )
 async def person_batch_job_handler(
     props: PersonBatchJobProps,
     context: ExecutionContext,
-    inputs: Dict[str, Any]
+    inputs: Dict[str, Any],
+    services: Dict[str, Any]
 ) -> Any:
     """Handle PersonBatchJob execution"""
     
     # Use the regular person job handler
-    result = await person_job_handler(props, context, inputs)
+    result = await person_job_handler(props, context, inputs, services)
     
     # Add batch-specific metadata if result is a dict
     if isinstance(result, dict) and 'metadata' in result:
@@ -239,9 +242,12 @@ async def _get_conversation_inputs(context: ExecutionContext, node_id: str) -> L
     conversation_inputs = []
     
     # Check incoming connections for conversation_state handle
-    for arrow in context.graph.incoming.get(node_id, []):
-        if arrow.label == "conversation_state" or arrow.t_handle == "conversation_state":
-            output = context.outputs.get(arrow.source)
+    # In the new architecture, graph is not part of context
+    # Instead, we should use the edges information
+    for edge in context.edges:
+        if edge["target"] == node_id and edge.get("targetHandle") == "conversation_state":
+            source_node_id = edge["source"]
+            output = context.outputs.get(source_node_id)
             if OutputProcessor.is_personjob_output(output):
                 conv_history = OutputProcessor.extract_conversation_history(output) or []
                 conversation_inputs.extend(conv_history)

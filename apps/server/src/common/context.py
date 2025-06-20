@@ -13,6 +13,7 @@ from src.domains.execution.services.execution_service import ExecutionService
 from src.domains.integrations.notion import NotionService
 from src.domains.execution.services.message_router_simple import message_router
 from src.domains.execution.services.simple_state_store import state_store
+from src.domains.execution.services.service_factory import service_factory
 import os
 
 if TYPE_CHECKING:
@@ -66,6 +67,15 @@ class AppContext:
             self.diagram_service,
             self.notion_service
         )
+        
+        # Register services with the service factory for executor usage
+        service_factory.register_service('api_key_service', self.api_key_service)
+        service_factory.register_service('llm_service', self.llm_service)
+        service_factory.register_service('memory_service', self.memory_service)
+        service_factory.register_service('file_service', self.file_service)
+        service_factory.register_service('diagram_service', self.diagram_service)
+        service_factory.register_service('notion_service', self.notion_service)
+        service_factory.register_service('execution_service', self.execution_service)
     
     async def shutdown(self):
         """Cleanup resources on shutdown."""

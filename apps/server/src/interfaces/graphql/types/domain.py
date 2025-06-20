@@ -15,7 +15,9 @@ from src.__generated__.models import (
     ExecutionEvent as PydanticExecutionEvent,
     Vec2 as PydanticVec2,
     DiagramFormat,
-    TokenUsage as GeneratedTokenUsage
+    TokenUsage as GeneratedTokenUsage,
+    NodeState as PydanticNodeState,
+    NodeOutput as PydanticNodeOutput
 )
 
 # No longer need domain-specific extensions - using generated model directly
@@ -28,6 +30,14 @@ class Vec2:
 
 @strawberry.experimental.pydantic.type(model=GeneratedTokenUsage, all_fields=True, description="Token usage statistics")
 class TokenUsage:
+    pass
+
+@strawberry.experimental.pydantic.type(model=PydanticNodeState, all_fields=True, description="State of a node execution")
+class NodeState:
+    pass
+
+@strawberry.experimental.pydantic.type(model=PydanticNodeOutput, all_fields=True, description="Output from a node execution")
+class NodeOutput:
     pass
 
 # Convert domain models to Strawberry types
@@ -159,11 +169,6 @@ class DomainDiagramType:
         "diagram_id",
         "started_at",
         "ended_at",
-        "running_nodes",
-        "completed_nodes",
-        "skipped_nodes",
-        "paused_nodes",
-        "failed_nodes",
         "token_usage",
         "error"
     ]
@@ -175,23 +180,23 @@ class ExecutionState:
     diagram_id: DiagramID
     started_at: strawberry.auto
     ended_at: strawberry.auto
-    running_nodes: strawberry.auto
-    completed_nodes: strawberry.auto
-    skipped_nodes: strawberry.auto
-    paused_nodes: strawberry.auto
-    failed_nodes: strawberry.auto
     token_usage: Optional[TokenUsage]
     error: strawberry.auto
     
     @strawberry.field
-    def node_outputs(self) -> Optional[JSONScalar]:
-        """Node outputs as JSON scalar."""
-        return self.node_outputs if hasattr(self, 'node_outputs') else None
+    def node_states(self) -> JSONScalar:
+        """Node states as JSON scalar."""
+        return self.node_states if hasattr(self, 'node_states') else {}
     
     @strawberry.field
-    def variables(self) -> Optional[JSONScalar]:
+    def node_outputs(self) -> JSONScalar:
+        """Node outputs as JSON scalar."""
+        return self.node_outputs if hasattr(self, 'node_outputs') else {}
+    
+    @strawberry.field
+    def variables(self) -> JSONScalar:
         """Variables as JSON scalar."""
-        return self.variables if hasattr(self, 'variables') else None
+        return self.variables if hasattr(self, 'variables') else {}
     
     @strawberry.field
     def duration_seconds(self) -> Optional[float]:

@@ -8,6 +8,7 @@ import logging
 
 from ..schemas.endpoint import EndpointNodeProps
 from ..types import ExecutionContext
+from src.__generated__.models import NodeOutput
 from ..executor_utils import substitute_variables
 from ..decorators import node
 
@@ -23,7 +24,8 @@ logger = logging.getLogger(__name__)
 async def endpoint_handler(
     props: EndpointNodeProps,
     context: ExecutionContext,
-    inputs: Dict[str, Any]
+    inputs: Dict[str, Any],
+    services: Dict[str, Any]
 ) -> Any:
     """Handle Endpoint node execution"""
     
@@ -43,7 +45,7 @@ async def endpoint_handler(
     # Save to file if requested
     if props.saveToFile and props.filePath:
         # Check if file service is available
-        file_service = getattr(context, 'file_service', None)
+        file_service = services.get('file_service')
         
         if file_service:
             try:
@@ -67,23 +69,35 @@ async def endpoint_handler(
                 
             except Exception as e:
                 logger.error(f"Failed to save file {props.filePath}: {str(e)}")
-                return {
-                    "output": content,
-                    "error": f"Failed to save file {props.filePath}: {str(e)}",
-                    "metadata": metadata
-                }
+                return NodeOutput(
+                    value=content,
+                    metadata={
+                        **metadata,
+                        "error": f"Failed to save file {props.filePath}: {str(e)}",
+                        "file_saved": False
+                    }
+                )
         else:
             logger.warning("File service not available for endpoint node")
-            return {
-                "output": content,
-                "error": "File service not available",
-                "metadata": metadata
-            }
+            return NodeOutput(
+                value=content,
+                metadata={
+                    **metadata,
+                    "error": "File service not available",
+                    "file_saved": False
+                }
+            )
     
-    return {
-        "output": result_data,
-        "metadata": metadata
-    }
+    # Return unified NodeOutput format
+    return NodeOutput(
+        value=content,
+        metadata={
+            **metadata,
+            "file_saved": result_data["file_saved"],
+            "file_path": result_data.get("file_path"),
+            "file_format": result_data.get("file_format")
+        }
+    )
 
 
 def _prepare_content(inputs: Dict[str, Any], props: EndpointNodeProps) -> str:

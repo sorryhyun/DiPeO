@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 async def notion_handler(
     props: NotionNodeProps,
     context: ExecutionContext,
-    inputs: Dict[str, Any]
+    inputs: Dict[str, Any],
+    services: Dict[str, Any]
 ) -> Any:
     """Handle Notion node execution for various API operations"""
     
@@ -31,8 +32,9 @@ async def notion_handler(
     logger.info(f"Executing Notion operation: {operation}")
     
     # Check if Notion service is available
-    if not hasattr(context, 'notion_service'):
-        raise RuntimeError("Notion service not available in context")
+    notion_service = services.get('notion_service')
+    if not notion_service:
+        raise RuntimeError("Notion service not available")
     
     # Get API key from context
     api_key = _get_api_key(api_key_id, context)
@@ -45,25 +47,25 @@ async def notion_handler(
         
         # Execute operation based on type
         if operation == NotionOperation.READ_PAGE:
-            result = await _read_page(props, context, api_key, processed_inputs)
+            result = await _read_page(props, notion_service, api_key, processed_inputs)
         
         elif operation == NotionOperation.LIST_BLOCKS:
-            result = await _list_blocks(props, context, api_key, processed_inputs)
+            result = await _list_blocks(props, notion_service, api_key, processed_inputs)
         
         elif operation == NotionOperation.APPEND_BLOCKS:
-            result = await _append_blocks(props, context, api_key, processed_inputs)
+            result = await _append_blocks(props, notion_service, api_key, processed_inputs)
         
         elif operation == NotionOperation.UPDATE_BLOCK:
-            result = await _update_block(props, context, api_key, processed_inputs)
+            result = await _update_block(props, notion_service, api_key, processed_inputs)
         
         elif operation == NotionOperation.QUERY_DATABASE:
-            result = await _query_database(props, context, api_key, processed_inputs)
+            result = await _query_database(props, notion_service, api_key, processed_inputs)
         
         elif operation == NotionOperation.CREATE_PAGE:
-            result = await _create_page(props, context, api_key, processed_inputs)
+            result = await _create_page(props, notion_service, api_key, processed_inputs)
         
         elif operation == NotionOperation.EXTRACT_TEXT:
-            result = await _extract_text(props, context, processed_inputs)
+            result = await _extract_text(props, notion_service, processed_inputs)
         
         else:
             raise ValueError(f"Unknown operation: {operation}")
@@ -125,35 +127,35 @@ def _substitute_variables(text: str, inputs: List[Any]) -> str:
 
 async def _read_page(
     props: NotionNodeProps, 
-    context: ExecutionContext, 
+    notion_service: Any, 
     api_key: str,
     inputs: List[Any]
 ) -> Dict[str, Any]:
     """Read a Notion page"""
     page_id = _substitute_variables(props.pageId or "", inputs)
     
-    result = await context.notion_service.retrieve_page(page_id, api_key)
+    result = await notion_service.retrieve_page(page_id, api_key)
     logger.debug(f"Retrieved page: {page_id}")
     return result
 
 
 async def _list_blocks(
     props: NotionNodeProps,
-    context: ExecutionContext,
+    notion_service: Any,
     api_key: str,
     inputs: List[Any]
 ) -> Dict[str, Any]:
     """List blocks in a Notion page"""
     page_id = _substitute_variables(props.pageId or "", inputs)
     
-    blocks = await context.notion_service.list_blocks(page_id, api_key)
+    blocks = await notion_service.list_blocks(page_id, api_key)
     logger.debug(f"Listed {len(blocks)} blocks from page: {page_id}")
     return {"blocks": blocks, "count": len(blocks)}
 
 
 async def _append_blocks(
     props: NotionNodeProps,
-    context: ExecutionContext,
+    notion_service: Any,
     api_key: str,
     inputs: List[Any]
 ) -> Dict[str, Any]:
@@ -162,14 +164,14 @@ async def _append_blocks(
     blocks_str = _substitute_variables(props.blocks or "[]", inputs)
     
     blocks = json.loads(blocks_str)
-    result = await context.notion_service.append_blocks(page_id, blocks, api_key)
+    result = await notion_service.append_blocks(page_id, blocks, api_key)
     logger.debug(f"Appended {len(blocks)} blocks to page: {page_id}")
     return result
 
 
 async def _update_block(
     props: NotionNodeProps,
-    context: ExecutionContext,
+    notion_service: Any,
     api_key: str,
     inputs: List[Any]
 ) -> Dict[str, Any]:
@@ -178,14 +180,14 @@ async def _update_block(
     block_data_str = _substitute_variables(props.blockData or "{}", inputs)
     
     block_data = json.loads(block_data_str)
-    result = await context.notion_service.update_block(block_id, block_data, api_key)
+    result = await notion_service.update_block(block_id, block_data, api_key)
     logger.debug(f"Updated block: {block_id}")
     return result
 
 
 async def _query_database(
     props: NotionNodeProps,
-    context: ExecutionContext,
+    notion_service: Any,
     api_key: str,
     inputs: List[Any]
 ) -> Dict[str, Any]:
@@ -203,7 +205,7 @@ async def _query_database(
         sorts_str = _substitute_variables(props.sorts, inputs)
         sorts_obj = json.loads(sorts_str)
     
-    results = await context.notion_service.query_database(
+    results = await notion_service.query_database(
         database_id, filter_obj, sorts_obj, api_key
     )
     logger.debug(f"Queried database {database_id}, found {len(results)} results")
@@ -212,7 +214,7 @@ async def _query_database(
 
 async def _create_page(
     props: NotionNodeProps,
-    context: ExecutionContext,
+    notion_service: Any,
     api_key: str,
     inputs: List[Any]
 ) -> Dict[str, Any]:
@@ -228,7 +230,7 @@ async def _create_page(
         children_str = _substitute_variables(props.children, inputs)
         children = json.loads(children_str)
     
-    result = await context.notion_service.create_page(
+    result = await notion_service.create_page(
         parent, page_properties, children, api_key
     )
     logger.debug("Created new Notion page")
@@ -237,7 +239,7 @@ async def _create_page(
 
 async def _extract_text(
     props: NotionNodeProps,
-    context: ExecutionContext,
+    notion_service: Any,
     inputs: List[Any]
 ) -> Dict[str, Any]:
     """Extract text from Notion blocks in input"""
@@ -250,7 +252,7 @@ async def _extract_text(
             break
     
     if blocks:
-        text = context.notion_service.extract_text_from_blocks(blocks)
+        text = notion_service.extract_text_from_blocks(blocks)
         logger.debug(f"Extracted text from {len(blocks)} blocks")
         return {"text": text, "block_count": len(blocks)}
     else:

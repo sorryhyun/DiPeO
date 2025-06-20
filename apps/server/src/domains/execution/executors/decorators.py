@@ -40,17 +40,34 @@ def node(
         sig = inspect.signature(handler)
         params = list(sig.parameters.keys())
         
-        if len(params) != 3:
+        # Accept both old (3 params) and new (4 params) signatures for backward compatibility
+        if len(params) not in [3, 4]:
             raise ValueError(
-                f"Node handler {handler.__name__} must accept exactly 3 parameters: "
-                f"(props, context, inputs). Got: {params}"
+                f"Node handler {handler.__name__} must accept 3 or 4 parameters: "
+                f"(props, context, inputs) or (props, context, inputs, services). Got: {params}"
             )
+        
+        # Create wrapper to handle both signatures
+        if len(params) == 3:
+            # Old signature without services - wrap it to accept services
+            @wraps(handler)
+            async def wrapped_handler(props, context, inputs, services):
+                # For backward compatibility, inject services into context
+                # if they were expected there
+                for service_name, service in services.items():
+                    if not hasattr(context, service_name):
+                        setattr(context, service_name, service)
+                return await handler(props, context, inputs)
+            actual_handler = wrapped_handler
+        else:
+            # New signature with services
+            actual_handler = handler
         
         # Create node definition
         node_def = NodeDefinition(
             type=node_type,
             schema=schema,
-            handler=handler,
+            handler=actual_handler,
             requires_services=requires_services or [],
             description=description
         )
@@ -86,10 +103,19 @@ def combine_handler_schema(schema_class: Type[BaseNodeProps], handler_func: Call
     Create a combined class that includes both schema and handler.
     This allows for cleaner organization where related code stays together.
     """
+    # Check handler signature
+    sig = inspect.signature(handler_func)
+    params_count = len(sig.parameters)
+    
     class CombinedNode(schema_class):
         @classmethod
-        async def execute(cls, props: schema_class, context: ExecutionContext, inputs: Dict[str, Any]) -> Any:
-            return await handler_func(props, context, inputs)
+        async def execute(cls, props: schema_class, context: ExecutionContext, inputs: Dict[str, Any], services: Dict[str, Any] = None) -> Any:
+            if params_count == 3:
+                # Old signature
+                return await handler_func(props, context, inputs)
+            else:
+                # New signature
+                return await handler_func(props, context, inputs, services or {})
     
     CombinedNode.__name__ = f"{schema_class.__name__}Handler"
     return CombinedNode

@@ -11,6 +11,7 @@ import logging
 from typing import Dict, Any, List
 from ..schemas.db import DBNodeProps, DBSubType
 from ..types import ExecutionContext
+from src.__generated__.models import NodeOutput
 from ..decorators import node
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 async def db_handler(
     props: DBNodeProps,
     context: ExecutionContext,
-    inputs: Dict[str, Any]
+    inputs: Dict[str, Any],
+    services: Dict[str, Any]
 ) -> Any:
     """Handle DB node execution for various data source operations"""
     
@@ -36,7 +38,10 @@ async def db_handler(
     
     try:
         if sub_type == DBSubType.FILE:
-            result = await _execute_file_read(source_details, context)
+            file_service = services.get('file_service')
+            if not file_service:
+                raise RuntimeError("File service not available")
+            result = await _execute_file_read(source_details, file_service)
         
         elif sub_type == DBSubType.FIXED_PROMPT:
             result = await _execute_fixed_prompt(source_details)
@@ -53,7 +58,14 @@ async def db_handler(
             raise ValueError(f"Unsupported DB node subType: {sub_type}")
         
         logger.info(f"DB node execution completed successfully")
-        return result
+        # Return unified NodeOutput format
+        return NodeOutput(
+            value=result,
+            metadata={
+                "subType": sub_type.value if sub_type else None,
+                "dataSource": "file" if sub_type == DBSubType.FILE else "code" if sub_type == DBSubType.CODE else "fixed"
+            }
+        )
         
     except Exception as e:
         error_msg = f"DB node execution failed: {str(e)}"
@@ -61,14 +73,11 @@ async def db_handler(
         raise RuntimeError(error_msg)
 
 
-async def _execute_file_read(file_path: str, context: ExecutionContext) -> str:
+async def _execute_file_read(file_path: str, file_service: Any) -> str:
     """Execute file reading operation"""
-    if not hasattr(context, 'file_service'):
-        raise RuntimeError("File service not available in context")
-    
     try:
         # Use file service to read the file
-        content = await context.file_service.read(file_path, relative_to="base")
+        content = await file_service.read(file_path, relative_to="base")
         logger.info(f"Successfully read file: {file_path} ({len(content)} bytes)")
         return content
     except Exception as e:

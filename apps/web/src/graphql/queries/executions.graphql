@@ -5,11 +5,7 @@ query GetExecution($id: ExecutionID!) {
     diagramId
     startedAt
     endedAt
-    runningNodes
-    completedNodes
-    skippedNodes
-    pausedNodes
-    failedNodes
+    nodeStates
     nodeOutputs
     variables
     tokenUsage {
@@ -39,9 +35,7 @@ subscription ExecutionUpdates($executionId: ExecutionID!) {
   executionUpdates(executionId: $executionId) {
     id
     status
-    runningNodes
-    completedNodes
-    failedNodes
+    nodeStates
     nodeOutputs
     tokenUsage {
       input
@@ -94,7 +88,7 @@ mutation SubmitInteractiveResponse($input: InteractiveResponseInput!) {
     execution {
       id
       status
-      runningNodes
+      nodeStates
     }
     message
     error

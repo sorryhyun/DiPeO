@@ -7,9 +7,11 @@ import subprocess
 import tempfile
 import os
 import logging
+import time
 from typing import Dict, Any
 from ..schemas.job import JobNodeProps, SupportedLanguage
 from ..types import ExecutionContext
+from src.__generated__.models import NodeOutput
 from ..decorators import node
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,8 @@ logger = logging.getLogger(__name__)
 async def job_handler(
     props: JobNodeProps,
     context: ExecutionContext,
-    inputs: Dict[str, Any]
+    inputs: Dict[str, Any],
+    services: Dict[str, Any]
 ) -> Any:
     """Handle Job node execution with code sandboxing"""
     
@@ -35,6 +38,7 @@ async def job_handler(
     code = _substitute_variables(code, inputs)
     
     logger.info(f"Executing {language} code with timeout {timeout}s")
+    start_time = time.time()
     
     try:
         if language == SupportedLanguage.PYTHON:
@@ -47,16 +51,40 @@ async def job_handler(
             raise ValueError(f"Unsupported language: {language}")
         
         logger.info(f"Code execution completed successfully")
-        return result
+        
+        # Return unified NodeOutput format
+        return NodeOutput(
+            value=result,
+            metadata={
+                "language": language.value if language else None,
+                "executionTime": time.time() - start_time,
+                "timeout": timeout
+            }
+        )
         
     except subprocess.TimeoutExpired:
         error_msg = f"{language} execution timed out after {timeout} seconds"
         logger.error(error_msg)
-        raise TimeoutError(error_msg)
+        return NodeOutput(
+            value=None,
+            metadata={
+                "error": error_msg,
+                "language": language.value if language else None,
+                "executionTime": time.time() - start_time,
+                "timedOut": True
+            }
+        )
     except Exception as e:
         error_msg = f"{language} execution error: {str(e)}"
         logger.error(error_msg, exc_info=True)
-        raise RuntimeError(error_msg)
+        return NodeOutput(
+            value=None,
+            metadata={
+                "error": error_msg,
+                "language": language.value if language else None,
+                "executionTime": time.time() - start_time
+            }
+        )
 
 
 def _substitute_variables(code: str, inputs: Dict[str, Any]) -> str:

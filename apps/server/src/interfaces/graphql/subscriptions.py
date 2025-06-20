@@ -8,7 +8,8 @@ from datetime import datetime
 from .types.scalars import ExecutionID, DiagramID, NodeID, JSONScalar
 from .types.domain import ExecutionState, ExecutionEvent, DomainDiagramType
 from src.common import NodeType, ExecutionStatus
-from src.__generated__.models import EventType
+from src.__generated__.models import EventType, NodeExecutionStatus
+from src.__generated__.models import ExecutionState as PydanticExecutionState
 from .context import GraphQLContext
 
 logger = logging.getLogger(__name__)
@@ -61,27 +62,13 @@ class Subscription:
                 # Get latest state
                 state = await state_store.get_state(execution_id)
                 
-                if state and state.last_updated > last_update:
-                    # State has changed
-                    last_update = state.last_updated
-                    
-                    # Convert to GraphQL ExecutionState
-                    yield ExecutionState(
-                        id=state.execution_id,
-                        status=_map_status(state.status),
-                        diagram_id=state.diagram.get('id') if state.diagram else None,
-                        started_at=datetime.fromtimestamp(state.start_time),
-                        ended_at=datetime.fromtimestamp(state.end_time) if state.end_time else None,
-                        current_node=state.current_node_id,
-                        node_outputs=state.node_outputs,
-                        variables=state.variables,
-                        total_tokens=state.total_tokens.get('total', 0) if state.total_tokens else 0,
-                        error=state.error,
-                        progress=_calculate_progress(state)
-                    )
+                if state:
+                    # The state store now returns PydanticExecutionState directly
+                    # Just yield it - Strawberry will handle the conversion
+                    yield state
                     
                     # Check if execution is complete
-                    if state.status in ['completed', 'failed', 'aborted']:
+                    if state.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.ABORTED]:
                         logger.info(f"Execution {execution_id} completed with status: {state.status}")
                         break
                 
@@ -109,59 +96,59 @@ class Subscription:
         logger.info(f"Starting event stream subscription for {execution_id}")
         
         # Track last update and node states
-        last_update = 0
         sequence = 0
-        last_node_statuses = {}
+        last_node_states = {}
         
         try:
             while True:
                 # Get latest state
                 state = await state_store.get_state(execution_id)
                 
-                if state and state.last_updated > last_update:
-                    # State has changed
-                    last_update = state.last_updated
-                    
+                if state:
                     # Generate events based on state changes
-                    current_node_statuses = state.node_statuses or {}
+                    current_node_states = state.node_states or {}
                     
                     # Check for node status changes
-                    for node_id, status in current_node_statuses.items():
-                        old_status = last_node_statuses.get(node_id)
+                    for node_id, node_state in current_node_states.items():
+                        old_state = last_node_states.get(node_id)
                         
-                        if old_status != status:
+                        if not old_state or old_state.status != node_state.status:
                             # Node status changed
                             sequence += 1
-                            event_type = _get_event_type_for_status(status)
+                            event_type = _get_event_type_for_node_status(node_state.status)
                             
                             # Filter by event types if specified
                             if event_types and event_type not in event_types:
                                 continue
+                            
+                            # Get node output if available
+                            node_output = state.node_outputs.get(node_id)
+                            output_value = node_output.value if node_output else None
                             
                             yield ExecutionEvent(
                                 execution_id=execution_id,
                                 sequence=sequence,
                                 event_type=event_type,
                                 node_id=NodeID(node_id),
-                                timestamp=datetime.fromtimestamp(state.last_updated),
+                                timestamp=node_state.ended_at or node_state.started_at or datetime.now().isoformat(),
                                 data={
-                                    "status": status,
-                                    "output": state.node_outputs.get(node_id),
-                                    "error": state.node_errors.get(node_id) if hasattr(state, 'node_errors') else None
+                                    "status": node_state.status.value,
+                                    "output": output_value,
+                                    "error": node_state.error
                                 }
                             )
                     
-                    # Update tracked statuses
-                    last_node_statuses = current_node_statuses.copy()
+                    # Update tracked states
+                    last_node_states = current_node_states.copy()
                     
                     # Check if execution is complete
-                    if state.status in ['completed', 'failed', 'aborted']:
+                    if state.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.ABORTED]:
                         # Generate final event
                         sequence += 1
                         final_event_type = {
-                            'completed': EventType.EXECUTION_COMPLETED,
-                            'failed': EventType.EXECUTION_FAILED,
-                            'aborted': EventType.EXECUTION_ABORTED
+                            ExecutionStatus.COMPLETED: EventType.EXECUTION_COMPLETED,
+                            ExecutionStatus.FAILED: EventType.EXECUTION_FAILED,
+                            ExecutionStatus.ABORTED: EventType.EXECUTION_ABORTED
                         }.get(state.status, EventType.EXECUTION_UPDATE)
                         
                         if not event_types or final_event_type in event_types:
@@ -170,8 +157,8 @@ class Subscription:
                                 sequence=sequence,
                                 event_type=final_event_type,
                                 node_id=None,
-                                timestamp=datetime.fromtimestamp(state.last_updated),
-                                data={"status": state.status, "error": state.error}
+                                timestamp=datetime.fromtimestamp(state.last_updated).isoformat(),
+                                data={"status": state.status.value, "error": state.error}
                             )
                         
                         logger.info(f"Event stream completed for execution {execution_id}")
@@ -201,57 +188,54 @@ class Subscription:
         logger.info(f"Starting node updates subscription for {execution_id}")
         
         # Track last update and node states
-        last_update = 0
-        last_node_statuses = {}
+        last_node_states = {}
         
         try:
             while True:
                 # Get latest state
                 state = await state_store.get_state(execution_id)
                 
-                if state and state.last_updated > last_update:
-                    # State has changed
-                    last_update = state.last_updated
-                    
+                if state:
                     # Check for node status changes
-                    current_node_statuses = state.node_statuses or {}
+                    current_node_states = state.node_states or {}
                     
-                    for node_id, status in current_node_statuses.items():
-                        old_status = last_node_statuses.get(node_id)
+                    for node_id, node_state in current_node_states.items():
+                        old_state = last_node_states.get(node_id)
                         
-                        if old_status != status:
+                        if not old_state or old_state.status != node_state.status:
                             # Node status changed
-                            # Get node type from diagram
-                            node_type = _get_node_type(state.diagram, node_id) if state.diagram else NodeType.JOB
+                            # Get node type from diagram metadata if available
+                            node_type = NodeType.JOB  # Default
                             
                             # Filter by node types if specified
                             if node_types and node_type not in node_types:
                                 continue
                             
                             # Get node output and token usage
-                            output = state.node_outputs.get(node_id)
+                            node_output = state.node_outputs.get(node_id)
+                            output_value = node_output.value if node_output else None
                             tokens_used = None
                             
-                            if output and isinstance(output, dict) and 'token_usage' in output:
-                                tokens_used = output['token_usage'].get('total')
+                            if node_state.token_usage:
+                                tokens_used = node_state.token_usage.total
                             
                             yield NodeExecution(
                                 execution_id=execution_id,
                                 node_id=NodeID(node_id),
                                 node_type=node_type,
-                                status=status,
+                                status=node_state.status.value,
                                 progress=None,  # Could calculate based on status
-                                output=output,
-                                error=state.node_errors.get(node_id) if hasattr(state, 'node_errors') else None,
+                                output=output_value,
+                                error=node_state.error,
                                 tokens_used=tokens_used,
-                                timestamp=datetime.fromtimestamp(state.last_updated)
+                                timestamp=datetime.fromisoformat(node_state.ended_at or node_state.started_at or datetime.now().isoformat())
                             )
                     
-                    # Update tracked statuses
-                    last_node_statuses = current_node_statuses.copy()
+                    # Update tracked states
+                    last_node_states = current_node_states.copy()
                     
                     # Check if execution is complete
-                    if state.status in ['completed', 'failed', 'aborted']:
+                    if state.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.ABORTED]:
                         logger.info(f"Node updates completed for execution {execution_id}")
                         break
                 
@@ -297,22 +281,11 @@ class Subscription:
                 # Get latest state
                 state = await state_store.get_state(execution_id)
                 
-                if state and hasattr(state, 'interactive_prompts'):
-                    # Check for new prompts
-                    for prompt_id, prompt_data in state.interactive_prompts.items():
-                        if prompt_id not in processed_prompts:
-                            processed_prompts.add(prompt_id)
-                            
-                            yield InteractivePrompt(
-                                execution_id=execution_id,
-                                node_id=NodeID(prompt_data['node_id']),
-                                prompt=prompt_data['prompt'],
-                                timeout_seconds=prompt_data.get('timeout'),
-                                timestamp=datetime.fromtimestamp(prompt_data.get('timestamp', state.last_updated))
-                            )
+                # The new state model doesn't have interactive_prompts field
+                # This feature needs to be reimplemented if needed
                 
                 # Check if execution is complete
-                if state and state.status in ['completed', 'failed', 'aborted']:
+                if state and state.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.ABORTED]:
                     logger.info(f"Interactive prompts completed for execution {execution_id}")
                     break
                 
@@ -342,17 +315,6 @@ def _map_status(status: str) -> ExecutionStatus:
     return status_map.get(status.lower(), ExecutionStatus.STARTED)
 
 
-def _calculate_progress(state) -> float:
-    """Calculate execution progress as percentage."""
-    if not state.node_statuses:
-        return 0.0
-    
-    total_nodes = len(state.node_statuses)
-    completed_nodes = len([s for s in state.node_statuses.values() if s == 'completed'])
-    
-    return (completed_nodes / total_nodes) * 100 if total_nodes > 0 else 0.0
-
-
 def _get_event_type_for_status(status: str) -> EventType:
     """Map node status to event type."""
     status_event_map = {
@@ -362,6 +324,19 @@ def _get_event_type_for_status(status: str) -> EventType:
         'failed': EventType.NODE_FAILED,
         'skipped': EventType.NODE_SKIPPED,
         'paused': EventType.NODE_PAUSED
+    }
+    return status_event_map.get(status, EventType.EXECUTION_UPDATE)
+
+
+def _get_event_type_for_node_status(status: NodeExecutionStatus) -> EventType:
+    """Map NodeExecutionStatus enum to EventType."""
+    status_event_map = {
+        NodeExecutionStatus.PENDING: EventType.NODE_STARTED,
+        NodeExecutionStatus.RUNNING: EventType.NODE_RUNNING,
+        NodeExecutionStatus.COMPLETED: EventType.NODE_COMPLETED,
+        NodeExecutionStatus.FAILED: EventType.NODE_FAILED,
+        NodeExecutionStatus.SKIPPED: EventType.NODE_SKIPPED,
+        NodeExecutionStatus.PAUSED: EventType.NODE_PAUSED
     }
     return status_event_map.get(status, EventType.EXECUTION_UPDATE)
 
