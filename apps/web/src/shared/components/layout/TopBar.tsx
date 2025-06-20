@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, TestTube } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components/ui/buttons';
 import { useUIState } from '@/shared/hooks/selectors';
 import { useDiagramManager } from '@/features/diagram-editor/hooks';
@@ -28,7 +28,6 @@ const TopBar = () => {
   const {
     newDiagram: clearDiagram,
     saveDiagram: onUploadToDirectory,
-    loadDiagramFromFile: importFile,
     isDirty
   } = diagramManager;
   

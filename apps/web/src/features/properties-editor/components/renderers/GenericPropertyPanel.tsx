@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { PanelConfig, PanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
 import { FIELD_TYPES } from '@/core/types/panel';
 import { usePropertyManager } from '../../hooks';
 import { usePersonsData } from '@/shared/hooks/selectors';
@@ -12,7 +12,7 @@ import { createHandlerTable } from '@/shared/utils/dispatchTable';
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   nodeId: string;
   data: T;
-  config: PanelConfig<T>;
+  config: PanelLayoutConfig<T>;
 }
 
 // Create dispatch tables for operators and field types
@@ -105,7 +105,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   }, [updateField, formData, data]);
 
   // Check if field should be rendered based on conditional rules
-  const shouldRenderField = useCallback((fieldConfig: PanelFieldConfig): boolean => {
+  const shouldRenderField = useCallback((fieldConfig: TypedPanelFieldConfig<T>): boolean => {
     if (!fieldConfig.conditional) return true;
     
     const fieldValue = formData[fieldConfig.conditional.field];
@@ -115,12 +115,12 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   }, [formData]);
 
   // Convert field type to UnifiedFormField type
-  const getFieldType = (fieldConfig: PanelFieldConfig): UnifiedFieldType => {
+  const getFieldType = (fieldConfig: TypedPanelFieldConfig<T>): UnifiedFieldType => {
     return fieldTypeMapping.executeOrDefault(fieldConfig.type);
   };
 
   // Render individual field
-  const renderField = useCallback((fieldConfig: PanelFieldConfig, index: number): React.ReactNode => {
+  const renderField = useCallback((fieldConfig: TypedPanelFieldConfig<T>, index: number): React.ReactNode => {
     const key = fieldConfig.name ? `${fieldConfig.name}-${index}` : `field-${index}`;
     
     // Check conditional rendering
@@ -182,7 +182,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         onChange={(v) => handleFieldUpdate(fieldConfig.name || '', v)}
         placeholder={'placeholder' in fieldConfig ? fieldConfig.placeholder : undefined}
         options={fieldConfig.type === 'select' ? options : undefined}
-        disabled={isReadOnly || ('disabled' in fieldConfig && fieldConfig.disabled) || isLoading}
+        disabled={isReadOnly || (fieldConfig.disabled ? (typeof fieldConfig.disabled === 'function' ? fieldConfig.disabled(formData) : fieldConfig.disabled) : false) || isLoading}
         required={false}
         min={fieldConfig.type === 'maxIteration' ? fieldConfig.min : undefined}
         max={fieldConfig.type === 'maxIteration' ? fieldConfig.max : undefined}
@@ -195,9 +195,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         showFieldKey={false}
       />
     );
-  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
+  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields, getFieldType]);
 
-  const renderSection = useCallback((fields: PanelFieldConfig[] | undefined) => {
+  const renderSection = useCallback((fields: TypedPanelFieldConfig<T>[] | undefined) => {
     if (!fields) {
       return null;
     }

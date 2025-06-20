@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { useNodeOperations, useArrowOperations, usePersonOperations, useCanvas } from '@/features/diagram-editor/hooks';
 import { DomainApiKey, arrowId, nodeId, personId } from '@/core/types';
-import { PanelConfig, PanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 
 /**
@@ -25,8 +25,8 @@ interface ValidationRule<T extends Record<string, unknown> = Record<string, unkn
   validator: (value: unknown, formData: T) => string | null;
 }
 
-interface ProcessedField {
-  field: PanelFieldConfig;
+interface ProcessedField<T extends Record<string, unknown> = Record<string, unknown>> {
+  field: TypedPanelFieldConfig<T>;
   options?: Array<{ value: string; label: string }>;
   isLoading?: boolean;
   error?: Error | null;
@@ -38,7 +38,7 @@ interface UsePropertyManagerOptions<T extends Record<string, unknown> = Record<s
   autoSaveDelay?: number;
   onSave?: (data: T) => Promise<void> | void;
   onError?: (error: string) => void;
-  panelConfig?: PanelConfig<T>;
+  panelConfig?: PanelLayoutConfig<T>;
 }
 
 export const usePropertyManager = <T extends Record<string, unknown> = Record<string, unknown>>(
@@ -275,8 +275,8 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     if (!options.panelConfig) return [];
     const config = options.panelConfig;
     
-    const flattenFields = (fields: PanelFieldConfig[]): PanelFieldConfig[] => {
-      const result: PanelFieldConfig[] = [];
+    const flattenFields = (fields: TypedPanelFieldConfig<T>[]): TypedPanelFieldConfig<T>[] => {
+      const result: TypedPanelFieldConfig<T>[] = [];
       
       fields.forEach(field => {
         if (field.type === 'row' && field.fields) {
@@ -289,7 +289,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
       return result;
     };
     
-    let allFields: PanelFieldConfig[] = [];
+    let allFields: TypedPanelFieldConfig<T>[] = [];
     
     if (config.fields) {
       allFields = allFields.concat(flattenFields(config.fields));
@@ -308,7 +308,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const asyncFields = useMemo(() => {
     return fields.filter(
       field => field.type === 'select' && typeof field.options === 'function'
-    ) as Array<PanelFieldConfig & { type: 'select'; options: (formData?: T) => Promise<Array<{ value: string; label: string }>> }>;
+    ) as Array<TypedPanelFieldConfig & { type: 'select'; options: (formData?: T) => Promise<Array<{ value: string; label: string }>> }>;
   }, [fields]);
 
   // Create queries for async fields
@@ -318,14 +318,14 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
         if (!field.dependsOn) return [];
         
         const dependencies = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
-        return dependencies.map(dep => formData[dep as keyof T]);
+        return dependencies.map((dep: string) => formData[dep as keyof T]);
       };
 
       const checkDependencies = () => {
         if (!field.dependsOn) return true;
         
         const dependencies = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
-        return dependencies.every(dep => {
+        return dependencies.every((dep: string) => {
           const value = formData[dep as keyof T];
           return value !== undefined && value !== null && value !== '';
         });
@@ -370,7 +370,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   // Process all fields with their options
   const processedFields = useMemo(() => {
     return fields.map(field => {
-      const processed: ProcessedField = { field };
+      const processed: ProcessedField<T> = { field };
       
       if (field.type === 'select' && field.name) {
         if (typeof field.options === 'function') {

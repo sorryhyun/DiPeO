@@ -8,9 +8,6 @@ export type {
   Snapshot
 } from './unifiedStore.types';
 
-// Re-export ExportFormat from types for backward compatibility
-export type { ExportFormat } from '@/core/types';
-
 // Selector factory
 export * from './selectorFactory';
 

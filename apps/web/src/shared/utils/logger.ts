@@ -1,7 +1,3 @@
-/**
- * Production-safe logger that only outputs in development mode
- */
-
 const isDevelopment = import.meta.env.DEV;
 
 export const logger = {
@@ -24,7 +20,6 @@ export const logger = {
   },
   
   error: (...args: any[]) => {
-    // Always log errors, but in production could send to error tracking service
     console.error(...args);
   },
   
@@ -34,7 +29,6 @@ export const logger = {
     }
   },
   
-  // Performance logging - only in development
   time: (label: string) => {
     if (isDevelopment) {
       console.time(label);

@@ -18,8 +18,8 @@ import {
   DomainDiagram as DomainDiagramModel
 } from '@dipeo/domain-models';
 
-// For backward compatibility and semantic clarity, we create type aliases
-// These help distinguish between different contexts where the same types are used
+// Type aliases for semantic clarity - these help distinguish between
+// different contexts where the same types are used
 
 // Domain types represent the server's data model
 // We use GraphQL-generated types but they are structurally compatible with domain models
@@ -262,8 +262,14 @@ export function areHandlesCompatible(source: Handle, target: Handle): boolean {
   return source.dataType === target.dataType;
 }
 
-// Arrow type for backward compatibility
+// Arrow data interface
 export interface ArrowData {
   label?: string;
+  style?: React.CSSProperties;
+  controlPointOffsetX?: number;
+  controlPointOffsetY?: number;
+  loopRadius?: number;
+  branch?: 'true' | 'false';
+  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'empty' | 'generic';
   [key: string]: unknown;
 }

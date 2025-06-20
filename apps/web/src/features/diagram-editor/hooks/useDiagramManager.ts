@@ -1,10 +1,3 @@
-/**
- * useDiagramManager - Feature-based hook for diagram management
- * 
- * This hook provides high-level operations for managing diagrams including
- * creating, saving, loading, exporting, and executing diagrams.
- */
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvas } from './ui/useCanvas';
@@ -15,8 +8,6 @@ import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
 import type { ExecutionOptions } from '@/features/execution-monitor/types';
 import { DiagramFormat } from '@dipeo/domain-models';
-
-// TYPES
 
 export interface DiagramMetadata {
   name?: string;
@@ -83,8 +74,6 @@ export interface UseDiagramManagerReturn {
 
 
 
-// MAIN HOOK
-
 export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDiagramManagerReturn {
   const {
     autoSave = false,
@@ -93,22 +82,18 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     confirmOnLoad = true
   } = options;
   
-  // Get hooks
   const canvas = useCanvas({ readOnly: false });
   const execution = useExecution({ showToasts: false });
   const fileOps = useFileOperations();
   
-  // Get store operations
   const storeOps = useUnifiedStore(
     useShallow(state => ({
-      // Data
       nodes: state.nodes,
       arrows: state.arrows,
       handles: state.handles,
       persons: state.persons,
       apiKeys: state.apiKeys,
       
-      // Operations
       clearDiagram: state.clearDiagram,
       validateDiagram: state.validateDiagram,
       getDiagramStats: state.getDiagramStats,
@@ -116,7 +101,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       clearSelection: state.clearSelection,
       clearAll: state.clearAll,
       
-      // History
       undo: state.undo,
       redo: state.redo,
       canUndo: state.canUndo,
@@ -124,27 +108,23 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }))
   );
   
-  // Local state
   const [metadata, setMetadata] = useState<DiagramMetadata>({
     createdAt: new Date(),
     modifiedAt: new Date()
   });
-  const [isDirty, setIsDirty] = useState(false); // Start with false - diagram is fresh from server
+  const [isDirty, setIsDirty] = useState(false);
   
-  // Refs
   const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isLoadingDiagram = useRef(false);
   
-  // Computed values
   const isEmpty = canvas.nodesArray.length === 0;
   const canExecute = !execution.isRunning && canvas.nodesArray.length > 0;
   const nodeCount = canvas.nodesArray.length;
   const arrowCount = canvas.arrowsArray.length;
   const personCount = canvas.personsArray.length;
   
-  // Debounced save for auto-save
   const { debouncedSave, saveImmediately, cancelPendingSave } = useDebouncedSave({
-    delay: autoSaveInterval, // Use the configured interval
+    delay: autoSaveInterval,
     onSave: async (filename: string) => {
       if (storeOps.nodes.size === 0) return;
       
@@ -158,7 +138,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     enabled: autoSave
   });
   
-  // Operations
   const newDiagram = useCallback(() => {
     if (confirmOnNew && isDirty) {
       if (!window.confirm('You have unsaved changes. Do you want to discard them?')) {
@@ -166,7 +145,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       }
     }
     
-    // Clear all diagram data
     storeOps.clearAll();
     
     setMetadata({
@@ -174,45 +152,34 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       modifiedAt: new Date()
     });
     setIsDirty(false);
-    // Status shown in indicator
   }, [confirmOnNew, isDirty, storeOps]);
   
   const saveDiagram = useCallback(async (filename?: string) => {
-    // Check if there's anything to save
     if (storeOps.nodes.size === 0) {
       toast.error('No diagram to save');
       return;
     }
     
     try {
-      // Generate a more user-friendly default filename if not provided
       const defaultFilename = filename || 'diagram';
       
-      // Save directly for all cases
-      // Check if we have an existing diagram ID from URL params
       const urlParams = new URLSearchParams(window.location.search);
       const existingDiagramId = urlParams.get('diagram');
       
-      // Save the diagram  
       const result = await fileOps.saveDiagram(defaultFilename, DiagramFormat.NATIVE);
       
-      // Only show success if save actually succeeded
       if (result) {
         setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
         setIsDirty(false);
         
-        // Update URL if we got a new diagram ID
         if (result.diagramId && !existingDiagramId) {
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.set('diagram', result.diagramId);
           window.history.replaceState({}, '', newUrl.toString());
         }
-        
-        // Silent save - status shown in top bar
       }
     } catch (error) {
       console.error('Failed to save diagram:', error);
-      // Don't show another error toast - saveDiagram already shows one
     }
   }, [fileOps]);
   
@@ -283,13 +250,11 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [fileOps]);
   
   const executeDiagram = useCallback(async (options?: ExecutionOptions) => {
-    // Check if there's a diagram to execute
     if (storeOps.nodes.size === 0) {
       toast.error('No diagram to execute');
       return;
     }
     
-    // Validate before execution
     const validation = storeOps.validateDiagram();
     if (!validation.isValid) {
       toast.error(`Cannot execute diagram: ${validation.errors[0]}`);
@@ -297,7 +262,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
     
     try {
-      // Get store state and convert to ReactDiagram format
       const domainDiagram = {
         nodes: Array.from(storeOps.nodes.values()),
         arrows: Array.from(storeOps.arrows.values()),
@@ -309,7 +273,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         personCount: storeOps.persons.size
       };
       
-      // Execute with ReactDiagram format - the execute function will convert to backend format
       await execution.execute(domainDiagram, options);
     } catch (error) {
       console.error('Failed to execute diagram:', error);
@@ -334,40 +297,31 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     return storeOps.getDiagramStats();
   }, [storeOps]);
   
-  // Track if this is the initial render and the initial data version
   const isInitialMount = useRef(true);
   const dataVersion = useUnifiedStore(state => state.dataVersion);
   const initialDataVersion = useRef(dataVersion);
   
-  // Check if diagram is being loaded from URL
   const urlParams = new URLSearchParams(window.location.search);
   const hasDiagramParam = urlParams.has('diagram');
   
-  // Mark dirty when canvas changes and trigger debounced auto-save
   useEffect(() => {
-    // Skip the initial mount - diagram is fresh from server
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
     
-    // If we have a diagram parameter and the dataVersion just increased by 1 or 2
-    // from the initial, this is likely the diagram being loaded from URL
     if (hasDiagramParam && dataVersion <= initialDataVersion.current + 2) {
-      // Update the initial data version to the current one
       initialDataVersion.current = dataVersion;
-      return; // Don't mark as dirty
+      return;
     }
     
     setIsDirty(true);
     
-    // Trigger debounced auto-save if enabled
     if (autoSave && !execution.isRunning) {
       debouncedSave('quicksave.json');
     }
   }, [canvas.nodesArray, canvas.arrowsArray, canvas.personsArray, dataVersion, hasDiagramParam, autoSave, execution.isRunning, debouncedSave]);
   
-  // Clean up pending saves on unmount
   useEffect(() => {
     return () => {
       cancelPendingSave();
@@ -375,7 +329,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [cancelPendingSave]);
   
   return {
-    // State
     isEmpty,
     isDirty,
     canExecute,
@@ -384,7 +337,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     personCount,
     metadata,
     
-    // Operations
     newDiagram,
     saveDiagram,
     loadDiagramFromFile,
@@ -392,7 +344,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     exportDiagram: exportDiagramAs,
     importDiagram: importDiagramFile,
     
-    // Execution
     executeDiagram,
     stopExecution,
     isExecuting: execution.isRunning,

@@ -1,4 +1,4 @@
-import type { TypedPanelConfig, ArrowFormData } from '@/features/diagram-editor/types/panel';
+import type { PanelLayoutConfig, ArrowFormData } from '@/features/diagram-editor/types/panel';
 
 interface ExtendedArrowFormData extends ArrowFormData {
   contentType?: string;
@@ -6,7 +6,7 @@ interface ExtendedArrowFormData extends ArrowFormData {
   _sourceNodeType?: string;
 }
 
-export const arrowPanelConfig: TypedPanelConfig<ExtendedArrowFormData> = {
+export const arrowPanelConfig: PanelLayoutConfig<ExtendedArrowFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {

@@ -28,22 +28,6 @@ export type {
   OptionsConfig
 };
 
-// Legacy interface for backward compatibility
-export interface PanelFieldConfig extends BasePanelFieldConfig {
-  name?: string;
-  disabled?: boolean;
-  options?: OptionsConfig;
-  dependsOn?: string[];
-  conditional?: ConditionalConfig;
-  fields?: PanelFieldConfig[];
-}
-
-// Legacy interface for backward compatibility
-export interface PanelConfig<_T extends Record<string, unknown> = Record<string, unknown>> extends Omit<PanelLayoutConfig<_T>, 'fields' | 'leftColumn' | 'rightColumn'> {
-  fields?: PanelFieldConfig[];
-  leftColumn?: PanelFieldConfig[];
-  rightColumn?: PanelFieldConfig[];
-}
 
 // Node form data types - directly map to domain node data
 export type StartFormData = PanelFormData<StartNodeData>;
@@ -84,9 +68,5 @@ export interface PersonFormData extends Record<string, unknown> {
 // Re-export typed versions from shared types
 export type {
   TypedPanelFieldConfig,
-  PanelLayoutConfig as TypedPanelConfig
+  PanelLayoutConfig
 } from '@/core/types/panel';
-
-// Legacy type aliases for backward compatibility
-export type OptionsLoader<T = unknown> = OptionsConfig<T>;
-export type TypedConditionalConfig<T> = ConditionalConfig<T>;

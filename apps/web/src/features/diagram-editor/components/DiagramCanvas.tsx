@@ -254,8 +254,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   
   // Get viewport operations from store
   const setViewport = useUnifiedStore(state => state.setViewport);
-  const setZoom = useUnifiedStore(state => state.setZoom);
-  const setPosition = useUnifiedStore(state => state.setPosition);
   
   const handleInit = (inst: ReactFlowInstance) => {
     setRfInstance(inst);

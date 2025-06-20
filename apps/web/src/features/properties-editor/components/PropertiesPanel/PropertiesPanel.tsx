@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { ArrowData, Dict, DomainPerson } from '@/core/types';
-import { PanelConfig } from '@/features/diagram-editor/types/panel';
+import { PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
 import { NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
@@ -30,7 +30,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
   const GenericPanel = GenericPropertyPanel as React.FC<{
     nodeId: string;
     data: Record<string, unknown>;
-    config: PanelConfig<Record<string, unknown>>;
+    config: PanelLayoutConfig<Record<string, unknown>>;
   }>;
   
   const panelConfig = getPanelConfig(nodeType as NodeType | 'arrow' | 'person');
@@ -81,7 +81,7 @@ export const UniversalPropertiesPanel: React.FC<UniversalPropertiesPanelProps> =
         <GenericPanel
           nodeId={entityId}
           data={data as Record<string, unknown>}
-          config={panelConfig as PanelConfig<Record<string, unknown>>}
+          config={panelConfig as PanelLayoutConfig<Record<string, unknown>>}
         />
       </div>
     </div>

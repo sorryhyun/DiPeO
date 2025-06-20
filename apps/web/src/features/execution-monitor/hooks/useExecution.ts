@@ -87,11 +87,6 @@ export interface UseExecutionReturn {
   interactivePrompt: InteractivePromptData | null;
   respondToPrompt: (response: string) => void;
   
-  // Connection (for compatibility)
-  isConnected: boolean;
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  
   // UI Helpers
   formatTime: (startTime: Date | null, endTime: Date | null) => string;
   getNodeIcon: (nodeType: string) => string;
@@ -637,11 +632,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     interactivePrompt,
     respondToPrompt,
     
-    // Connection (for compatibility)
-    isConnected: true, // GraphQL is always "connected"
-    connect: async () => {}, // No-op for GraphQL
-    disconnect: () => {}, // No-op for GraphQL
-    
     // UI Helpers
     formatTime,
     getNodeIcon,
@@ -653,8 +643,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     nodeRunningStates,
     runContext: runContextRef.current,
     skippedNodes: skippedNodesRef.current,
-    
-    // Additional properties for compatibility
     runningNodes: executionActions.runningNodes,
     nodes: Array.from(executionActions.nodes.values()),
   };

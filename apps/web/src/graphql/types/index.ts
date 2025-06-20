@@ -46,7 +46,7 @@ export {
   type ArrowData
 } from './graphql-mappings';
 
-// Re-export semantic aliases from mappings for backward compatibility
+// Re-export semantic type aliases from mappings
 export type {
   DomainNode,
   DomainArrow,

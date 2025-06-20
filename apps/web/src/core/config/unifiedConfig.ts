@@ -4,7 +4,7 @@
  */
 
 import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
-import type { TypedPanelConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { FIELD_TYPES, type FieldType } from '@/core/types/panel';
 
 /**
@@ -44,7 +44,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
  */
 export function derivePanelConfig<T extends Record<string, unknown>>(
   config: UnifiedNodeConfig<T>
-): TypedPanelConfig<T> {
+): PanelLayoutConfig<T> {
 
   const panelFields: Array<TypedPanelFieldConfig<T>> = [];
   const customFieldsMap = new Map(

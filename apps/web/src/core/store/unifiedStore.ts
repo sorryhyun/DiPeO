@@ -3,9 +3,8 @@ import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { ArrowID, DomainApiKey, NodeID, PersonID, apiKeyId } from '@/core/types';
 import { entityIdGenerators } from '@/core/types/utilities';
-import { UnifiedStore, NodeState } from "./unifiedStore.types";
+import { UnifiedStore } from "./unifiedStore.types";
 // Removed deprecated imports - auto-save is now handled by the backend
-import { logger } from "@/shared/utils/logger";
 
 // Import slices
 import {
@@ -19,8 +18,7 @@ import {
 // Import helpers
 import { 
   createFullSnapshot, 
-  recordHistory, 
-  updateMap 
+  recordHistory 
 } from "./helpers/entityHelpers";
 import { 
   apiKeyCrud 
@@ -201,11 +199,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
           state.personsArray = [];
           state.dataVersion = 0;
         }),
-
-        // === Legacy Array selectors (for backward compatibility) ===
-        getNodes: () => get().nodesArray,
-        getArrows: () => get().arrowsArray,
-        getPersons: () => get().personsArray,
 
       }))
     ),

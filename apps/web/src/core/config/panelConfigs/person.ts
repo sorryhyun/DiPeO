@@ -1,4 +1,4 @@
-import type { TypedPanelConfig, PersonFormData } from '@/features/diagram-editor/types/panel';
+import type { PanelLayoutConfig, PersonFormData } from '@/features/diagram-editor/types/panel';
 import { apolloClient } from '@/graphql/client';
 import { GetApiKeysDocument, GetAvailableModelsDocument } from '@/__generated__/graphql';
 
@@ -9,7 +9,7 @@ interface ExtendedPersonFormData extends PersonFormData {
   systemPrompt?: string;
 }
 
-export const personPanelConfig: TypedPanelConfig<ExtendedPersonFormData> = {
+export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
   layout: 'twoColumn',
   leftColumn: [
     {

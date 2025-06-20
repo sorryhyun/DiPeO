@@ -82,7 +82,7 @@ export function toCanonicalExecutionState(
   const nodeOutputsDict: Record<string, any> = {};
   Object.entries(storeState.context).forEach(([nodeId, value]) => {
     nodeOutputsDict[nodeId] = {
-      value: value,
+      value,
       metadata: {},
     };
   });

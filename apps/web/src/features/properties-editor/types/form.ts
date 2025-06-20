@@ -5,12 +5,6 @@
 import { FIELD_TYPES, type ValidationResult, type FieldType } from '@/core/types/panel';
 
 /**
- * Legacy field validation result interface
- * @deprecated Use ValidationResult from @/core/types/panel
- */
-export type FieldValidationResult = Pick<ValidationResult, 'isValid' | 'error' | 'warning'>
-
-/**
  * Property field types for form rendering
  * Extended field types that include data types not in base panel fields
  */
@@ -50,5 +44,5 @@ export interface FormFieldConfig {
   min?: number;
   max?: number;
   options?: Array<{ value: string; label: string }>;
-  validation?: (value: unknown) => FieldValidationResult;
+  validation?: (value: unknown) => ValidationResult;
 }

@@ -2,18 +2,8 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useArrowOperations } from '../hooks';
 import { useUIState } from '@/shared/hooks/selectors';
-import { arrowId } from '@/core/types';
+import { arrowId, ArrowData } from '@/core/types';
 import { getQuadraticPoint } from '@/shared/utils/geometry';
-
-export interface ArrowData {
-  label?: string;
-  style?: React.CSSProperties;
-  controlPointOffsetX?: number;
-  controlPointOffsetY?: number;
-  loopRadius?: number;
-  branch?: 'true' | 'false';
-  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'empty' | 'generic';
-}
 
 export type CustomArrowProps = EdgeProps;
 
