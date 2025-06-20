@@ -424,7 +424,6 @@ class DiagramService(BaseService):
             path = 'quicksave.json'
             diagram_id = 'quicksave'
             
-            # Update metadata with ID
             if 'metadata' not in diagram_dict:
                 diagram_dict['metadata'] = {}
             diagram_dict['metadata']['id'] = diagram_id
@@ -453,7 +452,6 @@ class DiagramService(BaseService):
             path = f"{safe_name}_{unique_id}{extension}"
             diagram_id = Path(path).stem
             
-            # Update metadata with ID
             if 'metadata' not in diagram_dict:
                 diagram_dict['metadata'] = {}
             diagram_dict['metadata']['id'] = diagram_id

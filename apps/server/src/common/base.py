@@ -4,7 +4,7 @@ from pathlib import Path
 
 import os
 from .exceptions import ValidationError
-from .constants import SERVICE_TO_PROVIDER_MAP, DEFAULT_SERVICE
+from .constants import SERVICE_ALIASES, DEFAULT_SERVICE
 
 
 class BaseService(ABC):
@@ -32,7 +32,7 @@ class BaseService(ABC):
     def normalize_service_name(self, service: str) -> str:
         """Normalize service name to provider name using centralized mapping."""
         normalized = (service or DEFAULT_SERVICE).lower()
-        return SERVICE_TO_PROVIDER_MAP.get(normalized, normalized)
+        return SERVICE_ALIASES.get(normalized, normalized)
     
     def safe_get_nested(self, obj: Any, path: str, default: Any = None) -> Any:
         """Safely get nested value from object using dot notation."""

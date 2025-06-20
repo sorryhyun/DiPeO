@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Tuple, Union
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from src.__generated__.models import LLMService as LLMServiceEnum
-from src.common.constants import PROVIDER_TO_ENUM_MAP
+from src.common.constants import VALID_LLM_SERVICES
 from src.__generated__.models import TokenUsage
 from src.domains.llm.service_utils.token_usage_service import TokenUsageService
 from src.common.exceptions import LLMServiceError, APIKeyError
@@ -35,7 +35,7 @@ class LLMService(BaseService):
         provider = self.normalize_service_name(service)
         
         # Validate provider is supported
-        if provider not in PROVIDER_TO_ENUM_MAP:
+        if provider not in VALID_LLM_SERVICES:
             raise LLMServiceError(f"Unsupported LLM service: {service}")
         
         # Use pooling - cache key includes provider, model, and api_key_id

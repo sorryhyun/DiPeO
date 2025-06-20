@@ -32,22 +32,17 @@ class SimpleStateStore:
         self._lock = asyncio.Lock()
         
     async def initialize(self):
-        """Initialize database connection and schema."""
         await self._connect()
         await self._init_schema()
         
     async def cleanup(self):
-        """Close database connection."""
         if self._conn:
             await asyncio.to_thread(self._conn.close)
             self._conn = None
             
     async def _connect(self):
-        """Create database connection."""
-        # Ensure directory exists
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         
-        # Create connection with proper settings
         self._conn = await asyncio.to_thread(
             sqlite3.connect,
             self.db_path,
@@ -55,7 +50,6 @@ class SimpleStateStore:
             isolation_level=None  # Autocommit mode
         )
         
-        # Enable WAL mode for better concurrency
         await asyncio.to_thread(
             self._conn.execute,
             "PRAGMA journal_mode=WAL"
@@ -86,7 +80,6 @@ class SimpleStateStore:
         
     async def create_execution(self, execution_id: str, diagram_id: Optional[str] = None,
                             variables: Optional[Dict[str, Any]] = None) -> ExecutionState:
-        """Create a new execution state."""
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(execution_id),
@@ -209,7 +202,6 @@ class SimpleStateStore:
         
         now = datetime.now().isoformat()
         
-        # Create or update node state
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
@@ -235,7 +227,6 @@ class SimpleStateStore:
         # Store output if completed
         if status == NodeExecutionStatus.COMPLETED and output is not None:
             state.node_outputs[node_id] = output
-            # Update token usage if available
             if output.metadata and "tokenUsage" in output.metadata:
                 token_usage_data = output.metadata["tokenUsage"]
                 if isinstance(token_usage_data, dict):
@@ -310,9 +301,7 @@ class SimpleStateStore:
             (cutoff_iso,)
         )
         
-        # Vacuum to reclaim space
         await asyncio.to_thread(self._conn.execute, "VACUUM")
 
 
-# Global state store instance
 state_store = SimpleStateStore()

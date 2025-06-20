@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 from .schemas.base import BaseNodeProps
-from .types import ExecutionContext
+from .types import ExecutionContext, NodeOutput
 from .executor_utils import substitute_variables
 from .decorators import node
 
@@ -52,7 +52,7 @@ async def start_handler(
     props: StartNodeProps,
     context: ExecutionContext,
     inputs: Dict[str, Any]
-) -> Any:
+) -> NodeOutput:
     """
     Handle Start node execution.
     
@@ -66,7 +66,10 @@ async def start_handler(
     
     logger.info(f"Start node output: {output}")
     
-    return output
+    return NodeOutput(
+        value=output,
+        metadata={"node_type": "start"}
+    )
 
 
 # UserResponse Node
@@ -90,7 +93,7 @@ async def user_response_handler(
     props: UserResponseNodeProps,
     context: ExecutionContext,
     inputs: Dict[str, Any]
-) -> Any:
+) -> NodeOutput:
     """Handle UserResponse node execution"""
     
     node_id = context.current_node_id
@@ -119,55 +122,67 @@ async def user_response_handler(
                 )
                 
                 # User provided response
-                return {
-                    "response": response,
-                    "timeout": False,
-                    "prompt": processed_prompt,
-                    "metadata": {
+                return NodeOutput(
+                    value={
+                        "response": response,
+                        "timeout": False,
+                        "prompt": processed_prompt
+                    },
+                    metadata={
                         "timeout_seconds": props.timeout,
-                        "user_responded": True
+                        "user_responded": True,
+                        "node_type": "user_response"
                     }
-                }
+                )
                 
             except asyncio.TimeoutError:
                 # Handle timeout
                 logger.info(f"User response timeout for node {node_id} after {props.timeout} seconds")
                 
-                return {
-                    "response": None,
-                    "timeout": True,
-                    "prompt": processed_prompt,
-                    "metadata": {
+                return NodeOutput(
+                    value={
+                        "response": None,
+                        "timeout": True,
+                        "prompt": processed_prompt
+                    },
+                    metadata={
                         "timeout_seconds": props.timeout,
-                        "user_responded": False
+                        "user_responded": False,
+                        "node_type": "user_response"
                     }
-                }
+                )
         else:
             # No interactive handler available - return timeout
             logger.warning(f"No interactive handler available for user response in node {node_id}")
-            return {
-                "response": None,
-                "timeout": True,
-                "prompt": processed_prompt,
-                "error": "No interactive handler available",
-                "metadata": {
+            return NodeOutput(
+                value={
+                    "response": None,
+                    "timeout": True,
+                    "prompt": processed_prompt,
+                    "error": "No interactive handler available"
+                },
+                metadata={
                     "timeout_seconds": props.timeout,
-                    "user_responded": False
+                    "user_responded": False,
+                    "node_type": "user_response"
                 }
-            }
+            )
             
     except Exception as e:
         logger.error(f"Error in user_response node {node_id}: {str(e)}")
-        return {
-            "response": None,
-            "timeout": False,
-            "prompt": processed_prompt,
-            "error": str(e),
-            "metadata": {
+        return NodeOutput(
+            value={
+                "response": None,
+                "timeout": False,
+                "prompt": processed_prompt,
+                "error": str(e)
+            },
+            metadata={
                 "timeout_seconds": props.timeout,
-                "user_responded": False
+                "user_responded": False,
+                "node_type": "user_response"
             }
-        }
+        )
 
 
 # Node definitions are now registered via decorators

@@ -3,7 +3,6 @@ import strawberry
 from typing import Optional
 import logging
 from datetime import datetime
-import json
 
 from ..types.results import DiagramResult, DeleteResult
 from ..types.scalars import DiagramID, JSONScalar as JSON

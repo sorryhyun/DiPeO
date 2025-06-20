@@ -89,31 +89,26 @@ class UnifiedExecutor:
             output = await definition.handler(props, context, inputs, services)
             execution_time = time.time() - start_time
             
-            # Handle NodeOutput format
-            if isinstance(output, NodeOutput):
-                # Extract token usage from metadata if present
-                token_usage = None
-                if output.metadata and "tokenUsage" in output.metadata:
-                    token_usage = output.metadata["tokenUsage"]
-                
-                result = ExecutorResult(
-                    output=output.value,
-                    error=None,
-                    node_id=node_id,
-                    execution_time=execution_time,
-                    token_usage=token_usage,
-                    metadata=output.metadata or {"node_type": node_type}
+            # All handlers must return NodeOutput format
+            if not isinstance(output, NodeOutput):
+                raise RuntimeError(
+                    f"Handler for node type '{node_type}' must return NodeOutput instance, "
+                    f"got {type(output).__name__} instead"
                 )
-            else:
-                # Backward compatibility for direct outputs
-                result = ExecutorResult(
-                    output=output,
-                    error=None,
-                    node_id=node_id,
-                    execution_time=execution_time,
-                    token_usage=None,
-                    metadata={"node_type": node_type}
-                )
+            
+            # Extract token usage from metadata if present
+            token_usage = None
+            if output.metadata and "tokenUsage" in output.metadata:
+                token_usage = output.metadata["tokenUsage"]
+            
+            result = ExecutorResult(
+                output=output.value,
+                error=None,
+                node_id=node_id,
+                execution_time=execution_time,
+                token_usage=token_usage,
+                metadata=output.metadata or {"node_type": node_type}
+            )
             
             
             return result

@@ -52,7 +52,7 @@ class Query:
         from .resolvers import execution_resolver
         return await execution_resolver.list_executions(filter, limit, offset, info)
     
-    @strawberry.field
+    @strawberry.field(deprecation_reason="Events are no longer stored. Use execution state subscriptions instead.")
     async def execution_events(
         self,
         execution_id: ExecutionID,
@@ -60,7 +60,10 @@ class Query:
         since_sequence: Optional[int] = None,
         limit: int = 1000
     ) -> List[ExecutionEvent]:
-        """Get execution events for a specific execution."""
+        """
+        DEPRECATED: Get execution events for a specific execution.
+        Always returns an empty list as events are no longer stored.
+        """
         from .resolvers import execution_resolver
         return await execution_resolver.get_execution_events(
             execution_id, since_sequence, limit, info

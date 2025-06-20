@@ -229,7 +229,6 @@ class YamlBasedConverter(EnhancedDiagramConverter):
     
     @abstractmethod
     def _calculate_format_confidence(self, data: Dict[str, Any]) -> float:
-        """Calculate format-specific confidence score."""
         pass
 
 
@@ -258,5 +257,4 @@ class JsonBasedConverter(EnhancedDiagramConverter):
     
     @abstractmethod
     def _calculate_format_confidence(self, data: Dict[str, Any]) -> float:
-        """Calculate format-specific confidence score."""
         pass

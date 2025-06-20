@@ -1,7 +1,6 @@
 """Custom scalar types for DiPeO GraphQL schema."""
 import strawberry
 from typing import NewType, Any
-import json
 
 # Import the canonical NewTypes from generated models
 from src.__generated__.models import (

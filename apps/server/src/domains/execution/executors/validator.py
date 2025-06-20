@@ -3,7 +3,6 @@ Validation utilities for executor operations.
 Contains all validation logic extracted from utils.py.
 """
 from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING
-import json
 from dataclasses import dataclass, field
 
 if TYPE_CHECKING:

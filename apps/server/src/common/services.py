@@ -13,14 +13,14 @@ import io
 from config import BASE_DIR, UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR
 from .exceptions import APIKeyError, ValidationError, FileOperationError
 from .base import BaseService
-from src.__generated__.models import LLMService as LLMServiceEnum
+from .constants import VALID_LLM_SERVICES
 
 
 class APIKeyService(BaseService):
     """Service for managing API keys."""
     
     # Include both LLM services and other external services
-    VALID_SERVICES = {service.value for service in LLMServiceEnum} | {"notion"}
+    VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
     
     def __init__(self, store_file: Optional[str] = None):
         super().__init__()

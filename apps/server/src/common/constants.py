@@ -2,7 +2,6 @@
 Shared domain constants used across the system.
 """
 from typing import Final, Dict, Set
-from src.__generated__.models import LLMService
 
 # API Configuration
 API_BASE_PATH: Final[str] = "/api"
@@ -16,30 +15,18 @@ SUPPORTED_DOC_EXTENSIONS: Final[Set[str]] = {".txt", ".md", ".docx", ".pdf"}
 SUPPORTED_CODE_EXTENSIONS: Final[Set[str]] = {".py", ".js", ".ts", ".json", ".yaml", ".yml"}
 SUPPORTED_DIAGRAM_EXTENSIONS: Final[Set[str]] = {".json", ".yaml", ".yml"}
 
-# Service name mapping for normalization
-SERVICE_TO_PROVIDER_MAP: Final[Dict[str, str]] = {
-    "openai": "openai",
+# Service aliases (only non-identity mappings)
+SERVICE_ALIASES: Final[Dict[str, str]] = {
     "chatgpt": "openai",
     "claude": "anthropic",
-    "anthropic": "anthropic",
     "gemini": "google",
-    "google": "google",
-    "grok": "xai",
-    "xai": "xai",
-    "bedrock": "bedrock",
-    "vertex": "vertex",
-    "deepseek": "deepseek"
+    "xai": "grok"
 }
 
-# Provider to LLM service enum mapping
-PROVIDER_TO_ENUM_MAP: Final[Dict[str, LLMService]] = {
-    "openai": LLMService.openai,
-    "anthropic": LLMService.anthropic,
-    "google": LLMService.google,
-    "xai": LLMService.grok,
-    "bedrock": LLMService.bedrock,
-    "vertex": LLMService.vertex,
-    "deepseek": LLMService.deepseek
+# Valid LLM services
+VALID_LLM_SERVICES: Final[Set[str]] = {
+    "openai", "anthropic", "google", "grok", 
+    "bedrock", "vertex", "deepseek"
 }
 
 # Default service when none specified

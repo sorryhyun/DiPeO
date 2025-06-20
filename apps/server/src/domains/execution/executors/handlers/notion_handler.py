@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from ..schemas.notion import NotionNodeProps, NotionOperation
-from ..types import ExecutionContext
+from ..types import ExecutionContext, NodeOutput
 from ..decorators import node
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ async def notion_handler(
     context: ExecutionContext,
     inputs: Dict[str, Any],
     services: Dict[str, Any]
-) -> Any:
+) -> NodeOutput:
     """Handle Notion node execution for various API operations"""
     
     operation = props.operation
@@ -71,7 +71,13 @@ async def notion_handler(
             raise ValueError(f"Unknown operation: {operation}")
         
         logger.info(f"Notion operation completed successfully")
-        return result
+        return NodeOutput(
+            value=result,
+            metadata={
+                "node_type": "notion",
+                "operation": operation
+            }
+        )
         
     except Exception as e:
         error_msg = f"Notion operation failed: {str(e)}"

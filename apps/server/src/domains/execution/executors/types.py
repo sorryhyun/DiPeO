@@ -64,10 +64,6 @@ class RuntimeExecutionContext:
         self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
 
 
-# Type aliases for backward compatibility
-ExecutionContext = RuntimeExecutionContext
-NodeDefinition = RuntimeNodeDefinition
-
 # Serializable types for API/persistence
 SerializableExecutionContext = GeneratedExecutionContext
 SerializableNodeDefinition = GeneratedNodeDefinition

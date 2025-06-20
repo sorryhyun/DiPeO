@@ -102,12 +102,10 @@ class PersonResolver:
             return []
     
     def _map_service(self, service: str) -> LLMService:
-        """Map service string to LLMService enum using Pydantic enum."""
-        # The Pydantic enum handles legacy values automatically
+        """Map service string to LLMService enum."""
         try:
             return LLMService(service.lower())
         except ValueError:
-            # Fallback to openai if unknown service
-            return LLMService.openai
+            raise ValueError(f"Unknown LLM service: {service}")
 
 person_resolver = PersonResolver()

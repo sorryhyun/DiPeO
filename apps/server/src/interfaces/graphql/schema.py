@@ -12,13 +12,7 @@ schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
     subscription=Subscription,
-    # Add extensions for monitoring and optimization
-    extensions=[
-        # Add query depth limiter to prevent complex queries
-        # QueryDepthLimiter(max_depth=10),
-        # Add max tokens limiter
-        # MaxTokensLimiter(max_tokens=5000),
-    ]
+    extensions=[]
 )
 
 # Create GraphQL router for FastAPI integration

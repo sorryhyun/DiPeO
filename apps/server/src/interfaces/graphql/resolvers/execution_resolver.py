@@ -110,10 +110,11 @@ class ExecutionResolver:
         limit: int,
         info
     ) -> List[ExecutionEvent]:
-        """Get execution events for a specific execution."""
-        # Events are no longer stored with the new SimpleStateStore
-        # This method returns an empty list for backward compatibility
-        logger.info(f"get_execution_events called for {execution_id} - returning empty list (events no longer stored)")
+        """
+        DEPRECATED: Events are no longer stored. Use execution state subscriptions instead.
+        This method always returns an empty list.
+        """
+        logger.warning(f"DEPRECATED: get_execution_events called for {execution_id} - events are no longer stored")
         return []
     
 execution_resolver = ExecutionResolver()

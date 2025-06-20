@@ -39,18 +39,15 @@ class Node:
     
     @property
     def is_pj(self) -> bool:  # PersonJob & friends
-        return self.type.lower() in {
-            "personjob", "personbatchjob",
-            "person_job", "person_batch_job"
-        }
+        return self.type in {"person_job", "person_batch_job"}
 
 
 @dataclass(slots=True)
 class Arrow:
     source: str
     target: str
-    s_handle: str = ""  # sourceHandle
-    t_handle: str = ""  # targetHandle
+    source_handle: str = ""
+    target_handle: str = ""
     label: str = ""
 
 
@@ -96,44 +93,17 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
     # Only handle Record format (dict) for arrows
     arrows = diagram.get("arrows", {})
     for a in arrows.values():
-        # Arrow source / target may come in two different shapes depending on
-        # who created the diagram:
-        #   1.  Modern format  →  {
-        #         "source": "node_id",
-        #         "sourceHandle": "default",
-        #         ...
-        #       }
-        #   2.  Legacy / compact → "source": "node_id:default"  (same for
-        #      target).  The backend engine historically expected the *node*
-        #      identifier only, with the handle stored separately.  If we get
-        #      the compact variant we therefore need to split it so that the
-        #      rest of the engine sees consistent data irrespective of the
-        #      client that produced the diagram.
-
-        def _split_handle(field: str, handle: str | None) -> tuple[str, str]:
-            """Return (node_id, handle_label) taking legacy `node:handle` into
-            account.  *handle* has priority because that means the caller
-            already provided a clean separation.
-            """
-            if handle:  # already explicit -> nothing to do
-                return field, handle
-            if ":" in field:
-                node_id, h = field.split(":", 1)
-                return node_id, h
-            return field, ""
-
-        src_node, s_handle = _split_handle(
-            a["source"], a.get("sourceHandle")
-        )
-        tgt_node, t_handle = _split_handle(
-            a["target"], a.get("targetHandle")
-        )
+        # Modern format uses separate source/sourceHandle and target/targetHandle fields
+        src_node = a["source"]
+        source_handle = a.get("sourceHandle", "")
+        tgt_node = a["target"]
+        target_handle = a.get("targetHandle", "")
 
         ar = Arrow(
             src_node,
             tgt_node,
-            s_handle,
-            t_handle,
+            source_handle,
+            target_handle,
             a.get("label", ""),
         )
         inc[ar.target].append(ar)
