@@ -1,10 +1,5 @@
 import os
-import sys
 import logging
-from pathlib import Path
-
-# Add src to Python path for dipeo_server imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response

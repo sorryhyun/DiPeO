@@ -12,7 +12,6 @@ cachetools==5.5.2
 certifi==2025.6.15
 charset-normalizer==3.4.2
 dill==0.3.8
--e git+https://github.com/sorryhyun/DiPeO.git@4970a5f9e325ede019e358a0b57995668b8270ae#egg=dipeo&subdirectory=apps/cli
 -e ./packages/python/dipeo_domain
 distro==1.9.0
 fastapi==0.115.13
