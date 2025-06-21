@@ -6,11 +6,11 @@ from typing import AsyncGenerator, Optional, TYPE_CHECKING
 from fastapi import FastAPI
 
 from .services import APIKeyService, FileService
-from src.domains.llm.services import LLMService  # Import from services.py file
-from src.domains.diagram.services import DiagramService
-from src.domains.person.memory import MemoryService
-from src.domains.execution.services.execution_service import ExecutionService
-from src.domains.integrations.notion import NotionService
+from src.domains.llm import LLMServiceClass as LLMService
+from src.domains.diagram import DiagramService
+from src.domains.person import SimplifiedMemoryService as MemoryService
+from src.domains.execution import ExecutionService
+from src.domains.integrations import NotionService
 from src.domains.execution.services.message_router_simple import message_router
 from src.domains.execution.services.simple_state_store import state_store
 from src.domains.execution.services.service_factory import service_factory

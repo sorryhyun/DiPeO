@@ -7,7 +7,7 @@ import logging
 from ..types.domain import DomainDiagramType as GraphQLDiagram, DiagramMetadata
 from ..types.scalars import DiagramID
 from ..types.inputs import DiagramFilterInput
-from src.domains.diagram.services import DiagramService
+from src.domains.diagram import DiagramService
 from src.domains.diagram.converters import diagram_dict_to_graphql
 from src.__generated__.models import DiagramDictFormat
 

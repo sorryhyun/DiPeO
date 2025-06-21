@@ -2,6 +2,7 @@
 Test GraphQL file upload functionality.
 """
 import pytest
+import pytest_asyncio
 import asyncio
 from pathlib import Path
 import sys
@@ -19,7 +20,7 @@ from gql.transport.aiohttp import AIOHTTPTransport
 # Test configuration
 GRAPHQL_URL = "http://localhost:8000/graphql"
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def gql_client():
     """Create GraphQL client with multipart support."""
     transport = AIOHTTPTransport(

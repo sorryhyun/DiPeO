@@ -3,6 +3,7 @@ Integration tests for GraphQL API covering the happy path.
 Tests query → mutation → subscription flow.
 """
 import pytest
+import pytest_asyncio
 import asyncio
 import json
 from typing import Dict, Any, AsyncGenerator
@@ -21,14 +22,14 @@ from gql.transport.websockets import WebsocketsTransport
 GRAPHQL_URL = "http://localhost:8000/graphql"
 GRAPHQL_WS_URL = "ws://localhost:8000/graphql"
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def gql_client():
     """Create GraphQL client for testing."""
     transport = AIOHTTPTransport(url=GRAPHQL_URL)
     client = Client(transport=transport, fetch_schema_from_transport=True)
     return client
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def gql_ws_client():
     """Create GraphQL WebSocket client for subscriptions."""
     transport = WebsocketsTransport(url=GRAPHQL_WS_URL)

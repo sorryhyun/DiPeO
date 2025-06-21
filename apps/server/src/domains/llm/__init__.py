@@ -1,5 +1,12 @@
+# Barrel exports for llm domain
+from src.__generated__.models import (
+    LLMService,
+    ForgettingMode
+)
+
 from .base import BaseAdapter, ChatResult
 from .factory import create_adapter
+from .services import LLMService as LLMServiceClass
 
 # Supported models mapping
 SUPPORTED_MODELS = {
@@ -7,6 +14,7 @@ SUPPORTED_MODELS = {
     "gpt-4o-mini": "openai",
     "gpt-4-turbo": "openai",
     "gpt-3.5-turbo": "openai",
+    "gpt-4.1-nano": "openai",
     "claude-3-5-sonnet-20241022": "anthropic",
     "claude-3-opus-20240229": "anthropic",
     "claude-3-haiku-20240307": "anthropic",
@@ -17,4 +25,15 @@ SUPPORTED_MODELS = {
     "grok-2-vision-1212": "xai"
 }
 
-__all__ = ['BaseAdapter', 'ChatResult', 'create_adapter', 'SUPPORTED_MODELS']
+__all__ = [
+    # Enums from generated models
+    'LLMService',
+    'ForgettingMode',
+    
+    # Services and utilities
+    'BaseAdapter', 
+    'ChatResult', 
+    'create_adapter', 
+    'SUPPORTED_MODELS',
+    'LLMServiceClass'
+]

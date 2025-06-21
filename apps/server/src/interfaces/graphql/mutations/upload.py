@@ -14,7 +14,7 @@ from pathlib import Path
 import uuid
 import logging
 
-from src.domains.diagram.services import DiagramService
+from src.domains.diagram import DiagramService
 from src.common.services import APIKeyService
 from src.domains.diagram.models import DiagramMetadata, DomainDiagram, DiagramDictFormat
 from src.domains.diagram.converters import converter_registry, diagram_dict_to_graphql
