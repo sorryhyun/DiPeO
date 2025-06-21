@@ -3,15 +3,9 @@ Job node schema - defines properties for code execution nodes
 """
 
 from pydantic import BaseModel, Field, field_validator
-from enum import Enum
+from src.__generated__.models import SupportedLanguage
 from ..validation_helpers import CodeValidator
 
-
-class SupportedLanguage(str, Enum):
-    """Supported programming languages for job execution"""
-    PYTHON = "python"
-    JAVASCRIPT = "javascript"
-    BASH = "bash"
 
 
 class JobNodeProps(BaseModel):
@@ -24,7 +18,7 @@ class JobNodeProps(BaseModel):
     )
     
     language: SupportedLanguage = Field(
-        SupportedLanguage.PYTHON,
+        SupportedLanguage.python,
         description="Programming language for code execution"
     )
     
@@ -47,7 +41,7 @@ class JobNodeProps(BaseModel):
     @classmethod
     def validate_code_safety(cls, v: str, info) -> str:
         """Validate code for dangerous patterns using simplified validator"""
-        language = info.data.get('language', SupportedLanguage.PYTHON)
+        language = info.data.get('language', SupportedLanguage.python)
         
         # Use the simplified CodeValidator
         error = CodeValidator.validate(v, language.value, strict=True)

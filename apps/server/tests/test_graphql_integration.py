@@ -18,8 +18,8 @@ from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.websockets import WebsocketsTransport
 
 # Test configuration
-GRAPHQL_URL = "http://localhost:8100/graphql"
-GRAPHQL_WS_URL = "ws://localhost:8100/graphql"
+GRAPHQL_URL = "http://localhost:8000/graphql"
+GRAPHQL_WS_URL = "ws://localhost:8000/graphql"
 
 @pytest.fixture
 async def gql_client():

@@ -26,10 +26,10 @@ def _import_all_handlers():
     
     # Import all handler modules - using v2 versions where available
     from .handlers import (  # noqa: F401
-        condition_handler_v2,
-        db_handler_v2,
-        endpoint_handler_v2,
-        job_handler_v2,
-        notion_handler_v2,
-        person_job_handler_v2,
+        condition_handler,
+        db_handler,
+        endpoint_handler,
+        job_handler,
+        notion_handler,
+        person_job_handler,
     )

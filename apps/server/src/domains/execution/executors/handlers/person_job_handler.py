@@ -1,15 +1,14 @@
-"""Refactored PersonJob handler using BaseNodeHandler."""
-
 from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from ..schemas.person_job import PersonJobProps, PersonBatchJobProps, PersonConfig
+from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import RuntimeExecutionContext
 from ..decorators import node
 from ..utils import BaseNodeHandler, log_action
-from src.domains.llm.services.token_usage_service import TokenUsageService
+from src.domains.llm.service_utils.token_usage_service import TokenUsageService
 from src.common.processors import OutputProcessor
+from src.__generated__.models import PersonConfiguration, TokenUsage
 
 
 @node(
@@ -19,13 +18,7 @@ from src.common.processors import OutputProcessor
     requires_services=["llm_service", "memory_service", "interactive_handler"]
 )
 class PersonJobHandler(BaseNodeHandler):
-    """PersonJob handler with LLM execution and memory management.
-    
-    This refactored version eliminates ~100 lines of boilerplate by:
-    - Inheriting error handling, timing, and service validation
-    - Simplifying metadata building
-    - Focusing only on core LLM execution logic
-    """
+    # PersonJob handler with LLM execution and memory management.
     
     async def _execute_core(
         self,
@@ -55,14 +48,9 @@ class PersonJobHandler(BaseNodeHandler):
         prompt = props.get_effective_prompt(execution_count)
         if not prompt:
             raise ValueError("No prompt available")
-        
-        # Resolve person configuration
+
         person = await self._resolve_person(props, context)
-        
-        # Get conversation inputs from connected nodes
         conversation_inputs = await self._get_conversation_inputs(context, node_id)
-        
-        # Substitute variables in prompt
         final_prompt = props.substitute_variables(prompt, inputs)
         
         # Get services (already validated by base class)
@@ -93,7 +81,7 @@ class PersonJobHandler(BaseNodeHandler):
                 prompt=final_prompt,
                 context={
                     "person_id": person_id,
-                    "person_name": props.label or person.name or "Person",
+                    "person_name": props.label or person.label or "Person",
                     "model": person.model,
                     "service": person.service,
                     "execution_count": execution_count
@@ -114,14 +102,14 @@ class PersonJobHandler(BaseNodeHandler):
         )
         
         # Call LLM service
-        service = person.service or await self._get_service_from_api_key(person.api_key_id, context)
+        service = person.service or await self._get_service_from_api_key(str(person.api_key_id) if person.api_key_id else "", context)
         
         response = await llm_service.call_llm(
             service=service,
-            api_key_id=person.api_key_id,
+            api_key_id=str(person.api_key_id) if person.api_key_id else "",
             model=person.model,
             messages=messages,
-            system_prompt=person.systemPrompt or ""
+            system_prompt=person.system_prompt or ""
         )
         
         usage = TokenUsageService.from_response(response)
@@ -175,7 +163,7 @@ class PersonJobHandler(BaseNodeHandler):
         
         return metadata
     
-    async def _resolve_person(self, props: PersonJobProps, context: RuntimeExecutionContext) -> PersonConfig:
+    async def _resolve_person(self, props: PersonJobProps, context: RuntimeExecutionContext) -> PersonConfiguration:
         """Resolve person from ID or inline config."""
         if props.person:
             return props.person
@@ -186,18 +174,20 @@ class PersonJobHandler(BaseNodeHandler):
         if not person:
             raise ValueError(f"Person not found: {props.personId}")
         
-        # Convert to PersonConfig if needed
+        # Convert to PersonConfiguration if needed
         if isinstance(person, dict):
-            return PersonConfig(**person)
+            return PersonConfiguration(**person)
         
         return person
     
     async def _get_service_from_api_key(self, api_key_id: str, context: RuntimeExecutionContext) -> str:
         """Get service type from API key."""
         try:
-            from src.common.utils.app_context import app_context
-            api_key_info = app_context.api_key_service.get_api_key(api_key_id)
-            return api_key_info.get("service", "openai")
+            from src.common import app_context
+            if app_context.api_key_service:
+                api_key_info = app_context.api_key_service.get_api_key(api_key_id)
+                return api_key_info.get("service", "openai")
+            return "openai"
         except Exception as e:
             self.logger.warning(f"Failed to get API key info for {api_key_id}: {e}")
             return "openai"
@@ -231,7 +221,7 @@ class PersonJobHandler(BaseNodeHandler):
         execution_id: str,
         node_id: str,
         node_label: str,
-        usage: TokenUsageService
+        usage: TokenUsage
     ) -> None:
         """Store conversation messages in memory service."""
         # Store user message
@@ -254,7 +244,7 @@ class PersonJobHandler(BaseNodeHandler):
             role="assistant",
             node_id=node_id,
             node_label=node_label,
-            token_count=usage.total,
+            token_count=usage.input + usage.output,
             input_tokens=usage.input,
             output_tokens=usage.output,
             cached_tokens=usage.cached

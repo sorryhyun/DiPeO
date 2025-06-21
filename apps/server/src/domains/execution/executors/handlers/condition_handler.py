@@ -1,5 +1,3 @@
-"""Refactored condition handler using BaseNodeHandler."""
-
 from __future__ import annotations
 
 from typing import Any, Dict

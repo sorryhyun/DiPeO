@@ -21,7 +21,7 @@ server/diagrams
 docs/deprecated
 TODO.md
 *.tsbuildinfo
-
+.ruff_cache
 apps/web/src/__generated__
 apps/server/src/__generated__
 apps/packages/domain-models/__generated__

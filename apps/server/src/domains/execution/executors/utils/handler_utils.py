@@ -6,7 +6,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from ..types import ExecutionContext
+from src.__generated__ import ExecutionContext
 from src.common.processors import OutputProcessor
 from .. import executor_utils
 
@@ -17,14 +17,7 @@ _VAR_PATTERN = re.compile(r"\{\{(\w+)\}\}")
 
 
 def safe_eval(expr: str, inputs: Dict[str, Any], ctx: ExecutionContext) -> bool:
-    """Tiny, dependency‑free expression evaluator.
-
-    Supported:
-      * Python boolean/arithmetic operators
-      * JS aliases: &&, ||, ===, !==
-      * Variable placeholders: {{var}} or bare identifiers
-      * Special "executionCount" variable (loop counter)
-    """
+    # Tiny, dependency‑free expression evaluator.
 
     namespace: Dict[str, Any] = {"executionCount": ctx.exec_cnt, **inputs}
 
@@ -71,17 +64,7 @@ def _fmt(val: Any) -> str:
 
 
 def process_inputs(inputs: Dict[str, Any]) -> List[Any]:
-    """Process inputs to extract values and handle special output types.
-    
-    This is the canonical version that properly handles PersonJob outputs
-    using the OutputProcessor to unwrap structured outputs.
-    
-    Args:
-        inputs: Dictionary of inputs from connected nodes
-        
-    Returns:
-        List of processed input values
-    """
+    # Process inputs to extract values and handle special output types.
     if not inputs:
         return []
     
@@ -95,19 +78,8 @@ def process_inputs(inputs: Dict[str, Any]) -> List[Any]:
 
 
 def substitute_variables(template: str, mapping: Dict[str, Any]) -> str:
-    """Replace {{key}}, ${key}, $key placeholders with values from mapping.
-    
-    This is a thin wrapper around executor_utils.substitute_variables that also
-    supports $var syntax (without braces).
-    
-    Args:
-        template: String containing variable placeholders
-        mapping: Dictionary mapping variable names to values
-        
-    Returns:
-        String with all placeholders replaced
-    """
-    # First use the standard executor_utils function for {{key}} syntax
+    # Replace {{key}}, ${key}, $key placeholders with values from mapping.
+
     result = executor_utils.substitute_variables(template, mapping)
     
     # Then handle ${key} and $key syntax
@@ -121,15 +93,7 @@ def substitute_variables(template: str, mapping: Dict[str, Any]) -> str:
 
 
 def get_api_key(api_key_id: str, context: ExecutionContext) -> Optional[str]:
-    """Get API key from execution context.
-    
-    Args:
-        api_key_id: ID of the API key to retrieve
-        context: Execution context containing API keys
-        
-    Returns:
-        The API key value if found, None otherwise
-    """
+    # Get API key from execution context.
     if not hasattr(context, 'api_keys'):
         return None
     
@@ -140,14 +104,7 @@ def get_api_key(api_key_id: str, context: ExecutionContext) -> Optional[str]:
 
 
 def log_action(logger: logging.Logger, node_id: str, action: str, **extra) -> None:
-    """Consistent logging helper for node actions.
-    
-    Args:
-        logger: Logger instance to use
-        node_id: ID of the node performing the action
-        action: Description of the action being performed
-        **extra: Additional context to include in the log
-    """
+    # Consistent logging helper for node actions.
     log_data = {
         "node_id": node_id,
         "action": action,

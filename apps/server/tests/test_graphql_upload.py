@@ -17,7 +17,7 @@ from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 
 # Test configuration
-GRAPHQL_URL = "http://localhost:8100/graphql"
+GRAPHQL_URL = "http://localhost:8000/graphql"
 
 @pytest.fixture
 async def gql_client():

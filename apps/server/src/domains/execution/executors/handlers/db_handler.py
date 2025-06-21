@@ -1,5 +1,3 @@
-"""Refactored DB handler using BaseNodeHandler."""
-
 from __future__ import annotations
 
 import asyncio
@@ -8,7 +6,8 @@ import json
 import sys
 from typing import Any, Callable, Dict, List
 
-from ..schemas.db import DBNodeProps, DBSubType
+from src.__generated__.models import DBBlockSubType
+from ..schemas.db import DBNodeProps
 from ..types import RuntimeExecutionContext
 from ..decorators import node
 from ..utils import BaseNodeHandler, process_inputs, log_action
@@ -48,11 +47,11 @@ class DBHandler(BaseNodeHandler):
         )
         
         # Define operation handlers
-        operations: Dict[DBSubType, Callable[[], Any]] = {
-            DBSubType.FILE: lambda: self._execute_file_read(source_details, services["file_service"]),
-            DBSubType.FIXED_PROMPT: lambda: self._execute_fixed_prompt(source_details),
-            DBSubType.CODE: lambda: self._execute_code(source_details, self._prepare_code_inputs(inputs)),
-            DBSubType.API_TOOL: lambda: self._execute_api_tool(source_details, context),
+        operations: Dict[DBBlockSubType, Callable[[], Any]] = {
+            DBBlockSubType.file: lambda: self._execute_file_read(source_details, services["file_service"]),
+            DBBlockSubType.fixed_prompt: lambda: self._execute_fixed_prompt(source_details),
+            DBBlockSubType.code: lambda: self._execute_code(source_details, self._prepare_code_inputs(inputs)),
+            DBBlockSubType.api_tool: lambda: self._execute_api_tool(source_details, context),
         }
         
         handler = operations.get(sub_type)
@@ -87,13 +86,13 @@ class DBHandler(BaseNodeHandler):
         
         return metadata
     
-    def _get_data_source_type(self, sub_type: DBSubType) -> str:
+    def _get_data_source_type(self, sub_type: DBBlockSubType) -> str:
         """Map subType to data source type."""
         mapping = {
-            DBSubType.FILE: "file",
-            DBSubType.CODE: "code",
-            DBSubType.FIXED_PROMPT: "fixed",
-            DBSubType.API_TOOL: "api"
+            DBBlockSubType.file: "file",
+            DBBlockSubType.code: "code",
+            DBBlockSubType.fixed_prompt: "fixed",
+            DBBlockSubType.api_tool: "api"
         }
         return mapping.get(sub_type, "unknown")
     

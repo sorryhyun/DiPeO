@@ -1,5 +1,3 @@
-"""Refactored job handler using BaseNodeHandler."""
-
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +9,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping
 
-from ..schemas.job import JobNodeProps, SupportedLanguage
+from ..schemas.job import JobNodeProps
+from src.__generated__.models import SupportedLanguage
 from ..types import RuntimeExecutionContext
 from ..decorators import node
 from ..utils import BaseNodeHandler, substitute_variables, log_action
@@ -93,9 +92,9 @@ async def _exec_bash(code: str, inputs: Dict[str, Any], timeout: int) -> Any:
 
 
 _EXECUTORS: Mapping[SupportedLanguage, Callable[[str, Dict[str, Any], int], Any]] = {
-    SupportedLanguage.PYTHON: _exec_python,
-    SupportedLanguage.JAVASCRIPT: _exec_javascript,
-    SupportedLanguage.BASH: _exec_bash,
+    SupportedLanguage.python: _exec_python,
+    SupportedLanguage.javascript: _exec_javascript,
+    SupportedLanguage.bash: _exec_bash,
 }
 
 

@@ -1,4 +1,3 @@
-"""Refactored Endpoint handler using BaseNodeHandler."""
 
 from __future__ import annotations
 
@@ -18,13 +17,7 @@ from ..utils import BaseNodeHandler, substitute_variables
     requires_services=["file_service"]
 )
 class EndpointHandler(BaseNodeHandler):
-    """Endpoint handler for terminal data output.
-    
-    This refactored version eliminates ~40 lines of boilerplate by:
-    - Inheriting error handling and service validation
-    - Automatic metadata building and timing
-    - Simplified file saving logic
-    """
+    # Endpoint handler for terminal data output.
     
     async def _execute_core(
         self,

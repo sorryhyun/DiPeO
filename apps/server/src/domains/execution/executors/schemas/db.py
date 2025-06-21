@@ -4,16 +4,8 @@ DB node schema - defines properties for data source and file operation nodes
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
-from enum import Enum
 import json
-
-
-class DBSubType(str, Enum):
-    """Supported DB node subtypes"""
-    FILE = "file"
-    FIXED_PROMPT = "fixed_prompt"
-    CODE = "code"
-    API_TOOL = "api_tool"
+from src.__generated__.models import DBBlockSubType
 
 
 class APIConfig(BaseModel):
@@ -28,8 +20,8 @@ class APIConfig(BaseModel):
 class DBNodeProps(BaseModel):
     """Properties for DB node that handles data sources and file operations"""
     
-    subType: DBSubType = Field(
-        DBSubType.FILE,
+    subType: DBBlockSubType = Field(
+        DBBlockSubType.file,
         description="Type of data source operation"
     )
     
@@ -51,7 +43,7 @@ class DBNodeProps(BaseModel):
     @model_validator(mode='after')
     def validate_source_by_subtype(self) -> 'DBNodeProps':
         """Validate source details based on subType"""
-        if self.subType == DBSubType.FILE:
+        if self.subType == DBBlockSubType.file:
             # Basic file path validation
             path = self.sourceDetails.strip()
             if not path:
@@ -63,7 +55,7 @@ class DBNodeProps(BaseModel):
                 if pattern in path:
                     raise ValueError(f"File path contains potentially dangerous pattern: {pattern}")
             
-        elif self.subType == DBSubType.API_TOOL:
+        elif self.subType == DBBlockSubType.api_tool:
             # Validate JSON format for API configuration
             try:
                 api_config = json.loads(self.sourceDetails)
@@ -74,7 +66,7 @@ class DBNodeProps(BaseModel):
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid JSON for API configuration: {e}")
         
-        elif self.subType == DBSubType.CODE:
+        elif self.subType == DBBlockSubType.code:
             # Basic code validation
             code = self.sourceDetails.strip()
             if not code:
@@ -96,7 +88,7 @@ class DBNodeProps(BaseModel):
     
     def get_api_config(self) -> Optional[APIConfig]:
         """Parse and return API configuration if subType is api_tool"""
-        if self.subType == DBSubType.API_TOOL:
+        if self.subType == DBBlockSubType.api_tool:
             try:
                 config_dict = json.loads(self.sourceDetails)
                 return APIConfig(**config_dict)

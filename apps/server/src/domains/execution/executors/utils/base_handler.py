@@ -55,24 +55,8 @@ class BaseNodeHandler(ABC):
         inputs: Dict[str, Any],
         services: Dict[str, Any]
     ) -> NodeOutput:
-        """Execute the handler with common error handling and timing.
-        
-        This method provides the common execution wrapper that:
-        1. Validates required services are available
-        2. Times the execution
-        3. Handles exceptions gracefully
-        4. Builds consistent metadata
-        5. Logs actions consistently
-        
-        Args:
-            props: Validated node properties
-            context: Runtime execution context
-            inputs: Input values from connected nodes
-            services: Available services
-            
-        Returns:
-            NodeOutput with result value and metadata
-        """
+        # Execute the handler with common error handling and timing.
+
         start_time = time.perf_counter()
         
         try:
@@ -118,31 +102,11 @@ class BaseNodeHandler(ABC):
         inputs: Dict[str, Any],
         services: Dict[str, Any]
     ) -> Any:
-        """Execute the handler-specific logic.
-        
-        This method must be implemented by subclasses to provide
-        the actual node functionality.
-        
-        Args:
-            props: Validated node properties
-            context: Runtime execution context
-            inputs: Input values from connected nodes
-            services: Available services
-            
-        Returns:
-            The result value to be wrapped in NodeOutput
-        """
+        # Execute the handler-specific logic.
+
         raise NotImplementedError("Subclasses must implement _execute_core")
     
     def _validate_services(self, services: Dict[str, Any]) -> None:
-        """Validate that all required services are available.
-        
-        Args:
-            services: Dictionary of available services
-            
-        Raises:
-            RuntimeError: If a required service is not available
-        """
         for service_name in self.requires_services:
             if not services.get(service_name):
                 raise RuntimeError(f"{service_name} service not available")
@@ -154,19 +118,7 @@ class BaseNodeHandler(ABC):
         context: RuntimeExecutionContext,
         result: Any
     ) -> Dict[str, Any]:
-        """Build standard metadata for successful execution.
-        
-        Override this method in subclasses to add handler-specific metadata.
-        
-        Args:
-            start_time: When execution started (from time.perf_counter())
-            props: Node properties
-            context: Execution context
-            result: The execution result
-            
-        Returns:
-            Dictionary of metadata
-        """
+        # Build standard metadata for successful execution.
         return {
             "executionTime": time.perf_counter() - start_time,
             "nodeType": self.node_type,
@@ -179,17 +131,7 @@ class BaseNodeHandler(ABC):
         context: RuntimeExecutionContext,
         error: subprocess.TimeoutExpired
     ) -> NodeOutput:
-        """Handle timeout errors specially.
-        
-        Args:
-            start_time: When execution started
-            props: Node properties
-            context: Execution context
-            error: The timeout exception
-            
-        Returns:
-            NodeOutput with timeout metadata
-        """
+        # Handle timeout errors specially.
         metadata = self._build_metadata(start_time, props, context, None)
         metadata.update({
             "timedOut": True,
@@ -213,17 +155,8 @@ class BaseNodeHandler(ABC):
         context: RuntimeExecutionContext,
         error: Exception
     ) -> NodeOutput:
-        """Handle general errors.
-        
-        Args:
-            start_time: When execution started
-            props: Node properties
-            context: Execution context
-            error: The exception that occurred
-            
-        Returns:
-            NodeOutput with error metadata
-        """
+        # Handle general errors.
+
         metadata = self._build_metadata(start_time, props, context, None)
         metadata["error"] = str(error)
         

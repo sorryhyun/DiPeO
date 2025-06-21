@@ -58,13 +58,30 @@ export enum DiagramFormat {
 export enum DBBlockSubType {
   FIXED_PROMPT = 'fixed_prompt',
   FILE = 'file',
-  CODE = 'code'
+  CODE = 'code',
+  API_TOOL = 'api_tool'
 }
 
 export enum ContentType {
   VARIABLE = 'variable',
   RAW_TEXT = 'raw_text',
   CONVERSATION_STATE = 'conversation_state'
+}
+
+export enum NotionOperation {
+  CREATE_PAGE = 'create_page',
+  UPDATE_PAGE = 'update_page',
+  READ_PAGE = 'read_page',
+  DELETE_PAGE = 'delete_page',
+  CREATE_DATABASE = 'create_database',
+  QUERY_DATABASE = 'query_database',
+  UPDATE_DATABASE = 'update_database'
+}
+
+export enum SupportedLanguage {
+  PYTHON = 'python',
+  JAVASCRIPT = 'javascript',
+  BASH = 'bash'
 }
 
 // Basic types
@@ -198,7 +215,7 @@ export interface DBNodeData extends BaseNodeData {
 }
 
 export interface JobNodeData extends BaseNodeData {
-  codeType: string;
+  codeType: SupportedLanguage;
   code: string;
 }
 
@@ -208,7 +225,7 @@ export interface UserResponseNodeData extends BaseNodeData {
 }
 
 export interface NotionNodeData extends BaseNodeData {
-  operation: string;
+  operation: NotionOperation;
   pageId?: string;
   databaseId?: string;
 }

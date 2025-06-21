@@ -6,36 +6,15 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Dict, Any
 
 from .base import BaseNodeProps
-from src.__generated__.models import LLMService, ForgettingMode
+from src.__generated__.models import LLMService, ForgettingMode, PersonConfiguration
 
 
-class PersonConfig(BaseModel):
-    """Configuration for a person (LLM instance)"""
-    id: Optional[str] = Field(None, description="Unique identifier for the person")
-    name: Optional[str] = Field(None, description="Display name for the person")
-    service: Optional[LLMService] = Field(None, description="LLM service provider")
-    model: Optional[str] = Field(None, description="Model identifier", alias="modelName")
-    api_key_id: str = Field(..., description="API key reference")
-    systemPrompt: Optional[str] = Field(None, description="System prompt for the LLM")
-    temperature: Optional[float] = Field(None, ge=0, le=2, description="Sampling temperature")
-    
-    class Config:
-        use_enum_values = True
-        populate_by_name = True
-    
-    @field_validator('model', mode='before')
-    @classmethod
-    def model_name_alias(cls, v, info):
-        """Handle both 'model' and 'modelName' fields"""
-        if not v and info.data and 'modelName' in info.data:
-            return info.data['modelName']
-        return v
 
 
 class PersonJobProps(BaseNodeProps):
     """Properties for PersonJob node"""
     personId: Optional[str] = Field(None, description="Reference to existing person")
-    person: Optional[PersonConfig] = Field(None, description="Inline person configuration")
+    person: Optional[PersonConfiguration] = Field(None, description="Inline person configuration")
     
     # Prompts
     prompt: Optional[str] = Field(None, description="Main prompt template")

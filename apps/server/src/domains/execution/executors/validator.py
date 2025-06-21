@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
-    from ..engine.engine import Ctx as ExecutionContext
+    from ..engine import Ctx as ExecutionContext
 
 
 @dataclass

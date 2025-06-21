@@ -1,11 +1,10 @@
-"""Refactored Notion handler using BaseNodeHandler."""
-
 from __future__ import annotations
 
 import json
 from typing import Any, Callable, Dict, List
 
-from ..schemas.notion import NotionNodeProps, NotionOperation
+from ..schemas.notion import NotionNodeProps
+from src.__generated__.models import NotionOperation
 from ..types import RuntimeExecutionContext
 from ..decorators import node
 from ..utils import BaseNodeHandler, process_inputs, get_api_key, log_action, substitute_variables
@@ -45,14 +44,11 @@ class NotionHandler(BaseNodeHandler):
             raise RuntimeError(f"API key not found: {props.apiKeyId}")
         
         # Define operation handlers
+        # Note: Only operations available in generated enum are supported
         operations: Dict[NotionOperation, Callable[[], Any]] = {
-            NotionOperation.READ_PAGE: lambda: self._read_page(props, notion_service, api_key, processed_inputs),
-            NotionOperation.LIST_BLOCKS: lambda: self._list_blocks(props, notion_service, api_key, processed_inputs),
-            NotionOperation.APPEND_BLOCKS: lambda: self._append_blocks(props, notion_service, api_key, processed_inputs),
-            NotionOperation.UPDATE_BLOCK: lambda: self._update_block(props, notion_service, api_key, processed_inputs),
-            NotionOperation.QUERY_DATABASE: lambda: self._query_database(props, notion_service, api_key, processed_inputs),
-            NotionOperation.CREATE_PAGE: lambda: self._create_page(props, notion_service, api_key, processed_inputs),
-            NotionOperation.EXTRACT_TEXT: lambda: self._extract_text(props, notion_service, processed_inputs),
+            NotionOperation.read_page: lambda: self._read_page(props, notion_service, api_key, processed_inputs),
+            NotionOperation.query_database: lambda: self._query_database(props, notion_service, api_key, processed_inputs),
+            NotionOperation.create_page: lambda: self._create_page(props, notion_service, api_key, processed_inputs),
         }
         
         handler = operations.get(props.operation)
@@ -120,51 +116,10 @@ class NotionHandler(BaseNodeHandler):
         self.logger.debug(f"Retrieved page: {page_id}")
         return result
     
-    async def _list_blocks(
-        self,
-        props: NotionNodeProps,
-        notion_service: Any,
-        api_key: str,
-        inputs: List[Any]
-    ) -> Dict[str, Any]:
-        """List blocks in a Notion page."""
-        page_id = self._substitute_variables(props.pageId or "", inputs)
-        
-        blocks = await notion_service.list_blocks(page_id, api_key)
-        self.logger.debug(f"Listed {len(blocks)} blocks from page: {page_id}")
-        return {"blocks": blocks, "count": len(blocks)}
-    
-    async def _append_blocks(
-        self,
-        props: NotionNodeProps,
-        notion_service: Any,
-        api_key: str,
-        inputs: List[Any]
-    ) -> Dict[str, Any]:
-        """Append blocks to a Notion page."""
-        page_id = self._substitute_variables(props.pageId or "", inputs)
-        blocks_str = self._substitute_variables(props.blocks or "[]", inputs)
-        
-        blocks = json.loads(blocks_str)
-        result = await notion_service.append_blocks(page_id, blocks, api_key)
-        self.logger.debug(f"Appended {len(blocks)} blocks to page: {page_id}")
-        return result
-    
-    async def _update_block(
-        self,
-        props: NotionNodeProps,
-        notion_service: Any,
-        api_key: str,
-        inputs: List[Any]
-    ) -> Dict[str, Any]:
-        """Update a Notion block."""
-        block_id = self._substitute_variables(props.blockId or "", inputs)
-        block_data_str = self._substitute_variables(props.blockData or "{}", inputs)
-        
-        block_data = json.loads(block_data_str)
-        result = await notion_service.update_block(block_id, block_data, api_key)
-        self.logger.debug(f"Updated block: {block_id}")
-        return result
+    # Methods for operations not available in generated enum are commented out
+    # async def _list_blocks(...)
+    # async def _append_blocks(...)
+    # async def _update_block(...)
     
     async def _query_database(
         self,
@@ -218,25 +173,4 @@ class NotionHandler(BaseNodeHandler):
         self.logger.debug("Created new Notion page")
         return result
     
-    async def _extract_text(
-        self,
-        props: NotionNodeProps,
-        notion_service: Any,
-        inputs: List[Any]
-    ) -> Dict[str, Any]:
-        """Extract text from Notion blocks in input."""
-        # Look for blocks in the inputs
-        blocks = None
-        
-        for input_data in inputs:
-            if isinstance(input_data, dict) and "blocks" in input_data:
-                blocks = input_data["blocks"]
-                break
-        
-        if blocks:
-            text = notion_service.extract_text_from_blocks(blocks)
-            self.logger.debug(f"Extracted text from {len(blocks)} blocks")
-            return {"text": text, "block_count": len(blocks)}
-        else:
-            self.logger.warning("No blocks found in input for text extraction")
-            return {"text": "", "block_count": 0, "error": "No blocks found in input"}
+    # async def _extract_text(...) - not available in generated enum

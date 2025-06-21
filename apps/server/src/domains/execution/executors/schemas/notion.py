@@ -4,19 +4,8 @@ Notion node schema - defines properties for Notion API operations
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
-from enum import Enum
 import json
-
-
-class NotionOperation(str, Enum):
-    """Supported Notion operations"""
-    READ_PAGE = "read_page"
-    LIST_BLOCKS = "list_blocks"
-    APPEND_BLOCKS = "append_blocks"
-    UPDATE_BLOCK = "update_block"
-    QUERY_DATABASE = "query_database"
-    CREATE_PAGE = "create_page"
-    EXTRACT_TEXT = "extract_text"
+from src.__generated__.models import NotionOperation
 
 
 class NotionNodeProps(BaseModel):
@@ -115,33 +104,19 @@ class NotionNodeProps(BaseModel):
         """Validate that required fields are provided based on operation"""
         operation = self.operation
         
-        if operation in [NotionOperation.READ_PAGE, NotionOperation.LIST_BLOCKS]:
+        if operation == NotionOperation.read_page:
             if not self.pageId:
                 raise ValueError(f"pageId is required for {operation} operation")
         
-        elif operation == NotionOperation.APPEND_BLOCKS:
-            if not self.pageId:
-                raise ValueError("pageId is required for append_blocks operation")
-            if not self.blocks:
-                raise ValueError("blocks data is required for append_blocks operation")
-        
-        elif operation == NotionOperation.UPDATE_BLOCK:
-            if not self.blockId:
-                raise ValueError("blockId is required for update_block operation")
-            if not self.blockData:
-                raise ValueError("blockData is required for update_block operation")
-        
-        elif operation == NotionOperation.QUERY_DATABASE:
+        elif operation == NotionOperation.query_database:
             if not self.databaseId:
                 raise ValueError("databaseId is required for query_database operation")
         
-        elif operation == NotionOperation.CREATE_PAGE:
+        elif operation == NotionOperation.create_page:
             if not self.parentConfig:
                 raise ValueError("parentConfig is required for create_page operation")
             if not self.pageProperties:
                 raise ValueError("pageProperties is required for create_page operation")
-        
-        # extract_text doesn't require specific fields as it works on input data
         
         return self
     
@@ -155,17 +130,17 @@ class NotionNodeProps(BaseModel):
                     "pageId": "12345678-1234-1234-1234-123456789012"
                 },
                 {
-                    "operation": "append_blocks",
-                    "apiKeyId": "notion_api_key_1",
-                    "pageId": "12345678-1234-1234-1234-123456789012",
-                    "blocks": '[{"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "Hello world"}}]}}]'
-                },
-                {
                     "operation": "query_database",
                     "apiKeyId": "notion_api_key_1",
                     "databaseId": "87654321-4321-4321-4321-210987654321",
                     "filter": '{"property": "Status", "select": {"equals": "Done"}}',
                     "sorts": '[{"property": "Created", "direction": "descending"}]'
+                },
+                {
+                    "operation": "create_page",
+                    "apiKeyId": "notion_api_key_1",
+                    "parentConfig": '{"database_id": "87654321-4321-4321-4321-210987654321"}',
+                    "pageProperties": '{"Name": {"title": [{"text": {"content": "New Page"}}]}}'
                 }
             ]
         }
