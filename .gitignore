@@ -17,6 +17,8 @@ apps/web/schema.graphql
 apps/server/schema.graphql
 packages/domain-models/schema.graphql
 packages/domain-models/__generated__
+**/__generated__/
+**/generated/
 server/diagrams
 docs/deprecated
 TODO.md
@@ -26,7 +28,9 @@ apps/web/src/__generated__
 apps/server/src/__generated__
 apps/packages/domain-models/__generated__
 apps/cli/dipeo/__generated__
-
+apps/server/.importlinter
+apps/server/pyproject.toml
+.logs
 # Node.js
 node_modules/
 npm-debug.log*
@@ -39,6 +43,8 @@ lerna-debug.log*
 dist/
 build/
 out/
+**/dist/
+**/build/
 *.log
 execution_runner.cjs
 notion.md
@@ -72,6 +78,9 @@ server/src/*/__pycache__/
 web/dist/
 # Project file storage - consolidated under files/
 files/
+data/
+.data/
+**/.data/
 
 # GraphQL codegen
 web/src/generated/
@@ -97,6 +106,7 @@ Thumbs.db
 
 # Logs
 logs/
+.logs/
 
 # Testing
 coverage/

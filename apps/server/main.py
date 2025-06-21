@@ -1,6 +1,11 @@
 import os
 import sys
 import logging
+from pathlib import Path
+
+# Add src to Python path for dipeo_server imports
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
@@ -17,14 +22,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import middleware
-from src.api.middleware import setup_middleware
+from dipeo_server.api.middleware import setup_middleware
 
 # Import lifespan from app_context
-from src.common.context import lifespan
+from dipeo_server.core.context import lifespan
 
 # Import GraphQL router
-from src.interfaces.graphql.schema import create_graphql_router
-from src.interfaces.graphql.context import get_graphql_context
+from dipeo_server.api.schema import create_graphql_router
+from dipeo_server.api.context import get_graphql_context
 
 
 

@@ -296,7 +296,7 @@ export async function generateCLI() {
 
     const pythonCode = new CLIPythonGenerator(schemas).generate();
 
-    const outputPath = join(__dirname, '../../../apps/cli/dipeo/__generated__/models.py');
+    const outputPath = join(__dirname, '../../../apps/cli/src/dipeo_cli/__generated__/models.py');
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, pythonCode);
 

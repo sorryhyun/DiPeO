@@ -30,10 +30,8 @@ export interface PersonConfiguration {
   presencePenalty?: number;
 }
 
-// Use shared conversation types
-export type ConversationMessage = Message;
+// Export conversation metadata type
 export type { ConversationMetadata };
-export type PersonConversation = Conversation;
 
 export interface PersonExecutionContext {
   personId: PersonID;
@@ -51,7 +49,7 @@ export function createConversationMessage(
   role: 'system' | 'user' | 'assistant',
   content: string,
   tokenCount?: number
-): ConversationMessage {
+): Message {
   return {
     id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9),
     role,
@@ -61,7 +59,7 @@ export function createConversationMessage(
   };
 }
 
-export function createEmptyConversation(personId: PersonID): PersonConversation {
+export function createEmptyConversation(personId: PersonID): Conversation {
   const now = new Date().toISOString();
   return {
     personId,

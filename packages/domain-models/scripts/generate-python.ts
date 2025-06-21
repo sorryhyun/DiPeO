@@ -376,7 +376,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));
     const gen = new PythonGenerator(schemas);
-    const outputPath = path.resolve(process.cwd(), '../../apps/server/src/__generated__/models.py');
+    const outputPath = path.resolve(process.cwd(), '../python/dipeo_domain/src/dipeo_domain/models.py');
     await gen.generateConsolidated(outputPath);
     console.log(`Generated consolidated models.py at ${outputPath}`);
   })();

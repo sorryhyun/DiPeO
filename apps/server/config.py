@@ -27,3 +27,11 @@ PROMPT_DIR.mkdir(exist_ok=True)
 
 YAML_DIAGRAM_DIR = FILES_DIR / "yaml_diagrams"
 YAML_DIAGRAM_DIR.mkdir(exist_ok=True)
+
+# Database directory
+DATA_DIR = Path(__file__).parent / ".data"
+DATA_DIR.mkdir(exist_ok=True)
+
+# Database paths
+STATE_DB_PATH = DATA_DIR / "dipeo_state.db"
+EVENTS_DB_PATH = DATA_DIR / "dipeo_events.db"

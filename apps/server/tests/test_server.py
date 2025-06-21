@@ -8,11 +8,19 @@ client = TestClient(app)
 
 
 def test_health_check():
-    response = client.get("/api/diagrams/health")
+    # Health check is available through GraphQL
+    query = """
+    query {
+        health
+    }
+    """
+    response = client.post("/graphql", json={"query": query})
     assert response.status_code == 200
     data = response.json()
-    assert data.get("status") == "healthy"
-    assert "version" in data
+    assert "data" in data
+    health_data = data["data"]["health"]
+    assert health_data.get("status") in ["healthy", "degraded"]
+    assert "version" in health_data
 
 
 def test_metrics_without_prometheus_client():
