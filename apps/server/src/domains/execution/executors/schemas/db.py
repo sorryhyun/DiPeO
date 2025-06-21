@@ -3,7 +3,7 @@ DB node schema - defines properties for data source and file operation nodes
 """
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal, Dict, Any, Union
+from typing import Optional
 from enum import Enum
 import json
 
@@ -100,7 +100,7 @@ class DBNodeProps(BaseModel):
             try:
                 config_dict = json.loads(self.sourceDetails)
                 return APIConfig(**config_dict)
-            except:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 return None
         return None
     

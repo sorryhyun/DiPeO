@@ -1,11 +1,11 @@
 """Decorator-based node registration system."""
 
-from typing import Type, Callable, List, Dict, Any, Optional
+from typing import Type, Callable, List, Optional
 from functools import wraps
 import inspect
 import logging
 
-from .types import NodeDefinition, ExecutionContext
+from .types import RuntimeNodeDefinition as NodeDefinition
 from .schemas.base import BaseNodeProps
 
 logger = logging.getLogger(__name__)
@@ -24,44 +24,82 @@ def node(
     """
     Decorator for registering node handlers.
     
-    Usage:
+    Can be used with both functions and classes:
+    
+    Function usage:
         @node(
             node_type="person_job",
             schema=PersonJobProps,
             description="Execute LLM task with person context and memory",
             requires_services=["llm_service"]
         )
-        async def person_job_handler(props, context, inputs):
+        async def person_job_handler(props, context, inputs, services):
             # Handler implementation
             pass
+    
+    Class usage:
+        @node(
+            node_type="job",
+            schema=JobNodeProps,
+            description="Execute code snippets"
+        )
+        class JobHandler(BaseNodeHandler):
+            async def _execute_core(self, props, context, inputs, services):
+                # Handler implementation
+                pass
     """
-    def decorator(handler: Callable) -> Callable:
-        # Validate handler signature
-        sig = inspect.signature(handler)
-        params = list(sig.parameters.keys())
-        
-        # Accept both old (3 params) and new (4 params) signatures for backward compatibility
-        if len(params) not in [3, 4]:
-            raise ValueError(
-                f"Node handler {handler.__name__} must accept 3 or 4 parameters: "
-                f"(props, context, inputs) or (props, context, inputs, services). Got: {params}"
+    def decorator(handler_or_class: Callable) -> Callable:
+        # Check if we're decorating a class or a function
+        if inspect.isclass(handler_or_class):
+            # Class-based handler
+            # Check if it has BaseNodeHandler in its MRO
+            from .utils import BaseNodeHandler
+            if not issubclass(handler_or_class, BaseNodeHandler):
+                raise ValueError(
+                    f"Class {handler_or_class.__name__} must inherit from BaseNodeHandler"
+                )
+            
+            # Instantiate the class with the decorator parameters
+            instance = handler_or_class(
+                node_type=node_type,
+                schema=schema,
+                description=description,
+                requires_services=requires_services
             )
-        
-        # Create wrapper to handle both signatures
-        if len(params) == 3:
-            # Old signature without services - wrap it to accept services
-            @wraps(handler)
-            async def wrapped_handler(props, context, inputs, services):
-                # For backward compatibility, inject services into context
-                # if they were expected there
-                for service_name, service in services.items():
-                    if not hasattr(context, service_name):
-                        setattr(context, service_name, service)
-                return await handler(props, context, inputs)
-            actual_handler = wrapped_handler
+            
+            # The instance itself is callable via __call__
+            actual_handler = instance
+            
         else:
-            # New signature with services
-            actual_handler = handler
+            # Function-based handler
+            handler = handler_or_class
+            
+            # Validate handler signature
+            sig = inspect.signature(handler)
+            params = list(sig.parameters.keys())
+            
+            # Accept both old (3 params) and new (4 params) signatures for backward compatibility
+            if len(params) not in [3, 4]:
+                raise ValueError(
+                    f"Node handler {handler.__name__} must accept 3 or 4 parameters: "
+                    f"(props, context, inputs) or (props, context, inputs, services). Got: {params}"
+                )
+            
+            # Create wrapper to handle both signatures
+            if len(params) == 3:
+                # Old signature without services - wrap it to accept services
+                @wraps(handler)
+                async def wrapped_handler(props, context, inputs, services):
+                    # For backward compatibility, inject services into context
+                    # if they were expected there
+                    for service_name, service in services.items():
+                        if not hasattr(context, service_name):
+                            setattr(context, service_name, service)
+                    return await handler(props, context, inputs)
+                actual_handler = wrapped_handler
+            else:
+                # New signature with services
+                actual_handler = handler
         
         # Create node definition
         node_def = NodeDefinition(
@@ -76,13 +114,13 @@ def node(
         _node_registry.append(node_def)
         logger.info(f"Registered node via decorator: {node_type}")
         
-        # Add metadata to the handler
-        handler._node_type = node_type
-        handler._node_schema = schema
-        handler._node_description = description
-        handler._node_requires = requires_services or []
+        # Add metadata to the original handler/class
+        handler_or_class._node_type = node_type
+        handler_or_class._node_schema = schema
+        handler_or_class._node_description = description
+        handler_or_class._node_requires = requires_services or []
         
-        return handler
+        return handler_or_class
     
     return decorator
 

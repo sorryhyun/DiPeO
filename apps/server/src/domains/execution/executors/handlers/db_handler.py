@@ -6,13 +6,13 @@ import json
 import asyncio
 import io
 import sys
-import builtins
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Callable, Awaitable
 from ..schemas.db import DBNodeProps, DBSubType
 from ..types import ExecutionContext
 from src.__generated__.models import NodeOutput
 from ..decorators import node
+from ..utils import process_inputs, log_action
 
 logger = logging.getLogger(__name__)
 
@@ -34,30 +34,30 @@ async def db_handler(
     sub_type = props.subType
     source_details = props.sourceDetails
     
-    logger.info(f"Executing DB node with subType: {sub_type}")
+    log_action(logger, context.node_id, f"Executing DB node with subType: {sub_type}")
+    
+    # Define operation handlers
+    operations: Dict[DBSubType, Callable[[], Awaitable[Any]]] = {
+        DBSubType.FILE: lambda: _execute_file_read(source_details, services.get('file_service')),
+        DBSubType.FIXED_PROMPT: lambda: _execute_fixed_prompt(source_details),
+        DBSubType.CODE: lambda: _execute_code(source_details, _prepare_code_inputs(inputs)),
+        DBSubType.API_TOOL: lambda: _execute_api_tool(source_details, context),
+    }
     
     try:
+        handler = operations.get(sub_type)
+        if not handler:
+            raise ValueError(f"Unsupported DB node subType: {sub_type}")
+        
+        # Special check for file service
         if sub_type == DBSubType.FILE:
             file_service = services.get('file_service')
             if not file_service:
                 raise RuntimeError("File service not available")
-            result = await _execute_file_read(source_details, file_service)
         
-        elif sub_type == DBSubType.FIXED_PROMPT:
-            result = await _execute_fixed_prompt(source_details)
+        result = await handler()
         
-        elif sub_type == DBSubType.CODE:
-            # Convert inputs dict to list for code execution
-            input_list = _prepare_code_inputs(inputs)
-            result = await _execute_code(source_details, input_list)
-        
-        elif sub_type == DBSubType.API_TOOL:
-            result = await _execute_api_tool(source_details, context)
-        
-        else:
-            raise ValueError(f"Unsupported DB node subType: {sub_type}")
-        
-        logger.info(f"DB node execution completed successfully")
+        log_action(logger, context.node_id, "DB node execution completed successfully")
         # Return unified NodeOutput format
         return NodeOutput(
             value=result,
@@ -153,7 +153,7 @@ async def _execute_code(code_snippet: str, inputs: List[Any]) -> Any:
             }
             
             # Process inputs to handle special output types
-            processed_inputs = _process_inputs(inputs)
+            processed_inputs = process_inputs({f"input{i}": v for i, v in enumerate(inputs)})
             
             # Create local environment with inputs
             local_env = {"inputs": processed_inputs}
@@ -192,21 +192,3 @@ def _prepare_code_inputs(inputs: Dict[str, Any]) -> List[Any]:
     return list(inputs.values())
 
 
-def _process_inputs(inputs: List[Any]) -> List[Any]:
-    """Process inputs to handle special output types like PersonJob outputs"""
-    processed = []
-    
-    for input_item in inputs:
-        if isinstance(input_item, dict):
-            # Check if this is a PersonJob output
-            if "output" in input_item and "conversation_history" in input_item:
-                # Extract just the output content
-                processed.append(input_item.get("output"))
-            else:
-                # Regular dict, keep as is
-                processed.append(input_item)
-        else:
-            # Non-dict input, keep as is
-            processed.append(input_item)
-    
-    return processed

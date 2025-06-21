@@ -3,7 +3,6 @@ Job node schema - defines properties for code execution nodes
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Literal, Dict, Any
 from enum import Enum
 from ..validation_helpers import CodeValidator
 

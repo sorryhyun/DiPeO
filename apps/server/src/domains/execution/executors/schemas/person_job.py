@@ -3,7 +3,7 @@ PersonJob node schema - LLM tasks with memory management
 """
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Dict, Any, List, Literal
+from typing import Optional, Dict, Any
 
 from .base import BaseNodeProps
 from src.__generated__.models import LLMService, ForgettingMode
@@ -44,8 +44,8 @@ class PersonJobProps(BaseNodeProps):
     
     # Execution control
     maxIteration: Optional[int] = Field(None, ge=1, description="Maximum number of executions")
-    contextCleaningRule: ContextCleaningRule = Field(
-        ContextCleaningRule.NO_FORGET,
+    contextCleaningRule: ForgettingMode = Field(
+        ForgettingMode.no_forget,
         description="Memory management strategy"
     )
     interactive: bool = Field(False, description="Enable interactive mode")
@@ -74,7 +74,6 @@ class PersonJobProps(BaseNodeProps):
     def validate_prompt_template(cls, v):
         """Basic validation for template syntax"""
         if v and '{{' in v and '}}' in v:
-            import re
             # Check for balanced double braces
             open_count = v.count('{{')
             close_count = v.count('}}')

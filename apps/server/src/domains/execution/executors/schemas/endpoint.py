@@ -2,7 +2,7 @@
 Endpoint node schema - terminal nodes with optional file saving
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 from typing import Optional
 
 from .base import BaseNodeProps

@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 from .schemas.base import BaseNodeProps
-from .types import ExecutionContext, NodeOutput
+from src.__generated__.models import ExecutionContext, NodeOutput
 from .executor_utils import substitute_variables
 from .decorators import node
 

@@ -2,8 +2,8 @@
 Condition node schema - boolean logic and branching
 """
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal
+from pydantic import Field, field_validator, model_validator
+from typing import Optional
 from enum import Enum
 
 from .base import BaseNodeProps

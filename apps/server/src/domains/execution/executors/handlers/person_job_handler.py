@@ -2,17 +2,15 @@
 Handler for PersonJob nodes - LLM tasks with memory management
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import time
 import logging
 
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
-from ..types import ExecutionContext, ExecutorResult
-from src.__generated__.models import TokenUsage, NodeOutput
+from ..types import ExecutionContext
+from src.__generated__.models import NodeOutput
 from src.domains.llm.services.token_usage_service import TokenUsageService
 from src.common.processors import OutputProcessor
-from src.common.utils.app_context import get_memory_service
-from ..executor_utils import get_input_values, substitute_variables
 from ..decorators import node
 
 logger = logging.getLogger(__name__)
@@ -68,7 +66,6 @@ async def person_job_handler(
     person = await _resolve_person(props, context)
     
     # Get input values with appropriate handle filter
-    handler = "first" if execution_count == 0 else "default"
     # For new unified executor, inputs are already provided
     # But we need to handle conversation_state inputs specially
     conversation_inputs = await _get_conversation_inputs(context, node_id)

@@ -1,12 +1,9 @@
 """Core type definitions and protocols for the unified executor system."""
 
-from typing import Protocol, Type, Dict, Any, List, Optional
+from typing import Protocol, Type, Dict, Any, List
 from dataclasses import dataclass, field
 from pydantic import BaseModel
-from datetime import datetime
 from src.__generated__.models import (
-    TokenUsage,
-    NodeOutput,
     NodeDefinition as GeneratedNodeDefinition,
     ExecutionContext as GeneratedExecutionContext
 )

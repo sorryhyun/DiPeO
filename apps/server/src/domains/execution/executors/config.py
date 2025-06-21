@@ -3,7 +3,6 @@ Configuration for executor system.
 """
 
 import os
-from typing import Optional
 
 
 class ExecutorConfig:

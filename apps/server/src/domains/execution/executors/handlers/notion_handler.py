@@ -4,10 +4,11 @@ Notion node handler - handles Notion API operations
 
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Callable, Awaitable
 from ..schemas.notion import NotionNodeProps, NotionOperation
 from ..types import ExecutionContext, NodeOutput
 from ..decorators import node
+from ..utils import process_inputs, get_api_key, log_action
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ async def notion_handler(
     operation = props.operation
     api_key_id = props.apiKeyId
     
-    logger.info(f"Executing Notion operation: {operation}")
+    log_action(logger, context.node_id, f"Executing Notion operation: {operation}")
     
     # Check if Notion service is available
     notion_service = services.get('notion_service')
@@ -37,40 +38,33 @@ async def notion_handler(
         raise RuntimeError("Notion service not available")
     
     # Get API key from context
-    api_key = _get_api_key(api_key_id, context)
+    api_key = get_api_key(api_key_id, context)
     if not api_key:
         raise RuntimeError(f"API key '{api_key_id}' not found or invalid")
     
     try:
         # Process inputs for variable substitution
-        processed_inputs = _process_inputs(inputs)
+        processed_inputs = process_inputs(inputs)
         
-        # Execute operation based on type
-        if operation == NotionOperation.READ_PAGE:
-            result = await _read_page(props, notion_service, api_key, processed_inputs)
+        # Define operation handlers
+        operations: Dict[NotionOperation, Callable[[], Awaitable[Any]]] = {
+            NotionOperation.READ_PAGE: lambda: _read_page(props, notion_service, api_key, processed_inputs),
+            NotionOperation.LIST_BLOCKS: lambda: _list_blocks(props, notion_service, api_key, processed_inputs),
+            NotionOperation.APPEND_BLOCKS: lambda: _append_blocks(props, notion_service, api_key, processed_inputs),
+            NotionOperation.UPDATE_BLOCK: lambda: _update_block(props, notion_service, api_key, processed_inputs),
+            NotionOperation.QUERY_DATABASE: lambda: _query_database(props, notion_service, api_key, processed_inputs),
+            NotionOperation.CREATE_PAGE: lambda: _create_page(props, notion_service, api_key, processed_inputs),
+            NotionOperation.EXTRACT_TEXT: lambda: _extract_text(props, notion_service, processed_inputs),
+        }
         
-        elif operation == NotionOperation.LIST_BLOCKS:
-            result = await _list_blocks(props, notion_service, api_key, processed_inputs)
-        
-        elif operation == NotionOperation.APPEND_BLOCKS:
-            result = await _append_blocks(props, notion_service, api_key, processed_inputs)
-        
-        elif operation == NotionOperation.UPDATE_BLOCK:
-            result = await _update_block(props, notion_service, api_key, processed_inputs)
-        
-        elif operation == NotionOperation.QUERY_DATABASE:
-            result = await _query_database(props, notion_service, api_key, processed_inputs)
-        
-        elif operation == NotionOperation.CREATE_PAGE:
-            result = await _create_page(props, notion_service, api_key, processed_inputs)
-        
-        elif operation == NotionOperation.EXTRACT_TEXT:
-            result = await _extract_text(props, notion_service, processed_inputs)
-        
-        else:
+        # Execute operation
+        handler = operations.get(operation)
+        if not handler:
             raise ValueError(f"Unknown operation: {operation}")
         
-        logger.info(f"Notion operation completed successfully")
+        result = await handler()
+        
+        log_action(logger, context.node_id, "Notion operation completed successfully")
         return NodeOutput(
             value=result,
             metadata={
@@ -85,36 +79,9 @@ async def notion_handler(
         raise RuntimeError(error_msg)
 
 
-def _get_api_key(api_key_id: str, context: ExecutionContext) -> Optional[str]:
-    """Get API key from context"""
-    if not hasattr(context, 'api_keys'):
-        return None
-    
-    api_key_info = context.api_keys.get(api_key_id)
-    if isinstance(api_key_info, dict):
-        return api_key_info.get('key')
-    return api_key_info if isinstance(api_key_info, str) else None
-
-
-def _process_inputs(inputs: Dict[str, Any]) -> List[Any]:
-    """Process inputs to extract values and handle special output types"""
-    if not inputs:
-        return []
-    
-    processed = []
-    for value in inputs.values():
-        # Handle PersonJob outputs
-        if isinstance(value, dict) and "output" in value and "conversation_history" in value:
-            processed.append(value.get("output"))
-        else:
-            processed.append(value)
-    
-    return processed
-
-
 def _substitute_variables(text: str, inputs: List[Any]) -> str:
     """Substitute variables in text with input values"""
-    from ..executor_utils import substitute_variables
+    from ..utils import substitute_variables
     
     if not text:
         return text

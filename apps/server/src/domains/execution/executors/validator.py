@@ -2,7 +2,7 @@
 Validation utilities for executor operations.
 Contains all validation logic extracted from utils.py.
 """
-from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
@@ -47,13 +47,13 @@ def validate_property_types(
             value = properties[prop_name]
             if value is not None and not isinstance(value, expected_type):
                 # Try type coercion for common cases
-                if expected_type == int and isinstance(value, str):
+                if expected_type is int and isinstance(value, str):
                     try:
                         int(value)
                         warnings.append(f"Property '{prop_name}' will be converted from string to int")
                     except ValueError:
                         errors.append(f"Property '{prop_name}' must be of type {expected_type.__name__}")
-                elif expected_type == float and isinstance(value, (int, str)):
+                elif expected_type is float and isinstance(value, (int, str)):
                     try:
                         float(value)
                         warnings.append(f"Property '{prop_name}' will be converted to float")
@@ -91,10 +91,10 @@ def validate_required_fields(
     field_descriptions: Optional[Dict[str, str]] = None
 ) -> List[str]:
     errors = []
-    for field in required_fields:
-        value = properties.get(field)
+    for field_name in required_fields:
+        value = properties.get(field_name)
         if value is None or (isinstance(value, str) and not value.strip()):
-            desc = field_descriptions.get(field, field) if field_descriptions else field
+            desc = field_descriptions.get(field_name, field_name) if field_descriptions else field_name
             errors.append(f"{desc} is required")
     return errors
 

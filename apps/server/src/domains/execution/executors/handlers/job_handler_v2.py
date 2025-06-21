@@ -1,25 +1,23 @@
+"""Refactored job handler using BaseNodeHandler."""
+
 from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import subprocess
 import tempfile
 import textwrap
-import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping
 
 from ..schemas.job import JobNodeProps, SupportedLanguage
 from ..types import RuntimeExecutionContext
-from src.__generated__.models import NodeOutput
 from ..decorators import node
-from ..utils import substitute_variables, log_action
+from ..utils import BaseNodeHandler, substitute_variables, log_action
 
-logger = logging.getLogger(__name__)
 
-# Generic helpers
+# Generic helpers (unchanged)
 
 @contextmanager
 def _tmp_file(suffix: str, content: str):
@@ -61,7 +59,7 @@ def _try_json(value: str) -> Any:
     return value or None
 
 
-# Language‑specific executors
+# Language‑specific executors (unchanged)
 
 async def _exec_python(code: str, inputs: Dict[str, Any], timeout: int) -> Any:
     script = textwrap.dedent(f"""
@@ -100,8 +98,9 @@ _EXECUTORS: Mapping[SupportedLanguage, Callable[[str, Dict[str, Any], int], Any]
     SupportedLanguage.BASH: _exec_bash,
 }
 
+
 # --------------------------------------------------------------------------- #
-# Main handler
+# Refactored handler using BaseNodeHandler
 # --------------------------------------------------------------------------- #
 
 @node(
@@ -109,72 +108,58 @@ _EXECUTORS: Mapping[SupportedLanguage, Callable[[str, Dict[str, Any], int], Any]
     schema=JobNodeProps,
     description="Execute code snippets in Python, JavaScript, or Bash"
 )
-async def job_handler(
-    props: JobNodeProps,
-    context: RuntimeExecutionContext,
-    inputs: Dict[str, Any],
-    services: Dict[str, Any]  # pylint: disable=unused-argument
-) -> NodeOutput:
-    """Unified job executor node."""
-
-    language = props.language
-    executor = _EXECUTORS.get(language)
-    if executor is None:
-        raise ValueError(f"Unsupported language: {language}")
-
-    code = substitute_variables(props.code, inputs)
-    timeout = props.timeout
-
-    log_action(
-        logger, 
-        context.current_node_id, 
-        f"Executing {language.value} job",
-        language=language.value,
-        timeout=timeout
-    )
-    started = time.perf_counter()
-    try:
-        result = await executor(code, inputs, timeout)
-        metadata = {
-            "language": language.value,
-            "executionTime": time.perf_counter() - started,
-            "timeout": timeout,
+class JobHandler(BaseNodeHandler):
+    """Unified job executor node using BaseNodeHandler.
+    
+    This refactored version eliminates ~40 lines of boilerplate code
+    by inheriting common functionality from BaseNodeHandler.
+    """
+    
+    async def _execute_core(
+        self,
+        props: JobNodeProps,
+        context: RuntimeExecutionContext,
+        inputs: Dict[str, Any],
+        services: Dict[str, Any]
+    ) -> Any:
+        """Execute the job with the specified language and code.
+        
+        All error handling, timing, and metadata building is handled
+        by the base class.
+        """
+        language = props.language
+        executor = _EXECUTORS.get(language)
+        if executor is None:
+            raise ValueError(f"Unsupported language: {language}")
+        
+        code = substitute_variables(props.code, inputs)
+        timeout = props.timeout
+        
+        # Log what we're about to do
+        log_action(
+            self.logger,
+            context.current_node_id,
+            f"Executing {language.value} job",
+            language=language.value,
+            timeout=timeout
+        )
+        
+        # Execute and return result
+        # The base class handles timing and exceptions
+        return await executor(code, inputs, timeout)
+    
+    def _build_metadata(
+        self,
+        start_time: float,
+        props: JobNodeProps,
+        context: RuntimeExecutionContext,
+        result: Any
+    ) -> Dict[str, Any]:
+        """Add job-specific metadata to the base metadata."""
+        metadata = super()._build_metadata(start_time, props, context, result)
+        metadata.update({
+            "language": props.language.value,
+            "timeout": props.timeout,
             "timedOut": False,
-        }
-        return NodeOutput(value=result, metadata=metadata)
-
-    except subprocess.TimeoutExpired:
-        metadata = {
-            "language": language.value,
-            "executionTime": time.perf_counter() - started,
-            "timeout": timeout,
-            "timedOut": True,
-            "error": f"{language.value} execution timed out after {timeout}s",
-        }
-        log_action(
-            logger, 
-            context.current_node_id, 
-            f"{language.value} job timed out",
-            language=language.value,
-            timeout=timeout,
-            execution_time=time.perf_counter() - started
-        )
-        return NodeOutput(value=None, metadata=metadata)
-
-    except Exception as exc:  # pylint: disable=broad-except
-        metadata = {
-            "language": language.value,
-            "executionTime": time.perf_counter() - started,
-            "timeout": timeout,
-            "error": str(exc),
-        }
-        log_action(
-            logger, 
-            context.current_node_id, 
-            f"{language.value} job failed",
-            language=language.value,
-            error=str(exc),
-            execution_time=time.perf_counter() - started
-        )
-        logger.exception("%s job failed", language.value)
-        return NodeOutput(value=None, metadata=metadata)
+        })
+        return metadata

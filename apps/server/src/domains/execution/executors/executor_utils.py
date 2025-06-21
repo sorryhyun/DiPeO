@@ -17,7 +17,7 @@ def get_input_values(node: Dict[str, Any], context: 'Ctx', target_handle_filter:
     incoming = context.graph.incoming.get(node_id, [])
     
     # Import OutputProcessor here to avoid circular imports
-    from src.common.utils.output_processor import OutputProcessor
+    from src.common.processors import OutputProcessor
     
     for arrow in incoming:
         if target_handle_filter:
@@ -48,7 +48,7 @@ def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: 
         return text
     
     # Import OutputProcessor and json here to avoid circular imports
-    from src.common.utils.output_processor import OutputProcessor
+    from src.common.processors import OutputProcessor
     import json
     
     def replace_var(match):

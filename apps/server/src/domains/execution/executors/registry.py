@@ -22,14 +22,14 @@ def create_executor() -> UnifiedExecutor:
 def _import_all_handlers():
     """Import all handler modules to trigger decorator registration."""
     # Import simple nodes (start, user_response)
-    from . import simple_nodes
+    from .handlers import simple_nodes  # noqa: F401
     
-    # Import all handler modules
-    from .handlers import (
-        person_job_handler,
-        condition_handler,
-        endpoint_handler,
-        job_handler,
-        db_handler,
-        notion_handler
+    # Import all handler modules - using v2 versions where available
+    from .handlers import (  # noqa: F401
+        condition_handler_v2,
+        db_handler_v2,
+        endpoint_handler_v2,
+        job_handler_v2,
+        notion_handler_v2,
+        person_job_handler_v2,
     )

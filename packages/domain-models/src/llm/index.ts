@@ -35,14 +35,13 @@ export interface LLMProviderConfig {
 // Default model configurations by service
 export const DEFAULT_MODELS: Record<string, string[]> = {
   openai: ['gpt-4', 'gpt-3.5-turbo'],
-  anthropic: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
-  google: ['gemini-pro', 'gemini-pro-vision'],
+  anthropic: ['claude-3-opus-20240229'],
+  google: ['gemini-pro'],
   grok: ['grok-1'],
-  bedrock: ['anthropic.claude-3-opus-20240229-v1:0', 'anthropic.claude-3-sonnet-20240229-v1:0'],
-  vertex: ['claude-3-opus@20240229', 'claude-3-sonnet@20240229'],
-  deepseek: ['deepseek-chat', 'deepseek-coder']
+  bedrock: ['anthropic.claude-3-opus-20240229-v1:0'],
+  vertex: ['claude-3-opus@20240229'],
+  deepseek: ['deepseek-chat']
 };
-
 
 // Utility functions
 export function createChatResult(

@@ -3,7 +3,7 @@ Notion node schema - defines properties for Notion API operations
 """
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal, Dict, Any, List, Union
+from typing import Optional
 from enum import Enum
 import json
 

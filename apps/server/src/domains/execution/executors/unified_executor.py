@@ -5,15 +5,27 @@ from pydantic import ValidationError
 import time
 import logging
 
-from .types import (
-    NodeDefinition, 
-    ExecutorResult, 
-    ExecutionContext,
-    NodeOutput
-)
+from src.__generated__.models import NodeOutput
+from .types import RuntimeNodeDefinition as NodeDefinition, RuntimeExecutionContext as ExecutionContext
 from ..services.service_factory import service_factory
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ExecutorResult:
+    """Result from executing a node."""
+    output: Any = None
+    error: Optional[str] = None
+    node_id: str = ""
+    execution_time: float = 0.0
+    token_usage: Optional[Dict[str, Any]] = None
+    metadata: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
 
 
 class UnifiedExecutor:

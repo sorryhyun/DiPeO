@@ -1,7 +1,7 @@
 """
 Executors for different node types in the unified execution engine.
 """
-from typing import Dict
+from typing import Dict, Any
 
 from .validator import ValidationResult
 from .executor_utils import (
@@ -24,7 +24,7 @@ from .validator import (
 )
 
 
-def create_executors(llm_service=None, file_service=None, memory_service=None, notion_service=None) -> Dict[str, 'BaseExecutor']:
+def create_executors(llm_service=None, file_service=None, memory_service=None, notion_service=None) -> Dict[str, Any]:
     """
     Create executor instances based on available services.
     
@@ -38,7 +38,6 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
         Dictionary mapping node types to executor instances
     """
     from .registry import create_executor
-    from .types import ExecutionContext
     
     # Create unified executor
     unified_executor = create_executor()
