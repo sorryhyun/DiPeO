@@ -1,5 +1,5 @@
 # Python
-__pycache__/
+__pycache__
 *.pyc
 *$py.class
 *.so
@@ -13,19 +13,24 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
-web/schema.graphql
-server/schema.graphql
+apps/web/schema.graphql
+apps/server/schema.graphql
 packages/domain-models/schema.graphql
+packages/domain-models/__generated__
+**/__generated__/
+**/generated/
 server/diagrams
 docs/deprecated
 TODO.md
 *.tsbuildinfo
-
-web/src/__generated__
-server/src/__generated__
-packages/domain-models/__generated__
-cli/dipeo/__generated__
-
+.ruff_cache
+apps/web/src/__generated__
+apps/server/src/__generated__
+apps/packages/domain-models/__generated__
+apps/cli/dipeo/__generated__
+apps/server/.importlinter
+apps/server/pyproject.toml
+.logs
 # Node.js
 node_modules/
 npm-debug.log*
@@ -38,6 +43,8 @@ lerna-debug.log*
 dist/
 build/
 out/
+**/dist/
+**/build/
 *.log
 execution_runner.cjs
 notion.md
@@ -71,6 +78,9 @@ server/src/*/__pycache__/
 web/dist/
 # Project file storage - consolidated under files/
 files/
+data/
+.data/
+**/.data/
 
 # GraphQL codegen
 web/src/generated/
@@ -96,6 +106,7 @@ Thumbs.db
 
 # Logs
 logs/
+.logs/
 
 # Testing
 coverage/

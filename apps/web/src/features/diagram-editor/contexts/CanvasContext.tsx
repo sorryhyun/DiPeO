@@ -1,0 +1,245 @@
+/**
+ * CanvasContext - Provides shared UI state and operations for canvas components
+ * Eliminates prop drilling for commonly used canvas-related state and functions
+ */
+
+import React, { createContext, useContext, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations } from '../hooks';
+import { useExecution } from '@/features/execution-monitor/hooks';
+import type { Vec2, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
+
+interface CanvasUIState {
+  // Selection state
+  selectedNodeId: NodeID | null;
+  selectedArrowId: ArrowID | null;
+  selectedPersonId: PersonID | null;
+  selectedNodeIds: Set<NodeID>;
+  
+  // Canvas state
+  activeCanvas: 'main' | 'execution' | 'memory' | 'preview' | 'monitor';
+  readOnly: boolean;
+  isExecuting: boolean;
+  isPaused: boolean;
+  
+  // View state
+  zoom: number;
+  position: Vec2;
+  
+  // UI flags
+  showGrid: boolean;
+  showMinimap: boolean;
+  showDebugInfo: boolean;
+}
+
+interface CanvasOperations {
+  // Selection operations
+  selectNode: (nodeId: NodeID | null) => void;
+  selectArrow: (arrowId: ArrowID | null) => void;
+  selectPerson: (personId: PersonID | null) => void;
+  selectMultipleNodes: (nodeIds: NodeID[]) => void;
+  clearSelection: () => void;
+  
+  // Mode operations
+  setReadOnly: (readOnly: boolean) => void;
+  
+  // Canvas operations from focused hooks
+  canvas: ReturnType<typeof useCanvas>;
+  interactions: ReturnType<typeof useCanvasInteractions>;
+  nodeOps: ReturnType<typeof useNodeOperations>;
+  arrowOps: ReturnType<typeof useArrowOperations>;
+  personOps: ReturnType<typeof usePersonOperations>;
+  executionOps: ReturnType<typeof useExecution>;
+}
+
+interface CanvasContextValue extends CanvasUIState, CanvasOperations {}
+
+const CanvasContext = createContext<CanvasContextValue | null>(null);
+
+/**
+ * CanvasProvider - Provides canvas context to children
+ */
+export function CanvasProvider({ children }: { children: React.ReactNode }) {
+  // Get UI state from store
+  const uiState = useUnifiedStore(
+    useShallow(state => ({
+      // Derive selection state from unified selection model
+      selectedNodeId: state.selectedType === 'node' ? (state.selectedId as NodeID) : null,
+      selectedArrowId: state.selectedType === 'arrow' ? (state.selectedId as ArrowID) : null,
+      selectedPersonId: state.selectedType === 'person' ? (state.selectedId as PersonID) : null,
+      multiSelectedIds: state.multiSelectedIds,
+      selectedType: state.selectedType,
+      activeCanvas: state.activeCanvas,
+      readOnly: state.readOnly,
+      isExecuting: state.execution.isRunning,
+      isPaused: state.execution.isPaused,
+      zoom: state.zoom,
+      position: state.position,
+      showGrid: true, // TODO: Add to settings
+      showMinimap: false, // TODO: Add to settings
+      showDebugInfo: false, // TODO: Add to settings
+    }))
+  );
+
+  // Create selectedNodeIds Set from multiSelectedIds
+  const selectedNodeIds = useMemo(() => {
+    const nodeIds = new Set<NodeID>();
+    if (uiState.selectedType === 'node') {
+      uiState.multiSelectedIds.forEach(id => {
+        nodeIds.add(id as NodeID);
+      });
+    }
+    return nodeIds;
+  }, [uiState.multiSelectedIds, uiState.selectedType]);
+
+  // Get selection operations from store - extract functions directly
+  const select = useUnifiedStore(state => state.select);
+  const clearSelection = useUnifiedStore(state => state.clearSelection);
+  const multiSelect = useUnifiedStore(state => state.multiSelect);
+  const setReadOnly = useUnifiedStore(state => state.setReadOnly);
+  
+  // Create stable operation wrappers
+  const selectionOps = React.useMemo(() => ({
+    selectNode: (nodeId: NodeID | null) => {
+      if (nodeId) {
+        select(nodeId, 'node');
+      } else {
+        clearSelection();
+      }
+    },
+    selectArrow: (arrowId: ArrowID | null) => {
+      if (arrowId) {
+        select(arrowId, 'arrow');
+      } else {
+        clearSelection();
+      }
+    },
+    selectPerson: (personId: PersonID | null) => {
+      if (personId) {
+        select(personId, 'person');
+      } else {
+        clearSelection();
+      }
+    },
+    selectMultipleNodes: (nodeIds: NodeID[]) => {
+      multiSelect(nodeIds, 'node');
+    },
+    clearSelection,
+    setReadOnly,
+  }), [select, clearSelection, multiSelect, setReadOnly]);
+
+  // Get hook-based operations
+  const canvas = useCanvas();
+  const interactions = useCanvasInteractions();
+  const nodeOps = useNodeOperations();
+  const arrowOps = useArrowOperations();
+  const personOps = usePersonOperations();
+  const executionOps = useExecution();
+
+  // Memoize context value
+  const contextValue = useMemo<CanvasContextValue>(
+    () => ({
+      // UI state
+      ...uiState,
+      selectedNodeIds, // Override with the memoized Set
+      
+      // Operations
+      ...selectionOps,
+      canvas,
+      interactions,
+      nodeOps,
+      arrowOps,
+      personOps,
+      executionOps,
+    }),
+    [uiState, selectedNodeIds, selectionOps, canvas, interactions, nodeOps, arrowOps, personOps, executionOps]
+  );
+
+  return (
+    <CanvasContext.Provider value={contextValue}>
+      {children}
+    </CanvasContext.Provider>
+  );
+}
+
+/**
+ * useCanvasContext - Hook to access canvas context
+ * @throws Error if used outside of CanvasProvider
+ */
+export function useCanvasContext(): CanvasContextValue {
+  const context = useContext(CanvasContext);
+  if (!context) {
+    throw new Error('useCanvasContext must be used within a CanvasProvider');
+  }
+  return context;
+}
+
+/**
+ * useCanvasUIState - Hook to access only UI state (for components that don't need operations)
+ */
+export function useCanvasUIState(): CanvasUIState {
+  const context = useCanvasContext();
+  return {
+    selectedNodeId: context.selectedNodeId,
+    selectedArrowId: context.selectedArrowId,
+    selectedPersonId: context.selectedPersonId,
+    selectedNodeIds: context.selectedNodeIds,
+    activeCanvas: context.activeCanvas,
+    readOnly: context.readOnly,
+    isExecuting: context.isExecuting,
+    isPaused: context.isPaused,
+    zoom: context.zoom,
+    position: context.position,
+    showGrid: context.showGrid,
+    showMinimap: context.showMinimap,
+    showDebugInfo: context.showDebugInfo,
+  };
+}
+
+/**
+ * useCanvasOperationsContext - Hook to access only operations (for action-focused components)
+ */
+export function useCanvasOperationsContext() {
+  const context = useCanvasContext();
+  return {
+    selectNode: context.selectNode,
+    selectArrow: context.selectArrow,
+    selectPerson: context.selectPerson,
+    selectMultipleNodes: context.selectMultipleNodes,
+    clearSelection: context.clearSelection,
+    setReadOnly: context.setReadOnly,
+    canvas: context.canvas,
+    interactions: context.interactions,
+    nodeOps: context.nodeOps,
+    arrowOps: context.arrowOps,
+    personOps: context.personOps,
+    executionOps: context.executionOps,
+  };
+}
+
+/**
+ * useCanvasSelection - Hook for components that only need selection state
+ */
+export function useCanvasSelection() {
+  const context = useCanvasContext();
+  return {
+    selectedNodeId: context.selectedNodeId,
+    selectedArrowId: context.selectedArrowId,
+    selectedPersonId: context.selectedPersonId,
+    selectedNodeIds: context.selectedNodeIds,
+    selectNode: context.selectNode,
+    selectArrow: context.selectArrow,
+    selectPerson: context.selectPerson,
+    selectMultipleNodes: context.selectMultipleNodes,
+    clearSelection: context.clearSelection,
+  };
+}
+
+/**
+ * useCanvasReadOnly - Hook for components that need to check read-only state
+ */
+export function useCanvasReadOnly(): boolean {
+  const { readOnly, isExecuting } = useCanvasUIState();
+  return readOnly || isExecuting;
+}

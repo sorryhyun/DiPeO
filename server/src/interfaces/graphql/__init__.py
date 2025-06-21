@@ -1,1 +1,0 @@
-# GraphQL schema module for DiPeO

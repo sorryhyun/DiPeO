@@ -1,0 +1,113 @@
+query GetDiagram($id: DiagramID!) {
+  diagram(id: $id) {
+    nodes {
+      id
+      type
+      position {
+        x
+        y
+      }
+      displayName
+      data
+      handles {
+        id
+        nodeId
+        label
+        direction
+        dataType
+        position
+      }
+    }
+    handles {
+      id
+      nodeId
+      label
+      direction
+      dataType
+      position
+    }
+    arrows {
+      id
+      source
+      target
+      data
+    }
+    persons {
+      id
+      label
+      service
+      model
+      systemPrompt
+      apiKeyId
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    apiKeys {
+      id
+      label
+      service
+      maskedKey
+    }
+    metadata {
+      id
+      name
+      description
+      version
+      created
+      modified
+      author
+      tags
+    }
+  }
+}
+
+query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
+  diagrams(filter: $filter, limit: $limit, offset: $offset) {
+    metadata {
+      id
+      name
+      description
+      author
+      created
+      modified
+      tags
+    }
+    nodeCount
+    arrowCount
+    personCount
+  }
+}
+
+mutation CreateDiagram($input: CreateDiagramInput!) {
+  createDiagram(input: $input) {
+    success
+    diagram {
+      metadata {
+        id
+        name
+      }
+    }
+    message
+    error
+  }
+}
+
+mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
+  executeDiagram(input: $input) {
+    success
+    executionId
+    message
+    error
+  }
+}
+
+mutation DeleteDiagram($id: DiagramID!) {
+  deleteDiagram(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+

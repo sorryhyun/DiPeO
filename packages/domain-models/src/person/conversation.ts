@@ -13,9 +13,6 @@ export interface Message {
   metadata?: Record<string, any>;
 }
 
-/**
- * Conversation metadata for tracking statistics
- */
 export interface ConversationMetadata {
   startedAt: string;
   lastMessageAt: string;
@@ -24,28 +21,18 @@ export interface ConversationMetadata {
   contextResets: number;
 }
 
-/**
- * Base conversation interface
- */
 export interface Conversation {
   personId: PersonID;
   messages: Message[];
   metadata?: ConversationMetadata;
 }
 
-/**
- * Memory configuration for execution context
- */
 export interface MemoryConfig {
   forgetMode?: 'no_forget' | 'on_every_turn' | 'upon_request';
   maxMessages?: number;
   temperature?: number;
 }
 
-/**
- * Memory state for execution context
- * Extends Conversation with pagination and config
- */
 export interface MemoryState extends Conversation {
   visibleMessages: number;
   hasMore?: boolean;

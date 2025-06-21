@@ -44,17 +44,12 @@ const BRANDED_IDS = [
 
 // Additional enums not in TypeScript but needed in Python
 const ADDITIONAL_ENUMS = [
-  {
-    name: 'ContextCleaningRule',
-    values: ['on_every_turn', 'upon_request', 'no_forget']
-  }
+  // No additional enums needed - all enums should be defined in TypeScript
 ];
 
 // Additional fields to add to certain interfaces
 const ADDITIONAL_FIELDS: Record<string, Array<{name: string, type: string, optional: boolean}>> = {
-  'PersonJobNodeData': [
-    { name: 'contextCleaningRule', type: 'string', optional: true }
-  ]
+  // No additional fields needed - all fields should be defined in TypeScript
 };
 
 export class PythonGenerator {
@@ -195,7 +190,9 @@ export class PythonGenerator {
       lines.push(`class ${schema.name}(str, Enum):`);
       if (schema.values && schema.values.length > 0) {
         schema.values.forEach(value => {
-          const enumKey = value.toUpperCase().replace(/-/g, '_');
+          // Use the value as-is for the attribute name to match GraphQL expectations
+          // Replace hyphens with underscores for valid Python identifiers
+          const enumKey = value.replace(/-/g, '_');
           lines.push(`    ${enumKey} = "${value}"`);
         });
       } else {
@@ -379,7 +376,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));
     const gen = new PythonGenerator(schemas);
-    const outputPath = path.resolve(process.cwd(), '../../server/src/__generated__/models.py');
+    const outputPath = path.resolve(process.cwd(), '../python/dipeo_domain/src/dipeo_domain/models.py');
     await gen.generateConsolidated(outputPath);
     console.log(`Generated consolidated models.py at ${outputPath}`);
   })();

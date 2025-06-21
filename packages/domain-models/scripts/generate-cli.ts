@@ -30,7 +30,7 @@ const PY_TYPE_MAP: Record<string, string> = {
 
 const CLI_TYPES = new Set([
   'DomainNode', 'DomainArrow', 'DomainHandle', 'DomainPerson', 'DomainApiKey',
-  'DiagramArrayFormat', 'DiagramMetadata', 'Vec2',
+  'DomainDiagram', 'DiagramDictFormat', 'DiagramMetadata', 'Vec2',
   'StartNodeData', 'PersonJobNodeData', 'ConditionNodeData', 'EndpointNodeData',
   'JobNodeData', 'DBNodeData', 'UserResponseNodeData'
 ]);
@@ -296,7 +296,7 @@ export async function generateCLI() {
 
     const pythonCode = new CLIPythonGenerator(schemas).generate();
 
-    const outputPath = join(__dirname, '../../../cli/dipeo/__generated__/models.py');
+    const outputPath = join(__dirname, '../../../apps/cli/src/dipeo_cli/__generated__/models.py');
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, pythonCode);
 

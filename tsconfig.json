@@ -16,7 +16,7 @@
     "declarationMap": true
   },
   "references": [
-    { "path": "./web" },
+    { "path": "./apps/web" },
     { "path": "./packages/domain-models" }
   ],
   "exclude": ["node_modules", "dist", "build", "server", "cli"]

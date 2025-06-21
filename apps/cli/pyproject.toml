@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dipeo-cli"
+version = "2.0.0"
+authors = [{name = "DiPeO Team"}]
+description = "Command-line interface for DiPeO diagram operations"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "requests>=2.28.0",
+    "gql[all]>=3.4.0",
+    "aiohttp>=3.8.0",
+    "websockets>=11.0",
+    "dipeo-domain",
+]
+keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
+
+[project.urls]
+Homepage = "https://github.com/dipeo/dipeo-cli"
+Repository = "https://github.com/dipeo/dipeo-cli"
+Documentation = "https://github.com/dipeo/dipeo-cli/blob/main/README.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
+]
+
+[project.scripts]
+dipeo = "dipeo_cli.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+known_first_party = ["dipeo_cli"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "gql.*",
+    "websockets.*",
+]
+ignore_missing_imports = true
