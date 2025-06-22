@@ -1,0 +1,2540 @@
+import type { NodeType } from '@dipeo/domain-models';
+import type { HandleDirection } from '@dipeo/domain-models';
+import type { DataType } from '@dipeo/domain-models';
+import type { LLMService } from '@dipeo/domain-models';
+import type { ForgettingMode } from '@dipeo/domain-models';
+import type { DiagramFormat } from '@dipeo/domain-models';
+import type { ExecutionStatus } from '@dipeo/domain-models';
+import type { EventType } from '@dipeo/domain-models';
+import type { ApiKeyID } from '@dipeo/domain-models';
+import type { ArrowID } from '@dipeo/domain-models';
+import type { DiagramID } from '@dipeo/domain-models';
+import type { ExecutionID } from '@dipeo/domain-models';
+import type { HandleID } from '@dipeo/domain-models';
+import type { NodeID } from '@dipeo/domain-models';
+import type { PersonID } from '@dipeo/domain-models';
+import { gql } from '@apollo/client';
+import * as Apollo from '@apollo/client';
+export type Maybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
+export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
+export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+const defaultOptions = {} as const;
+/** All built-in and custom scalars, mapped to their actual values */
+export type Scalars = {
+  ID: { input: string; output: string; }
+  String: { input: string; output: string; }
+  Boolean: { input: boolean; output: boolean; }
+  Int: { input: number; output: number; }
+  Float: { input: number; output: number; }
+  /** Unique identifier for an API key */
+  ApiKeyID: { input: ApiKeyID; output: ApiKeyID; }
+  /** Unique identifier for an arrow */
+  ArrowID: { input: ArrowID; output: ArrowID; }
+  /** Date with time (isoformat) */
+  DateTime: { input: any; output: any; }
+  /** Unique identifier for a diagram */
+  DiagramID: { input: DiagramID; output: DiagramID; }
+  /** Unique identifier for an execution */
+  ExecutionID: { input: ExecutionID; output: ExecutionID; }
+  /** Unique identifier for a handle (format: nodeId:handleName) */
+  HandleID: { input: HandleID; output: HandleID; }
+  /** Arbitrary JSON-serializable data */
+  JSONScalar: { input: any; output: any; }
+  /** Unique identifier for a node */
+  NodeID: { input: NodeID; output: NodeID; }
+  /** Unique identifier for a person (LLM agent) */
+  PersonID: { input: PersonID; output: PersonID; }
+  Upload: { input: any; output: any; }
+};
+
+/** Result of API key operation */
+export type ApiKeyResult = {
+  __typename?: 'ApiKeyResult';
+  apiKey?: Maybe<DomainApiKey>;
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type CreateApiKeyInput = {
+  key: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  service: LLMService;
+};
+
+export type CreateArrowInput = {
+  label?: InputMaybe<Scalars['String']['input']>;
+  source: Scalars['String']['input'];
+  target: Scalars['String']['input'];
+};
+
+export type CreateDiagramInput = {
+  author?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+export type CreateHandleInput = {
+  dataType?: DataType;
+  direction: HandleDirection;
+  label: Scalars['String']['input'];
+  maxConnections?: InputMaybe<Scalars['Int']['input']>;
+  nodeId: Scalars['String']['input'];
+  position?: InputMaybe<Vec2Input>;
+};
+
+export type CreateNodeInput = {
+  label: Scalars['String']['input'];
+  position: Vec2Input;
+  /** Node-specific properties */
+  properties?: InputMaybe<Scalars['JSONScalar']['input']>;
+  type: NodeType;
+};
+
+export type CreatePersonInput = {
+  apiKeyId: Scalars['String']['input'];
+  forgettingMode?: ForgettingMode;
+  label: Scalars['String']['input'];
+  maxTokens?: InputMaybe<Scalars['Int']['input']>;
+  model: Scalars['String']['input'];
+  service: LLMService;
+  systemPrompt?: InputMaybe<Scalars['String']['input']>;
+  temperature?: InputMaybe<Scalars['Float']['input']>;
+  topP?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export { DataType };
+
+/** Result of delete operation */
+export type DeleteResult = {
+  __typename?: 'DeleteResult';
+  deletedId?: Maybe<Scalars['String']['output']>;
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type DiagramConvertResult = {
+  __typename?: 'DiagramConvertResult';
+  content?: Maybe<Scalars['String']['output']>;
+  error?: Maybe<Scalars['String']['output']>;
+  filename?: Maybe<Scalars['String']['output']>;
+  format?: Maybe<Scalars['String']['output']>;
+  message: Scalars['String']['output'];
+  success: Scalars['Boolean']['output'];
+};
+
+export type DiagramFilterInput = {
+  author?: InputMaybe<Scalars['String']['input']>;
+  createdAfter?: InputMaybe<Scalars['DateTime']['input']>;
+  createdBefore?: InputMaybe<Scalars['DateTime']['input']>;
+  modifiedAfter?: InputMaybe<Scalars['DateTime']['input']>;
+  nameContains?: InputMaybe<Scalars['String']['input']>;
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+export { DiagramFormat };
+
+export type DiagramFormatInfo = {
+  __typename?: 'DiagramFormatInfo';
+  description: Scalars['String']['output'];
+  extension: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  supportsExport: Scalars['Boolean']['output'];
+  supportsImport: Scalars['Boolean']['output'];
+};
+
+/** Metadata for a diagram */
+export type DiagramMetadataType = {
+  __typename?: 'DiagramMetadataType';
+  author?: Maybe<Scalars['String']['output']>;
+  created: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  modified: Scalars['String']['output'];
+  name?: Maybe<Scalars['String']['output']>;
+  tags?: Maybe<Array<Scalars['String']['output']>>;
+  version: Scalars['String']['output'];
+};
+
+/** Result of diagram operation */
+export type DiagramResult = {
+  __typename?: 'DiagramResult';
+  diagram?: Maybe<DomainDiagramType>;
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type DiagramSaveResult = {
+  __typename?: 'DiagramSaveResult';
+  diagramId?: Maybe<Scalars['DiagramID']['output']>;
+  diagramName?: Maybe<Scalars['String']['output']>;
+  formatDetected?: Maybe<Scalars['String']['output']>;
+  message: Scalars['String']['output'];
+  nodeCount?: Maybe<Scalars['Int']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type DomainApiKey = {
+  __typename?: 'DomainApiKey';
+  id: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  maskedKey: Scalars['String']['output'];
+  service: LLMService;
+};
+
+export type DomainArrow = {
+  __typename?: 'DomainArrow';
+  data?: Maybe<Scalars['JSONScalar']['output']>;
+  id: Scalars['String']['output'];
+  source: Scalars['String']['output'];
+  target: Scalars['String']['output'];
+};
+
+export type DomainDiagramType = {
+  __typename?: 'DomainDiagramType';
+  apiKeys: Array<DomainApiKey>;
+  arrowCount: Scalars['Int']['output'];
+  arrows: Array<DomainArrow>;
+  estimatedCost?: Maybe<Scalars['Float']['output']>;
+  handles: Array<DomainHandle>;
+  metadata?: Maybe<DiagramMetadataType>;
+  nodeCount: Scalars['Int']['output'];
+  nodes: Array<DomainNode>;
+  personCount: Scalars['Int']['output'];
+  persons: Array<DomainPerson>;
+};
+
+/** Connection point on a node */
+export type DomainHandle = {
+  __typename?: 'DomainHandle';
+  dataType: DataType;
+  direction: HandleDirection;
+  id: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  nodeId: Scalars['String']['output'];
+  position?: Maybe<Scalars['String']['output']>;
+};
+
+export type DomainNode = {
+  __typename?: 'DomainNode';
+  data?: Maybe<Scalars['JSONScalar']['output']>;
+  displayName: Scalars['String']['output'];
+  handles: Array<DomainHandle>;
+  id: Scalars['String']['output'];
+  position: Vec2;
+  type: NodeType;
+};
+
+export type DomainPerson = {
+  __typename?: 'DomainPerson';
+  apiKeyId?: Maybe<Scalars['String']['output']>;
+  forgettingMode: ForgettingMode;
+  id: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  maskedApiKey?: Maybe<Scalars['String']['output']>;
+  model: Scalars['String']['output'];
+  service: LLMService;
+  systemPrompt?: Maybe<Scalars['String']['output']>;
+  type: Scalars['String']['output'];
+};
+
+export { EventType };
+
+export type ExecuteDiagramInput = {
+  debugMode?: Scalars['Boolean']['input'];
+  diagramData?: InputMaybe<Scalars['JSONScalar']['input']>;
+  diagramId?: InputMaybe<Scalars['DiagramID']['input']>;
+  /** Maximum iterations for execution */
+  maxIterations?: InputMaybe<Scalars['Int']['input']>;
+  /** Execution timeout in seconds */
+  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
+  variables?: InputMaybe<Scalars['JSONScalar']['input']>;
+};
+
+export type ExecutionControlInput = {
+  action: Scalars['String']['input'];
+  executionId: Scalars['String']['input'];
+  nodeId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ExecutionEvent = {
+  __typename?: 'ExecutionEvent';
+  data?: Maybe<Scalars['JSONScalar']['output']>;
+  eventType: EventType;
+  executionId: Scalars['String']['output'];
+  formattedMessage: Scalars['String']['output'];
+  nodeId?: Maybe<Scalars['String']['output']>;
+  sequence: Scalars['Float']['output'];
+  timestamp: Scalars['String']['output'];
+};
+
+export type ExecutionFilterInput = {
+  activeOnly?: Scalars['Boolean']['input'];
+  diagramId?: InputMaybe<Scalars['String']['input']>;
+  startedAfter?: InputMaybe<Scalars['DateTime']['input']>;
+  startedBefore?: InputMaybe<Scalars['DateTime']['input']>;
+  status?: InputMaybe<ExecutionStatus>;
+};
+
+/** Result of execution operation */
+export type ExecutionResult = {
+  __typename?: 'ExecutionResult';
+  error?: Maybe<Scalars['String']['output']>;
+  execution?: Maybe<ExecutionState>;
+  executionId?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type ExecutionState = {
+  __typename?: 'ExecutionState';
+  diagramId?: Maybe<Scalars['String']['output']>;
+  durationSeconds?: Maybe<Scalars['Float']['output']>;
+  endedAt?: Maybe<Scalars['String']['output']>;
+  error?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+  isActive: Scalars['Boolean']['output'];
+  nodeOutputs: Scalars['JSONScalar']['output'];
+  nodeStates: Scalars['JSONScalar']['output'];
+  startedAt: Scalars['String']['output'];
+  status: ExecutionStatus;
+  tokenUsage: TokenUsage;
+  variables: Scalars['JSONScalar']['output'];
+};
+
+export { ExecutionStatus };
+
+export type FileUploadInput = {
+  contentBase64: Scalars['String']['input'];
+  contentType?: InputMaybe<Scalars['String']['input']>;
+  filename: Scalars['String']['input'];
+};
+
+/** Result of file upload operation */
+export type FileUploadResult = {
+  __typename?: 'FileUploadResult';
+  contentType?: Maybe<Scalars['String']['output']>;
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  path?: Maybe<Scalars['String']['output']>;
+  sizeBytes?: Maybe<Scalars['Int']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export { ForgettingMode };
+
+export { HandleDirection };
+
+/** Result of handle operation */
+export type HandleResult = {
+  __typename?: 'HandleResult';
+  error?: Maybe<Scalars['String']['output']>;
+  handle?: Maybe<DomainHandle>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type InteractivePrompt = {
+  __typename?: 'InteractivePrompt';
+  executionId: Scalars['ExecutionID']['output'];
+  nodeId: Scalars['NodeID']['output'];
+  prompt: Scalars['String']['output'];
+  timeoutSeconds?: Maybe<Scalars['Int']['output']>;
+  timestamp: Scalars['DateTime']['output'];
+};
+
+export type InteractiveResponseInput = {
+  executionId: Scalars['String']['input'];
+  nodeId: Scalars['String']['input'];
+  response: Scalars['String']['input'];
+};
+
+export { LLMService };
+
+export type Mutation = {
+  __typename?: 'Mutation';
+  clearConversations: DeleteResult;
+  controlExecution: ExecutionResult;
+  convertDiagram: DiagramConvertResult;
+  createApiKey: ApiKeyResult;
+  createArrow: DiagramResult;
+  createDiagram: DiagramResult;
+  createHandle: HandleResult;
+  createNode: NodeResult;
+  createPerson: PersonResult;
+  deleteApiKey: DeleteResult;
+  deleteArrow: DeleteResult;
+  deleteDiagram: DeleteResult;
+  deleteHandle: DeleteResult;
+  deleteNode: DeleteResult;
+  deletePerson: DeleteResult;
+  executeDiagram: ExecutionResult;
+  initializeModel: PersonResult;
+  saveDiagram: DiagramSaveResult;
+  submitInteractiveResponse: ExecutionResult;
+  testApiKey: TestApiKeyResult;
+  updateNode: NodeResult;
+  updatePerson: PersonResult;
+  uploadFile: FileUploadResult;
+};
+
+
+export type MutationcontrolExecutionArgs = {
+  input: ExecutionControlInput;
+};
+
+
+export type MutationconvertDiagramArgs = {
+  content: Scalars['JSONScalar']['input'];
+  format?: DiagramFormat;
+  includeMetadata?: Scalars['Boolean']['input'];
+};
+
+
+export type MutationcreateApiKeyArgs = {
+  input: CreateApiKeyInput;
+};
+
+
+export type MutationcreateArrowArgs = {
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreateArrowInput;
+};
+
+
+export type MutationcreateDiagramArgs = {
+  input: CreateDiagramInput;
+};
+
+
+export type MutationcreateHandleArgs = {
+  input: CreateHandleInput;
+};
+
+
+export type MutationcreateNodeArgs = {
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreateNodeInput;
+};
+
+
+export type MutationcreatePersonArgs = {
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreatePersonInput;
+};
+
+
+export type MutationdeleteApiKeyArgs = {
+  id: Scalars['ApiKeyID']['input'];
+};
+
+
+export type MutationdeleteArrowArgs = {
+  id: Scalars['ArrowID']['input'];
+};
+
+
+export type MutationdeleteDiagramArgs = {
+  id: Scalars['DiagramID']['input'];
+};
+
+
+export type MutationdeleteHandleArgs = {
+  id: Scalars['HandleID']['input'];
+};
+
+
+export type MutationdeleteNodeArgs = {
+  id: Scalars['NodeID']['input'];
+};
+
+
+export type MutationdeletePersonArgs = {
+  id: Scalars['PersonID']['input'];
+};
+
+
+export type MutationexecuteDiagramArgs = {
+  input: ExecuteDiagramInput;
+};
+
+
+export type MutationinitializeModelArgs = {
+  personId: Scalars['PersonID']['input'];
+};
+
+
+export type MutationsaveDiagramArgs = {
+  file: Scalars['Upload']['input'];
+  format?: InputMaybe<Scalars['String']['input']>;
+  validateOnly?: Scalars['Boolean']['input'];
+};
+
+
+export type MutationsubmitInteractiveResponseArgs = {
+  input: InteractiveResponseInput;
+};
+
+
+export type MutationtestApiKeyArgs = {
+  id: Scalars['ApiKeyID']['input'];
+};
+
+
+export type MutationupdateNodeArgs = {
+  input: UpdateNodeInput;
+};
+
+
+export type MutationupdatePersonArgs = {
+  input: UpdatePersonInput;
+};
+
+
+export type MutationuploadFileArgs = {
+  input: FileUploadInput;
+};
+
+export type NodeExecution = {
+  __typename?: 'NodeExecution';
+  error?: Maybe<Scalars['String']['output']>;
+  executionId: Scalars['ExecutionID']['output'];
+  nodeId: Scalars['NodeID']['output'];
+  nodeType: NodeType;
+  output?: Maybe<Scalars['JSONScalar']['output']>;
+  progress?: Maybe<Scalars['String']['output']>;
+  status: Scalars['String']['output'];
+  timestamp: Scalars['DateTime']['output'];
+  tokensUsed?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Result of node operation */
+export type NodeResult = {
+  __typename?: 'NodeResult';
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  node?: Maybe<DomainNode>;
+  success: Scalars['Boolean']['output'];
+};
+
+export { NodeType };
+
+/** Result of person operation */
+export type PersonResult = {
+  __typename?: 'PersonResult';
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  person?: Maybe<DomainPerson>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type Query = {
+  __typename?: 'Query';
+  apiKey?: Maybe<DomainApiKey>;
+  apiKeys: Array<DomainApiKey>;
+  availableModels: Array<Scalars['String']['output']>;
+  conversations: Scalars['JSONScalar']['output'];
+  diagram?: Maybe<DomainDiagramType>;
+  diagrams: Array<DomainDiagramType>;
+  execution?: Maybe<ExecutionState>;
+  executionCapabilities: Scalars['JSONScalar']['output'];
+  executionEvents: Array<ExecutionEvent>;
+  executions: Array<ExecutionState>;
+  health: Scalars['JSONScalar']['output'];
+  person?: Maybe<DomainPerson>;
+  persons: Array<DomainPerson>;
+  supportedFormats: Array<DiagramFormatInfo>;
+  systemInfo: Scalars['JSONScalar']['output'];
+};
+
+
+export type QueryapiKeyArgs = {
+  id: Scalars['ApiKeyID']['input'];
+};
+
+
+export type QueryapiKeysArgs = {
+  service?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryavailableModelsArgs = {
+  apiKeyId: Scalars['ApiKeyID']['input'];
+  service: Scalars['String']['input'];
+};
+
+
+export type QueryconversationsArgs = {
+  executionId?: InputMaybe<Scalars['ExecutionID']['input']>;
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  personId?: InputMaybe<Scalars['PersonID']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  showForgotten?: Scalars['Boolean']['input'];
+  since?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+
+export type QuerydiagramArgs = {
+  id: Scalars['DiagramID']['input'];
+};
+
+
+export type QuerydiagramsArgs = {
+  filter?: InputMaybe<DiagramFilterInput>;
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+};
+
+
+export type QueryexecutionArgs = {
+  id: Scalars['ExecutionID']['input'];
+};
+
+
+export type QueryexecutionEventsArgs = {
+  executionId: Scalars['ExecutionID']['input'];
+  limit?: Scalars['Int']['input'];
+  sinceSequence?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryexecutionsArgs = {
+  filter?: InputMaybe<ExecutionFilterInput>;
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+};
+
+
+export type QuerypersonArgs = {
+  id: Scalars['PersonID']['input'];
+};
+
+
+export type QuerypersonsArgs = {
+  limit?: Scalars['Int']['input'];
+};
+
+export type Subscription = {
+  __typename?: 'Subscription';
+  diagramChanges: DomainDiagramType;
+  executionEvents: ExecutionEvent;
+  executionUpdates: ExecutionState;
+  interactivePrompts: InteractivePrompt;
+  nodeUpdates: NodeExecution;
+};
+
+
+export type SubscriptiondiagramChangesArgs = {
+  diagramId: Scalars['DiagramID']['input'];
+};
+
+
+export type SubscriptionexecutionEventsArgs = {
+  eventTypes?: InputMaybe<Array<EventType>>;
+  executionId: Scalars['ExecutionID']['input'];
+};
+
+
+export type SubscriptionexecutionUpdatesArgs = {
+  executionId: Scalars['ExecutionID']['input'];
+};
+
+
+export type SubscriptioninteractivePromptsArgs = {
+  executionId: Scalars['ExecutionID']['input'];
+};
+
+
+export type SubscriptionnodeUpdatesArgs = {
+  executionId: Scalars['ExecutionID']['input'];
+  nodeTypes?: InputMaybe<Array<NodeType>>;
+};
+
+/** Result of API key test */
+export type TestApiKeyResult = {
+  __typename?: 'TestApiKeyResult';
+  availableModels?: Maybe<Array<Scalars['String']['output']>>;
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+  valid?: Maybe<Scalars['Boolean']['output']>;
+};
+
+/** Token usage statistics */
+export type TokenUsage = {
+  __typename?: 'TokenUsage';
+  cached?: Maybe<Scalars['Float']['output']>;
+  input: Scalars['Float']['output'];
+  output: Scalars['Float']['output'];
+  total?: Maybe<Scalars['Float']['output']>;
+};
+
+export type UpdateNodeInput = {
+  id: Scalars['String']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  position?: InputMaybe<Vec2Input>;
+  properties?: InputMaybe<Scalars['JSONScalar']['input']>;
+};
+
+export type UpdatePersonInput = {
+  apiKeyId?: InputMaybe<Scalars['String']['input']>;
+  forgettingMode?: InputMaybe<ForgettingMode>;
+  id: Scalars['String']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  maxTokens?: InputMaybe<Scalars['Int']['input']>;
+  model?: InputMaybe<Scalars['String']['input']>;
+  systemPrompt?: InputMaybe<Scalars['String']['input']>;
+  temperature?: InputMaybe<Scalars['Float']['input']>;
+  topP?: InputMaybe<Scalars['Float']['input']>;
+};
+
+/** 2D position vector */
+export type Vec2 = {
+  __typename?: 'Vec2';
+  x: Scalars['Float']['output'];
+  y: Scalars['Float']['output'];
+};
+
+export type Vec2Input = {
+  x: Scalars['Float']['input'];
+  y: Scalars['Float']['input'];
+};
+
+export type GetApiKeysQueryVariables = Exact<{
+  service?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type GetApiKeysQuery = { __typename?: 'Query', apiKeys: Array<{ __typename?: 'DomainApiKey', id: string, label: string, service: LLMService, maskedKey: string }> };
+
+export type GetApiKeyQueryVariables = Exact<{
+  id: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type GetApiKeyQuery = { __typename?: 'Query', apiKey?: { __typename?: 'DomainApiKey', id: string, label: string, service: LLMService, maskedKey: string } | null };
+
+export type GetAvailableModelsQueryVariables = Exact<{
+  service: Scalars['String']['input'];
+  apiKeyId: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type GetAvailableModelsQuery = { __typename?: 'Query', availableModels: Array<string> };
+
+export type CreateApiKeyMutationVariables = Exact<{
+  input: CreateApiKeyInput;
+}>;
+
+
+export type CreateApiKeyMutation = { __typename?: 'Mutation', createApiKey: { __typename?: 'ApiKeyResult', success: boolean, message?: string | null, error?: string | null, apiKey?: { __typename?: 'DomainApiKey', id: string, label: string, service: LLMService, maskedKey: string } | null } };
+
+export type TestApiKeyMutationVariables = Exact<{
+  id: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type TestApiKeyMutation = { __typename?: 'Mutation', testApiKey: { __typename?: 'TestApiKeyResult', success: boolean, valid?: boolean | null, availableModels?: Array<string> | null, error?: string | null } };
+
+export type DeleteApiKeyMutationVariables = Exact<{
+  id: Scalars['ApiKeyID']['input'];
+}>;
+
+
+export type DeleteApiKeyMutation = { __typename?: 'Mutation', deleteApiKey: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type GetConversationsQueryVariables = Exact<{
+  personId?: InputMaybe<Scalars['PersonID']['input']>;
+  executionId?: InputMaybe<Scalars['ExecutionID']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  showForgotten?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  since?: InputMaybe<Scalars['DateTime']['input']>;
+}>;
+
+
+export type GetConversationsQuery = { __typename?: 'Query', conversations: any };
+
+export type ClearConversationsMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ClearConversationsMutation = { __typename?: 'Mutation', clearConversations: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
+
+export type GetDiagramQueryVariables = Exact<{
+  id: Scalars['DiagramID']['input'];
+}>;
+
+
+export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNode', id: string, type: NodeType, displayName: string, data?: any | null, position: { __typename?: 'Vec2', x: number, y: number }, handles: Array<{ __typename?: 'DomainHandle', id: string, nodeId: string, label: string, direction: HandleDirection, dataType: DataType, position?: string | null }> }>, handles: Array<{ __typename?: 'DomainHandle', id: string, nodeId: string, label: string, direction: HandleDirection, dataType: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrow', id: string, source: string, target: string, data?: any | null }>, persons: Array<{ __typename?: 'DomainPerson', id: string, label: string, service: LLMService, model: string, systemPrompt?: string | null, apiKeyId?: string | null, forgettingMode: ForgettingMode, maskedApiKey?: string | null, type: string }>, apiKeys: Array<{ __typename?: 'DomainApiKey', id: string, label: string, service: LLMService, maskedKey: string }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
+
+export type ListDiagramsQueryVariables = Exact<{
+  filter?: InputMaybe<DiagramFilterInput>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', nodeCount: number, arrowCount: number, personCount: number, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
+
+export type CreateDiagramMutationVariables = Exact<{
+  input: CreateDiagramInput;
+}>;
+
+
+export type CreateDiagramMutation = { __typename?: 'Mutation', createDiagram: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null, diagram?: { __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null } | null } | null } };
+
+export type ExecuteDiagramMutationVariables = Exact<{
+  input: ExecuteDiagramInput;
+}>;
+
+
+export type ExecuteDiagramMutation = { __typename?: 'Mutation', executeDiagram: { __typename?: 'ExecutionResult', success: boolean, executionId?: string | null, message?: string | null, error?: string | null } };
+
+export type DeleteDiagramMutationVariables = Exact<{
+  id: Scalars['DiagramID']['input'];
+}>;
+
+
+export type DeleteDiagramMutation = { __typename?: 'Mutation', deleteDiagram: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type GetExecutionQueryVariables = Exact<{
+  id: Scalars['ExecutionID']['input'];
+}>;
+
+
+export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionState', id: string, status: ExecutionStatus, diagramId?: string | null, startedAt: string, endedAt?: string | null, nodeStates: any, nodeOutputs: any, variables: any, error?: string | null, durationSeconds?: number | null, isActive: boolean, tokenUsage: { __typename?: 'TokenUsage', input: number, output: number, cached?: number | null } } | null };
+
+export type ListExecutionsQueryVariables = Exact<{
+  filter?: InputMaybe<ExecutionFilterInput>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionState', id: string, status: ExecutionStatus, diagramId?: string | null, startedAt: string, endedAt?: string | null, isActive: boolean, durationSeconds?: number | null }> };
+
+export type ExecutionUpdatesSubscriptionVariables = Exact<{
+  executionId: Scalars['ExecutionID']['input'];
+}>;
+
+
+export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', executionUpdates: { __typename?: 'ExecutionState', id: string, status: ExecutionStatus, nodeStates: any, nodeOutputs: any, error?: string | null, tokenUsage: { __typename?: 'TokenUsage', input: number, output: number, cached?: number | null } } };
+
+export type NodeUpdatesSubscriptionVariables = Exact<{
+  executionId: Scalars['ExecutionID']['input'];
+  nodeTypes?: InputMaybe<Array<NodeType> | NodeType>;
+}>;
+
+
+export type NodeUpdatesSubscription = { __typename?: 'Subscription', nodeUpdates: { __typename?: 'NodeExecution', executionId: ExecutionID, nodeId: NodeID, nodeType: NodeType, status: string, progress?: string | null, output?: any | null, error?: string | null, tokensUsed?: number | null, timestamp: any } };
+
+export type InteractivePromptsSubscriptionVariables = Exact<{
+  executionId: Scalars['ExecutionID']['input'];
+}>;
+
+
+export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactivePrompts: { __typename?: 'InteractivePrompt', executionId: ExecutionID, nodeId: NodeID, prompt: string, timeoutSeconds?: number | null, timestamp: any } };
+
+export type ControlExecutionMutationVariables = Exact<{
+  input: ExecutionControlInput;
+}>;
+
+
+export type ControlExecutionMutation = { __typename?: 'Mutation', controlExecution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionState', id: string, status: ExecutionStatus } | null } };
+
+export type SubmitInteractiveResponseMutationVariables = Exact<{
+  input: InteractiveResponseInput;
+}>;
+
+
+export type SubmitInteractiveResponseMutation = { __typename?: 'Mutation', submitInteractiveResponse: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionState', id: string, status: ExecutionStatus, nodeStates: any } | null } };
+
+export type UploadFileMutationVariables = Exact<{
+  input: FileUploadInput;
+}>;
+
+
+export type UploadFileMutation = { __typename?: 'Mutation', uploadFile: { __typename?: 'FileUploadResult', success: boolean, path?: string | null, sizeBytes?: number | null, contentType?: string | null, message?: string | null, error?: string | null } };
+
+export type SaveDiagramMutationVariables = Exact<{
+  file: Scalars['Upload']['input'];
+  format?: InputMaybe<Scalars['String']['input']>;
+  validateOnly?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type SaveDiagramMutation = { __typename?: 'Mutation', saveDiagram: { __typename?: 'DiagramSaveResult', success: boolean, message: string, diagramId?: DiagramID | null, diagramName?: string | null, nodeCount?: number | null, formatDetected?: string | null } };
+
+export type ConvertDiagramMutationVariables = Exact<{
+  content: Scalars['JSONScalar']['input'];
+  format?: InputMaybe<DiagramFormat>;
+  includeMetadata?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type ConvertDiagramMutation = { __typename?: 'Mutation', convertDiagram: { __typename?: 'DiagramConvertResult', success: boolean, message: string, error?: string | null, content?: string | null, format?: string | null, filename?: string | null } };
+
+export type GetSupportedFormatsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetSupportedFormatsQuery = { __typename?: 'Query', supportedFormats: Array<{ __typename?: 'DiagramFormatInfo', id: string, name: string, description: string, extension: string, supportsImport: boolean, supportsExport: boolean }> };
+
+export type CreateNodeMutationVariables = Exact<{
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreateNodeInput;
+}>;
+
+
+export type CreateNodeMutation = { __typename?: 'Mutation', createNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNode', id: string, type: NodeType, displayName: string, data?: any | null, position: { __typename?: 'Vec2', x: number, y: number } } | null } };
+
+export type UpdateNodeMutationVariables = Exact<{
+  input: UpdateNodeInput;
+}>;
+
+
+export type UpdateNodeMutation = { __typename?: 'Mutation', updateNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNode', id: string, type: NodeType, displayName: string, data?: any | null, position: { __typename?: 'Vec2', x: number, y: number } } | null } };
+
+export type DeleteNodeMutationVariables = Exact<{
+  id: Scalars['NodeID']['input'];
+}>;
+
+
+export type DeleteNodeMutation = { __typename?: 'Mutation', deleteNode: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type CreateArrowMutationVariables = Exact<{
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreateArrowInput;
+}>;
+
+
+export type CreateArrowMutation = { __typename?: 'Mutation', createArrow: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null, diagram?: { __typename?: 'DomainDiagramType', arrows: Array<{ __typename?: 'DomainArrow', id: string, source: string, target: string, data?: any | null }> } | null } };
+
+export type DeleteArrowMutationVariables = Exact<{
+  id: Scalars['ArrowID']['input'];
+}>;
+
+
+export type DeleteArrowMutation = { __typename?: 'Mutation', deleteArrow: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type GetPersonQueryVariables = Exact<{
+  id: Scalars['PersonID']['input'];
+}>;
+
+
+export type GetPersonQuery = { __typename?: 'Query', person?: { __typename?: 'DomainPerson', id: string, label: string, service: LLMService, model: string, apiKeyId?: string | null, systemPrompt?: string | null, forgettingMode: ForgettingMode, maskedApiKey?: string | null, type: string } | null };
+
+export type GetPersonsQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type GetPersonsQuery = { __typename?: 'Query', persons: Array<{ __typename?: 'DomainPerson', id: string, label: string, service: LLMService, model: string, apiKeyId?: string | null, systemPrompt?: string | null, forgettingMode: ForgettingMode, maskedApiKey?: string | null, type: string }> };
+
+export type CreatePersonMutationVariables = Exact<{
+  diagramId: Scalars['DiagramID']['input'];
+  input: CreatePersonInput;
+}>;
+
+
+export type CreatePersonMutation = { __typename?: 'Mutation', createPerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPerson', id: string, label: string, service: LLMService, model: string, apiKeyId?: string | null, systemPrompt?: string | null, forgettingMode: ForgettingMode, maskedApiKey?: string | null, type: string } | null } };
+
+export type UpdatePersonMutationVariables = Exact<{
+  input: UpdatePersonInput;
+}>;
+
+
+export type UpdatePersonMutation = { __typename?: 'Mutation', updatePerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPerson', id: string, label: string, service: LLMService, model: string, apiKeyId?: string | null, systemPrompt?: string | null, forgettingMode: ForgettingMode, maskedApiKey?: string | null, type: string } | null } };
+
+export type DeletePersonMutationVariables = Exact<{
+  id: Scalars['PersonID']['input'];
+}>;
+
+
+export type DeletePersonMutation = { __typename?: 'Mutation', deletePerson: { __typename?: 'DeleteResult', success: boolean, deletedId?: string | null, message?: string | null, error?: string | null } };
+
+export type InitializeModelMutationVariables = Exact<{
+  personId: Scalars['PersonID']['input'];
+}>;
+
+
+export type InitializeModelMutation = { __typename?: 'Mutation', initializeModel: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPerson', id: string, label: string, service: LLMService, model: string, apiKeyId?: string | null, systemPrompt?: string | null, forgettingMode: ForgettingMode, maskedApiKey?: string | null, type: string } | null } };
+
+export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetSystemInfoQuery = { __typename?: 'Query', systemInfo: any };
+
+
+export const GetApiKeysDocument = gql`
+    query GetApiKeys($service: String) {
+  apiKeys(service: $service) {
+    id
+    label
+    service
+    maskedKey
+  }
+}
+    `;
+
+/**
+ * __useGetApiKeysQuery__
+ *
+ * To run a query within a React component, call `useGetApiKeysQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetApiKeysQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetApiKeysQuery({
+ *   variables: {
+ *      service: // value for 'service'
+ *   },
+ * });
+ */
+export function useGetApiKeysQuery(baseOptions?: Apollo.QueryHookOptions<GetApiKeysQuery, GetApiKeysQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetApiKeysQuery, GetApiKeysQueryVariables>(GetApiKeysDocument, options);
+      }
+export function useGetApiKeysLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetApiKeysQuery, GetApiKeysQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetApiKeysQuery, GetApiKeysQueryVariables>(GetApiKeysDocument, options);
+        }
+export function useGetApiKeysSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetApiKeysQuery, GetApiKeysQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetApiKeysQuery, GetApiKeysQueryVariables>(GetApiKeysDocument, options);
+        }
+export type GetApiKeysQueryHookResult = ReturnType<typeof useGetApiKeysQuery>;
+export type GetApiKeysLazyQueryHookResult = ReturnType<typeof useGetApiKeysLazyQuery>;
+export type GetApiKeysSuspenseQueryHookResult = ReturnType<typeof useGetApiKeysSuspenseQuery>;
+export type GetApiKeysQueryResult = Apollo.QueryResult<GetApiKeysQuery, GetApiKeysQueryVariables>;
+export const GetApiKeyDocument = gql`
+    query GetApiKey($id: ApiKeyID!) {
+  apiKey(id: $id) {
+    id
+    label
+    service
+    maskedKey
+  }
+}
+    `;
+
+/**
+ * __useGetApiKeyQuery__
+ *
+ * To run a query within a React component, call `useGetApiKeyQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetApiKeyQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetApiKeyQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetApiKeyQuery(baseOptions: Apollo.QueryHookOptions<GetApiKeyQuery, GetApiKeyQueryVariables> & ({ variables: GetApiKeyQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetApiKeyQuery, GetApiKeyQueryVariables>(GetApiKeyDocument, options);
+      }
+export function useGetApiKeyLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetApiKeyQuery, GetApiKeyQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetApiKeyQuery, GetApiKeyQueryVariables>(GetApiKeyDocument, options);
+        }
+export function useGetApiKeySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetApiKeyQuery, GetApiKeyQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetApiKeyQuery, GetApiKeyQueryVariables>(GetApiKeyDocument, options);
+        }
+export type GetApiKeyQueryHookResult = ReturnType<typeof useGetApiKeyQuery>;
+export type GetApiKeyLazyQueryHookResult = ReturnType<typeof useGetApiKeyLazyQuery>;
+export type GetApiKeySuspenseQueryHookResult = ReturnType<typeof useGetApiKeySuspenseQuery>;
+export type GetApiKeyQueryResult = Apollo.QueryResult<GetApiKeyQuery, GetApiKeyQueryVariables>;
+export const GetAvailableModelsDocument = gql`
+    query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
+  availableModels(service: $service, apiKeyId: $apiKeyId)
+}
+    `;
+
+/**
+ * __useGetAvailableModelsQuery__
+ *
+ * To run a query within a React component, call `useGetAvailableModelsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetAvailableModelsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetAvailableModelsQuery({
+ *   variables: {
+ *      service: // value for 'service'
+ *      apiKeyId: // value for 'apiKeyId'
+ *   },
+ * });
+ */
+export function useGetAvailableModelsQuery(baseOptions: Apollo.QueryHookOptions<GetAvailableModelsQuery, GetAvailableModelsQueryVariables> & ({ variables: GetAvailableModelsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>(GetAvailableModelsDocument, options);
+      }
+export function useGetAvailableModelsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>(GetAvailableModelsDocument, options);
+        }
+export function useGetAvailableModelsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>(GetAvailableModelsDocument, options);
+        }
+export type GetAvailableModelsQueryHookResult = ReturnType<typeof useGetAvailableModelsQuery>;
+export type GetAvailableModelsLazyQueryHookResult = ReturnType<typeof useGetAvailableModelsLazyQuery>;
+export type GetAvailableModelsSuspenseQueryHookResult = ReturnType<typeof useGetAvailableModelsSuspenseQuery>;
+export type GetAvailableModelsQueryResult = Apollo.QueryResult<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>;
+export const CreateApiKeyDocument = gql`
+    mutation CreateApiKey($input: CreateApiKeyInput!) {
+  createApiKey(input: $input) {
+    success
+    apiKey {
+      id
+      label
+      service
+      maskedKey
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateApiKeyMutationFn = Apollo.MutationFunction<CreateApiKeyMutation, CreateApiKeyMutationVariables>;
+
+/**
+ * __useCreateApiKeyMutation__
+ *
+ * To run a mutation, you first call `useCreateApiKeyMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateApiKeyMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createApiKeyMutation, { data, loading, error }] = useCreateApiKeyMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<CreateApiKeyMutation, CreateApiKeyMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateApiKeyMutation, CreateApiKeyMutationVariables>(CreateApiKeyDocument, options);
+      }
+export type CreateApiKeyMutationHookResult = ReturnType<typeof useCreateApiKeyMutation>;
+export type CreateApiKeyMutationResult = Apollo.MutationResult<CreateApiKeyMutation>;
+export type CreateApiKeyMutationOptions = Apollo.BaseMutationOptions<CreateApiKeyMutation, CreateApiKeyMutationVariables>;
+export const TestApiKeyDocument = gql`
+    mutation TestApiKey($id: ApiKeyID!) {
+  testApiKey(id: $id) {
+    success
+    valid
+    availableModels
+    error
+  }
+}
+    `;
+export type TestApiKeyMutationFn = Apollo.MutationFunction<TestApiKeyMutation, TestApiKeyMutationVariables>;
+
+/**
+ * __useTestApiKeyMutation__
+ *
+ * To run a mutation, you first call `useTestApiKeyMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useTestApiKeyMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [testApiKeyMutation, { data, loading, error }] = useTestApiKeyMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useTestApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<TestApiKeyMutation, TestApiKeyMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<TestApiKeyMutation, TestApiKeyMutationVariables>(TestApiKeyDocument, options);
+      }
+export type TestApiKeyMutationHookResult = ReturnType<typeof useTestApiKeyMutation>;
+export type TestApiKeyMutationResult = Apollo.MutationResult<TestApiKeyMutation>;
+export type TestApiKeyMutationOptions = Apollo.BaseMutationOptions<TestApiKeyMutation, TestApiKeyMutationVariables>;
+export const DeleteApiKeyDocument = gql`
+    mutation DeleteApiKey($id: ApiKeyID!) {
+  deleteApiKey(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteApiKeyMutationFn = Apollo.MutationFunction<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>;
+
+/**
+ * __useDeleteApiKeyMutation__
+ *
+ * To run a mutation, you first call `useDeleteApiKeyMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteApiKeyMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteApiKeyMutation, { data, loading, error }] = useDeleteApiKeyMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>(DeleteApiKeyDocument, options);
+      }
+export type DeleteApiKeyMutationHookResult = ReturnType<typeof useDeleteApiKeyMutation>;
+export type DeleteApiKeyMutationResult = Apollo.MutationResult<DeleteApiKeyMutation>;
+export type DeleteApiKeyMutationOptions = Apollo.BaseMutationOptions<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>;
+export const GetConversationsDocument = gql`
+    query GetConversations($personId: PersonID, $executionId: ExecutionID, $search: String, $showForgotten: Boolean = false, $limit: Int = 100, $offset: Int = 0, $since: DateTime) {
+  conversations(
+    personId: $personId
+    executionId: $executionId
+    search: $search
+    showForgotten: $showForgotten
+    limit: $limit
+    offset: $offset
+    since: $since
+  )
+}
+    `;
+
+/**
+ * __useGetConversationsQuery__
+ *
+ * To run a query within a React component, call `useGetConversationsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetConversationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetConversationsQuery({
+ *   variables: {
+ *      personId: // value for 'personId'
+ *      executionId: // value for 'executionId'
+ *      search: // value for 'search'
+ *      showForgotten: // value for 'showForgotten'
+ *      limit: // value for 'limit'
+ *      offset: // value for 'offset'
+ *      since: // value for 'since'
+ *   },
+ * });
+ */
+export function useGetConversationsQuery(baseOptions?: Apollo.QueryHookOptions<GetConversationsQuery, GetConversationsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetConversationsQuery, GetConversationsQueryVariables>(GetConversationsDocument, options);
+      }
+export function useGetConversationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetConversationsQuery, GetConversationsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetConversationsQuery, GetConversationsQueryVariables>(GetConversationsDocument, options);
+        }
+export function useGetConversationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetConversationsQuery, GetConversationsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetConversationsQuery, GetConversationsQueryVariables>(GetConversationsDocument, options);
+        }
+export type GetConversationsQueryHookResult = ReturnType<typeof useGetConversationsQuery>;
+export type GetConversationsLazyQueryHookResult = ReturnType<typeof useGetConversationsLazyQuery>;
+export type GetConversationsSuspenseQueryHookResult = ReturnType<typeof useGetConversationsSuspenseQuery>;
+export type GetConversationsQueryResult = Apollo.QueryResult<GetConversationsQuery, GetConversationsQueryVariables>;
+export const ClearConversationsDocument = gql`
+    mutation ClearConversations {
+  clearConversations {
+    success
+    message
+    error
+  }
+}
+    `;
+export type ClearConversationsMutationFn = Apollo.MutationFunction<ClearConversationsMutation, ClearConversationsMutationVariables>;
+
+/**
+ * __useClearConversationsMutation__
+ *
+ * To run a mutation, you first call `useClearConversationsMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useClearConversationsMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [clearConversationsMutation, { data, loading, error }] = useClearConversationsMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useClearConversationsMutation(baseOptions?: Apollo.MutationHookOptions<ClearConversationsMutation, ClearConversationsMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ClearConversationsMutation, ClearConversationsMutationVariables>(ClearConversationsDocument, options);
+      }
+export type ClearConversationsMutationHookResult = ReturnType<typeof useClearConversationsMutation>;
+export type ClearConversationsMutationResult = Apollo.MutationResult<ClearConversationsMutation>;
+export type ClearConversationsMutationOptions = Apollo.BaseMutationOptions<ClearConversationsMutation, ClearConversationsMutationVariables>;
+export const GetDiagramDocument = gql`
+    query GetDiagram($id: DiagramID!) {
+  diagram(id: $id) {
+    nodes {
+      id
+      type
+      position {
+        x
+        y
+      }
+      displayName
+      data
+      handles {
+        id
+        nodeId
+        label
+        direction
+        dataType
+        position
+      }
+    }
+    handles {
+      id
+      nodeId
+      label
+      direction
+      dataType
+      position
+    }
+    arrows {
+      id
+      source
+      target
+      data
+    }
+    persons {
+      id
+      label
+      service
+      model
+      systemPrompt
+      apiKeyId
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    apiKeys {
+      id
+      label
+      service
+      maskedKey
+    }
+    metadata {
+      id
+      name
+      description
+      version
+      created
+      modified
+      author
+      tags
+    }
+  }
+}
+    `;
+
+/**
+ * __useGetDiagramQuery__
+ *
+ * To run a query within a React component, call `useGetDiagramQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetDiagramQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetDiagramQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetDiagramQuery(baseOptions: Apollo.QueryHookOptions<GetDiagramQuery, GetDiagramQueryVariables> & ({ variables: GetDiagramQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetDiagramQuery, GetDiagramQueryVariables>(GetDiagramDocument, options);
+      }
+export function useGetDiagramLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetDiagramQuery, GetDiagramQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetDiagramQuery, GetDiagramQueryVariables>(GetDiagramDocument, options);
+        }
+export function useGetDiagramSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetDiagramQuery, GetDiagramQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetDiagramQuery, GetDiagramQueryVariables>(GetDiagramDocument, options);
+        }
+export type GetDiagramQueryHookResult = ReturnType<typeof useGetDiagramQuery>;
+export type GetDiagramLazyQueryHookResult = ReturnType<typeof useGetDiagramLazyQuery>;
+export type GetDiagramSuspenseQueryHookResult = ReturnType<typeof useGetDiagramSuspenseQuery>;
+export type GetDiagramQueryResult = Apollo.QueryResult<GetDiagramQuery, GetDiagramQueryVariables>;
+export const ListDiagramsDocument = gql`
+    query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
+  diagrams(filter: $filter, limit: $limit, offset: $offset) {
+    metadata {
+      id
+      name
+      description
+      author
+      created
+      modified
+      tags
+    }
+    nodeCount
+    arrowCount
+    personCount
+  }
+}
+    `;
+
+/**
+ * __useListDiagramsQuery__
+ *
+ * To run a query within a React component, call `useListDiagramsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListDiagramsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListDiagramsQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *      limit: // value for 'limit'
+ *      offset: // value for 'offset'
+ *   },
+ * });
+ */
+export function useListDiagramsQuery(baseOptions?: Apollo.QueryHookOptions<ListDiagramsQuery, ListDiagramsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListDiagramsQuery, ListDiagramsQueryVariables>(ListDiagramsDocument, options);
+      }
+export function useListDiagramsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListDiagramsQuery, ListDiagramsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListDiagramsQuery, ListDiagramsQueryVariables>(ListDiagramsDocument, options);
+        }
+export function useListDiagramsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListDiagramsQuery, ListDiagramsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ListDiagramsQuery, ListDiagramsQueryVariables>(ListDiagramsDocument, options);
+        }
+export type ListDiagramsQueryHookResult = ReturnType<typeof useListDiagramsQuery>;
+export type ListDiagramsLazyQueryHookResult = ReturnType<typeof useListDiagramsLazyQuery>;
+export type ListDiagramsSuspenseQueryHookResult = ReturnType<typeof useListDiagramsSuspenseQuery>;
+export type ListDiagramsQueryResult = Apollo.QueryResult<ListDiagramsQuery, ListDiagramsQueryVariables>;
+export const CreateDiagramDocument = gql`
+    mutation CreateDiagram($input: CreateDiagramInput!) {
+  createDiagram(input: $input) {
+    success
+    diagram {
+      metadata {
+        id
+        name
+      }
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateDiagramMutationFn = Apollo.MutationFunction<CreateDiagramMutation, CreateDiagramMutationVariables>;
+
+/**
+ * __useCreateDiagramMutation__
+ *
+ * To run a mutation, you first call `useCreateDiagramMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateDiagramMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createDiagramMutation, { data, loading, error }] = useCreateDiagramMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateDiagramMutation(baseOptions?: Apollo.MutationHookOptions<CreateDiagramMutation, CreateDiagramMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateDiagramMutation, CreateDiagramMutationVariables>(CreateDiagramDocument, options);
+      }
+export type CreateDiagramMutationHookResult = ReturnType<typeof useCreateDiagramMutation>;
+export type CreateDiagramMutationResult = Apollo.MutationResult<CreateDiagramMutation>;
+export type CreateDiagramMutationOptions = Apollo.BaseMutationOptions<CreateDiagramMutation, CreateDiagramMutationVariables>;
+export const ExecuteDiagramDocument = gql`
+    mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
+  executeDiagram(input: $input) {
+    success
+    executionId
+    message
+    error
+  }
+}
+    `;
+export type ExecuteDiagramMutationFn = Apollo.MutationFunction<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>;
+
+/**
+ * __useExecuteDiagramMutation__
+ *
+ * To run a mutation, you first call `useExecuteDiagramMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useExecuteDiagramMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [executeDiagramMutation, { data, loading, error }] = useExecuteDiagramMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useExecuteDiagramMutation(baseOptions?: Apollo.MutationHookOptions<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>(ExecuteDiagramDocument, options);
+      }
+export type ExecuteDiagramMutationHookResult = ReturnType<typeof useExecuteDiagramMutation>;
+export type ExecuteDiagramMutationResult = Apollo.MutationResult<ExecuteDiagramMutation>;
+export type ExecuteDiagramMutationOptions = Apollo.BaseMutationOptions<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>;
+export const DeleteDiagramDocument = gql`
+    mutation DeleteDiagram($id: DiagramID!) {
+  deleteDiagram(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteDiagramMutationFn = Apollo.MutationFunction<DeleteDiagramMutation, DeleteDiagramMutationVariables>;
+
+/**
+ * __useDeleteDiagramMutation__
+ *
+ * To run a mutation, you first call `useDeleteDiagramMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteDiagramMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteDiagramMutation, { data, loading, error }] = useDeleteDiagramMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteDiagramMutation(baseOptions?: Apollo.MutationHookOptions<DeleteDiagramMutation, DeleteDiagramMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteDiagramMutation, DeleteDiagramMutationVariables>(DeleteDiagramDocument, options);
+      }
+export type DeleteDiagramMutationHookResult = ReturnType<typeof useDeleteDiagramMutation>;
+export type DeleteDiagramMutationResult = Apollo.MutationResult<DeleteDiagramMutation>;
+export type DeleteDiagramMutationOptions = Apollo.BaseMutationOptions<DeleteDiagramMutation, DeleteDiagramMutationVariables>;
+export const GetExecutionDocument = gql`
+    query GetExecution($id: ExecutionID!) {
+  execution(id: $id) {
+    id
+    status
+    diagramId
+    startedAt
+    endedAt
+    nodeStates
+    nodeOutputs
+    variables
+    tokenUsage {
+      input
+      output
+      cached
+    }
+    error
+    durationSeconds
+    isActive
+  }
+}
+    `;
+
+/**
+ * __useGetExecutionQuery__
+ *
+ * To run a query within a React component, call `useGetExecutionQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetExecutionQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetExecutionQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetExecutionQuery(baseOptions: Apollo.QueryHookOptions<GetExecutionQuery, GetExecutionQueryVariables> & ({ variables: GetExecutionQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetExecutionQuery, GetExecutionQueryVariables>(GetExecutionDocument, options);
+      }
+export function useGetExecutionLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetExecutionQuery, GetExecutionQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetExecutionQuery, GetExecutionQueryVariables>(GetExecutionDocument, options);
+        }
+export function useGetExecutionSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetExecutionQuery, GetExecutionQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetExecutionQuery, GetExecutionQueryVariables>(GetExecutionDocument, options);
+        }
+export type GetExecutionQueryHookResult = ReturnType<typeof useGetExecutionQuery>;
+export type GetExecutionLazyQueryHookResult = ReturnType<typeof useGetExecutionLazyQuery>;
+export type GetExecutionSuspenseQueryHookResult = ReturnType<typeof useGetExecutionSuspenseQuery>;
+export type GetExecutionQueryResult = Apollo.QueryResult<GetExecutionQuery, GetExecutionQueryVariables>;
+export const ListExecutionsDocument = gql`
+    query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
+  executions(filter: $filter, limit: $limit, offset: $offset) {
+    id
+    status
+    diagramId
+    startedAt
+    endedAt
+    isActive
+    durationSeconds
+  }
+}
+    `;
+
+/**
+ * __useListExecutionsQuery__
+ *
+ * To run a query within a React component, call `useListExecutionsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListExecutionsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListExecutionsQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *      limit: // value for 'limit'
+ *      offset: // value for 'offset'
+ *   },
+ * });
+ */
+export function useListExecutionsQuery(baseOptions?: Apollo.QueryHookOptions<ListExecutionsQuery, ListExecutionsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListExecutionsQuery, ListExecutionsQueryVariables>(ListExecutionsDocument, options);
+      }
+export function useListExecutionsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListExecutionsQuery, ListExecutionsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListExecutionsQuery, ListExecutionsQueryVariables>(ListExecutionsDocument, options);
+        }
+export function useListExecutionsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListExecutionsQuery, ListExecutionsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ListExecutionsQuery, ListExecutionsQueryVariables>(ListExecutionsDocument, options);
+        }
+export type ListExecutionsQueryHookResult = ReturnType<typeof useListExecutionsQuery>;
+export type ListExecutionsLazyQueryHookResult = ReturnType<typeof useListExecutionsLazyQuery>;
+export type ListExecutionsSuspenseQueryHookResult = ReturnType<typeof useListExecutionsSuspenseQuery>;
+export type ListExecutionsQueryResult = Apollo.QueryResult<ListExecutionsQuery, ListExecutionsQueryVariables>;
+export const ExecutionUpdatesDocument = gql`
+    subscription ExecutionUpdates($executionId: ExecutionID!) {
+  executionUpdates(executionId: $executionId) {
+    id
+    status
+    nodeStates
+    nodeOutputs
+    tokenUsage {
+      input
+      output
+      cached
+    }
+    error
+  }
+}
+    `;
+
+/**
+ * __useExecutionUpdatesSubscription__
+ *
+ * To run a query within a React component, call `useExecutionUpdatesSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useExecutionUpdatesSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useExecutionUpdatesSubscription({
+ *   variables: {
+ *      executionId: // value for 'executionId'
+ *   },
+ * });
+ */
+export function useExecutionUpdatesSubscription(baseOptions: Apollo.SubscriptionHookOptions<ExecutionUpdatesSubscription, ExecutionUpdatesSubscriptionVariables> & ({ variables: ExecutionUpdatesSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<ExecutionUpdatesSubscription, ExecutionUpdatesSubscriptionVariables>(ExecutionUpdatesDocument, options);
+      }
+export type ExecutionUpdatesSubscriptionHookResult = ReturnType<typeof useExecutionUpdatesSubscription>;
+export type ExecutionUpdatesSubscriptionResult = Apollo.SubscriptionResult<ExecutionUpdatesSubscription>;
+export const NodeUpdatesDocument = gql`
+    subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
+  nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
+    executionId
+    nodeId
+    nodeType
+    status
+    progress
+    output
+    error
+    tokensUsed
+    timestamp
+  }
+}
+    `;
+
+/**
+ * __useNodeUpdatesSubscription__
+ *
+ * To run a query within a React component, call `useNodeUpdatesSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useNodeUpdatesSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useNodeUpdatesSubscription({
+ *   variables: {
+ *      executionId: // value for 'executionId'
+ *      nodeTypes: // value for 'nodeTypes'
+ *   },
+ * });
+ */
+export function useNodeUpdatesSubscription(baseOptions: Apollo.SubscriptionHookOptions<NodeUpdatesSubscription, NodeUpdatesSubscriptionVariables> & ({ variables: NodeUpdatesSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<NodeUpdatesSubscription, NodeUpdatesSubscriptionVariables>(NodeUpdatesDocument, options);
+      }
+export type NodeUpdatesSubscriptionHookResult = ReturnType<typeof useNodeUpdatesSubscription>;
+export type NodeUpdatesSubscriptionResult = Apollo.SubscriptionResult<NodeUpdatesSubscription>;
+export const InteractivePromptsDocument = gql`
+    subscription InteractivePrompts($executionId: ExecutionID!) {
+  interactivePrompts(executionId: $executionId) {
+    executionId
+    nodeId
+    prompt
+    timeoutSeconds
+    timestamp
+  }
+}
+    `;
+
+/**
+ * __useInteractivePromptsSubscription__
+ *
+ * To run a query within a React component, call `useInteractivePromptsSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useInteractivePromptsSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useInteractivePromptsSubscription({
+ *   variables: {
+ *      executionId: // value for 'executionId'
+ *   },
+ * });
+ */
+export function useInteractivePromptsSubscription(baseOptions: Apollo.SubscriptionHookOptions<InteractivePromptsSubscription, InteractivePromptsSubscriptionVariables> & ({ variables: InteractivePromptsSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<InteractivePromptsSubscription, InteractivePromptsSubscriptionVariables>(InteractivePromptsDocument, options);
+      }
+export type InteractivePromptsSubscriptionHookResult = ReturnType<typeof useInteractivePromptsSubscription>;
+export type InteractivePromptsSubscriptionResult = Apollo.SubscriptionResult<InteractivePromptsSubscription>;
+export const ControlExecutionDocument = gql`
+    mutation ControlExecution($input: ExecutionControlInput!) {
+  controlExecution(input: $input) {
+    success
+    execution {
+      id
+      status
+    }
+    message
+    error
+  }
+}
+    `;
+export type ControlExecutionMutationFn = Apollo.MutationFunction<ControlExecutionMutation, ControlExecutionMutationVariables>;
+
+/**
+ * __useControlExecutionMutation__
+ *
+ * To run a mutation, you first call `useControlExecutionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useControlExecutionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [controlExecutionMutation, { data, loading, error }] = useControlExecutionMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useControlExecutionMutation(baseOptions?: Apollo.MutationHookOptions<ControlExecutionMutation, ControlExecutionMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ControlExecutionMutation, ControlExecutionMutationVariables>(ControlExecutionDocument, options);
+      }
+export type ControlExecutionMutationHookResult = ReturnType<typeof useControlExecutionMutation>;
+export type ControlExecutionMutationResult = Apollo.MutationResult<ControlExecutionMutation>;
+export type ControlExecutionMutationOptions = Apollo.BaseMutationOptions<ControlExecutionMutation, ControlExecutionMutationVariables>;
+export const SubmitInteractiveResponseDocument = gql`
+    mutation SubmitInteractiveResponse($input: InteractiveResponseInput!) {
+  submitInteractiveResponse(input: $input) {
+    success
+    execution {
+      id
+      status
+      nodeStates
+    }
+    message
+    error
+  }
+}
+    `;
+export type SubmitInteractiveResponseMutationFn = Apollo.MutationFunction<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>;
+
+/**
+ * __useSubmitInteractiveResponseMutation__
+ *
+ * To run a mutation, you first call `useSubmitInteractiveResponseMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSubmitInteractiveResponseMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [submitInteractiveResponseMutation, { data, loading, error }] = useSubmitInteractiveResponseMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useSubmitInteractiveResponseMutation(baseOptions?: Apollo.MutationHookOptions<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>(SubmitInteractiveResponseDocument, options);
+      }
+export type SubmitInteractiveResponseMutationHookResult = ReturnType<typeof useSubmitInteractiveResponseMutation>;
+export type SubmitInteractiveResponseMutationResult = Apollo.MutationResult<SubmitInteractiveResponseMutation>;
+export type SubmitInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>;
+export const UploadFileDocument = gql`
+    mutation UploadFile($input: FileUploadInput!) {
+  uploadFile(input: $input) {
+    success
+    path
+    sizeBytes
+    contentType
+    message
+    error
+  }
+}
+    `;
+export type UploadFileMutationFn = Apollo.MutationFunction<UploadFileMutation, UploadFileMutationVariables>;
+
+/**
+ * __useUploadFileMutation__
+ *
+ * To run a mutation, you first call `useUploadFileMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUploadFileMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [uploadFileMutation, { data, loading, error }] = useUploadFileMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUploadFileMutation(baseOptions?: Apollo.MutationHookOptions<UploadFileMutation, UploadFileMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UploadFileMutation, UploadFileMutationVariables>(UploadFileDocument, options);
+      }
+export type UploadFileMutationHookResult = ReturnType<typeof useUploadFileMutation>;
+export type UploadFileMutationResult = Apollo.MutationResult<UploadFileMutation>;
+export type UploadFileMutationOptions = Apollo.BaseMutationOptions<UploadFileMutation, UploadFileMutationVariables>;
+export const SaveDiagramDocument = gql`
+    mutation SaveDiagram($file: Upload!, $format: String, $validateOnly: Boolean = false) {
+  saveDiagram(file: $file, format: $format, validateOnly: $validateOnly) {
+    success
+    message
+    diagramId
+    diagramName
+    nodeCount
+    formatDetected
+  }
+}
+    `;
+export type SaveDiagramMutationFn = Apollo.MutationFunction<SaveDiagramMutation, SaveDiagramMutationVariables>;
+
+/**
+ * __useSaveDiagramMutation__
+ *
+ * To run a mutation, you first call `useSaveDiagramMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSaveDiagramMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [saveDiagramMutation, { data, loading, error }] = useSaveDiagramMutation({
+ *   variables: {
+ *      file: // value for 'file'
+ *      format: // value for 'format'
+ *      validateOnly: // value for 'validateOnly'
+ *   },
+ * });
+ */
+export function useSaveDiagramMutation(baseOptions?: Apollo.MutationHookOptions<SaveDiagramMutation, SaveDiagramMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SaveDiagramMutation, SaveDiagramMutationVariables>(SaveDiagramDocument, options);
+      }
+export type SaveDiagramMutationHookResult = ReturnType<typeof useSaveDiagramMutation>;
+export type SaveDiagramMutationResult = Apollo.MutationResult<SaveDiagramMutation>;
+export type SaveDiagramMutationOptions = Apollo.BaseMutationOptions<SaveDiagramMutation, SaveDiagramMutationVariables>;
+export const ConvertDiagramDocument = gql`
+    mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat = native, $includeMetadata: Boolean = true) {
+  convertDiagram(
+    content: $content
+    format: $format
+    includeMetadata: $includeMetadata
+  ) {
+    success
+    message
+    error
+    content
+    format
+    filename
+  }
+}
+    `;
+export type ConvertDiagramMutationFn = Apollo.MutationFunction<ConvertDiagramMutation, ConvertDiagramMutationVariables>;
+
+/**
+ * __useConvertDiagramMutation__
+ *
+ * To run a mutation, you first call `useConvertDiagramMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useConvertDiagramMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [convertDiagramMutation, { data, loading, error }] = useConvertDiagramMutation({
+ *   variables: {
+ *      content: // value for 'content'
+ *      format: // value for 'format'
+ *      includeMetadata: // value for 'includeMetadata'
+ *   },
+ * });
+ */
+export function useConvertDiagramMutation(baseOptions?: Apollo.MutationHookOptions<ConvertDiagramMutation, ConvertDiagramMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ConvertDiagramMutation, ConvertDiagramMutationVariables>(ConvertDiagramDocument, options);
+      }
+export type ConvertDiagramMutationHookResult = ReturnType<typeof useConvertDiagramMutation>;
+export type ConvertDiagramMutationResult = Apollo.MutationResult<ConvertDiagramMutation>;
+export type ConvertDiagramMutationOptions = Apollo.BaseMutationOptions<ConvertDiagramMutation, ConvertDiagramMutationVariables>;
+export const GetSupportedFormatsDocument = gql`
+    query GetSupportedFormats {
+  supportedFormats {
+    id
+    name
+    description
+    extension
+    supportsImport
+    supportsExport
+  }
+}
+    `;
+
+/**
+ * __useGetSupportedFormatsQuery__
+ *
+ * To run a query within a React component, call `useGetSupportedFormatsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetSupportedFormatsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetSupportedFormatsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetSupportedFormatsQuery(baseOptions?: Apollo.QueryHookOptions<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>(GetSupportedFormatsDocument, options);
+      }
+export function useGetSupportedFormatsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>(GetSupportedFormatsDocument, options);
+        }
+export function useGetSupportedFormatsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>(GetSupportedFormatsDocument, options);
+        }
+export type GetSupportedFormatsQueryHookResult = ReturnType<typeof useGetSupportedFormatsQuery>;
+export type GetSupportedFormatsLazyQueryHookResult = ReturnType<typeof useGetSupportedFormatsLazyQuery>;
+export type GetSupportedFormatsSuspenseQueryHookResult = ReturnType<typeof useGetSupportedFormatsSuspenseQuery>;
+export type GetSupportedFormatsQueryResult = Apollo.QueryResult<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>;
+export const CreateNodeDocument = gql`
+    mutation CreateNode($diagramId: DiagramID!, $input: CreateNodeInput!) {
+  createNode(diagramId: $diagramId, input: $input) {
+    success
+    node {
+      id
+      type
+      displayName
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateNodeMutationFn = Apollo.MutationFunction<CreateNodeMutation, CreateNodeMutationVariables>;
+
+/**
+ * __useCreateNodeMutation__
+ *
+ * To run a mutation, you first call `useCreateNodeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateNodeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createNodeMutation, { data, loading, error }] = useCreateNodeMutation({
+ *   variables: {
+ *      diagramId: // value for 'diagramId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateNodeMutation(baseOptions?: Apollo.MutationHookOptions<CreateNodeMutation, CreateNodeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateNodeMutation, CreateNodeMutationVariables>(CreateNodeDocument, options);
+      }
+export type CreateNodeMutationHookResult = ReturnType<typeof useCreateNodeMutation>;
+export type CreateNodeMutationResult = Apollo.MutationResult<CreateNodeMutation>;
+export type CreateNodeMutationOptions = Apollo.BaseMutationOptions<CreateNodeMutation, CreateNodeMutationVariables>;
+export const UpdateNodeDocument = gql`
+    mutation UpdateNode($input: UpdateNodeInput!) {
+  updateNode(input: $input) {
+    success
+    node {
+      id
+      type
+      displayName
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+    `;
+export type UpdateNodeMutationFn = Apollo.MutationFunction<UpdateNodeMutation, UpdateNodeMutationVariables>;
+
+/**
+ * __useUpdateNodeMutation__
+ *
+ * To run a mutation, you first call `useUpdateNodeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateNodeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateNodeMutation, { data, loading, error }] = useUpdateNodeMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateNodeMutation(baseOptions?: Apollo.MutationHookOptions<UpdateNodeMutation, UpdateNodeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateNodeMutation, UpdateNodeMutationVariables>(UpdateNodeDocument, options);
+      }
+export type UpdateNodeMutationHookResult = ReturnType<typeof useUpdateNodeMutation>;
+export type UpdateNodeMutationResult = Apollo.MutationResult<UpdateNodeMutation>;
+export type UpdateNodeMutationOptions = Apollo.BaseMutationOptions<UpdateNodeMutation, UpdateNodeMutationVariables>;
+export const DeleteNodeDocument = gql`
+    mutation DeleteNode($id: NodeID!) {
+  deleteNode(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteNodeMutationFn = Apollo.MutationFunction<DeleteNodeMutation, DeleteNodeMutationVariables>;
+
+/**
+ * __useDeleteNodeMutation__
+ *
+ * To run a mutation, you first call `useDeleteNodeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteNodeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteNodeMutation, { data, loading, error }] = useDeleteNodeMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteNodeMutation(baseOptions?: Apollo.MutationHookOptions<DeleteNodeMutation, DeleteNodeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteNodeMutation, DeleteNodeMutationVariables>(DeleteNodeDocument, options);
+      }
+export type DeleteNodeMutationHookResult = ReturnType<typeof useDeleteNodeMutation>;
+export type DeleteNodeMutationResult = Apollo.MutationResult<DeleteNodeMutation>;
+export type DeleteNodeMutationOptions = Apollo.BaseMutationOptions<DeleteNodeMutation, DeleteNodeMutationVariables>;
+export const CreateArrowDocument = gql`
+    mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
+  createArrow(diagramId: $diagramId, input: $input) {
+    success
+    diagram {
+      arrows {
+        id
+        source
+        target
+        data
+      }
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreateArrowMutationFn = Apollo.MutationFunction<CreateArrowMutation, CreateArrowMutationVariables>;
+
+/**
+ * __useCreateArrowMutation__
+ *
+ * To run a mutation, you first call `useCreateArrowMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateArrowMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createArrowMutation, { data, loading, error }] = useCreateArrowMutation({
+ *   variables: {
+ *      diagramId: // value for 'diagramId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateArrowMutation(baseOptions?: Apollo.MutationHookOptions<CreateArrowMutation, CreateArrowMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateArrowMutation, CreateArrowMutationVariables>(CreateArrowDocument, options);
+      }
+export type CreateArrowMutationHookResult = ReturnType<typeof useCreateArrowMutation>;
+export type CreateArrowMutationResult = Apollo.MutationResult<CreateArrowMutation>;
+export type CreateArrowMutationOptions = Apollo.BaseMutationOptions<CreateArrowMutation, CreateArrowMutationVariables>;
+export const DeleteArrowDocument = gql`
+    mutation DeleteArrow($id: ArrowID!) {
+  deleteArrow(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeleteArrowMutationFn = Apollo.MutationFunction<DeleteArrowMutation, DeleteArrowMutationVariables>;
+
+/**
+ * __useDeleteArrowMutation__
+ *
+ * To run a mutation, you first call `useDeleteArrowMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteArrowMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteArrowMutation, { data, loading, error }] = useDeleteArrowMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteArrowMutation(baseOptions?: Apollo.MutationHookOptions<DeleteArrowMutation, DeleteArrowMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteArrowMutation, DeleteArrowMutationVariables>(DeleteArrowDocument, options);
+      }
+export type DeleteArrowMutationHookResult = ReturnType<typeof useDeleteArrowMutation>;
+export type DeleteArrowMutationResult = Apollo.MutationResult<DeleteArrowMutation>;
+export type DeleteArrowMutationOptions = Apollo.BaseMutationOptions<DeleteArrowMutation, DeleteArrowMutationVariables>;
+export const GetPersonDocument = gql`
+    query GetPerson($id: PersonID!) {
+  person(id: $id) {
+    id
+    label
+    service
+    model
+    apiKeyId
+    systemPrompt
+    forgettingMode
+    maskedApiKey
+    type
+  }
+}
+    `;
+
+/**
+ * __useGetPersonQuery__
+ *
+ * To run a query within a React component, call `useGetPersonQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPersonQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPersonQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetPersonQuery(baseOptions: Apollo.QueryHookOptions<GetPersonQuery, GetPersonQueryVariables> & ({ variables: GetPersonQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetPersonQuery, GetPersonQueryVariables>(GetPersonDocument, options);
+      }
+export function useGetPersonLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetPersonQuery, GetPersonQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetPersonQuery, GetPersonQueryVariables>(GetPersonDocument, options);
+        }
+export function useGetPersonSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetPersonQuery, GetPersonQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetPersonQuery, GetPersonQueryVariables>(GetPersonDocument, options);
+        }
+export type GetPersonQueryHookResult = ReturnType<typeof useGetPersonQuery>;
+export type GetPersonLazyQueryHookResult = ReturnType<typeof useGetPersonLazyQuery>;
+export type GetPersonSuspenseQueryHookResult = ReturnType<typeof useGetPersonSuspenseQuery>;
+export type GetPersonQueryResult = Apollo.QueryResult<GetPersonQuery, GetPersonQueryVariables>;
+export const GetPersonsDocument = gql`
+    query GetPersons($limit: Int = 100) {
+  persons(limit: $limit) {
+    id
+    label
+    service
+    model
+    apiKeyId
+    systemPrompt
+    forgettingMode
+    maskedApiKey
+    type
+  }
+}
+    `;
+
+/**
+ * __useGetPersonsQuery__
+ *
+ * To run a query within a React component, call `useGetPersonsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPersonsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPersonsQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *   },
+ * });
+ */
+export function useGetPersonsQuery(baseOptions?: Apollo.QueryHookOptions<GetPersonsQuery, GetPersonsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetPersonsQuery, GetPersonsQueryVariables>(GetPersonsDocument, options);
+      }
+export function useGetPersonsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetPersonsQuery, GetPersonsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetPersonsQuery, GetPersonsQueryVariables>(GetPersonsDocument, options);
+        }
+export function useGetPersonsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetPersonsQuery, GetPersonsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetPersonsQuery, GetPersonsQueryVariables>(GetPersonsDocument, options);
+        }
+export type GetPersonsQueryHookResult = ReturnType<typeof useGetPersonsQuery>;
+export type GetPersonsLazyQueryHookResult = ReturnType<typeof useGetPersonsLazyQuery>;
+export type GetPersonsSuspenseQueryHookResult = ReturnType<typeof useGetPersonsSuspenseQuery>;
+export type GetPersonsQueryResult = Apollo.QueryResult<GetPersonsQuery, GetPersonsQueryVariables>;
+export const CreatePersonDocument = gql`
+    mutation CreatePerson($diagramId: DiagramID!, $input: CreatePersonInput!) {
+  createPerson(diagramId: $diagramId, input: $input) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    message
+    error
+  }
+}
+    `;
+export type CreatePersonMutationFn = Apollo.MutationFunction<CreatePersonMutation, CreatePersonMutationVariables>;
+
+/**
+ * __useCreatePersonMutation__
+ *
+ * To run a mutation, you first call `useCreatePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreatePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createPersonMutation, { data, loading, error }] = useCreatePersonMutation({
+ *   variables: {
+ *      diagramId: // value for 'diagramId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreatePersonMutation(baseOptions?: Apollo.MutationHookOptions<CreatePersonMutation, CreatePersonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreatePersonMutation, CreatePersonMutationVariables>(CreatePersonDocument, options);
+      }
+export type CreatePersonMutationHookResult = ReturnType<typeof useCreatePersonMutation>;
+export type CreatePersonMutationResult = Apollo.MutationResult<CreatePersonMutation>;
+export type CreatePersonMutationOptions = Apollo.BaseMutationOptions<CreatePersonMutation, CreatePersonMutationVariables>;
+export const UpdatePersonDocument = gql`
+    mutation UpdatePerson($input: UpdatePersonInput!) {
+  updatePerson(input: $input) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    message
+    error
+  }
+}
+    `;
+export type UpdatePersonMutationFn = Apollo.MutationFunction<UpdatePersonMutation, UpdatePersonMutationVariables>;
+
+/**
+ * __useUpdatePersonMutation__
+ *
+ * To run a mutation, you first call `useUpdatePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdatePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updatePersonMutation, { data, loading, error }] = useUpdatePersonMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdatePersonMutation(baseOptions?: Apollo.MutationHookOptions<UpdatePersonMutation, UpdatePersonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdatePersonMutation, UpdatePersonMutationVariables>(UpdatePersonDocument, options);
+      }
+export type UpdatePersonMutationHookResult = ReturnType<typeof useUpdatePersonMutation>;
+export type UpdatePersonMutationResult = Apollo.MutationResult<UpdatePersonMutation>;
+export type UpdatePersonMutationOptions = Apollo.BaseMutationOptions<UpdatePersonMutation, UpdatePersonMutationVariables>;
+export const DeletePersonDocument = gql`
+    mutation DeletePerson($id: PersonID!) {
+  deletePerson(id: $id) {
+    success
+    deletedId
+    message
+    error
+  }
+}
+    `;
+export type DeletePersonMutationFn = Apollo.MutationFunction<DeletePersonMutation, DeletePersonMutationVariables>;
+
+/**
+ * __useDeletePersonMutation__
+ *
+ * To run a mutation, you first call `useDeletePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeletePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deletePersonMutation, { data, loading, error }] = useDeletePersonMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeletePersonMutation(baseOptions?: Apollo.MutationHookOptions<DeletePersonMutation, DeletePersonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeletePersonMutation, DeletePersonMutationVariables>(DeletePersonDocument, options);
+      }
+export type DeletePersonMutationHookResult = ReturnType<typeof useDeletePersonMutation>;
+export type DeletePersonMutationResult = Apollo.MutationResult<DeletePersonMutation>;
+export type DeletePersonMutationOptions = Apollo.BaseMutationOptions<DeletePersonMutation, DeletePersonMutationVariables>;
+export const InitializeModelDocument = gql`
+    mutation InitializeModel($personId: PersonID!) {
+  initializeModel(personId: $personId) {
+    success
+    person {
+      id
+      label
+      service
+      model
+      apiKeyId
+      systemPrompt
+      forgettingMode
+      maskedApiKey
+      type
+    }
+    message
+    error
+  }
+}
+    `;
+export type InitializeModelMutationFn = Apollo.MutationFunction<InitializeModelMutation, InitializeModelMutationVariables>;
+
+/**
+ * __useInitializeModelMutation__
+ *
+ * To run a mutation, you first call `useInitializeModelMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useInitializeModelMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [initializeModelMutation, { data, loading, error }] = useInitializeModelMutation({
+ *   variables: {
+ *      personId: // value for 'personId'
+ *   },
+ * });
+ */
+export function useInitializeModelMutation(baseOptions?: Apollo.MutationHookOptions<InitializeModelMutation, InitializeModelMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<InitializeModelMutation, InitializeModelMutationVariables>(InitializeModelDocument, options);
+      }
+export type InitializeModelMutationHookResult = ReturnType<typeof useInitializeModelMutation>;
+export type InitializeModelMutationResult = Apollo.MutationResult<InitializeModelMutation>;
+export type InitializeModelMutationOptions = Apollo.BaseMutationOptions<InitializeModelMutation, InitializeModelMutationVariables>;
+export const GetSystemInfoDocument = gql`
+    query GetSystemInfo {
+  systemInfo
+}
+    `;
+
+/**
+ * __useGetSystemInfoQuery__
+ *
+ * To run a query within a React component, call `useGetSystemInfoQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetSystemInfoQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetSystemInfoQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetSystemInfoQuery(baseOptions?: Apollo.QueryHookOptions<GetSystemInfoQuery, GetSystemInfoQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetSystemInfoQuery, GetSystemInfoQueryVariables>(GetSystemInfoDocument, options);
+      }
+export function useGetSystemInfoLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetSystemInfoQuery, GetSystemInfoQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetSystemInfoQuery, GetSystemInfoQueryVariables>(GetSystemInfoDocument, options);
+        }
+export function useGetSystemInfoSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetSystemInfoQuery, GetSystemInfoQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetSystemInfoQuery, GetSystemInfoQueryVariables>(GetSystemInfoDocument, options);
+        }
+export type GetSystemInfoQueryHookResult = ReturnType<typeof useGetSystemInfoQuery>;
+export type GetSystemInfoLazyQueryHookResult = ReturnType<typeof useGetSystemInfoLazyQuery>;
+export type GetSystemInfoSuspenseQueryHookResult = ReturnType<typeof useGetSystemInfoSuspenseQuery>;
+export type GetSystemInfoQueryResult = Apollo.QueryResult<GetSystemInfoQuery, GetSystemInfoQueryVariables>;

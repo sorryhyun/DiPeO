@@ -2,13 +2,20 @@
 Utility functions for executor operations.
 Extracted from BaseExecutor to simplify the executor pattern.
 """
-from typing import Dict, Any, List, TYPE_CHECKING
+from typing import Dict, Any, List, TYPE_CHECKING, Optional
 import re
+import logging
 
 # Validation functions have been moved to validator.py
 
 if TYPE_CHECKING:
     from .types import Ctx
+    from dipeo_domain import ExecutionContext
+
+logger = logging.getLogger(__name__)
+
+# Regex pattern for {{var}} placeholders
+_VAR_PATTERN = re.compile(r"\{\{(\w+)\}\}")
 
 
 def get_input_values(node: Dict[str, Any], context: 'Ctx', target_handle_filter: str = None) -> Dict[str, Any]:
@@ -76,8 +83,15 @@ def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: 
         else:
             return str(value)
     
-    pattern = r'{{(\w+)}}|\${(\w+)}'  # {{variable}} or ${variable}
-    return re.sub(pattern, replace_var, text)
+    # First handle {{variable}} and ${variable} patterns
+    pattern = r'{{(\w+)}}|\${(\w+)}'  
+    result = re.sub(pattern, replace_var, text)
+    
+    # Then handle $variable syntax (without braces)
+    for k, v in variables.items():
+        result = result.replace(f"${k}", str(v))
+    
+    return result
 
 
 def has_incoming_connection(node: Dict[str, Any], context: 'Ctx') -> bool:
@@ -116,3 +130,86 @@ def get_downstream_nodes(node: Dict[str, Any], context: 'Ctx') -> List[str]:
             downstream.append(target_id)
     
     return downstream
+
+
+def safe_eval(expr: str, inputs: Dict[str, Any], ctx: 'ExecutionContext') -> bool:
+    """Tiny, dependency-free expression evaluator."""
+    namespace: Dict[str, Any] = {"executionCount": ctx.exec_cnt, **inputs}
+
+    # Flatten previous node outputs for easy access
+    for node_id, output in ctx.outputs.items():
+        if isinstance(output, dict):
+            namespace.update(output)
+        else:
+            namespace[node_id] = output
+
+    # Replace {{var}} placeholders early
+    def _tpl(match: re.Match[str]) -> str:
+        val = namespace.get(match.group(1))
+        return _fmt(val)
+
+    expr = _VAR_PATTERN.sub(_tpl, expr)
+
+    # Replace bare identifiers with their literal value
+    for key, val in namespace.items():
+        expr = re.sub(rf"\b{re.escape(key)}\b", _fmt(val), expr)
+
+    # Normalise JS-style logical operators to Python
+    expr = (
+        expr.replace("&&", " and ")
+        .replace("||", " or ")
+        .replace("===", "==")
+        .replace("!==", "!=")
+    )
+
+    try:
+        return bool(eval(expr, {"__builtins__": {}}, {}))  # nosec B307 - controlled input
+    except Exception:
+        logger.debug("Evaluation error for expression %s", expr, exc_info=True)
+        return False
+
+
+def _fmt(val: Any) -> str:
+    """Return a Python literal representation suitable for eval."""
+    if val is None:
+        return "None"
+    if isinstance(val, str):
+        return f'"{val}"'
+    return str(val)
+
+
+def process_inputs(inputs: Dict[str, Any]) -> List[Any]:
+    """Process inputs to extract values and handle special output types."""
+    if not inputs:
+        return []
+    
+    from dipeo_server.core.processors import OutputProcessor
+    
+    processed = []
+    for value in inputs.values():
+        # Use OutputProcessor to properly unwrap structured outputs
+        unwrapped = OutputProcessor.unwrap(value)
+        processed.append(unwrapped)
+    
+    return processed
+
+
+def get_api_key(api_key_id: str, context: 'ExecutionContext') -> Optional[str]:
+    """Get API key from execution context."""
+    if not hasattr(context, 'api_keys'):
+        return None
+    
+    api_key_info = context.api_keys.get(api_key_id)
+    if isinstance(api_key_info, dict):
+        return api_key_info.get('key')
+    return api_key_info if isinstance(api_key_info, str) else None
+
+
+def log_action(logger: logging.Logger, node_id: str, action: str, **extra) -> None:
+    """Consistent logging helper for node actions."""
+    log_data = {
+        "node_id": node_id,
+        "action": action,
+        **extra
+    }
+    logger.info(f"[{node_id}] {action}", extra=log_data)

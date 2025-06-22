@@ -7,7 +7,7 @@ from ..schemas.notion import NotionNodeProps
 from dipeo_domain import NotionOperation
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..utils import BaseNodeHandler, process_inputs, log_action, substitute_variables
+from ..base import BaseNodeHandler, process_inputs, log_action, substitute_variables
 
 
 @node(

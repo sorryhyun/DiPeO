@@ -123,7 +123,9 @@ class DomainApiKey:
     @strawberry.field
     def masked_key(self) -> str:
         """Masked version of the key."""
-        return f"{self.service.value}-****"
+        # Handle both enum and string types for service
+        service_str = self.service.value if hasattr(self.service, 'value') else str(self.service)
+        return f"{service_str}-****"
 
 # Metadata can be used directly
 @strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True, description="Metadata for a diagram")

@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import defaultdict
 import logging
 
-from .domain_types import DomainDiagram, DiagramMetadata
+from .domain_types import DomainDiagramType, DiagramMetadata
 from .scalars_types import DiagramID
 from .inputs_types import DiagramFilterInput
 from dipeo_server.domains.diagram import DiagramService
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class DiagramResolver:
     """Resolver for diagram-related queries and mutations."""
     
-    async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[GraphQLDiagram]:
+    async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[DomainDiagramType]:
         """Get a single diagram by ID (loads from file path)."""
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
@@ -55,7 +55,7 @@ class DiagramResolver:
             info.context.handle_index = handle_index
             
             # Return as Strawberry type
-            return GraphQLDiagram(
+            return DomainDiagramType(
                 nodes=graphql_diagram.nodes,
                 handles=graphql_diagram.handles,
                 arrows=graphql_diagram.arrows,
@@ -74,7 +74,7 @@ class DiagramResolver:
         limit: int,
         offset: int,
         info
-    ) -> List[GraphQLDiagram]:
+    ) -> List[DomainDiagramType]:
         """List diagrams with optional filtering."""
         try:
             # Get diagram service from GraphQL context
@@ -132,7 +132,7 @@ class DiagramResolver:
                 )
                 
                 # Create a minimal Diagram object with just metadata
-                diagram = GraphQLDiagram(
+                diagram = DomainDiagramType(
                     nodes=[],
                     handles=[],
                     arrows=[],

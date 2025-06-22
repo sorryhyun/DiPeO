@@ -39,8 +39,16 @@ def create_executors(llm_service=None, file_service=None, memory_service=None, n
     """
     from .registry import create_executor
     
-    # Create unified executor
-    unified_executor = create_executor()
+    # Prepare services dictionary
+    services = {
+        "llm_service": llm_service,
+        "file_service": file_service,
+        "memory_service": memory_service,
+        "notion_service": notion_service,
+    }
+    
+    # Create unified executor with services
+    unified_executor = create_executor(services)
     
     # Create context adapter that provides services to unified executor
     class ContextAdapter:

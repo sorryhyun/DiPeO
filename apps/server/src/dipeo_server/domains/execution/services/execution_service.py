@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, Set
 
 from dipeo_server.core import BaseService, ValidationError
 from ..services.simple_state_store import state_store
+from dipeo_domain import ExecutionStatus, NodeExecutionStatus, NodeOutput, TokenUsage
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +59,9 @@ class ExecutionService(BaseService):
         await self._warm_up_models(diagram)
         
         # Create execution state
-        await state_store.create_execution(execution_id, diagram, options)
+        diagram_id = diagram.get("metadata", {}).get("id") if diagram else None
+        variables = options.get("variables", {})
+        await state_store.create_execution(execution_id, diagram_id, variables)
 
         diagram = self._inject_api_keys(diagram)
         exec_opts = self._merge_options(options, execution_id, interactive_handler)
@@ -103,7 +106,7 @@ class ExecutionService(BaseService):
                     break
         except Exception as e:
             # Record execution failure
-            await state_store.update_status(execution_id, "failed", error=str(e))
+            await state_store.update_status(execution_id, ExecutionStatus.FAILED, error=str(e))
             raise
         finally:
             # Propagate exceptions if the engine errored out
@@ -171,23 +174,39 @@ class ExecutionService(BaseService):
         
         # Handle different message types
         if msg_type == "execution_complete":
-            await state_store.update_status(execution_id, "completed")
+            await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
         elif msg_type == "node_start":
-            await state_store.update_node_status(execution_id, node_id, "started")
+            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.RUNNING)
         elif msg_type == "node_complete":
             output = msg.get("output")
-            await state_store.update_node_status(execution_id, node_id, "completed", output)
+            if output is not None:
+                # Wrap output in NodeOutput if not already
+                if not isinstance(output, dict) or "value" not in output:
+                    output = NodeOutput(value=output, metadata={})
+                else:
+                    output = NodeOutput(**output)
+            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.COMPLETED, output)
             # Track token usage if available
             if "token_count" in msg:
-                await state_store.update_token_usage(execution_id, msg["token_count"])
+                token_data = msg["token_count"]
+                if isinstance(token_data, dict):
+                    token_usage = TokenUsage(
+                        input=token_data.get("input", 0),
+                        output=token_data.get("output", 0),
+                        cached=token_data.get("cached"),
+                        total=token_data.get("total")
+                    )
+                    await state_store.update_token_usage(execution_id, token_usage)
         elif msg_type == "node_skipped":
-            await state_store.update_node_status(execution_id, node_id, "skipped")
+            skip_reason = msg.get("reason", "Skipped by condition")
+            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.SKIPPED, skip_reason=skip_reason)
         elif msg_type == "node_paused":
-            await state_store.update_node_status(execution_id, node_id, "paused")
+            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.PAUSED)
         elif msg_type == "node_resumed":
-            await state_store.update_node_status(execution_id, node_id, "resumed")
+            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.RUNNING)
         elif msg_type == "interactive_prompt":
-            prompt = msg.get("prompt", "")
-            await state_store.set_interactive_prompt(execution_id, node_id, prompt)
+            # Interactive prompts are handled through the message router, not state store
+            pass
         elif msg_type == "interactive_response":
-            await state_store.clear_interactive_prompt(execution_id)
+            # Interactive responses are handled through the message router, not state store
+            pass

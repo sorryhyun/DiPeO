@@ -7,8 +7,9 @@ from datetime import datetime
 from .results_types import ExecutionResult
 from .inputs_types import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
 from .context import GraphQLContext
-from dipeo_server.domains.diagram.models import ExecutionState as ExecutionStateForGraphQL
+from dipeo_domain import ExecutionState as ExecutionStateForGraphQL, TokenUsage, ExecutionID, DiagramID
 from dipeo_server.core import ExecutionStatus
+from dipeo_domain import NodeExecutionStatus, ExecutionStatus as DomainExecutionStatus
 from .models.input_models import (
     ExecuteDiagramInput as PydanticExecuteDiagramInput,
     ExecutionControlInput as PydanticExecutionControlInput,
@@ -70,7 +71,9 @@ class ExecutionMutations:
             }
             
             # Create initial execution state
-            await state_store.create_execution(execution_id, diagram_data, options)
+            # Pass diagram_id if available, otherwise None for in-memory execution
+            diagram_id = pydantic_input.diagram_id if pydantic_input.diagram_id else None
+            await state_store.create_execution(execution_id, diagram_id, options)
             
             # Start execution in background
             # Note: In a real implementation, this would start the execution
@@ -79,20 +82,16 @@ class ExecutionMutations:
             
             # Create Pydantic execution state model
             execution = ExecutionStateForGraphQL(
-                id=execution_id,
-                status=ExecutionStatus.STARTED,
-                diagram_id=pydantic_input.diagram_id,
+                id=ExecutionID(execution_id),
+                status=DomainExecutionStatus.STARTED,
+                diagram_id=DiagramID(diagram_id) if diagram_id else None,
                 started_at=datetime.now().isoformat(),
                 ended_at=None,
-                running_nodes=[],
-                completed_nodes=[],
-                skipped_nodes=[],
-                paused_nodes=[],
-                failed_nodes=[],
+                node_states={},
                 node_outputs={},
-                variables={},
-                token_usage=None,
-                error=None
+                token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
+                error=None,
+                variables={}
             )
             
             return ExecutionResult(
@@ -146,18 +145,18 @@ class ExecutionMutations:
             # Update state based on action
             if pydantic_input.action == 'pause':
                 if pydantic_input.node_id:
-                    await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, 'paused')
+                    await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, NodeExecutionStatus.PAUSED)
                 else:
-                    await state_store.update_status(pydantic_input.execution_id, 'paused')
+                    await state_store.update_status(pydantic_input.execution_id, DomainExecutionStatus.PAUSED)
             elif pydantic_input.action == 'resume':
                 if pydantic_input.node_id:
-                    await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, 'resumed')
+                    await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, NodeExecutionStatus.RUNNING)
                 else:
-                    await state_store.update_status(pydantic_input.execution_id, 'started')
+                    await state_store.update_status(pydantic_input.execution_id, DomainExecutionStatus.RUNNING)
             elif pydantic_input.action == 'abort':
-                await state_store.update_status(pydantic_input.execution_id, 'aborted')
+                await state_store.update_status(pydantic_input.execution_id, DomainExecutionStatus.ABORTED)
             elif pydantic_input.action == 'skip' and pydantic_input.node_id:
-                await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, 'skipped')
+                await state_store.update_node_status(pydantic_input.execution_id, pydantic_input.node_id, NodeExecutionStatus.SKIPPED, skip_reason='Manual skip')
             
             # Broadcast control message via message router
             control_message = {
@@ -175,20 +174,16 @@ class ExecutionMutations:
             
             # Convert to GraphQL execution state
             execution_state = ExecutionStateForGraphQL(
-                id=pydantic_input.execution_id,
-                status=_map_status(updated_state.status),
-                diagram_id=updated_state.diagram.get('id'),
-                started_at=datetime.fromtimestamp(updated_state.start_time).isoformat(),
-                ended_at=datetime.fromtimestamp(updated_state.end_time).isoformat() if updated_state.end_time else None,
-                running_nodes=[nid for nid, status in updated_state.node_statuses.items() if status == 'started'],
-                completed_nodes=[nid for nid, status in updated_state.node_statuses.items() if status == 'completed'],
-                skipped_nodes=updated_state.skipped_nodes,
-                paused_nodes=updated_state.paused_nodes,
-                failed_nodes=[nid for nid, status in updated_state.node_statuses.items() if status == 'failed'],
+                id=ExecutionID(pydantic_input.execution_id),
+                status=updated_state.status,
+                diagram_id=updated_state.diagram_id,
+                started_at=updated_state.started_at,
+                ended_at=updated_state.ended_at,
+                node_states=updated_state.node_states,
                 node_outputs=updated_state.node_outputs,
-                variables=updated_state.variables,
-                token_usage=None,
-                error=updated_state.error
+                token_usage=updated_state.token_usage or TokenUsage(input=0, output=0, cached=None, total=0),
+                error=updated_state.error,
+                variables=updated_state.variables
             )
             
             return ExecutionResult(
@@ -239,14 +234,13 @@ class ExecutionMutations:
                 )
             
             # Check if execution is still running
-            if execution_state.status not in ['started', 'running']:
+            if execution_state.status not in [DomainExecutionStatus.STARTED, DomainExecutionStatus.RUNNING]:
                 return ExecutionResult(
                     success=False,
                     error=f"Execution {pydantic_input.execution_id} is not running (status: {execution_state.status})"
                 )
             
-            # Clear interactive prompt after receiving response
-            await state_store.clear_interactive_prompt(pydantic_input.execution_id)
+            # Interactive prompts are handled through the message router
             
             # Route the interactive response message to subscribed handlers
             interactive_message = {
@@ -265,20 +259,16 @@ class ExecutionMutations:
             
             # Convert to Pydantic ExecutionState model
             execution = ExecutionStateForGraphQL(
-                id=pydantic_input.execution_id,
-                status=_map_status(updated_state.status),
-                diagram_id=updated_state.diagram.get('id', ''),
-                started_at=datetime.fromtimestamp(updated_state.start_time).isoformat(),
-                ended_at=datetime.fromtimestamp(updated_state.end_time).isoformat() if updated_state.end_time else None,
-                running_nodes=[node_id for node_id, status in updated_state.node_statuses.items() if status == 'started'],
-                completed_nodes=[node_id for node_id, status in updated_state.node_statuses.items() if status == 'completed'],
-                skipped_nodes=list(updated_state.skipped_nodes),
-                paused_nodes=list(updated_state.paused_nodes),
-                failed_nodes=[node_id for node_id, status in updated_state.node_statuses.items() if status == 'failed'],
+                id=ExecutionID(pydantic_input.execution_id),
+                status=updated_state.status,
+                diagram_id=updated_state.diagram_id,
+                started_at=updated_state.started_at,
+                ended_at=updated_state.ended_at,
+                node_states=updated_state.node_states,
                 node_outputs=updated_state.node_outputs,
-                variables=updated_state.variables,
-                token_usage=None,  # Would need to convert token usage format
-                error=updated_state.error
+                token_usage=updated_state.token_usage or TokenUsage(input=0, output=0, cached=None, total=0),
+                error=updated_state.error,
+                variables=updated_state.variables
             )
             
             return ExecutionResult(

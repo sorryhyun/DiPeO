@@ -7,7 +7,6 @@ import logging
 
 from dipeo_domain import NodeOutput
 from .types import RuntimeNodeDefinition as NodeDefinition, RuntimeExecutionContext as ExecutionContext
-from ..services.service_factory import service_factory
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -31,8 +30,9 @@ class ExecutorResult:
 class UnifiedExecutor:
     """Unified executor that handles all node types through a registration system."""
     
-    def __init__(self):
+    def __init__(self, service_provider: Optional[Dict[str, Any]] = None):
         self._nodes: Dict[str, NodeDefinition] = {}
+        self._services: Dict[str, Any] = service_provider or {}
     
     def register(self, definition: NodeDefinition) -> None:
         """Register a node type."""
@@ -40,6 +40,19 @@ class UnifiedExecutor:
             logger.warning(f"Overwriting existing node type: {definition.type}")
         self._nodes[definition.type] = definition
         logger.info(f"Registered node type: {definition.type}")
+    
+    def register_service(self, name: str, service: Any) -> None:
+        """Register a service."""
+        self._services[name] = service
+        logger.info(f"Registered service: {name}")
+    
+    def get_service(self, name: str) -> Optional[Any]:
+        """Get a service by name."""
+        return self._services.get(name)
+    
+    def get_supported_types(self) -> List[str]:
+        """Get list of supported node types."""
+        return list(self._nodes.keys())
     
     
     async def execute(
@@ -77,11 +90,11 @@ class UnifiedExecutor:
                     metadata={"node_type": node_type, "validation_errors": e.errors()}
                 )
             
-            # Get required services from service factory
+            # Get required services from internal service provider
             services = {}
             missing_services = []
             for service_name in definition.requires_services:
-                service = service_factory.get_service(service_name)
+                service = self.get_service(service_name)
                 if service is None:
                     missing_services.append(service_name)
                 else:

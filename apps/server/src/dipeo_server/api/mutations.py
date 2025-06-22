@@ -2,8 +2,7 @@
 import strawberry
 
 from .node_mutation import NodeMutations
-from .arrow_mutation import ArrowMutations
-from .handle_mutation import HandleMutations
+from .graph_element_mutations import GraphElementMutations
 from .person_mutation import PersonMutations
 from .api_key_mutation import ApiKeyMutations
 from .diagram_mutation import DiagramMutations
@@ -15,8 +14,7 @@ from .utility_mutation import UtilityMutations
 @strawberry.type
 class Mutation(
     NodeMutations,
-    ArrowMutations,
-    HandleMutations,
+    GraphElementMutations,
     PersonMutations,
     ApiKeyMutations,
     DiagramMutations,

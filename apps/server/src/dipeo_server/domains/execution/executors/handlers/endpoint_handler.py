@@ -7,7 +7,7 @@ from typing import Any, Dict
 from ..schemas.endpoint import EndpointNodeProps
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..utils import BaseNodeHandler, substitute_variables
+from ..base import BaseNodeHandler, substitute_variables
 
 
 @node(

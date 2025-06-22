@@ -6,7 +6,7 @@ from typing import Any, Dict
 from ..schemas.condition import ConditionNodeProps
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..utils import BaseNodeHandler
+from ..base import BaseNodeHandler
 
 
 @node(

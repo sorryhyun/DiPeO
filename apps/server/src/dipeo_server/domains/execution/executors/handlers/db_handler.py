@@ -10,7 +10,7 @@ from dipeo_domain import DBBlockSubType
 from ..schemas.db import DBNodeProps
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..utils import BaseNodeHandler, process_inputs, log_action
+from ..base import BaseNodeHandler, process_inputs, log_action
 
 
 @node(

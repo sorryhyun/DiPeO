@@ -35,6 +35,11 @@ class PersonResolver:
             if not api_key_data:
                 return None
             
+            # Only return API keys for LLM services
+            if not self._is_llm_service(api_key_data['service']):
+                logger.debug(f"API key {api_key_id} is for non-LLM service: {api_key_data['service']}")
+                return None
+            
             pydantic_api_key = DomainApiKey(
                 id=api_key_data['id'],
                 label=api_key_data['label'],
@@ -60,12 +65,16 @@ class PersonResolver:
             
             result = []
             for key_data in all_keys:
-                pydantic_api_key = DomainApiKey(
-                    id=key_data['id'],
-                    label=key_data['label'],
-                    service=self._map_service(key_data['service'])
-                )
-                result.append(pydantic_api_key)
+                # Only include API keys for LLM services
+                if self._is_llm_service(key_data['service']):
+                    pydantic_api_key = DomainApiKey(
+                        id=key_data['id'],
+                        label=key_data['label'],
+                        service=self._map_service(key_data['service'])
+                    )
+                    result.append(pydantic_api_key)
+                else:
+                    logger.debug(f"Skipping non-LLM service API key: {key_data['service']}")
             
             return result
             
@@ -89,6 +98,14 @@ class PersonResolver:
         except Exception as e:
             logger.error(f"Failed to get available models for {service}/{api_key_id}: {e}")
             return []
+    
+    def _is_llm_service(self, service: str) -> bool:
+        """Check if a service is a valid LLM service."""
+        try:
+            LLMService(service.lower())
+            return True
+        except ValueError:
+            return False
     
     def _map_service(self, service: str) -> LLMService:
         """Map service string to LLMService enum."""
