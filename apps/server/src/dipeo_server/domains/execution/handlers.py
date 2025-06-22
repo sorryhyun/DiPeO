@@ -8,7 +8,7 @@ from dipeo_domain.models import (
     NodeOutput
 )
 
-from dipeo_server.domains.execution.context import ExecutionContext
+from .context import ExecutionContext
 
 _handlers: Dict[str, Callable] = {}
 

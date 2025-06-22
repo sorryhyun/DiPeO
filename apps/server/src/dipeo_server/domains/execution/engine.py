@@ -8,10 +8,10 @@ from dipeo_domain.models import DomainArrow, DomainDiagram, NodeExecutionStatus,
 
 from dipeo_server.core.services import FileService
 from dipeo_server.domains.llm.services import LLMService
-from dipeo_server.domains.execution.services.state_store import StateStore
-from dipeo_server.domains.execution.context import ExecutionContext
-from dipeo_server.domains.person.memory import MemoryService
-from dipeo_server.domains.integrations.notion import NotionService
+from .services.state_store import StateStore
+from .context import ExecutionContext
+from ..person.memory import MemoryService
+from ..integrations.notion import NotionService
 
 
 class SimplifiedEngine:

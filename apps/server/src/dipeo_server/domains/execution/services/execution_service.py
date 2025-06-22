@@ -9,9 +9,9 @@ from dipeo_domain import ExecutionStatus
 from dipeo_domain.models import DomainDiagram
 
 from dipeo_server.core import BaseService
-from dipeo_server.domains.execution.services.state_store import state_store
-from dipeo_server.domains.execution.engine import SimplifiedEngine
-from dipeo_server.domains.execution.handlers import get_handlers
+from ..services.state_store import state_store
+from ..engine import SimplifiedEngine
+from ..handlers import get_handlers
 
 log = logging.getLogger(__name__)
 

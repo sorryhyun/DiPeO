@@ -5,7 +5,7 @@ from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput
 
 from dipeo_server.core.services import FileService
 from dipeo_server.domains.llm.services import LLMService
-from dipeo_server.domains.execution.services.state_store import StateStore
+from .services.state_store import StateStore
 
 
 @dataclass
