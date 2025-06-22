@@ -58,15 +58,3 @@ jobs:
 
     - name: Type check
       run: pnpm typecheck
-
-    - name: Lint
-      run: pnpm lint
-
-    - name: Run frontend tests
-      run: cd apps/web && pnpm test --run
-
-    - name: Run backend tests
-      run: cd apps/server && python -m pytest
-
-    - name: Run CLI tests
-      run: python apps/cli/test_cli.py

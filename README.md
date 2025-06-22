@@ -14,7 +14,7 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ```bash
 # Start everything (first-time setup is automatic)
-./run.sh
+make dev-all
 ```
 
 That's it! This single command will:
@@ -23,13 +23,6 @@ That's it! This single command will:
 - Start both frontend and backend services
 
 ## Essential Scripts
-
-### `./run.sh` - The Simplest Option
-```bash
-./run.sh           # Start everything (default)
-./run.sh frontend  # Frontend only
-./run.sh backend   # Backend only
-```
 
 ### `./dev.sh` - More Control
 ```bash
@@ -49,7 +42,7 @@ That's it! This single command will:
 
 **Full-stack development:**
 ```bash
-./run.sh  # Start everything in one command
+make dev-all  # Start everything in one command
 ```
 
 **Frontend-only changes:**
