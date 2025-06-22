@@ -61,6 +61,12 @@ class AppContext:
             self.diagram_service,
             self.notion_service,
         )
+        
+        # Initialize services that require it
+        await self.llm_service.initialize()
+        await self.diagram_service.initialize()
+        await self.notion_service.initialize()
+        await self.execution_service.initialize()
 
     async def shutdown(self):
         """Cleanup resources on shutdown."""

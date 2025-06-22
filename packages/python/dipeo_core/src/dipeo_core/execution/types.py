@@ -99,7 +99,7 @@ class NodeDefinition:
     """Definition of a node type with handler and schema."""
     
     type: str
-    schema: Type[BaseModel]
+    node_schema: Type[BaseModel]  # Renamed from 'schema' to avoid Pydantic conflict
     handler: NodeHandler
     requires_services: List[str] = field(default_factory=list)
     description: str = ""

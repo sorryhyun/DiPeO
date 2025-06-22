@@ -75,7 +75,7 @@ class HandlerRegistry:
         """
         node_def = NodeDefinition(
             type=handler.node_type,
-            schema=handler.schema,
+            node_schema=handler.schema,
             handler=handler.to_node_handler(),
             requires_services=handler.requires_services,
             description=handler.description,
@@ -101,7 +101,7 @@ class HandlerRegistry:
         """
         node_def = NodeDefinition(
             type=node_type,
-            schema=schema,
+            node_schema=schema,
             handler=handler,
             requires_services=requires_services or [],
             description=description or f"Handler for {node_type} nodes",

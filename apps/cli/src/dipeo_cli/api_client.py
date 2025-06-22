@@ -17,23 +17,29 @@ class DiPeoAPIClient:
     async def __aenter__(self):
         # HTTP client for queries/mutations
         transport = AIOHTTPTransport(url=self.http_url)
-        self._client = Client(transport=transport, fetch_schema_from_transport=True)
+        self._client = Client(transport=transport, fetch_schema_from_transport=False)
 
         # WebSocket client for subscriptions
         ws_transport = WebsocketsTransport(url=self.ws_url)
         self._subscription_client = Client(
-            transport=ws_transport, fetch_schema_from_transport=True
+            transport=ws_transport, fetch_schema_from_transport=False
         )
 
-        await self._client.transport.connect()
-        await self._subscription_client.transport.connect()
+        # No manual connection needed - gql handles this automatically
         return self
 
     async def __aexit__(self, *args):
-        if self._client:
-            await self._client.transport.close()
-        if self._subscription_client:
-            await self._subscription_client.transport.close()
+        try:
+            if self._client:
+                await self._client.transport.close()
+        except Exception:
+            pass  # Ignore errors during cleanup
+        
+        try:
+            if self._subscription_client:
+                await self._subscription_client.transport.close()
+        except Exception:
+            pass  # Ignore errors during cleanup
 
     async def execute_diagram(
         self,

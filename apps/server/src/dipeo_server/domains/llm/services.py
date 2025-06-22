@@ -25,6 +25,14 @@ class LLMService(BaseService):
         self.api_key_service = api_key_service
         self._adapter_pool = {}
 
+    async def initialize(self) -> None:
+        """Initialize the LLM service."""
+        # No specific initialization needed for now
+        pass
+
+    def normalize_service_name(self, service: str) -> str:
+        return service.lower()
+
     def _get_api_key(self, api_key_id: str) -> str:
         """Get raw API key from service."""
         try:

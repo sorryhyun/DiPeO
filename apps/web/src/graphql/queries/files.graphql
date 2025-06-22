@@ -1,7 +1,7 @@
 # File Operations
 
-mutation UploadFile($input: FileUploadInput!) {
-  uploadFile(input: $input) {
+mutation UploadFile($file: Upload!, $category: String! = "general") {
+  uploadFile(file: $file, category: $category) {
     success
     path
     sizeBytes

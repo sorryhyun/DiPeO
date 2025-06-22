@@ -45,6 +45,11 @@ class ExecutionService(BaseService):
             self._validator = DiagramValidator(self.api_key_service)
         return self._validator
 
+    async def initialize(self) -> None:
+        """Initialize the Execution service."""
+        # No specific initialization needed for now
+        pass
+
     # ------------------------------------------------ public entry-point
     async def execute_diagram(
         self,

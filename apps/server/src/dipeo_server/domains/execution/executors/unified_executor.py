@@ -78,7 +78,7 @@ class UnifiedExecutor:
 
             # Validate properties with Pydantic
             try:
-                props = definition.schema(**node.get("properties", {}))
+                props = definition.node_schema(**node.get("properties", {}))
             except ValidationError as e:
                 # Simplify validation error reporting
                 errors = []

@@ -39,6 +39,11 @@ class DiagramService(BaseService):
         self.diagrams_dir = BASE_DIR / "files" / "diagrams"
         self.validator = DiagramValidator(api_key_service)
 
+    async def initialize(self) -> None:
+        """Initialize the Diagram service."""
+        # Ensure diagrams directory exists
+        self.diagrams_dir.mkdir(parents=True, exist_ok=True)
+
     def _validate_and_fix_api_keys(self, diagram: dict) -> None:
         valid_api_keys = {key["id"] for key in self.api_key_service.list_api_keys()}
 
