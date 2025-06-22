@@ -1,106 +1,106 @@
 """GraphQL resolvers for execution operations."""
-from typing import Optional, List
+
 import logging
 from datetime import datetime
+from typing import List, Optional
 
-from .domain_types import ExecutionState, ExecutionEvent
-from .scalars_types import ExecutionID
-from .inputs_types import ExecutionFilterInput
 from .context import GraphQLContext
-from dipeo_domain import (
-    ExecutionState as PydanticExecutionState,
-    ExecutionEvent as PydanticExecutionEvent,
-    NodeExecutionStatus,
-    TokenUsage as PydanticTokenUsage, 
-    ExecutionStatus
-)
+from .domain_types import ExecutionEvent, ExecutionState
+from .inputs_types import ExecutionFilterInput
+from .scalars_types import ExecutionID
 
 logger = logging.getLogger(__name__)
 
+
 class ExecutionResolver:
     """Handles execution queries and state retrieval."""
-    
-    async def get_execution(self, execution_id: ExecutionID, info) -> Optional[ExecutionState]:
+
+    async def get_execution(
+        self, execution_id: ExecutionID, info
+    ) -> Optional[ExecutionState]:
         """Returns execution by ID."""
         try:
             context: GraphQLContext = info.context
             state_store = context.state_store
-            
+
             execution_state = await state_store.get_state(execution_id)
-            
+
             if not execution_state:
                 logger.debug(f"No execution found with ID: {execution_id}")
                 return None
-            
+
             return execution_state
-            
+
         except Exception as e:
             logger.error(f"Failed to get execution {execution_id}: {e}")
             return None
-    
+
     async def list_executions(
-        self,
-        filter: Optional[ExecutionFilterInput],
-        limit: int,
-        offset: int,
-        info
+        self, filter: Optional[ExecutionFilterInput], limit: int, offset: int, info
     ) -> List[ExecutionState]:
         """Returns filtered execution list."""
         try:
             context: GraphQLContext = info.context
             state_store = context.state_store
-            
+
             executions = await state_store.list_executions(limit=limit + offset)
-            
+
             filtered_executions = executions
             if filter:
                 if filter.status:
                     filtered_executions = [
-                        e for e in filtered_executions
-                        if e['status'] == filter.status.value
+                        e
+                        for e in filtered_executions
+                        if e["status"] == filter.status.value
                     ]
-                
+
                 if filter.diagram_id:
                     filtered_executions = [
-                        e for e in filtered_executions
-                        if e.get('diagram_id') == filter.diagram_id
+                        e
+                        for e in filtered_executions
+                        if e.get("diagram_id") == filter.diagram_id
                     ]
-                
+
                 if filter.started_after:
                     filtered_executions = [
-                        e for e in filtered_executions
-                        if datetime.fromisoformat(e['started_at']) >= filter.started_after
+                        e
+                        for e in filtered_executions
+                        if datetime.fromisoformat(e["started_at"])
+                        >= filter.started_after
                     ]
-                
+
                 if filter.started_before:
                     filtered_executions = [
-                        e for e in filtered_executions
-                        if datetime.fromisoformat(e['started_at']) <= filter.started_before
+                        e
+                        for e in filtered_executions
+                        if datetime.fromisoformat(e["started_at"])
+                        <= filter.started_before
                     ]
-            
-            paginated_executions = filtered_executions[offset:offset + limit]
-            
+
+            paginated_executions = filtered_executions[offset : offset + limit]
+
             result = []
             for exec_summary in paginated_executions:
-                execution_state = await state_store.get_state(exec_summary['execution_id'])
+                execution_state = await state_store.get_state(
+                    exec_summary["execution_id"]
+                )
                 if execution_state:
                     result.append(execution_state)
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to list executions: {e}")
             return []
-    
+
     async def get_execution_events(
-        self,
-        execution_id: ExecutionID,
-        since_sequence: Optional[int],
-        limit: int,
-        info
+        self, execution_id: ExecutionID, since_sequence: Optional[int], limit: int, info
     ) -> List[ExecutionEvent]:
         """DEPRECATED: Returns empty list, use subscriptions instead."""
-        logger.warning(f"DEPRECATED: get_execution_events called for {execution_id} - events are no longer stored")
+        logger.warning(
+            f"DEPRECATED: get_execution_events called for {execution_id} - events are no longer stored"
+        )
         return []
-    
+
+
 execution_resolver = ExecutionResolver()

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import asyncio
@@ -6,9 +5,11 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from typing import Any, Dict, Optional, Set
 
-from dipeo_server.core import BaseService, ValidationError
-from ..services.simple_state_store import state_store
 from dipeo_domain import ExecutionStatus, NodeExecutionStatus, NodeOutput, TokenUsage
+
+from dipeo_server.core import BaseService, ValidationError
+
+from ..services.simple_state_store import state_store
 
 log = logging.getLogger(__name__)
 
@@ -34,12 +35,13 @@ class ExecutionService(BaseService):
         self.diagram_service = diagram_service
         self.notion_service = notion_service
         self._validator = None  # Lazy-load to avoid circular import
-    
+
     @property
     def validator(self):
         """Lazy-load DiagramValidator to avoid circular import."""
         if self._validator is None:
             from dipeo_server.domains.diagram.validators import DiagramValidator
+
             self._validator = DiagramValidator(self.api_key_service)
         return self._validator
 
@@ -57,7 +59,7 @@ class ExecutionService(BaseService):
         """
         await self._validate_diagram(diagram)
         await self._warm_up_models(diagram)
-        
+
         # Create execution state
         diagram_id = diagram.get("metadata", {}).get("id") if diagram else None
         variables = options.get("variables", {})
@@ -67,12 +69,12 @@ class ExecutionService(BaseService):
         exec_opts = self._merge_options(options, execution_id, interactive_handler)
 
         from ..executors import create_executors  # lazy import
-        
+
         executors = create_executors(
             llm_service=self.llm_service,
             file_service=self.file_service,
             memory_service=self.memory_service,
-            notion_service=self.notion_service
+            notion_service=self.notion_service,
         )
 
         # 4️⃣ Instantiate compact engine
@@ -85,16 +87,20 @@ class ExecutionService(BaseService):
 
         async def _send(msg: Dict[str, Any]) -> None:
             msg["execution_id"] = execution_id
-            
+
             # Persist event to store
             await self._persist_event(msg, execution_id)
-            
+
             await queue.put(msg)
 
         # Kick-off engine in background
         engine_task = asyncio.create_task(
-            engine.run(diagram, send=_send, execution_id=execution_id, 
-                      interactive_handler=interactive_handler)
+            engine.run(
+                diagram,
+                send=_send,
+                execution_id=execution_id,
+                interactive_handler=interactive_handler,
+            )
         )
 
         # 6️⃣ Stream updates until the engine finishes
@@ -106,7 +112,9 @@ class ExecutionService(BaseService):
                     break
         except Exception as e:
             # Record execution failure
-            await state_store.update_status(execution_id, ExecutionStatus.FAILED, error=str(e))
+            await state_store.update_status(
+                execution_id, ExecutionStatus.FAILED, error=str(e)
+            )
             raise
         finally:
             # Propagate exceptions if the engine errored out
@@ -123,14 +131,16 @@ class ExecutionService(BaseService):
         persons = diagram.get("persons", {})
         # Only handle dict (Record format)
         if not isinstance(persons, dict):
-            raise ValidationError("Persons must be a dictionary with person IDs as keys")
+            raise ValidationError(
+                "Persons must be a dictionary with person IDs as keys"
+            )
         for p in persons.values():
             # Handle both camelCase and snake_case
             api_key_id = p.get("apiKeyId") or p.get("api_key_id")
             service = p.get("service")
             model = p.get("model")
-            
-            key = f'{service}:{model}:{api_key_id}'
+
+            key = f"{service}:{model}:{api_key_id}"
             if key in seen or not all([service, model, api_key_id]):
                 continue
             seen.add(key)
@@ -166,17 +176,19 @@ class ExecutionService(BaseService):
         if interactive_handler:
             merged["interactive_handler"] = interactive_handler
         return merged
-    
+
     async def _persist_event(self, msg: Dict[str, Any], execution_id: str) -> None:
         """Update execution state based on engine messages."""
         msg_type = msg.get("type", "")
         node_id = msg.get("node_id")
-        
+
         # Handle different message types
         if msg_type == "execution_complete":
             await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
         elif msg_type == "node_start":
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.RUNNING)
+            await state_store.update_node_status(
+                execution_id, node_id, NodeExecutionStatus.RUNNING
+            )
         elif msg_type == "node_complete":
             output = msg.get("output")
             if output is not None:
@@ -185,7 +197,9 @@ class ExecutionService(BaseService):
                     output = NodeOutput(value=output, metadata={})
                 else:
                     output = NodeOutput(**output)
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.COMPLETED, output)
+            await state_store.update_node_status(
+                execution_id, node_id, NodeExecutionStatus.COMPLETED, output
+            )
             # Track token usage if available
             if "token_count" in msg:
                 token_data = msg["token_count"]
@@ -194,16 +208,25 @@ class ExecutionService(BaseService):
                         input=token_data.get("input", 0),
                         output=token_data.get("output", 0),
                         cached=token_data.get("cached"),
-                        total=token_data.get("total")
+                        total=token_data.get("total"),
                     )
                     await state_store.update_token_usage(execution_id, token_usage)
         elif msg_type == "node_skipped":
             skip_reason = msg.get("reason", "Skipped by condition")
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.SKIPPED, skip_reason=skip_reason)
+            await state_store.update_node_status(
+                execution_id,
+                node_id,
+                NodeExecutionStatus.SKIPPED,
+                skip_reason=skip_reason,
+            )
         elif msg_type == "node_paused":
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.PAUSED)
+            await state_store.update_node_status(
+                execution_id, node_id, NodeExecutionStatus.PAUSED
+            )
         elif msg_type == "node_resumed":
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.RUNNING)
+            await state_store.update_node_status(
+                execution_id, node_id, NodeExecutionStatus.RUNNING
+            )
         elif msg_type == "interactive_prompt":
             # Interactive prompts are handled through the message router, not state store
             pass

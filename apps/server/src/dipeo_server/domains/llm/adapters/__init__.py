@@ -1,6 +1,6 @@
 from .claude import ClaudeAdapter
-from .openai import ChatGPTAdapter
 from .gemini import GeminiAdapter
 from .grok import GrokAdapter
+from .openai import ChatGPTAdapter
 
-__all__ = ['ClaudeAdapter', 'ChatGPTAdapter', 'GeminiAdapter', 'GrokAdapter']
+__all__ = ["ChatGPTAdapter", "ClaudeAdapter", "GeminiAdapter", "GrokAdapter"]

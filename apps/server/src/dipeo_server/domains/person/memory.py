@@ -1,13 +1,14 @@
-from typing import Dict, List, Optional, Any
+import uuid
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime
-from collections import OrderedDict
-import uuid
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class Message:
     """Enhanced message with metadata."""
+
     id: str
     role: str
     content: str
@@ -34,13 +35,14 @@ class Message:
             "token_count": self.token_count,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
-            "cached_tokens": self.cached_tokens
+            "cached_tokens": self.cached_tokens,
         }
 
 
 @dataclass
 class PersonMemory:
     """Memory state for a specific person with proper cleanup."""
+
     person_id: str
     messages: List[Message] = field(default_factory=list)
     forgotten_message_ids: set[str] = field(default_factory=set)
@@ -50,11 +52,11 @@ class PersonMemory:
     def add_message(self, message: Message) -> None:
         """Add a message to memory with automatic cleanup of old messages."""
         self.messages.append(message)
-        
+
         if len(self.messages) > self.MAX_MESSAGES:
             messages_to_remove = len(self.messages) - self.MAX_MESSAGES
             self.messages = self.messages[messages_to_remove:]
-            
+
             remaining_ids = {msg.id for msg in self.messages}
             self.forgotten_message_ids &= remaining_ids
 
@@ -73,7 +75,10 @@ class PersonMemory:
     def forget_own_messages_from_execution(self, execution_id: str) -> None:
         """Mark messages sent BY this person from a specific execution as forgotten."""
         for message in self.messages:
-            if message.execution_id == execution_id and message.sender_person_id == self.person_id:
+            if (
+                message.execution_id == execution_id
+                and message.sender_person_id == self.person_id
+            ):
                 self.forgotten_message_ids.add(message.id)
 
     def get_visible_messages(self, current_person_id: str) -> List[Dict[str, Any]]:
@@ -83,17 +88,16 @@ class PersonMemory:
             if message.id in self.forgotten_message_ids:
                 continue
 
-            role = "assistant" if message.sender_person_id == current_person_id else "user"
-            
+            role = (
+                "assistant" if message.sender_person_id == current_person_id else "user"
+            )
+
             if role == "user" and message.node_label:
                 content = f"[{message.node_label}]: {message.content}"
             else:
                 content = message.content
 
-            visible_messages.append({
-                "role": role,
-                "content": content
-            })
+            visible_messages.append({"role": role, "content": content})
 
         return visible_messages
 
@@ -105,15 +109,15 @@ class SimplifiedMemoryService:
         self.person_memories: Dict[str, PersonMemory] = {}
         self.all_messages: OrderedDict[str, Message] = OrderedDict()
         self.execution_metadata: Dict[str, Dict[str, Any]] = {}
-        
+
         self.MAX_GLOBAL_MESSAGES = 10000
-    
+
     def _store_message(self, message: Message) -> None:
         self.all_messages[message.id] = message
-        
+
         while len(self.all_messages) > self.MAX_GLOBAL_MESSAGES:
             self.all_messages.popitem(last=False)
-    
+
     def _get_message(self, message_id: str) -> Optional[Message]:
         return self.all_messages.get(message_id)
 
@@ -122,7 +126,8 @@ class SimplifiedMemoryService:
             self.person_memories[person_id] = PersonMemory(person_id=person_id)
         return self.person_memories[person_id]
 
-    def add_message_to_conversation(self,
+    def add_message_to_conversation(
+        self,
         content: str,
         sender_person_id: str,
         execution_id: str,
@@ -133,7 +138,8 @@ class SimplifiedMemoryService:
         token_count: Optional[int] = None,
         input_tokens: Optional[int] = None,
         output_tokens: Optional[int] = None,
-        cached_tokens: Optional[int] = None) -> Message:
+        cached_tokens: Optional[int] = None,
+    ) -> Message:
         """Create and add message to conversation."""
         message = Message(
             id=str(uuid.uuid4()),
@@ -147,7 +153,7 @@ class SimplifiedMemoryService:
             token_count=token_count,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
-            cached_tokens=cached_tokens
+            cached_tokens=cached_tokens,
         )
 
         self._store_message(message)
@@ -163,7 +169,7 @@ class SimplifiedMemoryService:
                 "total_tokens": 0,
                 "input_tokens": 0,
                 "output_tokens": 0,
-                "cached_tokens": 0
+                "cached_tokens": 0,
             }
 
         metadata = self.execution_metadata[execution_id]
@@ -179,7 +185,9 @@ class SimplifiedMemoryService:
 
         return message
 
-    def forget_for_person(self, person_id: str, execution_id: Optional[str] = None) -> None:
+    def forget_for_person(
+        self, person_id: str, execution_id: Optional[str] = None
+    ) -> None:
         """Make a person forget messages."""
         person_memory = self.get_or_create_person_memory(person_id)
 
@@ -189,7 +197,9 @@ class SimplifiedMemoryService:
             for message in person_memory.messages:
                 person_memory.forgotten_message_ids.add(message.id)
 
-    def forget_own_messages_for_person(self, person_id: str, execution_id: Optional[str] = None) -> None:
+    def forget_own_messages_for_person(
+        self, person_id: str, execution_id: Optional[str] = None
+    ) -> None:
         """Make a person forget only their own messages."""
         person_memory = self.get_or_create_person_memory(person_id)
 
@@ -211,17 +221,20 @@ class SimplifiedMemoryService:
         """Clean up old execution metadata and return count of removed executions."""
         current_time = datetime.now()
         removed_count = 0
-        
+
         execution_ids_to_remove = []
         for exec_id, metadata in self.execution_metadata.items():
             start_time = metadata.get("start_time")
-            if start_time and (current_time - start_time).total_seconds() > max_age_hours * 3600:
+            if (
+                start_time
+                and (current_time - start_time).total_seconds() > max_age_hours * 3600
+            ):
                 execution_ids_to_remove.append(exec_id)
-        
+
         for exec_id in execution_ids_to_remove:
             del self.execution_metadata[exec_id]
             removed_count += 1
-        
+
         return removed_count
 
     def get_memory_stats(self) -> Dict[str, Any]:
@@ -233,7 +246,7 @@ class SimplifiedMemoryService:
             "person_message_counts": {
                 person_id: len(memory.messages)
                 for person_id, memory in self.person_memories.items()
-            }
+            },
         }
 
 

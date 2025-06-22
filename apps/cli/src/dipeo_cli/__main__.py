@@ -4,13 +4,12 @@ Main CLI entry point for DiPeO.
 This module provides the command-line interface for DiPeO diagram operations.
 """
 
-import sys
 import asyncio
-from typing import List
+import sys
 
-from .run import run_command as run
-from .monitor import monitor_command as monitor
 from .convert import convert_command as convert
+from .monitor import monitor_command as monitor
+from .run import run_command as run
 from .stats import stats_command as stats
 
 
@@ -38,34 +37,35 @@ def print_usage():
 
 def main():
     """Main entry point"""
-    if len(sys.argv) < 2 or sys.argv[1] in ['-h', '--help', 'help']:
+    if len(sys.argv) < 2 or sys.argv[1] in ["-h", "--help", "help"]:
         print_usage()
         sys.exit(0)
-    
+
     command = sys.argv[1]
     args = sys.argv[2:]
-    
+
     try:
-        if command == 'run':
+        if command == "run":
             asyncio.run(run(args))
-        elif command == 'monitor':
+        elif command == "monitor":
             monitor(args)
-        elif command == 'convert':
+        elif command == "convert":
             convert(args)
-        elif command == 'stats':
+        elif command == "stats":
             stats(args)
         else:
             print(f"Unknown command: {command}")
             print_usage()
             sys.exit(1)
-    
+
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}")
-        if '--debug' in sys.argv:
+        if "--debug" in sys.argv:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 

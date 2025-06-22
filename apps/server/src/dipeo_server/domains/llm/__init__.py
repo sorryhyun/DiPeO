@@ -1,8 +1,5 @@
 # Barrel exports for llm domain
-from dipeo_domain import (
-    LLMService,
-    ForgettingMode
-)
+from dipeo_domain import ForgettingMode, LLMService
 
 from .base import BaseAdapter, ChatResult
 from .factory import create_adapter
@@ -22,18 +19,17 @@ SUPPORTED_MODELS = {
     "gemini-1.5-pro": "google",
     "gemini-1.5-flash": "google",
     "grok-2-latest": "xai",
-    "grok-2-vision-1212": "xai"
+    "grok-2-vision-1212": "xai",
 }
 
 __all__ = [
     # Enums from generated models
-    'LLMService',
-    'ForgettingMode',
-    
+    "LLMService",
+    "ForgettingMode",
     # Services and utilities
-    'BaseAdapter', 
-    'ChatResult', 
-    'create_adapter', 
-    'SUPPORTED_MODELS',
-    'LLMServiceClass'
+    "BaseAdapter",
+    "ChatResult",
+    "create_adapter",
+    "SUPPORTED_MODELS",
+    "LLMServiceClass",
 ]

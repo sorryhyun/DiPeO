@@ -1,30 +1,30 @@
 """Unified utilities module for common functionality."""
 
+import asyncio
+import logging
 import os
 import traceback
-import logging
-from typing import Any, Dict, Optional, Type, Callable
-from functools import wraps
 from enum import Enum
-import asyncio
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, Type
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
 from .exceptions import (
     AgentDiagramException,
-    ValidationError,
     APIKeyError,
-    FileOperationError,
-    DiagramExecutionError,
-    LLMServiceError,
-    NodeExecutionError,
-    DependencyError,
-    MaxIterationsError,
     ConditionEvaluationError,
-    PersonJobExecutionError,
+    ConfigurationError,
     DatabaseError,
-    ConfigurationError
+    DependencyError,
+    DiagramExecutionError,
+    FileOperationError,
+    LLMServiceError,
+    MaxIterationsError,
+    NodeExecutionError,
+    PersonJobExecutionError,
+    ValidationError,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,9 +34,10 @@ logger = logging.getLogger(__name__)
 # Response Formatting Utilities
 # ============================================================================
 
+
 class ResponseFormatter:
     """Standardize API responses."""
-    
+
     @staticmethod
     def success(data: Any = None, message: str = None) -> Dict[str, Any]:
         """Format successful response."""
@@ -46,24 +47,22 @@ class ResponseFormatter:
         if message:
             response["message"] = message
         return response
-    
+
     @staticmethod
-    def error(message: str, details: Dict[str, Any] = None, status_code: int = 400) -> JSONResponse:
+    def error(
+        message: str, details: Dict[str, Any] = None, status_code: int = 400
+    ) -> JSONResponse:
         """Format error response."""
-        content = {
-            "success": False,
-            "error": message
-        }
+        content = {"success": False, "error": message}
         if details:
             content["details"] = details
-            
-        return JSONResponse(
-            status_code=status_code,
-            content=content
-        )
-    
+
+        return JSONResponse(status_code=status_code, content=content)
+
     @staticmethod
-    def paginated(items: list, total: int, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
+    def paginated(
+        items: list, total: int, page: int = 1, per_page: int = 20
+    ) -> Dict[str, Any]:
         """Format paginated response."""
         return {
             "items": items,
@@ -71,21 +70,24 @@ class ResponseFormatter:
                 "total": total,
                 "page": page,
                 "per_page": per_page,
-                "pages": (total + per_page - 1) // per_page
-            }
+                "pages": (total + per_page - 1) // per_page,
+            },
         }
 
 
 def handle_service_exceptions(func):
     """Decorator to handle common service exceptions."""
+
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
         except AgentDiagramException:
             raise
         except Exception as e:
-            raise AgentDiagramException(f"Unexpected error in {func.__name__}: {str(e)}")
-    
+            raise AgentDiagramException(
+                f"Unexpected error in {func.__name__}: {e!s}"
+            )
+
     return wrapper
 
 
@@ -93,9 +95,10 @@ def handle_service_exceptions(func):
 # Error Handling Utilities
 # ============================================================================
 
+
 class ErrorHandler:
     """Centralized error handling with consistent responses."""
-    
+
     # Map exception types to HTTP status codes
     error_mappings: Dict[Type[Exception], int] = {
         ValidationError: 400,
@@ -112,47 +115,50 @@ class ErrorHandler:
         PersonJobExecutionError: 500,
         HTTPException: None,  # Use the status code from HTTPException
     }
-    
+
     @classmethod
     def get_status_code(cls, exception: Exception) -> int:
         """Get the appropriate HTTP status code for an exception."""
         if isinstance(exception, HTTPException):
             return exception.status_code
-        
+
         for exc_type, status_code in cls.error_mappings.items():
             if isinstance(exception, exc_type):
                 return status_code
-        
+
         return 500  # Default to internal server error
-    
+
     @classmethod
-    def format_error_response(cls, exception: Exception, include_trace: bool = False) -> Dict[str, Any]:
+    def format_error_response(
+        cls, exception: Exception, include_trace: bool = False
+    ) -> Dict[str, Any]:
         """Format exception into a consistent error response."""
         error_type = type(exception).__name__
         error_message = str(exception)
-        
+
         response = {
             "error": {
                 "type": error_type,
                 "message": error_message,
             },
-            "success": False
+            "success": False,
         }
-        
+
         if include_trace and not isinstance(exception, HTTPException):
             response["error"]["trace"] = traceback.format_exc()
-        
+
         return response
-    
+
     @classmethod
     def handle_errors(cls, default_status: int = 500, include_trace: bool = False):
         """
         Decorator for handling errors in route handlers.
-        
+
         Args:
             default_status: Default status code if exception type is not mapped
             include_trace: Whether to include stack trace in response
         """
+
         def decorator(func: Callable) -> Callable:
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
@@ -162,12 +168,9 @@ class ErrorHandler:
                     logger.error(f"Error in {func.__name__}: {e}", exc_info=True)
                     status_code = cls.get_status_code(e) or default_status
                     content = cls.format_error_response(e, include_trace)
-                    
-                    return JSONResponse(
-                        status_code=status_code,
-                        content=content
-                    )
-            
+
+                    return JSONResponse(status_code=status_code, content=content)
+
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 try:
@@ -176,18 +179,14 @@ class ErrorHandler:
                     logger.error(f"Error in {func.__name__}: {e}", exc_info=True)
                     status_code = cls.get_status_code(e) or default_status
                     content = cls.format_error_response(e, include_trace)
-                    
-                    return JSONResponse(
-                        status_code=status_code,
-                        content=content
-                    )
-            
+
+                    return JSONResponse(status_code=status_code, content=content)
+
             # Return appropriate wrapper based on function type
             if asyncio.iscoroutinefunction(func):
                 return async_wrapper
-            else:
-                return sync_wrapper
-        
+            return sync_wrapper
+
         return decorator
 
 
@@ -205,23 +204,25 @@ def handle_internal_errors(func: Callable) -> Callable:
 # Feature Flag Management
 # ============================================================================
 
+
 class FeatureFlag(Enum):
     """Feature flags for controlling application behavior."""
+
     # Core execution features
     ENABLE_STREAMING = "enable_streaming"
     ENABLE_COST_TRACKING = "enable_cost_tracking"
     ENABLE_MEMORY_PERSISTENCE = "enable_memory_persistence"
-    
+
     # Performance features
     ENABLE_EXECUTOR_CACHING = "enable_executor_caching"
     ENABLE_PARALLEL_EXECUTION = "enable_parallel_execution"
     ENABLE_EXECUTION_MONITORING = "enable_execution_monitoring"
-    
+
     # Safety features
     ENABLE_SANDBOX_MODE = "enable_sandbox_mode"
     ENABLE_EXECUTION_TIMEOUT = "enable_execution_timeout"
     ENABLE_RATE_LIMITING = "enable_rate_limiting"
-    
+
     # Debug features
     ENABLE_DEBUG_MODE = "enable_debug_mode"
     ENABLE_VERBOSE_LOGGING = "enable_verbose_logging"
@@ -230,23 +231,28 @@ class FeatureFlag(Enum):
 
 class FeatureFlagManager:
     """Manages feature flags for the application."""
-    
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize feature flag manager."""
         self._flags = config or {}
         self._load_from_environment()
         self._set_defaults()
-    
+
     def _load_from_environment(self):
         """Load feature flags from environment variables."""
         for flag in FeatureFlag:
             env_var = f"DIPEO_{flag.value.upper()}"
             env_value = os.getenv(env_var)
-            
+
             if env_value is not None:
                 # Convert string to boolean
-                self._flags[flag.value] = env_value.lower() in ('true', '1', 'yes', 'on')
-    
+                self._flags[flag.value] = env_value.lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                    "on",
+                )
+
     def _set_defaults(self):
         """Set default values for feature flags."""
         defaults = {
@@ -254,47 +260,44 @@ class FeatureFlagManager:
             FeatureFlag.ENABLE_STREAMING.value: True,
             FeatureFlag.ENABLE_COST_TRACKING.value: True,
             FeatureFlag.ENABLE_MEMORY_PERSISTENCE.value: True,
-            
             # Performance features
             FeatureFlag.ENABLE_EXECUTOR_CACHING.value: True,
             FeatureFlag.ENABLE_PARALLEL_EXECUTION.value: False,  # Not implemented yet
             FeatureFlag.ENABLE_EXECUTION_MONITORING.value: True,
-            
             # Safety features
             FeatureFlag.ENABLE_SANDBOX_MODE.value: True,
             FeatureFlag.ENABLE_EXECUTION_TIMEOUT.value: True,
             FeatureFlag.ENABLE_RATE_LIMITING.value: False,  # Disabled for development
-            
             # Debug features (disabled by default)
             FeatureFlag.ENABLE_DEBUG_MODE.value: False,
             FeatureFlag.ENABLE_VERBOSE_LOGGING.value: False,
             FeatureFlag.ENABLE_EXECUTION_TRACING.value: False,
         }
-        
+
         for flag, default_value in defaults.items():
             if flag not in self._flags:
                 self._flags[flag] = default_value
-    
+
     def is_enabled(self, flag: FeatureFlag) -> bool:
         """Check if a feature flag is enabled."""
         return self._flags.get(flag.value, False)
-    
+
     def enable(self, flag: FeatureFlag) -> None:
         """Enable a feature flag."""
         self._flags[flag.value] = True
-    
+
     def disable(self, flag: FeatureFlag) -> None:
         """Disable a feature flag."""
         self._flags[flag.value] = False
-    
+
     def set_flag(self, flag: FeatureFlag, value: bool) -> None:
         """Set a feature flag to a specific value."""
         self._flags[flag.value] = value
-    
+
     def get_all_flags(self) -> Dict[str, bool]:
         """Get all feature flags and their current values."""
         return self._flags.copy()
-    
+
     def reset_to_defaults(self) -> None:
         """Reset all flags to their default values."""
         self._flags.clear()
@@ -342,8 +345,14 @@ def get_feature_status() -> Dict[str, Any]:
     return {
         "streaming_enabled": is_feature_enabled(FeatureFlag.ENABLE_STREAMING),
         "cost_tracking_enabled": is_feature_enabled(FeatureFlag.ENABLE_COST_TRACKING),
-        "memory_persistence_enabled": is_feature_enabled(FeatureFlag.ENABLE_MEMORY_PERSISTENCE),
-        "executor_caching_enabled": is_feature_enabled(FeatureFlag.ENABLE_EXECUTOR_CACHING),
-        "monitoring_enabled": is_feature_enabled(FeatureFlag.ENABLE_EXECUTION_MONITORING),
+        "memory_persistence_enabled": is_feature_enabled(
+            FeatureFlag.ENABLE_MEMORY_PERSISTENCE
+        ),
+        "executor_caching_enabled": is_feature_enabled(
+            FeatureFlag.ENABLE_EXECUTOR_CACHING
+        ),
+        "monitoring_enabled": is_feature_enabled(
+            FeatureFlag.ENABLE_EXECUTION_MONITORING
+        ),
         "sandbox_mode_enabled": is_feature_enabled(FeatureFlag.ENABLE_SANDBOX_MODE),
     }

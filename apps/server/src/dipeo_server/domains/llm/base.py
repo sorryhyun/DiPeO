@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+
 @dataclass
 class ChatResult:
     text: str
@@ -13,24 +14,18 @@ class ChatResult:
 
     @property
     def has_usage(self) -> bool:
-        return any(v is not None for v in (
-            self.prompt_tokens, self.completion_tokens, self.total_tokens
-        ))
-    
+        return any(
+            v is not None
+            for v in (self.prompt_tokens, self.completion_tokens, self.total_tokens)
+        )
+
 
 class BaseAdapter(ABC):
     """Minimal interface for an LLM adapter."""
 
-    FALLBACK_MODELS: Dict[str, List[str]] = {
-        'openai': ['gpt-4', 'gpt-3.5-turbo']
-    }
+    FALLBACK_MODELS: Dict[str, List[str]] = {"openai": ["gpt-4", "gpt-3.5-turbo"]}
 
-    def __init__(
-        self,
-        model_name: str,
-        api_key: str,
-        base_url: Optional[str] = None
-    ):
+    def __init__(self, model_name: str, api_key: str, base_url: Optional[str] = None):
         self.model_name = model_name
         self.api_key = api_key
         self.base_url = base_url
@@ -43,11 +38,8 @@ class BaseAdapter(ABC):
 
     @abstractmethod
     def _build_messages(
-        self,
-        system_prompt: str,
-        user_prompt: str = ''
-    ) -> List[Dict[str, str]]:
-        ...
+        self, system_prompt: str, user_prompt: str = ""
+    ) -> List[Dict[str, str]]: ...
 
     @abstractmethod
     def _make_api_call(self, messages: Any, **kwargs) -> Any:
@@ -62,28 +54,21 @@ class BaseAdapter(ABC):
     def _extract_usage(self, response: Any) -> Dict[str, int]:
         raise NotImplementedError
 
-    def chat(
-        self,
-        system_prompt: str,
-        user_prompt: str = '',
-        **kwargs
-    ) -> ChatResult:
+    def chat(self, system_prompt: str, user_prompt: str = "", **kwargs) -> ChatResult:
         msgs = self._build_messages(system_prompt, user_prompt)
         resp = self._make_api_call(msgs, **kwargs)
         text = self._extract_text(resp)
         usage = self._extract_usage(resp)
         return ChatResult(
             text=text,
-            prompt_tokens=usage.get('prompt_tokens'),
-            completion_tokens=usage.get('completion_tokens'),
-            total_tokens=usage.get('total_tokens'),
-            raw_response=resp
+            prompt_tokens=usage.get("prompt_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+            total_tokens=usage.get("total_tokens"),
+            raw_response=resp,
         )
 
     def chat_with_messages(
-        self,
-        messages: List[Dict[str, str]],
-        **kwargs
+        self, messages: List[Dict[str, str]], **kwargs
     ) -> ChatResult:
         """Chat with pre-built messages array (for conversation history)."""
         resp = self._make_api_call(messages, **kwargs)
@@ -91,11 +76,11 @@ class BaseAdapter(ABC):
         usage = self._extract_usage(resp)
         return ChatResult(
             text=text,
-            prompt_tokens=usage.get('prompt_tokens'),
-            completion_tokens=usage.get('completion_tokens'),
-            total_tokens=usage.get('total_tokens'),
-            raw_response=resp
+            prompt_tokens=usage.get("prompt_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+            total_tokens=usage.get("total_tokens"),
+            raw_response=resp,
         )
 
     def list_models(self) -> List[str]:
-        return self.FALLBACK_MODELS.get('openai', [])
+        return self.FALLBACK_MODELS.get("openai", [])
