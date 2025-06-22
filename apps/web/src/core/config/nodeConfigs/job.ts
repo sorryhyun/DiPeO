@@ -1,10 +1,6 @@
 import type { JobFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
 
-/**
- * Unified configuration for Job node
- * This replaces both the node config and panel config
- */
 export const jobConfig = createUnifiedConfig<JobFormData>({
   // Node configuration
   label: 'Job',

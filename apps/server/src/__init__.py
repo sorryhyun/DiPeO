@@ -1,9 +1,4 @@
-"""Compatibility shim for old import paths.
-
-This module provides backward compatibility for imports using the old src.* paths.
-These imports are DEPRECATED and will be removed in a future release.
-Please update your imports to use dipeo_server.* instead.
-"""
+"""Compatibility shim for old import paths."""
 
 import warnings
 import sys

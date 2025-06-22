@@ -4,9 +4,9 @@ from datetime import datetime
 from collections import defaultdict
 import logging
 
-from ..types.domain import DomainDiagramType as GraphQLDiagram, DiagramMetadata
-from ..types.scalars import DiagramID
-from ..types.inputs import DiagramFilterInput
+from .domain_types import DomainDiagram, DiagramMetadata
+from .scalars_types import DiagramID
+from .inputs_types import DiagramFilterInput
 from dipeo_server.domains.diagram import DiagramService
 from dipeo_server.domains.diagram.converters import diagram_dict_to_graphql
 from dipeo_domain import DiagramDictFormat

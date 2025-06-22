@@ -1,10 +1,6 @@
 import type { PersonBatchJobFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
 
-/**
- * Unified configuration for Person Batch Job node
- * This replaces both the node config and panel config
- */
 export const personBatchJobConfig = createUnifiedConfig<PersonBatchJobFormData>({
   // Node configuration
   label: 'Person Batch Job',

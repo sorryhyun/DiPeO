@@ -1,10 +1,6 @@
 import type { StartFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
 
-/**
- * Unified configuration for Start node
- * This replaces both the node config and panel config
- */
 export const startConfig = createUnifiedConfig<StartFormData>({
   // Node configuration
   label: 'Start',

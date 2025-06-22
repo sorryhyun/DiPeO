@@ -3,13 +3,13 @@ import strawberry
 import logging
 import uuid
 
-from ..types.results import PersonResult, DeleteResult
-from ..types.scalars import DiagramID, PersonID
-from ..types.inputs import CreatePersonInput, UpdatePersonInput
-from ..context import GraphQLContext
+from .results_types import PersonResult, DeleteResult
+from .scalars_types import DiagramID, PersonID
+from .inputs_types import CreatePersonInput, UpdatePersonInput
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import DomainPerson
 from dipeo_server.core import LLMService, ForgettingMode
-from ..models.input_models import (
+from .models.input_models import (
     CreatePersonInput as PydanticCreatePersonInput,
     UpdatePersonInput as PydanticUpdatePersonInput
 )

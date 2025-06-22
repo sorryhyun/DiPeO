@@ -18,10 +18,10 @@ from dipeo_server.domains.diagram import DiagramService
 from dipeo_server.core.services import APIKeyService
 from dipeo_server.domains.diagram.models import DiagramMetadata, DomainDiagram, DiagramDictFormat
 from dipeo_server.domains.diagram.converters import converter_registry, diagram_dict_to_graphql
-from ..context import GraphQLContext
-from ..types.results import FileUploadResult
-from ..types.scalars import DiagramID, JSONScalar
-from ..types.enums import DiagramFormat
+from .context import GraphQLContext
+from .results_types import FileUploadResult
+from .scalars_types import DiagramID, JSONScalar
+from .enums_types import DiagramFormat
 
 logger = logging.getLogger(__name__)
 

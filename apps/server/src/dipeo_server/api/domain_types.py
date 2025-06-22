@@ -5,7 +5,7 @@ This replaces the manual type definitions with automatic conversions.
 import strawberry
 from typing import Optional, List
 
-from ..types.scalars import JSONScalar, DiagramID, ExecutionID
+from .scalars_types import JSONScalar, DiagramID, ExecutionID
 
 # Import generated models
 from dipeo_domain import (

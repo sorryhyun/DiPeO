@@ -1,16 +1,7 @@
-/**
- * Unified configuration system that combines node and panel configurations
- * This allows deriving panel configs from node configs automatically
- */
-
 import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
 import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { FIELD_TYPES, type FieldType } from '@/core/types/panel';
 
-/**
- * Maps domain field types to panel field types
- * Uses the centralized mapping from core panel types
- */
 const fieldTypeMapping: Record<FieldConfig['type'], FieldType> = {
   string: FIELD_TYPES.TEXT,
   number: FIELD_TYPES.TEXT, // Will add number validation
@@ -20,11 +11,8 @@ const fieldTypeMapping: Record<FieldConfig['type'], FieldType> = {
   boolean: FIELD_TYPES.BOOLEAN
 };
 
-/**
- * Unified configuration that encompasses both node and panel configurations
- */
+
 export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<string, unknown>> {
-  // Node configuration properties
   label: string;
   icon: string;
   color: string;
@@ -39,9 +27,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   panelCustomFields?: Array<TypedPanelFieldConfig<T>>;
 }
 
-/**
- * Derives a panel configuration from a unified node configuration
- */
+
 export function derivePanelConfig<T extends Record<string, unknown>>(
   config: UnifiedNodeConfig<T>
 ): PanelLayoutConfig<T> {
@@ -51,8 +37,7 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
     (config.panelCustomFields || []).map(field => [field.type === FIELD_TYPES.LABEL_PERSON_ROW ? FIELD_TYPES.LABEL_PERSON_ROW : field.name || field.type, field])
   );
 
-  
-  // Convert node fields to panel fields
+
   for (const field of config.fields) {
     const panelFieldType = fieldTypeMapping[field.type];
     
@@ -62,7 +47,6 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
       label: field.label,
       placeholder: field.placeholder,
       required: field.required,
-      // Apply overrides if specified
       ...(config.panelFieldOverrides?.[field.name as keyof T] || {})
     };
     
@@ -161,9 +145,6 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
   return result;
 }
 
-/**
- * Orders fields according to specified order
- */
 function orderFields<T extends Record<string, unknown>>(
   fields: Array<TypedPanelFieldConfig<T>>,
   order: Array<keyof T | string>,
@@ -204,9 +185,7 @@ function orderFields<T extends Record<string, unknown>>(
   return orderedFields;
 }
 
-/**
- * Creates a unified node configuration
- */
+
 export function createUnifiedConfig<T extends Record<string, unknown>>(
   config: UnifiedNodeConfig<T>
 ): UnifiedNodeConfig<T> {

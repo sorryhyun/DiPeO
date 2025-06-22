@@ -3,13 +3,13 @@ import strawberry
 import logging
 import uuid
 
-from ..types.results import DiagramResult, DeleteResult
-from ..types.scalars import DiagramID, ArrowID
-from ..types.inputs import CreateArrowInput
-from ..context import GraphQLContext
+from .results_types import DiagramResult, DeleteResult
+from .scalars_types import DiagramID, ArrowID
+from .inputs_types import CreateArrowInput
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import DomainArrow, DomainDiagram, DiagramDictFormat
 from dipeo_server.domains.diagram.converters import diagram_dict_to_graphql
-from ..models.input_models import CreateArrowInput as PydanticCreateArrowInput
+from .inputs_types import CreateArrowInput as PydanticCreateArrowInput
 
 logger = logging.getLogger(__name__)
 

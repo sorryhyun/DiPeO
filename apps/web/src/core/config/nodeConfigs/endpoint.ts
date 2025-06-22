@@ -1,10 +1,6 @@
 import type { EndpointFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
 
-/**
- * Unified configuration for Endpoint node
- * This replaces both the node config and panel config
- */
 export const endpointConfig = createUnifiedConfig<EndpointFormData>({
   // Node configuration
   label: 'Endpoint',

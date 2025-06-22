@@ -7,9 +7,9 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from ..types.results import DeleteResult, FileUploadResult
-from ..types.inputs import FileUploadInput
-from ..context import GraphQLContext
+from .results_types import DeleteResult, FileUploadResult
+from .inputs_types import FileUploadInput
+from .context import GraphQLContext
 
 logger = logging.getLogger(__name__)
 

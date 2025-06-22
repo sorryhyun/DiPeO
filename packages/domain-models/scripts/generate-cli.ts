@@ -1,12 +1,5 @@
 #!/usr/bin/env tsx
 
-/**
- * Generate lightweight Python dataclasses for CLI from TypeScript interfaces
- * Refactored for:
- *  • **Performance** – StringBuilder & memoization
- *  • **Compactness** – consolidated helpers & hoisted constants
- *  • **Clarity** – removed duplication, cleaner control flow
- */
 
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import { dirname, join } from 'path';
@@ -14,7 +7,7 @@ import { fileURLToPath } from 'url';
 import process from 'node:process';
 import { SchemaDefinition } from './generate-schema';
 
-//--- Hoisted constants & regex patterns -----------------------------
+//--- Hoisted constants & regex patterns
 const PY_TYPE_MAP: Record<string, string> = {
   string: 'str',
   number: 'float',
@@ -40,7 +33,7 @@ const RE_BRAND = /&\s*\{/;
 const RE_ARRAY = /^(.+)\[\]$/;
 const RE_RECORD = /^Record</;
 
-//--- String Builder -------------------------------------------------
+//--- String Builder
 class SB {
   private buf: string[] = [];
   add(...parts: (string | undefined | null)[]) {
@@ -51,7 +44,7 @@ class SB {
   toString() { return this.buf.join(''); }
 }
 
-//--- Main Generator -------------------------------------------------
+//--- Main Generator
 class CLIPythonGenerator {
   private imports = new Map<string, Set<string>>();
   private typeCache = new Map<string, string>();

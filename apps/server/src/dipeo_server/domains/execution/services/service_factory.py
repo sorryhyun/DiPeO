@@ -3,13 +3,13 @@ from typing import Dict, Any, Optional, Protocol, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
-    from dipeo_server.domains.llm.service import LLMService
-    from dipeo_server.domains.memory.services.memory_service import MemoryService
-    from dipeo_server.domains.person.services.person_service import PersonService
-    from dipeo_server.domains.code_execution.services.code_execution_service import CodeExecutionService
-    from dipeo_server.domains.file.services.file_service import FileService
-    from dipeo_server.domains.integrations.notion.services.notion_service import NotionService
-    from dipeo_server.domains.execution.services.user_interaction_service import UserInteractionService
+    from dipeo_domain import LLMService
+    from dipeo_domain import MemoryService
+    from dipeo_domain import PersonService
+    from dipeo_domain import CodeExecutionService
+    from dipeo_domain import FileService
+    from dipeo_domain import NotionService
+    from dipeo_domain import UserInteractionService
 
 
 class ServiceProvider(Protocol):

@@ -1,12 +1,5 @@
 #!/usr/bin/env tsx
 
-/**
- * Generate GraphQL schema from TypeScript interfaces.
- * Refactored for:
- *  • **Performance** – StringBuilder & memoisation
- *  • **Compactness** – consolidated helpers & template literals
- *  • **Clarity** – pulled constants out of hot paths, removed duplication
- */
 
 import { readFile, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';

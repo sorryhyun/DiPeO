@@ -1,7 +1,3 @@
-/**
- * Unified node configurations that combine both node and panel configs
- */
-
 import type { NodeType } from '@dipeo/domain-models';
 import type { UnifiedNodeConfig } from '../unifiedConfig';
 

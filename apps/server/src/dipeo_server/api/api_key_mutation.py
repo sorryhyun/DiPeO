@@ -2,12 +2,12 @@
 import strawberry
 import logging
 
-from ..types.results import ApiKeyResult, DeleteResult, TestApiKeyResult
-from ..types.scalars import ApiKeyID
-from ..types.inputs import CreateApiKeyInput
-from ..context import GraphQLContext
+from .results_types import ApiKeyResult, DeleteResult, TestApiKeyResult
+from .scalars_types import ApiKeyID
+from .inputs_types import CreateApiKeyInput
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import DomainApiKey
-from ..models.input_models import CreateApiKeyInput as PydanticCreateApiKeyInput
+from .inputs_types import CreateApiKeyInput as PydanticCreateApiKeyInput
 
 logger = logging.getLogger(__name__)
 

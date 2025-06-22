@@ -1,6 +1,4 @@
-# services/execution_service.py
-"""Service for running a diagram through the CompactEngine and
-streaming execution updates to the caller."""
+
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +15,7 @@ log = logging.getLogger(__name__)
 class ExecutionService(BaseService):
     """Run a diagram and stream node-level updates back to the client."""
 
-    # --------------------------------------------------------------------- init
+    #  init
     def __init__(
         self,
         llm_service,
@@ -56,18 +54,15 @@ class ExecutionService(BaseService):
         Validate → warm-up → enrich → run the CompactEngine.
         Yields node / engine updates as they happen.
         """
-        # 1️⃣ Validate + warm-up
         await self._validate_diagram(diagram)
         await self._warm_up_models(diagram)
         
         # Create execution state
         await state_store.create_execution(execution_id, diagram, options)
 
-        # 2️⃣ Enrich with API-keys + merge exec-options
         diagram = self._inject_api_keys(diagram)
         exec_opts = self._merge_options(options, execution_id, interactive_handler)
 
-        # 3️⃣ Build executor registry *only* when needed
         from ..executors import create_executors  # lazy import
         
         executors = create_executors(
@@ -114,7 +109,7 @@ class ExecutionService(BaseService):
             # Propagate exceptions if the engine errored out
             await engine_task
 
-    # ----------------------------------------------------------------- helpers
+    #  helpers
     async def _validate_diagram(self, diagram: Dict[str, Any]) -> None:
         """Validate diagram structure for execution."""
         self.validator.validate_or_raise(diagram, context="execution")

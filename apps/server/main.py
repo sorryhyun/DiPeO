@@ -5,10 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -16,51 +14,39 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Import middleware
 from dipeo_server.api.middleware import setup_middleware
 
-# Import lifespan from app_context
 from dipeo_server.core.context import lifespan
 
-# Import GraphQL router
 from dipeo_server.api.schema import create_graphql_router
 from dipeo_server.api.context import get_graphql_context
 
 
 
-# Create FastAPI app
 app = FastAPI(
     title="DiPeO Backend API",
     description="API server for DiPeO visual programming environment",
     lifespan=lifespan
 )
 
-# Setup middleware
 setup_middleware(app)
 
-# Always include GraphQL router
 graphql_router = create_graphql_router(context_getter=get_graphql_context)
 app.include_router(graphql_router, prefix="")
 logger.info("GraphQL endpoint enabled at /graphql")
 
-# Log GraphQL availability
 logger.info("All API operations are available via GraphQL at /graphql")
 
 
-# Health check endpoint moved to diagram router at /api/diagrams/health
 
 
-# Metrics endpoint
 @app.get("/metrics")
 async def metrics(request: Request):
-    """Expose Prometheus metrics with content negotiation support."""
-    # Support content negotiation for tests
     accept_header = request.headers.get("accept", "")
     
     try:
         from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
         
-        # Return JSON format for tests
         if "application/json" in accept_header:
             metrics_data = generate_latest().decode('utf-8')
             return {
@@ -69,13 +55,11 @@ async def metrics(request: Request):
                 "message": "Metrics in Prometheus format"
             }
         
-        # Default to Prometheus text format
         return Response(
             content=generate_latest(),
             media_type=CONTENT_TYPE_LATEST
         )
     except ImportError:
-        # If prometheus_client is not installed, return a simple message
         return {"message": "Prometheus client not installed. Install with: pip install prometheus-client"}
 
 def start():
@@ -86,11 +70,8 @@ def start():
     config = Config()
     config.bind = [f"0.0.0.0:{int(os.environ.get('PORT', 8000))}"]
     
-    # Multi-worker support for better parallel execution
     config.workers = int(os.environ.get("WORKERS", 4))
     
-    # Redis configuration for multi-worker support
-    # Set REDIS_URL environment variable (e.g., redis://localhost:6379/0)
     redis_url = os.environ.get("REDIS_URL")
     if config.workers > 1 and not redis_url:
         logger.warning(
@@ -98,21 +79,15 @@ def start():
             "GraphQL subscriptions require Redis for multi-worker support."
         )
     
-    # Graceful timeout
     config.graceful_timeout = 30.0
     
-    # Access and error logging
     config.accesslog = "-"
     config.errorlog = "-"
     
-    # Keep alive for long-running connections
     config.keep_alive_timeout = 75.0
     
-    # Enable HTTP/2
     config.h2_max_concurrent_streams = 100
     
-    # Note: Hypercorn doesn't support hot reload like uvicorn
-    # For development, you'll need to restart the server manually
     if os.environ.get("RELOAD", "false").lower() == "true":
         logger.warning("Hot reload is not supported with Hypercorn. Please restart the server manually for changes.")
     

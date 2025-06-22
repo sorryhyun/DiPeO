@@ -1,11 +1,3 @@
-/**
- * Centralized node metadata configuration
- * 
- * This file consolidates NODE_KINDS, NODE_ICONS, NODE_COLORS, and default labels
- * that were previously scattered across multiple files, reducing ~200 LOC and
- * eliminating the risk of inconsistencies.
- */
-
 import type { NodeType } from '@dipeo/domain-models';
 
 export interface NodeMetadata {
@@ -15,10 +7,6 @@ export interface NodeMetadata {
   displayName: string;
 }
 
-/**
- * Comprehensive node metadata mapping
- * Used throughout the application for consistent node appearance and behavior
- */
 export const NODE_META: Record<NodeType, NodeMetadata> = {
   start: {
     icon: '🚀',
@@ -76,16 +64,10 @@ export const NODE_META: Record<NodeType, NodeMetadata> = {
   }
 } as const;
 
-/**
- * Helper function to get node metadata with type safety
- */
 export function getNodeMeta(type: NodeType): NodeMetadata {
   return NODE_META[type];
 }
 
-/**
- * Get all available node types
- */
 export function getNodeKinds(): NodeType[] {
   return Object.keys(NODE_META) as NodeType[];
 }

@@ -1,12 +1,5 @@
 #!/usr/bin/env tsx
 
-/**
- * Generate JSON schemas from TypeScript interfaces
- * Refactored for:
- *  • **Performance** – Cached lookups & batch processing
- *  • **Compactness** – Consolidated extraction logic
- *  • **Clarity** – Single responsibility methods
- */
 
 import { Project, InterfaceDeclaration, EnumDeclaration, Type } from 'ts-morph';
 import { readdir, writeFile, mkdir } from 'fs/promises';
@@ -14,7 +7,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
 
-//--- Types ----------------------------------------------------------
+//--- Types
 export interface SchemaDefinition {
   name: string;
   type: 'interface' | 'enum';
@@ -30,7 +23,7 @@ interface PropertyInfo {
   description?: string;
 }
 
-//--- Schema Extractor -----------------------------------------------
+//--- Schema Extractor
 class SchemaExtractor {
   private typeCache = new Map<string, string>();
 
@@ -85,7 +78,7 @@ class SchemaExtractor {
   }
 }
 
-//--- Main Generator -------------------------------------------------
+//--- Main Generator
 class SchemaGenerator {
   private project: Project;
   private extractor: SchemaExtractor;
@@ -150,7 +143,7 @@ class SchemaGenerator {
   }
 }
 
-//--- Entry Point ----------------------------------------------------
+//--- Entry Point
 export async function generateSchemas() {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const tsConfig = join(__dirname, '../tsconfig.json');
