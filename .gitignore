@@ -26,6 +26,11 @@ apps/server/pyproject.toml
 .logs
 apps/server/.import_linter_cache
 
+packages/domain-models/__generated__
+packages/python/dipeo_domain/src/dipeo_domain/models.py
+apps/cli/src/dipeo_cli/__generated__
+apps/web/src/__generated__
+
 # Node.js
 node_modules/
 npm-debug.log*

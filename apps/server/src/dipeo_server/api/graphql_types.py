@@ -1,8 +1,7 @@
-from typing import List, Optional, NewType
+from typing import List, Optional, NewType, Dict, Any
 from datetime import datetime
 
 import strawberry
-from strawberry.scalars import JSON
 
 # Import domain models directly
 from dipeo_domain import (
@@ -26,6 +25,8 @@ from dipeo_domain import (
     HandleDirection,
     DataType,
     DiagramFormat,
+    EventType,
+    NodeExecutionStatus,
 )
 
 
@@ -82,7 +83,8 @@ ArrowID = strawberry.scalar(
 )
 
 JSONScalar = strawberry.scalar(
-    JSON,
+    NewType("JSONScalar", object),
+    name="JSONScalar",
     description="Arbitrary JSON data",
     serialize=lambda v: v,
     parse_value=lambda v: v,
@@ -90,35 +92,54 @@ JSONScalar = strawberry.scalar(
 
 # SIMPLE TYPES - Direct conversions without custom fields
 
-
-Vec2Type = strawberry.experimental.pydantic.type(Vec2, all_fields=True)
-TokenUsageType = strawberry.experimental.pydantic.type(TokenUsage, all_fields=True)
-NodeStateType = strawberry.experimental.pydantic.type(NodeState, all_fields=True)
-NodeOutputType = strawberry.experimental.pydantic.type(NodeOutput, all_fields=True)
-DomainHandleType = strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
-DiagramMetadataType = strawberry.experimental.pydantic.type(DiagramMetadata, all_fields=True)
+# Register Vec2 type explicitly to ensure it's available for nested usage
+@strawberry.experimental.pydantic.type(Vec2, all_fields=True)
+class Vec2Type:
+    pass
+@strawberry.experimental.pydantic.type(TokenUsage, all_fields=True)
+class TokenUsageType:
+    pass
+@strawberry.experimental.pydantic.type(NodeState, all_fields=True)
+class NodeStateType:
+    pass
+@strawberry.experimental.pydantic.type(NodeOutput, all_fields=True)
+class NodeOutputType:
+    pass
+@strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
+class DomainHandleType:
+    pass
+@strawberry.experimental.pydantic.type(DiagramMetadata, all_fields=True)
+class DiagramMetadataType:
+    pass
 
 # TYPES WITH MINIMAL CUSTOM FIELDS
 
-@strawberry.experimental.pydantic.type(DomainNode, all_fields=True)
+@strawberry.experimental.pydantic.type(DomainNode, fields=["id", "type", "position", "display_name"])
 class DomainNodeType:
-
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         return getattr(self, '_data', None) or getattr(self, 'data', None)
+    
+    @strawberry.field
+    def handles(self) -> List[DomainHandleType]:
+        # Handles are stored at the diagram level, need to be resolved via parent
+        # For now, return empty list - actual resolution happens in resolver
+        return []
 
 
-@strawberry.experimental.pydantic.type(DomainArrow, all_fields=True)
+@strawberry.experimental.pydantic.type(DomainArrow, fields=["id", "source", "target"])
 class DomainArrowType:
-
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         return getattr(self, '_data', None) or getattr(self, 'data', None)
 
 
-@strawberry.experimental.pydantic.type(DomainPerson, all_fields=True)
+@strawberry.experimental.pydantic.type(DomainPerson, fields=["id", "label", "service", "model", "api_key_id", "system_prompt", "forgetting_mode"])
 class DomainPersonType:
-
+    @strawberry.field
+    def type(self) -> str:
+        return "person"
+    
     @strawberry.field
     def masked_api_key(self) -> Optional[str]:
         api_key_id = getattr(self, 'api_key_id', None)
@@ -139,12 +160,24 @@ class DomainApiKeyType:
 
 @strawberry.experimental.pydantic.type(DomainDiagram, all_fields=True)
 class DomainDiagramType:
-    pass  # Count fields can be computed in resolvers if needed
+    @strawberry.field
+    def nodeCount(self) -> int:
+        nodes = getattr(self, 'nodes', [])
+        return len(nodes) if nodes else 0
+    
+    @strawberry.field
+    def arrowCount(self) -> int:
+        arrows = getattr(self, 'arrows', [])
+        return len(arrows) if arrows else 0
+    
+    @strawberry.field
+    def personCount(self) -> int:
+        persons = getattr(self, 'persons', [])
+        return len(persons) if persons else 0
 
 
-@strawberry.experimental.pydantic.type(ExecutionState, all_fields=True)
+@strawberry.experimental.pydantic.type(ExecutionState, fields=["id", "status", "diagram_id", "started_at", "ended_at", "token_usage", "error", "duration_seconds", "is_active"])
 class ExecutionStateType:
-
     @strawberry.field
     def node_states(self) -> JSONScalar:
         return getattr(self, 'node_states', {})
@@ -158,10 +191,9 @@ class ExecutionStateType:
         return getattr(self, 'variables', {})
 
 
-@strawberry.experimental.pydantic.type(ExecutionEvent, all_fields=True)
+@strawberry.experimental.pydantic.type(ExecutionEvent, fields=["execution_id", "sequence", "event_type", "node_id", "timestamp", "formatted_message"])
 class ExecutionEventType:
     """Execution event with JSON data field."""
-    
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         return getattr(self, '_data', None) or getattr(self, 'data', None)
