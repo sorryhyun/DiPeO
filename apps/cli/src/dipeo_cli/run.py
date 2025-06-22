@@ -6,6 +6,7 @@ This module handles diagram execution through the GraphQL API.
 
 import asyncio
 import json
+import subprocess
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -250,6 +251,10 @@ async def run_command(args: List[str]) -> None:
     file_path = args[0]
     options = _parse_run_options(args[1:])
 
+    # Restart backend server if debug mode
+    if options.debug:
+        await _restart_backend_server()
+
     # Load diagram
     diagram = DiagramLoader.load(file_path)
 
@@ -314,6 +319,71 @@ async def _run_monitor_mode(diagram: Dict[str, Any], options: ExecutionOptions) 
     print("✓ Monitor ready")
 
     # Note: Browser will connect directly to GraphQL for monitoring
+
+
+async def _restart_backend_server() -> None:
+    """Restart the backend server to ensure latest code is loaded"""
+    print("🐛 Debug: Checking backend server...")
+    
+    # Check if server is already running
+    try:
+        async with DiPeoAPIClient("localhost:8000") as client:
+            # Try a simple query to check if server is responsive
+            query = """
+                query {
+                    __typename
+                }
+            """
+            await client._execute_query(query)
+            print("✅ Backend server is already running")
+            
+            # Optional: Send a signal to reload modules (if supported)
+            # For now, we'll just continue with the existing server
+            return
+    except Exception:
+        print("🔄 Backend server not responding, starting it...")
+    
+    # Start new server process
+    server_path = Path(__file__).parent.parent.parent.parent.parent / "apps" / "server"
+    start_cmd = ["python", "main.py"]
+    
+    try:
+        # Start server in background
+        process = subprocess.Popen(
+            start_cmd,
+            cwd=server_path,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
+        
+        # Wait for server to be ready
+        max_attempts = 20  # 10 seconds timeout
+        for i in range(max_attempts):
+            try:
+                async with DiPeoAPIClient("localhost:8000") as client:
+                    # Try to connect with a simple query
+                    query = """
+                        query {
+                            diagrams {
+                                id
+                            }
+                        }
+                    """
+                    await client._execute_query(query)
+                    break
+            except Exception:
+                if i == max_attempts - 1:
+                    print("❌ Failed to start backend server")
+                    raise
+                await asyncio.sleep(0.5)
+        
+        print("✅ Backend server started and ready")
+        
+    except Exception as e:
+        print(f"❌ Error starting backend server: {e}")
+        print("Please start the server manually with: cd apps/server && python main.py")
+        raise
 
 
 def _save_results(result: Dict[str, Any], options: ExecutionOptions) -> None:

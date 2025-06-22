@@ -102,8 +102,7 @@ class PersonMemory:
         return visible_messages
 
 
-class SimplifiedMemoryService:
-    """Simplified memory service without Redis dependency."""
+class MemoryService:
 
     def __init__(self, redis_url: Optional[str] = None):
         self.person_memories: Dict[str, PersonMemory] = {}

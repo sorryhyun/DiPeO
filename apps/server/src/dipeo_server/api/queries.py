@@ -7,16 +7,16 @@ import strawberry
 
 from dipeo_server.core import LLMService, NodeType
 
-from .domain_types import (
+from api.types.domain_types import (
     DomainApiKey,
     DomainDiagramType,
     DomainPerson,
     ExecutionEvent,
     ExecutionState,
 )
-from .inputs_types import DiagramFilterInput, ExecutionFilterInput
-from .results_types import DiagramFormatInfo
-from .scalars_types import ApiKeyID, DiagramID, ExecutionID, JSONScalar, PersonID
+from api.types.inputs_types import DiagramFilterInput, ExecutionFilterInput
+from api.types.results_types import DiagramFormatInfo
+from api.types.scalars_types import ApiKeyID, DiagramID, ExecutionID, JSONScalar, PersonID
 
 
 @strawberry.type
@@ -133,12 +133,12 @@ class Query:
         """Returns execution capabilities and features."""
         context = info.context
 
-        diagram_service = context.diagram_service
+        storage_service = context.diagram_storage_service
         persons_list = []
 
-        diagrams = diagram_service.list_diagram_files()
-        for diagram_meta in diagrams:
-            diagram = diagram_service.load_diagram(diagram_meta["path"])
+        file_infos = await storage_service.list_files()
+        for file_info in file_infos:
+            diagram = await storage_service.read_file(file_info.path)
             for person_id, person_data in diagram.get("persons", {}).items():
                 persons_list.append(
                     {

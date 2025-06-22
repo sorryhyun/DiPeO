@@ -11,8 +11,8 @@ from dipeo_domain import EventType, NodeExecutionStatus
 from dipeo_server.core import ExecutionStatus, NodeType
 
 from .context import GraphQLContext
-from .domain_types import DomainDiagramType, ExecutionEvent, ExecutionState
-from .scalars_types import DiagramID, ExecutionID, JSONScalar, NodeID
+from api.types.domain_types import DomainDiagramType, ExecutionEvent, ExecutionState
+from api.types.scalars_types import DiagramID, ExecutionID, JSONScalar, NodeID
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +143,10 @@ class Subscription:
                                 },
                             )
 
-                    # Update tracked states
-                    last_node_states = current_node_states.copy()
+                    # Update tracked states (deep copy to avoid serialization issues)
+                    last_node_states = {
+                        nid: ns for nid, ns in current_node_states.items()
+                    }
 
                     if state.status in [
                         ExecutionStatus.COMPLETED,
@@ -244,8 +246,10 @@ class Subscription:
                                 ),
                             )
 
-                    # Update tracked states
-                    last_node_states = current_node_states.copy()
+                    # Update tracked states (deep copy to avoid serialization issues)
+                    last_node_states = {
+                        nid: ns for nid, ns in current_node_states.items()
+                    }
 
                     # Check if execution is complete
                     if state.status in [

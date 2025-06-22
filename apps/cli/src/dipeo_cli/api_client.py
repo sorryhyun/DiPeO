@@ -53,6 +53,12 @@ class DiPeoAPIClient:
             )
         return self._subscription_clients[subscription_type]
 
+    async def _execute_query(self, query: str, variables: Optional[Dict] = None) -> Dict:
+        """Execute a GraphQL query and return the result."""
+        parsed_query = gql(query)
+        result = await self._client.execute_async(parsed_query, variable_values=variables or {})
+        return result
+
     async def execute_diagram(
         self,
         diagram_id: str,

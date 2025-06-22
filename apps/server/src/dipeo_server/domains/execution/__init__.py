@@ -1,17 +1,19 @@
 # Barrel exports for execution domain
 from dipeo_domain import EventType, ExecutionStatus, NodeExecutionStatus
 
-from .engine import CompactEngine as ExecutionEngine
-from .executors.unified_executor import UnifiedExecutor
 from .services.execution_service import ExecutionService
+from .engine import SimplifiedEngine
+from .context import ExecutionContext
+from .validators import DiagramValidator
 
 __all__ = [
     # Enums from generated models
+    "EventType",
+    "ExecutionContext",
+    "ExecutionService",
     "ExecutionStatus",
     "NodeExecutionStatus",
-    "EventType",
     # Services and utilities
-    "ExecutionEngine",
-    "ExecutionService",
-    "UnifiedExecutor",
+    "SimplifiedEngine",
+    "DiagramValidator",
 ]

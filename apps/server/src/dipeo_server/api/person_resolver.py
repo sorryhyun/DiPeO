@@ -6,8 +6,8 @@ from typing import List, Optional
 from dipeo_server.core import LLMService
 
 from .context import GraphQLContext
-from .domain_types import DomainApiKey, DomainPerson
-from .scalars_types import ApiKeyID, PersonID
+from api.types.domain_types import DomainApiKey, DomainPerson
+from api.types.scalars_types import ApiKeyID, PersonID
 
 logger = logging.getLogger(__name__)
 

@@ -3,8 +3,6 @@ from dipeo_domain import ContentType, DataType, DiagramFormat, HandleDirection, 
 
 from .converters.registry import ConverterRegistry
 from .converters.unified_converter import UnifiedDiagramConverter
-from .services import DiagramService
-from .validators import DiagramValidator
 
 __all__ = [
     # Enums from generated models
@@ -14,8 +12,6 @@ __all__ = [
     "DataType",
     "ContentType",
     # Services and utilities
-    "DiagramService",
     "UnifiedDiagramConverter",
     "ConverterRegistry",
-    "DiagramValidator",
 ]

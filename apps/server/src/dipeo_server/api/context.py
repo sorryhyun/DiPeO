@@ -6,8 +6,8 @@ from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 from dipeo_server.core.context import AppContext
-from dipeo_server.domains.execution.services.message_router_simple import message_router
-from dipeo_server.domains.execution.services.simple_state_store import state_store
+from dipeo_server.domains.execution.services.message_router import message_router
+from dipeo_server.domains.execution.services.state_store import state_store
 
 if TYPE_CHECKING:
     from dipeo_core import (

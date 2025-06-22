@@ -7,12 +7,12 @@ from typing import List, Optional
 
 from dipeo_domain import DiagramDictFormat
 
-from dipeo_server.domains.diagram import DiagramService
 from dipeo_server.domains.diagram.converters import diagram_dict_to_graphql
+from dipeo_server.domains.diagram.services import DiagramStorageService, DiagramConverterService
 
-from .domain_types import DiagramMetadata, DomainDiagramType
-from .inputs_types import DiagramFilterInput
-from .scalars_types import DiagramID
+from api.types.domain_types import DiagramMetadata, DomainDiagramType
+from api.types.inputs_types import DiagramFilterInput
+from api.types.scalars_types import DiagramID
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +26,18 @@ class DiagramResolver:
         """Returns diagram by ID."""
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
-            diagram_service: DiagramService = info.context.diagram_service
-
-            diagram_data = await diagram_service.get_diagram(diagram_id)
+            
+            # Try new services first
+            storage_service: DiagramStorageService = info.context.diagram_storage_service
+            converter_service: DiagramConverterService = info.context.diagram_converter_service
+            
+            # Find and load the diagram
+            path = await storage_service.find_by_id(diagram_id)
+            if not path:
+                logger.error(f"Diagram not found: {diagram_id}")
+                return None
+            
+            diagram_data = await storage_service.read_file(path)
 
             if not diagram_data:
                 logger.error(f"Diagram not found: {diagram_id}")
@@ -78,9 +87,20 @@ class DiagramResolver:
     ) -> List[DomainDiagramType]:
         """Returns filtered diagram list."""
         try:
-            diagram_service: DiagramService = info.context.diagram_service
-
-            all_diagrams = diagram_service.list_diagram_files()
+            # Use new storage service
+            storage_service: DiagramStorageService = info.context.diagram_storage_service
+            
+            file_infos = await storage_service.list_files()
+            all_diagrams = [
+                {
+                    "path": fi.path,
+                    "name": fi.name,
+                    "format": fi.format,
+                    "size": fi.size,
+                    "modified": fi.modified.isoformat()
+                }
+                for fi in file_infos
+            ]
 
             filtered_diagrams = all_diagrams
             if filter:

@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import List, Optional
 
 from .context import GraphQLContext
-from .domain_types import ExecutionEvent, ExecutionState
-from .inputs_types import ExecutionFilterInput
-from .scalars_types import ExecutionID
+from api.types.domain_types import ExecutionEvent, ExecutionState
+from api.types.inputs_types import ExecutionFilterInput
+from api.types.scalars_types import ExecutionID
 
 logger = logging.getLogger(__name__)
 

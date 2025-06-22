@@ -624,7 +624,7 @@ export type Subscription = {
   diagramChanges: DomainDiagramType;
   executionEvents: ExecutionEvent;
   executionUpdates: ExecutionState;
-  interactivePrompts: InteractivePrompt;
+  interactivePrompts?: Maybe<InteractivePrompt>;
   nodeUpdates: NodeExecution;
 };
 
@@ -839,7 +839,7 @@ export type InteractivePromptsSubscriptionVariables = Exact<{
 }>;
 
 
-export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactivePrompts: { __typename?: 'InteractivePrompt', executionId: ExecutionID, nodeId: NodeID, prompt: string, timeoutSeconds?: number | null, timestamp: any } };
+export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactivePrompts?: { __typename?: 'InteractivePrompt', executionId: ExecutionID, nodeId: NodeID, prompt: string, timeoutSeconds?: number | null, timestamp: any } | null };
 
 export type ControlExecutionMutationVariables = Exact<{
   input: ExecutionControlInput;
