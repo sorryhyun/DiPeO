@@ -16,16 +16,7 @@ from .handler_utils import log_action
 
 
 class BaseNodeHandler(ABC):
-    """Base class for all node handlers with common functionality.
-    
-    This class provides:
-    - Automatic timing and error handling
-    - Service validation
-    - Consistent logging
-    - Standard metadata building
-    
-    Subclasses only need to implement the _execute_core method.
-    """
+    # Base class for all node handlers with common functionality.
     
     def __init__(
         self, 
@@ -34,14 +25,8 @@ class BaseNodeHandler(ABC):
         description: str = "",
         requires_services: Optional[List[str]] = None
     ):
-        """Initialize the base handler.
-        
-        Args:
-            node_type: The type identifier for this node
-            schema: The Pydantic model for validating node properties
-            description: Human-readable description of what the handler does
-            requires_services: List of service names this handler requires
-        """
+        # Initialize the base handler.
+
         self.node_type = node_type
         self.schema = schema
         self.description = description
@@ -60,20 +45,15 @@ class BaseNodeHandler(ABC):
         start_time = time.perf_counter()
         
         try:
-            # Validate required services
             self._validate_services(services)
             
-            # Log start of execution
             log_action(
                 self.logger,
                 context.current_node_id,
                 f"Starting {self.node_type} execution"
             )
-            
-            # Execute the handler-specific logic
             result = await self._execute_core(props, context, inputs, services)
-            
-            # Build success metadata
+
             metadata = self._build_metadata(start_time, props, context, result)
             
             # Log successful completion
@@ -87,11 +67,9 @@ class BaseNodeHandler(ABC):
             return NodeOutput(value=result, metadata=metadata)
             
         except subprocess.TimeoutExpired as e:
-            # Special handling for timeout errors
             return self._handle_timeout(start_time, props, context, e)
             
         except Exception as e:
-            # General error handling
             return self._handle_error(start_time, props, context, e)
     
     @abstractmethod
@@ -118,7 +96,6 @@ class BaseNodeHandler(ABC):
         context: RuntimeExecutionContext,
         result: Any
     ) -> Dict[str, Any]:
-        # Build standard metadata for successful execution.
         return {
             "executionTime": time.perf_counter() - start_time,
             "nodeType": self.node_type,

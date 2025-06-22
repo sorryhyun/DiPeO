@@ -4,12 +4,12 @@ import logging
 import uuid
 from datetime import datetime
 
-from ..types.results import ExecutionResult
-from ..types.inputs import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
-from ..context import GraphQLContext
+from .results_types import ExecutionResult
+from .inputs_types import ExecuteDiagramInput, ExecutionControlInput, InteractiveResponseInput
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import ExecutionState as ExecutionStateForGraphQL
 from dipeo_server.core import ExecutionStatus
-from ..models.input_models import (
+from .models.input_models import (
     ExecuteDiagramInput as PydanticExecuteDiagramInput,
     ExecutionControlInput as PydanticExecutionControlInput,
     InteractiveResponseInput as PydanticInteractiveResponseInput

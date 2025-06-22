@@ -47,7 +47,6 @@ def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: 
     if not text:
         return text
     
-    # Import OutputProcessor and json here to avoid circular imports
     from dipeo_server.core.processors import OutputProcessor
     import json
     

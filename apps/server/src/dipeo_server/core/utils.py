@@ -205,8 +205,27 @@ def handle_internal_errors(func: Callable) -> Callable:
 # Feature Flag Management
 # ============================================================================
 
-# FeatureFlag enum is imported from original location to avoid duplication
-from src.common.utils import FeatureFlag
+class FeatureFlag(Enum):
+    """Feature flags for controlling application behavior."""
+    # Core execution features
+    ENABLE_STREAMING = "enable_streaming"
+    ENABLE_COST_TRACKING = "enable_cost_tracking"
+    ENABLE_MEMORY_PERSISTENCE = "enable_memory_persistence"
+    
+    # Performance features
+    ENABLE_EXECUTOR_CACHING = "enable_executor_caching"
+    ENABLE_PARALLEL_EXECUTION = "enable_parallel_execution"
+    ENABLE_EXECUTION_MONITORING = "enable_execution_monitoring"
+    
+    # Safety features
+    ENABLE_SANDBOX_MODE = "enable_sandbox_mode"
+    ENABLE_EXECUTION_TIMEOUT = "enable_execution_timeout"
+    ENABLE_RATE_LIMITING = "enable_rate_limiting"
+    
+    # Debug features
+    ENABLE_DEBUG_MODE = "enable_debug_mode"
+    ENABLE_VERBOSE_LOGGING = "enable_verbose_logging"
+    ENABLE_EXECUTION_TRACING = "enable_execution_tracing"
 
 
 class FeatureFlagManager:

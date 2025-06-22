@@ -2,9 +2,9 @@
 from typing import Optional, List
 import logging
 
-from ..types.domain import DomainPerson, DomainApiKey
-from ..types.scalars import PersonID, ApiKeyID
-from ..context import GraphQLContext
+from .domain_types import DomainPerson, DomainApiKey
+from .scalars_types import PersonID, ApiKeyID
+from .context import GraphQLContext
 from dipeo_server.core import LLMService
 
 logger = logging.getLogger(__name__)

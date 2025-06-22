@@ -1,10 +1,5 @@
 #!/usr/bin/env tsx
 
-/**
- * Generate Python Pydantic models from TypeScript interfaces
- * This creates the Python domain models that match our TypeScript definitions
- */
-
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import process from 'node:process';
@@ -14,7 +9,6 @@ import { loadSchemas } from './load-schema';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-//--- Hoisted constants and regex helpers -----------------------------
 const PY_TYPE_MAP: Record<string, string> = {
   string: 'str',
   number: 'float',
@@ -101,7 +95,7 @@ export class PythonGenerator {
       return cache(opt ? optional(ts) : ts);
     }
 
-    // Arrays ----------------------------------------------------------
+    // Arrays
     const arr = ts.match(RE_ARRAY);
     if (arr) {
       const inner = this.pyType(arr[1]);
@@ -130,14 +124,14 @@ export class PythonGenerator {
       return cache(opt ? optional(listType) : listType);
     }
 
-    // Record ----------------------------------------------------------
+    // Record
     if (ts.startsWith('Record<')) {
       this.addImport('typing', 'Dict', 'Any');
       const py = 'Dict[str, Any]';
       return cache(opt ? optional(py) : py);
     }
 
-    // Union (non-literal) --------------------------------------------
+    // Union (non-literal)
     if (ts.includes('|') && !ts.includes('"')) {
       const branches = ts.split('|').map(x => this.pyType(x.trim()));
       const uniq = [...new Set(branches)];
@@ -151,7 +145,7 @@ export class PythonGenerator {
       return cache(opt ? optional(py) : py);
     }
 
-    // Literal ---------------------------------------------------------
+    // Literal
     if (ts.includes('"')) {
       this.addImport('typing', 'Literal');
       const lits = ts.split('|')
@@ -161,12 +155,12 @@ export class PythonGenerator {
       return cache(opt ? optional(py) : py);
     }
 
-    // Custom schema ---------------------------------------------------
+    // Custom schema
     if (this.schemaMap.has(ts)) {
       return cache(opt ? optional(ts) : ts);
     }
 
-    // Primitive / fallback -------------------------------------------
+    // Primitive / fallback
     const mapped = PY_TYPE_MAP[ts] ?? ts;
     if (mapped === 'Any') this.addImport('typing', 'Any');
     return cache(opt ? optional(mapped) : mapped);
@@ -191,7 +185,6 @@ export class PythonGenerator {
       if (schema.values && schema.values.length > 0) {
         schema.values.forEach(value => {
           // Use the value as-is for the attribute name to match GraphQL expectations
-          // Replace hyphens with underscores for valid Python identifiers
           const enumKey = value.replace(/-/g, '_');
           lines.push(`    ${enumKey} = "${value}"`);
         });
@@ -371,7 +364,7 @@ export class PythonGenerator {
   }
 }
 
-//--- CLI Guard -------------------------------------------------------
+//--- CLI Guard
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));

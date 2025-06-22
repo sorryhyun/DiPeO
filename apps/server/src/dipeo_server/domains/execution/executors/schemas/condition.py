@@ -8,8 +8,10 @@ from enum import Enum
 
 from .base import BaseNodeProps
 
-# Import ConditionType from original location to avoid duplication
-from src.domains.execution.executors.schemas.condition import ConditionType
+
+class ConditionType(Enum):
+    """Type of condition evaluation."""
+    EXPRESSION = "expression"
 
 
 class ConditionNodeProps(BaseNodeProps):
@@ -35,10 +37,7 @@ class ConditionNodeProps(BaseNodeProps):
     def validate_expression_syntax(cls, v):
         """Basic validation for expression syntax"""
         if v:
-            # Check for basic operators
             operators = ["==", "!=", "<", ">", "<=", ">=", "and", "or", "&&", "||", "true", "false"]
             if not any(op in v for op in operators):
-                # This is just a warning, not an error
-                # The executor will log a warning but still try to evaluate
                 pass
         return v

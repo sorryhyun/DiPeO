@@ -1,10 +1,6 @@
 import type { UserResponseFormData } from '@/features/diagram-editor/types/panel';
 import { createUnifiedConfig } from '../unifiedConfig';
 
-/**
- * Unified configuration for User Response node
- * This replaces both the node config and panel config
- */
 export const userResponseConfig = createUnifiedConfig<UserResponseFormData>({
   // Node configuration
   label: 'User Response',

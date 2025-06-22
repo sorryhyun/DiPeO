@@ -4,7 +4,7 @@ from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
 from .queries import Query
-from . import Mutation_mutation as Mutation
+from .mutations import Mutation
 from .subscriptions import Subscription
 
 # Create the schema

@@ -2,11 +2,11 @@
 import strawberry
 from typing import Optional, List, Union
 
-from .domain import (
+from .domain_types import (
     DomainNode, DomainDiagramType, ExecutionState, DomainPerson, DomainApiKey, DomainHandle
 )
-from .scalars import ExecutionID, DiagramID, JSONScalar
-from ..models.result_models import (
+from .scalars_types import ExecutionID, DiagramID, JSONScalar
+from .models.result_models import (
     DeleteResultModel,
     NodeResultModel,
     HandleResultModel,

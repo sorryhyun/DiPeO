@@ -2,13 +2,13 @@
 import strawberry
 import logging
 
-from ..types.results import HandleResult, DeleteResult
-from ..types.scalars import HandleID
-from ..types.inputs import CreateHandleInput
-from ..context import GraphQLContext
+from .results_types import HandleResult, DeleteResult
+from .scalars_types import HandleID
+from .inputs_types import CreateHandleInput
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import DomainHandle
 from dipeo_server.core import Vec2
-from ..models.input_models import CreateHandleInput as PydanticCreateHandleInput
+from .models.input_models import CreateHandleInput as PydanticCreateHandleInput
 
 logger = logging.getLogger(__name__)
 

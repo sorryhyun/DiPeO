@@ -4,14 +4,14 @@ from typing import Optional
 import logging
 from datetime import datetime
 
-from ..types.results import DiagramResult, DeleteResult
-from ..types.scalars import DiagramID, JSONScalar as JSON
-from ..types.inputs import CreateDiagramInput
-from ..types.enums import DiagramFormat
-from ..context import GraphQLContext
+from .results_types import DiagramResult, DeleteResult
+from .scalars_types import DiagramID, JSONScalar as JSON
+from .inputs_types import CreateDiagramInput
+from .enums_types import DiagramFormat
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import DiagramMetadata, DomainDiagram, DiagramDictFormat
 from dipeo_server.domains.diagram.converters import diagram_dict_to_graphql
-from ..models.input_models import (
+from .models.input_models import (
     CreateDiagramInput as PydanticCreateDiagramInput
 )
 

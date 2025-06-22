@@ -18,7 +18,6 @@ from dipeo_domain import PersonConfiguration, TokenUsage
     requires_services=["llm_service", "memory_service", "interactive_handler"]
 )
 class PersonJobHandler(BaseNodeHandler):
-    # PersonJob handler with LLM execution and memory management.
     
     async def _execute_core(
         self,
@@ -31,10 +30,8 @@ class PersonJobHandler(BaseNodeHandler):
         node_id = context.current_node_id
         execution_count = context.get_node_execution_count(node_id)
         
-        # Check execution limit
         if props.maxIteration and execution_count >= props.maxIteration:
             last_output = context.outputs.get(node_id, "No previous output")
-            # Return with passthrough metadata - base class will handle timing
             self._passthrough_metadata = {
                 "skipped": True,
                 "reason": f"Max iterations ({props.maxIteration}) reached",
@@ -44,7 +41,6 @@ class PersonJobHandler(BaseNodeHandler):
             }
             return last_output
         
-        # Get the appropriate prompt
         prompt = props.get_effective_prompt(execution_count)
         if not prompt:
             raise ValueError("No prompt available")
@@ -53,14 +49,12 @@ class PersonJobHandler(BaseNodeHandler):
         conversation_inputs = await self._get_conversation_inputs(context, node_id)
         final_prompt = props.substitute_variables(prompt, inputs)
         
-        # Get services (already validated by base class)
         llm_service = services["llm_service"]
         memory_service = services["memory_service"]
         interactive_handler = services.get("interactive_handler")
         
         person_id = person.id or node_id
         
-        # Handle memory forgetting rules
         if memory_service and props.contextCleaningRule != "no_forget":
             if props.contextCleaningRule == "on_every_turn":
                 memory_service.forget_for_person(person_id)
@@ -70,11 +64,9 @@ class PersonJobHandler(BaseNodeHandler):
                     context.execution_id
                 )
         
-        # Build message history
         history = memory_service.get_conversation_history(person_id) if memory_service else []
         messages = history + conversation_inputs + [{"role": "user", "content": final_prompt}]
         
-        # Handle interactive mode
         if props.interactive and interactive_handler:
             interactive_response = await interactive_handler(
                 node_id=node_id,
@@ -91,7 +83,6 @@ class PersonJobHandler(BaseNodeHandler):
                 messages.append({"role": "user", "content": interactive_response})
                 final_prompt += f"\n\nUser response: {interactive_response}"
         
-        # Log what we're about to do
         log_action(
             self.logger,
             node_id,
@@ -101,7 +92,6 @@ class PersonJobHandler(BaseNodeHandler):
             service=person.service
         )
         
-        # Call LLM service
         service = person.service or await self._get_service_from_api_key(str(person.api_key_id) if person.api_key_id else "", context)
         
         response = await llm_service.call_llm(
@@ -114,7 +104,6 @@ class PersonJobHandler(BaseNodeHandler):
         
         usage = TokenUsageService.from_response(response)
         
-        # Store conversation in memory
         if memory_service and context.execution_id:
             await self._store_conversation(
                 memory_service, 
@@ -127,10 +116,8 @@ class PersonJobHandler(BaseNodeHandler):
                 usage
             )
         
-        # Update execution count
         context.increment_node_execution_count(node_id)
         
-        # Store metadata for base class to include
         self._llm_metadata = {
             "tokenUsage": usage.model_dump() if usage else None,
             "conversationHistory": messages[:-1],
@@ -151,12 +138,10 @@ class PersonJobHandler(BaseNodeHandler):
         """Build metadata including LLM-specific fields."""
         metadata = super()._build_metadata(start_time, props, context, result)
         
-        # Add passthrough metadata if execution was skipped
         if hasattr(self, '_passthrough_metadata'):
             metadata.update(self._passthrough_metadata)
             delattr(self, '_passthrough_metadata')
         
-        # Add LLM metadata if available
         if hasattr(self, '_llm_metadata'):
             metadata.update(self._llm_metadata)
             delattr(self, '_llm_metadata')
@@ -168,17 +153,14 @@ class PersonJobHandler(BaseNodeHandler):
         if props.person:
             return props.person
         
-        # personId is guaranteed to be not None if person is None (due to model validator)
         if not props.personId:
             raise ValueError("No person ID provided")
         
-        # Fetch existing person from context
         person = context.persons.get(props.personId)
         
         if not person:
             raise ValueError(f"Person not found: {props.personId}")
         
-        # Convert to PersonConfiguration if needed
         if isinstance(person, dict):
             return PersonConfiguration(**person)
         
@@ -200,7 +182,6 @@ class PersonJobHandler(BaseNodeHandler):
         """Extract conversation history from incoming connections."""
         conversation_inputs = []
         
-        # Check incoming connections for conversation_state handle
         for edge in context.edges:
             if edge["target"] == node_id and edge.get("targetHandle") == "conversation_state":
                 source_node_id = edge["source"]
@@ -209,7 +190,6 @@ class PersonJobHandler(BaseNodeHandler):
                     conv_history = OutputProcessor.extract_conversation_history(output) or []
                     conversation_inputs.extend(conv_history)
                     
-                    # Also add the actual output as user input
                     value = OutputProcessor.extract_value(output)
                     if value:
                         conversation_inputs.append({"role": "user", "content": value})
@@ -228,7 +208,6 @@ class PersonJobHandler(BaseNodeHandler):
         usage: TokenUsage
     ) -> None:
         """Store conversation messages in memory service."""
-        # Store user message
         memory_service.add_message_to_conversation(
             content=user_message,
             sender_person_id="user",
@@ -239,7 +218,6 @@ class PersonJobHandler(BaseNodeHandler):
             node_label=node_label
         )
         
-        # Store assistant response
         memory_service.add_message_to_conversation(
             content=assistant_message,
             sender_person_id=person_id,
@@ -262,10 +240,7 @@ class PersonJobHandler(BaseNodeHandler):
     requires_services=["llm_service", "memory_service", "interactive_handler"]
 )
 class PersonBatchJobHandler(PersonJobHandler):
-    """PersonBatchJob handler - extends PersonJobHandler with batch metadata.
-    
-    Inherits all functionality from PersonJobHandler but adds batch-specific metadata.
-    """
+    """PersonBatchJob handler with batch metadata."""
     
     def _build_metadata(
         self,

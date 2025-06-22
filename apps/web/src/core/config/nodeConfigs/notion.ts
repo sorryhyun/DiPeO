@@ -12,10 +12,6 @@ type NotionFormDataType = {
   [key: string]: unknown;
 };
 
-/**
- * Unified configuration for Notion node
- * This replaces both the node config and panel config
- */
 export const notionConfig = createUnifiedConfig<NotionFormDataType>({
   // Node configuration
   label: 'Notion',

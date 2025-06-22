@@ -2,7 +2,7 @@
 Diagram validation logic
 """
 from typing import Dict, List, Optional, Any, Union
-from ..models import DomainDiagram
+from .models import DomainDiagram
 from dipeo_server.core.services import APIKeyService
 
 

@@ -53,10 +53,10 @@ class Arrow:
 
 @dataclass
 class Graph:
-    nodes: Dict[str, Node]            # id ↦ Node (fast lookup)
-    order: List[str]                  # topo order incl. cycles
-    incoming: Dict[str, List[Arrow]]  # id ↦ arrows into node
-    outgoing: Dict[str, List[Arrow]]  # id ↦ arrows out of node
+    nodes: Dict[str, Node]
+    order: List[str]
+    incoming: Dict[str, List[Arrow]]
+    outgoing: Dict[str, List[Arrow]]
 
 
 @dataclass
@@ -80,9 +80,7 @@ class Ctx:
 
 def build_graph(diagram: Dict[str, Any]) -> Graph:
     """Build a Graph from a diagram in Record format."""
-    # Only handle Record format (dict)
     nodes = diagram.get("nodes", {})
-    # Record format - nodes is a dict with IDs as keys
     ns: Dict[str, Node] = {
         node_id: Node(node_id, n["data"].get("type", n.get("type")), n["data"])
         for node_id, n in nodes.items()
@@ -93,7 +91,6 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
     # Only handle Record format (dict) for arrows
     arrows = diagram.get("arrows", {})
     for a in arrows.values():
-        # Modern format uses separate source/sourceHandle and target/targetHandle fields
         src_node = a["source"]
         source_handle = a.get("sourceHandle", "")
         tgt_node = a["target"]

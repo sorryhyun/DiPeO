@@ -3,10 +3,10 @@ from typing import Optional, List
 import logging
 from datetime import datetime
 
-from ..types.domain import ExecutionState, ExecutionEvent
-from ..types.scalars import ExecutionID
-from ..types.inputs import ExecutionFilterInput
-from ..context import GraphQLContext
+from .domain_types import ExecutionState, ExecutionEvent
+from .scalars_types import ExecutionID
+from .inputs_types import ExecutionFilterInput
+from .context import GraphQLContext
 from dipeo_domain import (
     ExecutionState as PydanticExecutionState,
     ExecutionEvent as PydanticExecutionEvent,

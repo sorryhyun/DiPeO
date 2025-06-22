@@ -3,13 +3,13 @@ import strawberry
 import logging
 import uuid
 
-from ..types.results import NodeResult, DeleteResult
-from ..types.scalars import DiagramID, NodeID
-from ..types.inputs import CreateNodeInput, UpdateNodeInput
-from ..context import GraphQLContext
+from .results_types import NodeResult, DeleteResult
+from .scalars_types import DiagramID, NodeID
+from .inputs_types import CreateNodeInput, UpdateNodeInput
+from .context import GraphQLContext
 from dipeo_server.domains.diagram.models import DomainNode
 from dipeo_server.core import Vec2, NodeType
-from ..models.input_models import (
+from .models.input_models import (
     CreateNodeInput as PydanticCreateNodeInput,
     UpdateNodeInput as PydanticUpdateNodeInput
 )

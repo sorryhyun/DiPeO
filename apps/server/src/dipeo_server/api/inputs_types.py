@@ -2,7 +2,7 @@
 import strawberry
 from typing import Optional
 
-from ..models.input_models import (
+from .models.input_models import (
     Vec2Input as PydanticVec2Input,
     CreateNodeInput as PydanticCreateNodeInput,
     UpdateNodeInput as PydanticUpdateNodeInput,
@@ -21,7 +21,7 @@ from ..models.input_models import (
     ImportYamlInput as PydanticImportYamlInput,
 )
 
-from .scalars import (
+from .scalars_types import (
     JSONScalar, DiagramID
 )
 # Enums are handled through Pydantic models, no need to import separately

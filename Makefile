@@ -46,7 +46,7 @@ dev-server:
 
 dev-web:
 	@echo "🚀 Starting web development server..."
-	pnpm -F @dipeo/web dev
+	pnpm -F web dev
 
 dev-all:
 	@echo "🚀 Starting all development servers..."
