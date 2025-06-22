@@ -12,20 +12,19 @@ class DiPeoAPIClient:
         self.http_url = f"http://{host}/graphql"
         self.ws_url = f"ws://{host}/graphql"
         self._client: Optional[Client] = None
-        self._subscription_client: Optional[Client] = None
+        # Store multiple subscription clients to avoid concurrent connection issues
+        self._subscription_clients: Dict[str, Optional[Client]] = {
+            "execution": None,
+            "nodes": None,
+            "prompts": None
+        }
 
     async def __aenter__(self):
         # HTTP client for queries/mutations
         transport = AIOHTTPTransport(url=self.http_url)
         self._client = Client(transport=transport, fetch_schema_from_transport=False)
 
-        # WebSocket client for subscriptions
-        ws_transport = WebsocketsTransport(url=self.ws_url)
-        self._subscription_client = Client(
-            transport=ws_transport, fetch_schema_from_transport=False
-        )
-
-        # No manual connection needed - gql handles this automatically
+        # No need to create WebSocket clients here - they'll be created on demand
         return self
 
     async def __aexit__(self, *args):
@@ -35,11 +34,24 @@ class DiPeoAPIClient:
         except Exception:
             pass  # Ignore errors during cleanup
         
-        try:
-            if self._subscription_client:
-                await self._subscription_client.transport.close()
-        except Exception:
-            pass  # Ignore errors during cleanup
+        # Close all subscription clients
+        for client in self._subscription_clients.values():
+            if client:
+                try:
+                    await client.transport.close()
+                except Exception:
+                    pass  # Ignore errors during cleanup
+
+    def _get_subscription_client(self, subscription_type: str) -> Client:
+        """Get or create a subscription client for the given type."""
+        if not self._subscription_clients.get(subscription_type):
+            ws_transport = WebsocketsTransport(url=self.ws_url)
+            self._subscription_clients[subscription_type] = Client(
+                transport=ws_transport,
+                fetch_schema_from_transport=False,
+                execute_timeout=None  # Disable timeout for subscriptions
+            )
+        return self._subscription_clients[subscription_type]
 
     async def execute_diagram(
         self,
@@ -65,16 +77,25 @@ class DiPeoAPIClient:
             }
         """)
 
+        # Check if this is a temporary diagram (created by save_diagram)
+        input_data = {
+            "debugMode": debug_mode,
+            "timeoutSeconds": timeout,
+            "maxIterations": 1000,
+        }
+        
+        if diagram_id.startswith("temp_") and hasattr(self, '_temp_diagram_data'):
+            # Use diagram data directly
+            input_data["diagramData"] = self._temp_diagram_data
+            if variables:
+                input_data["variables"] = variables
+        else:
+            # Use existing diagram ID
+            input_data["diagramId"] = diagram_id
+            
         result = await self._client.execute_async(
             mutation,
-            variable_values={
-                "input": {
-                    "diagramId": diagram_id,
-                    "debugMode": debug_mode,
-                    "timeoutSeconds": timeout,
-                    "maxIterations": 1000,
-                }
-            },
+            variable_values={"input": input_data},
         )
 
         response = result["executeDiagram"]
@@ -89,24 +110,30 @@ class DiPeoAPIClient:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Subscribe to execution updates."""
         subscription = gql("""
-            subscription ExecutionUpdates($executionId: String!) {
+            subscription ExecutionUpdates($executionId: ExecutionID!) {
                 executionUpdates(executionId: $executionId) {
                     id
                     status
                     diagramId
                     startedAt
                     endedAt
-                    currentNode
+                    nodeStates
                     nodeOutputs
                     variables
-                    totalTokens
+                    tokenUsage {
+                        input
+                        output
+                        total
+                    }
                     error
-                    progress
+                    isActive
+                    durationSeconds
                 }
             }
         """)
 
-        async for result in self._subscription_client.subscribe_async(
+        client = self._get_subscription_client("execution")
+        async for result in client.subscribe_async(
             subscription, variable_values={"executionId": execution_id}
         ):
             yield result["executionUpdates"]
@@ -116,7 +143,7 @@ class DiPeoAPIClient:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Subscribe to node execution updates."""
         subscription = gql("""
-            subscription NodeUpdates($executionId: String!, $nodeTypes: [String!]) {
+            subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
                 nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
                     executionId
                     nodeId
@@ -135,7 +162,8 @@ class DiPeoAPIClient:
         if node_types:
             variables["nodeTypes"] = node_types
 
-        async for result in self._subscription_client.subscribe_async(
+        client = self._get_subscription_client("nodes")
+        async for result in client.subscribe_async(
             subscription, variable_values=variables
         ):
             yield result["nodeUpdates"]
@@ -145,7 +173,7 @@ class DiPeoAPIClient:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Subscribe to interactive prompt notifications."""
         subscription = gql("""
-            subscription InteractivePrompts($executionId: String!) {
+            subscription InteractivePrompts($executionId: ExecutionID!) {
                 interactivePrompts(executionId: $executionId) {
                     executionId
                     nodeId
@@ -156,7 +184,8 @@ class DiPeoAPIClient:
             }
         """)
 
-        async for result in self._subscription_client.subscribe_async(
+        client = self._get_subscription_client("prompts")
+        async for result in client.subscribe_async(
             subscription, variable_values={"executionId": execution_id}
         ):
             yield result["interactivePrompts"]
@@ -236,45 +265,22 @@ class DiPeoAPIClient:
     async def save_diagram(
         self, diagram_data: Dict[str, Any], filename: Optional[str] = None
     ) -> str:
-        """Save a diagram and return its ID."""
+        """Save a diagram and return its ID.
+        
+        Note: Since there's no direct mutation to save a diagram with content,
+        we'll create an empty diagram and then execute directly with diagram_data.
+        For now, we'll return a temporary ID since execution can work with diagram_data directly.
+        """
         from datetime import datetime
-
-        import yaml
-
-        # Determine format based on content
-        yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-
-        mutation = gql("""
-            mutation ImportYamlDiagram($input: ImportYamlInput!) {
-                importYamlDiagram(input: $input) {
-                    success
-                    diagram {
-                        id
-                        metadata {
-                            name
-                        }
-                    }
-                    message
-                    error
-                }
-            }
-        """)
-
-        # Generate filename if not provided
-        if not filename:
-            diagram_name = diagram_data.get("metadata", {}).get("name", "cli_diagram")
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{diagram_name}_{timestamp}.yaml"
-
-        result = await self._client.execute_async(
-            mutation,
-            variable_values={"input": {"content": yaml_content, "filename": filename}},
-        )
-
-        response = result["importYamlDiagram"]
-        if response["success"]:
-            return response["diagram"]["id"]
-        raise Exception(
-            response.get("error")
-            or response.get("message", "Failed to save diagram")
-        )
+        
+        # For CLI usage, we can execute diagrams directly without saving
+        # Return a temporary ID that indicates this is an unsaved diagram
+        diagram_name = diagram_data.get("metadata", {}).get("name", "cli_diagram")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        temp_id = f"temp_{diagram_name}_{timestamp}"
+        
+        # Store the diagram data temporarily (in practice, the execute_diagram
+        # mutation will receive the diagram_data directly)
+        self._temp_diagram_data = diagram_data
+        
+        return temp_id

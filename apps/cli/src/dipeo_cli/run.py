@@ -59,16 +59,17 @@ class DiagramRunner:
 
         async with DiPeoAPIClient(host=host) as client:
             try:
-                # Save the diagram first to get a diagram_id
+                # For CLI, we can execute diagrams directly without saving
                 if self.options.debug:
-                    print("🐛 Debug: Saving diagram to server...")
+                    print("🐛 Debug: Executing diagram directly...")
 
+                # Use save_diagram to prepare the data (returns temp ID)
                 diagram_id = await client.save_diagram(diagram)
 
                 if self.options.debug:
-                    print(f"🐛 Debug: Diagram saved with ID: {diagram_id}")
+                    print(f"🐛 Debug: Executing with temporary ID: {diagram_id}")
 
-                # Execute the saved diagram
+                # Execute the diagram (will use diagram_data directly)
                 execution_id = await client.execute_diagram(
                     diagram_id=diagram_id,
                     debug_mode=self.options.debug,
@@ -205,9 +206,10 @@ class DiagramRunner:
 
                 if status == "COMPLETED":
                     # Extract final results
+                    token_usage = update.get("tokenUsage", {})
                     return {
                         "context": update.get("nodeOutputs", {}),
-                        "total_token_count": update.get("totalTokens", 0),
+                        "total_token_count": token_usage.get("total", 0) if token_usage else 0,
                     }
 
                 if status in ["FAILED", "ABORTED"]:
