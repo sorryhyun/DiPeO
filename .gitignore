@@ -21,8 +21,6 @@ docs/deprecated
 TODO.md
 *.tsbuildinfo
 .ruff_cache
-apps/server/.importlinter
-apps/server/pyproject.toml
 .logs
 apps/server/.import_linter_cache
 
