@@ -171,7 +171,7 @@ export interface ExecutionContext {
 // Node handler definition
 export interface NodeDefinition {
   type: string;
-  schema: any; // Type reference to schema class
+  nodeSchema: any; // Type reference to schema class (renamed from 'schema' to avoid Pydantic conflict)
   handler: any; // Handler function reference
   requiresServices?: string[];
   description?: string;

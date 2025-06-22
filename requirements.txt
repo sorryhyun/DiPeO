@@ -12,6 +12,7 @@ cachetools==5.5.2
 certifi==2025.6.15
 charset-normalizer==3.4.2
 dill==0.3.8
+-e ./packages/python/dipeo_core
 -e ./packages/python/dipeo_domain
 distro==1.9.0
 fastapi==0.115.13

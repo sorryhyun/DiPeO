@@ -40,11 +40,6 @@ That's it! This single command will:
 ./dev.sh --install-cli            # Setup CLI tool
 ```
 
-### `./codegen.sh` - GraphQL Types
-```bash
-./codegen.sh       # Generate TypeScript types from GraphQL schema
-```
-
 ### `./dipeo` - Run Diagrams
 ```bash
 ./dipeo run files/diagrams/example.yaml --debug
@@ -60,11 +55,6 @@ That's it! This single command will:
 **Frontend-only changes:**
 ```bash
 ./dev.sh --frontend --watch
-```
-
-**After changing GraphQL schema:**
-```bash
-./codegen.sh
 ```
 
 **Working with diagrams:**

@@ -312,12 +312,6 @@ export type ExecutionState = {
 
 export { ExecutionStatus };
 
-export type FileUploadInput = {
-  contentBase64: Scalars['String']['input'];
-  contentType?: InputMaybe<Scalars['String']['input']>;
-  filename: Scalars['String']['input'];
-};
-
 /** Result of file upload operation */
 export type FileUploadResult = {
   __typename?: 'FileUploadResult';
@@ -500,7 +494,8 @@ export type MutationupdatePersonArgs = {
 
 
 export type MutationuploadFileArgs = {
-  input: FileUploadInput;
+  category?: Scalars['String']['input'];
+  file: Scalars['Upload']['input'];
 };
 
 export type NodeExecution = {
@@ -546,6 +541,7 @@ export type Query = {
   diagrams: Array<DomainDiagramType>;
   execution?: Maybe<ExecutionState>;
   executionCapabilities: Scalars['JSONScalar']['output'];
+  /** @deprecated Events are no longer stored. Use execution state subscriptions instead. */
   executionEvents: Array<ExecutionEvent>;
   executions: Array<ExecutionState>;
   health: Scalars['JSONScalar']['output'];
@@ -628,7 +624,7 @@ export type Subscription = {
   diagramChanges: DomainDiagramType;
   executionEvents: ExecutionEvent;
   executionUpdates: ExecutionState;
-  interactivePrompts: InteractivePrompt;
+  interactivePrompts?: Maybe<InteractivePrompt>;
   nodeUpdates: NodeExecution;
 };
 
@@ -843,7 +839,7 @@ export type InteractivePromptsSubscriptionVariables = Exact<{
 }>;
 
 
-export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactivePrompts: { __typename?: 'InteractivePrompt', executionId: ExecutionID, nodeId: NodeID, prompt: string, timeoutSeconds?: number | null, timestamp: any } };
+export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactivePrompts?: { __typename?: 'InteractivePrompt', executionId: ExecutionID, nodeId: NodeID, prompt: string, timeoutSeconds?: number | null, timestamp: any } | null };
 
 export type ControlExecutionMutationVariables = Exact<{
   input: ExecutionControlInput;
@@ -860,7 +856,8 @@ export type SubmitInteractiveResponseMutationVariables = Exact<{
 export type SubmitInteractiveResponseMutation = { __typename?: 'Mutation', submitInteractiveResponse: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionState', id: string, status: ExecutionStatus, nodeStates: any } | null } };
 
 export type UploadFileMutationVariables = Exact<{
-  input: FileUploadInput;
+  file: Scalars['Upload']['input'];
+  category?: Scalars['String']['input'];
 }>;
 
 
@@ -1858,8 +1855,8 @@ export type SubmitInteractiveResponseMutationHookResult = ReturnType<typeof useS
 export type SubmitInteractiveResponseMutationResult = Apollo.MutationResult<SubmitInteractiveResponseMutation>;
 export type SubmitInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>;
 export const UploadFileDocument = gql`
-    mutation UploadFile($input: FileUploadInput!) {
-  uploadFile(input: $input) {
+    mutation UploadFile($file: Upload!, $category: String! = "general") {
+  uploadFile(file: $file, category: $category) {
     success
     path
     sizeBytes
@@ -1884,7 +1881,8 @@ export type UploadFileMutationFn = Apollo.MutationFunction<UploadFileMutation, U
  * @example
  * const [uploadFileMutation, { data, loading, error }] = useUploadFileMutation({
  *   variables: {
- *      input: // value for 'input'
+ *      file: // value for 'file'
+ *      category: // value for 'category'
  *   },
  * });
  */

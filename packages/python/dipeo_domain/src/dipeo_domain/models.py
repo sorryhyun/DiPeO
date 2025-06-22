@@ -310,7 +310,7 @@ class NodeDefinition(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     type: str
-    schema: Any
+    node_schema: Any = Field(alias="nodeSchema")
     handler: Any
     requires_services: Optional[List[str]] = Field(alias="requiresServices", default=None)
     description: Optional[str] = Field(default=None)

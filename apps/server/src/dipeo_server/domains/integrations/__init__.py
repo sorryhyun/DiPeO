@@ -1,14 +1,11 @@
 # Barrel exports for integrations domain
-from dipeo_domain import (
-    NotionOperation
-)
+from dipeo_domain import NotionOperation
 
 from .notion import NotionService
 
 __all__ = [
     # Enums from generated models
-    'NotionOperation',
-    
+    "NotionOperation",
     # Services and utilities
-    'NotionService'
+    "NotionService",
 ]

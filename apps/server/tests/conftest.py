@@ -1,19 +1,14 @@
 """Shared test fixtures and utilities for server tests."""
 
-import os
-import sys
 import asyncio
+import sys
 from pathlib import Path
-from typing import Dict, Any, Optional, AsyncGenerator
-from contextlib import asynccontextmanager
+from typing import Any, Dict
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
 from fastapi.testclient import TestClient
-from gql import Client
-from gql.transport.aiohttp import AIOHTTPTransport
-from gql.transport.websockets import WebsocketsTransport
+from httpx import AsyncClient
 
 # Add the server directory to path
 server_dir = Path(__file__).parent.parent
@@ -39,6 +34,7 @@ def test_client(test_app):
 async def async_client(test_app):
     """Asynchronous test client for async HTTP testing."""
     from httpx import ASGITransport
+
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
@@ -60,38 +56,39 @@ def graphql_ws_url():
 @pytest_asyncio.fixture
 async def gql_client(async_client):
     """GraphQL client that uses the async test client for requests."""
+
     class TestGraphQLClient:
         def __init__(self, async_client):
             self.async_client = async_client
-        
+
         async def execute(self, query, variable_values=None):
             """Execute a GraphQL query using the test client."""
             # Extract the query string from the DocumentNode
-            if hasattr(query, 'loc') and hasattr(query.loc, 'source'):
+            if hasattr(query, "loc") and hasattr(query.loc, "source"):
                 query_str = query.loc.source.body
             else:
                 query_str = str(query)
-            
+
             response = await self.async_client.post(
                 "/graphql",
-                json={
-                    "query": query_str,
-                    "variables": variable_values or {}
-                }
+                json={"query": query_str, "variables": variable_values or {}},
             )
-            
+
             if response.status_code != 200:
-                raise Exception(f"GraphQL request failed with status {response.status_code}")
-            
+                raise Exception(
+                    f"GraphQL request failed with status {response.status_code}"
+                )
+
             result = response.json()
-            
+
             # Check for errors in the GraphQL response
             if "errors" in result:
                 from gql.transport.exceptions import TransportQueryError
+
                 raise TransportQueryError(str(result["errors"][0]))
-            
+
             return result.get("data", {})
-    
+
     yield TestGraphQLClient(async_client)
 
 
@@ -107,20 +104,23 @@ async def gql_ws_client(test_app):
 @pytest.fixture
 def sample_diagram_data():
     """Factory for creating sample diagram data for createDiagram mutation."""
+
     def build(**overrides) -> Dict[str, Any]:
         base = {
             "name": "Test Diagram",
             "description": "A test diagram",
             "author": "Test User",
-            "tags": ["test", "sample"]
+            "tags": ["test", "sample"],
         }
         return {**base, **overrides}
+
     return build
 
 
 @pytest.fixture
 def sample_person_data():
     """Factory for creating sample person data."""
+
     def build(**overrides) -> Dict[str, Any]:
         base = {
             "label": "Test Assistant",
@@ -131,22 +131,21 @@ def sample_person_data():
             "forgettingMode": "NO_FORGET",
             "temperature": 0.7,
             "maxTokens": 1000,
-            "topP": 1.0
+            "topP": 1.0,
         }
         return {**base, **overrides}
+
     return build
 
 
 @pytest.fixture
 def sample_api_key_data():
     """Factory for creating sample API key data."""
+
     def build(**overrides) -> Dict[str, Any]:
-        base = {
-            "provider": "OPENAI",
-            "key": "test-api-key",
-            "model": "gpt-4.1-nano"
-        }
+        base = {"provider": "OPENAI", "key": "test-api-key", "model": "gpt-4.1-nano"}
         return {**base, **overrides}
+
     return build
 
 
@@ -154,18 +153,22 @@ def sample_api_key_data():
 @pytest.fixture
 def temp_diagram_file(tmp_path, sample_diagram_data):
     """Create a temporary diagram file for testing."""
+
     def create(filename="test_diagram.json", **diagram_overrides):
         file_path = tmp_path / filename
         import json
+
         data = sample_diagram_data(**diagram_overrides)
         file_path.write_text(json.dumps(data))
         return str(file_path)
+
     return create
 
 
 @pytest.fixture
 def temp_yaml_diagram_file(tmp_path):
     """Create a temporary YAML diagram file for testing."""
+
     def create(filename="test_diagram.yaml"):
         file_path = tmp_path / filename
         content = """
@@ -182,6 +185,7 @@ edges:
 """
         file_path.write_text(content)
         return str(file_path)
+
     return create
 
 
@@ -238,7 +242,7 @@ def graphql_queries():
                     model
                 }
             }
-        """
+        """,
     }
 
 
@@ -349,7 +353,7 @@ def graphql_mutations():
                     formatDetected
                 }
             }
-        """
+        """,
     }
 
 
@@ -375,6 +379,7 @@ def graphql_subscriptions():
 @pytest.fixture
 def wait_for_condition():
     """Utility to wait for a condition with timeout."""
+
     async def wait(condition_func, timeout=5, interval=0.1):
         start = asyncio.get_event_loop().time()
         while True:
@@ -383,22 +388,21 @@ def wait_for_condition():
             if asyncio.get_event_loop().time() - start > timeout:
                 raise TimeoutError(f"Condition not met within {timeout} seconds")
             await asyncio.sleep(interval)
+
     return wait
 
 
 @pytest.fixture
 def mock_llm_response():
     """Mock LLM responses for testing."""
+
     def mock(content="Test response", model="gpt-4.1-nano"):
         return {
             "content": content,
             "model": model,
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 5,
-                "total_tokens": 15
-            }
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
         }
+
     return mock
 
 

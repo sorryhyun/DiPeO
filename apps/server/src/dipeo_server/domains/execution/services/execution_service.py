@@ -1,30 +1,32 @@
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import AsyncIterator, Callable
-from typing import Any, Dict, Optional, Set
+from typing import Any, Optional
 
-from dipeo_server.core import BaseService, ValidationError
-from ..services.simple_state_store import state_store
-from dipeo_domain import ExecutionStatus, NodeExecutionStatus, NodeOutput, TokenUsage
+from dipeo_domain import ExecutionStatus
+from dipeo_domain.models import DomainDiagram
+
+from dipeo_server.core import BaseService
+from ..services.state_store import state_store
+from ..engine import SimplifiedEngine
+from ..handlers import get_handlers
 
 log = logging.getLogger(__name__)
 
 
 class ExecutionService(BaseService):
-    """Run a diagram and stream node-level updates back to the client."""
 
-    #  init
     def __init__(
         self,
         llm_service,
         api_key_service,
         memory_service,
         file_service,
-        diagram_service,
+        diagram_service=None,
         notion_service=None,
+        diagram_execution_adapter=None,
     ) -> None:
         super().__init__()
         self.llm_service = llm_service
@@ -33,180 +35,141 @@ class ExecutionService(BaseService):
         self.file_service = file_service
         self.diagram_service = diagram_service
         self.notion_service = notion_service
-        self._validator = None  # Lazy-load to avoid circular import
-    
-    @property
-    def validator(self):
-        """Lazy-load DiagramValidator to avoid circular import."""
-        if self._validator is None:
-            from dipeo_server.domains.diagram.validators import DiagramValidator
-            self._validator = DiagramValidator(self.api_key_service)
-        return self._validator
+        self.diagram_execution_adapter = diagram_execution_adapter
 
-    # ------------------------------------------------ public entry-point
+    async def initialize(self) -> None:
+        pass
+
     async def execute_diagram(
         self,
-        diagram: Dict[str, Any],
-        options: Dict[str, Any],
+        diagram: dict[str, Any],
+        options: dict[str, Any],
         execution_id: str,
-        interactive_handler: Optional[Callable[[Dict[str, Any]], Any]] = None,
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """
-        Validate → warm-up → enrich → run the CompactEngine.
-        Yields node / engine updates as they happen.
-        """
-        await self._validate_diagram(diagram)
-        await self._warm_up_models(diagram)
-        
-        # Create execution state
-        diagram_id = diagram.get("metadata", {}).get("id") if diagram else None
-        variables = options.get("variables", {})
-        await state_store.create_execution(execution_id, diagram_id, variables)
+        interactive_handler: Callable[[dict[str, Any]], Any] | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        if self.diagram_execution_adapter:
+            if isinstance(diagram, str):
+                ready_diagram = await self.diagram_execution_adapter.prepare_diagram_for_execution(
+                    diagram_id=diagram
+                )
+            else:
+                ready_diagram = await self.diagram_execution_adapter.prepare_diagram_dict_for_execution(
+                    diagram_dict=diagram
+                )
 
-        diagram = self._inject_api_keys(diagram)
-        exec_opts = self._merge_options(options, execution_id, interactive_handler)
+            diagram_dict = ready_diagram.storage_format
+            api_keys = ready_diagram.api_keys
+        else:
+            if isinstance(diagram, dict):
+                diagram_obj = DomainDiagram.model_validate(diagram)
+                diagram_dict = diagram
+            else:
+                diagram_obj = diagram
+                diagram_dict = diagram_obj.model_dump()
 
-        from ..executors import create_executors  # lazy import
-        
-        executors = create_executors(
+            api_keys = self._inject_api_keys(diagram_dict)["api_keys"]
+
+        engine = SimplifiedEngine(get_handlers())
+
+        if not isinstance(diagram, dict):
+            diagram_obj = diagram
+        else:
+            diagram_obj = DomainDiagram.model_validate(diagram_dict)
+
+        await state_store.create_execution(execution_id, diagram_obj.id, options.get("variables", {}))
+
+        yield {
+            "type": "execution_start",
+            "execution_id": execution_id,
+        }
+
+        try:
+            updates_queue = asyncio.Queue()
+
+            async def stream_callback(update: dict[str, Any]) -> None:
+                await updates_queue.put(update)
+
+            engine_task = asyncio.create_task(
+                self._execute_with_new_engine(
+                    engine, diagram_obj, api_keys, execution_id,
+                    interactive_handler, stream_callback
+                )
+            )
+
+            while True:
+                try:
+                    update = await asyncio.wait_for(
+                        updates_queue.get(),
+                        timeout=0.1
+                    )
+                    yield update
+
+                    if update.get("type") == "execution_complete":
+                        break
+
+                except asyncio.TimeoutError:
+                    if engine_task.done():
+                        try:
+                            await engine_task
+                        except Exception as e:
+                            yield {
+                                "type": "execution_complete",
+                                "execution_id": execution_id,
+                                "status": "failed",
+                                "error": str(e),
+                            }
+                        break
+
+        except Exception as e:
+            log.error(f"Execution failed for {execution_id}: {e}")
+            await state_store.update_status(execution_id, ExecutionStatus.FAILED, error=str(e))
+            yield {
+                "type": "execution_complete",
+                "execution_id": execution_id,
+                "status": "failed",
+                "error": str(e),
+            }
+            raise
+
+    async def _execute_with_new_engine(
+        self,
+        engine,
+        diagram,
+        api_keys,
+        execution_id,
+        interactive_handler,
+        stream_callback,
+    ):
+        ctx = await engine.execute_diagram(
+            diagram=diagram,
+            api_keys=api_keys,
             llm_service=self.llm_service,
             file_service=self.file_service,
             memory_service=self.memory_service,
-            notion_service=self.notion_service
+            notion_service=self.notion_service,
+            state_store=state_store,
+            execution_id=execution_id,
+            interactive_handler=interactive_handler,
+            stream_callback=stream_callback,
         )
 
-        # 4️⃣ Instantiate compact engine
-        from ..engine import CompactEngine as CompactEngine
+        final_status = "completed"
+        for output in ctx.node_outputs.values():
+            if output.status == "failed":
+                final_status = "failed"
+                break
 
-        engine = CompactEngine(executors, logger=log)
+        await stream_callback({
+            "type": "execution_complete",
+            "execution_id": execution_id,
+            "status": final_status,
+        })
 
-        # 5️⃣ Bridge engine→service via asyncio.Queue
-        queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
 
-        async def _send(msg: Dict[str, Any]) -> None:
-            msg["execution_id"] = execution_id
-            
-            # Persist event to store
-            await self._persist_event(msg, execution_id)
-            
-            await queue.put(msg)
-
-        # Kick-off engine in background
-        engine_task = asyncio.create_task(
-            engine.run(diagram, send=_send, execution_id=execution_id, 
-                      interactive_handler=interactive_handler)
-        )
-
-        # 6️⃣ Stream updates until the engine finishes
-        try:
-            while True:
-                update = await queue.get()
-                yield update
-                if update.get("type") == "execution_complete":
-                    break
-        except Exception as e:
-            # Record execution failure
-            await state_store.update_status(execution_id, ExecutionStatus.FAILED, error=str(e))
-            raise
-        finally:
-            # Propagate exceptions if the engine errored out
-            await engine_task
-
-    #  helpers
-    async def _validate_diagram(self, diagram: Dict[str, Any]) -> None:
-        """Validate diagram structure for execution."""
-        self.validator.validate_or_raise(diagram, context="execution")
-
-    async def _warm_up_models(self, diagram: Dict[str, Any]) -> None:
-        """Pre-load each unique (service, model, api_key_id) once to cut latency."""
-        seen: Set[str] = set()
-        persons = diagram.get("persons", {})
-        # Only handle dict (Record format)
-        if not isinstance(persons, dict):
-            raise ValidationError("Persons must be a dictionary with person IDs as keys")
-        for p in persons.values():
-            # Handle both camelCase and snake_case
-            api_key_id = p.get("apiKeyId") or p.get("api_key_id")
-            service = p.get("service")
-            model = p.get("model")
-            
-            key = f'{service}:{model}:{api_key_id}'
-            if key in seen or not all([service, model, api_key_id]):
-                continue
-            seen.add(key)
-            try:
-                self.llm_service.pre_initialize_model(
-                    service=service, model=model, api_key_id=api_key_id
-                )
-            except Exception as exc:  # pragma: no-cover
-                log.warning("Warm-up failed for %s – %s", key, exc)
-
-    def _inject_api_keys(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
-        """Attach full API-key strings into the diagram (look-up is once)."""
+    def _inject_api_keys(self, diagram: dict[str, Any]) -> dict[str, Any]:
         keys = {
             info["id"]: self.api_key_service.get_api_key(info["id"])["key"]
             for info in self.api_key_service.list_api_keys()
         }
         return {**diagram, "api_keys": keys}
 
-    @staticmethod
-    def _merge_options(
-        opts: Dict[str, Any],
-        execution_id: str,
-        interactive_handler: Optional[Callable],
-    ) -> Dict[str, Any]:
-        """Flatten CamelCase → snake_case and inject defaults."""
-        merged = {
-            "continue_on_error": opts.get("continueOnError", False),
-            "allow_partial": opts.get("allowPartial", False),
-            "debug_mode": opts.get("debugMode", False),
-            "execution_id": execution_id,
-            **opts,
-        }
-        if interactive_handler:
-            merged["interactive_handler"] = interactive_handler
-        return merged
-    
-    async def _persist_event(self, msg: Dict[str, Any], execution_id: str) -> None:
-        """Update execution state based on engine messages."""
-        msg_type = msg.get("type", "")
-        node_id = msg.get("node_id")
-        
-        # Handle different message types
-        if msg_type == "execution_complete":
-            await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
-        elif msg_type == "node_start":
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.RUNNING)
-        elif msg_type == "node_complete":
-            output = msg.get("output")
-            if output is not None:
-                # Wrap output in NodeOutput if not already
-                if not isinstance(output, dict) or "value" not in output:
-                    output = NodeOutput(value=output, metadata={})
-                else:
-                    output = NodeOutput(**output)
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.COMPLETED, output)
-            # Track token usage if available
-            if "token_count" in msg:
-                token_data = msg["token_count"]
-                if isinstance(token_data, dict):
-                    token_usage = TokenUsage(
-                        input=token_data.get("input", 0),
-                        output=token_data.get("output", 0),
-                        cached=token_data.get("cached"),
-                        total=token_data.get("total")
-                    )
-                    await state_store.update_token_usage(execution_id, token_usage)
-        elif msg_type == "node_skipped":
-            skip_reason = msg.get("reason", "Skipped by condition")
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.SKIPPED, skip_reason=skip_reason)
-        elif msg_type == "node_paused":
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.PAUSED)
-        elif msg_type == "node_resumed":
-            await state_store.update_node_status(execution_id, node_id, NodeExecutionStatus.RUNNING)
-        elif msg_type == "interactive_prompt":
-            # Interactive prompts are handled through the message router, not state store
-            pass
-        elif msg_type == "interactive_response":
-            # Interactive responses are handled through the message router, not state store
-            pass

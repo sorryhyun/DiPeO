@@ -1,6 +1,6 @@
 # DiPeO Makefile
 
-.PHONY: install-py install-web install-cli install-all codegen dev-server dev-web dev-all clean help
+.PHONY: install-py install-web install-cli install-all codegen dev-server dev-web dev-all clean help lint-py format-py typecheck-py lint-all
 
 # Default target
 help:
@@ -13,12 +13,17 @@ help:
 	@echo "  make dev-server     - Run development server"
 	@echo "  make dev-web        - Run web development server"
 	@echo "  make dev-all        - Run both servers"
+	@echo "  make lint-py        - Run Python linter (ruff)"
+	@echo "  make format-py      - Format Python code"
+	@echo "  make typecheck-py   - Run Python type checker (mypy)"
+	@echo "  make lint-all       - Run all linters"
 	@echo "  make clean          - Clean generated files and caches"
 
 # Install commands
 install-py:
 	@echo "📦 Installing Python dependencies..."
 	pip install -r requirements.txt
+	pip install -e ./packages/python/dipeo_core
 	pip install -e ./packages/python/dipeo_domain
 	pip install -e ./apps/server
 
@@ -51,6 +56,27 @@ dev-all:
 	@echo "🚀 Starting all development servers..."
 	./dev.sh --all
 
+# Linting and formatting
+lint-py:
+	@echo "🔍 Running Python linter (ruff)..."
+	cd apps/server && ruff check src tests
+	cd apps/cli && ruff check src tests
+
+format-py:
+	@echo "✨ Formatting Python code..."
+	cd apps/server && ruff format src tests
+	cd apps/cli && ruff format src tests
+
+typecheck-py:
+	@echo "🔍 Running Python type checker (mypy)..."
+	cd apps/server && mypy src
+	cd apps/cli && mypy src
+
+lint-all: lint-py typecheck-py
+	@echo "🔍 Running TypeScript/JavaScript linter..."
+	pnpm run lint
+	@echo "✅ All linting complete!"
+
 # Clean command
 clean:
 	@echo "🧹 Cleaning generated files and caches..."
@@ -63,3 +89,8 @@ clean:
 	find . -type d -name "build" -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .logs/*.log 2>/dev/null || true
 	@echo "✅ Clean complete!"
+# Install pre-commit hooks
+install-hooks:
+	@echo "🔗 Installing pre-commit hooks..."
+	pre-commit install
+	@echo "✅ Pre-commit hooks installed!"

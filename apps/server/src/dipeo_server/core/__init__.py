@@ -2,104 +2,115 @@
 
 # Export all enums from generated models
 from dipeo_domain import (
-    NodeType,
-    HandleDirection,
+    ContentType,
     DataType,
-    LLMService,
-    ForgettingMode,
+    DBBlockSubType,
     DiagramFormat,
     ExecutionStatus,
-    DBBlockSubType,
-    ContentType,
+    ForgettingMode,
+    HandleDirection,
+    LLMService,
+    NodeType,
 )
 
-# Export all type aliases and base models
-from .types import (
-    NodeID,
-    ArrowID,
-    HandleID,
-    PersonID,
-    ApiKeyID,
-    DiagramID,
-    ExecutionID,
-    Vec2,
-    TokenUsage,
-    TimestampedModel,
-)
+# Services are imported from their respective domains to avoid circular imports
+# from ..domains.diagram.services import DiagramService
+# from ..domains.execution.services.execution_service import ExecutionService
+# from ..domains.integrations.notion import NotionService
+# from ..domains.llm.services import LLMService
+
+# Export base classes from dipeo_core
+from dipeo_core import BaseService
 
 # Export all constants
 from .constants import (
     API_BASE_PATH,
-    DEFAULT_MAX_TOKENS,
-    DEFAULT_TEMPERATURE,
-    SUPPORTED_DOC_EXTENSIONS,
-    SUPPORTED_CODE_EXTENSIONS,
-    SUPPORTED_DIAGRAM_EXTENSIONS,
-    SERVICE_ALIASES,
-    VALID_LLM_SERVICES,
-    DEFAULT_SERVICE,
+    DEFAULT_CONTEXT_WINDOW,
     DEFAULT_EXECUTION_TIMEOUT,
     DEFAULT_MAX_ITERATIONS,
+    DEFAULT_MAX_TOKENS,
     DEFAULT_MEMORY_LIMIT,
-    DEFAULT_CONTEXT_WINDOW,
+    DEFAULT_SERVICE,
+    DEFAULT_TEMPERATURE,
+    SERVICE_ALIASES,
+    SUPPORTED_CODE_EXTENSIONS,
+    SUPPORTED_DIAGRAM_EXTENSIONS,
+    SUPPORTED_DOC_EXTENSIONS,
+    VALID_LLM_SERVICES,
 )
 
-# Export exceptions
-from .exceptions import (
-    AgentDiagramException,
-    ValidationError,
+# Export exceptions from dipeo_core
+from dipeo_core import (
     APIKeyError,
     APIKeyNotFoundError,
-    LLMServiceError,
-    DiagramExecutionError,
-    NodeExecutionError,
-    DependencyError,
-    MaxIterationsError,
-    ConditionEvaluationError,
-    PersonJobExecutionError,
-    FileOperationError,
-    DatabaseError,
     ConfigurationError,
+    DependencyError,
+    FileOperationError,
+    LLMServiceError,
+    MaxIterationsError,
+    NodeExecutionError,
+    ValidationError,
 )
 
-# Export services
-from .services import APIKeyService, FileService
-
-# Export utils
-from .utils import (
-    ResponseFormatter,
-    ErrorHandler,
-    FeatureFlagManager,
-    FeatureFlag,
-    handle_service_exceptions,
-    handle_api_errors,
-    handle_internal_errors,
-    get_feature_status,
-    enable_feature,
-    disable_feature,
-    is_feature_enabled,
-    configure_features,
-    get_feature_flags,
+# Export local exceptions that are server-specific
+from .exceptions import (
+    AgentDiagramException,
+    ConditionEvaluationError,
+    DatabaseError,
+    DiagramExecutionError,
+    PersonJobExecutionError,
 )
 
 # Export processors
 from .processors import OutputProcessor
 
-# Export base classes
-from .base import BaseService
-
 # Export context utilities - imported lazily to avoid circular imports
 # Use these functions directly from src.common.context when needed
-
-# Export service types
-from .service_types import (
+# Export service types from dipeo_core
+from dipeo_core import (
     SupportsAPIKey,
-    SupportsFile,
-    SupportsMemory,
-    SupportsLLM,
     SupportsDiagram,
     SupportsExecution,
+    SupportsFile,
+    SupportsLLM,
+    SupportsMemory,
     SupportsNotion,
+)
+
+# Export services
+from .services import APIKeyService, FileService
+
+# Export type aliases from domain models
+from dipeo_domain import (
+    ApiKeyID,
+    ArrowID,
+    DiagramID,
+    ExecutionID,
+    HandleID,
+    NodeID,
+    PersonID,
+    TokenUsage,
+    Vec2,
+)
+
+# Export base models from local types
+from .types import TimestampedModel
+
+# Export utils
+from .utils import (
+    ErrorHandler,
+    FeatureFlag,
+    FeatureFlagManager,
+    ResponseFormatter,
+    configure_features,
+    disable_feature,
+    enable_feature,
+    get_feature_flags,
+    get_feature_status,
+    handle_api_errors,
+    handle_internal_errors,
+    handle_service_exceptions,
+    is_feature_enabled,
 )
 
 __all__ = [
@@ -156,6 +167,11 @@ __all__ = [
     # Services
     "APIKeyService",
     "FileService",
+    # Domain services should be imported directly from their modules
+    # "LLMService",
+    # "DiagramService",
+    # "ExecutionService",
+    # "NotionService",
     # Utils
     "ResponseFormatter",
     "ErrorHandler",

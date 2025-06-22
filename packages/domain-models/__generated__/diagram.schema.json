@@ -569,7 +569,7 @@
         "type": "string",
         "optional": false
       },
-      "schema": {
+      "nodeSchema": {
         "type": "any",
         "optional": false
       },
