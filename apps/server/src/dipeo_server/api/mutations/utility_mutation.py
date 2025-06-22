@@ -10,8 +10,11 @@ from pathlib import Path
 import strawberry
 
 from ..context import GraphQLContext
-from ..types.inputs_types import FileUploadInput
-from ..types.results_types import DeleteResult, FileUploadResult
+from ..graphql_types import (
+    DeleteResult,
+    FileUploadInput,
+    FileUploadResult,
+)
 
 logger = logging.getLogger(__name__)
 

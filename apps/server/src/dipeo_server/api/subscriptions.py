@@ -11,8 +11,15 @@ from dipeo_domain import EventType, NodeExecutionStatus
 from dipeo_server.core import ExecutionStatus, NodeType
 
 from .context import GraphQLContext
-from api.types.domain_types import DomainDiagramType, ExecutionEvent, ExecutionState
-from api.types.scalars_types import DiagramID, ExecutionID, JSONScalar, NodeID
+from .graphql_types import (
+    DiagramID,
+    DomainDiagramType,
+    ExecutionEventType,
+    ExecutionID,
+    ExecutionStateType,
+    JSONScalar,
+    NodeID,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +57,7 @@ class Subscription:
     @strawberry.subscription
     async def execution_updates(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[ExecutionState, None]:
+    ) -> AsyncGenerator[ExecutionStateType, None]:
         """Streams execution state changes."""
         context: GraphQLContext = info.context
         state_store = context.state_store
@@ -94,7 +101,7 @@ class Subscription:
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
         event_types: Optional[List[EventType]] = None,
-    ) -> AsyncGenerator[ExecutionEvent, None]:
+    ) -> AsyncGenerator[ExecutionEventType, None]:
         """Streams specific execution event types."""
         context: GraphQLContext = info.context
         state_store = context.state_store
@@ -128,7 +135,7 @@ class Subscription:
                             node_output = state.node_outputs.get(node_id)
                             output_value = node_output.value if node_output else None
 
-                            yield ExecutionEvent(
+                            yield ExecutionEventType(
                                 execution_id=execution_id,
                                 sequence=sequence,
                                 event_type=event_type,
@@ -161,7 +168,7 @@ class Subscription:
                         }.get(state.status, EventType.EXECUTION_UPDATE)
 
                         if not event_types or final_event_type in event_types:
-                            yield ExecutionEvent(
+                            yield ExecutionEventType(
                                 execution_id=execution_id,
                                 sequence=sequence,
                                 event_type=final_event_type,

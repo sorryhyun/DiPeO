@@ -14,15 +14,20 @@ from dipeo_domain import (
 )
 
 from ..context import GraphQLContext
-from ..types.inputs_types import CreateArrowInput, CreateHandleInput
-from ..models.input_models import (
-    CreateArrowInput as PydanticCreateArrowInput,
+from ..graphql_types import (
+    ArrowID,
+    ArrowResult,
+    CreateArrowInput,
+    CreateHandleInput,
+    DeleteResult,
+    DiagramID,
+    DiagramResult,
+    DomainArrowType,
+    DomainDiagramType,
+    DomainHandleType,
+    HandleID,
+    HandleResult,
 )
-from ..models.input_models import (
-    CreateHandleInput as PydanticCreateHandleInput,
-)
-from ..types.results_types import DeleteResult, DiagramResult, HandleResult
-from ..types.scalars_types import ArrowID, DiagramID, HandleID
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +46,7 @@ class GraphElementMutations:
             storage_service = context.diagram_storage_service
             converter_service = context.diagram_converter_service
 
-            pydantic_input = PydanticCreateArrowInput(
-                source=input.source, target=input.target, label=input.label
-            )
+            # Use input directly without conversion
 
             # Load diagram using new services
             path = await storage_service.find_by_id(diagram_id)
@@ -52,8 +55,8 @@ class GraphElementMutations:
             
             diagram_data = await storage_service.read_file(path)
 
-            source_node_id, source_handle = pydantic_input.source.split(":")
-            target_node_id, target_handle = pydantic_input.target.split(":")
+            source_node_id, source_handle = input.source.split(":")
+            target_node_id, target_handle = input.target.split(":")
 
             if source_node_id not in diagram_data.get("nodes", {}):
                 return DiagramResult(
@@ -69,9 +72,9 @@ class GraphElementMutations:
 
             arrow = DomainArrow(
                 id=arrow_id,
-                source=pydantic_input.source,
-                target=pydantic_input.target,
-                data={"label": pydantic_input.label} if pydantic_input.label else None,
+                source=input.source,
+                target=input.target,
+                data={"label": input.label} if input.label else None,
             )
 
             if "arrows" not in diagram_data:
@@ -145,16 +148,7 @@ class GraphElementMutations:
             context: GraphQLContext = info.context
             storage_service = context.diagram_storage_service
 
-            pydantic_input = PydanticCreateHandleInput(
-                node_id=input.node_id,
-                label=input.label,
-                direction=input.direction,
-                data_type=input.data_type,
-                position={"x": input.position.x, "y": input.position.y}
-                if input.position
-                else None,
-                max_connections=input.max_connections,
-            )
+            # Use input directly without conversion
 
             # Find diagram containing this node
             file_infos = await storage_service.list_files()
@@ -163,7 +157,7 @@ class GraphElementMutations:
 
             for file_info in file_infos:
                 temp_diagram = await storage_service.read_file(file_info.path)
-                if pydantic_input.node_id in temp_diagram.get("nodes", {}):
+                if input.node_id in temp_diagram.get("nodes", {}):
                     diagram_path = file_info.path
                     diagram_data = temp_diagram
                     break
@@ -171,28 +165,28 @@ class GraphElementMutations:
             if not diagram_data:
                 return HandleResult(
                     success=False,
-                    error=f"Node {pydantic_input.node_id} not found in any diagram",
+                    error=f"Node {input.node_id} not found in any diagram",
                 )
 
-            handle_id = f"{pydantic_input.node_id}:{pydantic_input.label}"
+            handle_id = f"{input.node_id}:{input.label}"
 
             if handle_id in diagram_data.get("handles", {}):
                 return HandleResult(
                     success=False,
-                    error=f"Handle '{pydantic_input.label}' already exists for node {pydantic_input.node_id}",
+                    error=f"Handle '{input.label}' already exists for node {input.node_id}",
                 )
 
             handle = DomainHandle(
                 id=handle_id,
-                nodeId=pydantic_input.node_id,
-                label=pydantic_input.label,
-                direction=pydantic_input.direction,
-                dataType=pydantic_input.data_type,
-                maxConnections=pydantic_input.max_connections,
+                nodeId=input.node_id,
+                label=input.label,
+                direction=input.direction,
+                dataType=input.data_type,
+                maxConnections=getattr(input, 'max_connections', 1),
                 position=Vec2(
-                    x=pydantic_input.position["x"], y=pydantic_input.position["y"]
+                    x=input.position.x, y=input.position.y
                 )
-                if pydantic_input.position
+                if input.position
                 else None,
             )
 
@@ -201,7 +195,7 @@ class GraphElementMutations:
             diagram_data["handles"][handle_id] = handle.model_dump()
 
             # Save diagram using new service
-            await storage_service.write_file(path, diagram_data)
+            await storage_service.write_file(diagram_path, diagram_data)
 
             return HandleResult(
                 success=True, handle=handle, message=f"Created handle {handle_id}"

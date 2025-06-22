@@ -15,7 +15,7 @@ from dipeo_server.domains.execution.services.message_router import message_route
 from dipeo_server.domains.execution.services.state_store import state_store
 from dipeo_server.domains.integrations import NotionService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
-from dipeo_server.domains.person import SimplifiedMemoryService as MemoryService
+from dipeo_server.domains.person import MemoryService
 
 from .services import APIKeyService, FileService
 from pathlib import Path

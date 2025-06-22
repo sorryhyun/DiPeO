@@ -382,4 +382,4 @@ class StateStore:
         await self._execute("VACUUM")
 
 
-state_store = SimpleStateStore()
+state_store = StateStore()

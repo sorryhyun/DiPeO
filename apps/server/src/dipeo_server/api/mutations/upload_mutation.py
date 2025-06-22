@@ -21,9 +21,12 @@ from dipeo_domain import (
 )
 
 from ..context import GraphQLContext
-from ..types.enums_types import DiagramFormat
-from ..types.results_types import FileUploadResult
-from ..types.scalars_types import DiagramID, JSONScalar
+from ..graphql_types import (
+    DiagramID,
+    DiagramFormat,
+    FileUploadResult,
+    JSONScalar,
+)
 
 logger = logging.getLogger(__name__)
 

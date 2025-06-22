@@ -7,16 +7,21 @@ import strawberry
 
 from dipeo_server.core import LLMService, NodeType
 
-from api.types.domain_types import (
-    DomainApiKey,
+from .graphql_types import (
+    ApiKeyID,
+    DiagramFilterInput,
+    DiagramFormatInfo,
+    DiagramID,
+    DomainApiKeyType,
     DomainDiagramType,
-    DomainPerson,
-    ExecutionEvent,
-    ExecutionState,
+    DomainPersonType,
+    ExecutionEventType,
+    ExecutionFilterInput,
+    ExecutionID,
+    ExecutionStateType,
+    JSONScalar,
+    PersonID,
 )
-from api.types.inputs_types import DiagramFilterInput, ExecutionFilterInput
-from api.types.results_types import DiagramFormatInfo
-from api.types.scalars_types import ApiKeyID, DiagramID, ExecutionID, JSONScalar, PersonID
 
 
 @strawberry.type
@@ -44,7 +49,7 @@ class Query:
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
 
     @strawberry.field
-    async def execution(self, id: ExecutionID, info) -> Optional[ExecutionState]:
+    async def execution(self, id: ExecutionID, info) -> Optional[ExecutionStateType]:
         """Returns execution by ID."""
         from .execution_resolver import execution_resolver
 
@@ -57,7 +62,7 @@ class Query:
         filter: Optional[ExecutionFilterInput] = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[ExecutionState]:
+    ) -> List[ExecutionStateType]:
         """Returns filtered execution list."""
         from .execution_resolver import execution_resolver
 
@@ -72,7 +77,7 @@ class Query:
         info,
         since_sequence: Optional[int] = None,
         limit: int = 1000,
-    ) -> List[ExecutionEvent]:
+    ) -> List[ExecutionEventType]:
         """DEPRECATED: Returns empty list, use subscriptions instead."""
         from .execution_resolver import execution_resolver
 
@@ -81,28 +86,28 @@ class Query:
         )
 
     @strawberry.field
-    async def person(self, id: PersonID, info) -> Optional[DomainPerson]:
+    async def person(self, id: PersonID, info) -> Optional[DomainPersonType]:
         """Returns person by ID."""
         from .person_resolver import person_resolver
 
         return await person_resolver.get_person(id, info)
 
     @strawberry.field
-    async def persons(self, info, limit: int = 100) -> List[DomainPerson]:
+    async def persons(self, info, limit: int = 100) -> List[DomainPersonType]:
         """Returns person list."""
         from .person_resolver import person_resolver
 
         return await person_resolver.list_persons(limit, info)
 
     @strawberry.field
-    async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKey]:
+    async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKeyType]:
         """Returns API key by ID."""
         from .person_resolver import person_resolver
 
         return await person_resolver.get_api_key(id, info)
 
     @strawberry.field
-    async def api_keys(self, info, service: Optional[str] = None) -> List[DomainApiKey]:
+    async def api_keys(self, info, service: Optional[str] = None) -> List[DomainApiKeyType]:
         """Returns API key list, optionally filtered."""
         from .person_resolver import person_resolver
 

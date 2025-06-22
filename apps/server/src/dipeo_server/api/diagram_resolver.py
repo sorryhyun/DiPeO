@@ -10,9 +10,12 @@ from dipeo_domain import DiagramDictFormat
 from dipeo_server.domains.diagram.converters import diagram_dict_to_graphql
 from dipeo_server.domains.diagram.services import DiagramStorageService, DiagramConverterService
 
-from api.types.domain_types import DiagramMetadata, DomainDiagramType
-from api.types.inputs_types import DiagramFilterInput
-from api.types.scalars_types import DiagramID
+from .graphql_types import (
+    DiagramFilterInput,
+    DiagramID,
+    DiagramMetadataType as DiagramMetadata,
+    DomainDiagramType,
+)
 
 logger = logging.getLogger(__name__)
 

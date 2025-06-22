@@ -20,21 +20,13 @@ from dipeo_domain import ExecutionStatus as DomainExecutionStatus
 from dipeo_server.core import ExecutionStatus
 
 from ..context import GraphQLContext
-from ..types.inputs_types import (
+from ..graphql_types import (
     ExecuteDiagramInput,
     ExecutionControlInput,
+    ExecutionResult,
+    ExecutionStateType,
     InteractiveResponseInput,
 )
-from ..models.input_models import (
-    ExecuteDiagramInput as PydanticExecuteDiagramInput,
-)
-from ..models.input_models import (
-    ExecutionControlInput as PydanticExecutionControlInput,
-)
-from ..models.input_models import (
-    InteractiveResponseInput as PydanticInteractiveResponseInput,
-)
-from ..types.results_types import ExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -53,21 +45,13 @@ class ExecutionMutations:
             execution_service = context.execution_service
             state_store = context.state_store
 
-            pydantic_input = PydanticExecuteDiagramInput(
-                diagram_id=input.diagram_id,
-                diagram_data=input.diagram_data,
-                debug_mode=input.debug_mode,
-                max_iterations=input.max_iterations,
-                timeout_seconds=input.timeout_seconds,
-            )
-
-            if pydantic_input.diagram_data:
-                diagram_data = pydantic_input.diagram_data
+            if input.diagram_data:
+                diagram_data = input.diagram_data
                 # The execution service expects dict format, so we don't need to convert
-            elif pydantic_input.diagram_id:
+            elif input.diagram_id:
                 # Use new services
                 storage_service = context.diagram_storage_service
-                path = await storage_service.find_by_id(pydantic_input.diagram_id)
+                path = await storage_service.find_by_id(input.diagram_id)
                 if path:
                     diagram_data = await storage_service.read_file(path)
                 else:
@@ -78,13 +62,13 @@ class ExecutionMutations:
             execution_id = str(uuid.uuid4())
 
             options = {
-                "debugMode": pydantic_input.debug_mode,
-                "maxIterations": pydantic_input.max_iterations,
-                "timeout": pydantic_input.timeout_seconds,
+                "debugMode": input.debug_mode,
+                "maxIterations": input.max_iterations,
+                "timeout": input.timeout_seconds,
             }
 
             diagram_id = (
-                pydantic_input.diagram_id if pydantic_input.diagram_id else None
+                input.diagram_id if input.diagram_id else None
             )
             await state_store.create_execution(execution_id, diagram_id, options)
 
@@ -147,68 +131,62 @@ class ExecutionMutations:
             state_store = context.state_store
             message_router = context.message_router
 
-            pydantic_input = PydanticExecutionControlInput(
-                execution_id=input.execution_id,
-                action=input.action,
-                node_id=input.node_id,
-            )
-
-            state = await state_store.get_state(pydantic_input.execution_id)
+            state = await state_store.get_state(input.execution_id)
             if not state:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {pydantic_input.execution_id} not found",
+                    error=f"Execution {input.execution_id} not found",
                 )
 
-            if pydantic_input.action == "pause":
-                if pydantic_input.node_id:
+            if input.action == "pause":
+                if input.node_id:
                     await state_store.update_node_status(
-                        pydantic_input.execution_id,
-                        pydantic_input.node_id,
+                        input.execution_id,
+                        input.node_id,
                         NodeExecutionStatus.PAUSED,
                     )
                 else:
                     await state_store.update_status(
-                        pydantic_input.execution_id, DomainExecutionStatus.PAUSED
+                        input.execution_id, DomainExecutionStatus.PAUSED
                     )
-            elif pydantic_input.action == "resume":
-                if pydantic_input.node_id:
+            elif input.action == "resume":
+                if input.node_id:
                     await state_store.update_node_status(
-                        pydantic_input.execution_id,
-                        pydantic_input.node_id,
+                        input.execution_id,
+                        input.node_id,
                         NodeExecutionStatus.RUNNING,
                     )
                 else:
                     await state_store.update_status(
-                        pydantic_input.execution_id, DomainExecutionStatus.RUNNING
+                        input.execution_id, DomainExecutionStatus.RUNNING
                     )
-            elif pydantic_input.action == "abort":
+            elif input.action == "abort":
                 await state_store.update_status(
-                    pydantic_input.execution_id, DomainExecutionStatus.ABORTED
+                    input.execution_id, DomainExecutionStatus.ABORTED
                 )
-            elif pydantic_input.action == "skip" and pydantic_input.node_id:
+            elif input.action == "skip" and input.node_id:
                 await state_store.update_node_status(
-                    pydantic_input.execution_id,
-                    pydantic_input.node_id,
+                    input.execution_id,
+                    input.node_id,
                     NodeExecutionStatus.SKIPPED,
                     skip_reason="Manual skip",
                 )
 
             control_message = {
-                "type": f"{pydantic_input.action}_{'node' if pydantic_input.node_id else 'execution'}",
-                "execution_id": pydantic_input.execution_id,
-                "node_id": pydantic_input.node_id,
+                "type": f"{input.action}_{'node' if input.node_id else 'execution'}",
+                "execution_id": input.execution_id,
+                "node_id": input.node_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
-                pydantic_input.execution_id, control_message
+                input.execution_id, control_message
             )
 
-            updated_state = await state_store.get_state(pydantic_input.execution_id)
+            updated_state = await state_store.get_state(input.execution_id)
 
             execution_state = ExecutionStateForGraphQL(
-                id=ExecutionID(pydantic_input.execution_id),
+                id=ExecutionID(input.execution_id),
                 status=updated_state.status,
                 diagram_id=updated_state.diagram_id,
                 started_at=updated_state.started_at,
@@ -224,7 +202,7 @@ class ExecutionMutations:
             return ExecutionResult(
                 success=True,
                 execution=execution_state,
-                message=f"Execution control '{pydantic_input.action}' sent successfully",
+                message=f"Execution control '{input.action}' sent successfully",
             )
 
         except ValueError as e:
@@ -246,17 +224,11 @@ class ExecutionMutations:
             state_store = context.state_store
             message_router = context.message_router
 
-            pydantic_input = PydanticInteractiveResponseInput(
-                execution_id=input.execution_id,
-                node_id=input.node_id,
-                response=input.response,
-            )
-
-            execution_state = await state_store.get_state(pydantic_input.execution_id)
+            execution_state = await state_store.get_state(input.execution_id)
             if not execution_state:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {pydantic_input.execution_id} not found",
+                    error=f"Execution {input.execution_id} not found",
                 )
 
             if execution_state.status not in [
@@ -265,25 +237,25 @@ class ExecutionMutations:
             ]:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {pydantic_input.execution_id} is not running (status: {execution_state.status})",
+                    error=f"Execution {input.execution_id} is not running (status: {execution_state.status})",
                 )
 
             interactive_message = {
                 "type": "interactive_response",
-                "executionId": pydantic_input.execution_id,
-                "nodeId": pydantic_input.node_id,
-                "response": pydantic_input.response,
+                "executionId": input.execution_id,
+                "nodeId": input.node_id,
+                "response": input.response,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
-                pydantic_input.execution_id, interactive_message
+                input.execution_id, interactive_message
             )
 
-            updated_state = await state_store.get_state(pydantic_input.execution_id)
+            updated_state = await state_store.get_state(input.execution_id)
 
             execution = ExecutionStateForGraphQL(
-                id=ExecutionID(pydantic_input.execution_id),
+                id=ExecutionID(input.execution_id),
                 status=updated_state.status,
                 diagram_id=updated_state.diagram_id,
                 started_at=updated_state.started_at,
@@ -299,7 +271,7 @@ class ExecutionMutations:
             return ExecutionResult(
                 success=True,
                 execution=execution,
-                message=f"Interactive response submitted for node {pydantic_input.node_id}",
+                message=f"Interactive response submitted for node {input.node_id}",
             )
 
         except ValueError as e:

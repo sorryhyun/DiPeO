@@ -7,10 +7,14 @@ import strawberry
 from dipeo_domain import DomainApiKey
 
 from ..context import GraphQLContext
-from ..types.inputs_types import CreateApiKeyInput
-from ..types.inputs_types import CreateApiKeyInput as PydanticCreateApiKeyInput
-from ..types.results_types import ApiKeyResult, DeleteResult, TestApiKeyResult
-from ..types.scalars_types import ApiKeyID
+from ..graphql_types import (
+    ApiKeyID,
+    ApiKeyResult,
+    CreateApiKeyInput,
+    DeleteResult,
+    DomainApiKeyType,
+    TestApiKeyResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,21 +30,17 @@ class ApiKeyMutations:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
 
-            pydantic_input = PydanticCreateApiKeyInput(
-                label=input.label, service=input.service, key=input.key
-            )
-
             api_key_data = api_key_service.create_api_key(
-                label=pydantic_input.label,
-                service=pydantic_input.service.value,
-                key=pydantic_input.key,
+                label=input.label,
+                service=input.service.value,
+                key=input.key,
             )
 
             api_key = DomainApiKey(
                 id=api_key_data["id"],
                 label=api_key_data["label"],
-                service=pydantic_input.service,
-                masked_key=f"{pydantic_input.service.value}-****",
+                service=input.service,
+                masked_key=f"{input.service.value}-****",
             )
 
             return ApiKeyResult(

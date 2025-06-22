@@ -249,4 +249,4 @@ class MemoryService:
         }
 
 
-MemoryService = SimplifiedMemoryService
+# MemoryService is already defined above

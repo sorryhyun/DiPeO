@@ -11,10 +11,13 @@ from dipeo_domain import (
 )
 
 from ..context import GraphQLContext
-from ..types.inputs_types import CreateDiagramInput
-from ..models.input_models import CreateDiagramInput as PydanticCreateDiagramInput
-from ..types.results_types import DeleteResult, DiagramResult
-from ..types.scalars_types import DiagramID
+from ..graphql_types import (
+    CreateDiagramInput,
+    DeleteResult,
+    DiagramID,
+    DiagramResult,
+    DomainDiagramType,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,18 +36,12 @@ class DiagramMutations:
             storage_service = context.diagram_storage_service
             converter_service = context.diagram_converter_service
             
-            pydantic_input = PydanticCreateDiagramInput(
-                name=input.name,
-                description=input.description,
-                author=input.author,
-                tags=input.tags,
-            )
-
+            # Create metadata directly from input
             metadata = DiagramMetadata(
-                name=pydantic_input.name,
-                description=pydantic_input.description or "",
-                author=pydantic_input.author or "",
-                tags=pydantic_input.tags,
+                name=input.name,
+                description=input.description or "",
+                author=input.author or "",
+                tags=input.tags or [],
                 created=datetime.now(),
                 modified=datetime.now(),
             )
@@ -60,7 +57,7 @@ class DiagramMutations:
 
             # Use new services
             storage_dict = converter_service.domain_to_storage(diagram_model)
-            path = f"{pydantic_input.name}.json"
+            path = f"{input.name}.json"
             await storage_service.write_file(path, storage_dict)
 
             graphql_diagram = diagram_model

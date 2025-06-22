@@ -9,15 +9,15 @@ from dipeo_server.core import ForgettingMode, LLMService
 from dipeo_domain import DomainPerson
 
 from ..context import GraphQLContext
-from ..types.inputs_types import CreatePersonInput, UpdatePersonInput
-from ..models.input_models import (
-    CreatePersonInput as PydanticCreatePersonInput,
+from ..graphql_types import (
+    CreatePersonInput,
+    DeleteResult,
+    DiagramID,
+    DomainPersonType,
+    PersonID,
+    PersonResult,
+    UpdatePersonInput,
 )
-from ..models.input_models import (
-    UpdatePersonInput as PydanticUpdatePersonInput,
-)
-from ..types.results_types import DeleteResult, PersonResult
-from ..types.scalars_types import DiagramID, PersonID
 
 logger = logging.getLogger(__name__)
 
@@ -38,17 +38,7 @@ class PersonMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
 
-            pydantic_input = PydanticCreatePersonInput(
-                label=input.label,
-                service=input.service,
-                model=input.model,
-                api_key_id=input.api_key_id,
-                system_prompt=input.system_prompt,
-                forgetting_mode=input.forgetting_mode,
-                temperature=input.temperature,
-                max_tokens=input.max_tokens,
-                top_p=input.top_p,
-            )
+            # Use input directly without conversion
 
             diagram_data = diagram_service.load_diagram(diagram_id)
             if not diagram_data:
@@ -58,21 +48,21 @@ class PersonMutations:
 
             person = DomainPerson(
                 id=person_id,
-                label=pydantic_input.label,
-                service=pydantic_input.service,
-                model=pydantic_input.model,
-                api_key_id=pydantic_input.api_key_id,
-                systemPrompt=pydantic_input.system_prompt or "",
-                forgettingMode=pydantic_input.forgetting_mode,
+                label=input.label,
+                service=input.service,
+                model=input.model,
+                api_key_id=input.api_key_id,
+                systemPrompt=input.system_prompt or "",
+                forgettingMode=input.forgetting_mode,
                 type="person",
             )
 
             person_data = person.model_dump()
             person_data.update(
                 {
-                    "temperature": pydantic_input.temperature,
-                    "maxTokens": pydantic_input.max_tokens,
-                    "topP": pydantic_input.top_p,
+                    "temperature": getattr(input, 'temperature', 0.7),
+                    "maxTokens": getattr(input, 'max_tokens', 1000),
+                    "topP": getattr(input, 'top_p', 1.0),
                 }
             )
 
@@ -107,17 +97,7 @@ class PersonMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
 
-            pydantic_input = PydanticUpdatePersonInput(
-                id=input.id,
-                label=input.label,
-                model=input.model,
-                api_key_id=input.api_key_id,
-                system_prompt=input.system_prompt,
-                forgetting_mode=input.forgetting_mode,
-                temperature=input.temperature,
-                max_tokens=input.max_tokens,
-                top_p=input.top_p,
-            )
+            # Use input directly without conversion
 
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
@@ -125,7 +105,7 @@ class PersonMutations:
 
             for diagram_meta in diagrams:
                 temp_diagram = diagram_service.load_diagram(diagram_meta["path"])
-                if pydantic_input.id in temp_diagram.get("persons", {}):
+                if input.id in temp_diagram.get("persons", {}):
                     diagram_id = diagram_meta["path"]
                     diagram_data = temp_diagram
                     break
@@ -133,27 +113,27 @@ class PersonMutations:
             if not diagram_data:
                 return PersonResult(
                     success=False,
-                    error=f"Person {pydantic_input.id} not found in any diagram",
+                    error=f"Person {input.id} not found in any diagram",
                 )
 
-            person_data = diagram_data["persons"][pydantic_input.id]
+            person_data = diagram_data["persons"][input.id]
 
-            if pydantic_input.label is not None:
-                person_data["label"] = pydantic_input.label
-            if pydantic_input.model is not None:
-                person_data["model"] = pydantic_input.model
-            if pydantic_input.api_key_id is not None:
-                person_data["apiKeyId"] = pydantic_input.api_key_id
-            if pydantic_input.system_prompt is not None:
-                person_data["systemPrompt"] = pydantic_input.system_prompt
-            if pydantic_input.forgetting_mode is not None:
-                person_data["forgettingMode"] = pydantic_input.forgetting_mode.value
-            if pydantic_input.temperature is not None:
-                person_data["temperature"] = pydantic_input.temperature
-            if pydantic_input.max_tokens is not None:
-                person_data["maxTokens"] = pydantic_input.max_tokens
-            if pydantic_input.top_p is not None:
-                person_data["topP"] = pydantic_input.top_p
+            if input.label is not None:
+                person_data["label"] = input.label
+            if input.model is not None:
+                person_data["model"] = input.model
+            if input.api_key_id is not None:
+                person_data["apiKeyId"] = input.api_key_id
+            if input.system_prompt is not None:
+                person_data["systemPrompt"] = input.system_prompt
+            if input.forgetting_mode is not None:
+                person_data["forgettingMode"] = input.forgetting_mode.value
+            if input.temperature is not None:
+                person_data["temperature"] = input.temperature
+            if input.max_tokens is not None:
+                person_data["maxTokens"] = input.max_tokens
+            if input.top_p is not None:
+                person_data["topP"] = input.top_p
 
             try:
                 service = LLMService(person_data["service"].lower())
@@ -168,7 +148,7 @@ class PersonMutations:
                 forgetting_mode = ForgettingMode.no_forget
 
             updated_person = DomainPerson(
-                id=pydantic_input.id,
+                id=input.id,
                 label=person_data["label"],
                 service=service,
                 model=person_data.get("model", person_data.get("modelName", "gpt-4")),
@@ -186,7 +166,7 @@ class PersonMutations:
                     "topP": person_data.get("topP"),
                 }
             )
-            diagram_data["persons"][pydantic_input.id] = person_dict
+            diagram_data["persons"][input.id] = person_dict
 
             # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
@@ -194,7 +174,7 @@ class PersonMutations:
             return PersonResult(
                 success=True,
                 person=updated_person,  # Strawberry will handle conversion
-                message=f"Updated person {pydantic_input.id}",
+                message=f"Updated person {input.id}",
             )
 
         except ValueError as e:

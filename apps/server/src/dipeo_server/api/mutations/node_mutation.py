@@ -9,15 +9,15 @@ from dipeo_server.core import NodeType, Vec2
 from dipeo_domain import DomainNode
 
 from ..context import GraphQLContext
-from ..types.inputs_types import CreateNodeInput, UpdateNodeInput
-from ..models.input_models import (
-    CreateNodeInput as PydanticCreateNodeInput,
+from ..graphql_types import (
+    CreateNodeInput,
+    DeleteResult,
+    DiagramID,
+    DomainNodeType,
+    NodeID,
+    NodeResult,
+    UpdateNodeInput,
 )
-from ..models.input_models import (
-    UpdateNodeInput as PydanticUpdateNodeInput,
-)
-from ..types.results_types import DeleteResult, NodeResult
-from ..types.scalars_types import DiagramID, NodeID
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,7 @@ class NodeMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
 
-            pydantic_input = PydanticCreateNodeInput(
-                type=input.type,
-                position={"x": input.position.x, "y": input.position.y},
-                label=input.label,
-                properties=input.properties or {},
-            )
+            # Use input directly without conversion
 
             diagram_data = diagram_service.load_diagram(diagram_id)
             if not diagram_data:
@@ -48,13 +43,13 @@ class NodeMutations:
 
             node_id = f"node_{str(uuid.uuid4())[:8]}"
 
-            node_properties = pydantic_input.properties.copy()
-            node_properties["label"] = pydantic_input.label
+            node_properties = (input.properties or {}).copy()
+            node_properties["label"] = input.label
 
             node = DomainNode(
                 id=node_id,
-                type=pydantic_input.type,
-                position=Vec2(x=pydantic_input.position.x, y=pydantic_input.position.y),
+                type=input.type,
+                position=Vec2(x=input.position.x, y=input.position.y),
                 data=node_properties,
             )
 
@@ -80,14 +75,7 @@ class NodeMutations:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
 
-            pydantic_input = PydanticUpdateNodeInput(
-                id=input.id,
-                position={"x": input.position.x, "y": input.position.y}
-                if input.position
-                else None,
-                label=input.label,
-                properties=input.properties,
-            )
+            # Use input directly without conversion
 
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
@@ -95,7 +83,7 @@ class NodeMutations:
 
             for diagram_meta in diagrams:
                 temp_diagram = diagram_service.load_diagram(diagram_meta["path"])
-                if pydantic_input.id in temp_diagram.get("nodes", {}):
+                if input.id in temp_diagram.get("nodes", {}):
                     diagram_id = diagram_meta["path"]
                     diagram_data = temp_diagram
                     break
@@ -103,25 +91,25 @@ class NodeMutations:
             if not diagram_data:
                 return NodeResult(
                     success=False,
-                    error=f"Node {pydantic_input.id} not found in any diagram",
+                    error=f"Node {input.id} not found in any diagram",
                 )
 
-            node_data = diagram_data["nodes"][pydantic_input.id]
+            node_data = diagram_data["nodes"][input.id]
 
-            if pydantic_input.position:
+            if input.position:
                 node_data["position"] = {
-                    "x": pydantic_input.position.x,
-                    "y": pydantic_input.position.y,
+                    "x": input.position.x,
+                    "y": input.position.y,
                 }
 
-            if pydantic_input.label is not None:
-                node_data["data"]["label"] = pydantic_input.label
+            if input.label is not None:
+                node_data["data"]["label"] = input.label
 
-            if pydantic_input.properties is not None:
-                node_data["data"].update(pydantic_input.properties)
+            if input.properties is not None:
+                node_data["data"].update(input.properties)
 
             updated_node = DomainNode(
-                id=pydantic_input.id,
+                id=input.id,
                 type=NodeType(node_data["type"]),
                 position=Vec2(
                     x=node_data["position"]["x"], y=node_data["position"]["y"]
@@ -129,14 +117,14 @@ class NodeMutations:
                 data=node_data["data"],
             )
 
-            diagram_data["nodes"][pydantic_input.id] = updated_node.model_dump()
+            diagram_data["nodes"][input.id] = updated_node.model_dump()
 
             diagram_service.update_diagram(diagram_id, diagram_data)
 
             return NodeResult(
                 success=True,
                 node=updated_node,
-                message=f"Updated node {pydantic_input.id}",
+                message=f"Updated node {input.id}",
             )
 
         except ValueError as e:
