@@ -1,21 +1,16 @@
+import type React from 'react';
 import type {
-  DomainNode as Node,
-  DomainArrow as Arrow,
-  DomainHandle as Handle,
-  DomainPerson as Person,
-  DomainApiKey as ApiKey,
+  DomainNodeType as Node,
+  DomainArrowType as Arrow,
+  DomainHandleType as Handle,
+  DomainPersonType as Person,
+  DomainApiKeyType as ApiKey,
   DomainDiagramType,
   Vec2Input
 } from '@/__generated__/graphql';
-import { 
+import {
   NodeType, HandleDirection, DataType, Vec2,
-  NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID,
-  DomainNode as DomainNodeModel,
-  DomainArrow as DomainArrowModel,
-  DomainHandle as DomainHandleModel,
-  DomainPerson as DomainPersonModel,
-  DomainApiKey as DomainApiKeyModel,
-  DomainDiagram as DomainDiagramModel
+  NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID
 } from '@dipeo/domain-models';
 
 // Type aliases for semantic clarity - these help distinguish between

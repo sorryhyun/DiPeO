@@ -1,5 +1,6 @@
 """Node handlers using decorated functions."""
 
+from enum import Enum
 from typing import Any, Callable, Dict, Optional
 
 from dipeo_domain.models import (
@@ -9,6 +10,13 @@ from dipeo_domain.models import (
 )
 
 from .context import ExecutionContext
+
+
+class DBOperation(str, Enum):
+    """Database operation types."""
+    LOAD = "LOAD"
+    SAVE = "SAVE"
+    APPEND = "APPEND"
 
 _handlers: Dict[str, Callable] = {}
 
@@ -201,12 +209,12 @@ async def execute_db(node: NodeType.db, ctx: ExecutionContext) -> NodeOutput:
                 input_data = from_output.outputs[edge.label]
                 break
 
-        if node.operation == DBOperation.LOAD:
+        if node.operation == "LOAD":
             result = ctx.file_service.read(node.file_path)
-        elif node.operation == DBOperation.SAVE:
+        elif node.operation == "SAVE":
             await ctx.file_service.write(node.file_path, str(input_data))
             result = f"Saved to {node.file_path}"
-        elif node.operation == DBOperation.APPEND:
+        elif node.operation == "APPEND":
             existing_content = ""
             try:
                 existing_content = ctx.file_service.read(node.file_path)

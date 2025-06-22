@@ -4,8 +4,8 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import type { NodeID, DiagramID } from '../diagram';
-import type { Message, MemoryState, MemoryConfig } from '../person';
+import type { NodeID, DiagramID } from './diagram.js';
+import type { Message, MemoryState, MemoryConfig } from './person.js';
 
 // Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
@@ -222,4 +222,3 @@ export function isNodeExecutionActive(status: NodeExecutionStatus): boolean {
 }
 
 // Type guards
-

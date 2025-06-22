@@ -95,8 +95,7 @@ const ExecutionControls = () => {
                 apiKeys: Array.from(apiKeys.values()),
                 nodeCount: nodes.size,
                 arrowCount: arrows.size,
-                personCount: persons.size,
-                estimatedCost: null
+                personCount: persons.size
               };
               
               // Execute using the diagram data directly (no file save)

@@ -155,11 +155,12 @@ export const uploadFile = async (
     const { data } = await apolloClient.mutate<UploadFileMutation, UploadFileMutationVariables>({
       mutation: UploadFileDocument,
       variables: {
-        input: {
+        file: {
           filename,
           contentBase64,
           contentType
-        }
+        },
+        category: 'uploads'
       }
     });
     
