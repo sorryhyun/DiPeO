@@ -27,30 +27,34 @@ class TestExecutionControl:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
         # Start execution
         execute_mutation = gql(graphql_mutations["execute_diagram"])
         result = await gql_client.execute(
             execute_mutation,
             variable_values={
-                "diagramId": diagram_id,
-                "inputs": {"test": "data"}
+                "input": {
+                    "diagramId": diagram_id,
+                    "variables": {"test": "data"},
+                    "debugMode": False
+                }
             }
         )
         
         assert "executeDiagram" in result
-        execution = result["executeDiagram"]
-        assert execution["executionId"] is not None
-        assert execution["status"] in ["PENDING", "RUNNING"]
+        assert result["executeDiagram"]["success"] is True
+        execution = result["executeDiagram"]["execution"]
+        assert execution["id"] is not None
+        assert execution["status"] in ["STARTED", "RUNNING"]
     
-    async def test_pause_execution(
+    async def test_control_execution(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test pausing a running execution."""
+        """Test controlling execution (pause/resume/abort)."""
         # Create and start execution
         create_mutation = gql(graphql_mutations["create_diagram"])
         diagram_data = sample_diagram_data()
@@ -59,44 +63,83 @@ class TestExecutionControl:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
         execute_mutation = gql(graphql_mutations["execute_diagram"])
         exec_result = await gql_client.execute(
             execute_mutation,
-            variable_values={"diagramId": diagram_id}
+            variable_values={
+                "input": {
+                    "diagramId": diagram_id,
+                    "debugMode": True
+                }
+            }
         )
-        execution_id = exec_result["executeDiagram"]["executionId"]
+        execution_id = exec_result["executeDiagram"]["execution"]["id"]
         
-        # Pause execution
-        pause_mutation = gql("""
-            mutation PauseExecution($executionId: ID!) {
-                pauseExecution(executionId: $executionId) {
+        # Control execution
+        control_mutation = gql("""
+            mutation ControlExecution($input: ExecutionControlInput!) {
+                controlExecution(input: $input) {
                     success
+                    execution {
+                        id
+                        status
+                    }
                     message
-                    executionStatus
                 }
             }
         """)
         
+        # Test pause
         result = await gql_client.execute(
-            pause_mutation,
-            variable_values={"executionId": execution_id}
+            control_mutation,
+            variable_values={
+                "input": {
+                    "executionId": execution_id,
+                    "action": "pause"
+                }
+            }
         )
         
-        assert "pauseExecution" in result
-        pause_result = result["pauseExecution"]
-        assert pause_result["success"] is True
-        assert pause_result["executionStatus"] in ["PAUSED", "PAUSING"]
+        assert "controlExecution" in result
+        assert result["controlExecution"]["success"] is True
+        
+        # Test resume
+        result = await gql_client.execute(
+            control_mutation,
+            variable_values={
+                "input": {
+                    "executionId": execution_id,
+                    "action": "resume"
+                }
+            }
+        )
+        
+        assert result["controlExecution"]["success"] is True
+        
+        # Test abort
+        result = await gql_client.execute(
+            control_mutation,
+            variable_values={
+                "input": {
+                    "executionId": execution_id,
+                    "action": "abort"
+                }
+            }
+        )
+        
+        assert result["controlExecution"]["success"] is True
+        assert result["controlExecution"]["execution"]["status"] in ["ABORTED", "FAILED"]
     
-    async def test_resume_execution(
+    async def test_execution_with_timeout(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test resuming a paused execution."""
-        # Create, start, and pause execution
+        """Test execution with timeout settings."""
+        # Create diagram
         create_mutation = gql(graphql_mutations["create_diagram"])
         diagram_data = sample_diagram_data()
         
@@ -104,155 +147,37 @@ class TestExecutionControl:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
+        # Execute with timeout
         execute_mutation = gql(graphql_mutations["execute_diagram"])
-        exec_result = await gql_client.execute(
-            execute_mutation,
-            variable_values={"diagramId": diagram_id}
-        )
-        execution_id = exec_result["executeDiagram"]["executionId"]
-        
-        # Pause
-        pause_mutation = gql("""
-            mutation PauseExecution($executionId: ID!) {
-                pauseExecution(executionId: $executionId) {
-                    success
-                }
-            }
-        """)
-        
-        await gql_client.execute(
-            pause_mutation,
-            variable_values={"executionId": execution_id}
-        )
-        
-        # Resume
-        resume_mutation = gql("""
-            mutation ResumeExecution($executionId: ID!) {
-                resumeExecution(executionId: $executionId) {
-                    success
-                    message
-                    executionStatus
-                }
-            }
-        """)
-        
         result = await gql_client.execute(
-            resume_mutation,
-            variable_values={"executionId": execution_id}
-        )
-        
-        assert "resumeExecution" in result
-        resume_result = result["resumeExecution"]
-        assert resume_result["success"] is True
-        assert resume_result["executionStatus"] in ["RUNNING", "RESUMING"]
-    
-    async def test_abort_execution(
-        self,
-        gql_client,
-        graphql_mutations,
-        sample_diagram_data
-    ):
-        """Test aborting an execution."""
-        # Create and start execution
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        diagram_data = sample_diagram_data()
-        
-        create_result = await gql_client.execute(
-            create_mutation,
-            variable_values={"input": diagram_data}
-        )
-        diagram_id = create_result["createDiagram"]["id"]
-        
-        execute_mutation = gql(graphql_mutations["execute_diagram"])
-        exec_result = await gql_client.execute(
             execute_mutation,
-            variable_values={"diagramId": diagram_id}
-        )
-        execution_id = exec_result["executeDiagram"]["executionId"]
-        
-        # Abort execution
-        abort_mutation = gql("""
-            mutation AbortExecution($executionId: ID!) {
-                abortExecution(executionId: $executionId) {
-                    success
-                    message
-                    executionStatus
+            variable_values={
+                "input": {
+                    "diagramId": diagram_id,
+                    "timeoutSeconds": 30,
+                    "maxIterations": 100
                 }
             }
-        """)
-        
-        result = await gql_client.execute(
-            abort_mutation,
-            variable_values={"executionId": execution_id}
         )
         
-        assert "abortExecution" in result
-        abort_result = result["abortExecution"]
-        assert abort_result["success"] is True
-        assert abort_result["executionStatus"] in ["ABORTED", "ABORTING"]
-    
-    async def test_retry_execution(
-        self,
-        gql_client,
-        graphql_mutations,
-        sample_diagram_data
-    ):
-        """Test retrying a failed execution."""
-        # Create diagram that might fail
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        diagram_data = sample_diagram_data()
-        
-        create_result = await gql_client.execute(
-            create_mutation,
-            variable_values={"input": diagram_data}
-        )
-        diagram_id = create_result["createDiagram"]["id"]
-        
-        # Start execution
-        execute_mutation = gql(graphql_mutations["execute_diagram"])
-        exec_result = await gql_client.execute(
-            execute_mutation,
-            variable_values={"diagramId": diagram_id}
-        )
-        execution_id = exec_result["executeDiagram"]["executionId"]
-        
-        # Retry execution
-        retry_mutation = gql("""
-            mutation RetryExecution($executionId: ID!, $fromNode: ID) {
-                retryExecution(executionId: $executionId, fromNode: $fromNode) {
-                    newExecutionId
-                    status
-                    message
-                }
-            }
-        """)
-        
-        try:
-            result = await gql_client.execute(
-                retry_mutation,
-                variable_values={"executionId": execution_id}
-            )
-            
-            assert "retryExecution" in result
-            retry_result = result["retryExecution"]
-            assert retry_result["newExecutionId"] is not None
-            assert retry_result["status"] in ["PENDING", "RUNNING"]
-        except Exception:
-            pytest.skip("Retry functionality not available")
+        assert "executeDiagram" in result
+        assert result["executeDiagram"]["success"] is True
+        execution = result["executeDiagram"]["execution"]
+        assert execution["id"] is not None
 
 
 class TestExecutionMonitoring:
     """Test execution monitoring queries."""
     
-    async def test_get_execution_status(
+    async def test_get_execution_state(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test querying execution status."""
+        """Test querying execution state."""
         # Create and execute diagram
         create_mutation = gql(graphql_mutations["create_diagram"])
         diagram_data = sample_diagram_data()
@@ -261,48 +186,54 @@ class TestExecutionMonitoring:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
         execute_mutation = gql(graphql_mutations["execute_diagram"])
         exec_result = await gql_client.execute(
             execute_mutation,
-            variable_values={"diagramId": diagram_id}
+            variable_values={
+                "input": {"diagramId": diagram_id}
+            }
         )
-        execution_id = exec_result["executeDiagram"]["executionId"]
+        execution_id = exec_result["executeDiagram"]["execution"]["id"]
         
-        # Query status
-        status_query = gql("""
-            query GetExecutionStatus($executionId: ID!) {
-                executionStatus(executionId: $executionId) {
-                    executionId
+        # Query execution state
+        execution_query = gql("""
+            query GetExecution($id: ExecutionID!) {
+                execution(id: $id) {
+                    id
                     status
-                    startTime
-                    endTime
-                    currentNode
-                    progress
+                    diagramId
+                    startedAt
+                    endedAt
+                    isActive
+                    runningNodes
+                    completedNodes
+                    failedNodes
                     error
                 }
             }
         """)
         
         result = await gql_client.execute(
-            status_query,
-            variable_values={"executionId": execution_id}
+            execution_query,
+            variable_values={"id": execution_id}
         )
         
-        assert "executionStatus" in result
-        status = result["executionStatus"]
-        assert status["executionId"] == execution_id
-        assert status["status"] is not None
-        assert status["startTime"] is not None
+        assert "execution" in result
+        execution = result["execution"]
+        assert execution["id"] == execution_id
+        assert execution["status"] is not None
+        assert execution["startedAt"] is not None
+        assert execution["isActive"] in [True, False]
     
-    async def test_get_execution_logs(
+    async def test_get_execution_events(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test retrieving execution logs."""
+        """Test retrieving execution events."""
         # Create and execute diagram
         create_mutation = gql(graphql_mutations["create_diagram"])
         diagram_data = sample_diagram_data()
@@ -311,80 +242,88 @@ class TestExecutionMonitoring:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
         execute_mutation = gql(graphql_mutations["execute_diagram"])
         exec_result = await gql_client.execute(
             execute_mutation,
-            variable_values={"diagramId": diagram_id}
+            variable_values={
+                "input": {"diagramId": diagram_id}
+            }
         )
-        execution_id = exec_result["executeDiagram"]["executionId"]
+        execution_id = exec_result["executeDiagram"]["execution"]["id"]
         
-        # Query logs
-        logs_query = gql("""
-            query GetExecutionLogs($executionId: ID!, $limit: Int, $offset: Int) {
-                executionLogs(executionId: $executionId, limit: $limit, offset: $offset) {
-                    logs {
-                        timestamp
-                        level
-                        nodeId
-                        message
-                        data
-                    }
-                    totalCount
-                    hasMore
+        # Wait a bit for events to be generated
+        await asyncio.sleep(0.5)
+        
+        # Query events
+        events_query = gql("""
+            query GetExecutionEvents($executionId: ExecutionID!, $sinceSequence: Int, $limit: Int!) {
+                executionEvents(executionId: $executionId, sinceSequence: $sinceSequence, limit: $limit) {
+                    executionId
+                    sequence
+                    eventType
+                    nodeId
+                    timestamp
+                    formattedMessage
+                    data
                 }
             }
         """)
         
         result = await gql_client.execute(
-            logs_query,
+            events_query,
             variable_values={
                 "executionId": execution_id,
-                "limit": 10
+                "limit": 100
             }
         )
         
-        assert "executionLogs" in result
-        logs_result = result["executionLogs"]
-        assert "logs" in logs_result
-        assert isinstance(logs_result["logs"], list)
-        assert "totalCount" in logs_result
+        assert "executionEvents" in result
+        events = result["executionEvents"]
+        assert isinstance(events, list)
+        
+        # Should have at least a start event
+        assert len(events) > 0
+        assert any(e["eventType"] == "EXECUTION_STARTED" for e in events)
     
-    async def test_list_active_executions(
+    async def test_list_executions(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test listing active executions."""
+        """Test listing executions with filters."""
         # Create and start multiple executions
         create_mutation = gql(graphql_mutations["create_diagram"])
         execute_mutation = gql(graphql_mutations["execute_diagram"])
         
+        diagram_ids = []
         for i in range(3):
-            diagram_data = sample_diagram_data(name=f"Active Test {i}")
+            diagram_data = sample_diagram_data(name=f"List Test {i}")
             create_result = await gql_client.execute(
                 create_mutation,
                 variable_values={"input": diagram_data}
             )
-            diagram_id = create_result["createDiagram"]["id"]
+            diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
+            diagram_ids.append(diagram_id)
             
             await gql_client.execute(
                 execute_mutation,
-                variable_values={"diagramId": diagram_id}
+                variable_values={
+                    "input": {"diagramId": diagram_id}
+                }
             )
         
-        # List active executions
+        # List all executions
         list_query = gql("""
-            query ListActiveExecutions($status: [ExecutionStatus!]) {
-                activeExecutions(status: $status) {
-                    executionId
-                    diagramId
-                    diagramName
+            query ListExecutions($filter: ExecutionFilterInput, $limit: Int!, $offset: Int!) {
+                executions(filter: $filter, limit: $limit, offset: $offset) {
+                    id
                     status
-                    startTime
-                    progress
+                    diagramId
+                    startedAt
+                    isActive
                 }
             }
         """)
@@ -392,144 +331,153 @@ class TestExecutionMonitoring:
         result = await gql_client.execute(
             list_query,
             variable_values={
-                "status": ["PENDING", "RUNNING", "PAUSED"]
+                "filter": {"activeOnly": True},
+                "limit": 10,
+                "offset": 0
             }
         )
         
-        assert "activeExecutions" in result
-        active = result["activeExecutions"]
-        assert isinstance(active, list)
-        assert len(active) >= 3
+        assert "executions" in result
+        executions = result["executions"]
+        assert isinstance(executions, list)
+        assert len(executions) >= 3
+        
+        # Test filtering by diagram
+        result = await gql_client.execute(
+            list_query,
+            variable_values={
+                "filter": {"diagramId": diagram_ids[0]},
+                "limit": 10,
+                "offset": 0
+            }
+        )
+        
+        filtered_executions = result["executions"]
+        assert all(e["diagramId"] == diagram_ids[0] for e in filtered_executions)
 
 
 class TestExecutionInteraction:
     """Test interactive execution features."""
     
-    async def test_respond_to_prompt(
-        self,
-        gql_client,
-        graphql_mutations
-    ):
-        """Test responding to execution prompts."""
-        # Create diagram with prompt node
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        diagram_data = {
-            "name": "Prompt Test",
-            "content": {
-                "nodes": [
-                    {
-                        "id": "prompt1",
-                        "type": "promptAgent",
-                        "data": {
-                            "prompt": "Enter value:",
-                            "inputType": "text"
-                        }
-                    }
-                ],
-                "edges": []
-            }
-        }
-        
-        create_result = await gql_client.execute(
-            create_mutation,
-            variable_values={"input": diagram_data}
-        )
-        diagram_id = create_result["createDiagram"]["id"]
-        
-        # Execute
-        execute_mutation = gql(graphql_mutations["execute_diagram"])
-        exec_result = await gql_client.execute(
-            execute_mutation,
-            variable_values={"diagramId": diagram_id}
-        )
-        execution_id = exec_result["executeDiagram"]["executionId"]
-        
-        # Respond to prompt
-        respond_mutation = gql("""
-            mutation RespondToPrompt($executionId: ID!, $nodeId: ID!, $response: JSON!) {
-                respondToPrompt(
-                    executionId: $executionId,
-                    nodeId: $nodeId,
-                    response: $response
-                ) {
-                    success
-                    message
-                    nextPrompt {
-                        nodeId
-                        prompt
-                        inputType
-                    }
-                }
-            }
-        """)
-        
-        result = await gql_client.execute(
-            respond_mutation,
-            variable_values={
-                "executionId": execution_id,
-                "nodeId": "prompt1",
-                "response": {"value": "User input"}
-            }
-        )
-        
-        assert "respondToPrompt" in result
-        response_result = result["respondToPrompt"]
-        assert response_result["success"] is True
-    
-    async def test_update_node_data(
+    async def test_submit_interactive_response(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test updating node data during execution."""
-        # Create and execute diagram
+        """Test submitting responses to interactive prompts."""
+        # Create diagram with user response node
         create_mutation = gql(graphql_mutations["create_diagram"])
-        diagram_data = sample_diagram_data()
+        diagram_data = sample_diagram_data(name="Interactive Test")
         
         create_result = await gql_client.execute(
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
+        # Add a USER_RESPONSE node
+        create_node_mutation = gql(graphql_mutations["create_node"])
+        node_result = await gql_client.execute(
+            create_node_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": {
+                    "type": "USER_RESPONSE",
+                    "position": {"x": 100, "y": 100},
+                    "label": "User Input",
+                    "properties": {
+                        "prompt": "Enter your response:"
+                    }
+                }
+            }
+        )
+        node_id = node_result["createNode"]["node"]["id"]
+        
+        # Execute diagram
         execute_mutation = gql(graphql_mutations["execute_diagram"])
         exec_result = await gql_client.execute(
             execute_mutation,
-            variable_values={"diagramId": diagram_id}
+            variable_values={
+                "input": {"diagramId": diagram_id}
+            }
         )
-        execution_id = exec_result["executeDiagram"]["executionId"]
+        execution_id = exec_result["executeDiagram"]["execution"]["id"]
         
-        # Update node data
-        update_mutation = gql("""
-            mutation UpdateNodeData($executionId: ID!, $nodeId: ID!, $data: JSON!) {
-                updateNodeData(
-                    executionId: $executionId,
-                    nodeId: $nodeId,
-                    data: $data
-                ) {
+        # Submit interactive response
+        response_mutation = gql("""
+            mutation SubmitInteractiveResponse($input: InteractiveResponseInput!) {
+                submitInteractiveResponse(input: $input) {
                     success
-                    message
-                    updatedNode {
-                        nodeId
-                        data
+                    execution {
+                        id
+                        status
                     }
+                    message
                 }
             }
         """)
         
-        try:
-            result = await gql_client.execute(
-                update_mutation,
-                variable_values={
+        result = await gql_client.execute(
+            response_mutation,
+            variable_values={
+                "input": {
                     "executionId": execution_id,
-                    "nodeId": "1",
-                    "data": {"newValue": "Updated during execution"}
+                    "nodeId": node_id,
+                    "response": "User provided input"
                 }
-            )
-            
-            assert "updateNodeData" in result
-            update_result = result["updateNodeData"]
-            assert update_result["success"] is True
-        except Exception:
-            pytest.skip("Dynamic node updates not supported")
+            }
+        )
+        
+        assert "submitInteractiveResponse" in result
+        assert result["submitInteractiveResponse"]["success"] is True
+    
+    async def test_execution_with_direct_data(
+        self,
+        gql_client,
+        graphql_mutations
+    ):
+        """Test executing with diagram data directly (no saved diagram)."""
+        # Execute with inline diagram data
+        execute_mutation = gql(graphql_mutations["execute_diagram"])
+        
+        diagram_data = {
+            "name": "Direct Execution",
+            "nodes": [
+                {
+                    "id": "start",
+                    "type": "START",
+                    "position": {"x": 0, "y": 0},
+                    "data": {}
+                },
+                {
+                    "id": "end",
+                    "type": "ENDPOINT",
+                    "position": {"x": 200, "y": 0},
+                    "data": {}
+                }
+            ],
+            "edges": [
+                {
+                    "id": "edge1",
+                    "source": "start",
+                    "target": "end"
+                }
+            ]
+        }
+        
+        result = await gql_client.execute(
+            execute_mutation,
+            variable_values={
+                "input": {
+                    "diagramData": diagram_data,
+                    "debugMode": True
+                }
+            }
+        )
+        
+        assert "executeDiagram" in result
+        assert result["executeDiagram"]["success"] is True
+        execution = result["executeDiagram"]["execution"]
+        assert execution["id"] is not None
+        assert execution["diagramId"] is None  # No saved diagram

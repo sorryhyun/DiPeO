@@ -58,21 +58,41 @@ def graphql_ws_url():
 
 
 @pytest_asyncio.fixture
-async def gql_client(test_app):
-    """GraphQL client with HTTP transport using test app."""
-    from gql.transport.httpx import HTTPXAsyncTransport
-    from httpx import ASGITransport
+async def gql_client(async_client):
+    """GraphQL client that uses the async test client for requests."""
+    class TestGraphQLClient:
+        def __init__(self, async_client):
+            self.async_client = async_client
+        
+        async def execute(self, query, variable_values=None):
+            """Execute a GraphQL query using the test client."""
+            # Extract the query string from the DocumentNode
+            if hasattr(query, 'loc') and hasattr(query.loc, 'source'):
+                query_str = query.loc.source.body
+            else:
+                query_str = str(query)
+            
+            response = await self.async_client.post(
+                "/graphql",
+                json={
+                    "query": query_str,
+                    "variables": variable_values or {}
+                }
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"GraphQL request failed with status {response.status_code}")
+            
+            result = response.json()
+            
+            # Check for errors in the GraphQL response
+            if "errors" in result:
+                from gql.transport.exceptions import TransportQueryError
+                raise TransportQueryError(str(result["errors"][0]))
+            
+            return result.get("data", {})
     
-    # Create transport that directly uses the test app
-    httpx_transport = ASGITransport(app=test_app)
-    transport = HTTPXAsyncTransport(
-        url="http://test/graphql",
-        transport=httpx_transport
-    )
-    
-    client = Client(transport=transport, fetch_schema_from_transport=False)
-    async with client as session:
-        yield session
+    yield TestGraphQLClient(async_client)
 
 
 @pytest_asyncio.fixture

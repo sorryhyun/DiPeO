@@ -1,13 +1,9 @@
-"""
-Strawberry GraphQL types using Pydantic models as single source of truth.
-This replaces the manual type definitions with automatic conversions.
-"""
+"""Strawberry GraphQL types using Pydantic models as single source of truth."""
 import strawberry
 from typing import Optional, List
 
 from .scalars_types import JSONScalar, DiagramID, ExecutionID
 
-# Import generated models
 from dipeo_domain import (
     DomainHandle, DomainNode, DomainArrow, DomainPerson,
     DomainApiKey, DiagramMetadata, DomainDiagram,
@@ -20,10 +16,6 @@ from dipeo_domain import (
     NodeOutput as PydanticNodeOutput
 )
 
-# No longer need domain-specific extensions - using generated model directly
-
-# Convert basic types
-# Use the models directly with strawberry.experimental.pydantic
 @strawberry.experimental.pydantic.type(model=PydanticVec2, all_fields=True, description="2D position vector")
 class Vec2:
     pass
@@ -40,8 +32,6 @@ class NodeState:
 class NodeOutput:
     pass
 
-# Convert domain models to Strawberry types
-# Direct conversion for simple types
 @strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True, description="Connection point on a node")
 class DomainHandle:
     pass
@@ -56,13 +46,11 @@ class DomainNode:
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
         """Node data as JSON scalar."""
-        # Access the data field directly
         return self.data if hasattr(self, 'data') else None
     
     @strawberry.field
     def display_name(self) -> str:
         """Computed display name for the node."""
-        # Get from data field if available
         if hasattr(self, 'data') and self.data:
             return self.data.get('label', f'{self.type} node')
         return f'{self.type} node'
@@ -70,12 +58,10 @@ class DomainNode:
     @strawberry.field
     def handles(self, info) -> List[DomainHandle]:
         """Get handles associated with this node (virtual field for nested view)."""
-        # Get handle_index from context if available
         handle_index = getattr(info.context, 'handle_index', None)
         if handle_index is None:
             return []
         
-        # Return handles for this node from the index
         return handle_index.get(self.id, [])
 
 @strawberry.experimental.pydantic.type(model=DomainArrow)
@@ -123,11 +109,9 @@ class DomainApiKey:
     @strawberry.field
     def masked_key(self) -> str:
         """Masked version of the key."""
-        # Handle both enum and string types for service
         service_str = self.service.value if hasattr(self.service, 'value') else str(self.service)
         return f"{service_str}-****"
 
-# Metadata can be used directly
 @strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True, description="Metadata for a diagram")
 class DiagramMetadataType:
     pass
@@ -160,7 +144,6 @@ class DomainDiagramType:
     @strawberry.field
     async def estimated_cost(self, info) -> Optional[float]:
         """Estimated execution cost based on LLM usage."""
-        # TODO: Calculate based on persons and their models
         return None
 
 @strawberry.experimental.pydantic.type(
@@ -229,7 +212,6 @@ class ExecutionEvent:
     @strawberry.field
     def formatted_message(self) -> str:
         """Human-readable event message."""
-        # Format based on event type
         if self.event_type == 'node_started':
             return f"Node {self.node_id} started"
         elif self.event_type == 'node_completed':
@@ -239,4 +221,3 @@ class ExecutionEvent:
         else:
             return f"{self.event_type} for node {self.node_id}"
 
-# Note: Enums are handled by Pydantic models directly, no need to import from .enums

@@ -1,12 +1,8 @@
-"""
-Utility functions for executor operations.
-Extracted from BaseExecutor to simplify the executor pattern.
-"""
+"""Utility functions for executor operations."""
 from typing import Dict, Any, List, TYPE_CHECKING, Optional
 import re
 import logging
 
-# Validation functions have been moved to validator.py
 
 if TYPE_CHECKING:
     from .types import Ctx
@@ -14,7 +10,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Regex pattern for {{var}} placeholders
 _VAR_PATTERN = re.compile(r"\{\{(\w+)\}\}")
 
 
@@ -23,13 +18,11 @@ def get_input_values(node: Dict[str, Any], context: 'Ctx', target_handle_filter:
     node_id = node["id"]
     incoming = context.graph.incoming.get(node_id, [])
     
-    # Import OutputProcessor here to avoid circular imports
     from dipeo_server.core.processors import OutputProcessor
     
     for arrow in incoming:
         if target_handle_filter:
             target_handle = arrow.t_handle
-            # Handle ends with filter (e.g., "-first") or exact match
             if not (target_handle.endswith(f"-{target_handle_filter}") or 
                     target_handle == target_handle_filter):
                 continue
@@ -63,7 +56,6 @@ def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: 
         
         if OutputProcessor.is_personjob_output(value):
             if 'conversation' in var_name.lower() or 'history' in var_name.lower():
-                # Show conversation text content
                 text_value = OutputProcessor.extract_value(value)
                 return text_value if text_value else ""
             else:
@@ -83,11 +75,9 @@ def substitute_variables(text: str, variables: Dict[str, Any], evaluation_mode: 
         else:
             return str(value)
     
-    # First handle {{variable}} and ${variable} patterns
     pattern = r'{{(\w+)}}|\${(\w+)}'  
     result = re.sub(pattern, replace_var, text)
     
-    # Then handle $variable syntax (without braces)
     for k, v in variables.items():
         result = result.replace(f"${k}", str(v))
     
@@ -136,25 +126,21 @@ def safe_eval(expr: str, inputs: Dict[str, Any], ctx: 'ExecutionContext') -> boo
     """Tiny, dependency-free expression evaluator."""
     namespace: Dict[str, Any] = {"executionCount": ctx.exec_cnt, **inputs}
 
-    # Flatten previous node outputs for easy access
     for node_id, output in ctx.outputs.items():
         if isinstance(output, dict):
             namespace.update(output)
         else:
             namespace[node_id] = output
 
-    # Replace {{var}} placeholders early
     def _tpl(match: re.Match[str]) -> str:
         val = namespace.get(match.group(1))
         return _fmt(val)
 
     expr = _VAR_PATTERN.sub(_tpl, expr)
 
-    # Replace bare identifiers with their literal value
     for key, val in namespace.items():
         expr = re.sub(rf"\b{re.escape(key)}\b", _fmt(val), expr)
 
-    # Normalise JS-style logical operators to Python
     expr = (
         expr.replace("&&", " and ")
         .replace("||", " or ")
@@ -163,7 +149,7 @@ def safe_eval(expr: str, inputs: Dict[str, Any], ctx: 'ExecutionContext') -> boo
     )
 
     try:
-        return bool(eval(expr, {"__builtins__": {}}, {}))  # nosec B307 - controlled input
+        return bool(eval(expr, {"__builtins__": {}}, {}))
     except Exception:
         logger.debug("Evaluation error for expression %s", expr, exc_info=True)
         return False
@@ -187,7 +173,6 @@ def process_inputs(inputs: Dict[str, Any]) -> List[Any]:
     
     processed = []
     for value in inputs.values():
-        # Use OutputProcessor to properly unwrap structured outputs
         unwrapped = OutputProcessor.unwrap(value)
         processed.append(unwrapped)
     

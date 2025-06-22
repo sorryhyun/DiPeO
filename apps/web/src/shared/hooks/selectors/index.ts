@@ -1,8 +1,3 @@
-/**
- * Focused selector hooks for efficient state access
- * These hooks replace repetitive useShallow patterns with specialized selectors
- */
-
 // Diagram data selectors
 export {
   useDiagramData,

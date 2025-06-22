@@ -47,8 +47,8 @@ jobs:
 
     - name: Generate code
       run: |
-        chmod +x ./codegen.sh
-        ./codegen.sh
+        chmod +x ./dev.sh
+        ./dev.sh --generate
 
     - name: Build packages
       run: pnpm build:packages

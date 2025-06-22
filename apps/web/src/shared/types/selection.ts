@@ -1,21 +1,13 @@
 import { NodeID, ArrowID, HandleID } from '@/core/types';
 
-/**
- * Selection types
- */
+
 export type SelectableType = 'node' | 'arrow' | 'handle';
 
-/**
- * Selection item
- */
 export interface SelectionItem {
   type: SelectableType;
   id: string;
 }
 
-/**
- * Selection bounds for box selection
- */
 export interface SelectionBounds {
   x: number;
   y: number;
@@ -23,9 +15,6 @@ export interface SelectionBounds {
   height: number;
 }
 
-/**
- * Multi-selection action
- */
 export type SelectionAction = 
   | { type: 'select'; items: SelectionItem[] }
   | { type: 'deselect'; items: SelectionItem[] }
@@ -33,9 +22,6 @@ export type SelectionAction =
   | { type: 'clear' }
   | { type: 'selectAll' };
 
-/**
- * Selection event
- */
 export interface SelectionEvent {
   action: SelectionAction;
   modifiers: {
@@ -46,9 +32,6 @@ export interface SelectionEvent {
   timestamp: number;
 }
 
-/**
- * Convert typed IDs to selection items
- */
 export function nodeToSelectionItem(id: NodeID): SelectionItem {
   return { type: 'node', id };
 }
@@ -61,9 +44,6 @@ export function handleToSelectionItem(id: HandleID): SelectionItem {
   return { type: 'handle', id };
 }
 
-/**
- * Check if point is within bounds
- */
 export function isPointInBounds(
   point: { x: number; y: number },
   bounds: SelectionBounds
@@ -76,9 +56,6 @@ export function isPointInBounds(
   );
 }
 
-/**
- * Calculate selection bounds from two points
- */
 export function calculateSelectionBounds(
   start: { x: number; y: number },
   end: { x: number; y: number }

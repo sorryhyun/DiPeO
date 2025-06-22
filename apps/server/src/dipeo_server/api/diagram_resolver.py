@@ -1,4 +1,4 @@
-"""Refactored diagram resolvers using Pydantic models as single source of truth."""
+"""GraphQL resolvers for diagram operations."""
 from typing import Optional, List
 from datetime import datetime
 from collections import defaultdict
@@ -14,24 +14,20 @@ from dipeo_domain import DiagramDictFormat
 logger = logging.getLogger(__name__)
 
 class DiagramResolver:
-    """Resolver for diagram-related queries and mutations."""
+    """Handles diagram queries and data retrieval."""
     
     async def get_diagram(self, diagram_id: DiagramID, info) -> Optional[DomainDiagramType]:
-        """Get a single diagram by ID (loads from file path)."""
+        """Returns diagram by ID."""
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
-            # Get diagram service from GraphQL context
             diagram_service: DiagramService = info.context.diagram_service
             
-            # Load diagram data using get_diagram which handles ID to path conversion
             diagram_data = await diagram_service.get_diagram(diagram_id)
             
-            # Check if diagram was found
             if not diagram_data:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
             
-            # If metadata is missing, create it
             if 'metadata' not in diagram_data or not diagram_data['metadata']:
                 diagram_data['metadata'] = {
                     'id': diagram_id,
@@ -42,19 +38,15 @@ class DiagramResolver:
                     'modified': diagram_data.get('modified', datetime.now().isoformat())
                 }
             
-            # Convert to DomainDiagram then to GraphQL format
             diagram_dict = DiagramDictFormat.model_validate(diagram_data)
             graphql_diagram = diagram_dict_to_graphql(diagram_dict)
             
-            # Build handle_index for nested view
             handle_index = defaultdict(list)
             for handle in graphql_diagram.handles:
                 handle_index[handle.node_id].append(handle)
             
-            # Store handle_index in context for Node.handles() resolver
             info.context.handle_index = handle_index
             
-            # Return as Strawberry type
             return DomainDiagramType(
                 nodes=graphql_diagram.nodes,
                 handles=graphql_diagram.handles,
@@ -75,32 +67,26 @@ class DiagramResolver:
         offset: int,
         info
     ) -> List[DomainDiagramType]:
-        """List diagrams with optional filtering."""
+        """Returns filtered diagram list."""
         try:
-            # Get diagram service from GraphQL context
             diagram_service: DiagramService = info.context.diagram_service
             
-            # Get all diagram files
             all_diagrams = diagram_service.list_diagram_files()
             
-            # Apply filtering if provided
             filtered_diagrams = all_diagrams
             if filter:
-                # Filter by name
                 if filter.name:
                     filtered_diagrams = [
                         d for d in filtered_diagrams 
                         if filter.name.lower() in d['name'].lower()
                     ]
                 
-                # Filter by format
                 if filter.format:
                     filtered_diagrams = [
                         d for d in filtered_diagrams 
                         if d['format'] == filter.format
                     ]
                 
-                # Filter by modified date
                 if filter.modifiedAfter:
                     filtered_diagrams = [
                         d for d in filtered_diagrams 
@@ -113,25 +99,21 @@ class DiagramResolver:
                         if datetime.fromisoformat(d['modified']) <= filter.modifiedBefore
                     ]
             
-            # Apply pagination
             start = offset
             end = offset + limit
             paginated_diagrams = filtered_diagrams[start:end]
             
-            # Convert to Diagram objects with minimal data (metadata only for listing)
             result = []
             for diagram_info in paginated_diagrams:
-                # Create metadata from file info
                 metadata = DiagramMetadata(
                     id=diagram_info['path'],  # Use path as ID for loading
                     name=diagram_info['name'],
                     description=f"Format: {diagram_info['format']}, Size: {diagram_info['size']} bytes",
-                    created=datetime.fromisoformat(diagram_info['modified']),  # Use modified as created for now
+                    created=datetime.fromisoformat(diagram_info['modified']),
                     modified=datetime.fromisoformat(diagram_info['modified']),
                     version='2.0.0'
                 )
                 
-                # Create a minimal Diagram object with just metadata
                 diagram = DomainDiagramType(
                     nodes=[],
                     handles=[],

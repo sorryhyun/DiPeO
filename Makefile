@@ -36,8 +36,7 @@ install-all: install-py install-web install-cli
 # Code generation
 codegen:
 	@echo "🔄 Generating code from domain models..."
-	cd packages/domain-models && pnpm build
-	./codegen.sh
+	./dev.sh --generate
 
 # Development servers
 dev-server:

@@ -1,4 +1,4 @@
-"""Consolidated mutations for graph elements (arrows and handles) using Pydantic models."""
+"""GraphQL mutations for diagram arrows and handles."""
 import strawberry
 import logging
 import uuid
@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class GraphElementMutations:
-    """Mutations for graph element operations (arrows and handles)."""
-    
-    # Arrow mutations
+    """Handles arrow and handle CRUD operations."""
     
     @strawberry.mutation
     async def create_arrow(
@@ -31,19 +29,17 @@ class GraphElementMutations:
         input: CreateArrowInput,
         info
     ) -> DiagramResult:
-        """Create a new arrow between handles."""
+        """Creates arrow connection between handles."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticCreateArrowInput(
                 source=input.source,
                 target=input.target,
                 label=input.label
             )
             
-            # Load diagram
             diagram_data = diagram_service.load_diagram(diagram_id)
             if not diagram_data:
                 return DiagramResult(
@@ -51,11 +47,9 @@ class GraphElementMutations:
                     error="Diagram not found"
                 )
             
-            # Validate that source and target handles exist
             source_node_id, source_handle = pydantic_input.source.split(':')
             target_node_id, target_handle = pydantic_input.target.split(':')
             
-            # Check if nodes exist
             if source_node_id not in diagram_data.get('nodes', {}):
                 return DiagramResult(
                     success=False,
@@ -68,26 +62,21 @@ class GraphElementMutations:
                     error=f"Target node {target_node_id} not found"
                 )
             
-            # Generate arrow ID
             arrow_id = f"arrow_{str(uuid.uuid4())[:8]}"
             
-            # Create Pydantic arrow model
             arrow = DomainArrow(
                 id=arrow_id,
-                source=pydantic_input.source,  # Already validated format
-                target=pydantic_input.target,  # Already validated format
+                source=pydantic_input.source,
+                target=pydantic_input.target,
                 data={"label": pydantic_input.label} if pydantic_input.label else None
             )
             
-            # Add arrow to diagram
             if "arrows" not in diagram_data:
                 diagram_data["arrows"] = {}
             diagram_data["arrows"][arrow_id] = arrow.model_dump()
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
-            # Convert entire diagram to GraphQL type for return
             diagram_dict_format = DiagramDictFormat.model_validate(diagram_data)
             graphql_diagram = diagram_dict_to_graphql(diagram_dict_format)
             
@@ -98,7 +87,6 @@ class GraphElementMutations:
             )
             
         except ValueError as e:
-            # Pydantic validation error
             logger.error(f"Validation error creating arrow: {e}")
             return DiagramResult(
                 success=False,
@@ -113,12 +101,11 @@ class GraphElementMutations:
     
     @strawberry.mutation
     async def delete_arrow(self, id: ArrowID, info) -> DeleteResult:
-        """Delete an arrow."""
+        """Removes arrow from diagram."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Find diagram containing this arrow
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
             diagram_data = None
@@ -136,10 +123,8 @@ class GraphElementMutations:
                     error=f"Arrow {id} not found in any diagram"
                 )
             
-            # Remove arrow
             del diagram_data['arrows'][id]
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             return DeleteResult(
@@ -155,20 +140,17 @@ class GraphElementMutations:
                 error=f"Failed to delete arrow: {str(e)}"
             )
     
-    # Handle mutations
-    
     @strawberry.mutation
     async def create_handle(
         self,
         input: CreateHandleInput,
         info
     ) -> HandleResult:
-        """Create a new handle for a node."""
+        """Creates handle for node connection point."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticCreateHandleInput(
                 node_id=input.node_id,
                 label=input.label,
@@ -196,21 +178,18 @@ class GraphElementMutations:
                     error=f"Node {pydantic_input.node_id} not found in any diagram"
                 )
             
-            # Generate handle ID using node ID and handle label
             handle_id = f"{pydantic_input.node_id}:{pydantic_input.label}"
             
-            # Check if handle already exists
             if handle_id in diagram_data.get('handles', {}):
                 return HandleResult(
                     success=False,
                     error=f"Handle '{pydantic_input.label}' already exists for node {pydantic_input.node_id}"
                 )
             
-            # Create Pydantic handle model
             handle = DomainHandle(
                 id=handle_id,
                 nodeId=pydantic_input.node_id,
-                label=pydantic_input.label,  # Already trimmed by validation
+                label=pydantic_input.label,
                 direction=pydantic_input.direction,
                 dataType=pydantic_input.data_type,
                 maxConnections=pydantic_input.max_connections,
@@ -220,17 +199,15 @@ class GraphElementMutations:
                 ) if pydantic_input.position else None
             )
             
-            # Add handle to diagram
             if "handles" not in diagram_data:
                 diagram_data["handles"] = {}
             diagram_data["handles"][handle_id] = handle.model_dump()
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             return HandleResult(
                 success=True,
-                handle=handle,  # Strawberry will handle conversion
+                handle=handle,
                 message=f"Created handle {handle_id}"
             )
             
@@ -250,7 +227,7 @@ class GraphElementMutations:
     
     @strawberry.mutation
     async def delete_handle(self, id: HandleID, info) -> DeleteResult:
-        """Delete a handle."""
+        """Removes handle and connected arrows."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
@@ -273,10 +250,8 @@ class GraphElementMutations:
                     error=f"Handle {id} not found in any diagram"
                 )
             
-            # Remove handle
             del diagram_data['handles'][id]
             
-            # Remove any arrows connected to this handle
             arrows_to_remove = []
             for arrow_id, arrow in diagram_data.get('arrows', {}).items():
                 if arrow['source'] == id or arrow['target'] == id:
@@ -285,7 +260,6 @@ class GraphElementMutations:
             for arrow_id in arrows_to_remove:
                 del diagram_data['arrows'][arrow_id]
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             return DeleteResult(

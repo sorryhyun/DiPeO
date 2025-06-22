@@ -1,4 +1,4 @@
-"""Refactored execution resolvers using Pydantic models."""
+"""GraphQL resolvers for execution operations."""
 from typing import Optional, List
 import logging
 from datetime import datetime
@@ -18,10 +18,10 @@ from dipeo_domain import (
 logger = logging.getLogger(__name__)
 
 class ExecutionResolver:
-    """Resolver for execution-related queries and mutations."""
+    """Handles execution queries and state retrieval."""
     
     async def get_execution(self, execution_id: ExecutionID, info) -> Optional[ExecutionState]:
-        """Get a single execution by ID."""
+        """Returns execution by ID."""
         try:
             context: GraphQLContext = info.context
             state_store = context.state_store
@@ -45,7 +45,7 @@ class ExecutionResolver:
         offset: int,
         info
     ) -> List[ExecutionState]:
-        """List executions with optional filtering."""
+        """Returns filtered execution list."""
         try:
             context: GraphQLContext = info.context
             state_store = context.state_store
@@ -99,10 +99,7 @@ class ExecutionResolver:
         limit: int,
         info
     ) -> List[ExecutionEvent]:
-        """
-        DEPRECATED: Events are no longer stored. Use execution state subscriptions instead.
-        This method always returns an empty list.
-        """
+        """DEPRECATED: Returns empty list, use subscriptions instead."""
         logger.warning(f"DEPRECATED: get_execution_events called for {execution_id} - events are no longer stored")
         return []
     

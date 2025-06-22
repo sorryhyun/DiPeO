@@ -1,4 +1,4 @@
-"""Refactored person and API key resolvers using Pydantic models."""
+"""GraphQL resolvers for person and API key operations."""
 from typing import Optional, List
 import logging
 
@@ -10,22 +10,22 @@ from dipeo_server.core import LLMService
 logger = logging.getLogger(__name__)
 
 class PersonResolver:
-    """Resolver for person and API key related queries."""
+    """Handles person and API key queries."""
     
     async def get_person(self, person_id: PersonID, info) -> Optional[DomainPerson]:
-        """Get a single person by ID."""
-        # Persons are diagram-scoped, not standalone entities
+        """Returns person by ID."""
+        # Persons are diagram-scoped
         logger.warning(f"get_person called for {person_id} - persons are diagram-scoped")
         return None
     
     async def list_persons(self, limit: int, info) -> List[DomainPerson]:
-        """List all persons."""
-        # Persons are diagram-scoped, not global entities
+        """Returns person list."""
+        # Persons are diagram-scoped
         logger.warning("list_persons called - persons are diagram-scoped")
         return []
     
     async def get_api_key(self, api_key_id: ApiKeyID, info) -> Optional[DomainApiKey]:
-        """Get a single API key by ID."""
+        """Returns API key by ID."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
@@ -35,7 +35,7 @@ class PersonResolver:
             if not api_key_data:
                 return None
             
-            # Only return API keys for LLM services
+            # Only LLM service keys
             if not self._is_llm_service(api_key_data['service']):
                 logger.debug(f"API key {api_key_id} is for non-LLM service: {api_key_data['service']}")
                 return None
@@ -53,7 +53,7 @@ class PersonResolver:
             return None
     
     async def list_api_keys(self, service: Optional[str], info) -> List[DomainApiKey]:
-        """List all API keys, optionally filtered by service."""
+        """Returns API key list, optionally filtered."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
@@ -65,7 +65,7 @@ class PersonResolver:
             
             result = []
             for key_data in all_keys:
-                # Only include API keys for LLM services
+                # Only LLM service keys
                 if self._is_llm_service(key_data['service']):
                     pydantic_api_key = DomainApiKey(
                         id=key_data['id'],
@@ -83,7 +83,7 @@ class PersonResolver:
             return []
     
     async def get_available_models(self, service: str, api_key_id: ApiKeyID, info) -> List[str]:
-        """Get available models for a service and API key."""
+        """Returns available models for service/API key."""
         try:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
@@ -100,7 +100,7 @@ class PersonResolver:
             return []
     
     def _is_llm_service(self, service: str) -> bool:
-        """Check if a service is a valid LLM service."""
+        """Validates LLM service."""
         try:
             LLMService(service.lower())
             return True
@@ -108,7 +108,7 @@ class PersonResolver:
             return False
     
     def _map_service(self, service: str) -> LLMService:
-        """Map service string to LLMService enum."""
+        """Maps service string to enum."""
         try:
             return LLMService(service.lower())
         except ValueError:

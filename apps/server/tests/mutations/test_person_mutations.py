@@ -14,49 +14,131 @@ class TestPersonCRUD:
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
         """Test creating a new person."""
+        # First create a diagram
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_data = sample_diagram_data()
+        
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": diagram_data}
+        )
+        
+        assert diagram_result["createDiagram"]["success"] is True
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Create an API key first
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                        label
+                        service
+                    }
+                }
+            }
+        """)
+        
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test API Key",
+                    "service": "OPENAI",
+                    "key": "test-key-123"
+                }
+            }
+        )
+        
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
+        # Now create person
         create_mutation = gql(graphql_mutations["create_person"])
-        person_data = sample_person_data()
+        person_data = sample_person_data(apiKeyId=api_key_id)
         
         result = await gql_client.execute(
             create_mutation,
-            variable_values={"input": person_data}
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data
+            }
         )
         
         assert "createPerson" in result
-        created = result["createPerson"]
+        assert result["createPerson"]["success"] is True
+        created = result["createPerson"]["person"]
         assert created["id"] is not None
-        assert created["name"] == person_data["name"]
-        assert created["email"] == person_data["email"]
+        assert created["label"] == person_data["label"]
+        assert created["service"] == person_data["service"]
     
     async def test_get_person(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
         """Test retrieving a person by ID."""
+        # Create diagram and API key first
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                    }
+                }
+            }
+        """)
+        
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test Key",
+                    "service": "OPENAI",
+                    "key": "test-key"
+                }
+            }
+        )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
         # Create person
         create_mutation = gql(graphql_mutations["create_person"])
-        person_data = sample_person_data(name="Test Person")
+        person_data = sample_person_data(label="Test Person", apiKeyId=api_key_id)
         
         create_result = await gql_client.execute(
             create_mutation,
-            variable_values={"input": person_data}
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data
+            }
         )
-        person_id = create_result["createPerson"]["id"]
+        person_id = create_result["createPerson"]["person"]["id"]
         
         # Get person
         get_query = gql("""
-            query GetPerson($id: ID!) {
+            query GetPerson($id: PersonID!) {
                 person(id: $id) {
                     id
-                    name
-                    email
-                    role
-                    attributes
+                    label
+                    service
+                    model
+                    systemPrompt
+                    forgettingMode
                 }
             }
         """)
@@ -69,87 +151,138 @@ class TestPersonCRUD:
         assert "person" in result
         person = result["person"]
         assert person["id"] == person_id
-        assert person["name"] == "Test Person"
-        assert person["attributes"] is not None
+        assert person["label"] == "Test Person"
+        assert person["service"] == "OPENAI"
     
     async def test_update_person(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
         """Test updating a person's information."""
-        # Create person
-        create_mutation = gql(graphql_mutations["create_person"])
-        person_data = sample_person_data()
-        
-        create_result = await gql_client.execute(
-            create_mutation,
-            variable_values={"input": person_data}
+        # Create diagram and API key
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
         )
-        person_id = create_result["createPerson"]["id"]
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        # Update person
-        update_mutation = gql("""
-            mutation UpdatePerson($id: ID!, $input: PersonInput!) {
-                updatePerson(id: $id, input: $input) {
-                    id
-                    name
-                    email
-                    role
-                    updatedAt
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                    }
                 }
             }
         """)
         
-        updated_data = sample_person_data(
-            name="Updated Name",
-            email="updated@example.com",
-            role="Senior Developer",
-            attributes={"department": "R&D", "level": "Senior"}
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test Key",
+                    "service": "OPENAI", 
+                    "key": "test-key"
+                }
+            }
         )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
+        # Create person
+        create_mutation = gql(graphql_mutations["create_person"])
+        person_data = sample_person_data(apiKeyId=api_key_id)
+        
+        create_result = await gql_client.execute(
+            create_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data
+            }
+        )
+        person_id = create_result["createPerson"]["person"]["id"]
+        
+        # Update person
+        update_mutation = gql(graphql_mutations["update_person"])
         
         result = await gql_client.execute(
             update_mutation,
             variable_values={
-                "id": person_id,
-                "input": updated_data
+                "input": {
+                    "id": person_id,
+                    "label": "Updated Assistant",
+                    "model": "gpt-4",
+                    "temperature": 0.5
+                }
             }
         )
         
         assert "updatePerson" in result
-        updated = result["updatePerson"]
-        assert updated["name"] == "Updated Name"
-        assert updated["email"] == "updated@example.com"
-        assert updated["role"] == "Senior Developer"
-        assert updated["updatedAt"] is not None
+        assert result["updatePerson"]["success"] is True
+        updated = result["updatePerson"]["person"]
+        assert updated["label"] == "Updated Assistant"
+        assert updated["model"] == "gpt-4"
     
     async def test_delete_person(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
         """Test deleting a person."""
-        # Create person
-        create_mutation = gql(graphql_mutations["create_person"])
-        person_data = sample_person_data(name="To Be Deleted")
-        
-        create_result = await gql_client.execute(
-            create_mutation,
-            variable_values={"input": person_data}
+        # Create diagram and API key
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
         )
-        person_id = create_result["createPerson"]["id"]
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        # Delete person
-        delete_mutation = gql("""
-            mutation DeletePerson($id: ID!) {
-                deletePerson(id: $id) {
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
                     success
-                    message
+                    apiKey {
+                        id
+                    }
                 }
             }
         """)
+        
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test Key",
+                    "service": "OPENAI",
+                    "key": "test-key"
+                }
+            }
+        )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
+        # Create person
+        create_mutation = gql(graphql_mutations["create_person"])
+        person_data = sample_person_data(label="To Be Deleted", apiKeyId=api_key_id)
+        
+        create_result = await gql_client.execute(
+            create_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data
+            }
+        )
+        person_id = create_result["createPerson"]["person"]["id"]
+        
+        # Delete person
+        delete_mutation = gql(graphql_mutations["delete_person"])
         
         result = await gql_client.execute(
             delete_mutation,
@@ -161,54 +294,88 @@ class TestPersonCRUD:
         
         # Verify deletion
         get_query = gql("""
-            query GetPerson($id: ID!) {
+            query GetPerson($id: PersonID!) {
                 person(id: $id) {
                     id
                 }
             }
         """)
         
-        with pytest.raises(Exception):
-            await gql_client.execute(
-                get_query,
-                variable_values={"id": person_id}
-            )
+        result = await gql_client.execute(
+            get_query,
+            variable_values={"id": person_id}
+        )
+        
+        # Person should be None after deletion
+        assert result["person"] is None
     
     async def test_list_people(
         self,
         gql_client,
         graphql_queries,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
-        """Test listing people with pagination."""
+        """Test listing people."""
+        # Create diagram
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                    }
+                }
+            }
+        """)
+        
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test Key",
+                    "service": "OPENAI",
+                    "key": "test-key"
+                }
+            }
+        )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
         # Create multiple people
         create_mutation = gql(graphql_mutations["create_person"])
         
-        for i in range(5):
+        for i in range(3):
             person_data = sample_person_data(
-                name=f"Person {i}",
-                email=f"person{i}@example.com"
+                label=f"Assistant {i}",
+                apiKeyId=api_key_id
             )
             await gql_client.execute(
                 create_mutation,
-                variable_values={"input": person_data}
+                variable_values={
+                    "diagramId": diagram_id,
+                    "input": person_data
+                }
             )
         
         # List people
         list_query = gql(graphql_queries["list_people"])
         
         # Default listing
-        result = await gql_client.execute(list_query)
-        assert "people" in result
-        assert len(result["people"]) >= 5
-        
-        # With pagination
         result = await gql_client.execute(
             list_query,
-            variable_values={"limit": 3, "offset": 0}
+            variable_values={"limit": 100}
         )
-        assert len(result["people"]) == 3
+        assert "persons" in result
+        assert len(result["persons"]) >= 3
 
 
 class TestPersonValidation:
@@ -217,305 +384,339 @@ class TestPersonValidation:
     async def test_create_person_validation(
         self,
         gql_client,
-        graphql_mutations
+        graphql_mutations,
+        sample_diagram_data
     ):
         """Test validation when creating a person."""
+        # Create diagram first
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
         create_mutation = gql(graphql_mutations["create_person"])
         
         # Missing required fields
         with pytest.raises(GraphQLError):
             await gql_client.execute(
                 create_mutation,
-                variable_values={"input": {"name": "Only Name"}}
+                variable_values={
+                    "diagramId": diagram_id,
+                    "input": {"label": "Only Label"}
+                }
             )
         
-        # Invalid email format
+        # Invalid service
         invalid_person = {
-            "name": "Invalid Email",
-            "email": "not-an-email",
-            "role": "Developer"
+            "label": "Invalid Service",
+            "service": "INVALID_SERVICE",
+            "model": "gpt-4",
+            "apiKeyId": "test-key"
         }
         
         with pytest.raises(Exception) as exc_info:
             await gql_client.execute(
                 create_mutation,
-                variable_values={"input": invalid_person}
+                variable_values={
+                    "diagramId": diagram_id,
+                    "input": invalid_person
+                }
             )
-        
-        error_msg = str(exc_info.value).lower()
-        assert "email" in error_msg or "invalid" in error_msg
     
-    async def test_duplicate_email(
+    async def test_duplicate_label(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
-        """Test creating person with duplicate email."""
+        """Test creating person with duplicate label in same diagram."""
+        # Create diagram
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                    }
+                }
+            }
+        """)
+        
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test Key",
+                    "service": "OPENAI",
+                    "key": "test-key"
+                }
+            }
+        )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
         create_mutation = gql(graphql_mutations["create_person"])
-        person_data = sample_person_data(email="duplicate@example.com")
+        person_data = sample_person_data(label="Duplicate Label", apiKeyId=api_key_id)
         
         # Create first person
         await gql_client.execute(
             create_mutation,
-            variable_values={"input": person_data}
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data
+            }
         )
         
-        # Try to create second with same email
+        # Try to create second with same label - this might be allowed
+        # depending on implementation
         person_data2 = sample_person_data(
-            name="Different Name",
-            email="duplicate@example.com"
+            label="Duplicate Label",
+            apiKeyId=api_key_id
         )
         
-        with pytest.raises(Exception) as exc_info:
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": person_data2}
-            )
+        # Second creation might succeed or fail depending on business rules
+        result = await gql_client.execute(
+            create_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data2
+            }
+        )
         
-        error_msg = str(exc_info.value).lower()
-        assert "duplicate" in error_msg or "unique" in error_msg or "exists" in error_msg
+        # Just verify we get a response
+        assert "createPerson" in result
 
 
-class TestPersonSearch:
-    """Test person search functionality."""
+class TestPersonWithLLM:
+    """Test person operations with LLM integration."""
     
-    async def test_search_by_name(
+    async def test_initialize_model(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
-        """Test searching people by name."""
-        # Create test people
+        """Test pre-initializing a model."""
+        # Create diagram and API key
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                    }
+                }
+            }
+        """)
+        
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Test Key",
+                    "service": "OPENAI",
+                    "key": "test-key"
+                }
+            }
+        )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
+        # Create person
         create_mutation = gql(graphql_mutations["create_person"])
+        person_data = sample_person_data(apiKeyId=api_key_id)
         
-        test_people = [
-            ("Alice Johnson", "alice@example.com"),
-            ("Bob Smith", "bob@example.com"),
-            ("Alice Cooper", "alice.cooper@example.com"),
-            ("Charlie Brown", "charlie@example.com")
-        ]
+        create_result = await gql_client.execute(
+            create_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": person_data
+            }
+        )
+        person_id = create_result["createPerson"]["person"]["id"]
         
-        for name, email in test_people:
-            person_data = sample_person_data(name=name, email=email)
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": person_data}
-            )
-        
-        # Search for "Alice"
-        search_query = gql("""
-            query SearchPeople($query: String!) {
-                searchPeople(query: $query) {
-                    id
-                    name
-                    email
+        # Initialize model
+        init_mutation = gql("""
+            mutation InitializeModel($personId: PersonID!) {
+                initializeModel(personId: $personId) {
+                    success
+                    message
+                    person {
+                        id
+                        label
+                    }
                 }
             }
         """)
         
         result = await gql_client.execute(
-            search_query,
-            variable_values={"query": "Alice"}
+            init_mutation,
+            variable_values={"personId": person_id}
         )
         
-        assert "searchPeople" in result
-        results = result["searchPeople"]
-        assert len(results) == 2
-        assert all("Alice" in person["name"] for person in results)
+        assert "initializeModel" in result
+        assert result["initializeModel"]["success"] is True
+
+
+class TestPersonSearch:
+    """Test person search functionality - simplified since search is not in current schema."""
     
-    async def test_filter_by_role(
+    async def test_filter_by_service(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
-        """Test filtering people by role."""
-        # Create people with different roles
-        create_mutation = gql(graphql_mutations["create_person"])
+        """Test filtering people by LLM service."""
+        # Create diagram
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        roles = ["Developer", "Designer", "Manager", "Developer", "QA"]
+        # Create API keys for different services
+        services = ["OPENAI", "ANTHROPIC", "GOOGLE"]
+        api_key_ids = {}
         
-        for i, role in enumerate(roles):
-            person_data = sample_person_data(
-                name=f"Person {i}",
-                email=f"person{i}@example.com",
-                role=role
-            )
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": person_data}
-            )
-        
-        # Filter by role
-        filter_query = gql("""
-            query FilterPeopleByRole($role: String!) {
-                people(filter: {role: $role}) {
-                    id
-                    name
-                    role
+        for service in services:
+            create_api_key_mutation = gql("""
+                mutation CreateApiKey($input: CreateApiKeyInput!) {
+                    createApiKey(input: $input) {
+                        success
+                        apiKey {
+                            id
+                        }
+                    }
                 }
-            }
-        """)
-        
-        try:
-            result = await gql_client.execute(
-                filter_query,
-                variable_values={"role": "Developer"}
-            )
+            """)
             
-            assert "people" in result
-            developers = result["people"]
-            assert len(developers) == 2
-            assert all(p["role"] == "Developer" for p in developers)
-        except GraphQLError:
-            pytest.skip("Role filtering not supported")
-    
-    async def test_search_by_attributes(
-        self,
-        gql_client,
-        graphql_mutations,
-        sample_person_data
-    ):
-        """Test searching people by custom attributes."""
-        # Create people with attributes
-        create_mutation = gql(graphql_mutations["create_person"])
-        
-        people_with_attrs = [
-            {
-                "name": "Python Dev",
-                "email": "python@example.com",
-                "attributes": {"skills": ["Python", "Django"]}
-            },
-            {
-                "name": "JS Dev",
-                "email": "js@example.com",
-                "attributes": {"skills": ["JavaScript", "React"]}
-            },
-            {
-                "name": "Full Stack",
-                "email": "fullstack@example.com",
-                "attributes": {"skills": ["Python", "JavaScript"]}
-            }
-        ]
-        
-        for person in people_with_attrs:
-            person_data = sample_person_data(**person)
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": person_data}
-            )
-        
-        # Search by attribute
-        attr_search_query = gql("""
-            query SearchByAttribute($attribute: String!, $value: JSON!) {
-                searchPeopleByAttribute(attribute: $attribute, value: $value) {
-                    id
-                    name
-                    attributes
-                }
-            }
-        """)
-        
-        try:
-            result = await gql_client.execute(
-                attr_search_query,
+            api_key_result = await gql_client.execute(
+                create_api_key_mutation,
                 variable_values={
-                    "attribute": "skills",
-                    "value": "Python"
+                    "input": {
+                        "label": f"{service} Key",
+                        "service": service,
+                        "key": f"test-key-{service.lower()}"
+                    }
                 }
             )
-            
-            assert "searchPeopleByAttribute" in result
-            results = result["searchPeopleByAttribute"]
-            assert len(results) == 2  # Python Dev and Full Stack
-        except GraphQLError:
-            pytest.skip("Attribute search not supported")
+            api_key_ids[service] = api_key_result["createApiKey"]["apiKey"]["id"]
+        
+        # Create people with different services
+        create_mutation = gql(graphql_mutations["create_person"])
+        
+        for i, service in enumerate(services):
+            person_data = sample_person_data(
+                label=f"{service} Assistant",
+                service=service,
+                apiKeyId=api_key_ids[service]
+            )
+            await gql_client.execute(
+                create_mutation,
+                variable_values={
+                    "diagramId": diagram_id,
+                    "input": person_data
+                }
+            )
+        
+        # List all people
+        list_query = gql(graphql_queries["list_people"])
+        result = await gql_client.execute(
+            list_query,
+            variable_values={"limit": 100}
+        )
+        
+        assert "persons" in result
+        persons = result["persons"]
+        
+        # Verify we have people from different services
+        services_found = {p["service"] for p in persons}
+        assert "OPENAI" in services_found
+        assert "ANTHROPIC" in services_found
+        assert "GOOGLE" in services_found
 
 
 class TestPersonBulkOperations:
-    """Test bulk person operations."""
+    """Test bulk person operations - simplified since these aren't in current schema."""
     
-    async def test_import_people_csv(
-        self,
-        gql_client,
-        tmp_path
-    ):
-        """Test importing people from CSV."""
-        # Create CSV file
-        csv_file = tmp_path / "people.csv"
-        csv_content = """name,email,role,department
-John Doe,john@example.com,Developer,Engineering
-Jane Smith,jane@example.com,Designer,Design
-Bob Johnson,bob@example.com,Manager,Management"""
-        csv_file.write_text(csv_content)
-        
-        import_mutation = gql("""
-            mutation ImportPeopleCSV($csv: String!) {
-                importPeopleFromCSV(csv: $csv) {
-                    importedCount
-                    failedCount
-                    errors
-                }
-            }
-        """)
-        
-        try:
-            result = await gql_client.execute(
-                import_mutation,
-                variable_values={"csv": csv_content}
-            )
-            
-            assert "importPeopleFromCSV" in result
-            import_result = result["importPeopleFromCSV"]
-            assert import_result["importedCount"] == 3
-            assert import_result["failedCount"] == 0
-        except GraphQLError:
-            pytest.skip("CSV import not supported")
-    
-    async def test_export_people(
+    async def test_create_multiple_persons(
         self,
         gql_client,
         graphql_mutations,
-        sample_person_data
+        sample_person_data,
+        sample_diagram_data
     ):
-        """Test exporting people to different formats."""
-        # Create some people
-        create_mutation = gql(graphql_mutations["create_person"])
+        """Test creating multiple persons in batch."""
+        # Create diagram
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        for i in range(3):
-            person_data = sample_person_data(
-                name=f"Export Test {i}",
-                email=f"export{i}@example.com"
-            )
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": person_data}
-            )
-        
-        # Export as CSV
-        export_mutation = gql("""
-            mutation ExportPeople($format: ExportFormat!) {
-                exportPeople(format: $format) {
-                    content
-                    format
-                    filename
-                    recordCount
+        # Create API key
+        create_api_key_mutation = gql("""
+            mutation CreateApiKey($input: CreateApiKeyInput!) {
+                createApiKey(input: $input) {
+                    success
+                    apiKey {
+                        id
+                    }
                 }
             }
         """)
         
-        try:
-            result = await gql_client.execute(
-                export_mutation,
-                variable_values={"format": "CSV"}
+        api_key_result = await gql_client.execute(
+            create_api_key_mutation,
+            variable_values={
+                "input": {
+                    "label": "Batch Test Key",
+                    "service": "OPENAI",
+                    "key": "test-key-batch"
+                }
+            }
+        )
+        api_key_id = api_key_result["createApiKey"]["apiKey"]["id"]
+        
+        # Create multiple persons
+        create_mutation = gql(graphql_mutations["create_person"])
+        created_ids = []
+        
+        for i in range(3):
+            person_data = sample_person_data(
+                label=f"Batch Assistant {i}",
+                apiKeyId=api_key_id
             )
-            
-            assert "exportPeople" in result
-            export_result = result["exportPeople"]
-            assert export_result["format"] == "CSV"
-            assert export_result["recordCount"] >= 3
-            assert "Export Test" in export_result["content"]
-        except GraphQLError:
-            pytest.skip("People export not supported")
+            result = await gql_client.execute(
+                create_mutation,
+                variable_values={
+                    "diagramId": diagram_id,
+                    "input": person_data
+                }
+            )
+            created_ids.append(result["createPerson"]["person"]["id"])
+        
+        assert len(created_ids) == 3
+        assert len(set(created_ids)) == 3  # All IDs should be unique

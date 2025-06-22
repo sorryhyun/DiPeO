@@ -13,8 +13,8 @@ from ..schemas.job import JobNodeProps
 from dipeo_domain import SupportedLanguage
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..base import BaseNodeHandler, substitute_variables, log_action
-
+from ..base import BaseNodeHandler, log_action
+from ..executor_utils import substitute_variables
 
 # Generic helpers (unchanged)
 

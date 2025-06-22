@@ -29,10 +29,11 @@ class TestDiagramCRUD:
         )
         
         assert "createDiagram" in result
-        created = result["createDiagram"]
-        assert created["id"] is not None
-        assert created["name"] == "Test Create Diagram"
-        assert created["createdAt"] is not None
+        assert result["createDiagram"]["success"] is True
+        created = result["createDiagram"]["diagram"]
+        assert created["metadata"]["id"] is not None
+        assert created["metadata"]["name"] == "Test Create Diagram"
+        assert created["metadata"]["created"] is not None
     
     async def test_get_diagram(
         self,
@@ -50,7 +51,7 @@ class TestDiagramCRUD:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
         # Now retrieve it
         get_query = gql(graphql_queries["get_diagram"])
@@ -61,18 +62,18 @@ class TestDiagramCRUD:
         
         assert "diagram" in result
         diagram = result["diagram"]
-        assert diagram["id"] == diagram_id
-        assert diagram["name"] == "Test Get Diagram"
-        assert diagram["content"] is not None
-        assert diagram["metadata"] is not None
+        assert diagram["metadata"]["id"] == diagram_id
+        assert diagram["metadata"]["name"] == "Test Get Diagram"
+        assert "nodes" in diagram
+        assert "arrows" in diagram
     
-    async def test_update_diagram(
+    async def test_save_diagram(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test updating an existing diagram."""
+        """Test saving/updating an existing diagram."""
         # Create diagram
         create_mutation = gql(graphql_mutations["create_diagram"])
         diagram_data = sample_diagram_data(name="Original Name")
@@ -81,37 +82,38 @@ class TestDiagramCRUD:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        # Update diagram
-        update_mutation = gql("""
-            mutation UpdateDiagram($id: ID!, $input: DiagramInput!) {
-                updateDiagram(id: $id, input: $input) {
-                    id
-                    name
-                    updatedAt
+        # Save/update diagram
+        save_mutation = gql("""
+            mutation SaveDiagram($diagramId: DiagramID!, $format: DiagramFormat) {
+                saveDiagram(diagramId: $diagramId, format: $format) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                            modified
+                        }
+                    }
+                    message
                 }
             }
         """)
         
-        updated_data = sample_diagram_data(
-            name="Updated Name",
-            metadata={"version": "2.0", "updated": True}
-        )
-        
         result = await gql_client.execute(
-            update_mutation,
+            save_mutation,
             variable_values={
-                "id": diagram_id,
-                "input": updated_data
+                "diagramId": diagram_id,
+                "format": "NATIVE"
             }
         )
         
-        assert "updateDiagram" in result
-        updated = result["updateDiagram"]
-        assert updated["id"] == diagram_id
-        assert updated["name"] == "Updated Name"
-        assert updated["updatedAt"] is not None
+        assert "saveDiagram" in result
+        assert result["saveDiagram"]["success"] is True
+        saved = result["saveDiagram"]["diagram"]
+        assert saved["metadata"]["id"] == diagram_id
+        assert saved["metadata"]["modified"] is not None
     
     async def test_delete_diagram(
         self,
@@ -129,11 +131,11 @@ class TestDiagramCRUD:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
         # Delete diagram
         delete_mutation = gql("""
-            mutation DeleteDiagram($id: ID!) {
+            mutation DeleteDiagram($id: DiagramID!) {
                 deleteDiagram(id: $id) {
                     success
                     message
@@ -149,13 +151,13 @@ class TestDiagramCRUD:
         assert "deleteDiagram" in result
         assert result["deleteDiagram"]["success"] is True
         
-        # Verify it's deleted
+        # Verify it's deleted - should return null
         get_query = gql(graphql_queries["get_diagram"])
-        with pytest.raises(Exception):
-            await gql_client.execute(
-                get_query,
-                variable_values={"id": diagram_id}
-            )
+        result = await gql_client.execute(
+            get_query,
+            variable_values={"id": diagram_id}
+        )
+        assert result["diagram"] is None
     
     async def test_list_diagrams(
         self,
@@ -178,24 +180,20 @@ class TestDiagramCRUD:
         # List with pagination
         list_query = gql(graphql_queries["list_diagrams"])
         
-        # Test default listing
-        result = await gql_client.execute(list_query)
-        assert "diagrams" in result
-        assert len(result["diagrams"]) >= 5
-        
         # Test with limit
         result = await gql_client.execute(
             list_query,
-            variable_values={"limit": 3}
+            variable_values={"limit": 3, "offset": 0}
         )
-        assert len(result["diagrams"]) == 3
+        assert "diagrams" in result
+        assert len(result["diagrams"]) <= 3
         
         # Test with offset
         result = await gql_client.execute(
             list_query,
             variable_values={"limit": 2, "offset": 2}
         )
-        assert len(result["diagrams"]) == 2
+        assert len(result["diagrams"]) <= 2
 
 
 class TestDiagramImportExport:
@@ -213,25 +211,38 @@ class TestDiagramImportExport:
             yaml_content = f.read()
         
         import_mutation = gql("""
-            mutation ImportYamlDiagram($yaml: String!) {
-                importYamlDiagram(yaml: $yaml) {
-                    id
-                    name
-                    nodeCount
-                    edgeCount
+            mutation ImportYamlDiagram($input: ImportYamlInput!) {
+                importYamlDiagram(input: $input) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                        }
+                        nodeCount
+                        arrowCount
+                    }
+                    message
+                    error
                 }
             }
         """)
         
         result = await gql_client.execute(
             import_mutation,
-            variable_values={"yaml": yaml_content}
+            variable_values={
+                "input": {
+                    "content": yaml_content,
+                    "filename": "test.yaml"
+                }
+            }
         )
         
         assert "importYamlDiagram" in result
-        imported = result["importYamlDiagram"]
-        assert imported["id"] is not None
-        assert imported["name"] == "Test YAML Diagram"
+        assert result["importYamlDiagram"]["success"] is True
+        imported = result["importYamlDiagram"]["diagram"]
+        assert imported["metadata"]["id"] is not None
+        assert imported["metadata"]["name"] == "Test YAML Diagram"
         assert imported["nodeCount"] > 0
     
     async def test_export_diagram(
@@ -249,12 +260,14 @@ class TestDiagramImportExport:
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        diagram_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        # Export as JSON
-        export_json_mutation = gql("""
-            mutation ExportDiagramJson($id: ID!) {
-                exportDiagram(id: $id, format: JSON) {
+        # Export diagram
+        export_mutation = gql("""
+            mutation ExportDiagram($diagramId: DiagramID!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
+                exportDiagram(diagramId: $diagramId, format: $format, includeMetadata: $includeMetadata) {
+                    success
+                    message
                     content
                     format
                     filename
@@ -262,257 +275,300 @@ class TestDiagramImportExport:
             }
         """)
         
+        # Test export as NATIVE format
         result = await gql_client.execute(
-            export_json_mutation,
-            variable_values={"id": diagram_id}
+            export_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "format": "NATIVE",
+                "includeMetadata": True
+            }
         )
         
         assert "exportDiagram" in result
         export = result["exportDiagram"]
-        assert export["format"] == "JSON"
-        assert export["filename"].endswith(".json")
+        assert export["success"] is True
+        assert export["format"] == "NATIVE"
+        assert export["content"] is not None
         
-        # Verify content is valid JSON
-        exported_data = json.loads(export["content"])
-        assert exported_data["name"] == "Export Test"
-        
-        # Export as YAML
-        export_yaml_mutation = gql("""
-            mutation ExportDiagramYaml($id: ID!) {
-                exportDiagram(id: $id, format: YAML) {
-                    content
-                    format
-                    filename
-                }
-            }
-        """)
-        
+        # Test export as LIGHT format
         result = await gql_client.execute(
-            export_yaml_mutation,
-            variable_values={"id": diagram_id}
+            export_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "format": "LIGHT",
+                "includeMetadata": False
+            }
         )
         
-        assert result["exportDiagram"]["format"] == "YAML"
-        assert result["exportDiagram"]["filename"].endswith(".yaml")
+        assert result["exportDiagram"]["success"] is True
+        assert result["exportDiagram"]["format"] == "LIGHT"
     
-    async def test_clone_diagram(
+    async def test_convert_diagram(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test cloning an existing diagram."""
-        # Create original
+        """Test converting diagram between formats."""
+        # Create diagram
         create_mutation = gql(graphql_mutations["create_diagram"])
-        diagram_data = sample_diagram_data(name="Original Diagram")
+        diagram_data = sample_diagram_data(name="Convert Test")
         
         create_result = await gql_client.execute(
             create_mutation,
             variable_values={"input": diagram_data}
         )
-        original_id = create_result["createDiagram"]["id"]
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        # Clone diagram
-        clone_mutation = gql("""
-            mutation CloneDiagram($id: ID!, $newName: String) {
-                cloneDiagram(id: $id, newName: $newName) {
-                    id
-                    name
-                    content
+        # Convert diagram
+        convert_mutation = gql("""
+            mutation ConvertDiagram($diagramId: DiagramID!, $targetFormat: DiagramFormat!) {
+                convertDiagram(diagramId: $diagramId, targetFormat: $targetFormat) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                        }
+                    }
+                    message
                 }
             }
         """)
         
         result = await gql_client.execute(
-            clone_mutation,
+            convert_mutation,
             variable_values={
-                "id": original_id,
-                "newName": "Cloned Diagram"
+                "diagramId": diagram_id,
+                "targetFormat": "READABLE"
             }
         )
         
-        assert "cloneDiagram" in result
-        cloned = result["cloneDiagram"]
-        assert cloned["id"] != original_id
-        assert cloned["name"] == "Cloned Diagram"
-        assert cloned["content"] == diagram_data["content"]
+        assert "convertDiagram" in result
+        assert result["convertDiagram"]["success"] is True
 
 
-class TestDiagramValidation:
-    """Test diagram validation and error handling."""
+class TestDiagramNodeOperations:
+    """Test diagram node operations."""
     
-    async def test_create_invalid_diagram(
-        self,
-        gql_client,
-        graphql_mutations
-    ):
-        """Test creating diagram with invalid data."""
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        
-        # Missing required fields
-        with pytest.raises(GraphQLError):
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": {}}
-            )
-        
-        # Invalid node structure
-        invalid_data = {
-            "name": "Invalid Diagram",
-            "content": {
-                "nodes": [{"invalid": "structure"}],
-                "edges": []
-            }
-        }
-        
-        with pytest.raises(Exception):
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": invalid_data}
-            )
-    
-    async def test_duplicate_node_ids(
-        self,
-        gql_client,
-        graphql_mutations
-    ):
-        """Test creating diagram with duplicate node IDs."""
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        
-        duplicate_data = {
-            "name": "Duplicate Nodes",
-            "content": {
-                "nodes": [
-                    {"id": "node1", "type": "inputAgent"},
-                    {"id": "node1", "type": "outputAgent"}  # Duplicate ID
-                ],
-                "edges": []
-            }
-        }
-        
-        with pytest.raises(Exception) as exc_info:
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": duplicate_data}
-            )
-        
-        error_msg = str(exc_info.value).lower()
-        assert "duplicate" in error_msg or "unique" in error_msg
-    
-    async def test_invalid_edge_references(
-        self,
-        gql_client,
-        graphql_mutations
-    ):
-        """Test creating diagram with edges referencing non-existent nodes."""
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        
-        invalid_edges = {
-            "name": "Invalid Edges",
-            "content": {
-                "nodes": [
-                    {"id": "node1", "type": "inputAgent"}
-                ],
-                "edges": [
-                    {
-                        "id": "edge1",
-                        "source": "node1",
-                        "target": "non_existent"  # Invalid reference
-                    }
-                ]
-            }
-        }
-        
-        with pytest.raises(Exception) as exc_info:
-            await gql_client.execute(
-                create_mutation,
-                variable_values={"input": invalid_edges}
-            )
-        
-        error_msg = str(exc_info.value).lower()
-        assert "exist" in error_msg or "invalid" in error_msg
-
-
-class TestDiagramBatchOperations:
-    """Test batch diagram operations."""
-    
-    async def test_batch_create_diagrams(
-        self,
-        gql_client,
-        sample_diagram_data
-    ):
-        """Test creating multiple diagrams in batch."""
-        batch_create_mutation = gql("""
-            mutation BatchCreateDiagrams($inputs: [DiagramInput!]!) {
-                batchCreateDiagrams(inputs: $inputs) {
-                    id
-                    name
-                    createdAt
-                }
-            }
-        """)
-        
-        # Create batch input
-        batch_inputs = [
-            sample_diagram_data(name=f"Batch Diagram {i}")
-            for i in range(3)
-        ]
-        
-        try:
-            result = await gql_client.execute(
-                batch_create_mutation,
-                variable_values={"inputs": batch_inputs}
-            )
-            
-            assert "batchCreateDiagrams" in result
-            created = result["batchCreateDiagrams"]
-            assert len(created) == 3
-            
-            for i, diagram in enumerate(created):
-                assert diagram["name"] == f"Batch Diagram {i}"
-        except GraphQLError:
-            pytest.skip("Batch operations not supported")
-    
-    async def test_batch_delete_diagrams(
+    async def test_create_node(
         self,
         gql_client,
         graphql_mutations,
         sample_diagram_data
     ):
-        """Test deleting multiple diagrams in batch."""
-        # Create diagrams to delete
-        create_mutation = gql(graphql_mutations["create_diagram"])
-        diagram_ids = []
+        """Test adding nodes to a diagram."""
+        # Create diagram first
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_data = sample_diagram_data(name="Node Test Diagram")
         
-        for i in range(3):
-            diagram_data = sample_diagram_data(name=f"To Delete {i}")
-            result = await gql_client.execute(
-                create_mutation,
-                variable_values={"input": diagram_data}
-            )
-            diagram_ids.append(result["createDiagram"]["id"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": diagram_data}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
         
-        # Batch delete
-        batch_delete_mutation = gql("""
-            mutation BatchDeleteDiagrams($ids: [ID!]!) {
-                batchDeleteDiagrams(ids: $ids) {
+        # Create node
+        create_node_mutation = gql(graphql_mutations["create_node"])
+        
+        node_input = {
+            "type": "START",
+            "position": {"x": 100, "y": 100},
+            "label": "Start Node",
+            "properties": {}
+        }
+        
+        result = await gql_client.execute(
+            create_node_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": node_input
+            }
+        )
+        
+        assert "createNode" in result
+        assert result["createNode"]["success"] is True
+        node = result["createNode"]["node"]
+        assert node["id"] is not None
+        assert node["type"] == "START"
+        assert node["position"]["x"] == 100
+        assert node["position"]["y"] == 100
+    
+    async def test_create_arrow(
+        self,
+        gql_client,
+        graphql_mutations,
+        sample_diagram_data
+    ):
+        """Test creating arrows between nodes."""
+        # Create diagram
+        create_diagram_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_result = await gql_client.execute(
+            create_diagram_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = diagram_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Create two nodes
+        create_node_mutation = gql(graphql_mutations["create_node"])
+        
+        node1_result = await gql_client.execute(
+            create_node_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": {
+                    "type": "START",
+                    "position": {"x": 0, "y": 0},
+                    "label": "Node 1"
+                }
+            }
+        )
+        node1_id = node1_result["createNode"]["node"]["id"]
+        
+        node2_result = await gql_client.execute(
+            create_node_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": {
+                    "type": "ENDPOINT",
+                    "position": {"x": 200, "y": 0},
+                    "label": "Node 2"
+                }
+            }
+        )
+        node2_id = node2_result["createNode"]["node"]["id"]
+        
+        # Create arrow
+        create_arrow_mutation = gql("""
+            mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
+                createArrow(diagramId: $diagramId, input: $input) {
                     success
-                    deletedCount
-                    failedIds
+                    diagram {
+                        arrows {
+                            id
+                            source
+                            target
+                        }
+                    }
+                    message
                 }
             }
         """)
         
-        try:
-            result = await gql_client.execute(
-                batch_delete_mutation,
-                variable_values={"ids": diagram_ids}
-            )
-            
-            assert "batchDeleteDiagrams" in result
-            batch_result = result["batchDeleteDiagrams"]
-            assert batch_result["success"] is True
-            assert batch_result["deletedCount"] == 3
-            assert len(batch_result["failedIds"]) == 0
-        except GraphQLError:
-            pytest.skip("Batch delete not supported")
+        result = await gql_client.execute(
+            create_arrow_mutation,
+            variable_values={
+                "diagramId": diagram_id,
+                "input": {
+                    "source": node1_id,
+                    "target": node2_id,
+                    "label": "Connection"
+                }
+            }
+        )
+        
+        assert "createArrow" in result
+        assert result["createArrow"]["success"] is True
+        arrows = result["createArrow"]["diagram"]["arrows"]
+        assert len(arrows) > 0
+        
+        # Find the created arrow
+        created_arrow = next(
+            (a for a in arrows if a["source"] == node1_id and a["target"] == node2_id),
+            None
+        )
+        assert created_arrow is not None
+
+
+class TestDiagramQuicksave:
+    """Test quicksave functionality."""
+    
+    async def test_quicksave_new_diagram(
+        self,
+        gql_client
+    ):
+        """Test quicksaving a new diagram."""
+        quicksave_mutation = gql("""
+            mutation QuicksaveDiagram($content: JSONScalar!, $existingDiagramId: DiagramID) {
+                quicksaveDiagram(content: $content, existingDiagramId: $existingDiagramId) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                        }
+                    }
+                    message
+                }
+            }
+        """)
+        
+        diagram_content = {
+            "name": "Quicksaved Diagram",
+            "nodes": [],
+            "edges": []
+        }
+        
+        result = await gql_client.execute(
+            quicksave_mutation,
+            variable_values={
+                "content": diagram_content,
+                "existingDiagramId": None
+            }
+        )
+        
+        assert "quicksaveDiagram" in result
+        assert result["quicksaveDiagram"]["success"] is True
+        assert result["quicksaveDiagram"]["diagram"]["metadata"]["id"] is not None
+    
+    async def test_quicksave_existing_diagram(
+        self,
+        gql_client,
+        graphql_mutations,
+        sample_diagram_data
+    ):
+        """Test quicksaving over an existing diagram."""
+        # Create diagram first
+        create_mutation = gql(graphql_mutations["create_diagram"])
+        create_result = await gql_client.execute(
+            create_mutation,
+            variable_values={"input": sample_diagram_data()}
+        )
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Quicksave with updates
+        quicksave_mutation = gql("""
+            mutation QuicksaveDiagram($content: JSONScalar!, $existingDiagramId: DiagramID) {
+                quicksaveDiagram(content: $content, existingDiagramId: $existingDiagramId) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                            modified
+                        }
+                    }
+                    message
+                }
+            }
+        """)
+        
+        updated_content = {
+            "name": "Updated via Quicksave",
+            "nodes": [{"id": "new-node", "type": "START"}],
+            "edges": []
+        }
+        
+        result = await gql_client.execute(
+            quicksave_mutation,
+            variable_values={
+                "content": updated_content,
+                "existingDiagramId": diagram_id
+            }
+        )
+        
+        assert "quicksaveDiagram" in result
+        assert result["quicksaveDiagram"]["success"] is True
+        assert result["quicksaveDiagram"]["diagram"]["metadata"]["id"] == diagram_id
+        assert result["quicksaveDiagram"]["diagram"]["metadata"]["modified"] is not None

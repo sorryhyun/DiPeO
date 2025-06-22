@@ -7,8 +7,8 @@ from ..schemas.notion import NotionNodeProps
 from dipeo_domain import NotionOperation
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..base import BaseNodeHandler, process_inputs, log_action, substitute_variables
-
+from ..base import BaseNodeHandler, log_action
+from ..executor_utils import process_inputs, substitute_variables
 
 @node(
     node_type="notion",
@@ -17,13 +17,7 @@ from ..base import BaseNodeHandler, process_inputs, log_action, substitute_varia
     requires_services=["notion_service"]
 )
 class NotionHandler(BaseNodeHandler):
-    """Notion handler for API operations.
-    
-    This refactored version eliminates ~50 lines of boilerplate by:
-    - Inheriting error handling, timing, and service validation
-    - Simplified operation dispatch
-    - Automatic metadata building
-    """
+    """Notion handler for API operations."""
     
     async def _execute_core(
         self,
@@ -35,10 +29,8 @@ class NotionHandler(BaseNodeHandler):
         """Execute Notion API operation."""
         notion_service = services["notion_service"]
         
-        # Process inputs to extract values
         processed_inputs = process_inputs(inputs)
         
-        # Get API key from context directly
         api_key = None
         if props.apiKeyId and hasattr(context, 'api_keys'):
             api_key_info = context.api_keys.get(props.apiKeyId)
@@ -50,8 +42,6 @@ class NotionHandler(BaseNodeHandler):
         if not api_key:
             raise RuntimeError(f"API key not found: {props.apiKeyId}")
         
-        # Define operation handlers
-        # Note: Only operations available in generated enum are supported
         operations: Dict[NotionOperation, Callable[[], Any]] = {
             NotionOperation.read_page: lambda: self._read_page(props, notion_service, api_key, processed_inputs),
             NotionOperation.query_database: lambda: self._query_database(props, notion_service, api_key, processed_inputs),
@@ -69,10 +59,8 @@ class NotionHandler(BaseNodeHandler):
             operation=props.operation.value
         )
         
-        # Execute the operation
         result = await handler()
         
-        # Store operation type for metadata
         self._operation = props.operation
         
         return result
@@ -98,12 +86,10 @@ class NotionHandler(BaseNodeHandler):
         if not text:
             return text
         
-        # Create mapping from inputs
         variables = {}
         for i, value in enumerate(inputs):
             variables[f"input{i}"] = value
             
-            # Also support named variables if the input is a dict
             if isinstance(value, dict):
                 variables.update(value)
         
@@ -123,10 +109,6 @@ class NotionHandler(BaseNodeHandler):
         self.logger.debug(f"Retrieved page: {page_id}")
         return result
     
-    # Methods for operations not available in generated enum are commented out
-    # async def _list_blocks(...)
-    # async def _append_blocks(...)
-    # async def _update_block(...)
     
     async def _query_database(
         self,
@@ -138,7 +120,6 @@ class NotionHandler(BaseNodeHandler):
         """Query a Notion database."""
         database_id = self._substitute_variables(props.databaseId or "", inputs)
         
-        # Parse filter and sorts if provided
         filter_obj = None
         if props.filter:
             filter_str = self._substitute_variables(props.filter, inputs)
@@ -180,4 +161,3 @@ class NotionHandler(BaseNodeHandler):
         self.logger.debug("Created new Notion page")
         return result
     
-    # async def _extract_text(...) - not available in generated enum

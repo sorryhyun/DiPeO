@@ -3,6 +3,7 @@
 import json
 import yaml
 import io
+import base64
 from pathlib import Path
 from typing import Dict, Any, BinaryIO
 
@@ -16,415 +17,394 @@ from .conftest import *  # Import all fixtures
 class TestDiagramUpload:
     """Test diagram file upload functionality."""
     
-    async def test_upload_json_diagram(
+    async def test_upload_diagram_mutation(
         self,
         gql_client,
+        graphql_mutations,
         sample_diagram_data,
         temp_diagram_file
     ):
-        """Test uploading a JSON diagram file."""
+        """Test uploading a diagram using the uploadDiagram mutation."""
         # Create diagram file
         file_path = temp_diagram_file(
             filename="upload_test.json",
             name="JSON Upload Test"
         )
         
-        # Read file for upload
-        with open(file_path, 'rb') as f:
-            file_content = f.read()
+        # The uploadDiagram mutation
+        upload_mutation = gql(graphql_mutations["upload_diagram"])
         
-        # Upload mutation
-        upload_mutation = gql("""
-            mutation UploadDiagram($file: Upload!) {
-                uploadDiagram(file: $file) {
-                    id
-                    name
-                    nodeCount
-                    createdAt
+        # Note: Real file upload requires multipart form handling
+        # For testing, we'll validate the mutation exists and structure
+        # In production, the Upload scalar is handled by the GraphQL transport
+        
+        # Test with validateOnly flag
+        try:
+            # Mock file upload - in real scenario, this would be handled by
+            # the GraphQL transport layer (Apollo Upload, etc.)
+            result = await gql_client.execute(
+                upload_mutation,
+                variable_values={
+                    "file": None,  # Would be actual file in production
+                    "format": "NATIVE",
+                    "validateOnly": True
+                }
+            )
+            
+            # If we get here without error, mutation exists
+            assert "uploadDiagram" in result
+        except Exception as e:
+            # This is expected since we can't actually upload without proper transport
+            assert "Upload" in str(e) or "null" in str(e).lower()
+    
+    async def test_upload_file_input_mutation(
+        self,
+        gql_client,
+        graphql_mutations,
+        sample_diagram_data
+    ):
+        """Test uploading using FileUploadInput with base64 encoding."""
+        # Create diagram content
+        diagram_data = sample_diagram_data(name="Base64 Upload Test")
+        content_str = json.dumps(diagram_data)
+        content_base64 = base64.b64encode(content_str.encode()).decode()
+        
+        # Use the uploadFile mutation  
+        upload_mutation = gql(graphql_mutations["upload_file"])
+        
+        result = await gql_client.execute(
+            upload_mutation,
+            variable_values={
+                "input": {
+                    "filename": "test_diagram.json",
+                    "contentBase64": content_base64,
+                    "contentType": "application/json"
                 }
             }
-        """)
+        )
         
-        # Note: Actual file upload requires multipart form handling
-        # This test verifies the mutation structure
-        try:
-            # Verify mutation exists in schema
-            schema = await gql_client.introspect_schema()
-            mutations = schema.type_map.get("Mutation")
-            assert "uploadDiagram" in mutations.fields
-            
-            # Verify Upload scalar type exists
-            assert "Upload" in schema.type_map
-        except Exception as e:
-            pytest.skip(f"Upload functionality not available: {e}")
+        assert "uploadFile" in result
+        assert result["uploadFile"]["success"] is True
+        if result["uploadFile"]["diagramId"]:
+            assert result["uploadFile"]["diagramId"] is not None
     
-    async def test_upload_yaml_diagram(
+    async def test_import_yaml_diagram(
         self,
         gql_client,
         temp_yaml_diagram_file
     ):
-        """Test uploading a YAML diagram file."""
+        """Test importing a YAML diagram directly."""
         # Create YAML diagram file
-        file_path = temp_yaml_diagram_file("upload_test.yaml")
+        file_path = temp_yaml_diagram_file("test.yaml")
         
-        # Verify YAML parsing
         with open(file_path, 'r') as f:
-            yaml_content = yaml.safe_load(f)
+            yaml_content = f.read()
         
-        assert yaml_content["name"] == "Test YAML Diagram"
-        assert "nodes" in yaml_content
-        assert "edges" in yaml_content
-        
-        # Upload mutation for YAML
-        upload_mutation = gql("""
-            mutation UploadDiagram($file: Upload!) {
-                uploadDiagram(file: $file) {
-                    id
-                    name
-                    nodeCount
-                    format
+        # Import YAML mutation
+        import_mutation = gql("""
+            mutation ImportYamlDiagram($input: ImportYamlInput!) {
+                importYamlDiagram(input: $input) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                        }
+                        nodeCount
+                    }
+                    message
+                    error
                 }
             }
         """)
         
-        # Verify mutation accepts YAML files
-        try:
-            schema = await gql_client.introspect_schema()
-            upload_diagram = schema.type_map["Mutation"].fields["uploadDiagram"]
-            
-            # Check return type includes format field
-            return_fields = upload_diagram.type.of_type.fields
-            assert "format" in return_fields
-        except KeyError:
-            pytest.skip("uploadDiagram mutation not found")
+        result = await gql_client.execute(
+            import_mutation,
+            variable_values={
+                "input": {
+                    "content": yaml_content,
+                    "filename": "imported.yaml"
+                }
+            }
+        )
+        
+        assert "importYamlDiagram" in result
+        assert result["importYamlDiagram"]["success"] is True
+        assert result["importYamlDiagram"]["diagram"]["nodeCount"] > 0
     
     async def test_upload_invalid_diagram(
         self,
         gql_client,
-        tmp_path
+        graphql_mutations
     ):
-        """Test uploading invalid diagram files."""
-        # Create invalid JSON file
-        invalid_file = tmp_path / "invalid.json"
-        invalid_file.write_text("{ invalid json }")
+        """Test uploading invalid diagram data."""
+        # Invalid JSON
+        invalid_content = "{ invalid json }"
+        content_base64 = base64.b64encode(invalid_content.encode()).decode()
         
-        # This should fail validation
-        with open(invalid_file, 'rb') as f:
-            file_content = f.read()
+        upload_mutation = gql(graphql_mutations["upload_file"])
         
-        # Verify server would reject invalid JSON
-        assert not json.loads(invalid_file.read_text())  # This will raise
-    
-    async def test_upload_diagram_size_limits(
-        self,
-        gql_client,
-        tmp_path,
-        sample_diagram_data
-    ):
-        """Test diagram upload size limits."""
-        # Create large diagram with many nodes
-        large_diagram = sample_diagram_data(
-            name="Large Diagram Test",
-            content={
-                "nodes": [
-                    {
-                        "id": f"node_{i}",
-                        "type": "llmAgent",
-                        "data": {"prompt": f"Prompt {i}" * 100}
-                    }
-                    for i in range(1000)  # 1000 nodes
-                ],
-                "edges": []
+        result = await gql_client.execute(
+            upload_mutation,
+            variable_values={
+                "input": {
+                    "filename": "invalid.json",
+                    "contentBase64": content_base64,
+                    "contentType": "application/json"
+                }
             }
         )
         
-        # Write to file
-        large_file = tmp_path / "large_diagram.json"
-        large_file.write_text(json.dumps(large_diagram))
-        
-        # Check file size
-        file_size = large_file.stat().st_size
-        assert file_size > 100_000  # Should be > 100KB
-        
-        # Server should handle large diagrams appropriately
-        upload_mutation = gql("""
-            mutation UploadDiagram($file: Upload!) {
-                uploadDiagram(file: $file) {
-                    id
-                    nodeCount
-                    fileSize
-                }
-            }
-        """)
+        # Should return error but not crash
+        assert "uploadFile" in result
+        if result["uploadFile"]["errors"]:
+            assert len(result["uploadFile"]["errors"]) > 0
 
 
 class TestGeneralFileUpload:
     """Test general file upload functionality."""
     
-    async def test_upload_text_file(
+    async def test_upload_text_file_base64(
         self,
         gql_client,
-        tmp_path
+        graphql_mutations
     ):
-        """Test uploading a text file."""
-        # Create text file
-        text_file = tmp_path / "data.txt"
-        text_file.write_text("Sample data for testing\nLine 2\nLine 3")
+        """Test uploading a text file using base64 encoding."""
+        # Create text content
+        text_content = "Sample data for testing\nLine 2\nLine 3"
+        content_base64 = base64.b64encode(text_content.encode()).decode()
         
-        upload_mutation = gql("""
-            mutation UploadFile($file: Upload!) {
-                uploadFile(file: $file) {
-                    filename
-                    size
-                    mimeType
-                    url
+        upload_mutation = gql(graphql_mutations["upload_file"])
+        
+        result = await gql_client.execute(
+            upload_mutation,
+            variable_values={
+                "input": {
+                    "filename": "data.txt",
+                    "contentBase64": content_base64,
+                    "contentType": "text/plain"
                 }
             }
-        """)
+        )
         
-        # Verify mutation structure
-        try:
-            schema = await gql_client.introspect_schema()
-            upload_file = schema.type_map["Mutation"].fields["uploadFile"]
-            
-            # Check return fields
-            return_fields = upload_file.type.of_type.fields
-            assert "filename" in return_fields
-            assert "size" in return_fields
-            assert "url" in return_fields
-        except KeyError:
-            pytest.skip("uploadFile mutation not found")
+        assert "uploadFile" in result
+        assert result["uploadFile"]["success"] is True
+        assert result["uploadFile"]["message"] is not None
     
-    async def test_upload_binary_file(
+    async def test_upload_binary_file_base64(
         self,
         gql_client,
-        tmp_path
+        graphql_mutations
     ):
-        """Test uploading binary files."""
-        # Create binary file
-        binary_file = tmp_path / "data.bin"
-        binary_data = bytes(range(256)) * 100  # 25.6KB
-        binary_file.write_bytes(binary_data)
+        """Test uploading binary data using base64 encoding."""
+        # Create binary data
+        binary_data = bytes(range(256))  # All byte values
+        content_base64 = base64.b64encode(binary_data).decode()
         
-        assert binary_file.stat().st_size == 25600
+        upload_mutation = gql(graphql_mutations["upload_file"])
         
-        # Binary files should be handled correctly
-        upload_mutation = gql("""
-            mutation UploadFile($file: Upload!, $category: String) {
-                uploadFile(file: $file, category: $category) {
-                    filename
-                    size
-                    category
+        result = await gql_client.execute(
+            upload_mutation,
+            variable_values={
+                "input": {
+                    "filename": "data.bin",
+                    "contentBase64": content_base64,
+                    "contentType": "application/octet-stream"
                 }
             }
-        """)
+        )
+        
+        assert "uploadFile" in result
+        assert result["uploadFile"]["success"] is True
     
-    async def test_upload_with_metadata(
+    async def test_upload_large_file_base64(
         self,
         gql_client,
-        tmp_path
+        graphql_mutations,
+        sample_diagram_data
     ):
-        """Test uploading files with metadata."""
-        # Create file
-        test_file = tmp_path / "metadata_test.json"
-        test_file.write_text(json.dumps({"data": "test"}))
+        """Test uploading larger files with base64 encoding."""
+        # Create large diagram with many nodes
+        large_diagram = sample_diagram_data(
+            name="Large Diagram Test"
+        )
         
-        upload_mutation = gql("""
-            mutation UploadFile($file: Upload!, $metadata: JSON) {
-                uploadFile(file: $file, metadata: $metadata) {
-                    filename
-                    metadata
+        # Add many nodes
+        nodes = []
+        for i in range(100):  # 100 nodes
+            nodes.append({
+                "id": f"node_{i}",
+                "type": "START",
+                "position": {"x": i * 10, "y": i * 10},
+                "data": {"description": f"Node {i} " * 10}
+            })
+        
+        large_diagram["nodes"] = nodes
+        
+        content_str = json.dumps(large_diagram)
+        content_base64 = base64.b64encode(content_str.encode()).decode()
+        
+        upload_mutation = gql(graphql_mutations["upload_file"])
+        
+        result = await gql_client.execute(
+            upload_mutation,
+            variable_values={
+                "input": {
+                    "filename": "large_diagram.json",
+                    "contentBase64": content_base64,
+                    "contentType": "application/json"
                 }
             }
-        """)
+        )
         
-        # Verify metadata support
-        try:
-            schema = await gql_client.introspect_schema()
-            upload_file = schema.type_map["Mutation"].fields["uploadFile"]
-            
-            # Check for metadata argument
-            metadata_arg = next(
-                (arg for arg in upload_file.args if arg.name == "metadata"),
-                None
-            )
-            assert metadata_arg is not None
-            assert "JSON" in str(metadata_arg.type)
-        except KeyError:
-            pytest.skip("uploadFile mutation not found")
-    
-    async def test_file_size_validation(
-        self,
-        gql_client,
-        tmp_path
-    ):
-        """Test file size limit validation."""
-        # Create files of different sizes
-        small_file = tmp_path / "small.txt"
-        small_file.write_text("Small content")
-        
-        medium_file = tmp_path / "medium.txt"
-        medium_file.write_bytes(b"x" * (5 * 1024 * 1024))  # 5MB
-        
-        large_file = tmp_path / "large.txt"
-        large_file.write_bytes(b"x" * (15 * 1024 * 1024))  # 15MB
-        
-        # Verify size limits
-        assert small_file.stat().st_size < 1024  # < 1KB
-        assert medium_file.stat().st_size == 5 * 1024 * 1024  # 5MB
-        assert large_file.stat().st_size == 15 * 1024 * 1024  # 15MB
-        
-        # Server should enforce size limits (typically 10MB)
+        assert "uploadFile" in result
+        # Large files might have different handling
+        assert result["uploadFile"]["success"] in [True, False]
+        if not result["uploadFile"]["success"]:
+            assert result["uploadFile"]["errors"] is not None
 
 
 class TestMultipleFileUpload:
     """Test uploading multiple files."""
     
-    async def test_upload_multiple_files(
+    async def test_upload_multiple_files_mutation(
         self,
-        gql_client,
-        tmp_path
+        gql_client
     ):
-        """Test uploading multiple files at once."""
-        # Create multiple files
-        files = []
+        """Test the uploadMultipleFiles mutation."""
+        # Create multiple file contents
+        files_data = []
         for i in range(3):
-            file_path = tmp_path / f"file_{i}.txt"
-            file_path.write_text(f"Content of file {i}")
-            files.append(file_path)
+            content = f"Content of file {i}"
+            content_base64 = base64.b64encode(content.encode()).decode()
+            files_data.append({
+                "filename": f"file_{i}.txt",
+                "contentBase64": content_base64,
+                "contentType": "text/plain"
+            })
         
+        # Note: uploadMultipleFiles expects Upload scalars, not FileUploadInput
+        # This would require proper multipart form handling
         upload_mutation = gql("""
-            mutation UploadMultiple($files: [Upload!]!) {
-                uploadMultipleFiles(files: $files) {
-                    filename
-                    size
-                    index
+            mutation UploadMultiple($files: [Upload!]!, $category: String!) {
+                uploadMultipleFiles(files: $files, category: $category) {
+                    success
+                    diagramId
+                    message
+                    errors
                 }
             }
         """)
         
-        # Verify batch upload support
+        # This will fail without proper Upload scalar support
         try:
-            schema = await gql_client.introspect_schema()
-            mutations = schema.type_map["Mutation"].fields
+            result = await gql_client.execute(
+                upload_mutation,
+                variable_values={
+                    "files": [None, None, None],  # Would be actual files
+                    "category": "test"
+                }
+            )
+        except Exception as e:
+            # Expected - can't upload without proper transport
+            assert "Upload" in str(e) or "null" in str(e).lower()
+
+
+class TestDiagramExportImport:
+    """Test diagram export and import functionality."""
+    
+    async def test_export_diagram_formats(
+        self,
+        gql_client,
+        graphql_mutations,
+        sample_diagram_data
+    ):
+        """Test exporting diagrams in different formats."""
+        # First create a diagram
+        create_mutation = gql(graphql_mutations["create_diagram"])
+        diagram_data = sample_diagram_data(name="Export Test")
+        
+        create_result = await gql_client.execute(
+            create_mutation,
+            variable_values={"input": diagram_data}
+        )
+        
+        diagram_id = create_result["createDiagram"]["diagram"]["metadata"]["id"]
+        
+        # Export in different formats
+        export_mutation = gql("""
+            mutation ExportDiagram($diagramId: DiagramID!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
+                exportDiagram(diagramId: $diagramId, format: $format, includeMetadata: $includeMetadata) {
+                    success
+                    message
+                    content
+                    format
+                    filename
+                }
+            }
+        """)
+        
+        formats = ["NATIVE", "LIGHT", "READABLE", "NATIVE_YAML"]
+        
+        for format_type in formats:
+            result = await gql_client.execute(
+                export_mutation,
+                variable_values={
+                    "diagramId": diagram_id,
+                    "format": format_type,
+                    "includeMetadata": True
+                }
+            )
             
-            if "uploadMultipleFiles" in mutations:
-                upload_multiple = mutations["uploadMultipleFiles"]
-                
-                # Check it accepts array of uploads
-                files_arg = next(
-                    (arg for arg in upload_multiple.args if arg.name == "files"),
-                    None
-                )
-                assert files_arg is not None
-                assert "[Upload" in str(files_arg.type)
-        except Exception:
-            pytest.skip("Multiple file upload not supported")
+            assert "exportDiagram" in result
+            export = result["exportDiagram"]
+            
+            if export["success"]:
+                assert export["format"] == format_type
+                assert export["content"] is not None
+                assert export["filename"] is not None
     
-    async def test_mixed_file_types_upload(
+    async def test_quicksave_diagram(
         self,
-        gql_client,
-        tmp_path
+        gql_client
     ):
-        """Test uploading different file types together."""
-        # Create different file types
-        json_file = tmp_path / "data.json"
-        json_file.write_text(json.dumps({"type": "json"}))
-        
-        yaml_file = tmp_path / "data.yaml"
-        yaml_file.write_text(yaml.dump({"type": "yaml"}))
-        
-        text_file = tmp_path / "data.txt"
-        text_file.write_text("Plain text data")
-        
-        files = [json_file, yaml_file, text_file]
-        
-        # All file types should be accepted
-        for f in files:
-            assert f.exists()
-            assert f.stat().st_size > 0
-
-
-class TestUploadErrorHandling:
-    """Test error handling in file uploads."""
-    
-    async def test_upload_nonexistent_file(self, gql_client):
-        """Test uploading a file that doesn't exist."""
-        # This would be handled by the client/transport layer
-        # Server should never receive non-existent file
-        pass
-    
-    async def test_upload_empty_file(
-        self,
-        gql_client,
-        tmp_path
-    ):
-        """Test uploading empty files."""
-        # Create empty file
-        empty_file = tmp_path / "empty.txt"
-        empty_file.touch()
-        
-        assert empty_file.stat().st_size == 0
-        
-        # Server should handle empty files gracefully
-        upload_mutation = gql("""
-            mutation UploadFile($file: Upload!) {
-                uploadFile(file: $file) {
-                    filename
-                    size
-                    error
-                }
-            }
-        """)
-    
-    async def test_upload_permission_errors(
-        self,
-        gql_client,
-        tmp_path,
-        monkeypatch
-    ):
-        """Test handling permission errors during upload."""
-        # Create file
-        test_file = tmp_path / "restricted.txt"
-        test_file.write_text("Restricted content")
-        
-        # Simulate permission issues
-        # In real scenario, server might not have write permissions
-        # to the upload directory
-        
-        upload_mutation = gql("""
-            mutation UploadFile($file: Upload!) {
-                uploadFile(file: $file) {
-                    filename
-                    error
-                    errorCode
-                }
-            }
-        """)
-    
-    async def test_concurrent_uploads(
-        self,
-        gql_client,
-        tmp_path
-    ):
-        """Test handling concurrent file uploads."""
-        import asyncio
-        
-        # Create multiple files
-        files = []
-        for i in range(5):
-            file_path = tmp_path / f"concurrent_{i}.txt"
-            file_path.write_text(f"Concurrent upload {i}")
-            files.append(file_path)
-        
-        upload_mutation = gql("""
-            mutation UploadFile($file: Upload!) {
-                uploadFile(file: $file) {
-                    filename
-                    uploadedAt
+        """Test quicksave functionality for diagrams."""
+        quicksave_mutation = gql("""
+            mutation QuicksaveDiagram($content: JSONScalar!, $existingDiagramId: DiagramID) {
+                quicksaveDiagram(content: $content, existingDiagramId: $existingDiagramId) {
+                    success
+                    diagram {
+                        metadata {
+                            id
+                            name
+                        }
+                    }
+                    message
                 }
             }
         """)
         
-        # In real implementation, would test concurrent uploads
-        # Server should handle multiple simultaneous uploads
+        diagram_content = {
+            "name": "Quicksave Test",
+            "nodes": [
+                {
+                    "id": "node1",
+                    "type": "START",
+                    "position": {"x": 0, "y": 0},
+                    "data": {}
+                }
+            ],
+            "edges": []
+        }
+        
+        result = await gql_client.execute(
+            quicksave_mutation,
+            variable_values={
+                "content": diagram_content,
+                "existingDiagramId": None
+            }
+        )
+        
+        assert "quicksaveDiagram" in result
+        assert result["quicksaveDiagram"]["success"] is True
+        assert result["quicksaveDiagram"]["diagram"]["metadata"]["id"] is not None

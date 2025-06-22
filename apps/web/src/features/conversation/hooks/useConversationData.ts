@@ -33,7 +33,6 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       offset: 0,
       since: filters.startTime ? new Date(filters.startTime) : undefined
     },
-    // Skip query if no filters are set
     skip: false,
     // Poll for updates every 5 seconds when realtime updates are enabled
     pollInterval: enableRealtimeUpdates ? 5000 : 0,

@@ -1,4 +1,4 @@
-"""GraphQL subscription definitions for real-time updates without Redis."""
+"""GraphQL subscriptions for real-time execution updates."""
 import strawberry
 from typing import AsyncGenerator, Optional, List
 import asyncio
@@ -14,14 +14,13 @@ from .context import GraphQLContext
 
 logger = logging.getLogger(__name__)
 
-# Helper types for subscriptions
 @strawberry.type
 class NodeExecution:
-    """Real-time node execution update."""
+    """Node execution state updates."""
     execution_id: ExecutionID
     node_id: NodeID
     node_type: NodeType
-    status: str  # started, running, completed, failed, skipped
+    status: str
     progress: Optional[str] = None
     output: Optional[JSONScalar] = None
     error: Optional[str] = None
@@ -30,7 +29,7 @@ class NodeExecution:
 
 @strawberry.type
 class InteractivePrompt:
-    """Interactive prompt requiring user input."""
+    """User input prompt during execution."""
     execution_id: ExecutionID
     node_id: NodeID
     prompt: str
@@ -40,7 +39,7 @@ class InteractivePrompt:
 
 @strawberry.type
 class Subscription:
-    """Root subscription type for DiPeO GraphQL API using polling."""
+    """GraphQL subscriptions for DiPeO real-time updates."""
     
     @strawberry.subscription
     async def execution_updates(
@@ -48,13 +47,12 @@ class Subscription:
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID
     ) -> AsyncGenerator[ExecutionState, None]:
-        """Subscribe to execution state updates using polling."""
+        """Streams execution state changes."""
         context: GraphQLContext = info.context
         state_store = context.state_store
         
         logger.info(f"Starting execution updates subscription for {execution_id}")
         
-        # Track last update time
         last_update = 0
         
         try:
@@ -63,8 +61,6 @@ class Subscription:
                 state = await state_store.get_state(execution_id)
                 
                 if state:
-                    # The state store now returns PydanticExecutionState directly
-                    # Just yield it - Strawberry will handle the conversion
                     yield state
                     
                     # Check if execution is complete
@@ -89,13 +85,12 @@ class Subscription:
         execution_id: ExecutionID,
         event_types: Optional[List[EventType]] = None
     ) -> AsyncGenerator[ExecutionEvent, None]:
-        """Subscribe to specific execution events using state changes."""
+        """Streams specific execution event types."""
         context: GraphQLContext = info.context
         state_store = context.state_store
         
         logger.info(f"Starting event stream subscription for {execution_id}")
         
-        # Track last update and node states
         sequence = 0
         last_node_states = {}
         
@@ -105,7 +100,6 @@ class Subscription:
                 state = await state_store.get_state(execution_id)
                 
                 if state:
-                    # Generate events based on state changes
                     current_node_states = state.node_states or {}
                     
                     # Check for node status changes
@@ -113,15 +107,12 @@ class Subscription:
                         old_state = last_node_states.get(node_id)
                         
                         if not old_state or old_state.status != node_state.status:
-                            # Node status changed
                             sequence += 1
                             event_type = _get_event_type_for_node_status(node_state.status)
                             
-                            # Filter by event types if specified
                             if event_types and event_type not in event_types:
                                 continue
                             
-                            # Get node output if available
                             node_output = state.node_outputs.get(node_id)
                             output_value = node_output.value if node_output else None
                             
@@ -141,9 +132,7 @@ class Subscription:
                     # Update tracked states
                     last_node_states = current_node_states.copy()
                     
-                    # Check if execution is complete
                     if state.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.ABORTED]:
-                        # Generate final event
                         sequence += 1
                         final_event_type = {
                             ExecutionStatus.COMPLETED: EventType.EXECUTION_COMPLETED,
@@ -181,13 +170,12 @@ class Subscription:
         execution_id: ExecutionID,
         node_types: Optional[List[NodeType]] = None
     ) -> AsyncGenerator[NodeExecution, None]:
-        """Subscribe to node execution updates, optionally filtered by type."""
+        """Streams node execution updates with optional filtering."""
         context: GraphQLContext = info.context
         state_store = context.state_store
         
         logger.info(f"Starting node updates subscription for {execution_id}")
         
-        # Track last update and node states
         last_node_states = {}
         
         try:
@@ -203,15 +191,11 @@ class Subscription:
                         old_state = last_node_states.get(node_id)
                         
                         if not old_state or old_state.status != node_state.status:
-                            # Node status changed
-                            # Get node type from diagram metadata if available
-                            node_type = NodeType.JOB  # Default
+                            node_type = NodeType.JOB
                             
-                            # Filter by node types if specified
                             if node_types and node_type not in node_types:
                                 continue
                             
-                            # Get node output and token usage
                             node_output = state.node_outputs.get(node_id)
                             output_value = node_output.value if node_output else None
                             tokens_used = None
@@ -224,7 +208,7 @@ class Subscription:
                                 node_id=NodeID(node_id),
                                 node_type=node_type,
                                 status=node_state.status.value,
-                                progress=None,  # Could calculate based on status
+                                progress=None,
                                 output=output_value,
                                 error=node_state.error,
                                 tokens_used=tokens_used,
@@ -255,10 +239,9 @@ class Subscription:
         info: strawberry.Info[GraphQLContext],
         diagram_id: DiagramID
     ) -> AsyncGenerator[DomainDiagramType, None]:
-        """Subscribe to diagram changes - placeholder for future implementation."""
+        """Streams diagram modifications (not implemented)."""
         logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
-        # This would require file watching or version control integration
-        while False:  # Never yields
+        while False:
             yield
     
     @strawberry.subscription
@@ -267,22 +250,17 @@ class Subscription:
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID
     ) -> AsyncGenerator[InteractivePrompt, None]:
-        """Subscribe to interactive prompts that need user input."""
+        """Streams interactive prompts requiring user response."""
         context: GraphQLContext = info.context
         state_store = context.state_store
         
         logger.info(f"Starting interactive prompts subscription for {execution_id}")
         
-        # Track processed prompts
         processed_prompts = set()
         
         try:
             while True:
-                # Get latest state
                 state = await state_store.get_state(execution_id)
-                
-                # The new state model doesn't have interactive_prompts field
-                # This feature needs to be reimplemented if needed
                 
                 # Check if execution is complete
                 if state and state.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.ABORTED]:
@@ -300,9 +278,8 @@ class Subscription:
             raise
 
 
-# Helper functions
 def _map_status(status: str) -> ExecutionStatus:
-    """Map internal status string to GraphQL ExecutionStatus enum."""
+    """Maps status string to ExecutionStatus enum."""
     status_map = {
         'started': ExecutionStatus.STARTED,
         'running': ExecutionStatus.RUNNING,
@@ -316,7 +293,7 @@ def _map_status(status: str) -> ExecutionStatus:
 
 
 def _get_event_type_for_status(status: str) -> EventType:
-    """Map node status to event type."""
+    """Maps node status to event type."""
     status_event_map = {
         'started': EventType.NODE_STARTED,
         'running': EventType.NODE_RUNNING,
@@ -329,7 +306,7 @@ def _get_event_type_for_status(status: str) -> EventType:
 
 
 def _get_event_type_for_node_status(status: NodeExecutionStatus) -> EventType:
-    """Map NodeExecutionStatus enum to EventType."""
+    """Maps NodeExecutionStatus to EventType."""
     status_event_map = {
         NodeExecutionStatus.PENDING: EventType.NODE_STARTED,
         NodeExecutionStatus.RUNNING: EventType.NODE_RUNNING,
@@ -342,14 +319,13 @@ def _get_event_type_for_node_status(status: NodeExecutionStatus) -> EventType:
 
 
 def _get_node_type(diagram: dict, node_id: str) -> NodeType:
-    """Extract node type from diagram data."""
+    """Extracts node type from diagram data."""
     if not diagram or 'nodes' not in diagram:
         return NodeType.JOB
     
     node = diagram['nodes'].get(node_id, {})
     node_type_str = node.get('type', 'job')
     
-    # Map string to NodeType enum
     try:
         return NodeType(node_type_str)
     except ValueError:
