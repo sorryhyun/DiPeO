@@ -1,4 +1,4 @@
-import { PersonID } from "./index.js";
+import { PersonID } from "./diagram.js";
 
 /**
  * Base message interface for conversations

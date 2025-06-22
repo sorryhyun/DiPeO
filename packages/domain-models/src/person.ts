@@ -4,15 +4,15 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { ForgettingMode, type PersonID, type ApiKeyID, type LLMService } from '../diagram';
-import { Message, ConversationMetadata, Conversation } from './conversation';
+import { ForgettingMode, type PersonID, type ApiKeyID, type LLMService } from './diagram.js';
+import { Message, ConversationMetadata, Conversation } from './conversation.js';
 
 // Re-export person-related types from diagram for convenience
 export type { PersonID, LLMService };
 export { ForgettingMode };
 
 // Re-export conversation types
-export type { Message, Conversation, MemoryConfig, MemoryState } from './conversation';
+export type { Message, Conversation, MemoryConfig, MemoryState } from './conversation.js';
 
 // Person-specific models (most are already in diagram domain)
 export interface PersonConfiguration {
@@ -90,4 +90,3 @@ export function shouldResetContext(
       return false;
   }
 }
-
