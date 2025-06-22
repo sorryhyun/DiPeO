@@ -1,0 +1,55 @@
+[project]
+name = "dipeo-core"
+version = "0.1.0"
+description = "Core abstractions for DiPeO"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.0",
+    "typing-extensions>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "mypy>=1.0",
+    "ruff>=0.1",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "B", "C90", "D", "UP", "YTT", "ANN", "S", "BLE", "FBT", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "ISC", "ICN", "G", "INP", "PIE", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PGH", "PL", "TRY", "FLY", "PERF", "RUF"]
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN101", "ANN102"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

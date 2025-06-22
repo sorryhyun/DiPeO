@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from notion_client import Client
 
-from dipeo_server.core.base import BaseService
-from dipeo_server.core.exceptions import DiagramExecutionError
+from dipeo_core import BaseService, ExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +12,11 @@ class NotionService(BaseService):
     def __init__(self):
         super().__init__()
         self._clients: Dict[str, Client] = {}
+
+    async def initialize(self) -> None:
+        """Initialize the Notion service."""
+        # No initialization needed for Notion service
+        pass
 
     def _get_client(self, api_key: str) -> Client:
         if api_key not in self._clients:
@@ -27,7 +31,7 @@ class NotionService(BaseService):
             return response
         except Exception as e:
             logger.error(f"Failed to retrieve Notion page: {e}")
-            raise DiagramExecutionError(f"Notion API error: {e!s}")
+            raise ExecutionError(f"Notion API error: {e!s}")
 
     async def list_blocks(self, page_id: str, api_key: str) -> List[Dict[str, Any]]:
         """List all blocks in a page"""
@@ -48,7 +52,7 @@ class NotionService(BaseService):
             return all_blocks
         except Exception as e:
             logger.error(f"Failed to list Notion blocks: {e}")
-            raise DiagramExecutionError(f"Notion API error: {e!s}")
+            raise ExecutionError(f"Notion API error: {e!s}")
 
     async def append_blocks(
         self, page_id: str, blocks: List[Dict[str, Any]], api_key: str
@@ -60,7 +64,7 @@ class NotionService(BaseService):
             return response
         except Exception as e:
             logger.error(f"Failed to append Notion blocks: {e}")
-            raise DiagramExecutionError(f"Notion API error: {e!s}")
+            raise ExecutionError(f"Notion API error: {e!s}")
 
     async def update_block(
         self, block_id: str, block_data: Dict[str, Any], api_key: str
@@ -72,7 +76,7 @@ class NotionService(BaseService):
             return response
         except Exception as e:
             logger.error(f"Failed to update Notion block: {e}")
-            raise DiagramExecutionError(f"Notion API error: {e!s}")
+            raise ExecutionError(f"Notion API error: {e!s}")
 
     async def query_database(
         self,
@@ -106,7 +110,7 @@ class NotionService(BaseService):
             return all_results
         except Exception as e:
             logger.error(f"Failed to query Notion database: {e}")
-            raise DiagramExecutionError(f"Notion API error: {e!s}")
+            raise ExecutionError(f"Notion API error: {e!s}")
 
     async def create_page(
         self,
@@ -126,7 +130,7 @@ class NotionService(BaseService):
             return response
         except Exception as e:
             logger.error(f"Failed to create Notion page: {e}")
-            raise DiagramExecutionError(f"Notion API error: {e!s}")
+            raise ExecutionError(f"Notion API error: {e!s}")
 
     def extract_text_from_blocks(self, blocks: List[Dict[str, Any]]) -> str:
         """Extract plain text from Notion blocks"""

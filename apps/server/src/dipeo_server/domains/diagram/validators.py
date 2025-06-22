@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from dipeo_server.core import APIKeyService
 
-from .models import DomainDiagram
+from dipeo_domain import DomainDiagram
 
 
 class DiagramValidator:
@@ -199,7 +199,7 @@ class DiagramValidator:
         """
         errors = self.validate(diagram, context)
         if errors:
-            from dipeo_server.core.exceptions import ValidationError
+            from dipeo_core import ValidationError
 
             raise ValidationError("; ".join(errors))
 

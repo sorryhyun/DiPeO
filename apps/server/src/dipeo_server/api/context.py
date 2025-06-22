@@ -10,7 +10,7 @@ from dipeo_server.domains.execution.services.message_router_simple import messag
 from dipeo_server.domains.execution.services.simple_state_store import state_store
 
 if TYPE_CHECKING:
-    from dipeo_server.core.service_types import (
+    from dipeo_core import (
         SupportsAPIKey,
         SupportsDiagram,
         SupportsExecution,

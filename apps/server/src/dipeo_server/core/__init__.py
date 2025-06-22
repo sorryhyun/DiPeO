@@ -13,13 +13,14 @@ from dipeo_domain import (
     NodeType,
 )
 
-from ..domains.diagram.services import DiagramService
-from ..domains.execution.services.execution_service import ExecutionService
-from ..domains.integrations.notion import NotionService
-from ..domains.llm.services import LLMService
+# Services are imported from their respective domains to avoid circular imports
+# from ..domains.diagram.services import DiagramService
+# from ..domains.execution.services.execution_service import ExecutionService
+# from ..domains.integrations.notion import NotionService
+# from ..domains.llm.services import LLMService
 
-# Export base classes
-from .base import BaseService
+# Export base classes from dipeo_core
+from dipeo_core import BaseService
 
 # Export all constants
 from .constants import (
@@ -38,22 +39,26 @@ from .constants import (
     VALID_LLM_SERVICES,
 )
 
-# Export exceptions
-from .exceptions import (
-    AgentDiagramException,
+# Export exceptions from dipeo_core
+from dipeo_core import (
     APIKeyError,
     APIKeyNotFoundError,
-    ConditionEvaluationError,
     ConfigurationError,
-    DatabaseError,
     DependencyError,
-    DiagramExecutionError,
     FileOperationError,
     LLMServiceError,
     MaxIterationsError,
     NodeExecutionError,
-    PersonJobExecutionError,
     ValidationError,
+)
+
+# Export local exceptions that are server-specific
+from .exceptions import (
+    AgentDiagramException,
+    ConditionEvaluationError,
+    DatabaseError,
+    DiagramExecutionError,
+    PersonJobExecutionError,
 )
 
 # Export processors
@@ -61,8 +66,8 @@ from .processors import OutputProcessor
 
 # Export context utilities - imported lazily to avoid circular imports
 # Use these functions directly from src.common.context when needed
-# Export service types
-from .service_types import (
+# Export service types from dipeo_core
+from dipeo_core import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
@@ -75,8 +80,8 @@ from .service_types import (
 # Export services
 from .services import APIKeyService, FileService
 
-# Export all type aliases and base models
-from .types import (
+# Export type aliases from domain models
+from dipeo_domain import (
     ApiKeyID,
     ArrowID,
     DiagramID,
@@ -84,10 +89,12 @@ from .types import (
     HandleID,
     NodeID,
     PersonID,
-    TimestampedModel,
     TokenUsage,
     Vec2,
 )
+
+# Export base models from local types
+from .types import TimestampedModel
 
 # Export utils
 from .utils import (
@@ -160,10 +167,11 @@ __all__ = [
     # Services
     "APIKeyService",
     "FileService",
-    "LLMService",
-    "DiagramService",
-    "ExecutionService",
-    "NotionService",
+    # Domain services should be imported directly from their modules
+    # "LLMService",
+    # "DiagramService",
+    # "ExecutionService",
+    # "NotionService",
     # Utils
     "ResponseFormatter",
     "ErrorHandler",

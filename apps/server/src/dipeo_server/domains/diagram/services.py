@@ -9,7 +9,8 @@ from dipeo_domain import DiagramID
 from fastapi import HTTPException
 
 from config import BASE_DIR
-from dipeo_server.core import APIKeyService, BaseService, ValidationError
+from dipeo_core import BaseService, ValidationError
+from dipeo_server.core.services import APIKeyService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
 from dipeo_server.domains.person import SimplifiedMemoryService as MemoryService
 

@@ -23,9 +23,10 @@ classifiers = [
 dependencies = [
     "pyyaml>=6.0",
     "requests>=2.28.0",
-    "gql[all]>=3.4.0",
+    "gql>=3.4.0",
     "aiohttp>=3.8.0",
-    "websockets>=11.0",
+    "websockets>=13.0",
+    "dipeo-core",
     "dipeo-domain",
 ]
 keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]

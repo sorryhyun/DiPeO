@@ -10,9 +10,9 @@ from tenacity import (
     wait_exponential,
 )
 
+from dipeo_core import APIKeyError, BaseService, LLMServiceError
+
 from dipeo_server.core import VALID_LLM_SERVICES, APIKeyService
-from dipeo_server.core.base import BaseService
-from dipeo_server.core.exceptions import APIKeyError, LLMServiceError
 from dipeo_server.domains.llm import ChatResult, create_adapter
 from dipeo_server.domains.llm.service_utils.token_usage_service import TokenUsageService
 
