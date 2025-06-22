@@ -107,7 +107,7 @@ def node(
         # Create node definition
         node_def = NodeDefinition(
             type=node_type,
-            schema=schema,
+            node_schema=schema,
             handler=actual_handler,
             requires_services=requires_services or [],
             description=description,

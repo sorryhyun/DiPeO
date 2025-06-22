@@ -61,6 +61,7 @@ class Ctx:
     order: List[str] = field(default_factory=list)
 
     persons: Dict[str, Any] = field(default_factory=dict)
+    api_keys: Dict[str, Any] = field(default_factory=dict)
     execution_id: Optional[str] = None
     interactive_handler: Optional[Callable] = None
 
@@ -171,6 +172,7 @@ class CompactEngine:
             ctx.execution_id = execution_id
             ctx.interactive_handler = interactive_handler
             ctx.persons = diagram.get("persons", {})
+            ctx.api_keys = diagram.get("api_keys", {})
             loops = LoopBook()
 
             if send is None:
@@ -185,6 +187,8 @@ class CompactEngine:
                     send(msg)
 
             await _send({"type": "execution_started", "order": g.order})
+            self.log.info(f"Starting execution with {len(g.order)} nodes in topological order")
+            self.log.debug(f"Node order: {g.order}")
 
             pending: Set[str] = set(g.order)
             while pending:
@@ -282,14 +286,18 @@ class CompactEngine:
             if not loops.bump(nid, node.max_iter):
                 ctx.skip(nid, "max_iterations")
 
-        await send(
-            {
-                "type": "node_complete",
-                "node_id": nid,
-                "output": result.output,
-                "meta": result.metadata,
-            }
-        )
+        msg = {
+            "type": "node_complete",
+            "node_id": nid,
+            "output": result.output,
+            "meta": result.metadata,
+        }
+        
+        # Include token usage if available
+        if hasattr(result, "token_usage") and result.token_usage:
+            msg["token_count"] = result.token_usage
+            
+        await send(msg)
         return result
 
     def _loop_members(self, cid: str, g: Graph) -> Set[str]:

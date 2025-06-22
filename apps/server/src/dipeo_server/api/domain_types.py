@@ -238,7 +238,20 @@ class ExecutionState:
     def duration_seconds(self) -> Optional[float]:
         """Execution duration in seconds."""
         if self.started_at and self.ended_at:
-            return (self.ended_at - self.started_at).total_seconds()
+            # Handle both datetime objects and ISO format strings
+            if isinstance(self.started_at, str):
+                from datetime import datetime
+                start = datetime.fromisoformat(self.started_at.replace('Z', '+00:00'))
+            else:
+                start = self.started_at
+
+            if isinstance(self.ended_at, str):
+                from datetime import datetime
+                end = datetime.fromisoformat(self.ended_at.replace('Z', '+00:00'))
+            else:
+                end = self.ended_at
+
+            return (end - start).total_seconds()
         return None
 
     @strawberry.field

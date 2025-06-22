@@ -4,9 +4,9 @@ Diagram validation logic
 
 from typing import Any, Dict, List, Optional, Union
 
-from dipeo_server.core import APIKeyService
-
+from dipeo_core import ValidationError
 from dipeo_domain import DomainDiagram
+from dipeo_server.core import APIKeyService
 
 
 class DiagramValidator:
@@ -31,29 +31,15 @@ class DiagramValidator:
         errors = []
 
         if isinstance(diagram, dict):
-            if context == "storage":
-                return self._validate_storage_format(diagram)
-
+            if context == "storage" or context == "execution":
+                # For storage and execution contexts, validate dict format directly
+                return self._validate_storage_format(diagram, context)
+            # For other contexts with dict input, we expect it to be
+            # already in the correct format (list-based). The conversion should
+            # happen elsewhere using the converters.
             try:
-                converted_data = {
-                    "nodes": list(diagram.get("nodes", {}).values())
-                    if isinstance(diagram.get("nodes"), dict)
-                    else diagram.get("nodes", []),
-                    "arrows": list(diagram.get("arrows", {}).values())
-                    if isinstance(diagram.get("arrows"), dict)
-                    else diagram.get("arrows", []),
-                    "handles": list(diagram.get("handles", {}).values())
-                    if isinstance(diagram.get("handles"), dict)
-                    else diagram.get("handles", []),
-                    "persons": list(diagram.get("persons", {}).values())
-                    if isinstance(diagram.get("persons"), dict)
-                    else diagram.get("persons", []),
-                    "api_keys": list(diagram.get("api_keys", {}).values())
-                    if isinstance(diagram.get("api_keys"), dict)
-                    else diagram.get("api_keys", []),
-                    "metadata": diagram.get("metadata", {}),
-                }
-                diagram = DomainDiagram.model_validate(converted_data)
+                # Validate that it's already in DomainDiagram format
+                diagram = DomainDiagram.model_validate(diagram)
             except Exception as e:
                 errors.append(f"Invalid diagram format: {e!s}")
                 return errors
@@ -61,7 +47,7 @@ class DiagramValidator:
         if not diagram.nodes:
             errors.append("Diagram must have at least one node")
 
-        node_ids = set(node.id for node in diagram.nodes) if diagram.nodes else set()
+        node_ids = {node.id for node in diagram.nodes} if diagram.nodes else set()
 
         if context == "execution":
             start_nodes = (
@@ -94,7 +80,7 @@ class DiagramValidator:
                     )
 
         person_ids = (
-            set(person.id for person in diagram.persons) if diagram.persons else set()
+            {person.id for person in diagram.persons} if diagram.persons else set()
         )
 
         if diagram.nodes:
@@ -108,15 +94,14 @@ class DiagramValidator:
 
         if self.api_key_service and diagram.persons:
             for person in diagram.persons:
-                if person.api_key_id:
-                    if not self.api_key_service.get_api_key(person.api_key_id):
-                        errors.append(
-                            f"Person '{person.id}' references non-existent API key '{person.api_key_id}'"
-                        )
+                if person.api_key_id and not self.api_key_service.get_api_key(person.api_key_id):
+                    errors.append(
+                        f"Person '{person.id}' references non-existent API key '{person.api_key_id}'"
+                    )
 
         return errors
 
-    def _validate_storage_format(self, diagram: Dict[str, Any]) -> List[str]:
+    def _validate_storage_format(self, diagram: Dict[str, Any], context: str = "storage") -> List[str]:
         """Validate diagram in storage format (dict with dicts)"""
         errors = []
 
@@ -129,6 +114,12 @@ class DiagramValidator:
             return errors
 
         node_ids = set(nodes.keys())
+        
+        # Check for start node in execution context
+        if context == "execution":
+            start_nodes = [nid for nid, node in nodes.items() if node.get("type") == "start" or node.get("data", {}).get("type") == "start"]
+            if not start_nodes:
+                errors.append("Diagram must have at least one 'start' node for execution")
 
         arrows = diagram.get("arrows", {})
         if isinstance(arrows, dict):
@@ -176,11 +167,10 @@ class DiagramValidator:
             if self.api_key_service:
                 for person_id, person in persons.items():
                     api_key_id = person.get("apiKeyId") or person.get("api_key_id")
-                    if api_key_id:
-                        if not self.api_key_service.get_api_key(api_key_id):
-                            errors.append(
-                                f"Person '{person_id}' references non-existent API key '{api_key_id}'"
-                            )
+                    if api_key_id and not self.api_key_service.get_api_key(api_key_id):
+                        errors.append(
+                            f"Person '{person_id}' references non-existent API key '{api_key_id}'"
+                        )
 
         return errors
 
@@ -199,8 +189,6 @@ class DiagramValidator:
         """
         errors = self.validate(diagram, context)
         if errors:
-            from dipeo_core import ValidationError
-
             raise ValidationError("; ".join(errors))
 
     def is_valid(

@@ -28,7 +28,7 @@ class RuntimeNodeDefinition:
     """Runtime definition of a node type with handler references."""
 
     type: str
-    schema: Type[BaseModel]
+    node_schema: Type[BaseModel]  # Renamed for Pydantic v2 compatibility
     handler: NodeHandler
     requires_services: List[str] = field(default_factory=list)
     description: str = ""

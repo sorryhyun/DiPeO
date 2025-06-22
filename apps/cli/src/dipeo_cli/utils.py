@@ -27,8 +27,12 @@ class DiagramValidator:
             diagram["handles"] = {}
         if "persons" not in diagram:
             diagram["persons"] = {}
-        if "apiKeys" not in diagram:
+        # Handle both camelCase and snake_case for API keys
+        if "apiKeys" not in diagram and "api_keys" not in diagram:
             diagram["apiKeys"] = {}
+        elif "api_keys" in diagram and "apiKeys" not in diagram:
+            # Convert snake_case to camelCase for consistency
+            diagram["apiKeys"] = diagram.pop("api_keys", {})
 
         # Add default API key if needed
         if not diagram["apiKeys"] and diagram["persons"]:

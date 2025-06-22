@@ -105,18 +105,39 @@ class SimpleStateStore:
         """Save execution state to database."""
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
-            node_states_dict = {
-                node_id: node_state.model_dump()
-                if hasattr(node_state, "model_dump")
-                else node_state
-                for node_id, node_state in state.node_states.items()
-            }
-            node_outputs_dict = {
-                node_id: node_output.model_dump()
-                if hasattr(node_output, "model_dump")
-                else node_output
-                for node_id, node_output in state.node_outputs.items()
-            }
+            node_states_dict = {}
+            for node_id, node_state in state.node_states.items():
+                if hasattr(node_state, "model_dump"):
+                    node_states_dict[node_id] = node_state.model_dump()
+                elif hasattr(node_state, "dict"):  # Pydantic v1 compatibility
+                    node_states_dict[node_id] = node_state.dict()
+                elif isinstance(node_state, dict):
+                    node_states_dict[node_id] = node_state
+                else:
+                    # Fallback: convert to dict manually
+                    node_states_dict[node_id] = {
+                        "status": node_state.status.value if hasattr(node_state.status, 'value') else str(node_state.status),
+                        "started_at": node_state.started_at,
+                        "ended_at": node_state.ended_at,
+                        "error": node_state.error,
+                        "skip_reason": node_state.skip_reason,
+                        "token_usage": node_state.token_usage.model_dump() if node_state.token_usage and hasattr(node_state.token_usage, "model_dump") else None
+                    }
+                    
+            node_outputs_dict = {}
+            for node_id, node_output in state.node_outputs.items():
+                if hasattr(node_output, "model_dump"):
+                    node_outputs_dict[node_id] = node_output.model_dump()
+                elif hasattr(node_output, "dict"):  # Pydantic v1 compatibility
+                    node_outputs_dict[node_id] = node_output.dict()
+                elif isinstance(node_output, dict):
+                    node_outputs_dict[node_id] = node_output
+                else:
+                    # Fallback: convert to dict manually
+                    node_outputs_dict[node_id] = {
+                        "value": node_output.value,
+                        "metadata": node_output.metadata if hasattr(node_output, "metadata") else {}
+                    }
 
             await asyncio.to_thread(
                 self._conn.execute,

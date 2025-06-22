@@ -62,6 +62,8 @@ class ExecutionService(BaseService):
         Validate → warm-up → enrich → run the CompactEngine.
         Yields node / engine updates as they happen.
         """
+        log.info(f"Starting execution {execution_id}")
+        log.debug(f"Diagram has {len(diagram.get('nodes', {}))} nodes")
         await self._validate_diagram(diagram)
         await self._warm_up_models(diagram)
 
@@ -71,6 +73,7 @@ class ExecutionService(BaseService):
         await state_store.create_execution(execution_id, diagram_id, variables)
 
         diagram = self._inject_api_keys(diagram)
+        log.debug(f"Injected {len(diagram.get('api_keys', {}))} API keys")
         exec_opts = self._merge_options(options, execution_id, interactive_handler)
 
         from ..executors import create_executors  # lazy import

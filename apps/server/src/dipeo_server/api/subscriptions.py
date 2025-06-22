@@ -216,7 +216,7 @@ class Subscription:
                         old_state = last_node_states.get(node_id)
 
                         if not old_state or old_state.status != node_state.status:
-                            node_type = NodeType.JOB
+                            node_type = NodeType.job
 
                             if node_types and node_type not in node_types:
                                 continue
@@ -282,7 +282,7 @@ class Subscription:
     @strawberry.subscription
     async def interactive_prompts(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[InteractivePrompt, None]:
+    ) -> AsyncGenerator[Optional[InteractivePrompt], None]:
         """Streams interactive prompts requiring user response."""
         context: GraphQLContext = info.context
         state_store = context.state_store
@@ -290,11 +290,15 @@ class Subscription:
         logger.info(f"Starting interactive prompts subscription for {execution_id}")
 
         processed_prompts = set()
+        has_yielded = False
 
         try:
             while True:
                 state = await state_store.get_state(execution_id)
 
+                # TODO: Check for actual interactive prompts in the state
+                # For now, this is a placeholder implementation
+                
                 # Check if execution is complete
                 if state and state.status in [
                     ExecutionStatus.COMPLETED,
@@ -304,6 +308,9 @@ class Subscription:
                     logger.info(
                         f"Interactive prompts completed for execution {execution_id}"
                     )
+                    # Ensure we yield at least once to make this a valid async generator
+                    if not has_yielded:
+                        yield None
                     break
 
                 # Poll interval (100ms)
@@ -362,7 +369,7 @@ def _get_event_type_for_node_status(status: NodeExecutionStatus) -> EventType:
 def _get_node_type(diagram: dict, node_id: str) -> NodeType:
     """Extracts node type from diagram data."""
     if not diagram or "nodes" not in diagram:
-        return NodeType.JOB
+        return NodeType.job
 
     node = diagram["nodes"].get(node_id, {})
     node_type_str = node.get("type", "job")
@@ -370,4 +377,4 @@ def _get_node_type(diagram: dict, node_id: str) -> NodeType:
     try:
         return NodeType(node_type_str)
     except ValueError:
-        return NodeType.JOB
+        return NodeType.job

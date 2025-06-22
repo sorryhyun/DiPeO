@@ -178,6 +178,10 @@ class DiagramRunner:
         """Handle interactive prompt stream"""
         try:
             async for prompt in client.subscribe_to_interactive_prompts(execution_id):
+                # Skip None values (used when no prompts are available)
+                if prompt is None:
+                    continue
+                    
                 node_id = prompt.get("nodeId")
                 prompt_text = prompt.get("prompt", "Input required:")
 
@@ -191,7 +195,8 @@ class DiagramRunner:
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            if self.options.debug:
+            # Ignore subscription errors - interactive prompts are optional
+            if self.options.debug and "Subscription field must return AsyncIterable" not in str(e):
                 print(f"Error in prompt stream: {e}")
 
     async def _handle_execution_stream(

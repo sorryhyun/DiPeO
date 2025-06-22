@@ -1,11 +1,13 @@
 """GraphQL mutations for diagram execution operations."""
 
+import asyncio
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 import strawberry
 from dipeo_domain import (
+    DiagramDictFormat,
     DiagramID,
     ExecutionID,
     NodeExecutionStatus,
@@ -17,6 +19,9 @@ from dipeo_domain import (
 from dipeo_domain import ExecutionStatus as DomainExecutionStatus
 
 from dipeo_server.core import ExecutionStatus
+from dipeo_server.domains.diagram.converters.diagram_format_converter import (
+    diagram_dict_to_graphql,
+)
 
 from .context import GraphQLContext
 from .inputs_types import (
@@ -52,7 +57,6 @@ class ExecutionMutations:
             diagram_service = context.diagram_service
             execution_service = context.execution_service
             state_store = context.state_store
-            message_router = context.message_router
 
             pydantic_input = PydanticExecuteDiagramInput(
                 diagram_id=input.diagram_id,
@@ -64,6 +68,7 @@ class ExecutionMutations:
 
             if pydantic_input.diagram_data:
                 diagram_data = pydantic_input.diagram_data
+                # The execution service expects dict format, so we don't need to convert
             elif pydantic_input.diagram_id:
                 diagram_data = diagram_service.load_diagram(pydantic_input.diagram_id)
                 if not diagram_data:
@@ -84,12 +89,31 @@ class ExecutionMutations:
             )
             await state_store.create_execution(execution_id, diagram_id, options)
 
+            # Start the actual execution asynchronously
+            async def run_execution():
+                try:
+                    async for _ in execution_service.execute_diagram(
+                        diagram=diagram_data,
+                        options=options,
+                        execution_id=execution_id
+                    ):
+                        # Updates are handled by the execution service
+                        pass
+                except Exception as e:
+                    logger.error(f"Execution failed for {execution_id}: {e}")
+                    await state_store.update_status(
+                        execution_id, DomainExecutionStatus.FAILED, error=str(e)
+                    )
+
+            # Launch execution in background
+            asyncio.create_task(run_execution())
+
             # Execution starts asynchronously; client monitors via subscriptions
             execution = ExecutionStateForGraphQL(
                 id=ExecutionID(execution_id),
                 status=DomainExecutionStatus.STARTED,
                 diagram_id=DiagramID(diagram_id) if diagram_id else None,
-                started_at=datetime.now().isoformat(),
+                started_at=datetime.now(timezone.utc).isoformat(),
                 ended_at=None,
                 node_states={},
                 node_outputs={},
@@ -175,7 +199,7 @@ class ExecutionMutations:
                 "type": f"{pydantic_input.action}_{'node' if pydantic_input.node_id else 'execution'}",
                 "execution_id": pydantic_input.execution_id,
                 "node_id": pydantic_input.node_id,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
@@ -250,7 +274,7 @@ class ExecutionMutations:
                 "executionId": pydantic_input.execution_id,
                 "nodeId": pydantic_input.node_id,
                 "response": pydantic_input.response,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
