@@ -1,26 +1,17 @@
-/**
- * Canvas interaction modes
- */
-export type InteractionMode = 
-  | 'select'      // Default mode for selecting nodes/arrows
-  | 'pan'         // Pan the canvas
-  | 'connect'     // Creating connections between nodes
-  | 'add-node'    // Adding new nodes
-  | 'multi-select' // Box selection mode
-  | 'disabled';   // Read-only mode
+export type InteractionMode =
+  | 'select'
+  | 'pan'
+  | 'connect'
+  | 'add-node'
+  | 'multi-select'
+  | 'disabled';
 
-/**
- * Application view modes
- */
 export type ViewMode = 
-  | 'design'      // Design/edit diagram
-  | 'execution'   // Monitor execution
-  | 'debug'       // Debug mode with extra info
-  | 'preview';    // Preview mode (read-only)
+  | 'design'
+  | 'execution'
+  | 'debug'
+  | 'preview';
 
-/**
- * Execution status values
- */
 export type ExecutionStatus = 
   | 'idle'
   | 'running'
@@ -29,9 +20,6 @@ export type ExecutionStatus =
   | 'error'
   | 'aborted';
 
-/**
- * Mode configuration
- */
 export interface ModeState {
   interaction: InteractionMode;
   view: ViewMode;
@@ -39,9 +27,6 @@ export interface ModeState {
   readonly: boolean;
 }
 
-/**
- * Mode constraints
- */
 export interface ModeConstraints {
   canEdit: boolean;
   canExecute: boolean;
@@ -52,9 +37,6 @@ export interface ModeConstraints {
   canSelect: boolean;
 }
 
-/**
- * Get constraints for current mode
- */
 export function getModeConstraints(mode: ModeState): ModeConstraints {
   if (mode.readonly || mode.view === 'preview') {
     return {
@@ -104,16 +86,10 @@ export function getModeConstraints(mode: ModeState): ModeConstraints {
   };
 }
 
-/**
- * Check if mode allows editing
- */
 export function canEditInMode(mode: ModeState): boolean {
   return getModeConstraints(mode).canEdit;
 }
 
-/**
- * Check if mode allows execution
- */
 export function canExecuteInMode(mode: ModeState): boolean {
   return getModeConstraints(mode).canExecute && mode.execution === 'idle';
 }

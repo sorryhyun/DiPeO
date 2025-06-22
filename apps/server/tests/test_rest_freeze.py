@@ -1,5 +1,4 @@
-"""
-REST Endpoint Freeze Test
+"""REST Endpoint Freeze Test
 
 Purpose: Ensure no new REST endpoints are added to maintain architectural consistency.
 After completing the GraphQL migration, this test serves as a guard to prevent
@@ -11,22 +10,18 @@ Only operational monitoring endpoints should remain as REST:
 
 All business logic must be implemented via GraphQL.
 """
-import unittest
-import os
-import sys
+
+import re
 from pathlib import Path
 
-# Add parent directory to path to import server module
-sys.path.insert(0, str(Path(__file__).parent.parent))
+import pytest
 
-class TestRESTFreeze(unittest.TestCase):
+
+class TestRESTFreeze:
     """Test that no new REST endpoints are added during GraphQL migration."""
     
     def test_no_new_rest_endpoints(self):
         """Verify only allowed REST endpoints exist by checking route registration."""
-        # Instead of importing the app (which has issues), we'll check the source code
-        # This is more reliable for CI/CD as it doesn't require the full app to start
-        
         # Define allowed REST endpoints
         allowed_paths = {
             "/api/health",
@@ -36,14 +31,11 @@ class TestRESTFreeze(unittest.TestCase):
         # Check main.py for route registrations
         main_path = Path(__file__).parent.parent / "main.py"
         if not main_path.exists():
-            self.skipTest("main.py not found")
+            pytest.skip("main.py not found")
             
         with open(main_path, 'r') as f:
             content = f.read()
             
-        # Look for app.include_router or @app.get/@app.post decorators
-        import re
-        
         # Find all route inclusions
         router_pattern = r'app\.include_router\([^,]+,\s*prefix="([^"]+)"'
         route_pattern = r'@app\.(get|post|put|delete|patch)\("([^"]+)"'
@@ -74,47 +66,43 @@ class TestRESTFreeze(unittest.TestCase):
                 for allowed in allowed_paths
             )
             
-            self.assertTrue(
-                is_allowed,
+            assert is_allowed, (
                 f"Unexpected REST endpoint found: {route}. "
                 f"Only allowed endpoints are: {allowed_paths}. "
                 f"All new functionality should be implemented via GraphQL."
             )
     
-    
     def test_health_endpoint_exists(self):
-        """Ensure the health endpoint is still available for K8s/monitoring.""" 
-        # Check that health router is imported and included in main.py
-        main_path = Path(__file__).parent.parent / "main.py"
-        if not main_path.exists():
-            self.skipTest("main.py not found")
+        """Ensure health endpoint is available via GraphQL for monitoring."""
+        # Health is now provided via GraphQL, not REST
+        # Check that GraphQL schema includes health query
+        queries_path = Path(__file__).parent.parent / "src" / "dipeo_server" / "api" / "queries.py"
+        if not queries_path.exists():
+            pytest.skip("queries.py not found")
             
-        with open(main_path, 'r') as f:
+        with open(queries_path, 'r') as f:
             content = f.read()
             
-        # Check that health router is imported and included
-        self.assertIn('health_router', content, "Health router must be imported")
-        self.assertIn('app.include_router(health_router)', content, "Health router must be included")
+        # Verify health query exists in GraphQL schema
+        assert 'def health' in content, "Health query must be defined"
+        assert '@strawberry.field' in content, "Health must be a GraphQL field"
         
-        # Verify the actual endpoint in the router file
-        router_path = Path(__file__).parent.parent / "src" / "api" / "routers" / "health.py"
-        if router_path.exists():
-            with open(router_path, 'r') as f:
-                router_content = f.read()
-            self.assertIn('prefix="/api/health"', router_content, "Health router must have /api/health prefix")
+        # For K8s compatibility, metrics endpoint still exists as REST
+        main_path = Path(__file__).parent.parent / "main.py"
+        if main_path.exists():
+            with open(main_path, 'r') as f:
+                main_content = f.read()
+            assert '/metrics' in main_content, "Metrics endpoint must exist for Prometheus"
     
     def test_graphql_endpoint_exists(self):
         """Ensure GraphQL endpoint is properly configured as the primary API."""
         main_path = Path(__file__).parent.parent / "main.py"
         if not main_path.exists():
-            self.skipTest("main.py not found")
+            pytest.skip("main.py not found")
             
         with open(main_path, 'r') as f:
             content = f.read()
             
         # Check that GraphQL is configured
-        self.assertIn('GraphQL', content, "GraphQL must be imported")
-        self.assertIn('/graphql', content, "GraphQL endpoint must be configured at /graphql")
-
-if __name__ == "__main__":
-    unittest.main()
+        assert 'GraphQL' in content, "GraphQL must be imported"
+        assert '/graphql' in content, "GraphQL endpoint must be configured at /graphql"

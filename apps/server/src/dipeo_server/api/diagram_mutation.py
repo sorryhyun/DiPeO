@@ -1,4 +1,4 @@
-"""Refactored diagram-related GraphQL mutations using Pydantic models."""
+"""GraphQL mutations for diagram management."""
 import strawberry
 from typing import Optional
 import logging
@@ -20,16 +20,15 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class DiagramMutations:
-    """Mutations for diagram operations."""
+    """Handles diagram CRUD operations."""
     
     @strawberry.mutation
     async def create_diagram(self, input: CreateDiagramInput, info) -> DiagramResult:
-        """Create a new diagram."""
+        """Creates new empty diagram."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticCreateDiagramInput(
                 name=input.name,
                 description=input.description,
@@ -37,17 +36,15 @@ class DiagramMutations:
                 tags=input.tags
             )
             
-            # Create diagram metadata using validated Pydantic data
             metadata = DiagramMetadata(
-                name=pydantic_input.name,  # Already trimmed by validation
+                name=pydantic_input.name,
                 description=pydantic_input.description or "",
                 author=pydantic_input.author or "",
-                tags=pydantic_input.tags,  # Already cleaned of duplicates
+                tags=pydantic_input.tags,
                 created=datetime.now(),
                 modified=datetime.now()
             )
             
-            # Create empty diagram structure using Pydantic model
             diagram_model = DomainDiagram(
                 nodes=[],
                 arrows=[],
@@ -57,14 +54,10 @@ class DiagramMutations:
                 metadata=metadata
             )
             
-            # Convert to dict for service
             diagram_data = diagram_model.model_dump()
             
-            # Create the diagram file
             path = diagram_service.create_diagram(pydantic_input.name, diagram_data)
             
-            # Convert to GraphQL format
-            # diagram_model is already a DomainDiagram with lists, not dicts
             graphql_diagram = diagram_model
             
             return DiagramResult(
@@ -74,7 +67,6 @@ class DiagramMutations:
             )
             
         except ValueError as e:
-            # Pydantic validation error
             logger.error(f"Validation error creating diagram: {e}")
             return DiagramResult(
                 success=False,
@@ -89,12 +81,11 @@ class DiagramMutations:
     
     @strawberry.mutation
     async def delete_diagram(self, id: DiagramID, info) -> DeleteResult:
-        """Delete a diagram."""
+        """Removes diagram file."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # DiagramID is the path to the diagram file
             diagram_service.delete_diagram(id)
             
             return DeleteResult(

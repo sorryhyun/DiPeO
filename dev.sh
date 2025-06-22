@@ -104,6 +104,28 @@ generate_code() {
     print_info "Building TypeScript models..."
     pnpm build
     
+    # Export GraphQL schema
+    print_info "Exporting GraphQL schema..."
+    cd "$SCRIPT_DIR/apps/server"
+    python -m dipeo_server.api.schema ../../apps/web/schema.graphql
+    if [ $? -eq 0 ]; then
+        print_success "GraphQL schema exported successfully"
+    else
+        print_error "Failed to export GraphQL schema"
+        exit 1
+    fi
+    
+    # Run GraphQL codegen
+    cd "$SCRIPT_DIR"
+    print_info "Running GraphQL codegen..."
+    pnpm codegen
+    if [ $? -eq 0 ]; then
+        print_success "GraphQL codegen completed"
+    else
+        print_error "Failed to run GraphQL codegen"
+        exit 1
+    fi
+    
     print_success "Code generation completed"
     
     cd "$SCRIPT_DIR"

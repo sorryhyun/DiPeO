@@ -45,19 +45,16 @@ class PersonMemory:
     messages: List[Message] = field(default_factory=list)
     forgotten_message_ids: set[str] = field(default_factory=set)
     last_execution_id: Optional[str] = None
-    MAX_MESSAGES = 100  # Reduced from 1000 for better memory management
+    MAX_MESSAGES = 100
 
     def add_message(self, message: Message) -> None:
         """Add a message to memory with automatic cleanup of old messages."""
         self.messages.append(message)
         
-        # Remove old messages when limit is exceeded
         if len(self.messages) > self.MAX_MESSAGES:
-            # Keep only the most recent messages
             messages_to_remove = len(self.messages) - self.MAX_MESSAGES
             self.messages = self.messages[messages_to_remove:]
             
-            # Clean up forgotten message IDs that reference removed messages
             remaining_ids = {msg.id for msg in self.messages}
             self.forgotten_message_ids &= remaining_ids
 
@@ -80,7 +77,6 @@ class PersonMemory:
                 self.forgotten_message_ids.add(message.id)
 
     def get_visible_messages(self, current_person_id: str) -> List[Dict[str, Any]]:
-        """Get messages visible to this person, with roles adjusted based on perspective."""
         visible_messages = []
 
         for message in self.messages:
@@ -89,7 +85,6 @@ class PersonMemory:
 
             role = "assistant" if message.sender_person_id == current_person_id else "user"
             
-            # Add speaker label for user messages to clarify who is speaking
             if role == "user" and message.node_label:
                 content = f"[{message.node_label}]: {message.content}"
             else:
@@ -107,29 +102,22 @@ class SimplifiedMemoryService:
     """Simplified memory service without Redis dependency."""
 
     def __init__(self, redis_url: Optional[str] = None):
-        # Ignore redis_url parameter for backward compatibility
-        # Use OrderedDict for LRU-like behavior for global message storage
         self.person_memories: Dict[str, PersonMemory] = {}
         self.all_messages: OrderedDict[str, Message] = OrderedDict()
         self.execution_metadata: Dict[str, Dict[str, Any]] = {}
         
-        # Global message limit to prevent unbounded growth
         self.MAX_GLOBAL_MESSAGES = 10000
     
     def _store_message(self, message: Message) -> None:
-        """Store message with automatic cleanup of old messages."""
         self.all_messages[message.id] = message
         
-        # Remove oldest messages when limit is exceeded
         while len(self.all_messages) > self.MAX_GLOBAL_MESSAGES:
-            self.all_messages.popitem(last=False)  # Remove oldest (FIFO)
+            self.all_messages.popitem(last=False)
     
     def _get_message(self, message_id: str) -> Optional[Message]:
-        """Get message from storage."""
         return self.all_messages.get(message_id)
 
     def get_or_create_person_memory(self, person_id: str) -> PersonMemory:
-        """Get or create memory for a person."""
         if person_id not in self.person_memories:
             self.person_memories[person_id] = PersonMemory(person_id=person_id)
         return self.person_memories[person_id]
@@ -168,7 +156,6 @@ class SimplifiedMemoryService:
             person_memory = self.get_or_create_person_memory(person_id)
             person_memory.add_message(message)
 
-        # Update execution metadata
         if execution_id not in self.execution_metadata:
             self.execution_metadata[execution_id] = {
                 "start_time": datetime.now(),
@@ -199,7 +186,6 @@ class SimplifiedMemoryService:
         if execution_id:
             person_memory.forget_messages_from_execution(execution_id)
         else:
-            # Forget all messages
             for message in person_memory.messages:
                 person_memory.forgotten_message_ids.add(message.id)
 
@@ -251,5 +237,4 @@ class SimplifiedMemoryService:
         }
 
 
-# Alias for backward compatibility
 MemoryService = SimplifiedMemoryService

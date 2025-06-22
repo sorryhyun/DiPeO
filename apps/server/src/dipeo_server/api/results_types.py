@@ -1,4 +1,4 @@
-"""Result types for GraphQL operations with error handling."""
+"""GraphQL result types for API operations."""
 import strawberry
 from typing import Optional, List, Union
 
@@ -20,17 +20,16 @@ from .models.result_models import (
     OperationErrorModel
 )
 
-# Validation error stays as pure Strawberry type (simple structure)
 @strawberry.type
 class ValidationError:
-    """Validation error details."""
+    """Validation error info."""
     field: str
     message: str
     code: Optional[str] = None
 
 @strawberry.type
 class DiagramFormatInfo:
-    """Information about a diagram format."""
+    """Diagram format details."""
     id: str
     name: str
     description: str
@@ -38,7 +37,6 @@ class DiagramFormatInfo:
     supports_import: bool
     supports_export: bool
 
-# Convert Pydantic models to Strawberry types
 @strawberry.experimental.pydantic.type(
     model=OperationErrorModel,
     all_fields=True,
@@ -127,7 +125,6 @@ class TestApiKeyResult:
 class FileUploadResult:
     pass
 
-# Union types for flexible error handling
 DiagramOperationResult = strawberry.union(
     "DiagramOperationResult",
     [DomainDiagramType, OperationError]

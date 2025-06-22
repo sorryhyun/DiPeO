@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from ..schemas.person_job import PersonJobProps, PersonBatchJobProps
 from ..types import RuntimeExecutionContext
 from ..decorators import node
-from ..utils import BaseNodeHandler, log_action
+from ..base import BaseNodeHandler, log_action
 from dipeo_server.domains.llm.service_utils.token_usage_service import TokenUsageService
 from dipeo_server.core import OutputProcessor
 from dipeo_domain import PersonConfiguration, TokenUsage

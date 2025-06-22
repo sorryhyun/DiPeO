@@ -1,12 +1,4 @@
-"""
-Compact execution engine for AgentDiagram.
-
-This module contains:
-- Core data types (Node, Arrow, Graph, Ctx)
-- Graph building and topology sorting
-- Loop management and skip logic
-- The main CompactEngine that orchestrates execution
-"""
+"""Compact execution engine for AgentDiagram."""
 from __future__ import annotations
 import asyncio
 import logging
@@ -14,7 +6,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Set, Optional, Union, Coroutine
 
-# Core Types
 
 @dataclass(slots=True)
 class Node:
@@ -24,7 +15,6 @@ class Node:
     in_arrows: List["Arrow"] = field(default_factory=list, repr=False)
     out_arrows: List["Arrow"] = field(default_factory=list, repr=False)
 
-    # One-shot caches to avoid thousands of `dict.get(...)`
     @property
     def max_iter(self) -> int | None: 
         return self.props.get("maxIteration")
@@ -38,7 +28,7 @@ class Node:
         return self.type == "condition"
     
     @property
-    def is_pj(self) -> bool:  # PersonJob & friends
+    def is_pj(self) -> bool:
         return self.type in {"person_job", "person_batch_job"}
 
 
@@ -68,7 +58,6 @@ class Ctx:
     skipped: Dict[str, str] = field(default_factory=dict)  # nid → reason
     order: List[str] = field(default_factory=list)
     
-    # Additional properties for compatibility with executors
     persons: Dict[str, Any] = field(default_factory=dict)
     execution_id: Optional[str] = None
     interactive_handler: Optional[Callable] = None
@@ -76,7 +65,6 @@ class Ctx:
     def skip(self, nid, r):
         self.skipped[nid] = r
 
-# Graph Building and Controllers
 
 def build_graph(diagram: Dict[str, Any]) -> Graph:
     """Build a Graph from a diagram in Record format."""
@@ -88,7 +76,6 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
     
     inc, out = defaultdict(list), defaultdict(list)
     
-    # Only handle Record format (dict) for arrows
     arrows = diagram.get("arrows", {})
     for a in arrows.values():
         src_node = a["source"]
@@ -110,7 +97,6 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
         node.in_arrows = inc[nid]
         node.out_arrows = out[nid]
     
-    # Kahn topo sort; nodes left over form cycles and are appended afterwards
     deg = {nid: len(inc[nid]) for nid in ns}
     Q = [nid for nid, d in deg.items() if deg[nid] == 0]
     topo: List[str] = []
@@ -119,9 +105,8 @@ def build_graph(diagram: Dict[str, Any]) -> Graph:
         topo.append(cur)
         for ar in out[cur]:
             deg[ar.target] -= 1
-            if deg[ar.target] == 0: 
+            if deg[ar.target] == 0:
                 Q.append(ar.target)
-    # if cycles exist just append remaining nodes — engine resolves at runtime
     topo.extend([nid for nid, d in deg.items() if d > 0 and nid not in topo])
     return Graph(ns, topo, inc, out)
 
@@ -156,7 +141,6 @@ def should_skip(node: Node, ctx: Ctx, lp: LoopBook) -> bool:
         return True
     return False
 
-# Main Engine
 
 class CompactEngine:
     """Compact execution engine for AgentDiagram diagrams."""
@@ -183,14 +167,12 @@ class CompactEngine:
             ctx.persons = diagram.get("persons", {})
             loops = LoopBook()
             
-            # Make send async-aware
             if send is None:
                 async def _send(msg):
-                    pass  # No-op for None send
+                    pass
             elif asyncio.iscoroutinefunction(send):
                 _send = send
             else:
-                # Wrap sync send in async
                 async def _send(msg):
                     send(msg)
             
@@ -203,21 +185,17 @@ class CompactEngine:
                 if not ready:
                     raise RuntimeError(f"Dead-lock, remaining: {pending}")
                 
-                # Start events
                 for nid in ready: 
                     await _send({"type": "node_start", "node_id": nid})
 
-                # Run in parallel
                 results = await asyncio.gather(
                     *[self._do(nid, g.nodes[nid], ctx, loops, _send) 
                       for nid in ready]
                 )
                 pending.difference_update(ready)
                 
-                # Handle loop re-queues (false condition → run again)
                 for nid, r in zip(ready, results):
                     if g.nodes[nid].is_cond and ctx.cond_val.get(nid) is False:
-                        # Re-queue the whole strongly-connected loop members
                         pend = self._loop_members(nid, g)
                         pending.update(pend)
             
@@ -251,7 +229,7 @@ class CompactEngine:
             return cond_val is not True
         if ar.label.lower() in {"false", "no", "0"}:
             return cond_val is not False
-        return False  # unlabeled ⇒ always OK
+        return False
 
     async def _do(
         self, 
@@ -274,13 +252,11 @@ class CompactEngine:
         if not ex: 
             raise RuntimeError(f"No executor for {node.type}")
 
-        # Run the executor (validate inside executor if needed)
-        # Convert Node object to dict format expected by executors
         node_dict = {
             "id": node.id,
             "type": node.type,
-            "properties": node.props,  # Executors expect "properties", not "props"
-            "data": node.props  # Some executors might use "data"
+            "properties": node.props,
+            "data": node.props
         }
         result = await ex.execute(node_dict, ctx)
         ctx.outputs[nid] = result.output
@@ -292,7 +268,6 @@ class CompactEngine:
                 "conditionResult", bool(result.output)
             )
         
-        # Loop accounting
         if node.is_pj and node.props.get("firstOnlyPrompt"):
             loops.first_used.add(nid)
         if node.max_iter:

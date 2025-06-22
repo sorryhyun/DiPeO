@@ -16,21 +16,16 @@ AGENTS.md
 apps/web/schema.graphql
 apps/server/schema.graphql
 packages/domain-models/schema.graphql
-packages/domain-models/__generated__
-**/__generated__/
-**/generated/
 server/diagrams
 docs/deprecated
 TODO.md
 *.tsbuildinfo
 .ruff_cache
-apps/web/src/__generated__
-apps/server/src/__generated__
-apps/packages/domain-models/__generated__
-apps/cli/dipeo/__generated__
 apps/server/.importlinter
 apps/server/pyproject.toml
 .logs
+apps/server/.import_linter_cache
+
 # Node.js
 node_modules/
 npm-debug.log*

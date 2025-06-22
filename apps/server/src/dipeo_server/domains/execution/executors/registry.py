@@ -1,12 +1,13 @@
 """Registry for creating and configuring the unified executor."""
 
+from typing import Dict, Any, Optional
 from .unified_executor import UnifiedExecutor
 from .decorators import get_registered_nodes
 
 
-def create_executor() -> UnifiedExecutor:
+def create_executor(services: Optional[Dict[str, Any]] = None) -> UnifiedExecutor:
     """Create and configure the unified executor with all node types."""
-    executor = UnifiedExecutor()
+    executor = UnifiedExecutor(service_provider=services)
     
     # Import all handler modules to trigger decorator registration
     # This ensures all @node decorators are executed

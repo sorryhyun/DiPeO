@@ -19,9 +19,6 @@ export const useFileOperations = () => {
 
   // LOAD OPERATIONS (from file to browser via server upload)
 
-  /**
-   * Load diagram from file to browser (uploads to server first)
-   */
   const loadFile = useCallback(async (file: File) => {
     setIsProcessing(true);
     try {
@@ -99,9 +96,6 @@ export const useFileOperations = () => {
   // UPLOAD OPERATIONS
   
 
-  /**
-   * Save current diagram to backend
-   */
   const saveDiagram = useCallback(async (
     filename?: string,
     format?: DiagramFormat
@@ -143,12 +137,6 @@ export const useFileOperations = () => {
   // EXPORT OPERATIONS
   
 
-  /**
-   * Export current diagram and download as file
-   */
-  /**
-   * Download diagram in specified format
-   */
   const downloadAs = useCallback(async (
     format: DiagramFormat = DiagramFormat.NATIVE,
     filename?: string,
@@ -164,7 +152,7 @@ export const useFileOperations = () => {
         mutation: ConvertDiagramDocument,
         variables: {
           content: diagramContent,
-          format: format.toUpperCase() as any, // GraphQL expects uppercase enum values
+          format: format as any, // GraphQL expects uppercase enum values
           includeMetadata
         }
       });

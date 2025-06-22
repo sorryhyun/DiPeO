@@ -1,4 +1,4 @@
-"""GraphQL query definitions."""
+"""GraphQL queries for DiPeO API."""
 import strawberry
 from typing import Optional, List
 from datetime import datetime
@@ -9,17 +9,16 @@ from .domain_types import (
 from .results_types import DiagramFormatInfo
 from .scalars_types import DiagramID, ExecutionID, PersonID, ApiKeyID, JSONScalar
 from .inputs_types import DiagramFilterInput, ExecutionFilterInput
-# Import enums from the Pydantic models (single source of truth)
 from dipeo_server.core import NodeType, LLMService
 
 @strawberry.type
 class Query:
-    """Root query type for DiPeO GraphQL API."""
+    """GraphQL queries for diagrams, executions, and system info."""
     
     @strawberry.field
     async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
-        """Get a single diagram by ID."""
-        from . import diagram_resolver
+        """Returns diagram by ID."""
+        from .diagram_resolver import diagram_resolver
         return await diagram_resolver.get_diagram(id, info)
     
     @strawberry.field
@@ -30,14 +29,14 @@ class Query:
         limit: int = 100,
         offset: int = 0
     ) -> List[DomainDiagramType]:
-        """List diagrams with optional filtering."""
-        from . import diagram_resolver
+        """Returns filtered diagram list."""
+        from .diagram_resolver import diagram_resolver
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
     
     @strawberry.field
     async def execution(self, id: ExecutionID, info) -> Optional[ExecutionState]:
-        """Get a single execution by ID."""
-        from . import execution_resolver
+        """Returns execution by ID."""
+        from .execution_resolver import execution_resolver
         return await execution_resolver.get_execution(id, info)
     
     @strawberry.field
@@ -48,8 +47,8 @@ class Query:
         limit: int = 100,
         offset: int = 0
     ) -> List[ExecutionState]:
-        """List executions with optional filtering."""
-        from . import execution_resolver
+        """Returns filtered execution list."""
+        from .execution_resolver import execution_resolver
         return await execution_resolver.list_executions(filter, limit, offset, info)
     
     @strawberry.field(deprecation_reason="Events are no longer stored. Use execution state subscriptions instead.")
@@ -60,48 +59,45 @@ class Query:
         since_sequence: Optional[int] = None,
         limit: int = 1000
     ) -> List[ExecutionEvent]:
-        """
-        DEPRECATED: Get execution events for a specific execution.
-        Always returns an empty list as events are no longer stored.
-        """
-        from . import execution_resolver
+        """DEPRECATED: Returns empty list, use subscriptions instead."""
+        from .execution_resolver import execution_resolver
         return await execution_resolver.get_execution_events(
             execution_id, since_sequence, limit, info
         )
     
     @strawberry.field
     async def person(self, id: PersonID, info) -> Optional[DomainPerson]:
-        """Get a single person by ID."""
-        from . import person_resolver
+        """Returns person by ID."""
+        from .person_resolver import person_resolver
         return await person_resolver.get_person(id, info)
     
     @strawberry.field
     async def persons(self, info, limit: int = 100) -> List[DomainPerson]:
-        """List all persons."""
-        from . import person_resolver
+        """Returns person list."""
+        from .person_resolver import person_resolver
         return await person_resolver.list_persons(limit, info)
     
     @strawberry.field
     async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKey]:
-        """Get a single API key by ID."""
-        from . import person_resolver
+        """Returns API key by ID."""
+        from .person_resolver import person_resolver
         return await person_resolver.get_api_key(id, info)
     
     @strawberry.field
     async def api_keys(self, info, service: Optional[str] = None) -> List[DomainApiKey]:
-        """List all API keys, optionally filtered by service."""
-        from . import person_resolver
+        """Returns API key list, optionally filtered."""
+        from .person_resolver import person_resolver
         return await person_resolver.list_api_keys(service, info)
     
     @strawberry.field
     async def available_models(self, service: str, api_key_id: ApiKeyID, info) -> List[str]:
-        """Get available models for a service and API key."""
-        from . import person_resolver
+        """Returns available models for service/API key."""
+        from .person_resolver import person_resolver
         return await person_resolver.get_available_models(service, api_key_id, info)
     
     @strawberry.field
     async def system_info(self, info) -> JSONScalar:
-        """Get system information and capabilities."""
+        """Returns system info and capabilities."""
         return {
             "version": "2.0.0",
             "supported_node_types": [t.value for t in NodeType],
@@ -112,7 +108,7 @@ class Query:
     
     @strawberry.field
     async def execution_capabilities(self, info) -> JSONScalar:
-        """Get information about execution capabilities (replaces REST endpoint)."""
+        """Returns execution capabilities and features."""
         context = info.context
         
         diagram_service = context.diagram_service
@@ -144,7 +140,7 @@ class Query:
     
     @strawberry.field
     async def health(self, info) -> JSONScalar:
-        """Health check endpoint (replaces REST endpoint)."""
+        """Returns system health status."""
         context = info.context
         
         checks = {
@@ -159,7 +155,7 @@ class Query:
         except:
             pass
         
-        checks["redis"] = False  # Redis is being removed
+        checks["redis"] = False
         
         try:
             import os
@@ -189,7 +185,7 @@ class Query:
         offset: int = 0,
         since: Optional[datetime] = None
     ) -> JSONScalar:
-        """Get conversation data with filtering (replaces REST endpoint)."""
+        """Returns conversation data with filtering."""
         context = info.context
         memory_service = context.memory_service
         
@@ -261,7 +257,7 @@ class Query:
     
     @strawberry.field
     async def supported_formats(self, info) -> List[DiagramFormatInfo]:
-        """Get list of supported diagram formats for import/export."""
+        """Returns supported diagram formats."""
         from dipeo_server.domains.diagram.converters import converter_registry
         
         formats = converter_registry.list_formats()

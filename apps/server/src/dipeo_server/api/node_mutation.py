@@ -1,4 +1,4 @@
-"""Refactored node-related GraphQL mutations using Pydantic models."""
+"""GraphQL mutations for node operations."""
 import strawberry
 import logging
 import uuid
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class NodeMutations:
-    """Mutations for node operations."""
+    """Handles node CRUD operations."""
     
     @strawberry.mutation
     async def create_node(
@@ -28,12 +28,11 @@ class NodeMutations:
         input: CreateNodeInput,
         info
     ) -> NodeResult:
-        """Create a new node in a diagram."""
+        """Creates new node in diagram."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticCreateNodeInput(
                 type=input.type,
                 position={"x": input.position.x, "y": input.position.y},
@@ -41,7 +40,6 @@ class NodeMutations:
                 properties=input.properties or {}
             )
             
-            # Load diagram
             diagram_data = diagram_service.load_diagram(diagram_id)
             if not diagram_data:
                 return NodeResult(
@@ -49,14 +47,11 @@ class NodeMutations:
                     error="Diagram not found"
                 )
             
-            # Generate node ID
             node_id = f"node_{str(uuid.uuid4())[:8]}"
             
-            # Create node properties - validated label is already trimmed
             node_properties = pydantic_input.properties.copy()
             node_properties["label"] = pydantic_input.label
             
-            # Create Pydantic node model
             node = DomainNode(
                 id=node_id,
                 type=pydantic_input.type,
@@ -67,20 +62,17 @@ class NodeMutations:
                 data=node_properties
             )
             
-            # Add node to diagram
             diagram_data["nodes"][node_id] = node.model_dump()
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             return NodeResult(
                 success=True,
-                node=node,  # Strawberry will handle conversion
+                node=node,
                 message=f"Created node {node_id}"
             )
             
         except ValueError as e:
-            # Pydantic validation error
             logger.error(f"Validation error creating node: {e}")
             return NodeResult(
                 success=False,
@@ -95,12 +87,11 @@ class NodeMutations:
     
     @strawberry.mutation
     async def update_node(self, input: UpdateNodeInput, info) -> NodeResult:
-        """Update an existing node."""
+        """Updates existing node properties."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticUpdateNodeInput(
                 id=input.id,
                 position={"x": input.position.x, "y": input.position.y} if input.position else None,
@@ -108,7 +99,6 @@ class NodeMutations:
                 properties=input.properties
             )
             
-            # Find diagram containing this node
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
             diagram_data = None
@@ -126,10 +116,8 @@ class NodeMutations:
                     error=f"Node {pydantic_input.id} not found in any diagram"
                 )
             
-            # Get existing node data
             node_data = diagram_data['nodes'][pydantic_input.id]
             
-            # Update node properties with validated data
             if pydantic_input.position:
                 node_data['position'] = {
                     "x": pydantic_input.position.x, 
@@ -137,13 +125,11 @@ class NodeMutations:
                 }
             
             if pydantic_input.label is not None:
-                # Validated label is already trimmed
                 node_data['data']['label'] = pydantic_input.label
             
             if pydantic_input.properties is not None:
                 node_data['data'].update(pydantic_input.properties)
             
-            # Create Pydantic model for updated node
             updated_node = DomainNode(
                 id=pydantic_input.id,
                 type=NodeType(node_data['type']),
@@ -154,20 +140,17 @@ class NodeMutations:
                 data=node_data['data']
             )
             
-            # Update diagram with validated data
             diagram_data['nodes'][pydantic_input.id] = updated_node.model_dump()
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             return NodeResult(
                 success=True,
-                node=updated_node,  # Strawberry will handle conversion
+                node=updated_node,
                 message=f"Updated node {pydantic_input.id}"
             )
             
         except ValueError as e:
-            # Pydantic validation error
             logger.error(f"Validation error updating node: {e}")
             return NodeResult(
                 success=False,
@@ -182,12 +165,11 @@ class NodeMutations:
     
     @strawberry.mutation
     async def delete_node(self, id: NodeID, info) -> DeleteResult:
-        """Delete a node from a diagram."""
+        """Removes node and connected elements."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Find diagram containing this node
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
             diagram_data = None
@@ -205,13 +187,10 @@ class NodeMutations:
                     error=f"Node {id} not found in any diagram"
                 )
             
-            # Remove node
             del diagram_data['nodes'][id]
             
-            # Remove any arrows connected to this node
             arrows_to_remove = []
             for arrow_id, arrow in diagram_data.get('arrows', {}).items():
-                # Check if arrow is connected to this node
                 source_node_id = arrow['source'].split(':')[0]
                 target_node_id = arrow['target'].split(':')[0]
                 
@@ -221,7 +200,6 @@ class NodeMutations:
             for arrow_id in arrows_to_remove:
                 del diagram_data['arrows'][arrow_id]
             
-            # Remove any handles associated with this node
             handles_to_remove = []
             for handle_id, handle in diagram_data.get('handles', {}).items():
                 if handle.get('nodeId') == id:
@@ -230,7 +208,6 @@ class NodeMutations:
             for handle_id in handles_to_remove:
                 del diagram_data['handles'][handle_id]
             
-            # Save updated diagram
             diagram_service.update_diagram(diagram_id, diagram_data)
             
             return DeleteResult(

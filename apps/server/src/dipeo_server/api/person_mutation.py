@@ -1,4 +1,4 @@
-"""Refactored person (LLM agent) related GraphQL mutations using Pydantic models."""
+"""GraphQL mutations for person (LLM agent) management."""
 import strawberry
 import logging
 import uuid
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class PersonMutations:
-    """Mutations for person/LLM agent operations."""
+    """Handles person/LLM agent CRUD operations."""
     
     @strawberry.mutation
     async def create_person(
@@ -28,12 +28,11 @@ class PersonMutations:
         input: CreatePersonInput,
         info: strawberry.Info[GraphQLContext]
     ) -> PersonResult:
-        """Create a new person (LLM agent)."""
+        """Creates a new person (LLM agent) in diagram."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticCreatePersonInput(
                 label=input.label,
                 service=input.service,
@@ -46,7 +45,6 @@ class PersonMutations:
                 top_p=input.top_p
             )
             
-            # Load diagram
             diagram_data = diagram_service.load_diagram(diagram_id)
             if not diagram_data:
                 return PersonResult(
@@ -54,31 +52,26 @@ class PersonMutations:
                     error="Diagram not found"
                 )
             
-            # Generate person ID
             person_id = f"person_{str(uuid.uuid4())[:8]}"
             
-            # Create Pydantic person model with validated data
             person = DomainPerson(
                 id=person_id,
-                label=pydantic_input.label,  # Already trimmed by validation
+                label=pydantic_input.label,
                 service=pydantic_input.service,
-                model=pydantic_input.model,  # Already trimmed by validation
+                model=pydantic_input.model,
                 api_key_id=pydantic_input.api_key_id,
                 systemPrompt=pydantic_input.system_prompt or "",
                 forgettingMode=pydantic_input.forgetting_mode,
                 type="person"
             )
             
-            # Convert to dict and add additional validated fields
             person_data = person.model_dump()
-            # Add optional fields that might not be in the base model
             person_data.update({
                 "temperature": pydantic_input.temperature,
                 "maxTokens": pydantic_input.max_tokens,
                 "topP": pydantic_input.top_p
             })
             
-            # Add person to diagram
             if "persons" not in diagram_data:
                 diagram_data["persons"] = {}
             diagram_data["persons"][person_id] = person_data
@@ -93,7 +86,6 @@ class PersonMutations:
             )
             
         except ValueError as e:
-            # Pydantic validation error
             logger.error(f"Validation error creating person: {e}")
             return PersonResult(
                 success=False,
@@ -108,12 +100,11 @@ class PersonMutations:
     
     @strawberry.mutation
     async def update_person(self, input: UpdatePersonInput, info: strawberry.Info[GraphQLContext]) -> PersonResult:
-        """Update an existing person."""
+        """Updates person configuration and properties."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticUpdatePersonInput(
                 id=input.id,
                 label=input.label,
@@ -126,7 +117,6 @@ class PersonMutations:
                 top_p=input.top_p
             )
             
-            # Find diagram containing this person
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
             diagram_data = None
@@ -144,14 +134,12 @@ class PersonMutations:
                     error=f"Person {pydantic_input.id} not found in any diagram"
                 )
             
-            # Get existing person data
             person_data = diagram_data['persons'][pydantic_input.id]
             
-            # Update fields with validated data
             if pydantic_input.label is not None:
-                person_data['label'] = pydantic_input.label  # Already trimmed
+                person_data['label'] = pydantic_input.label
             if pydantic_input.model is not None:
-                person_data['model'] = pydantic_input.model  # Already trimmed
+                person_data['model'] = pydantic_input.model
             if pydantic_input.api_key_id is not None:
                 person_data['apiKeyId'] = pydantic_input.api_key_id
             if pydantic_input.system_prompt is not None:
@@ -159,25 +147,22 @@ class PersonMutations:
             if pydantic_input.forgetting_mode is not None:
                 person_data['forgettingMode'] = pydantic_input.forgetting_mode.value
             if pydantic_input.temperature is not None:
-                person_data['temperature'] = pydantic_input.temperature  # Already validated range
+                person_data['temperature'] = pydantic_input.temperature
             if pydantic_input.max_tokens is not None:
-                person_data['maxTokens'] = pydantic_input.max_tokens  # Already validated >= 1
+                person_data['maxTokens'] = pydantic_input.max_tokens
             if pydantic_input.top_p is not None:
-                person_data['topP'] = pydantic_input.top_p  # Already validated range
+                person_data['topP'] = pydantic_input.top_p
             
-            # Map service using Pydantic enum
             try:
                 service = LLMService(person_data['service'].lower())
             except ValueError:
                 service = LLMService.openai
             
-            # Map forgetting mode using Pydantic enum
             try:
                 forgetting_mode = ForgettingMode(person_data.get('forgettingMode', 'none'))
             except ValueError:
                 forgetting_mode = ForgettingMode.no_forget
             
-            # Create updated Pydantic model
             updated_person = DomainPerson(
                 id=pydantic_input.id,
                 label=person_data['label'],
@@ -189,9 +174,7 @@ class PersonMutations:
                 type=person_data.get('type', 'person')
             )
             
-            # Update diagram with validated data
             person_dict = updated_person.model_dump()
-            # Preserve additional fields
             person_dict.update({
                 "temperature": person_data.get('temperature'),
                 "maxTokens": person_data.get('maxTokens'),
@@ -224,12 +207,11 @@ class PersonMutations:
     
     @strawberry.mutation
     async def delete_person(self, id: PersonID, info: strawberry.Info[GraphQLContext]) -> DeleteResult:
-        """Delete a person."""
+        """Removes person and updates referencing nodes."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_service
             
-            # Find diagram containing this person
             diagrams = diagram_service.list_diagram_files()
             diagram_id = None
             diagram_data = None
@@ -247,10 +229,8 @@ class PersonMutations:
                     error=f"Person {id} not found in any diagram"
                 )
             
-            # Remove person
             del diagram_data['persons'][id]
             
-            # Update any nodes that reference this person
             nodes_updated = 0
             for node in diagram_data.get('nodes', {}).values():
                 if node.get('data', {}).get('personId') == id:
@@ -275,13 +255,12 @@ class PersonMutations:
     
     @strawberry.mutation
     async def initialize_model(self, info, person_id: PersonID) -> PersonResult:
-        """Pre-initialize/warm up a model for faster first execution."""
+        """Warms up model for faster first execution."""
         try:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
             diagram_service = context.diagram_service
             
-            # Find person in diagrams
             person_data = None
             diagram_id = None
             
@@ -299,7 +278,6 @@ class PersonMutations:
                     error=f"Person {person_id} not found"
                 )
             
-            # Initialize the model
             api_key_id = person_data.get('apiKeyId')
             if not api_key_id:
                 return PersonResult(
@@ -307,11 +285,9 @@ class PersonMutations:
                     error=f"Person {person_id} has no API key configured"
                 )
             
-            # Warm up the model by making a simple call
             service_str = context.api_key_service.get_api_key(api_key_id)['service']
             model = person_data.get('model', person_data.get('modelName', 'gpt-4o-mini'))
             
-            # Make a simple test call to warm up the model
             result = await llm_service.get_completion(
                 prompt="Say 'initialized'",
                 model=model,
@@ -320,19 +296,16 @@ class PersonMutations:
                 max_tokens=10
             )
             
-            # Map service using Pydantic enum
             try:
                 service = LLMService(service_str.lower())
             except ValueError:
                 service = LLMService.openai
             
-            # Map forgetting mode using Pydantic enum
             try:
                 forgetting_mode = ForgettingMode(person_data.get('forgettingMode', 'none'))
             except ValueError:
                 forgetting_mode = ForgettingMode.no_forget
             
-            # Create Pydantic model for response
             person = DomainPerson(
                 id=person_id,
                 label=person_data.get('label', ''),

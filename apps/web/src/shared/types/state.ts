@@ -1,17 +1,11 @@
 import { NodeID, ArrowID, HandleID } from '@/core/types';
 
-/**
- * UI selection state
- */
 export interface SelectionState {
   selectedNodes: Set<NodeID>;
   selectedArrows: Set<ArrowID>;
   selectedHandles: Set<HandleID>;
 }
 
-/**
- * UI interaction state
- */
 export interface InteractionState {
   isDragging: boolean;
   isConnecting: boolean;
@@ -22,27 +16,18 @@ export interface InteractionState {
   hoveredArrowId: ArrowID | null;
 }
 
-/**
- * Canvas viewport state
- */
 export interface ViewportState {
   zoom: number;
   pan: { x: number; y: number };
   center: { x: number; y: number };
 }
 
-/**
- * Combined UI state
- */
 export interface UIState {
   selection: SelectionState;
   interaction: InteractionState;
   viewport: ViewportState;
 }
 
-/**
- * Create initial UI state
- */
 export function createInitialUIState(): UIState {
   return {
     selection: {
@@ -67,9 +52,6 @@ export function createInitialUIState(): UIState {
   };
 }
 
-/**
- * Selection helpers
- */
 export function isNodeSelected(state: SelectionState, nodeId: NodeID): boolean {
   return state.selectedNodes.has(nodeId);
 }

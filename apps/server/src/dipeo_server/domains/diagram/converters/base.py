@@ -1,4 +1,4 @@
-"""Enhanced base converter with shared components to eliminate duplication."""
+"""Enhanced base converter with shared components."""
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Tuple
 import yaml
@@ -24,10 +24,7 @@ class DiagramConverter(ABC):
         pass
     
     def validate(self, content: str) -> Tuple[bool, List[str]]:
-        """
-        Validate content without full deserialization.
-        Returns (is_valid, list_of_errors)
-        """
+        """Validate content without full deserialization."""
         try:
             self.deserialize(content)
             return True, []
@@ -35,10 +32,7 @@ class DiagramConverter(ABC):
             return False, [str(e)]
     
     def detect_format_confidence(self, content: str) -> float:
-        """
-        Return confidence score (0.0-1.0) that content matches this format.
-        Used for automatic format detection.
-        """
+        """Return format confidence score (0.0-1.0)."""
         try:
             self.deserialize(content)
             return 1.0
@@ -47,10 +41,7 @@ class DiagramConverter(ABC):
 
 
 class EnhancedDiagramConverter(DiagramConverter):
-    """
-    Enhanced base class for diagram converters that provides common functionality
-    and uses shared components to eliminate code duplication.
-    """
+    """Enhanced base class for diagram converters with common functionality."""
     
     def __init__(self):
         self.handle_generator = HandleGenerator()
@@ -59,14 +50,9 @@ class EnhancedDiagramConverter(DiagramConverter):
         self.arrow_builder = ArrowBuilder()
     
     def deserialize(self, content: str) -> DomainDiagram:
-        """
-        Template method for deserialization with common logic.
-        Subclasses only need to implement the abstract methods.
-        """
-        # Parse content using format-specific parser
+        """Template method for deserialization with common logic."""
         data = self.parse_content(content)
         
-        # Create diagram with all required fields
         diagram = DomainDiagram(
             nodes={},
             handles={},
@@ -75,24 +61,20 @@ class EnhancedDiagramConverter(DiagramConverter):
             api_keys={}
         )
         
-        # Extract and process nodes
         node_data_list = self.extract_nodes(data)
         for index, node_data in enumerate(node_data_list):
             node = self.create_node_from_data(node_data, index)
             diagram.nodes[node.id] = node
             
-            # Generate handles if not explicitly defined
             if self.should_generate_handles(node_data):
                 self.handle_generator.generate_for_node(diagram, node.id, node.type)
         
-        # Extract and process arrows
         arrow_data_list = self.extract_arrows(data, diagram)
         for arrow_data in arrow_data_list:
             arrow = self.create_arrow_from_data(arrow_data)
             if arrow:
                 diagram.arrows[arrow.id] = arrow
         
-        # Post-process diagram if needed
         self.post_process_diagram(diagram, data)
         
         return diagram
@@ -127,7 +109,6 @@ class EnhancedDiagramConverter(DiagramConverter):
             target=target_handle
         )
     
-    # Abstract methods that subclasses must implement
     @abstractmethod
     def parse_content(self, content: str) -> Any:
         """Parse format-specific content into data structure."""
@@ -143,10 +124,9 @@ class EnhancedDiagramConverter(DiagramConverter):
         """Extract arrow data from parsed content."""
         pass
     
-    # Methods that subclasses can override if needed
     def should_generate_handles(self, node_data: Dict[str, Any]) -> bool:
         """Determine if handles should be auto-generated for this node."""
-        return True  # By default, generate handles for all nodes
+        return True
     
     def extract_node_id(self, node_data: Dict[str, Any], index: int) -> str:
         """Extract or generate node ID."""
@@ -173,24 +153,17 @@ class EnhancedDiagramConverter(DiagramConverter):
     
     def extract_node_properties(self, node_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract node properties/data."""
-        # Remove structural fields and keep the rest as properties
         exclude_fields = {'id', 'type', 'position', 'handles', 'arrows'}
         return {k: v for k, v in node_data.items() if k not in exclude_fields}
     
     def post_process_diagram(self, diagram: DomainDiagram, original_data: Any) -> None:
         """Post-process the diagram after nodes and arrows are created."""
-        pass  # Subclasses can override if needed
+        pass
     
-    # Serialization template method
     def serialize(self, diagram: DomainDiagram) -> str:
-        """
-        Template method for serialization with common logic.
-        Subclasses only need to implement the abstract methods.
-        """
-        # Convert diagram to format-specific data structure
+        """Template method for serialization with common logic."""
         data = self.diagram_to_data(diagram)
         
-        # Format the data as string
         return self.format_data(data)
     
     @abstractmethod
@@ -205,7 +178,7 @@ class EnhancedDiagramConverter(DiagramConverter):
 
 
 class YamlBasedConverter(EnhancedDiagramConverter):
-    """Base class for YAML-based converters with common YAML functionality."""
+    """Base class for YAML-based converters."""
     
     def parse_content(self, content: str) -> Dict[str, Any]:
         """Parse YAML content."""
@@ -222,7 +195,6 @@ class YamlBasedConverter(EnhancedDiagramConverter):
             if not isinstance(data, dict):
                 return 0.0
             
-            # Let subclasses define their specific confidence logic
             return self._calculate_format_confidence(data)
         except:
             return 0.0
@@ -233,7 +205,7 @@ class YamlBasedConverter(EnhancedDiagramConverter):
 
 
 class JsonBasedConverter(EnhancedDiagramConverter):
-    """Base class for JSON-based converters with common JSON functionality."""
+    """Base class for JSON-based converters."""
     
     def parse_content(self, content: str) -> Dict[str, Any]:
         """Parse JSON content."""
@@ -250,7 +222,6 @@ class JsonBasedConverter(EnhancedDiagramConverter):
             if not isinstance(data, dict):
                 return 0.0
             
-            # Let subclasses define their specific confidence logic
             return self._calculate_format_confidence(data)
         except:
             return 0.0

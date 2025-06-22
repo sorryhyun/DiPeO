@@ -18,7 +18,6 @@ class LLMService(BaseService):
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()
         self.api_key_service = api_key_service
-        # Connection pool  for adapters to avoid creating new instances
         self._adapter_pool = {}
     
     def _get_api_key(self, api_key_id: str) -> str:
@@ -31,30 +30,23 @@ class LLMService(BaseService):
     
     def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
         """Get the appropriate LLM adapter with connection pooling and TTL."""
-        # normalize_service_name already maps to provider name
         provider = self.normalize_service_name(service)
         
-        # Validate provider is supported
         if provider not in VALID_LLM_SERVICES:
             raise LLMServiceError(f"Unsupported LLM service: {service}")
         
-        # Use pooling - cache key includes provider, model, and api_key_id
         cache_key = f"{provider}:{model}:{api_key_id}"
         
         if cache_key not in self._adapter_pool:
-            # Only get the key when creating new adapter
             raw_key = self._get_api_key(api_key_id)
             
-            # Store both adapter AND the resolved key with timestamp
             self._adapter_pool[cache_key] = {
                 'adapter': create_adapter(provider, model, raw_key),
                 'created_at': time.time()
             }
         
-        # Add TTL check - 1 hour TTL
         entry = self._adapter_pool[cache_key]
-        if time.time() - entry['created_at'] > 3600:  
-            # Recreate adapter after TTL expiry
+        if time.time() - entry['created_at'] > 3600:
             del self._adapter_pool[cache_key]
             return self._get_client(service, model, api_key_id)
         
@@ -63,7 +55,6 @@ class LLMService(BaseService):
     
     def get_token_counts(self, client_name: str, usage: Any) -> TokenUsage:
         """Get token counts from LLM usage."""
-        # Normalize the client/service name
         normalized_service = self.normalize_service_name(client_name)
         return TokenUsageService.from_usage(usage, normalized_service)
     
@@ -116,14 +107,11 @@ class LLMService(BaseService):
         try:
             adapter = self._get_client(service or "chatgpt", model, api_key_id)
             
-            # Support both string prompts and message arrays
             if isinstance(messages, list):
-                # Pass messages array directly for conversation history support
                 result = await self._call_llm_with_messages_retry(
                     adapter, messages
                 )
             else:
-                # Single prompt case
                 result = await self._call_llm_with_retry(
                     adapter, system_prompt, messages
                 )

@@ -10,9 +10,9 @@ from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel
 
-from ..types import RuntimeExecutionContext
+from .types import RuntimeExecutionContext
 from dipeo_domain import NodeOutput
-from .handler_utils import log_action
+from .executor_utils import log_action
 
 
 class BaseNodeHandler(ABC):

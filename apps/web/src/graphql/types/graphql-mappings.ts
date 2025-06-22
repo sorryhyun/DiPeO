@@ -22,7 +22,6 @@ import {
 // different contexts where the same types are used
 
 // Domain types represent the server's data model
-// We use GraphQL-generated types but they are structurally compatible with domain models
 export type DomainNode = Node;
 export type DomainArrow = Arrow;
 export type DomainHandle = Handle;
@@ -30,16 +29,6 @@ export type DomainPerson = Person;
 export type DomainApiKey = ApiKey;
 export type DomainDiagram = DomainDiagramType;
 
-/**
- * ReactDiagram represents diagram data used in React components.
- * Currently an alias for DomainDiagram, but kept separate for potential future divergence.
- * 
- * React Flow specific UI state (viewport, selection, etc.) is managed separately
- * in the UISlice of the store rather than being part of the diagram data structure.
- * This maintains a clean separation between domain data and UI state.
- * 
- * The DiagramAdapter handles conversion between domain models and React Flow format.
- */
 export type ReactDiagram = DomainDiagramType;
 
 // Store format uses Maps for efficient lookups

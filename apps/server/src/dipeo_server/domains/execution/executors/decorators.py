@@ -53,7 +53,7 @@ def node(
         if inspect.isclass(handler_or_class):
             # Class-based handler
             # Check if it has BaseNodeHandler in its MRO
-            from .utils import BaseNodeHandler
+            from .base import BaseNodeHandler
             if not issubclass(handler_or_class, BaseNodeHandler):
                 raise ValueError(
                     f"Class {handler_or_class.__name__} must inherit from BaseNodeHandler"

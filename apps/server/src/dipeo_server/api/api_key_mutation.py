@@ -1,4 +1,4 @@
-"""Refactored API Key related GraphQL mutations using Pydantic models."""
+"""GraphQL mutations for API key management."""
 import strawberry
 import logging
 
@@ -14,30 +14,27 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class ApiKeyMutations:
-    """Mutations for API key operations."""
+    """Handles API key CRUD operations."""
     
     @strawberry.mutation
     async def create_api_key(self, input: CreateApiKeyInput, info) -> ApiKeyResult:
-        """Create a new API key."""
+        """Creates new API key."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
             
-            # Convert Strawberry input to Pydantic model for validation
             pydantic_input = PydanticCreateApiKeyInput(
                 label=input.label,
                 service=input.service,
                 key=input.key
             )
             
-            # Create API key using validated data
             api_key_data = api_key_service.create_api_key(
-                label=pydantic_input.label,  # Already trimmed by validation
+                label=pydantic_input.label,
                 service=pydantic_input.service.value,
-                key=pydantic_input.key  # Already masked in validation
+                key=pydantic_input.key
             )
             
-            # Create Pydantic model
             api_key = DomainApiKey(
                 id=api_key_data['id'],
                 label=api_key_data['label'],
@@ -47,12 +44,11 @@ class ApiKeyMutations:
             
             return ApiKeyResult(
                 success=True,
-                api_key=api_key,  # Strawberry will handle conversion
+                api_key=api_key,
                 message=f"Created API key {api_key.id}"
             )
             
         except ValueError as e:
-            # Pydantic validation error
             logger.error(f"Validation error creating API key: {e}")
             return ApiKeyResult(
                 success=False,
@@ -67,13 +63,12 @@ class ApiKeyMutations:
     
     @strawberry.mutation
     async def test_api_key(self, id: ApiKeyID, info) -> TestApiKeyResult:
-        """Test an API key to verify it works."""
+        """Tests API key validity."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
             llm_service = context.llm_service
             
-            # Get API key
             api_key_data = api_key_service.get_api_key(id)
             if not api_key_data:
                 return TestApiKeyResult(
@@ -82,7 +77,6 @@ class ApiKeyMutations:
                     error="API key not found"
                 )
             
-            # Test the API key by getting available models
             try:
                 models = llm_service.get_available_models(
                     service=api_key_data['service'],
@@ -113,12 +107,11 @@ class ApiKeyMutations:
     
     @strawberry.mutation
     async def delete_api_key(self, id: ApiKeyID, info) -> DeleteResult:
-        """Delete an API key."""
+        """Removes API key."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
             
-            # Check if API key exists
             api_key_data = api_key_service.get_api_key(id)
             if not api_key_data:
                 return DeleteResult(
@@ -126,7 +119,6 @@ class ApiKeyMutations:
                     error=f"API key {id} not found"
                 )
             
-            # Delete API key
             api_key_service.delete_api_key(id)
             
             return DeleteResult(

@@ -6,10 +6,11 @@ from pydantic import Field, field_validator
 from dipeo_domain import SupportedLanguage
 from ..validation_helpers import CodeValidator
 from .base import BaseNodeProps
+from .mixins import TimeoutMixin, CodeContentMixin
 
 
 
-class JobNodeProps(BaseNodeProps):
+class JobNodeProps(BaseNodeProps, TimeoutMixin, CodeContentMixin):
     """Properties for Job node that executes code in various languages"""
     
     code: str = Field(
@@ -23,20 +24,8 @@ class JobNodeProps(BaseNodeProps):
         description="Programming language for code execution"
     )
     
-    timeout: int = Field(
-        30,
-        ge=1,
-        le=300,
-        description="Execution timeout in seconds (1-300)"
-    )
-    
-    @field_validator('code')
-    @classmethod
-    def validate_code_not_empty(cls, v: str) -> str:
-        """Ensure code is not just whitespace"""
-        if not v.strip():
-            raise ValueError("Code cannot be empty or only whitespace")
-        return v
+    # timeout field is provided by TimeoutMixin
+    # Basic code validation is provided by CodeContentMixin
     
     @field_validator('code')
     @classmethod

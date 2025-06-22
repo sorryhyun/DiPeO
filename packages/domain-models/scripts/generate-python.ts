@@ -36,10 +36,6 @@ const BRANDED_IDS = [
   'ExecutionID'
 ];
 
-// Additional enums not in TypeScript but needed in Python
-const ADDITIONAL_ENUMS = [
-  // No additional enums needed - all enums should be defined in TypeScript
-];
 
 // Additional fields to add to certain interfaces
 const ADDITIONAL_FIELDS: Record<string, Array<{name: string, type: string, optional: boolean}>> = {
@@ -310,14 +306,7 @@ export class PythonGenerator {
     }
 
     // Generate additional enums not in TypeScript
-    for (const additionalEnum of ADDITIONAL_ENUMS) {
-      lines.push(...this.generateClass({
-        name: additionalEnum.name,
-        type: 'enum',
-        values: additionalEnum.values
-      }));
-      lines.push('');
-    }
+    // Currently no additional enums needed - ADDITIONAL_ENUMS is empty
 
     // Generate branded types
     if (this.brandedTypes.size > 0) {
