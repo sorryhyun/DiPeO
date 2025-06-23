@@ -57,22 +57,28 @@ class ViewBasedEngine:
 
         ctx._execution_view = view
 
-        await state_store.create_execution(
-            ctx.execution_id,
-            diagram.id if hasattr(diagram, 'id') else None,
-            ctx.variables
-        )
+        # Note: Execution is already created in ExecutionService
+        # await state_store.create_execution(
+        #     ctx.execution_id,
+        #     diagram.id if hasattr(diagram, 'id') else None,
+        #     ctx.variables
+        # )
 
         await self._execute_with_view(ctx, view)
 
         return ctx
 
     async def _execute_with_view(self, ctx: ExecutionContext, view: ExecutionView) -> None:
-
+        import logging
+        log = logging.getLogger(__name__)
+        
+        log.info(f"Starting execution with {len(view.execution_order)} levels")
         for level_num, level_nodes in enumerate(view.execution_order):
+            log.info(f"Executing level {level_num} with {len(level_nodes)} nodes")
             tasks = []
             for node_view in level_nodes:
                 if self._can_execute_node_view(node_view):
+                    log.info(f"Executing node {node_view.node.id} of type {node_view.node.type}")
                     tasks.append(self._execute_node_view(ctx, node_view))
 
             if tasks:

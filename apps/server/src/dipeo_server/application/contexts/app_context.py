@@ -59,7 +59,7 @@ class AppContext:
         self.api_key_service = APIKeyService()
         self.memory_service = MemoryService()
         self.llm_service = LLMService(self.api_key_service)
-        self.file_service = FileService()
+        self.file_service = FileService(base_dir=BASE_DIR)
         self.notion_service = NotionService()
 
         # Initialize diagram services

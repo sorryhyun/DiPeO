@@ -63,6 +63,8 @@ class Subscription:
         logger.info(f"Starting execution updates subscription for {execution_id}")
 
         last_update = 0
+        retries = 0
+        max_retries = 50  # 5 seconds total (50 * 100ms)
 
         try:
             while True:
@@ -70,6 +72,7 @@ class Subscription:
                 state = await state_store.get_state(execution_id)
 
                 if state:
+                    retries = 0  # Reset retries on successful fetch
                     yield state
 
                     # Check if execution is complete
@@ -82,6 +85,14 @@ class Subscription:
                             f"Execution {execution_id} completed with status: {state.status}"
                         )
                         break
+                else:
+                    # No state found - might be a race condition
+                    retries += 1
+                    if retries > max_retries:
+                        logger.error(
+                            f"Execution {execution_id} not found after {max_retries} retries"
+                        )
+                        raise ValueError(f"Execution {execution_id} not found")
 
                 # Poll interval (100ms)
                 await asyncio.sleep(0.1)
@@ -209,6 +220,8 @@ class Subscription:
         logger.info(f"Starting node updates subscription for {execution_id}")
 
         last_node_states = {}
+        retries = 0
+        max_retries = 50  # 5 seconds total (50 * 100ms)
 
         try:
             while True:
@@ -216,6 +229,7 @@ class Subscription:
                 state = await state_store.get_state(execution_id)
 
                 if state:
+                    retries = 0  # Reset retries on successful fetch
                     # Check for node status changes
                     current_node_states = state.node_states or {}
 
@@ -266,6 +280,14 @@ class Subscription:
                             f"Node updates completed for execution {execution_id}"
                         )
                         break
+                else:
+                    # No state found - might be a race condition
+                    retries += 1
+                    if retries > max_retries:
+                        logger.error(
+                            f"Execution {execution_id} not found after {max_retries} retries"
+                        )
+                        raise ValueError(f"Execution {execution_id} not found")
 
                 # Poll interval (100ms)
                 await asyncio.sleep(0.1)

@@ -47,6 +47,7 @@ class ExecutionService(BaseService):
         execution_id: str,
         interactive_handler: Callable[[dict[str, Any]], Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
+        log.info(f"ExecutionService.execute_diagram called with execution_id: {execution_id}")
         if self.execution_preparation_service:
             # Use the unified preparation service
             ready_diagram = await self.execution_preparation_service.prepare_for_execution(
@@ -73,6 +74,7 @@ class ExecutionService(BaseService):
         diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None
         await state_store.create_execution(execution_id, diagram_id, options.get("variables", {}))
 
+        log.info(f"Starting execution {execution_id}")
         yield {
             "type": "execution_start",
             "execution_id": execution_id,
@@ -82,6 +84,7 @@ class ExecutionService(BaseService):
             updates_queue = asyncio.Queue()
 
             async def stream_callback(update: dict[str, Any]) -> None:
+                log.debug(f"Stream callback received: {update}")
                 await updates_queue.put(update)
 
             engine_task = asyncio.create_task(

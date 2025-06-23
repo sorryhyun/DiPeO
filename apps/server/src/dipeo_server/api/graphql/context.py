@@ -24,7 +24,6 @@ if TYPE_CHECKING:
         DiagramStorageAdapter,
         DiagramStorageService,
     )
-    from dipeo_server.domains.execution import ExecutionPreparationService
 
 
 class GraphQLContext(BaseContext):
@@ -33,7 +32,6 @@ class GraphQLContext(BaseContext):
     api_key_service: "SupportsAPIKey"
     diagram_storage_service: "DiagramStorageService"
     diagram_storage_adapter: "DiagramStorageAdapter"
-    execution_preparation_service: "ExecutionPreparationService"
     execution_service: "SupportsExecution"
     file_service: "SupportsFile"
     llm_service: "SupportsLLM"
@@ -47,7 +45,6 @@ class GraphQLContext(BaseContext):
 
         self.diagram_storage_service = app_context.diagram_storage_service
         self.diagram_storage_adapter = app_context.diagram_storage_adapter
-        self.execution_preparation_service = app_context.execution_preparation_service
 
         self.api_key_service = app_context.api_key_service
         self.execution_service = app_context.execution_service

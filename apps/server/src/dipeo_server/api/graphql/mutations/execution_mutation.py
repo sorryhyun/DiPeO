@@ -73,12 +73,14 @@ class ExecutionMutations:
             # Start the actual execution asynchronously
             async def run_execution():
                 try:
-                    async for _ in execution_service.execute_diagram(
+                    logger.info(f"Starting run_execution for {execution_id}")
+                    async for update in execution_service.execute_diagram(
                         diagram=diagram_data,
                         options=options,
                         execution_id=execution_id
                     ):
                         # Updates are handled by the execution service
+                        logger.debug(f"Received update: {update}")
                         pass
                 except Exception as e:
                     logger.error(f"Execution failed for {execution_id}: {e}")

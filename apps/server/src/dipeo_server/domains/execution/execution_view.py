@@ -93,11 +93,17 @@ class ExecutionView:
         self.execution_order = self._compute_execution_order()
 
     def _build_views(self) -> None:
+        import logging
+        log = logging.getLogger(__name__)
+        
         if self.diagram.persons:
             self.person_views = {p.id: p for p in self.diagram.persons}
+            log.info(f"Loaded {len(self.person_views)} persons")
 
+        log.info(f"Building views for {len(self.diagram.nodes)} nodes")
         for node in self.diagram.nodes:
             handler = self._get_handler_for_type(node.type)
+            log.debug(f"Node {node.id} type {node.type} has handler: {handler is not None}")
             node_view = NodeView(node=node, handler=handler)
 
             if node.type == 'person_job' and node.data:
@@ -107,9 +113,11 @@ class ExecutionView:
 
             self.node_views[node.id] = node_view
 
+        log.info(f"Building views for {len(self.diagram.arrows)} arrows")
         for arrow in self.diagram.arrows:
             source_id = arrow.source.split(':')[0]
             target_id = arrow.target.split(':')[0]
+            log.debug(f"Arrow from {source_id} to {target_id}")
 
             if source_id in self.node_views and target_id in self.node_views:
                 edge_view = EdgeView(
@@ -123,39 +131,40 @@ class ExecutionView:
                 self.node_views[target_id].incoming_edges.append(edge_view)
 
     def _get_handler_for_type(self, node_type: str) -> Optional[Callable]:
-        type_map = {
-            'start': 'Start',
-            'person_job': 'PersonJob',
-            'endpoint': 'Endpoint',
-            'condition': 'Condition',
-            'db': 'DB',
-            'notion': 'Notion'
-        }
-        handler_name = type_map.get(node_type, node_type)
-        return self.handlers.get(handler_name)
+        # Handlers now use lowercase names matching the node types
+        return self.handlers.get(node_type)
 
     def _compute_execution_order(self) -> List[List[NodeView]]:
+        import logging
+        log = logging.getLogger(__name__)
+        
         in_degree = {}
         for node_id, node_view in self.node_views.items():
             in_degree[node_id] = len(node_view.incoming_edges)
+            log.debug(f"Node {node_id} has in_degree {in_degree[node_id]}")
 
         queue = [nv for nid, nv in self.node_views.items() if in_degree[nid] == 0]
+        log.info(f"Initial queue (nodes with no dependencies): {[nv.id for nv in queue]}")
         levels = []
 
         while queue:
             current_level = queue[:]
             levels.append(current_level)
+            log.info(f"Level {len(levels)-1}: {[nv.id for nv in current_level]}")
             next_queue = []
 
             for node_view in current_level:
                 for edge in node_view.outgoing_edges:
                     target_id = edge.target_view.id
                     in_degree[target_id] -= 1
+                    log.debug(f"Reduced in_degree of {target_id} to {in_degree[target_id]}")
                     if in_degree[target_id] == 0:
                         next_queue.append(edge.target_view)
 
             queue = next_queue
 
+        log.info(f"Total nodes in graph: {len(self.node_views)}")
+        log.info(f"Nodes included in execution: {sum(len(level) for level in levels)}")
         return levels
 
     def get_node_view(self, node_id: str) -> Optional[NodeView]:

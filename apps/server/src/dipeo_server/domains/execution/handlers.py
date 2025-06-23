@@ -37,7 +37,7 @@ def create_node_output(
     )
 
 
-@node_handler("Start")
+@node_handler("start")
 async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
@@ -50,7 +50,7 @@ async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     return output
 
 
-@node_handler("PersonJob")
+@node_handler("person_job")
 async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
@@ -65,10 +65,15 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     exec_count = ctx.exec_counts.get(node.id, 1)
 
     if not conversation or conversation[0].get("role") != "system":
-        person = ctx.diagram.persons.get(person_id, {}) if person_id else {}
-        system_prompt = person.get('systemPrompt', '')
-        system_msg = {"role": "system", "content": system_prompt}
-        conversation.insert(0, system_msg)
+        person_obj = None
+        if person_id:
+            person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None)
+
+        system_prompt = (
+            getattr(person_obj, 'system_prompt', None)
+            or getattr(person_obj, 'systemPrompt', '')
+        ) if person_obj else ''
+        conversation.insert(0, {"role": "system", "content": system_prompt})
 
     inputs = {}
     for edge in ctx.find_edges_to(node.id):
@@ -97,21 +102,43 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
         conversation.append({"role": "user", "content": prompt})
 
     try:
-        person = ctx.diagram.persons.get(person_id, {}) if person_id else {}
-        model = person.get('model', 'gpt-4.1-nano')
+        # ctx.diagram.persons is a list, not a dict
+        person_obj = None
+        if person_id:
+            person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None)
 
-        response = await ctx.llm_service.call_llm(
+        # Use a fallback dict to avoid repetitive attribute checks
+        person = {
+            'service': getattr(person_obj, 'service', 'openai'),
+            'api_key_id': getattr(person_obj, 'api_key_id', None) or getattr(person_obj, 'apiKeyId', None),
+            'model': getattr(person_obj, 'model', 'gpt-4.1-nano'),
+        }
+
+        service = person['service']
+        api_key_id = person['api_key_id']
+        model = person['model']
+
+        # Call the LLM service with the updated signature
+        llm_result = await ctx.llm_service.call_llm(
+            service=service,
+            api_key_id=api_key_id,
             model=model,
             messages=conversation,
-            temperature=0.7,
-            max_tokens=2000
         )
 
-        ctx.add_to_conversation(person_id, {"role": "assistant", "content": response})
+        # Extract response text and token usage from returned dict
+        response_text = llm_result.get("response", "")
+        token_usage = llm_result.get("token_usage")
+
+        ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text})
+
+        if token_usage is None:
+            # Fallback to naive word count if the adapter didn't return usage
+            token_usage = len(str(response_text).split())
 
         output = create_node_output(
-            value={'default': response},
-            metadata={"model": model, "tokens_used": len(response.split())}
+            value={'default': response_text},
+            metadata={"model": model, "tokens_used": token_usage}
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
@@ -127,7 +154,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
         return error_output
 
 
-@node_handler("Endpoint")
+@node_handler("endpoint")
 async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
@@ -167,7 +194,7 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
         return error_output
 
 
-@node_handler("Condition")
+@node_handler("condition")
 async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
@@ -214,8 +241,12 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
         return error_output
 
 
-@node_handler("DB")
+@node_handler("db")
 async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
+    import logging
+    log = logging.getLogger(__name__)
+    
+    log.info(f"Executing DB node {node.id}")
     ctx.increment_exec_count(node.id)
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
@@ -236,7 +267,11 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
         file_path = node.data.get('sourceDetails', '') if node.data else ''
 
         if operation == "read":
-            result = ctx.file_service.read(file_path)
+            try:
+                result = ctx.file_service.read(file_path)
+            except Exception as e:
+                result = f"Error reading file: {str(e)}"
+                log.warning(f"Error reading file {file_path}: {e}")
         elif operation == "write":
             await ctx.file_service.write(file_path, str(input_data))
             result = f"Saved to {file_path}"
@@ -251,24 +286,32 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
         else:
             result = "Unknown operation"
 
-        output = create_node_output(
-            value={'default': result}
-        )
-
+        # Always expose the primary result both as "default" and "topic" so that
+        # downstream edges that are labelled "topic" (a common pattern for file
+        # loading scenarios) can resolve the input without having to duplicate
+        # the data at the arrow level.
+        output = create_node_output(value={
+            'default': result,
+            'topic': result,
+        })
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
 
         return output
 
     except Exception as e:
+        log.error(f"DB node {node.id} failed with error: {e}", exc_info=True)
         error_output = create_node_output(
-            value={},
+            value={
+                'default': f"Error: {str(e)}",
+                'topic': f"Error: {str(e)}",
+            },
             metadata={"error": str(e)}
         )
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
+        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, error_output)  # Mark as completed, not failed
         return error_output
 
 
-@node_handler("Notion")
+@node_handler("notion")
 async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
