@@ -268,10 +268,11 @@ class UploadMutations:
 
             # Use new services
             storage_service = context.diagram_storage_service
-            converter_service = context.diagram_converter_service
 
-            # Convert domain diagram to backend format
-            backend_dict = converter_service.domain_to_backend(domain_diagram)
+            # Convert domain diagram to backend format using converter directly
+            from dipeo_server.domains.diagram.converters import graphql_to_backend
+            backend_model = graphql_to_backend(domain_diagram)
+            backend_dict = backend_model.model_dump(by_alias=True)
 
             # Generate diagram ID from filename
             diagram_id = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '')

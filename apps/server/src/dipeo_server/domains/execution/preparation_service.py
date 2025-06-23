@@ -93,6 +93,15 @@ class ExecutionPreparationService(BaseService):
 
         # Step 4: Convert to domain model if we don't have it
         if domain_diagram is None:
+            # Ensure metadata is a plain dict for BackendDiagram validation
+            if "metadata" in backend_data and backend_data["metadata"] is not None:
+                if hasattr(backend_data["metadata"], "model_dump"):
+                    # It's a Pydantic model, convert to dict
+                    backend_data["metadata"] = backend_data["metadata"].model_dump()
+                elif not isinstance(backend_data["metadata"], dict):
+                    # It's some other type, convert to dict if possible
+                    backend_data["metadata"] = dict(backend_data["metadata"])
+            
             backend_diagram = BackendDiagram.model_validate(backend_data)
             domain_diagram = backend_to_graphql(backend_diagram)
 

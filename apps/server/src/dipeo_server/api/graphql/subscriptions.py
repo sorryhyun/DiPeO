@@ -239,14 +239,14 @@ class Subscription:
                                 execution_id=execution_id,
                                 node_id=NodeID(node_id),
                                 node_type=node_type,
-                                status=node_state['status'],
+                                status=node_state.status,
                                 progress=None,
                                 output=output_value,
                                 error=node_state.error,
                                 tokens_used=tokens_used,
                                 timestamp=datetime.fromisoformat(
-                                    node_state.get('ended_at')
-                                    or node_state.get('started_at')
+                                    node_state.ended_at
+                                    or node_state.started_at
                                     or datetime.now().isoformat()
                                 ),
                             )

@@ -6,13 +6,13 @@ from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 from dipeo_server.application.contexts import AppContext
+from dipeo_server.application.contexts.app_context import get_app_context
 from dipeo_server.infrastructure.messaging import message_router
 from dipeo_server.infrastructure.persistence import state_store
 
 if TYPE_CHECKING:
     from dipeo_core import (
         SupportsAPIKey,
-        SupportsDiagram,
         SupportsExecution,
         SupportsFile,
         SupportsLLM,
@@ -20,14 +20,20 @@ if TYPE_CHECKING:
         SupportsNotion,
     )
 
+    from dipeo_server.domains.diagram.services import (
+        DiagramStorageAdapter,
+        DiagramStorageService,
+    )
+    from dipeo_server.domains.execution import ExecutionPreparationService
+
 
 class GraphQLContext(BaseContext):
     """Context object provided to all GraphQL resolvers."""
 
     api_key_service: "SupportsAPIKey"
-    diagram_storage_service: "SupportsDiagram"
-    diagram_converter_service: "SupportsDiagram"
-    diagram_execution_adapter: "SupportsDiagram"
+    diagram_storage_service: "DiagramStorageService"
+    diagram_storage_adapter: "DiagramStorageAdapter"
+    execution_preparation_service: "ExecutionPreparationService"
     execution_service: "SupportsExecution"
     file_service: "SupportsFile"
     llm_service: "SupportsLLM"
@@ -40,8 +46,8 @@ class GraphQLContext(BaseContext):
         self.app_context = app_context
 
         self.diagram_storage_service = app_context.diagram_storage_service
-        self.diagram_converter_service = app_context.diagram_converter_service
-        self.diagram_execution_adapter = app_context.diagram_execution_adapter
+        self.diagram_storage_adapter = app_context.diagram_storage_adapter
+        self.execution_preparation_service = app_context.execution_preparation_service
 
         self.api_key_service = app_context.api_key_service
         self.execution_service = app_context.execution_service
@@ -68,7 +74,5 @@ async def get_graphql_context(request: Request = None) -> GraphQLContext:
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from dipeo_server.application.contexts.app_context import get_app_context
-
     app_context = get_app_context()
     return GraphQLContext(request=request, app_context=app_context)

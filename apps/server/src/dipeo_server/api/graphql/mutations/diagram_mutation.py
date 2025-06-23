@@ -32,7 +32,6 @@ class DiagramMutations:
 
             # Try new services first
             storage_service = context.diagram_storage_service
-            converter_service = context.diagram_converter_service
 
             # Create metadata directly from input
             metadata = DiagramMetadata(
@@ -53,8 +52,10 @@ class DiagramMutations:
                 metadata=metadata,
             )
 
-            # Use new services
-            storage_dict = converter_service.domain_to_storage(diagram_model)
+            # Use new services - convert to storage format
+            from dipeo_server.domains.diagram.converters import graphql_to_backend
+            backend_model = graphql_to_backend(diagram_model)
+            storage_dict = backend_model.model_dump(by_alias=True)
             path = f"{input.name}.json"
             await storage_service.write_file(path, storage_dict)
 

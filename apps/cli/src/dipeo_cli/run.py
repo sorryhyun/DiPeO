@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .api_client import DiPeoAPIClient
-from .utils import DiagramLoader
+from .utils import DiagramLoader, DiagramConverter
 
 
 class ExecutionMode(Enum):
@@ -66,15 +66,9 @@ class DiagramRunner:
                 if self.options.debug:
                     print("🐛 Debug: Executing diagram directly...")
 
-                # Use save_diagram to prepare the data (returns temp ID)
-                diagram_id = await client.save_diagram(diagram)
-
-                if self.options.debug:
-                    print(f"🐛 Debug: Executing with temporary ID: {diagram_id}")
-
-                # Execute the diagram (will use diagram_data directly)
+                # Execute the diagram directly with diagram_data
                 execution_id = await client.execute_diagram(
-                    diagram_id=diagram_id,
+                    diagram_data=diagram,
                     debug_mode=self.options.debug,
                     timeout=self.options.timeout,
                 )
@@ -260,6 +254,9 @@ async def run_command(args: List[str]) -> None:
 
     # Load diagram
     diagram = DiagramLoader.load(file_path)
+    
+    # Convert to GraphQL format if needed
+    diagram = DiagramConverter.to_graphql_format(diagram)
 
     # Handle special modes
     if options.mode == ExecutionMode.MONITOR:

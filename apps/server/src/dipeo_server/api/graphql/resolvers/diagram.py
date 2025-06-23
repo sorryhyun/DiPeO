@@ -6,10 +6,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from dipeo_server.domains.diagram.converters import backend_to_graphql
-from dipeo_server.domains.diagram.services import (
-    DiagramConverterService,
-    DiagramStorageService,
-)
+from dipeo_server.domains.diagram.services import DiagramStorageService
 from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 from ..types import (
@@ -34,7 +31,6 @@ class DiagramResolver:
 
             # Try new services first
             storage_service: DiagramStorageService = info.context.diagram_storage_service
-            converter_service: DiagramConverterService = info.context.diagram_converter_service
 
             # Find and load the diagram
             if diagram_id == "quicksave":

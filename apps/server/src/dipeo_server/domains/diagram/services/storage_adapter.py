@@ -31,15 +31,17 @@ class DiagramStorageAdapter(BaseService):
         return await self.storage.read_file(path)
 
     async def save_diagram(self, diagram_id: str, diagram_data: Dict[str, Any]) -> str:
-        return await self.storage.save_file(f"diagrams/{diagram_id}.json", diagram_data)
+        await self.storage.write_file(f"{diagram_id}.json", diagram_data)
+        return f"{diagram_id}.json"
 
     async def list_diagrams(self) -> list:
         """List all available diagrams."""
-        return await self.storage.list_diagrams()
+        return await self.storage.list_files()
 
     async def delete_diagram(self, diagram_id: str) -> bool:
         path = await self.storage.find_by_id(diagram_id)
         if path:
-            return await self.storage.delete_file(path)
+            await self.storage.delete_file(path)
+            return True
         return False
 
