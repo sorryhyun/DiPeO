@@ -1,9 +1,11 @@
-"""Converter for DiagramDictFormat <-> DomainDiagram conversions."""
+"""Converter for BackendDiagram <-> DomainDiagram conversions."""
 
-from dipeo_domain import DiagramDictFormat, DomainDiagram
+from dipeo_domain import DomainDiagram
+
+from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 
-def diagram_dict_to_graphql(diagram_dict: DiagramDictFormat) -> DomainDiagram:
+def backend_to_graphql(diagram_dict: BackendDiagram) -> DomainDiagram:
     """Convert from dictionary format (internal) to GraphQL-friendly list format."""
     # Add IDs to each item from the dictionary keys
     nodes = []
@@ -57,9 +59,8 @@ def diagram_dict_to_graphql(diagram_dict: DiagramDictFormat) -> DomainDiagram:
     )
 
 
-def graphql_to_diagram_dict(graphql_diagram: DomainDiagram) -> DiagramDictFormat:
-    """Convert from GraphQL list format back to internal dictionary format."""
-    return DiagramDictFormat(
+def graphql_to_backend(graphql_diagram: DomainDiagram) -> BackendDiagram:
+    return BackendDiagram(
         nodes={node.id: node for node in graphql_diagram.nodes},
         handles={handle.id: handle for handle in graphql_diagram.handles},
         arrows={arrow.id: arrow for arrow in graphql_diagram.arrows},

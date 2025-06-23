@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from dipeo_server.core.exceptions import AgentDiagramException
+from dipeo_server.shared.exceptions import AgentDiagramException
 
 
 def setup_middleware(app: FastAPI):

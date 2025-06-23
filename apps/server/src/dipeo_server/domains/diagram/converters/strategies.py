@@ -1,63 +1,22 @@
 """Format strategies for unified diagram converter."""
 
 import json
-from abc import ABC, abstractmethod
+import logging
 from typing import Any, Dict, List
 
 import yaml
 from dipeo_domain import DomainDiagram, DomainNode
 
+from .base import FormatStrategy
 from .shared_components import (
     NodeTypeMapper,
+    build_node,
+    coerce_to_dict,
+    ensure_position,
+    extract_common_arrows,
 )
 
-
-class FormatStrategy(ABC):
-    """Abstract base class for format conversion strategies."""
-
-    @abstractmethod
-    def parse(self, content: str) -> Dict[str, Any]:
-        """Parse content to intermediate format."""
-        pass
-
-    @abstractmethod
-    def format(self, data: Dict[str, Any]) -> str:
-        """Format intermediate data to string."""
-        pass
-
-    @abstractmethod
-    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Extract nodes from parsed data."""
-        pass
-
-    @abstractmethod
-    def extract_arrows(
-        self, data: Dict[str, Any], nodes: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """Extract arrows from parsed data."""
-        pass
-
-    @abstractmethod
-    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
-        """Build export data from domain diagram."""
-        pass
-
-    @abstractmethod
-    def detect_confidence(self, data: Dict[str, Any]) -> float:
-        """Calculate confidence that data matches this format."""
-        pass
-
-    @property
-    @abstractmethod
-    def format_id(self) -> str:
-        """Unique identifier for this format."""
-        pass
-
-    @property
-    @abstractmethod
-    def format_info(self) -> Dict[str, str]:
-        """Metadata about this format."""
-        pass
+logger = logging.getLogger(__name__)
 
 
 class NativeJsonStrategy(FormatStrategy):
@@ -78,33 +37,28 @@ class NativeJsonStrategy(FormatStrategy):
         }
 
     def parse(self, content: str) -> Dict[str, Any]:
-        return json.loads(content)
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON: {e}")
+            raise ValueError(f"Invalid JSON format: {e}") from e
 
     def format(self, data: Dict[str, Any]) -> str:
         return json.dumps(data, indent=2, ensure_ascii=False)
 
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         nodes = []
-        nodes_data = data.get("nodes", {})
+        nodes_data = coerce_to_dict(data.get("nodes", {}), id_key="id", prefix="node")
 
-        # Handle both dict and list formats
-        if isinstance(nodes_data, dict):
-            for node_id, node_data in nodes_data.items():
-                node = {
-                    "id": node_id,
-                    "type": node_data.get("type", "unknown"),
-                    "position": node_data.get("position", {"x": 0, "y": 0}),
-                    **node_data.get("data", {}),
-                }
-                nodes.append(node)
-        elif isinstance(nodes_data, list):
-            for node_data in nodes_data:
-                node = {
-                    "id": node_data.get("id"),
-                    "type": node_data.get("type", "unknown"),
-                    "position": node_data.get("position", {"x": 0, "y": 0}),
-                    **node_data.get("data", {}),
-                }
+        for index, (node_id, node_data) in enumerate(nodes_data.items()):
+            if isinstance(node_data, dict):
+                node = build_node(
+                    id=node_id,
+                    type_=node_data.get("type", "unknown"),
+                    pos=node_data.get("position", {}),
+                    **node_data.get("data", {})
+                )
+                ensure_position(node, index)
                 nodes.append(node)
 
         return nodes
@@ -112,30 +66,7 @@ class NativeJsonStrategy(FormatStrategy):
     def extract_arrows(
         self, data: Dict[str, Any], nodes: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        arrows = []
-        arrows_data = data.get("arrows", {})
-
-        # Handle both dict and list formats
-        if isinstance(arrows_data, dict):
-            for arrow_id, arrow_data in arrows_data.items():
-                arrows.append(
-                    {
-                        "id": arrow_id,
-                        "source": arrow_data.get("source"),
-                        "target": arrow_data.get("target"),
-                    }
-                )
-        elif isinstance(arrows_data, list):
-            for arrow_data in arrows_data:
-                arrows.append(
-                    {
-                        "id": arrow_data.get("id"),
-                        "source": arrow_data.get("source"),
-                        "target": arrow_data.get("target"),
-                    }
-                )
-
-        return arrows
+        return extract_common_arrows(data.get("arrows", {}))
 
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
         return {
@@ -185,6 +116,14 @@ class NativeJsonStrategy(FormatStrategy):
             return 0.5
         return 0.1
 
+    def quick_match(self, content: str) -> bool:
+        """Quick check for JSON format with nodes/handles/arrows structure."""
+        content = content.strip()
+        if not (content.startswith('{') and content.endswith('}')):
+            return False
+        # Check for key indicators without full parse
+        return '"nodes"' in content or '"handles"' in content or '"arrows"' in content
+
 
 class LightYamlStrategy(FormatStrategy):
     """Strategy for light YAML format."""
@@ -204,11 +143,18 @@ class LightYamlStrategy(FormatStrategy):
         }
 
     def parse(self, content: str) -> Dict[str, Any]:
-        return yaml.safe_load(content) or {}
+        try:
+            return yaml.safe_load(content) or {}
+        except yaml.YAMLError as e:
+            logger.error(f"Failed to parse YAML: {e}")
+            raise ValueError(f"Invalid YAML format: {e}") from e
 
     def format(self, data: Dict[str, Any]) -> str:
         return yaml.dump(
-            data, default_flow_style=False, sort_keys=False, allow_unicode=True
+            data,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True
         )
 
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -217,17 +163,20 @@ class LightYamlStrategy(FormatStrategy):
 
         for index, node_data in enumerate(node_list):
             if isinstance(node_data, dict):
-                node = {
-                    "id": node_data.get("label", f"node_{index}"),
-                    "type": node_data.get("type", "unknown"),
-                    "label": node_data.get("label"),
-                    **{
-                        k: v
-                        for k, v in node_data.items()
-                        if k not in ["type", "label", "arrows"]
-                    },
-                }
+                node_id = node_data.get("label", f"node_{index}")
+                node_type = node_data.get("type", "unknown")
+                exclude_keys = {"type", "label", "arrows", "position"}
+
+                node = build_node(
+                    id=node_id,
+                    type_=node_type,
+                    pos=node_data.get("position", {}),
+                    label=node_data.get("label"),
+                    **{k: v for k, v in node_data.items() if k not in exclude_keys}
+                )
+                ensure_position(node, index)
                 nodes.append(node)
+
         return nodes
 
     def extract_arrows(
@@ -306,6 +255,14 @@ class LightYamlStrategy(FormatStrategy):
             return 0.5
         return 0.1
 
+    def quick_match(self, content: str) -> bool:
+        """Quick check for YAML format with nodes array."""
+        content = content.strip()
+        # Check for YAML indicators
+        if content.startswith('{') or content.startswith('['):
+            return False  # Likely JSON
+        return 'nodes:' in content and ('  - ' in content or '- label:' in content)
+
 
 class ReadableYamlStrategy(FormatStrategy):
     """Strategy for readable YAML format."""
@@ -328,27 +285,37 @@ class ReadableYamlStrategy(FormatStrategy):
         }
 
     def parse(self, content: str) -> Dict[str, Any]:
-        return yaml.safe_load(content) or {}
+        try:
+            return yaml.safe_load(content) or {}
+        except yaml.YAMLError as e:
+            logger.error(f"Failed to parse YAML: {e}")
+            raise ValueError(f"Invalid YAML format: {e}") from e
 
     def format(self, data: Dict[str, Any]) -> str:
         return yaml.dump(
-            data, default_flow_style=False, sort_keys=False, allow_unicode=True
+            data,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True
         )
 
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         nodes = []
-
         workflow = data.get("workflow", [])
+
         for index, step in enumerate(workflow):
             if isinstance(step, dict):
                 for step_name, step_data in step.items():
-                    node = {
-                        "id": step_name,
-                        "type": self._determine_node_type(step_data),
-                        "label": step_name,
-                        **self._extract_properties(step_data),
-                    }
-                    nodes.append(node)
+                    if isinstance(step_data, dict):
+                        node = build_node(
+                            id=step_name,
+                            type_=self._determine_node_type(step_data),
+                            pos=step_data.get("position", {}),
+                            label=step_name,
+                            **self._extract_properties(step_data)
+                        )
+                        ensure_position(node, index)
+                        nodes.append(node)
 
         return nodes
 
@@ -414,6 +381,12 @@ class ReadableYamlStrategy(FormatStrategy):
                 return 0.9
             return 0.6
         return 0.1
+
+    def quick_match(self, content: str) -> bool:
+        """Quick check for readable workflow format."""
+        content = content.strip()
+        # Check for workflow and flow indicators
+        return 'workflow:' in content and (' -> ' in content or 'flow:' in content)
 
     def _determine_node_type(self, step_data: Dict[str, Any]) -> str:
         """Determine node type from step data using shared NodeTypeMapper."""

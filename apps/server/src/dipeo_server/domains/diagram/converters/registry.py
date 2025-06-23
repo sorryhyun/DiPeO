@@ -1,57 +1,31 @@
-from typing import Dict, List, Optional
+"""Simplified registry using UnifiedDiagramConverter directly."""
 
-from dipeo_domain import DomainDiagram
-
-from .base import DiagramConverter
 from .unified_converter import UnifiedDiagramConverter
 
+# The registry is now just an instance of UnifiedDiagramConverter
+# This acts as both a facade and the actual converter
+converter_registry = UnifiedDiagramConverter()
 
-class ConverterRegistry:
-    def __init__(self):
-        self._unified_converter = UnifiedDiagramConverter()
-        self._initialize()
+# Add backward compatibility methods if needed
+converter_registry.list_formats = converter_registry.get_supported_formats
+converter_registry.convert = lambda content, from_format, to_format: converter_registry.serialize(
+    converter_registry.deserialize(content, from_format), to_format
+)
 
-    def _initialize(self):
-        pass
+# Add get method for backward compatibility
+def _get(self, format_id):
+    """Get converter for format (backward compatibility)."""
+    if format_id in self.strategies:
+        self.set_format(format_id)
+        return self
+    return None
 
-    def get(self, format_id: str) -> Optional[DiagramConverter]:
-        if format_id in [
-            s.format_id for s in self._unified_converter.strategies.values()
-        ]:
-            self._unified_converter.set_format(format_id)
-            return self._unified_converter
-        return None
+converter_registry.get = _get.__get__(converter_registry)
 
-    def get_info(self, format_id: str) -> Optional[Dict[str, str]]:
-        strategy = self._unified_converter.strategies.get(format_id)
-        if strategy:
-            return strategy.format_info
-        return None
+# Add get_info method for backward compatibility
+def _get_info(self, format_id):
+    """Get format info (backward compatibility)."""
+    strategy = self.strategies.get(format_id)
+    return strategy.format_info if strategy else None
 
-    def list_formats(self) -> List[Dict[str, str]]:
-        return self._unified_converter.get_supported_formats()
-
-    def detect_format(self, content: str) -> Optional[str]:
-        return self._unified_converter.detect_format(content)
-
-    def get_export_formats(self) -> List[Dict[str, str]]:
-        return self._unified_converter.get_export_formats()
-
-    def get_import_formats(self) -> List[Dict[str, str]]:
-        return self._unified_converter.get_import_formats()
-
-    def convert(self, content: str, from_format: str, to_format: str) -> str:
-        diagram = self._unified_converter.deserialize(content, from_format)
-
-        return self._unified_converter.serialize(diagram, to_format)
-
-    def deserialize(
-        self, content: str, format_id: Optional[str] = None
-    ) -> DomainDiagram:
-        return self._unified_converter.deserialize(content, format_id)
-
-    def serialize(self, diagram: DomainDiagram, format_id: str) -> str:
-        return self._unified_converter.serialize(diagram, format_id)
-
-
-converter_registry = ConverterRegistry()
+converter_registry.get_info = _get_info.__get__(converter_registry)

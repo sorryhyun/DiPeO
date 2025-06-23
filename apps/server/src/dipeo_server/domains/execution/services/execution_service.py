@@ -5,13 +5,13 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
+from dipeo_core import BaseService
 from dipeo_domain import ExecutionStatus
 from dipeo_domain.models import DomainDiagram
 
-from dipeo_server.core import BaseService
 from dipeo_server.domains.execution.engine import ViewBasedEngine
 from dipeo_server.domains.execution.handlers import get_handlers
-from dipeo_server.domains.execution.services.state_store import state_store
+from dipeo_server.infrastructure.persistence import state_store
 
 log = logging.getLogger(__name__)
 
@@ -53,11 +53,11 @@ class ExecutionService(BaseService):
                     diagram_id=diagram
                 )
             else:
-                ready_diagram = await self.diagram_execution_adapter.prepare_diagram_dict_for_execution(
+                ready_diagram = await self.diagram_execution_adapter.prepare_backend_diagram_for_execution(
                     diagram_dict=diagram
                 )
 
-            diagram_dict = ready_diagram.storage_format
+            diagram_dict = ready_diagram.backend_format
             api_keys = ready_diagram.api_keys
             # Use the domain model that was already converted
             diagram_obj = ready_diagram.domain_model

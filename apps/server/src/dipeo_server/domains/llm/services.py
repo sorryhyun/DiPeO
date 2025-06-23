@@ -1,6 +1,7 @@
 import time
 from typing import Any, List, Optional, Tuple, Union
 
+from dipeo_core import APIKeyError, BaseService, LLMServiceError
 from dipeo_domain import LLMService as LLMServiceEnum
 from dipeo_domain import TokenUsage
 from tenacity import (
@@ -10,11 +11,11 @@ from tenacity import (
     wait_exponential,
 )
 
-from dipeo_core import APIKeyError, BaseService, LLMServiceError
-
-from dipeo_server.core import VALID_LLM_SERVICES, APIKeyService
+from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.llm import ChatResult, create_adapter
 from dipeo_server.domains.llm.service_utils.token_usage_service import TokenUsageService
+from dipeo_server.shared.constants import VALID_LLM_SERVICES
+from dipeo_server.shared.utils.errors import normalize_service_name
 
 
 class LLMService(BaseService):
@@ -30,8 +31,6 @@ class LLMService(BaseService):
         # No specific initialization needed for now
         pass
 
-    def normalize_service_name(self, service: str) -> str:
-        return service.lower()
 
     def _get_api_key(self, api_key_id: str) -> str:
         """Get raw API key from service."""
@@ -43,7 +42,7 @@ class LLMService(BaseService):
 
     def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
         """Get the appropriate LLM adapter with connection pooling and TTL."""
-        provider = self.normalize_service_name(service)
+        provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
             raise LLMServiceError(f"Unsupported LLM service: {service}")
@@ -67,7 +66,7 @@ class LLMService(BaseService):
 
     def get_token_counts(self, client_name: str, usage: Any) -> TokenUsage:
         """Get token counts from LLM usage."""
-        normalized_service = self.normalize_service_name(client_name)
+        normalized_service = normalize_service_name(client_name)
         return TokenUsageService.from_usage(usage, normalized_service)
 
     def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
@@ -135,7 +134,7 @@ class LLMService(BaseService):
     async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
         """Get available models for a service."""
         raw_key = self._get_api_key(api_key_id)
-        normalized_service = self.normalize_service_name(service)
+        normalized_service = normalize_service_name(service)
 
         if normalized_service == LLMServiceEnum.openai.value:
             try:

@@ -3,10 +3,12 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from dipeo_domain import DiagramDictFormat, DomainArrow, DomainDiagram, DomainNode
+from dipeo_domain import DomainArrow, DomainDiagram, DomainNode
 
-from .base import DiagramConverter
-from .diagram_format_converter import diagram_dict_to_graphql
+from dipeo_server.domains.diagram.services.models import BackendDiagram
+
+from .base import DiagramConverter, FormatStrategy
+from .diagram_format_converter import backend_to_graphql
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
@@ -14,7 +16,6 @@ from .shared_components import (
     PositionCalculator,
 )
 from .strategies import (
-    FormatStrategy,
     LightYamlStrategy,
     NativeJsonStrategy,
     ReadableYamlStrategy,
@@ -144,7 +145,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             arrows_dict = {}
 
-        diagram_dict = DiagramDictFormat(
+        diagram_dict = BackendDiagram(
             nodes=nodes_dict,
             handles=handles_dict,
             arrows=arrows_dict,
@@ -159,7 +160,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                     diagram_dict, node_id, node.type
                 )
 
-        return diagram_dict_to_graphql(diagram_dict)
+        return backend_to_graphql(diagram_dict)
 
     def _create_node(self, node_data: Dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""
@@ -204,6 +205,12 @@ class UnifiedDiagramConverter(DiagramConverter):
 
     def detect_format(self, content: str) -> Optional[str]:
         """Automatically detect format from content."""
+        # First try quick match for efficiency
+        for format_id, strategy in self.strategies.items():
+            if strategy.quick_match(content):
+                return format_id
+
+        # Fall back to full parsing if no quick match
         confidences: List[Tuple[str, float]] = []
 
         for format_id, strategy in self.strategies.items():
@@ -211,7 +218,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 data = strategy.parse(content)
                 confidence = strategy.detect_confidence(data)
                 confidences.append((format_id, confidence))
-            except:
+            except Exception:
                 confidences.append((format_id, 0.0))
 
         confidences.sort(key=lambda x: x[1], reverse=True)

@@ -7,30 +7,38 @@ from typing import Any, Dict, Optional
 from dipeo_core import BaseService, ValidationError
 from dipeo_domain import DiagramID, DiagramMetadata, DomainDiagram
 
-from dipeo_server.core.services import APIKeyService
+from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.execution.validators import DiagramValidator
 
 from .converter_service import DiagramConverterService
+from .models import BackendDiagram, ExecutionHints
+from .models import ExecutionReadyDiagram as ExecutionReadyDiagramModel
 from .storage_service import DiagramStorageService
 
 logger = logging.getLogger(__name__)
 
 
-class ExecutionReadyDiagram:
+class ExecutionReadyDiagram(ExecutionReadyDiagramModel):
+    """Extended model for execution ready diagram with helper methods."""
 
-    def __init__(
-        self,
+    @classmethod
+    def from_dict(
+        cls,
         diagram_id: str,
-        storage_format: Dict[str, Any],
+        backend_format: Dict[str, Any],
         api_keys: Dict[str, str],
         execution_hints: Dict[str, Any],
         domain_model: Optional[DomainDiagram] = None,
-    ):
-        self.diagram_id = diagram_id
-        self.storage_format = storage_format
-        self.api_keys = api_keys
-        self.execution_hints = execution_hints
-        self.domain_model = domain_model
+    ) -> "ExecutionReadyDiagram":
+        """Create from dict data."""
+        hints = ExecutionHints(**execution_hints) if isinstance(execution_hints, dict) else execution_hints
+        return cls(
+            diagram_id=diagram_id,
+            backend_format=backend_format,
+            api_keys=api_keys,
+            execution_hints=hints,
+            domain_model=domain_model,
+        )
 
 
 class DiagramExecutionAdapter(BaseService):
@@ -70,56 +78,58 @@ class DiagramExecutionAdapter(BaseService):
             path = found_path
 
         logger.debug(f"Loading diagram from {path}")
-        storage_dict = await self.storage.read_file(path)
+        backend_data = await self.storage.read_file(path)
 
         if validate:
             logger.debug("Validating diagram for execution")
-            errors = self.validator._validate_storage_format(storage_dict, context="execution")
+            errors = self.validator._validate_backend_format(backend_data, context="execution")
             if errors:
                 raise ValidationError(f"Diagram validation failed: {'; '.join(errors)}")
 
-        storage_dict = self._fix_api_key_references(storage_dict)
-        api_keys = self._extract_api_keys(storage_dict)
-        domain_diagram = self.converter.storage_to_domain(storage_dict)
+        backend_data = self._fix_api_key_references(backend_data)
+        api_keys = self._extract_api_keys(backend_data)
+        backend_diagram = BackendDiagram.model_validate(backend_data)
+        domain_diagram = self.converter.backend_to_domain(backend_diagram)
         execution_dict = self.converter.prepare_for_execution(domain_diagram, api_keys)
-        return ExecutionReadyDiagram(
+        return ExecutionReadyDiagram.from_dict(
             diagram_id=diagram_id,
-            storage_format=execution_dict,
+            backend_format=execution_dict,
             api_keys=api_keys,
             execution_hints=execution_dict.get("_execution_hints", {}),
             domain_model=domain_diagram,
         )
 
-    async def prepare_diagram_dict_for_execution(
+    async def prepare_backend_diagram_for_execution(
         self,
-        diagram_dict: Dict[str, Any],
+        backend_dict: Dict[str, Any],
         diagram_id: Optional[str] = None,
         validate: bool = True,
     ) -> ExecutionReadyDiagram:
         """Prepare a diagram dictionary already in memory for execution."""
         logger.info(f"Preparing diagram dict for execution (id: {diagram_id or 'unknown'})")
-        logger.info(f"[CONVERSION DEBUG] Input format check - is_storage_format: {self._is_storage_format(diagram_dict)}")
+        logger.info(f"[CONVERSION DEBUG] Input format check - is_backend_format: {self._is_backend_format(backend_dict)}")
 
-        if not self._is_storage_format(diagram_dict):
-            logger.info("[CONVERSION DEBUG] Converting from domain format to storage format")
-            domain_diagram = DomainDiagram.model_validate(diagram_dict)
-            storage_dict = self.converter.domain_to_storage(domain_diagram)
-            logger.info("[CONVERSION DEBUG] First conversion complete: domain -> storage")
+        if not self._is_backend_format(backend_dict):
+            logger.info("[CONVERSION DEBUG] Converting from domain format to backend format")
+            domain_diagram = DomainDiagram.model_validate(backend_dict)
+            backend_data = self.converter.domain_to_backend(domain_diagram)
+            logger.info("[CONVERSION DEBUG] First conversion complete: domain -> backend")
         else:
-            logger.info("[CONVERSION DEBUG] Already in storage format, skipping first conversion")
-            storage_dict = diagram_dict
+            logger.info("[CONVERSION DEBUG] Already in backend format, skipping first conversion")
+            backend_data = backend_dict
 
         if validate:
-            errors = self.validator._validate_storage_format(storage_dict, context="execution")
+            errors = self.validator._validate_backend_format(backend_data, context="execution")
             if errors:
                 raise ValidationError(f"Diagram validation failed: {'; '.join(errors)}")
 
-        storage_dict = self._fix_api_key_references(storage_dict)
-        api_keys = self._extract_api_keys(storage_dict)
+        backend_data = self._fix_api_key_references(backend_data)
+        api_keys = self._extract_api_keys(backend_data)
 
-        logger.info("[CONVERSION DEBUG] Converting storage format back to domain model")
-        domain_diagram = self.converter.storage_to_domain(storage_dict)
-        logger.info("[CONVERSION DEBUG] Second conversion complete: storage -> domain")
+        logger.info("[CONVERSION DEBUG] Converting backend format back to domain model")
+        backend_diagram = BackendDiagram.model_validate(backend_data)
+        domain_diagram = self.converter.backend_to_domain(backend_diagram)
+        logger.info("[CONVERSION DEBUG] Second conversion complete: backend -> domain")
 
         if diagram_id:
             if not domain_diagram.metadata:
@@ -141,9 +151,9 @@ class DiagramExecutionAdapter(BaseService):
         logger.info("[CONVERSION DEBUG] Final conversion complete: domain -> execution format")
 
         diagram_id_final = diagram_id or (domain_diagram.metadata.id if domain_diagram.metadata else None) or "unknown"
-        return ExecutionReadyDiagram(
+        return ExecutionReadyDiagram.from_dict(
             diagram_id=diagram_id_final,
-            storage_format=execution_dict,
+            backend_format=execution_dict,
             api_keys=api_keys,
             execution_hints=execution_dict.get("_execution_hints", {}),
             domain_model=domain_diagram,
@@ -195,7 +205,7 @@ class DiagramExecutionAdapter(BaseService):
 
         return keys
 
-    def _is_storage_format(self, data: Dict[str, Any]) -> bool:
+    def _is_backend_format(self, data: Dict[str, Any]) -> bool:
         if "nodes" in data and isinstance(data["nodes"], dict):
             first_node = next(iter(data["nodes"].values()), None) if data["nodes"] else None
             if first_node and isinstance(first_node, dict):

@@ -90,6 +90,7 @@ export interface Vec2 {
   y: number;
 }
 
+
 // Branded types for IDs
 export type NodeID = string & { readonly __brand: 'NodeID' };
 export type ArrowID = string & { readonly __brand: 'ArrowID' };
@@ -164,15 +165,6 @@ export interface DomainDiagram {
   metadata?: DiagramMetadata | null;
 }
 
-// Dictionary format for internal use
-export interface DiagramDictFormat {
-  nodes: Record<NodeID, DomainNode>;
-  handles: Record<HandleID, DomainHandle>;
-  arrows: Record<ArrowID, DomainArrow>;
-  persons: Record<PersonID, DomainPerson>;
-  apiKeys: Record<ApiKeyID, DomainApiKey>;
-  metadata?: DiagramMetadata | null;
-}
 
 // Node data schemas - can be extended per node type
 export interface BaseNodeData {

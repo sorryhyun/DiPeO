@@ -1,6 +1,6 @@
 """API layer - FastAPI/GraphQL adapters."""
 
-from .context import get_graphql_context
+from .graphql.context import get_graphql_context
 from .middleware import setup_middleware
 from .router import setup_routes
 

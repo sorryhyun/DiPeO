@@ -10,7 +10,6 @@ from typing import Any, Dict
 
 # Re-export all models directly from generated code
 from dipeo_domain import (
-    DiagramDictFormat,
     DomainDiagram,
     LLMService,
     # Enums
@@ -20,37 +19,65 @@ from dipeo_domain import (
 # Utility functions for working with generated models
 
 
-def diagram_to_dict(diagram: DiagramDictFormat) -> Dict[str, Any]:
+def diagram_to_dict(diagram: DomainDiagram) -> Dict[str, Any]:
     """Convert a diagram to dictionary for JSON serialization.
 
-    Uses the generated models' dict() method from dataclasses.
+    Uses Pydantic's model_dump() method.
     """
-    # The generated dataclasses already have appropriate serialization
-    return asdict(diagram)
+    # Convert to dict using Pydantic's method
+    return diagram.model_dump(by_alias=True)
 
 
-def diagram_dict_to_array(diagram: DiagramDictFormat) -> DomainDiagram:
-    """Convert dictionary format to array format."""
-    return DomainDiagram(
-        nodes=list(diagram.nodes.values()),
-        arrows=list(diagram.arrows.values()),
-        handles=list(diagram.handles.values()),
-        persons=list(diagram.persons.values()),
-        apiKeys=list(diagram.api_keys.values()),
-        metadata=diagram.metadata,
-    )
+def diagram_dict_to_backend(diagram_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert diagram dict from array format to backend format (dict of dicts)."""
+    backend_dict = {
+        "nodes": {},
+        "arrows": {},
+        "handles": {},
+        "persons": {},
+        "api_keys": {},
+        "metadata": None,
+    }
+    
+    if "nodes" in diagram_dict:
+        for node in diagram_dict["nodes"]:
+            backend_dict["nodes"][node["id"]] = node
+    
+    if "arrows" in diagram_dict:
+        for arrow in diagram_dict["arrows"]:
+            backend_dict["arrows"][arrow["id"]] = arrow
+    
+    if "handles" in diagram_dict:
+        for handle in diagram_dict["handles"]:
+            backend_dict["handles"][handle["id"]] = handle
+    
+    if "persons" in diagram_dict:
+        for person in diagram_dict["persons"]:
+            backend_dict["persons"][person["id"]] = person
+    
+    if "apiKeys" in diagram_dict:
+        for api_key in diagram_dict["apiKeys"]:
+            backend_dict["api_keys"][api_key["id"]] = api_key
+    elif "api_keys" in diagram_dict:
+        for api_key in diagram_dict["api_keys"]:
+            backend_dict["api_keys"][api_key["id"]] = api_key
+    
+    if "metadata" in diagram_dict:
+        backend_dict["metadata"] = diagram_dict["metadata"]
+    
+    return backend_dict
 
 
-def diagram_array_to_dict(diagram: DomainDiagram) -> DiagramDictFormat:
-    """Convert array format to dictionary format."""
-    return DiagramDictFormat(
-        nodes={node.id: node for node in diagram.nodes},
-        arrows={arrow.id: arrow for arrow in diagram.arrows},
-        handles={handle.id: handle for handle in diagram.handles},
-        persons={person.id: person for person in diagram.persons},
-        apiKeys={api_key.id: api_key for api_key in diagram.api_keys},
-        metadata=diagram.metadata,
-    )
+def backend_to_diagram_dict(backend_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert backend format (dict of dicts) to array format."""
+    return {
+        "nodes": list(backend_dict.get("nodes", {}).values()),
+        "arrows": list(backend_dict.get("arrows", {}).values()),
+        "handles": list(backend_dict.get("handles", {}).values()),
+        "persons": list(backend_dict.get("persons", {}).values()),
+        "apiKeys": list(backend_dict.get("api_keys", {}).values()),
+        "metadata": backend_dict.get("metadata"),
+    }
 
 
 # Validation helpers

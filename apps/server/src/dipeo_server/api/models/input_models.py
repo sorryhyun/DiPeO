@@ -4,9 +4,7 @@ import base64
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-from dipeo_server.core import (
+from dipeo_domain import (
     DataType,
     DiagramID,
     ExecutionStatus,
@@ -15,6 +13,7 @@ from dipeo_server.core import (
     LLMService,
     NodeType,
 )
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Vec2Input(BaseModel):
