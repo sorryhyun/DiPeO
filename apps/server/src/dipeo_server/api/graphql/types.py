@@ -177,7 +177,8 @@ class DomainDiagramType:
 class ExecutionStateType:
     @strawberry.field
     def node_states(self) -> JSONScalar:
-        node_states = getattr(self, 'node_states', {})
+        # Access the Pydantic model field directly
+        node_states = self.node_states if hasattr(self, 'node_states') else {}
         # Convert NodeState objects to dictionaries for JSON serialization
         if node_states:
             return {
@@ -188,13 +189,19 @@ class ExecutionStateType:
 
     @strawberry.field
     def node_outputs(self) -> JSONScalar:
-        node_outputs = getattr(self, 'node_outputs', {})
+        # Access the Pydantic model field directly
+        node_outputs = self.node_outputs if hasattr(self, 'node_outputs') else {}
         # Convert NodeOutput objects to dictionaries for JSON serialization
         if node_outputs:
-            return {
-                node_id: output.model_dump() if hasattr(output, 'model_dump') else output
-                for node_id, output in node_outputs.items()
-            }
+            result = {}
+            for node_id, output in node_outputs.items():
+                if output is None:
+                    result[node_id] = None
+                elif hasattr(output, 'model_dump'):
+                    result[node_id] = output.model_dump()
+                else:
+                    result[node_id] = output
+            return result
         return {}
 
     @strawberry.field

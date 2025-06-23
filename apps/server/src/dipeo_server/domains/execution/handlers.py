@@ -39,7 +39,7 @@ def create_node_output(
 
 @node_handler("start")
 async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    ctx.increment_exec_count(node.id)
+    # Engine already manages exec_count
 
     output = create_node_output(
         value={'default': ''},
@@ -52,8 +52,11 @@ async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
 @node_handler("person_job")
 async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    ctx.increment_exec_count(node.id)
-
+    import logging
+    log = logging.getLogger(__name__)
+    
+    log.info(f"=== PERSON_JOB HANDLER CALLED for node {node.id} ===")
+    # Don't increment here - the engine already incremented it
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 
     person_id = node.data.get('personId')
@@ -61,8 +64,11 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     default_prompt = node.data.get('defaultPrompt', '')
     max_iteration = node.data.get('maxIteration', 1)
 
+    # Check if this is a judge node that needs to see other conversations
+    is_judge = 'judge' in node.data.get('label', '').lower() if node.data else False
+    
     conversation = ctx.get_conversation_history(person_id) if person_id else []
-    exec_count = ctx.exec_counts.get(node.id, 1)
+    exec_count = ctx.exec_counts.get(node.id, 0)
 
     if not conversation or conversation[0].get("role") != "system":
         person_obj = None
@@ -81,15 +87,22 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
         from_output = ctx.get_node_output(source_node_id)
 
         edge_label = edge.data.get('label', 'default') if edge.data else 'default'
+        handle_name = edge.target.split(':')[1] if ':' in edge.target else 'default'
+        
 
         if from_output:
-            handle_name = edge.target.split(':')[1] if ':' in edge.target else 'default'
             if handle_name == 'first' and exec_count == 1:
                 if edge_label in from_output.value:
                     inputs[edge_label] = from_output.value[edge_label]
+                else:
+                    log.warning(f"Edge label '{edge_label}' not found in source output keys: {list(from_output.value.keys())}")
             elif handle_name == 'default':
                 if 'default' in from_output.value:
                     inputs['conversation'] = from_output.value['default']
+                else:
+                    log.warning(f"'default' key not found in source output keys: {list(from_output.value.keys())}")
+        else:
+            log.warning(f"No output found for source node {source_node_id}!")
 
     if exec_count == 1 and first_only_prompt:
         prompt = first_only_prompt
@@ -98,6 +111,37 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     else:
         prompt = default_prompt
 
+    # If this is a judge node, collect conversations from other person_job nodes
+    if is_judge:
+        # Find all person_job nodes that have executed
+        debate_context = []
+        for other_node in ctx.diagram.nodes:
+            if other_node.type == 'person_job' and other_node.id != node.id:
+                other_person_id = other_node.data.get('personId') if other_node.data else None
+                if other_person_id:
+                    other_conversation = ctx.get_conversation_history(other_person_id)
+                    if other_conversation:
+                        # Extract the actual debate content (skip system prompts)
+                        panel_label = other_node.data.get('label', other_node.id) if other_node.data else other_node.id
+                        debate_messages = [msg for msg in other_conversation if msg.get('role') != 'system']
+                        if debate_messages:
+                            debate_context.append(f"\n{panel_label}:\n")
+                            for msg in debate_messages:
+                                role = msg.get('role', 'unknown')
+                                content = msg.get('content', '')
+                                if role == 'user':
+                                    debate_context.append(f"Input: {content}\n")
+                                elif role == 'assistant':
+                                    debate_context.append(f"Response: {content}\n")
+        
+        if debate_context:
+            # Prepend the debate context to the judge's prompt
+            full_context = "Here are the arguments from different panels:\n" + "".join(debate_context) + "\n\n"
+            if prompt:
+                prompt = full_context + prompt
+            else:
+                prompt = full_context + "Based on the above arguments, judge which panel is more reasonable."
+    
     if prompt:
         conversation.append({"role": "user", "content": prompt})
 
@@ -140,7 +184,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             value={'default': response_text},
             metadata={"model": model, "tokens_used": token_usage}
         )
-
+        
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
 
         return output
@@ -156,7 +200,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
 @node_handler("endpoint")
 async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    ctx.increment_exec_count(node.id)
+    # Engine already manages exec_count
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 
@@ -173,8 +217,17 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
                 edge_label = edge.data.get('label', 'default') if edge.data else 'default'
 
-                if from_output and edge_label in from_output.value:
-                    collected_data[edge_label] = from_output.value[edge_label]
+                if from_output:
+                    if edge_label in from_output.value:
+                        collected_data[edge_label] = from_output.value[edge_label]
+                    else:
+                        import logging
+                        log = logging.getLogger(__name__)
+                        log.warning(f"Edge label '{edge_label}' not found in source output from {source_node_id}")
+                else:
+                    import logging
+                    log = logging.getLogger(__name__)
+                    log.warning(f"No output found for source node {source_node_id} when collecting data for endpoint")
             outputs = {'default': collected_data} if collected_data else {}
 
         output = create_node_output(
@@ -196,11 +249,12 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
 @node_handler("condition")
 async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    ctx.increment_exec_count(node.id)
+    # Engine already manages exec_count
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 
     try:
+        # For condition nodes, we just need to check the condition, not collect data
         input_value = None
         for edge in ctx.find_edges_to(node.id):
             source_node_id = edge.source.split(':')[0]
@@ -208,14 +262,31 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
 
             edge_label = edge.data.get('label', 'default') if edge.data else 'default'
 
-            if from_output and edge_label in from_output.value:
-                input_value = from_output.value[edge_label]
+            if from_output:
+                if edge_label in from_output.value:
+                    input_value = from_output.value[edge_label]
+                else:
+                    log.warning(f"Edge label '{edge_label}' not found in source output from {source_node_id} for condition node")
+            else:
+                log.warning(f"No output found for source node {source_node_id} when evaluating condition")
                 break
 
         condition_type = node.data.get('conditionType', '') if node.data else ''
 
         if condition_type == 'detect_max_iterations':
-            result = False  # TODO: Implement max iteration detection logic
+            # Check execution counts of all incoming nodes
+            result = False
+            for edge in ctx.find_edges_to(node.id):
+                source_node_id = edge.source.split(':')[0]
+                source_node = next((n for n in ctx.diagram.nodes if n.id == source_node_id), None)
+                
+                if source_node and source_node.type == 'person_job':
+                    exec_count = ctx.exec_counts.get(source_node_id, 0)
+                    max_iteration = source_node.data.get('maxIteration', 1) if source_node.data else 1
+                    
+                    if exec_count >= max_iteration:
+                        result = True
+                        break
         else:
             result = False
 
@@ -247,7 +318,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     log = logging.getLogger(__name__)
     
     log.info(f"Executing DB node {node.id}")
-    ctx.increment_exec_count(node.id)
+    # Engine already manages exec_count
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 
@@ -268,7 +339,11 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
         if operation == "read":
             try:
-                result = ctx.file_service.read(file_path)
+                # Check if aread exists, otherwise fall back to sync read
+                if hasattr(ctx.file_service, 'aread'):
+                    result = await ctx.file_service.aread(file_path)
+                else:
+                    result = ctx.file_service.read(file_path)
             except Exception as e:
                 result = f"Error reading file: {str(e)}"
                 log.warning(f"Error reading file {file_path}: {e}")
@@ -278,7 +353,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
         elif operation == "append":
             existing_content = ""
             try:
-                existing_content = ctx.file_service.read(file_path)
+                existing_content = await ctx.file_service.aread(file_path)
             except:
                 pass
             await ctx.file_service.write(file_path, existing_content + str(input_data))
@@ -313,7 +388,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
 @node_handler("notion")
 async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    ctx.increment_exec_count(node.id)
+    # Engine already manages exec_count
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 

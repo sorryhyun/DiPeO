@@ -357,5 +357,27 @@ class StateStore:
 
         await self._execute("VACUUM")
 
+    async def get_node_output(self, execution_id: str, node_id: str) -> Optional[NodeOutput]:
+        """Get output for a specific node from storage."""
+        logger.info(f"StateStore.get_node_output called for execution_id={execution_id}, node_id={node_id}")
+        
+        state = await self.get_state(execution_id)
+        if not state:
+            logger.warning(f"No state found for execution_id={execution_id}")
+            return None
+        
+        output = state.node_outputs.get(node_id)
+        if output:
+            if output.value is not None:
+                value_keys = list(output.value.keys()) if isinstance(output.value, dict) else f"Not a dict: {type(output.value)}"
+                logger.info(f"Found output for node {node_id}: value_keys={value_keys}")
+            else:
+                logger.warning(f"Found output for node {node_id} but value is None!")
+        else:
+            logger.warning(f"No output found for node {node_id} in state store")
+            logger.debug(f"Available node outputs: {list(state.node_outputs.keys())}")
+        
+        return output
+
 
 state_store = StateStore()

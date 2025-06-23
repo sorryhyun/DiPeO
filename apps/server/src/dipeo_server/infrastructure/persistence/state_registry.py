@@ -255,6 +255,17 @@ class StateRegistry:
 
         await self.save_state(state)
 
+    async def get_node_output(
+        self, 
+        execution_id: str, 
+        node_id: str
+    ) -> Optional[NodeOutput]:
+        """Get node output by execution and node ID."""
+        state = await self.get_state(execution_id)
+        if not state:
+            return None
+        return state.node_outputs.get(node_id)
+
     async def update_node_output(
         self, 
         execution_id: str, 

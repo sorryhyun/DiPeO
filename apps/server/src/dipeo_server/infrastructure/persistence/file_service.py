@@ -1,5 +1,6 @@
 """File service for handling file operations."""
 
+import asyncio
 import csv
 import io
 import json
@@ -53,6 +54,39 @@ class FileService(BaseService):
             return self._read_csv(file_path, encoding)
         else:
             return file_path.read_text(encoding=encoding)
+
+    async def aread(
+        self, path: str, relative_to: str = "base", encoding: str = "utf-8"
+    ) -> Union[str, Dict[str, Any]]:
+        """Async read file with automatic format detection."""
+        file_path = self._resolve_and_validate_path(path, relative_to)
+
+        if not file_path.exists():
+            raise FileOperationError(f"File not found: {path}")
+
+        if file_path.suffix.lower() == ".docx":
+            # For docx, we'll use sync method in executor
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                None, self._read_docx, file_path
+            )
+        elif file_path.suffix.lower() == ".json":
+            async with aiofiles.open(file_path, encoding=encoding) as f:
+                content = await f.read()
+                return json.loads(content)
+        elif file_path.suffix.lower() in (".yaml", ".yml"):
+            async with aiofiles.open(file_path, encoding=encoding) as f:
+                content = await f.read()
+                return yaml.safe_load(content)
+        elif file_path.suffix.lower() == ".csv":
+            # For csv, we'll use sync method in executor
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                None, self._read_csv, file_path, encoding
+            )
+        else:
+            async with aiofiles.open(file_path, encoding=encoding) as f:
+                return await f.read()
 
     async def write(
         self,

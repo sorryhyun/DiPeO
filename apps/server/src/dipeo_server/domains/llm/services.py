@@ -38,14 +38,20 @@ class LLMService(BaseService):
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             return api_key_data["key"]
         except APIKeyError as e:
-            raise LLMServiceError(f"Failed to get API key: {e}")
+            raise LLMServiceError(
+                service="api_key_service",
+                message=f"Failed to get API key: {e}"
+            )
 
     def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
         """Get the appropriate LLM adapter with connection pooling and TTL."""
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
-            raise LLMServiceError(f"Unsupported LLM service: {service}")
+            raise LLMServiceError(
+                service=service,
+                message=f"Unsupported LLM service: {service}"
+            )
 
         cache_key = f"{provider}:{model}:{api_key_id}"
 
@@ -121,7 +127,11 @@ class LLMService(BaseService):
             return {"response": text, "token_usage": token_usage}
 
         except Exception as e:
-            raise LLMServiceError(f"LLM call failed: {e}")
+            raise LLMServiceError(
+                service=service or "chatgpt",
+                message=f"LLM call failed: {e}",
+                model=model
+            )
 
     def pre_initialize_model(self, service: str, model: str, api_key_id: str) -> bool:
         """Pre-initialize a model client for faster subsequent use."""
@@ -129,7 +139,11 @@ class LLMService(BaseService):
             self._get_client(service, model, api_key_id)
             return True
         except Exception as e:
-            raise LLMServiceError(f"Failed to pre-initialize model: {e}")
+            raise LLMServiceError(
+                service=service,
+                message=f"Failed to pre-initialize model: {e}",
+                model=model
+            )
 
     async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
         """Get available models for a service."""
@@ -144,6 +158,9 @@ class LLMService(BaseService):
                 models = [model.id for model in client.models.list()]
                 return models
             except Exception as e:
-                raise LLMServiceError(f"Failed to fetch OpenAI models: {e}")
+                raise LLMServiceError(
+                    service=normalized_service,
+                    message=f"Failed to fetch OpenAI models: {e}"
+                )
 
         return []

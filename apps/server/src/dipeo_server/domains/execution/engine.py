@@ -64,6 +64,21 @@ class ViewBasedEngine:
         #     ctx.variables
         # )
 
+        # Load existing node outputs from state store if available
+        if state_store:
+            import logging
+            log = logging.getLogger(__name__)
+            log.info(f"Loading existing state for execution {ctx.execution_id}")
+            
+            state = await state_store.get_state(ctx.execution_id)
+            if state and state.node_outputs:
+                log.info(f"Found existing outputs for {len(state.node_outputs)} nodes")
+                for node_id, output in state.node_outputs.items():
+                    ctx.set_node_output(node_id, output)
+                    log.debug(f"Loaded output for node {node_id}: value_keys={list(output.value.keys()) if output.value else 'None'}")
+            else:
+                log.info("No existing node outputs found in state store")
+
         await self._execute_with_view(ctx, view)
 
         return ctx
@@ -72,7 +87,9 @@ class ViewBasedEngine:
         import logging
         log = logging.getLogger(__name__)
         
-        log.info(f"Starting execution with {len(view.execution_order)} levels")
+        log.info(f"Starting execution with initial {len(view.execution_order)} levels")
+        
+        # First execute the pre-computed levels
         for level_num, level_nodes in enumerate(view.execution_order):
             log.info(f"Executing level {level_num} with {len(level_nodes)} nodes")
             tasks = []
@@ -80,11 +97,59 @@ class ViewBasedEngine:
                 if self._can_execute_node_view(node_view):
                     log.info(f"Executing node {node_view.node.id} of type {node_view.node.type}")
                     tasks.append(self._execute_node_view(ctx, node_view))
+                else:
+                    log.warning(f"Cannot execute node {node_view.node.id} - dependencies not met")
 
             if tasks:
+                log.info(f"Awaiting {len(tasks)} tasks for level {level_num}")
                 await asyncio.gather(*tasks)
+                log.info(f"Level {level_num} completed")
+            else:
+                log.warning(f"No tasks to execute for level {level_num}")
+        
+        # After initial levels, check for any nodes that became ready due to cycles
+        executed_nodes = set()
+        for level in view.execution_order:
+            for node in level:
+                executed_nodes.add(node.id)
+        
+        # Continue executing nodes that become ready
+        max_iterations = 100  # Prevent infinite loops
+        iteration = 0
+        while iteration < max_iterations:
+            iteration += 1
+            ready_nodes = []
+            
+            for node_id, node_view in view.node_views.items():
+                if node_id not in executed_nodes and node_view.output is None:
+                    if self._can_execute_node_view(node_view):
+                        ready_nodes.append(node_view)
+                        log.info(f"Found newly ready node: {node_id} (iteration {iteration})")
+            
+            if not ready_nodes:
+                break
+                
+            log.info(f"Executing {len(ready_nodes)} newly ready nodes in iteration {iteration}")
+            tasks = []
+            for node_view in ready_nodes:
+                executed_nodes.add(node_view.id)
+                log.info(f"Executing node {node_view.node.id} of type {node_view.node.type}")
+                tasks.append(self._execute_node_view(ctx, node_view))
+            
+            await asyncio.gather(*tasks)
+        
+        log.info("All execution completed")
 
     def _can_execute_node_view(self, node_view: NodeView) -> bool:
+        # For person_job nodes, check if they have input on their "first" handle
+        # This allows them to start even if other inputs aren't ready yet
+        if node_view.node.type == 'person_job':
+            # Check if any edge to "first" handle has output
+            first_edges = [e for e in node_view.incoming_edges if e.target_handle == 'first']
+            if first_edges and any(edge.source_view.output is not None for edge in first_edges):
+                return True
+        
+        # For all other nodes (and person_job without first input), require all inputs
         return all(edge.source_view.output is not None
                    for edge in node_view.incoming_edges)
 
