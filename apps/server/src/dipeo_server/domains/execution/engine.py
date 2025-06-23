@@ -18,7 +18,7 @@ from .services.state_store import StateStore
 
 class ViewBasedEngine:
 
-    def __init__(self, handlers: Dict[str, Callable]):
+    def __init__(self, handlers: Dict[str, Callable]) -> None:
         self.handlers = handlers
 
     async def execute_diagram(
@@ -79,7 +79,7 @@ class ViewBasedEngine:
                 await asyncio.gather(*tasks)
 
     def _can_execute_node_view(self, node_view: NodeView) -> bool:
-        return all(edge.source_view.output is not None 
+        return all(edge.source_view.output is not None
                    for edge in node_view.incoming_edges)
 
     async def _execute_node_view(self, ctx: ExecutionContext, node_view: NodeView) -> None:
@@ -162,9 +162,9 @@ class ViewBasedEngine:
                 })
 
     async def _call_handler_with_view(
-        self, 
-        handler: Callable, 
-        node, 
+        self,
+        handler: Callable,
+        node,
         node_view: NodeView,
         ctx: ExecutionContext
     ) -> NodeOutput:
@@ -173,6 +173,5 @@ class ViewBasedEngine:
 
         if 'node_view' in sig.parameters:
             return await handler(node=node, node_view=node_view, ctx=ctx)
-        else:
-            return await handler(node, ctx)
+        return await handler(node, ctx)
 

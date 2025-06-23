@@ -64,7 +64,7 @@ class ExecutionContext:
         """Find all edges originating from a node."""
         # Extract node ID from source format (nodeId:handleName)
         return [
-            edge for edge in self.edges 
+            edge for edge in self.edges
             if edge.source.split(':')[0] == node_id
         ]
 
@@ -72,6 +72,6 @@ class ExecutionContext:
         """Find all edges pointing to a node."""
         # Extract node ID from target format (nodeId:handleName)
         return [
-            edge for edge in self.edges 
+            edge for edge in self.edges
             if edge.target.split(':')[0] == node_id
         ]

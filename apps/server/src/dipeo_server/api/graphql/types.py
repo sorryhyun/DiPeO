@@ -180,25 +180,10 @@ class ExecutionStateType:
         node_states = getattr(self, 'node_states', {})
         # Convert NodeState objects to dictionaries for JSON serialization
         if node_states:
-            serialized_states = {}
-            for node_id, state in node_states.items():
-                if hasattr(state, 'model_dump'):
-                    serialized_states[node_id] = state.model_dump()
-                elif hasattr(state, 'dict'):
-                    serialized_states[node_id] = state.dict()
-                elif isinstance(state, dict):
-                    serialized_states[node_id] = state
-                else:
-                    # Fallback
-                    serialized_states[node_id] = {
-                        'status': str(state.status),
-                        'started_at': state.started_at,
-                        'ended_at': state.ended_at,
-                        'error': state.error,
-                        'skip_reason': state.skip_reason,
-                        'token_usage': state.token_usage.model_dump() if state.token_usage else None
-                    }
-            return serialized_states
+            return {
+                node_id: state.model_dump() if hasattr(state, 'model_dump') else state
+                for node_id, state in node_states.items()
+            }
         return {}
 
     @strawberry.field
@@ -206,21 +191,10 @@ class ExecutionStateType:
         node_outputs = getattr(self, 'node_outputs', {})
         # Convert NodeOutput objects to dictionaries for JSON serialization
         if node_outputs:
-            serialized_outputs = {}
-            for node_id, output in node_outputs.items():
-                if hasattr(output, 'model_dump'):
-                    serialized_outputs[node_id] = output.model_dump()
-                elif hasattr(output, 'dict'):
-                    serialized_outputs[node_id] = output.dict()
-                elif isinstance(output, dict):
-                    serialized_outputs[node_id] = output
-                else:
-                    # Fallback
-                    serialized_outputs[node_id] = {
-                        'value': output.value,
-                        'content_type': output.content_type
-                    }
-            return serialized_outputs
+            return {
+                node_id: output.model_dump() if hasattr(output, 'model_dump') else output
+                for node_id, output in node_outputs.items()
+            }
         return {}
 
     @strawberry.field

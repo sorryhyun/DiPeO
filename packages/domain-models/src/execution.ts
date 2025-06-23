@@ -88,26 +88,6 @@ export interface ExecutionState {
   isActive?: boolean; // Computed field
 }
 
-// Legacy types for backward compatibility (will be removed)
-export interface NodeResult {
-  nodeId: NodeID;
-  status: NodeExecutionStatus;
-  output?: any;
-  error?: string | null;
-  timestamp: string; // ISO datetime string
-  tokenUsage?: TokenUsage | null;
-  skipReason?: string | null;
-  progress?: string | null;
-}
-
-export interface ExecutionResult {
-  executionId: ExecutionID;
-  status: ExecutionStatus;
-  results: NodeResult[];
-  error?: string | null;
-  metadata: Record<string, any>;
-  totalTokenUsage?: TokenUsage | null;
-}
 
 export interface ExecutionEvent {
   executionId: ExecutionID;

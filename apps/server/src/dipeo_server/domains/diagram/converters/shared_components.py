@@ -1,6 +1,6 @@
 """Shared components for diagram format converters."""
 
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union, Callable
 
 from dipeo_domain import (
     DataType,
@@ -11,108 +11,39 @@ from dipeo_domain import (
     Vec2,
 )
 
-from dipeo_server.domains.diagram.services.models import BackendDiagram
+from ..services.models import BackendDiagram
 
 
 class HandleGenerator:
-    """Generates handles for nodes in a consistent way across all formats."""
+    """Generate the default and custom handles for a node."""
 
-    def generate_for_node(
-        self,
-        diagram: Union[DomainDiagram, BackendDiagram],
-        node_id: str,
-        node_type: str,
-    ) -> None:
-        """Generate default handles for a node based on its type."""
-        # Input handle (except for start nodes)
-        if node_type != "start":
-            input_handle_id = f"{node_id}:input"
-            handle = DomainHandle(
-                id=input_handle_id,
-                nodeId=node_id,
-                label="input",
-                direction=HandleDirection.input,
-                dataType=DataType.any,
-                position="left",
-            )
-            if isinstance(diagram, BackendDiagram):
-                diagram.handles[input_handle_id] = handle
-            else:
-                diagram.handles.append(handle)
-
-        # Output handle (except for endpoint nodes)
-        if node_type != "endpoint":
-            output_handle_id = f"{node_id}:output"
-            handle = DomainHandle(
-                id=output_handle_id,
-                nodeId=node_id,
-                label="output",
-                direction=HandleDirection.output,
-                dataType=DataType.any,
-                position="right",
-            )
-            if isinstance(diagram, BackendDiagram):
-                diagram.handles[output_handle_id] = handle
-            else:
-                diagram.handles.append(handle)
-
-        # Additional handles for condition nodes
-        if node_type == "condition":
-            true_handle_id = f"{node_id}:true"
-            false_handle_id = f"{node_id}:false"
-
-            true_handle = DomainHandle(
-                id=true_handle_id,
-                nodeId=node_id,
-                label="true",
-                direction=HandleDirection.output,
-                dataType=DataType.boolean,
-                position="right",
-            )
-
-            false_handle = DomainHandle(
-                id=false_handle_id,
-                nodeId=node_id,
-                label="false",
-                direction=HandleDirection.output,
-                dataType=DataType.boolean,
-                position="right",
-            )
-
-            if isinstance(diagram, BackendDiagram):
-                diagram.handles[true_handle_id] = true_handle
-                diagram.handles[false_handle_id] = false_handle
-            else:
-                diagram.handles.append(true_handle)
-                diagram.handles.append(false_handle)
-
-    def add_custom_handle(
-        self,
-        diagram: Union[DomainDiagram, BackendDiagram],
-        node_id: str,
-        handle_id: str,
-        label: str,
-        direction: HandleDirection,
-        data_type: DataType = DataType.any,
-        position: Optional[str] = None,
-    ) -> None:
-        """Add a custom handle to a node."""
-        if position is None:
-            position = "left" if direction == HandleDirection.input else "right"
-
-        handle = DomainHandle(
-            id=handle_id,
-            nodeId=node_id,
-            label=label,
-            direction=direction,
-            dataType=data_type,
-            position=position,
-        )
-
+    def _push(self, diagram: Union[DomainDiagram, BackendDiagram]) -> Callable[[str, DomainHandle], None]:
+        """Return the correct ‘writer’ for handles (dict vs list)."""
         if isinstance(diagram, BackendDiagram):
-            diagram.handles[handle_id] = handle
-        else:
-            diagram.handles.append(handle)
+            return diagram.handles.__setitem__          # dict-style
+        return diagram.handles.append                  # list-style
+
+    def generate_for_node(self, diagram: Union[DomainDiagram, BackendDiagram],
+                          node_id: str, node_type: str) -> None:
+        """Generate all default handles required by `node_type`."""
+        push = self._push(diagram)
+
+        # (suffix, label, direction, dtype, condition)
+        table = [
+            ("input",  "input",  HandleDirection.input,  DataType.any,      node_type != "start"),
+            ("output", "output", HandleDirection.output, DataType.any,      node_type != "endpoint"),
+            ("true",   "true",   HandleDirection.output, DataType.boolean,  node_type == "condition"),
+            ("false",  "false",  HandleDirection.output, DataType.boolean,  node_type == "condition"),
+        ]
+        for suffix, label, direction, dtype, keep in table:
+            if not keep:
+                continue
+            hid = f"{node_id}:{suffix}"
+            push(hid, DomainHandle(
+                id=hid, nodeId=node_id, label=label,
+                direction=direction, dataType=dtype,
+                position="left" if direction is HandleDirection.input else "right",
+            ))
 
 
 class PositionCalculator:
@@ -255,24 +186,16 @@ def ensure_position(node_dict: Dict[str, Any], index: int, position_calculator: 
         node_dict["position"] = {"x": vec2_pos.x, "y": vec2_pos.y}
 
 
-def extract_common_arrows(arrows_data: Any) -> List[Dict[str, Any]]:
-    arrows = []
+def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
+    """Return [{id, source, target}, …] regardless of storage shape."""
+    if not arrows_data:                          # short-circuit None / {}
+        return []
 
-    if isinstance(arrows_data, dict):
-        for arrow_id, arrow_data in arrows_data.items():
-            if isinstance(arrow_data, dict):
-                arrows.append({
-                    "id": arrow_id,
-                    "source": arrow_data.get("source"),
-                    "target": arrow_data.get("target"),
-                })
-    elif isinstance(arrows_data, list):
-        for arrow_data in arrows_data:
-            if isinstance(arrow_data, dict):
-                arrows.append({
-                    "id": arrow_data.get("id"),
-                    "source": arrow_data.get("source"),
-                    "target": arrow_data.get("target"),
-                })
+    # Turn both mapping and list forms into an iterable of (id, obj) pairs
+    items = (arrows_data.items() if isinstance(arrows_data, dict)
+             else ((d.get("id"), d) for d in arrows_data if isinstance(d, dict)))
 
-    return arrows
+    return [
+        {"id": aid, "source": ad.get("source"), "target": ad.get("target")}
+        for aid, ad in items
+    ]

@@ -16,8 +16,8 @@ class DBOperation(str, Enum):
 _handlers: Dict[str, Callable] = {}
 
 
-def node_handler(node_type: str):
-    def decorator(func: Callable):
+def node_handler(node_type: str) -> Callable:
+    def decorator(func: Callable) -> Callable:
         _handlers[node_type] = func
         return func
     return decorator
@@ -28,11 +28,11 @@ def get_handlers() -> Dict[str, Callable]:
 
 
 def create_node_output(
-    outputs: Dict[str, Any],
+    value: Dict[str, Any],
     metadata: Optional[Dict[str, Any]] = None,
 ) -> NodeOutput:
     return NodeOutput(
-        value=outputs,
+        value=value,
         metadata=metadata or {}
     )
 
@@ -42,7 +42,7 @@ async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     output = create_node_output(
-        outputs={'default': ''},
+        value={'default': ''},
         metadata={"message": "Execution started"}
     )
 
@@ -80,11 +80,11 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
         if from_output:
             handle_name = edge.target.split(':')[1] if ':' in edge.target else 'default'
             if handle_name == 'first' and exec_count == 1:
-                if edge_label in from_output.outputs:
-                    inputs[edge_label] = from_output.outputs[edge_label]
+                if edge_label in from_output.value:
+                    inputs[edge_label] = from_output.value[edge_label]
             elif handle_name == 'default':
-                if 'default' in from_output.outputs:
-                    inputs['conversation'] = from_output.outputs['default']
+                if 'default' in from_output.value:
+                    inputs['conversation'] = from_output.value['default']
 
     if exec_count == 1 and first_only_prompt:
         prompt = first_only_prompt
@@ -110,7 +110,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
         ctx.add_to_conversation(person_id, {"role": "assistant", "content": response})
 
         output = create_node_output(
-            outputs={'default': response},
+            value={'default': response},
             metadata={"model": model, "tokens_used": len(response.split())}
         )
 
@@ -120,7 +120,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
     except Exception as e:
         error_output = create_node_output(
-            outputs={},
+            value={},
             metadata={"error": str(e)}
         )
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
@@ -146,12 +146,12 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
                 edge_label = edge.data.get('label', 'default') if edge.data else 'default'
 
-                if from_output and edge_label in from_output.outputs:
-                    collected_data[edge_label] = from_output.outputs[edge_label]
+                if from_output and edge_label in from_output.value:
+                    collected_data[edge_label] = from_output.value[edge_label]
             outputs = {'default': collected_data} if collected_data else {}
 
         output = create_node_output(
-            outputs=outputs
+            value=outputs
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
@@ -160,7 +160,7 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
     except Exception as e:
         error_output = create_node_output(
-            outputs={},
+            value={},
             metadata={"error": str(e)}
         )
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
@@ -181,8 +181,8 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
 
             edge_label = edge.data.get('label', 'default') if edge.data else 'default'
 
-            if from_output and edge_label in from_output.outputs:
-                input_value = from_output.outputs[edge_label]
+            if from_output and edge_label in from_output.value:
+                input_value = from_output.value[edge_label]
                 break
 
         condition_type = node.data.get('conditionType', '') if node.data else ''
@@ -197,7 +197,7 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
         }
 
         output = create_node_output(
-            outputs=outputs,
+            value=outputs,
             metadata={"condition_result": result}
         )
 
@@ -207,7 +207,7 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
 
     except Exception as e:
         error_output = create_node_output(
-            outputs={},
+            value={},
             metadata={"error": str(e)}
         )
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
@@ -228,8 +228,8 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
             edge_label = edge.data.get('label', 'default') if edge.data else 'default'
 
-            if from_output and edge_label in from_output.outputs:
-                input_data = from_output.outputs[edge_label]
+            if from_output and edge_label in from_output.value:
+                input_data = from_output.value[edge_label]
                 break
 
         operation = node.data.get('operation', 'read') if node.data else 'read'
@@ -252,7 +252,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
             result = "Unknown operation"
 
         output = create_node_output(
-            outputs={'default': result}
+            value={'default': result}
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
@@ -261,7 +261,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
     except Exception as e:
         error_output = create_node_output(
-            outputs={},
+            value={},
             metadata={"error": str(e)}
         )
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
@@ -282,8 +282,8 @@ async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
             edge_label = edge.data.get('label', 'default') if edge.data else 'default'
 
-            if from_output and edge_label in from_output.outputs:
-                input_data[edge_label] = from_output.outputs[edge_label]
+            if from_output and edge_label in from_output.value:
+                input_data[edge_label] = from_output.value[edge_label]
 
         action = node.data.get('action', 'read') if node.data else 'read'
         database_id = node.data.get('database_id', '') if node.data else ''
@@ -295,7 +295,7 @@ async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
         )
 
         output = create_node_output(
-            outputs={'default': result}
+            value={'default': result}
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
@@ -304,7 +304,7 @@ async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
     except Exception as e:
         error_output = create_node_output(
-            outputs={},
+            value={},
             metadata={"error": str(e)}
         )
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)

@@ -43,7 +43,7 @@ class NodeView:
         inputs = {}
         for edge in self.incoming_edges:
             if edge.source_view.output:
-                value = edge.source_view.output.outputs.get(edge.label, None)
+                value = edge.source_view.output.value.get(edge.label, None)
                 if value is not None:
                     inputs[edge.label] = value
         return inputs
@@ -80,7 +80,7 @@ class EdgeView:
 
 class ExecutionView:
 
-    def __init__(self, diagram: DomainDiagram, handlers: Dict[str, Callable], api_keys: Dict[str, str]):
+    def __init__(self, diagram: DomainDiagram, handlers: Dict[str, Callable], api_keys: Dict[str, str]) -> None:
         self.diagram = diagram
         self.handlers = handlers
         self.api_keys = api_keys
@@ -92,7 +92,7 @@ class ExecutionView:
         self._build_views()
         self.execution_order = self._compute_execution_order()
 
-    def _build_views(self):
+    def _build_views(self) -> None:
         if self.diagram.persons:
             self.person_views = {p.id: p for p in self.diagram.persons}
 

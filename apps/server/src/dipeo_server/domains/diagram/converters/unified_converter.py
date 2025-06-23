@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from dipeo_domain import DomainArrow, DomainDiagram, DomainNode
 
-from dipeo_server.domains.diagram.services.models import BackendDiagram
+from ..services.models import BackendDiagram
 
 from .base import DiagramConverter, FormatStrategy
 from .diagram_format_converter import backend_to_graphql

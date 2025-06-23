@@ -4,7 +4,7 @@ import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import {
   NodeExecutionStatus,
   ExecutionStatus,
-  type NodeResult,
+  type NodeState as DomainNodeState,
   type ExecutionState as CanonicalExecutionState,
 } from '@dipeo/domain-models';
 
@@ -33,15 +33,16 @@ export interface ExecutionState {
 }
 
 /**
- * Convert store NodeState to canonical NodeResult
+ * Convert store NodeState to domain NodeState
  */
-export function toCanonicalNodeResult(nodeId: NodeID, nodeState: NodeState): NodeResult {
+export function toDomainNodeState(nodeState: NodeState): DomainNodeState {
   return {
-    nodeId,
     status: nodeState.status,
+    startedAt: new Date(nodeState.timestamp).toISOString(),
+    endedAt: null,
     error: nodeState.error || null,
-    timestamp: new Date(nodeState.timestamp).toISOString(),
     skipReason: nodeState.skipReason || null,
+    tokenUsage: null,
   };
 }
 

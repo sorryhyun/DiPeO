@@ -2,14 +2,12 @@
 
 from .app_context import (
     AppContext,
-    get_context,
+    get_app_context,
     lifespan,
-    set_context,
 )
 
 __all__ = [
     "AppContext",
-    "get_context",
+    "get_app_context",
     "lifespan",
-    "set_context",
 ]
