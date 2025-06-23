@@ -17,9 +17,7 @@ from ..types import (
     DiagramID,
     DomainDiagramType,
 )
-from ..types import (
-    DiagramMetadataType as DiagramMetadata,
-)
+from dipeo_domain import DiagramMetadata, DomainDiagram
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +68,7 @@ class DiagramResolver:
                     ),
                 }
 
-            diagram_dict = BackendDiagram.model_validate(diagram_data)
+            diagram_dict = BackendDiagram(**diagram_data)
             graphql_diagram = backend_to_graphql(diagram_dict)
 
             handle_index = defaultdict(list)
@@ -79,14 +77,7 @@ class DiagramResolver:
 
             info.context.handle_index = handle_index
 
-            return DomainDiagramType(
-                nodes=graphql_diagram.nodes,
-                handles=graphql_diagram.handles,
-                arrows=graphql_diagram.arrows,
-                persons=graphql_diagram.persons,
-                api_keys=graphql_diagram.api_keys,
-                metadata=graphql_diagram.metadata,
-            )
+            return graphql_diagram
 
         except Exception as e:
             logger.error(f"Failed to get diagram {diagram_id}: {e}")
@@ -107,38 +98,38 @@ class DiagramResolver:
                     "name": fi.name,
                     "format": fi.format,
                     "size": fi.size,
-                    "modified": fi.modified.isoformat()
+                    "modified": fi.modified
                 }
                 for fi in file_infos
             ]
 
             filtered_diagrams = all_diagrams
             if filter:
-                if filter.name:
+                if filter.name_contains:
                     filtered_diagrams = [
                         d
                         for d in filtered_diagrams
-                        if filter.name.lower() in d["name"].lower()
+                        if filter.name_contains.lower() in d["name"].lower()
                     ]
 
-                if filter.format:
+                if hasattr(filter, 'format') and filter.format:
                     filtered_diagrams = [
                         d for d in filtered_diagrams if d["format"] == filter.format
                     ]
 
-                if filter.modifiedAfter:
+                if filter.modified_after:
                     filtered_diagrams = [
                         d
                         for d in filtered_diagrams
-                        if datetime.fromisoformat(d["modified"]) >= filter.modifiedAfter
+                        if datetime.fromisoformat(d["modified"]) >= filter.modified_after
                     ]
 
-                if filter.modifiedBefore:
+                if hasattr(filter, 'modified_before') and filter.modified_before:
                     filtered_diagrams = [
                         d
                         for d in filtered_diagrams
                         if datetime.fromisoformat(d["modified"])
-                        <= filter.modifiedBefore
+                        <= filter.modified_before
                     ]
 
             start = offset
@@ -151,17 +142,17 @@ class DiagramResolver:
                     id=diagram_info["path"],  # Use path as ID for loading
                     name=diagram_info["name"],
                     description=f"Format: {diagram_info['format']}, Size: {diagram_info['size']} bytes",
-                    created=datetime.fromisoformat(diagram_info["modified"]),
-                    modified=datetime.fromisoformat(diagram_info["modified"]),
+                    created=diagram_info["modified"],
+                    modified=diagram_info["modified"],
                     version="2.0.0",
                 )
 
-                diagram = DomainDiagramType(
+                diagram = DomainDiagram(
                     nodes=[],
                     handles=[],
                     arrows=[],
                     persons=[],
-                    api_keys=[],
+                    apiKeys=[],
                     metadata=metadata,
                 )
                 result.append(diagram)

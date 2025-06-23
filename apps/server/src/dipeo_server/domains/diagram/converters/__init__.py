@@ -4,7 +4,7 @@ Uses unified converter with strategy pattern for all format conversions.
 """
 
 from .base import DiagramConverter, FormatStrategy
-from .diagram_format_converter import backend_to_graphql, graphql_to_backend
+from .conversion_utils import backend_to_graphql, graphql_to_backend
 from .registry import converter_registry
 from .strategies import (
     LightYamlStrategy,

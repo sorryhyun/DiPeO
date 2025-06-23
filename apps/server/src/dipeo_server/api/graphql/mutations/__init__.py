@@ -1,3 +1,5 @@
+import strawberry
+
 from .api_key_mutation import ApiKeyMutations
 from .diagram_mutation import DiagramMutations
 from .execution_mutation import ExecutionMutations
@@ -18,8 +20,20 @@ __all__ = [
     "DiagramSaveResult",
     "UploadMutations",
     "UtilityMutations",
+    "Mutation",
 ]
 
 
-class Mutation:
+@strawberry.type
+class Mutation(
+    ApiKeyMutations,
+    DiagramMutations,
+    ExecutionMutations,
+    GraphElementMutations,
+    NodeMutations,
+    PersonMutations,
+    UploadMutations,
+    UtilityMutations,
+):
+    """Combined GraphQL mutation type."""
     pass

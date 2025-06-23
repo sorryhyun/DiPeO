@@ -32,7 +32,7 @@ class Query:
     @strawberry.field
     async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
         """Returns diagram by ID."""
-        from .diagram_resolver import diagram_resolver
+        from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.get_diagram(id, info)
 
@@ -45,14 +45,14 @@ class Query:
         offset: int = 0,
     ) -> List[DomainDiagramType]:
         """Returns filtered diagram list."""
-        from .diagram_resolver import diagram_resolver
+        from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
 
     @strawberry.field
     async def execution(self, id: ExecutionID, info) -> Optional[ExecutionStateType]:
         """Returns execution by ID."""
-        from .execution_resolver import execution_resolver
+        from .resolvers.execution import execution_resolver
 
         return await execution_resolver.get_execution(id, info)
 
@@ -65,7 +65,7 @@ class Query:
         offset: int = 0,
     ) -> List[ExecutionStateType]:
         """Returns filtered execution list."""
-        from .execution_resolver import execution_resolver
+        from .resolvers.execution import execution_resolver
 
         return await execution_resolver.list_executions(filter, limit, offset, info)
 
@@ -80,7 +80,7 @@ class Query:
         limit: int = 1000,
     ) -> List[ExecutionEventType]:
         """DEPRECATED: Returns empty list, use subscriptions instead."""
-        from .execution_resolver import execution_resolver
+        from .resolvers.execution import execution_resolver
 
         return await execution_resolver.get_execution_events(
             execution_id, since_sequence, limit, info
@@ -89,28 +89,28 @@ class Query:
     @strawberry.field
     async def person(self, id: PersonID, info) -> Optional[DomainPersonType]:
         """Returns person by ID."""
-        from .person_resolver import person_resolver
+        from .resolvers.person import person_resolver
 
         return await person_resolver.get_person(id, info)
 
     @strawberry.field
     async def persons(self, info, limit: int = 100) -> List[DomainPersonType]:
         """Returns person list."""
-        from .person_resolver import person_resolver
+        from .resolvers.person import person_resolver
 
         return await person_resolver.list_persons(limit, info)
 
     @strawberry.field
     async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKeyType]:
         """Returns API key by ID."""
-        from .person_resolver import person_resolver
+        from .resolvers.person import person_resolver
 
         return await person_resolver.get_api_key(id, info)
 
     @strawberry.field
     async def api_keys(self, info, service: Optional[str] = None) -> List[DomainApiKeyType]:
         """Returns API key list, optionally filtered."""
-        from .person_resolver import person_resolver
+        from .resolvers.person import person_resolver
 
         return await person_resolver.list_api_keys(service, info)
 
@@ -119,7 +119,7 @@ class Query:
         self, service: str, api_key_id: ApiKeyID, info
     ) -> List[str]:
         """Returns available models for service/API key."""
-        from .person_resolver import person_resolver
+        from .resolvers.person import person_resolver
 
         return await person_resolver.get_available_models(service, api_key_id, info)
 

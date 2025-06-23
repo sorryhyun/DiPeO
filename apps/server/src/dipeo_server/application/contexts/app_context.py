@@ -5,13 +5,17 @@ from typing import TYPE_CHECKING, AsyncGenerator, Optional
 
 from fastapi import FastAPI
 
+from config import BASE_DIR
 from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.diagram.services import (
-    DiagramConverterService,
-    DiagramExecutionAdapter,
+    DiagramStorageAdapter,
     DiagramStorageService,
 )
-from dipeo_server.domains.execution import ExecutionService
+from dipeo_server.domains.execution import (
+    ExecutionPreparationService,
+    ExecutionService,
+)
+from dipeo_server.domains.execution.validators import DiagramValidator
 from dipeo_server.domains.integrations import NotionService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
 from dipeo_server.domains.person import MemoryService
@@ -39,10 +43,11 @@ class AppContext:
         self.memory_service: Optional[SupportsMemory] = None
         self.execution_service: Optional[SupportsExecution] = None
         self.notion_service: Optional[SupportsNotion] = None
-        # New diagram services
+        # Diagram services
         self.diagram_storage_service: Optional[DiagramStorageService] = None
-        self.diagram_converter_service: Optional[DiagramConverterService] = None
-        self.diagram_execution_adapter: Optional[DiagramExecutionAdapter] = None
+        self.diagram_storage_adapter: Optional[DiagramStorageAdapter] = None
+        # Execution services
+        self.execution_preparation_service: Optional[ExecutionPreparationService] = None
 
     async def startup(self):
         """Initialize all services on startup."""
@@ -57,18 +62,18 @@ class AppContext:
         self.file_service = FileService()
         self.notion_service = NotionService()
 
-        # Initialize new diagram services
-        from config import BASE_DIR
-        from dipeo_server.domains.execution.validators import DiagramValidator
-
+        # Initialize diagram services
         self.diagram_storage_service = DiagramStorageService(
             base_dir = BASE_DIR,
         )
-        self.diagram_converter_service = DiagramConverterService()
+        self.diagram_storage_adapter = DiagramStorageAdapter(
+            storage_service=self.diagram_storage_service
+        )
+
+        # Initialize execution preparation service
         validator = DiagramValidator(self.api_key_service)
-        self.diagram_execution_adapter = DiagramExecutionAdapter(
+        self.execution_preparation_service = ExecutionPreparationService(
             storage_service=self.diagram_storage_service,
-            converter_service=self.diagram_converter_service,
             validator=validator,
             api_key_service=self.api_key_service
         )
@@ -81,7 +86,7 @@ class AppContext:
             self.file_service,
             None,  # diagram_service removed
             self.notion_service,
-            self.diagram_execution_adapter,  # Pass the new adapter
+            self.execution_preparation_service,
         )
 
         # Initialize services that require it
@@ -166,15 +171,15 @@ def get_diagram_storage_service() -> DiagramStorageService:
     return app_context.diagram_storage_service
 
 
-def get_diagram_converter_service() -> DiagramConverterService:
-    """Get DiagramConverterService instance from app context."""
-    if app_context.diagram_converter_service is None:
+def get_diagram_storage_adapter() -> DiagramStorageAdapter:
+    """Get DiagramStorageAdapter instance from app context."""
+    if app_context.diagram_storage_adapter is None:
         raise RuntimeError("Application context not initialized")
-    return app_context.diagram_converter_service
+    return app_context.diagram_storage_adapter
 
 
-def get_diagram_execution_adapter() -> DiagramExecutionAdapter:
-    """Get DiagramExecutionAdapter instance from app context."""
-    if app_context.diagram_execution_adapter is None:
+def get_execution_preparation_service() -> ExecutionPreparationService:
+    """Get ExecutionPreparationService instance from app context."""
+    if app_context.execution_preparation_service is None:
         raise RuntimeError("Application context not initialized")
-    return app_context.diagram_execution_adapter
+    return app_context.execution_preparation_service

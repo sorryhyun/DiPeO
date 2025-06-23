@@ -22,42 +22,11 @@ class BackendDiagram(BaseModel):
         extra = "allow"  # Allow additional fields like _execution_hints
 
 
-class ExecutionHint(BaseModel):
-    """Execution hint for a node dependency."""
-    source: str
-    variable: str = "flow"
-
-
-class ExecutionHints(BaseModel):
-    """Execution hints for the diagram."""
-    start_nodes: List[str] = Field(default_factory=list)
-    node_dependencies: Dict[str, List[ExecutionHint]] = Field(default_factory=dict)
-    person_nodes: Dict[str, str] = Field(default_factory=dict)
-
-
 class ReadableFlow(BaseModel):
     """Readable YAML representation."""
     flow: List[str]
     prompts: Optional[Dict[str, str]] = None
     agents: Optional[Dict[str, Dict[str, Any]]] = None
-
-
-class ExecutionPreparation(BaseModel):
-    """Result of preparing a diagram for execution."""
-    diagram_id: str
-    backend_format: BackendDiagram
-    api_keys: Dict[str, str]
-    execution_hints: ExecutionHints
-    domain_model: Optional[Any] = None  # DomainDiagram
-
-
-class ExecutionReadyDiagram(BaseModel):
-    """Diagram ready for execution with all necessary data."""
-    diagram_id: str
-    backend_format: Dict[str, Any]  # Execution format with hints
-    api_keys: Dict[str, str]
-    execution_hints: ExecutionHints
-    domain_model: Optional[Any] = None  # DomainDiagram
 
 
 class FileInfo(BaseModel):

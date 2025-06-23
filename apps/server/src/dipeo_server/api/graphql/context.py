@@ -68,7 +68,7 @@ async def get_graphql_context(request: Request = None) -> GraphQLContext:
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from dipeo_server.application.contexts import get_context as get_app_context
+    from dipeo_server.application.contexts.app_context import get_app_context
 
     app_context = get_app_context()
     return GraphQLContext(request=request, app_context=app_context)

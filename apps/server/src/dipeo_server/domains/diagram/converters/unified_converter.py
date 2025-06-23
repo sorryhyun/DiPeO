@@ -8,7 +8,7 @@ from dipeo_domain import DomainArrow, DomainDiagram, DomainNode
 from ..services.models import BackendDiagram
 
 from .base import DiagramConverter, FormatStrategy
-from .diagram_format_converter import backend_to_graphql
+from .conversion_utils import backend_to_graphql, graphql_to_backend
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,

@@ -80,7 +80,7 @@ class GraphElementMutations:
             # Save diagram using new service
             await storage_service.write_file(path, diagram_data)
 
-            backend_diagram = BackendDiagram.model_validate(diagram_data)
+            backend_diagram = BackendDiagram(**diagram_data)
             graphql_diagram = backend_to_graphql(backend_diagram)
 
             return DiagramResult(

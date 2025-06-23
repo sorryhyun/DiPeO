@@ -331,7 +331,7 @@ class UploadMutations:
                 )
 
             try:
-                backend_diagram = BackendDiagram.model_validate(content)
+                backend_diagram = BackendDiagram(**content)
                 domain_diagram = backend_to_graphql(backend_diagram)
             except Exception as e:
                 return DiagramConvertResult(

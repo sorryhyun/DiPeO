@@ -26,7 +26,7 @@ class ExecutionService(BaseService):
         file_service,
         diagram_service=None,
         notion_service=None,
-        diagram_execution_adapter=None,
+        execution_preparation_service=None,
     ) -> None:
         super().__init__()
         self.llm_service = llm_service
@@ -35,33 +35,30 @@ class ExecutionService(BaseService):
         self.file_service = file_service
         self.diagram_service = diagram_service
         self.notion_service = notion_service
-        self.diagram_execution_adapter = diagram_execution_adapter
+        self.execution_preparation_service = execution_preparation_service
 
     async def initialize(self) -> None:
         pass
 
     async def execute_diagram(
         self,
-        diagram: dict[str, Any],
+        diagram: dict[str, Any] | str,
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable[[dict[str, Any]], Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        if self.diagram_execution_adapter:
-            if isinstance(diagram, str):
-                ready_diagram = await self.diagram_execution_adapter.prepare_diagram_for_execution(
-                    diagram_id=diagram
-                )
-            else:
-                ready_diagram = await self.diagram_execution_adapter.prepare_backend_diagram_for_execution(
-                    diagram_dict=diagram
-                )
-
+        if self.execution_preparation_service:
+            # Use the unified preparation service
+            ready_diagram = await self.execution_preparation_service.prepare_for_execution(
+                diagram=diagram,
+                validate=True
+            )
+            
             diagram_dict = ready_diagram.backend_format
             api_keys = ready_diagram.api_keys
-            # Use the domain model that was already converted
             diagram_obj = ready_diagram.domain_model
         else:
+            # Fallback for compatibility
             if isinstance(diagram, dict):
                 diagram_obj = DomainDiagram.model_validate(diagram)
                 diagram_dict = diagram
