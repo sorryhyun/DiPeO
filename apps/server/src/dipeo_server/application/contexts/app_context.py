@@ -92,8 +92,6 @@ class AppContext:
         # Initialize services that require it
         await self.llm_service.initialize()
         await self.diagram_storage_service.initialize()
-        await self.diagram_converter_service.initialize()
-        await self.diagram_execution_adapter.initialize()
         await self.notion_service.initialize()
         await self.execution_service.initialize()
 
