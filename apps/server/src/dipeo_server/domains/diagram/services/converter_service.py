@@ -10,6 +10,8 @@ from dipeo_domain import (
     DomainArrow,
     DomainPerson,
     DomainHandle,
+    DiagramMetadata,
+    DomainApiKey,
 )
 
 from dipeo_core import BaseService, ValidationError
@@ -64,14 +66,38 @@ class DiagramConverterService(BaseService):
                         handle_data["id"] = handle_id
                     handles.append(DomainHandle(**handle_data))
             
-            metadata = storage_dict.get("metadata", {})
+            api_keys = []
+            if "api_keys" in storage_dict and isinstance(storage_dict["api_keys"], dict):
+                for key_id, key_data in storage_dict["api_keys"].items():
+                    if "id" not in key_data:
+                        key_data["id"] = key_id
+                    api_keys.append(DomainApiKey(**key_data))
+            elif "apiKeys" in storage_dict and isinstance(storage_dict["apiKeys"], dict):
+                for key_id, key_data in storage_dict["apiKeys"].items():
+                    if "id" not in key_data:
+                        key_data["id"] = key_id
+                    api_keys.append(DomainApiKey(**key_data))
+            
+            metadata_dict = storage_dict.get("metadata", {})
+            metadata = None
+            if metadata_dict:
+                from datetime import datetime
+                # Ensure required fields have defaults
+                if "version" not in metadata_dict:
+                    metadata_dict["version"] = "2.0.0"
+                if "created" not in metadata_dict:
+                    metadata_dict["created"] = datetime.now().isoformat()
+                if "modified" not in metadata_dict:
+                    metadata_dict["modified"] = datetime.now().isoformat()
+                
+                metadata = DiagramMetadata(**metadata_dict)
             
             return DomainDiagram(
-                id=metadata.get("id", ""),
                 nodes=nodes,
                 arrows=arrows,
                 persons=persons,
                 handles=handles,
+                apiKeys=api_keys,
                 metadata=metadata,
             )
             
@@ -87,7 +113,8 @@ class DiagramConverterService(BaseService):
                 "arrows": {},
                 "persons": {},
                 "handles": {},
-                "metadata": diagram.metadata or {},
+                "api_keys": {},
+                "metadata": diagram.metadata.model_dump() if diagram.metadata else {},
             }
             
             if diagram.nodes:
@@ -116,8 +143,12 @@ class DiagramConverterService(BaseService):
                     handle_dict = handle.model_dump()
                     storage_dict["handles"][handle.id] = handle_dict
             
-            if diagram.id:
-                storage_dict["metadata"]["id"] = diagram.id
+            if diagram.api_keys:
+                for api_key in diagram.api_keys:
+                    api_key_dict = api_key.model_dump()
+                    storage_dict["api_keys"][api_key.id] = api_key_dict
+            
+            # Metadata ID has already been included if it exists via model_dump()
             
             return storage_dict
             
@@ -279,7 +310,8 @@ class DiagramConverterService(BaseService):
                     execution_hints["start_nodes"].append(node_id)
                 
                 if node.get("type") in ["personJobNode", "person_job"]:
-                    person_id = node.get("data", {}).get("personId")
+                    node_data = node.get("data") or {}
+                    person_id = node_data.get("personId") if isinstance(node_data, dict) else None
                     if person_id:
                         execution_hints["person_nodes"][node_id] = person_id
             
@@ -290,9 +322,10 @@ class DiagramConverterService(BaseService):
                 if target_node_id not in execution_hints["node_dependencies"]:
                     execution_hints["node_dependencies"][target_node_id] = []
                 
+                arrow_data = arrow.get("data") or {}
                 execution_hints["node_dependencies"][target_node_id].append({
                     "source": source_node_id,
-                    "variable": arrow.get("data", {}).get("label", "flow"),
+                    "variable": arrow_data.get("label", "flow") if isinstance(arrow_data, dict) else "flow",
                 })
             
             storage["_execution_hints"] = execution_hints

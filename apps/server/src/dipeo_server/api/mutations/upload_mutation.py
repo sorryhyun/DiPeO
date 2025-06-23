@@ -266,15 +266,20 @@ class UploadMutations:
                     format_detected=detected_format,
                 )
 
-            storage_data = domain_to_storage_format(domain_diagram)
-
             # Use new services
             storage_service = context.diagram_storage_service
             converter_service = context.diagram_converter_service
             
-            # Use new services
+            # Convert domain diagram to storage format
             storage_dict = converter_service.domain_to_storage(domain_diagram)
+            
+            # Generate diagram ID from filename
             diagram_id = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '')
+            
+            # For quicksave, use "quicksave" as the ID
+            if diagram_id == "quicksave" or "quicksave" in filename.lower():
+                diagram_id = "quicksave"
+            
             path = f"{diagram_id}.json"
             await storage_service.write_file(path, storage_dict)
 
@@ -286,7 +291,7 @@ class UploadMutations:
                 success=True,
                 message=f"Successfully saved {filename}",
                 diagram_id=diagram_id,
-                diagram_name=storage_data.get("metadata", {}).get("name", filename),
+                diagram_name=storage_dict.get("metadata", {}).get("name", filename),
                 node_count=len(domain_diagram.nodes),
                 format_detected=detected_format,
             )

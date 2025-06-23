@@ -1,24 +1,26 @@
-"""Execution engine that directly calls handlers."""
+"""Execution engine using ExecutionView for efficiency while keeping DomainDiagram."""
 
 import asyncio
 from typing import Callable, Dict, List, Optional
 from uuid import uuid4
 
-from dipeo_domain.models import DomainArrow, DomainDiagram, NodeExecutionStatus, NodeOutput
+from dipeo_domain.models import DomainDiagram, NodeExecutionStatus, NodeOutput
 
-from dipeo_server.core.services import FileService
-from dipeo_server.domains.llm.services import LLMService
-from .services.state_store import StateStore
+from .execution_view import ExecutionView, NodeView
 from .context import ExecutionContext
 from ..person.memory import MemoryService
 from ..integrations.notion import NotionService
+from dipeo_server.core.services import FileService
+from dipeo_server.domains.llm.services import LLMService
+from .services.state_store import StateStore
 
 
-class SimplifiedEngine:
-
+class ViewBasedEngine:
+    """Engine that uses ExecutionView for efficient access to DomainDiagram."""
+    
     def __init__(self, handlers: Dict[str, Callable]):
         self.handlers = handlers
-
+    
     async def execute_diagram(
         self,
         diagram: DomainDiagram,
@@ -32,7 +34,12 @@ class SimplifiedEngine:
         interactive_handler: Optional[Callable] = None,
         stream_callback: Optional[Callable] = None,
     ) -> ExecutionContext:
-
+        """Execute diagram using efficient view."""
+        
+        # Create execution view for efficient access
+        view = ExecutionView(diagram, self.handlers, api_keys)
+        
+        # Create context (still uses original diagram for compatibility)
         ctx = ExecutionContext(
             diagram=diagram,
             edges=diagram.arrows,
@@ -44,41 +51,51 @@ class SimplifiedEngine:
             notion_service=notion_service,
             state_store=state_store,
         )
-
+        
         if interactive_handler:
             ctx.interactive_handler = interactive_handler
-
+        
         if stream_callback:
             ctx.stream_callback = stream_callback
-
+        
+        # Store view in context for handler access
+        ctx._execution_view = view
+        
         await state_store.create_execution(
             ctx.execution_id,
-            diagram.id,
+            diagram.id if hasattr(diagram, 'id') else None,
             ctx.variables
         )
-
-        execution_order = self._topological_sort(diagram.nodes, diagram.arrows)
-
-        await self._execute_nodes(ctx, execution_order)
-
+        
+        # Execute using view's pre-computed order
+        await self._execute_with_view(ctx, view)
+        
         return ctx
-
-    async def _execute_nodes(self, ctx: ExecutionContext, execution_order: List[List[str]]) -> None:
-
-        for level in execution_order:
+    
+    async def _execute_with_view(self, ctx: ExecutionContext, view: ExecutionView) -> None:
+        """Execute nodes using the efficient view."""
+        
+        for level_num, level_nodes in enumerate(view.execution_order):
+            # Execute all nodes in level concurrently
             tasks = []
-            for node_id in level:
-                node = self._find_node(ctx.diagram.nodes, node_id)
-                if node and self._can_execute(ctx, node_id):
-                    tasks.append(self._execute_node(ctx, node))
-
+            for node_view in level_nodes:
+                if self._can_execute_node_view(node_view):
+                    tasks.append(self._execute_node_view(ctx, node_view))
+            
             if tasks:
                 await asyncio.gather(*tasks)
-
-    async def _execute_node(self, ctx: ExecutionContext, node) -> None:
-        node_type = node.__class__.__name__
-        handler = self.handlers.get(node_type)
-
+    
+    def _can_execute_node_view(self, node_view: NodeView) -> bool:
+        """Check if node is ready using view."""
+        # All incoming nodes must have output
+        return all(edge.source_view.output is not None 
+                   for edge in node_view.incoming_edges)
+    
+    async def _execute_node_view(self, ctx: ExecutionContext, node_view: NodeView) -> None:
+        """Execute a single node using view."""
+        node = node_view.node  # Original node
+        handler = node_view.handler
+        
         if not handler:
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.FAILED
@@ -89,33 +106,47 @@ class SimplifiedEngine:
                     "node_id": node.id,
                     "exec_id": f"{node.id}_1",
                     "status": "failed",
-                    "error": f"No handler found for node type: {node_type}"
+                    "error": f"No handler found for node type: {node.type}"
                 }
             )
+            node_view.output = error_output
             return
-
+        
+        # Update context
         ctx.current_node_id = node.id
-
-        if hasattr(ctx, 'stream_callback') and ctx.stream_callback:
+        node_view.exec_count += 1
+        ctx.exec_counts[node.id] = node_view.exec_count
+        
+        if ctx.stream_callback:
             await ctx.stream_callback({
                 "type": "node_start",
                 "node_id": node.id,
-                "node_type": node_type,
+                "node_type": node.type,
             })
-
+        
         try:
-            output = await handler(node, ctx)
+            # Call handler with view-aware wrapper
+            output = await self._call_handler_with_view(handler, node, node_view, ctx)
+            
+            # Store output in both places
+            node_view.output = output
             ctx.set_node_output(node.id, output)
-
-            if hasattr(ctx, 'stream_callback') and ctx.stream_callback:
+            
+            if ctx.stream_callback:
+                # Extract status, outputs, and error from metadata/value
+                metadata = output.metadata or {}
+                status = metadata.get("status", "completed")
+                outputs = output.value if isinstance(output.value, dict) else {}
+                error = metadata.get("error", None)
+                
                 await ctx.stream_callback({
                     "type": "node_complete",
                     "node_id": node.id,
-                    "status": output.status,
-                    "output": output,
-                    "outputs": output.outputs,
-                    "error": output.error,
-                    "metadata": output.metadata,
+                    "status": status,
+                    "output": output.model_dump(),
+                    "outputs": outputs,
+                    "error": error,
+                    "metadata": metadata,
                 })
         except Exception as e:
             await ctx.state_store.update_node_status(
@@ -125,63 +156,41 @@ class SimplifiedEngine:
                 value={},
                 metadata={
                     "node_id": node.id,
-                    "exec_id": f"{node.id}_{ctx.exec_counts.get(node.id, 0) + 1}",
+                    "exec_id": f"{node.id}_{node_view.exec_count}",
                     "status": "failed",
                     "error": str(e)
                 }
             )
+            node_view.output = error_output
             ctx.set_node_output(node.id, error_output)
-
-            if hasattr(ctx, 'stream_callback') and ctx.stream_callback:
+            
+            if ctx.stream_callback:
                 await ctx.stream_callback({
                     "type": "node_complete",
                     "node_id": node.id,
                     "status": "failed",
-                    "output": error_output,
+                    "output": error_output.model_dump(),
                     "outputs": {},
                     "error": str(e),
-                    "metadata": {},
+                    "metadata": error_output.metadata or {},
                 })
+    
+    async def _call_handler_with_view(
+        self, 
+        handler: Callable, 
+        node,  # DomainNode type 
+        node_view: NodeView,
+        ctx: ExecutionContext
+    ) -> NodeOutput:
+        """Call handler, injecting view if it supports it."""
+        # Check if handler accepts node_view parameter
+        import inspect
+        sig = inspect.signature(handler)
+        
+        if 'node_view' in sig.parameters:
+            # New view-aware handler
+            return await handler(node=node, node_view=node_view, ctx=ctx)
+        else:
+            # Legacy handler
+            return await handler(node, ctx)
 
-    def _can_execute(self, ctx: ExecutionContext, node_id: str) -> bool:
-        incoming_edges = ctx.find_edges_to(node_id)
-
-        for edge in incoming_edges:
-            source_output = ctx.get_node_output(edge.from_node)
-            if not source_output or source_output.status != "completed":
-                return False
-
-        return True
-
-    def _topological_sort(self, nodes, arrows: List[DomainArrow]) -> List[List[str]]:
-        adj_list = {node.id: [] for node in nodes}
-        in_degree = {node.id: 0 for node in nodes}
-
-        for arrow in arrows:
-            if arrow.from_node in adj_list:
-                adj_list[arrow.from_node].append(arrow.to_node)
-                if arrow.to_node in in_degree:
-                    in_degree[arrow.to_node] += 1
-
-        levels = []
-        current_level = [node_id for node_id, degree in in_degree.items() if degree == 0]
-
-        while current_level:
-            levels.append(current_level[:])
-            next_level = []
-
-            for node_id in current_level:
-                for neighbor in adj_list[node_id]:
-                    in_degree[neighbor] -= 1
-                    if in_degree[neighbor] == 0:
-                        next_level.append(neighbor)
-
-            current_level = next_level
-
-        return levels
-
-    def _find_node(self, nodes, node_id: str):
-        for node in nodes:
-            if node.id == node_id:
-                return node
-        return None

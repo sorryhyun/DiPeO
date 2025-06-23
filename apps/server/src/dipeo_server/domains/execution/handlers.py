@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Optional
 
 from dipeo_domain.models import (
-    NodeType,
+    DomainNode,
     NodeExecutionStatus,
     NodeOutput
 )
@@ -43,11 +43,11 @@ def create_node_output(
 
 
 @node_handler("Start")
-async def execute_start(node: NodeType.start, ctx: ExecutionContext) -> NodeOutput:
+async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     output = create_node_output(
-        outputs={},
+        outputs={'default': ''},  # Start node outputs empty string to 'default' handle
         metadata={"message": "Execution started"}
     )
 
@@ -56,39 +56,81 @@ async def execute_start(node: NodeType.start, ctx: ExecutionContext) -> NodeOutp
 
 
 @node_handler("PersonJob")
-async def execute_person_job(node: NodeType.person_job, ctx: ExecutionContext) -> NodeOutput:
+async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 
-    conversation = ctx.get_conversation_history(node.person_id) if node.person_id else []
-
+    # Extract PersonJob specific data from node.data
+    person_id = node.data.get('personId')
+    first_only_prompt = node.data.get('firstOnlyPrompt', '')
+    default_prompt = node.data.get('defaultPrompt', '')
+    max_iteration = node.data.get('maxIteration', 1)
+    
+    conversation = ctx.get_conversation_history(person_id) if person_id else []
+    exec_count = ctx.exec_counts.get(node.id, 1)
+    
     if not conversation or conversation[0].get("role") != "system":
-        system_msg = {"role": "system", "content": node.job}
+        # Get system prompt from person data or use empty string
+        person = ctx.diagram.persons.get(person_id, {}) if person_id else {}
+        system_prompt = person.get('systemPrompt', '')
+        system_msg = {"role": "system", "content": system_prompt}
         conversation.insert(0, system_msg)
 
-    inputs_str = ""
+    # Collect inputs from incoming edges
+    inputs = {}
     for edge in ctx.find_edges_to(node.id):
-        from_output = ctx.get_node_output(edge.from_node)
-        if from_output and edge.label in from_output.outputs:
-            inputs_str += f"{edge.label}: {from_output.outputs[edge.label]}\n"
-
-    if inputs_str:
-        conversation.append({"role": "user", "content": inputs_str.strip()})
+        # Extract source node ID from edge.source
+        source_node_id = edge.source.split(':')[0]
+        from_output = ctx.get_node_output(source_node_id)
+        
+        # Get label from edge data if available
+        edge_label = edge.data.get('label', 'default') if edge.data else 'default'
+        
+        if from_output:
+            # Check which handle the edge is connected to
+            handle_name = edge.target.split(':')[1] if ':' in edge.target else 'default'
+            if handle_name == 'first' and exec_count == 1:
+                # First iteration, use data from 'first' handle
+                if edge_label in from_output.outputs:
+                    inputs[edge_label] = from_output.outputs[edge_label]
+            elif handle_name == 'default':
+                # All iterations, use data from 'default' handle
+                if 'default' in from_output.outputs:
+                    inputs['conversation'] = from_output.outputs['default']
+    
+    # Choose the appropriate prompt based on execution count
+    if exec_count == 1 and first_only_prompt:
+        # First iteration with first-only prompt
+        prompt = first_only_prompt
+        # Replace placeholders with input values
+        for key, value in inputs.items():
+            prompt = prompt.replace(f'{{{{{key}}}}}', str(value))
+    else:
+        # Subsequent iterations or no first-only prompt
+        prompt = default_prompt
+    
+    # Add the prompt as a user message
+    if prompt:
+        conversation.append({"role": "user", "content": prompt})
 
     try:
+        # Get model and other settings from person data
+        person = ctx.diagram.persons.get(person_id, {}) if person_id else {}
+        model = person.get('model', 'gpt-4.1-nano')
+        
         response = await ctx.llm_service.call_llm(
-            model=node.model,
+            model=model,
             messages=conversation,
-            temperature=node.temperature,
-            max_tokens=node.max_tokens
+            temperature=0.7,  # Default temperature
+            max_tokens=2000   # Default max tokens
         )
 
-        ctx.add_to_conversation(node.person_id, {"role": "assistant", "content": response})
+        ctx.add_to_conversation(person_id, {"role": "assistant", "content": response})
 
         output = create_node_output(
-            outputs={node.output: response},
-            metadata={"model": node.model, "tokens_used": len(response.split())}
+            outputs={'default': response},  # PersonJob outputs to 'default' handle
+            metadata={"model": model, "tokens_used": len(response.split())}
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
@@ -105,21 +147,30 @@ async def execute_person_job(node: NodeType.person_job, ctx: ExecutionContext) -
 
 
 @node_handler("Endpoint")
-async def execute_endpoint(node: NodeType.endpoint, ctx: ExecutionContext) -> NodeOutput:
+async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
 
     try:
-        if node.data is not None:
-            outputs = {node.output: node.data}
+        # Extract endpoint specific data
+        endpoint_data = node.data.get('data') if node.data else None
+        
+        if endpoint_data is not None:
+            outputs = {'default': endpoint_data}
         else:
             collected_data = {}
             for edge in ctx.find_edges_to(node.id):
-                from_output = ctx.get_node_output(edge.from_node)
-                if from_output and edge.label in from_output.outputs:
-                    collected_data[edge.label] = from_output.outputs[edge.label]
-            outputs = {node.output: collected_data} if collected_data else {}
+                # Extract source node ID from edge.source
+                source_node_id = edge.source.split(':')[0]
+                from_output = ctx.get_node_output(source_node_id)
+                
+                # Get label from edge data if available
+                edge_label = edge.data.get('label', 'default') if edge.data else 'default'
+                
+                if from_output and edge_label in from_output.outputs:
+                    collected_data[edge_label] = from_output.outputs[edge_label]
+            outputs = {'default': collected_data} if collected_data else {}
 
         output = create_node_output(
             outputs=outputs
@@ -139,7 +190,7 @@ async def execute_endpoint(node: NodeType.endpoint, ctx: ExecutionContext) -> No
 
 
 @node_handler("Condition")
-async def execute_condition(node: NodeType.condition, ctx: ExecutionContext) -> NodeOutput:
+async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
@@ -147,34 +198,30 @@ async def execute_condition(node: NodeType.condition, ctx: ExecutionContext) -> 
     try:
         input_value = None
         for edge in ctx.find_edges_to(node.id):
-            from_output = ctx.get_node_output(edge.from_node)
-            if from_output and edge.label in from_output.outputs:
-                input_value = from_output.outputs[edge.label]
+            # Extract source node ID from edge.source
+            source_node_id = edge.source.split(':')[0]
+            from_output = ctx.get_node_output(source_node_id)
+            
+            # Get label from edge data if available
+            edge_label = edge.data.get('label', 'default') if edge.data else 'default'
+            
+            if from_output and edge_label in from_output.outputs:
+                input_value = from_output.outputs[edge_label]
                 break
 
-        if node.operation == "equals":
-            result = str(input_value) == str(node.value)
-        elif node.operation == "not_equals":
-            result = str(input_value) != str(node.value)
-        elif node.operation == "contains":
-            result = str(node.value) in str(input_value)
-        elif node.operation == "not_contains":
-            result = str(node.value) not in str(input_value)
-        elif node.operation == "greater_than":
-            try:
-                result = float(input_value or 0) > float(node.value)
-            except (ValueError, TypeError):
-                result = False
-        elif node.operation == "less_than":
-            try:
-                result = float(input_value or 0) < float(node.value)
-            except (ValueError, TypeError):
-                result = False
+        # For detect_max_iterations condition type
+        condition_type = node.data.get('conditionType', '') if node.data else ''
+        
+        if condition_type == 'detect_max_iterations':
+            # Check if the input is from a PersonJob that has reached max iterations
+            result = False  # TODO: Implement max iteration detection logic
         else:
+            # Handle other condition types if needed
             result = False
 
+        # Condition nodes output to True/False handles
         outputs = {
-            node.true_output if result else node.false_output: input_value
+            'True' if result else 'False': input_value
         }
 
         output = create_node_output(
@@ -196,7 +243,7 @@ async def execute_condition(node: NodeType.condition, ctx: ExecutionContext) -> 
 
 
 @node_handler("DB")
-async def execute_db(node: NodeType.db, ctx: ExecutionContext) -> NodeOutput:
+async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
@@ -204,29 +251,39 @@ async def execute_db(node: NodeType.db, ctx: ExecutionContext) -> NodeOutput:
     try:
         input_data = None
         for edge in ctx.find_edges_to(node.id):
-            from_output = ctx.get_node_output(edge.from_node)
-            if from_output and edge.label in from_output.outputs:
-                input_data = from_output.outputs[edge.label]
+            # Extract source node ID from edge.source
+            source_node_id = edge.source.split(':')[0]
+            from_output = ctx.get_node_output(source_node_id)
+            
+            # Get label from edge data if available
+            edge_label = edge.data.get('label', 'default') if edge.data else 'default'
+            
+            if from_output and edge_label in from_output.outputs:
+                input_data = from_output.outputs[edge_label]
                 break
 
-        if node.operation == "LOAD":
-            result = ctx.file_service.read(node.file_path)
-        elif node.operation == "SAVE":
-            await ctx.file_service.write(node.file_path, str(input_data))
-            result = f"Saved to {node.file_path}"
-        elif node.operation == "APPEND":
+        # Extract DB specific data
+        operation = node.data.get('operation', 'read') if node.data else 'read'
+        file_path = node.data.get('sourceDetails', '') if node.data else ''
+        
+        if operation == "read":
+            result = ctx.file_service.read(file_path)
+        elif operation == "write":
+            await ctx.file_service.write(file_path, str(input_data))
+            result = f"Saved to {file_path}"
+        elif operation == "append":
             existing_content = ""
             try:
-                existing_content = ctx.file_service.read(node.file_path)
+                existing_content = ctx.file_service.read(file_path)
             except:
                 pass
-            await ctx.file_service.write(node.file_path, existing_content + str(input_data))
-            result = f"Appended to {node.file_path}"
+            await ctx.file_service.write(file_path, existing_content + str(input_data))
+            result = f"Appended to {file_path}"
         else:
             result = "Unknown operation"
 
         output = create_node_output(
-            outputs={node.output: result}
+            outputs={'default': result}  # DB outputs to 'default' handle
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
@@ -243,7 +300,7 @@ async def execute_db(node: NodeType.db, ctx: ExecutionContext) -> NodeOutput:
 
 
 @node_handler("Notion")
-async def execute_notion(node: NodeType.notion, ctx: ExecutionContext) -> NodeOutput:
+async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     ctx.increment_exec_count(node.id)
 
     await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
@@ -251,18 +308,28 @@ async def execute_notion(node: NodeType.notion, ctx: ExecutionContext) -> NodeOu
     try:
         input_data = {}
         for edge in ctx.find_edges_to(node.id):
-            from_output = ctx.get_node_output(edge.from_node)
-            if from_output and edge.label in from_output.outputs:
-                input_data[edge.label] = from_output.outputs[edge.label]
+            # Extract source node ID from edge.source
+            source_node_id = edge.source.split(':')[0]
+            from_output = ctx.get_node_output(source_node_id)
+            
+            # Get label from edge data if available
+            edge_label = edge.data.get('label', 'default') if edge.data else 'default'
+            
+            if from_output and edge_label in from_output.outputs:
+                input_data[edge_label] = from_output.outputs[edge_label]
 
+        # Extract Notion specific data
+        action = node.data.get('action', 'read') if node.data else 'read'
+        database_id = node.data.get('database_id', '') if node.data else ''
+        
         result = await ctx.notion_service.execute_action(
-            action=node.action,
-            database_id=node.database_id,
+            action=action,
+            database_id=database_id,
             data=input_data
         )
 
         output = create_node_output(
-            outputs={node.output: result}
+            outputs={'default': result}  # Notion outputs to 'default' handle
         )
 
         await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)

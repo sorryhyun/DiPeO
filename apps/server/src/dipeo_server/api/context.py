@@ -25,7 +25,9 @@ class GraphQLContext(BaseContext):
     """Context object provided to all GraphQL resolvers."""
 
     api_key_service: "SupportsAPIKey"
-    diagram_service: "SupportsDiagram"
+    diagram_storage_service: "SupportsDiagram"
+    diagram_converter_service: "SupportsDiagram"
+    diagram_execution_adapter: "SupportsDiagram"
     execution_service: "SupportsExecution"
     file_service: "SupportsFile"
     llm_service: "SupportsLLM"
@@ -37,9 +39,11 @@ class GraphQLContext(BaseContext):
         self.request = request
         self.app_context = app_context
 
-        # Expose services directly for easy access
+        self.diagram_storage_service = app_context.diagram_storage_service
+        self.diagram_converter_service = app_context.diagram_converter_service
+        self.diagram_execution_adapter = app_context.diagram_execution_adapter
+
         self.api_key_service = app_context.api_key_service
-        self.diagram_service = app_context.diagram_service
         self.execution_service = app_context.execution_service
         self.state_store = state_store  # Use global instance
         self.file_service = app_context.file_service

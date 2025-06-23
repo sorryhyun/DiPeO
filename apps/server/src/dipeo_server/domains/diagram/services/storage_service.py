@@ -61,8 +61,10 @@ class DiagramStorageService(BaseService):
     async def read_file(self, path: str) -> Dict[str, Any]:
         """Read a diagram file and return its contents as a dictionary."""
         file_path = self.diagrams_dir / path
+        logger.debug(f"Attempting to read file: {file_path}")
         
         if not file_path.exists():
+            logger.error(f"File does not exist: {file_path} (resolved from path: {path}, diagrams_dir: {self.diagrams_dir})")
             raise FileNotFoundError(f"Diagram file not found: {path}")
         
         if not file_path.is_file():

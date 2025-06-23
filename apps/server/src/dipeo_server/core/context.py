@@ -61,12 +61,11 @@ class AppContext:
         self.notion_service = NotionService()
         
         # Initialize new diagram services
-        from config import FILES_DIR
+        from config import BASE_DIR
         from dipeo_server.domains.execution.validators import DiagramValidator
         
         self.diagram_storage_service = DiagramStorageService(
-            diagrams_dir=FILES_DIR / "diagrams",
-            uploads_dir=FILES_DIR / "uploads"
+            base_dir = BASE_DIR,
         )
         self.diagram_converter_service = DiagramConverterService()
         validator = DiagramValidator(self.api_key_service)

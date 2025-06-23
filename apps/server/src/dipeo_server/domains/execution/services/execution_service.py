@@ -3,15 +3,15 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncIterator, Callable
-from typing import Any, Optional
+from typing import Any
 
 from dipeo_domain import ExecutionStatus
 from dipeo_domain.models import DomainDiagram
 
 from dipeo_server.core import BaseService
-from ..services.state_store import state_store
-from ..engine import SimplifiedEngine
-from ..handlers import get_handlers
+from dipeo_server.domains.execution.engine import ViewBasedEngine
+from dipeo_server.domains.execution.handlers import get_handlers
+from dipeo_server.domains.execution.services.state_store import state_store
 
 log = logging.getLogger(__name__)
 
@@ -59,6 +59,8 @@ class ExecutionService(BaseService):
 
             diagram_dict = ready_diagram.storage_format
             api_keys = ready_diagram.api_keys
+            # Use the domain model that was already converted
+            diagram_obj = ready_diagram.domain_model
         else:
             if isinstance(diagram, dict):
                 diagram_obj = DomainDiagram.model_validate(diagram)
@@ -69,14 +71,10 @@ class ExecutionService(BaseService):
 
             api_keys = self._inject_api_keys(diagram_dict)["api_keys"]
 
-        engine = SimplifiedEngine(get_handlers())
+        engine = ViewBasedEngine(get_handlers())
 
-        if not isinstance(diagram, dict):
-            diagram_obj = diagram
-        else:
-            diagram_obj = DomainDiagram.model_validate(diagram_dict)
-
-        await state_store.create_execution(execution_id, diagram_obj.id, options.get("variables", {}))
+        diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None
+        await state_store.create_execution(execution_id, diagram_id, options.get("variables", {}))
 
         yield {
             "type": "execution_start",
@@ -155,7 +153,8 @@ class ExecutionService(BaseService):
 
         final_status = "completed"
         for output in ctx.node_outputs.values():
-            if output.status == "failed":
+            # Check if status is in metadata
+            if output.metadata and output.metadata.get("status") == "failed":
                 final_status = "failed"
                 break
 

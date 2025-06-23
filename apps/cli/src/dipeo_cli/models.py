@@ -36,7 +36,7 @@ def diagram_dict_to_array(diagram: DiagramDictFormat) -> DomainDiagram:
         arrows=list(diagram.arrows.values()),
         handles=list(diagram.handles.values()),
         persons=list(diagram.persons.values()),
-        api_keys=list(diagram.api_keys.values()),
+        apiKeys=list(diagram.api_keys.values()),
         metadata=diagram.metadata,
     )
 
@@ -48,7 +48,7 @@ def diagram_array_to_dict(diagram: DomainDiagram) -> DiagramDictFormat:
         arrows={arrow.id: arrow for arrow in diagram.arrows},
         handles={handle.id: handle for handle in diagram.handles},
         persons={person.id: person for person in diagram.persons},
-        api_keys={api_key.id: api_key for api_key in diagram.api_keys},
+        apiKeys={api_key.id: api_key for api_key in diagram.api_keys},
         metadata=diagram.metadata,
     )
 

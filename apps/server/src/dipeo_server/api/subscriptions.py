@@ -123,10 +123,10 @@ class Subscription:
                     for node_id, node_state in current_node_states.items():
                         old_state = last_node_states.get(node_id)
 
-                        if not old_state or old_state.status != node_state.status:
+                        if not old_state or old_state.get('status') != node_state.get('status'):
                             sequence += 1
                             event_type = _get_event_type_for_node_status(
-                                node_state.status
+                                node_state['status']
                             )
 
                             if event_types and event_type not in event_types:
@@ -140,13 +140,13 @@ class Subscription:
                                 sequence=sequence,
                                 event_type=event_type,
                                 node_id=NodeID(node_id),
-                                timestamp=node_state.ended_at
-                                or node_state.started_at
+                                timestamp=node_state.get('ended_at')
+                                or node_state.get('started_at')
                                 or datetime.now().isoformat(),
                                 data={
-                                    "status": node_state.status.value,
+                                    "status": node_state['status'],
                                     "output": output_value,
-                                    "error": node_state.error,
+                                    "error": node_state.get('error'),
                                 },
                             )
 
@@ -224,7 +224,7 @@ class Subscription:
                     for node_id, node_state in current_node_states.items():
                         old_state = last_node_states.get(node_id)
 
-                        if not old_state or old_state.status != node_state.status:
+                        if not old_state or old_state.get('status') != node_state.get('status'):
                             node_type = NodeType.job
 
                             if node_types and node_type not in node_types:
@@ -234,21 +234,21 @@ class Subscription:
                             output_value = node_output.value if node_output else None
                             tokens_used = None
 
-                            if node_state.token_usage:
-                                tokens_used = node_state.token_usage.total
+                            if node_state.get('token_usage'):
+                                tokens_used = node_state['token_usage'].get('total')
 
                             yield NodeExecution(
                                 execution_id=execution_id,
                                 node_id=NodeID(node_id),
                                 node_type=node_type,
-                                status=node_state.status.value,
+                                status=node_state['status'],
                                 progress=None,
                                 output=output_value,
-                                error=node_state.error,
+                                error=node_state.get('error'),
                                 tokens_used=tokens_used,
                                 timestamp=datetime.fromisoformat(
-                                    node_state.ended_at
-                                    or node_state.started_at
+                                    node_state.get('ended_at')
+                                    or node_state.get('started_at')
                                     or datetime.now().isoformat()
                                 ),
                             )

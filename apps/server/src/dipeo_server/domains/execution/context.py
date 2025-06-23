@@ -61,8 +61,16 @@ class ExecutionContext:
 
     def find_edges_from(self, node_id: str) -> List[DomainArrow]:
         """Find all edges originating from a node."""
-        return [edge for edge in self.edges if edge.from_node == node_id]
+        # Extract node ID from source format (nodeId:handleName)
+        return [
+            edge for edge in self.edges 
+            if edge.source.split(':')[0] == node_id
+        ]
 
     def find_edges_to(self, node_id: str) -> List[DomainArrow]:
         """Find all edges pointing to a node."""
-        return [edge for edge in self.edges if edge.to_node == node_id]
+        # Extract node ID from target format (nodeId:handleName)
+        return [
+            edge for edge in self.edges 
+            if edge.target.split(':')[0] == node_id
+        ]

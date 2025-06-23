@@ -35,10 +35,13 @@ class DiagramResolver:
             converter_service: DiagramConverterService = info.context.diagram_converter_service
             
             # Find and load the diagram
-            path = await storage_service.find_by_id(diagram_id)
-            if not path:
-                logger.error(f"Diagram not found: {diagram_id}")
-                return None
+            if diagram_id == "quicksave":
+                path = "quicksave.json"
+            else:
+                path = await storage_service.find_by_id(diagram_id)
+                if not path:
+                    logger.error(f"Diagram not found: {diagram_id}")
+                    return None
             
             diagram_data = await storage_service.read_file(path)
 

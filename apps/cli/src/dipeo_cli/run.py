@@ -6,6 +6,7 @@ This module handles diagram execution through the GraphQL API.
 
 import asyncio
 import json
+import os
 import subprocess
 import time
 from dataclasses import dataclass
@@ -37,6 +38,7 @@ class ExecutionOptions:
     debug: bool = False
     timeout: int = 300  # 5 minutes
     output_file: Optional[str] = None
+    diagram_file: Optional[str] = None
 
 
 class DiagramRunner:
@@ -250,6 +252,7 @@ async def run_command(args: List[str]) -> None:
 
     file_path = args[0]
     options = _parse_run_options(args[1:])
+    options.diagram_file = file_path  # Store the file path for later use
 
     # Restart backend server if debug mode
     if options.debug:
@@ -261,8 +264,9 @@ async def run_command(args: List[str]) -> None:
     # Handle special modes
     if options.mode == ExecutionMode.MONITOR:
         await _run_monitor_mode(diagram, options)
+        # Don't return here - continue to execute the diagram
 
-    # Execute diagram
+    # Execute diagram (both for normal and monitor mode)
     executor = DiagramRunner(options)
     result = await executor.execute(diagram)
 
@@ -309,53 +313,70 @@ def _parse_run_options(args: List[str]) -> ExecutionOptions:
 async def _run_monitor_mode(diagram: Dict[str, Any], options: ExecutionOptions) -> None:
     """Handle monitor mode setup"""
     import webbrowser
-
-    # Open browser
-    monitor_url = "http://localhost:3000/?monitor=true"
+    from pathlib import Path
+    
+    # Extract diagram ID from file path (e.g., quicksave.json -> quicksave)
+    if options.diagram_file:
+        diagram_id = Path(options.diagram_file).stem
+    else:
+        # Fallback to metadata name or "unknown"
+        diagram_id = diagram.get("metadata", {}).get("name", "unknown")
+    
+    # Open browser with both monitor mode and diagram ID
+    monitor_url = f"http://localhost:3000/?monitor=true&diagram={diagram_id}"
     webbrowser.open(monitor_url)
-
+    
     # Wait for browser to load
     await asyncio.sleep(2.0)
-    print("✓ Monitor ready")
-
-    # Note: Browser will connect directly to GraphQL for monitoring
+    print(f"✓ Monitor ready - Diagram: {diagram_id}")
 
 
 async def _restart_backend_server() -> None:
     """Restart the backend server to ensure latest code is loaded"""
-    print("🐛 Debug: Checking backend server...")
+    print("🐛 Debug: Restarting backend server with DEBUG logging...")
     
-    # Check if server is already running
+    # Kill any existing server processes
     try:
-        async with DiPeoAPIClient("localhost:8000") as client:
-            # Try a simple query to check if server is responsive
-            query = """
-                query {
-                    __typename
-                }
-            """
-            await client._execute_query(query)
-            print("✅ Backend server is already running")
-            
-            # Optional: Send a signal to reload modules (if supported)
-            # For now, we'll just continue with the existing server
-            return
-    except Exception:
-        print("🔄 Backend server not responding, starting it...")
+        # Kill processes listening on port 8000
+        kill_result = subprocess.run(
+            ["pkill", "-f", "python main.py"],
+            capture_output=True,
+            text=True
+        )
+        
+        # Also try to kill hypercorn processes
+        subprocess.run(
+            ["pkill", "-f", "hypercorn"],
+            capture_output=True,
+            text=True
+        )
+        
+        # Give processes time to shut down
+        await asyncio.sleep(1.0)
+        
+        print("🔄 Killed existing server processes")
+    except Exception as e:
+        print(f"⚠️  Could not kill existing processes: {e}")
     
-    # Start new server process
+    # Start new server process with DEBUG logging
     server_path = Path(__file__).parent.parent.parent.parent.parent / "apps" / "server"
+    env = os.environ.copy()
+    env["LOG_LEVEL"] = "DEBUG"
+    
     start_cmd = ["python", "main.py"]
     
     try:
-        # Start server in background
+        # Start server in background with debug output visible
         process = subprocess.Popen(
             start_cmd,
             cwd=server_path,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            env=env,
+            stdout=None,  # Show output in terminal
+            stderr=None,  # Show errors in terminal
             start_new_session=True
         )
+        
+        print("⏳ Waiting for server to start...")
         
         # Wait for server to be ready
         max_attempts = 20  # 10 seconds timeout
@@ -365,9 +386,7 @@ async def _restart_backend_server() -> None:
                     # Try to connect with a simple query
                     query = """
                         query {
-                            diagrams {
-                                id
-                            }
+                            __typename
                         }
                     """
                     await client._execute_query(query)
@@ -378,11 +397,12 @@ async def _restart_backend_server() -> None:
                     raise
                 await asyncio.sleep(0.5)
         
-        print("✅ Backend server started and ready")
+        print("✅ Backend server started with DEBUG logging")
+        print("📋 You should see [DEBUG] messages in the server output\n")
         
     except Exception as e:
         print(f"❌ Error starting backend server: {e}")
-        print("Please start the server manually with: cd apps/server && python main.py")
+        print("Please start the server manually with: cd apps/server && LOG_LEVEL=DEBUG python main.py")
         raise
 
 

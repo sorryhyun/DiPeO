@@ -1,1 +1,0 @@
-"""Mutation tests for server GraphQL API."""
