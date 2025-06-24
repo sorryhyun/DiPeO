@@ -84,5 +84,4 @@ xxhash==3.5.0
 yarl==1.20.1
 
 dipeo_domain~=0.1.0
-dipeo~=2.0.0
 aiosqlite~=0.21.0
