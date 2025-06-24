@@ -1,9 +1,3 @@
-"""
-Run command implementation for DiPeO CLI.
-
-This module handles diagram execution through the GraphQL API.
-"""
-
 import asyncio
 import json
 import os
@@ -19,8 +13,6 @@ from .utils import DiagramLoader, DiagramConverter
 
 
 class ExecutionMode(Enum):
-    """Execution modes for diagram runs"""
-
     STANDARD = "standard"
     MONITOR = "monitor"
     HEADLESS = "headless"
@@ -29,8 +21,6 @@ class ExecutionMode(Enum):
 
 @dataclass
 class ExecutionOptions:
-    """Configuration for diagram execution"""
-
     mode: ExecutionMode = ExecutionMode.STANDARD
     show_browser: bool = True
     pre_initialize: bool = True

@@ -1,7 +1,3 @@
-"""
-Monitor command implementation for DiPeO CLI.
-"""
-
 import webbrowser
 from typing import List
 

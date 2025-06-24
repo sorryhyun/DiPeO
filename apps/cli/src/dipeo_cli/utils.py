@@ -1,6 +1,3 @@
-"""
-Utility functions for the DiPeO CLI.
-"""
 
 import json
 from datetime import datetime
@@ -17,7 +14,6 @@ class DiagramConverter:
 
     @staticmethod
     def dict_to_list(mapping: Dict[str, Any]) -> List[Any]:
-        """Convert a {id: obj} mapping to a list[dict], adding missing 'id' fields."""
         return [
             ({**value, "id": key} if isinstance(value, dict) and "id" not in value else value)
             for key, value in mapping.items()
@@ -25,7 +21,6 @@ class DiagramConverter:
 
     @staticmethod
     def list_to_dict(items: List[Any]) -> Dict[str, Any]:
-        """Convert a list of items to a {id: obj} mapping."""
         if isinstance(items, dict):
             return items
         return {item["id"]: item for item in items if isinstance(item, dict) and "id" in item}

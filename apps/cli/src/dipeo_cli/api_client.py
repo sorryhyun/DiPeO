@@ -23,8 +23,6 @@ class DiPeoAPIClient:
         # HTTP client for queries/mutations
         transport = AIOHTTPTransport(url=self.http_url)
         self._client = Client(transport=transport, fetch_schema_from_transport=False)
-
-        # No need to create WebSocket clients here - they'll be created on demand
         return self
 
     async def __aexit__(self, *args):

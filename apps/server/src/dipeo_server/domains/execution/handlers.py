@@ -1,11 +1,20 @@
-"""Node handlers using decorated functions."""
+from __future__ import annotations
 
+import logging
 from enum import Enum
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from dipeo_domain.models import DomainNode, NodeExecutionStatus, NodeOutput
 
 from .context import ExecutionContext
+
+_log = logging.getLogger(__name__)
+
+__all__ = [
+    "DBOperation",
+    "node_handler",
+    "get_handlers",
+]
 
 
 class DBOperation(str, Enum):
@@ -13,426 +22,293 @@ class DBOperation(str, Enum):
     SAVE = "SAVE"
     APPEND = "APPEND"
 
-_handlers: Dict[str, Callable] = {}
+
+# Generic decorator / registry utilities                                     #
 
 
-def node_handler(node_type: str) -> Callable:
-    def decorator(func: Callable) -> Callable:
-        _handlers[node_type] = func
-        return func
+_HandlerFn = Callable[[DomainNode, ExecutionContext], Awaitable[NodeOutput]]
+_handlers: Dict[str, _HandlerFn] = {}
+
+
+def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:  # noqa: D401
+    """Return a wrapper that transparently manages node‑status lifecycle."""
+
+    async def _wrapped(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # type: ignore[override]
+        await ctx.state_store.update_node_status(
+            ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
+        )
+        try:
+            output = await func(node, ctx)
+            await ctx.state_store.update_node_status(
+                ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output
+            )
+            return output
+        except Exception as exc:  # pylint: disable=broad-except
+            _log.exception("%s node %s failed", node_type.upper(), node.id, exc_info=exc)
+            error_output = create_node_output({}, {"error": str(exc)})
+            await ctx.state_store.update_node_status(
+                ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output
+            )
+            return error_output
+
+    _wrapped.__name__ = func.__name__  # keep tooling happy
+    return _wrapped
+
+
+def node_handler(node_type: str) -> Callable[[_HandlerFn], _HandlerFn]:
+    """Decorator that registers a node handler and injects status tracking."""
+
+    def decorator(func: _HandlerFn) -> _HandlerFn:
+        _handlers[node_type] = _wrap_with_state(node_type, func)
+        return func  # func is returned unwrapped for type checkers/tests
+
     return decorator
 
 
-def get_handlers() -> Dict[str, Callable]:
-    return _handlers.copy()
+def get_handlers() -> Dict[str, _HandlerFn]:
+    """Return a *copy* of the internal handler registry."""
+    # Provide the *wrapped* callables – the engine never needs the raw ones.
+    return {k: _wrap_with_state(k, v) for k, v in _handlers.items()}
 
 
-def create_node_output(
-    value: Dict[str, Any],
+# Tiny helpers shared by multiple handlers                                    #
+
+
+def create_node_output(  # noqa: D401
+    value: Dict[str, Any] | None = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> NodeOutput:
-    return NodeOutput(
-        value=value,
-        metadata=metadata or {}
-    )
+    """Utility to save a few keystrokes when constructing outputs."""
+
+    return NodeOutput(value=value or {}, metadata=metadata or {})
+
+
+async def _edge_inputs(
+    node: DomainNode,
+    ctx: ExecutionContext,
+    *,
+    as_dict: bool = True,
+) -> Dict[str, Any]:
+    """Collect downstream values from all incoming edges.
+
+    Returned mapping keys are the *edge labels* (defaulting to "default").
+    If *as_dict* is False, only the first matching payload is returned.
+    """
+
+    results: Dict[str, Any] = {}
+    for edge in ctx.find_edges_to(node.id):
+        src_id = edge.source.split(":")[0]
+        from_output = ctx.get_node_output(src_id)
+        if not from_output:
+            _log.warning("No output for source node %s → %s", src_id, node.id)
+            continue
+        label = edge.data.get("label", "default") if edge.data else "default"
+        if label in from_output.value:
+            results[label] = from_output.value[label]
+        else:
+            _log.warning(
+                "Edge label '%s' missing in output from %s (keys=%s)",
+                label,
+                src_id,
+                list(from_output.value.keys()),
+            )
+    if as_dict:
+        return results
+    return next(iter(results.values()), None)  # type: ignore[return-value]
+
+
+# Concrete node handlers                                                      #
 
 
 @node_handler("start")
-async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    # Engine already manages exec_count
-
-    output = create_node_output(
-        value={'default': ''},
-        metadata={"message": "Execution started"}
-    )
-
-    await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
-    return output
+async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+    """Kick‑off node: no input, always succeeds."""
+    return create_node_output({"default": ""}, {"message": "Execution started"})
 
 
 @node_handler("person_job")
-async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    import logging
-    log = logging.getLogger(__name__)
-    
-    log.info(f"=== PERSON_JOB HANDLER CALLED for node {node.id} ===")
-    # Don't increment here - the engine already incremented it
-    await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
+async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: C901, D401 – complex but now self‑contained
+    """Handle conversational *person_job* node with minimal boilerplate.
 
-    person_id = node.data.get('personId')
-    first_only_prompt = node.data.get('firstOnlyPrompt', '')
-    default_prompt = node.data.get('defaultPrompt', '')
-    max_iteration = node.data.get('maxIteration', 1)
+    This keeps the original behaviour (first‑turn prompt, default prompt,
+    judge‑panel aggregation, forgetting modes, …) but relies on helpers for
+    edge traversal and status updates.
+    """
 
-    # Check if this is a judge node that needs to see other conversations
-    is_judge = 'judge' in node.data.get('label', '').lower() if node.data else False
-    
-    conversation = ctx.get_conversation_history(person_id) if person_id else []
     exec_count = ctx.exec_counts.get(node.id, 0)
-    
-    forgetting_mode = node.data.get('forgettingMode') if node.data else None
-    
-    if forgetting_mode == 'on_every_turn' and exec_count > 1:
-        conversation = [msg for msg in conversation if msg.get('role') in ['system', 'user']]
+    data = node.data or {}
 
+    person_id: Optional[str] = data.get("personId")
+    first_only_prompt: str = data.get("firstOnlyPrompt", "")
+    default_prompt: str = data.get("defaultPrompt", "")
+    max_iteration: int = int(data.get("maxIteration", 1))
+    forgetting_mode: Optional[str] = data.get("forgettingMode")
+    is_judge: bool = "judge" in data.get("label", "").lower()
+
+    # Conversation history ---------------------------------------------------
+    conversation = ctx.get_conversation_history(person_id) if person_id else []
+
+    if forgetting_mode == "on_every_turn" and exec_count > 1:
+        conversation = [m for m in conversation if m.get("role") in {"system", "user"}]
+
+    # Ensure system prompt present
     if not conversation or conversation[0].get("role") != "system":
-        person_obj = None
-        if person_id:
-            person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None)
-
+        person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
         system_prompt = (
-            getattr(person_obj, 'system_prompt', None)
-            or getattr(person_obj, 'systemPrompt', '')
-        ) if person_obj else ''
+            getattr(person_obj, "system_prompt", None)
+            or getattr(person_obj, "systemPrompt", "")
+        ) if person_obj else ""
         conversation.insert(0, {"role": "system", "content": system_prompt})
 
-    inputs = {}
-    for edge in ctx.find_edges_to(node.id):
-        source_node_id = edge.source.split(':')[0]
-        from_output = ctx.get_node_output(source_node_id)
+    # Gather edge inputs -----------------------------------------------------
+    inputs = await _edge_inputs(node, ctx)
 
-        edge_label = edge.data.get('label', 'default') if edge.data else 'default'
-        handle_name = edge.target.split(':')[1] if ':' in edge.target else 'default'
-        
-
-        if from_output:
-            if handle_name == 'first' and exec_count == 1:
-                if edge_label in from_output.value:
-                    inputs[edge_label] = from_output.value[edge_label]
-                else:
-                    log.warning(f"Edge label '{edge_label}' not found in source output keys: {list(from_output.value.keys())}")
-            elif handle_name == 'default':
-                if 'default' in from_output.value:
-                    inputs['conversation'] = from_output.value['default']
-                else:
-                    log.warning(f"'default' key not found in source output keys: {list(from_output.value.keys())}")
-        else:
-            log.warning(f"No output found for source node {source_node_id}!")
-
-    if 'conversation' in inputs and exec_count > 1:
-        conversation.append({"role": "user", "content": inputs['conversation']})
+    if "conversation" in inputs and exec_count > 1:
+        conversation.append({"role": "user", "content": inputs["conversation"]})
 
     if exec_count == 1 and first_only_prompt:
-        prompt = first_only_prompt
-        for key, value in inputs.items():
-            prompt = prompt.replace(f'{{{{{key}}}}}', str(value))
+        prompt = first_only_prompt.format(**inputs)
     else:
         prompt = default_prompt
 
-    # If this is a judge node, collect conversations from other person_job nodes
+    # Judge nodes collect debates from other person_job panels ---------------
     if is_judge:
-        # Find all person_job nodes that have executed
-        debate_context = []
+        debate_context: list[str] = []
         for other_node in ctx.diagram.nodes:
-            if other_node.type == 'person_job' and other_node.id != node.id:
-                other_person_id = other_node.data.get('personId') if other_node.data else None
-                if other_person_id:
-                    other_conversation = ctx.get_conversation_history(other_person_id)
-                    if other_conversation:
-                        # Extract the actual debate content (skip system prompts)
-                        panel_label = other_node.data.get('label', other_node.id) if other_node.data else other_node.id
-                        debate_messages = [msg for msg in other_conversation if msg.get('role') != 'system']
-                        if debate_messages:
-                            debate_context.append(f"\n{panel_label}:\n")
-                            for msg in debate_messages:
-                                role = msg.get('role', 'unknown')
-                                content = msg.get('content', '')
-                                if role == 'user':
-                                    debate_context.append(f"Input: {content}\n")
-                                elif role == 'assistant':
-                                    debate_context.append(f"Response: {content}\n")
-        
+            if other_node.type != "person_job" or other_node.id == node.id:
+                continue
+            other_pid = other_node.data.get("personId") if other_node.data else None
+            other_conv = ctx.get_conversation_history(other_pid) if other_pid else []
+            if not other_conv:
+                continue
+            label = other_node.data.get("label", other_node.id) if other_node.data else other_node.id
+            debate_messages = [m for m in other_conv if m.get("role") != "system"]
+            if not debate_messages:
+                continue
+            debate_context.append(f"\n{label}:\n")
+            for msg in debate_messages:
+                role, content = msg.get("role"), msg.get("content", "")
+                debate_context.append(f"{'Input' if role == 'user' else 'Response'}: {content}\n")
         if debate_context:
-            # Prepend the debate context to the judge's prompt
-            full_context = "Here are the arguments from different panels:\n" + "".join(debate_context) + "\n\n"
-            if prompt:
-                prompt = full_context + prompt
-            else:
-                prompt = full_context + "Based on the above arguments, judge which panel is more reasonable."
-    
+            debate_txt = "Here are the arguments from different panels:\n" + "".join(debate_context) + "\n\n"
+            prompt = debate_txt + (prompt or "Based on the above arguments, judge which panel is more reasonable.")
+
     if prompt:
         conversation.append({"role": "user", "content": prompt})
 
-    try:
-        # ctx.diagram.persons is a list, not a dict
-        person_obj = None
-        if person_id:
-            person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None)
+    # Call LLM ---------------------------------------------------------------
+    person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
+    person_cfg = {
+        "service": getattr(person_obj, "service", "openai"),
+        "api_key_id": getattr(person_obj, "api_key_id", None) or getattr(person_obj, "apiKeyId", None),
+        "model": getattr(person_obj, "model", "gpt-4.1-nano"),
+    }
 
-        # Use a fallback dict to avoid repetitive attribute checks
-        person = {
-            'service': getattr(person_obj, 'service', 'openai'),
-            'api_key_id': getattr(person_obj, 'api_key_id', None) or getattr(person_obj, 'apiKeyId', None),
-            'model': getattr(person_obj, 'model', 'gpt-4.1-nano'),
-        }
+    llm_result = await ctx.llm_service.call_llm(
+        service=person_cfg["service"],
+        api_key_id=person_cfg["api_key_id"],
+        model=person_cfg["model"],
+        messages=conversation,
+    )
 
-        service = person['service']
-        api_key_id = person['api_key_id']
-        model = person['model']
+    response_text: str = llm_result.get("response", "")
+    token_usage: int = llm_result.get("token_usage") or len(response_text.split())
 
-        # Call the LLM service with the updated signature
-        llm_result = await ctx.llm_service.call_llm(
-            service=service,
-            api_key_id=api_key_id,
-            model=model,
-            messages=conversation,
-        )
+    ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text})
 
-        # Extract response text and token usage from returned dict
-        response_text = llm_result.get("response", "")
-        token_usage = llm_result.get("token_usage")
-
-        ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text})
-
-        if token_usage is None:
-            # Fallback to naive word count if the adapter didn't return usage
-            token_usage = len(str(response_text).split())
-
-        output = create_node_output(
-            value={'default': response_text},
-            metadata={"model": model, "tokens_used": token_usage}
-        )
-        
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
-
-        return output
-
-    except Exception as e:
-        error_output = create_node_output(
-            value={},
-            metadata={"error": str(e)}
-        )
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
-        return error_output
+    return create_node_output(
+        {"default": response_text},
+        {"model": person_cfg["model"], "tokens_used": token_usage},
+    )
 
 
 @node_handler("endpoint")
-async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    # Engine already manages exec_count
+async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+    """Endpoint node – pass through explicit *data* or collected edge inputs."""
 
-    await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
+    if (direct := (node.data or {}).get("data")) is not None:
+        return create_node_output({"default": direct})
 
-    try:
-        endpoint_data = node.data.get('data') if node.data else None
-
-        if endpoint_data is not None:
-            outputs = {'default': endpoint_data}
-        else:
-            collected_data = {}
-            for edge in ctx.find_edges_to(node.id):
-                source_node_id = edge.source.split(':')[0]
-                from_output = ctx.get_node_output(source_node_id)
-
-                edge_label = edge.data.get('label', 'default') if edge.data else 'default'
-
-                if from_output:
-                    if edge_label in from_output.value:
-                        collected_data[edge_label] = from_output.value[edge_label]
-                    else:
-                        import logging
-                        log = logging.getLogger(__name__)
-                        log.warning(f"Edge label '{edge_label}' not found in source output from {source_node_id}")
-                else:
-                    import logging
-                    log = logging.getLogger(__name__)
-                    log.warning(f"No output found for source node {source_node_id} when collecting data for endpoint")
-            outputs = {'default': collected_data} if collected_data else {}
-
-        output = create_node_output(
-            value=outputs
-        )
-
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
-
-        return output
-
-    except Exception as e:
-        error_output = create_node_output(
-            value={},
-            metadata={"error": str(e)}
-        )
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
-        return error_output
+    collected = await _edge_inputs(node, ctx)
+    return create_node_output({"default": collected} if collected else {})
 
 
 @node_handler("condition")
-async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    # Engine already manages exec_count
+async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+    """Condition node: currently supports *detect_max_iterations*."""
 
-    await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
+    data = node.data or {}
+    condition_type: str = data.get("conditionType", "")
 
-    try:
-        # For condition nodes, we just need to check the condition, not collect data
-        input_value = None
-        for edge in ctx.find_edges_to(node.id):
-            source_node_id = edge.source.split(':')[0]
-            from_output = ctx.get_node_output(source_node_id)
+    if condition_type != "detect_max_iterations":
+        return create_node_output({"False": None}, {"condition_result": False})
 
-            edge_label = edge.data.get('label', 'default') if edge.data else 'default'
-
-            if from_output:
-                if edge_label in from_output.value:
-                    input_value = from_output.value[edge_label]
-                else:
-                    log.warning(f"Edge label '{edge_label}' not found in source output from {source_node_id} for condition node")
-            else:
-                log.warning(f"No output found for source node {source_node_id} when evaluating condition")
+    # True only if *all* upstream person_job nodes reached their max_iterations
+    result = True
+    for edge in ctx.find_edges_to(node.id):
+        src_node_id = edge.source.split(":")[0]
+        src_node = next((n for n in ctx.diagram.nodes if n.id == src_node_id), None)
+        if src_node and src_node.type == "person_job":
+            exec_count = ctx.exec_counts.get(src_node_id, 0)
+            max_iter = int((src_node.data or {}).get("maxIteration", 1))
+            if exec_count < max_iter:
+                result = False
                 break
-
-        condition_type = node.data.get('conditionType', '') if node.data else ''
-
-        if condition_type == 'detect_max_iterations':
-            # Check execution counts of all incoming nodes
-            # Result should be True only if ALL person_job nodes have reached their max iterations
-            result = True
-            for edge in ctx.find_edges_to(node.id):
-                source_node_id = edge.source.split(':')[0]
-                source_node = next((n for n in ctx.diagram.nodes if n.id == source_node_id), None)
-                
-                if source_node and source_node.type == 'person_job':
-                    exec_count = ctx.exec_counts.get(source_node_id, 0)
-                    max_iteration = source_node.data.get('maxIteration', 1) if source_node.data else 1
-                    
-                    if exec_count < max_iteration:
-                        result = False
-                        break
-        else:
-            result = False
-
-        outputs = {
-            'True' if result else 'False': input_value
-        }
-
-        output = create_node_output(
-            value=outputs,
-            metadata={"condition_result": result}
-        )
-
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
-
-        return output
-
-    except Exception as e:
-        error_output = create_node_output(
-            value={},
-            metadata={"error": str(e)}
-        )
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
-        return error_output
+    input_val = await _edge_inputs(node, ctx, as_dict=False)
+    return create_node_output({"True" if result else "False": input_val}, {"condition_result": result})
 
 
 @node_handler("db")
-async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    import logging
-    log = logging.getLogger(__name__)
-    
-    log.info(f"Executing DB node {node.id}")
-    # Engine already manages exec_count
+async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+    """File‑based DB node supporting *read*, *write* and *append* operations."""
 
-    await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
+    data = node.data or {}
+    operation = data.get("operation", "read")
+    file_path = data.get("sourceDetails", "")
+
+    # For write/append we need input data from edges
+    input_val = await _edge_inputs(node, ctx, as_dict=False)
 
     try:
-        input_data = None
-        for edge in ctx.find_edges_to(node.id):
-            source_node_id = edge.source.split(':')[0]
-            from_output = ctx.get_node_output(source_node_id)
-
-            edge_label = edge.data.get('label', 'default') if edge.data else 'default'
-
-            if from_output and edge_label in from_output.value:
-                input_data = from_output.value[edge_label]
-                break
-
-        operation = node.data.get('operation', 'read') if node.data else 'read'
-        file_path = node.data.get('sourceDetails', '') if node.data else ''
-
         if operation == "read":
-            try:
-                # Check if aread exists, otherwise fall back to sync read
-                if hasattr(ctx.file_service, 'aread'):
-                    result = await ctx.file_service.aread(file_path)
-                else:
-                    result = ctx.file_service.read(file_path)
-            except Exception as e:
-                result = f"Error reading file: {str(e)}"
-                log.warning(f"Error reading file {file_path}: {e}")
+            # Prefer async if available
+            if hasattr(ctx.file_service, "aread"):
+                result = await ctx.file_service.aread(file_path)
+            else:
+                result = ctx.file_service.read(file_path)
         elif operation == "write":
-            await ctx.file_service.write(file_path, str(input_data))
+            await ctx.file_service.write(file_path, str(input_val))
             result = f"Saved to {file_path}"
         elif operation == "append":
-            existing_content = ""
-            try:
-                existing_content = await ctx.file_service.aread(file_path)
-            except:
-                pass
-            await ctx.file_service.write(file_path, existing_content + str(input_data))
+            existing = ""
+            if hasattr(ctx.file_service, "aread"):
+                try:
+                    existing = await ctx.file_service.aread(file_path)
+                except Exception:  # file may not exist yet
+                    pass
+            await ctx.file_service.write(file_path, existing + str(input_val))
             result = f"Appended to {file_path}"
         else:
             result = "Unknown operation"
+    except Exception as exc:  # noqa: PERF203
+        _log.warning("DB op %s failed: %s", operation, exc)
+        result = f"Error: {exc}"
 
-        # Always expose the primary result both as "default" and "topic" so that
-        # downstream edges that are labelled "topic" (a common pattern for file
-        # loading scenarios) can resolve the input without having to duplicate
-        # the data at the arrow level.
-        output = create_node_output(value={
-            'default': result,
-            'topic': result,
-        })
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
-
-        return output
-
-    except Exception as e:
-        log.error(f"DB node {node.id} failed with error: {e}", exc_info=True)
-        error_output = create_node_output(
-            value={
-                'default': f"Error: {str(e)}",
-                'topic': f"Error: {str(e)}",
-            },
-            metadata={"error": str(e)}
-        )
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, error_output)  # Mark as completed, not failed
-        return error_output
+    return create_node_output({"default": result, "topic": result})
 
 
 @node_handler("notion")
-async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    # Engine already manages exec_count
+async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+    """Wrapper around `ctx.notion_service.execute_action`."""
 
-    await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.RUNNING)
+    data = node.data or {}
+    action = data.get("action", "read")
+    database_id = data.get("database_id", "")
+    payload = await _edge_inputs(node, ctx)
 
-    try:
-        input_data = {}
-        for edge in ctx.find_edges_to(node.id):
-            source_node_id = edge.source.split(':')[0]
-            from_output = ctx.get_node_output(source_node_id)
-
-            edge_label = edge.data.get('label', 'default') if edge.data else 'default'
-
-            if from_output and edge_label in from_output.value:
-                input_data[edge_label] = from_output.value[edge_label]
-
-        action = node.data.get('action', 'read') if node.data else 'read'
-        database_id = node.data.get('database_id', '') if node.data else ''
-
-        result = await ctx.notion_service.execute_action(
-            action=action,
-            database_id=database_id,
-            data=input_data
-        )
-
-        output = create_node_output(
-            value={'default': result}
-        )
-
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output)
-
-        return output
-
-    except Exception as e:
-        error_output = create_node_output(
-            value={},
-            metadata={"error": str(e)}
-        )
-        await ctx.state_store.update_node_status(ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output)
-        return error_output
+    result = await ctx.notion_service.execute_action(
+        action=action,
+        database_id=database_id,
+        data=payload,
+    )
+    return create_node_output({"default": result})

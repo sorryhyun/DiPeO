@@ -1,10 +1,3 @@
-"""
-CLI models - re-exports from generated models.
-
-This module re-exports the generated models for CLI usage.
-No wrappers or renames are needed - we use the generated types directly.
-"""
-
 from dataclasses import asdict
 from typing import Any, Dict
 
@@ -69,7 +62,6 @@ def diagram_dict_to_backend(diagram_dict: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def backend_to_diagram_dict(backend_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert backend format (dict of dicts) to array format."""
     return {
         "nodes": list(backend_dict.get("nodes", {}).values()),
         "arrows": list(backend_dict.get("arrows", {}).values()),
@@ -82,7 +74,6 @@ def backend_to_diagram_dict(backend_dict: Dict[str, Any]) -> Dict[str, Any]:
 
 # Validation helpers
 def validate_node_type(node_type: str) -> bool:
-    """Check if node type is valid"""
     try:
         NodeType(node_type)
         return True
@@ -91,7 +82,6 @@ def validate_node_type(node_type: str) -> bool:
 
 
 def validate_llm_service(service: str) -> bool:
-    """Check if LLM service is valid"""
     try:
         LLMService(service)
         return True

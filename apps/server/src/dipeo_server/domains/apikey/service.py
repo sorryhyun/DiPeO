@@ -72,7 +72,6 @@ class APIKeyService(BaseService):
         return info
 
     def list_api_keys(self) -> List[dict]:
-        """List all stored API keys."""
         result = []
         for key_id, info in self._store.items():
             # Handle both old and new format API keys

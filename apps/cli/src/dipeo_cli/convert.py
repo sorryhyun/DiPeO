@@ -25,9 +25,6 @@ async def convert_command(args: List[str]) -> None:
         # Load diagram locally (still need to read the file)
         diagram = DiagramLoader.load(input_path)
         
-        # Note: DiagramLoader.load returns the diagram in backend format (with dicts)
-        # which is what the backend's convertDiagram mutation expects
-        
         # Determine output format from file extension
         output_ext = Path(output_path).suffix.lower()
         if output_ext in [".yaml", ".yml"]:

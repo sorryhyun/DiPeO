@@ -11,6 +11,7 @@ import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoad
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
+import type { DomainDiagramType } from '@/__generated__/graphql';
 
 export interface UseMonitorModeOptions {
   autoStart?: boolean;
@@ -31,7 +32,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   
   // Get diagram data from store
   const storeSelector = createCommonStoreSelector();
-  const { nodes, arrows, persons, handles, apiKeys, metadata } = useUnifiedStore(useShallow(storeSelector));
+  const { nodes, arrows, persons, handles, apiKeys } = useUnifiedStore(useShallow(storeSelector));
   
   // Check if we're in monitor mode
   const isMonitorMode = () => {
@@ -72,13 +73,22 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     hasStartedRef.current = true;
     
     // Prepare diagram data for execution
-    const diagram = {
-      nodes: Array.from(nodes.values()),
-      arrows: Array.from(arrows.values()),
-      persons: Array.from(persons.values()),
-      handles: Array.from(handles.values()),
-      apiKeys: Array.from(apiKeys.values()),
-      metadata: metadata || {
+    const nodesArray = Array.from(nodes.values());
+    const arrowsArray = Array.from(arrows.values());
+    const personsArray = Array.from(persons.values());
+    const handlesArray = Array.from(handles.values());
+    const apiKeysArray = Array.from(apiKeys.values());
+    
+    const diagram: DomainDiagramType = {
+      nodes: nodesArray,
+      arrows: arrowsArray,
+      persons: personsArray,
+      handles: handlesArray,
+      apiKeys: apiKeysArray,
+      nodeCount: nodesArray.length,
+      arrowCount: arrowsArray.length,
+      personCount: personsArray.length,
+      metadata: {
         id: diagramId || diagramName || 'temp-execution',
         name: diagramName || 'Untitled Diagram',
         version: '1.0',
@@ -104,7 +114,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       });
     }, 500);
     
-  }, [hasLoaded, nodes.size, execution.isRunning, autoStart, debug, diagramId, nodes, arrows, persons, handles, apiKeys, metadata, execution]);
+  }, [hasLoaded, nodes.size, execution.isRunning, autoStart, debug, diagramId, execution]);
   
   // Reset hasStarted flag when URL changes
   useEffect(() => {

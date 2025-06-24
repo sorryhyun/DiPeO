@@ -57,22 +57,13 @@ class ViewBasedEngine:
 
         ctx._execution_view = view
 
-        # Note: Execution is already created in ExecutionService
-        # await state_store.create_execution(
-        #     ctx.execution_id,
-        #     diagram.id if hasattr(diagram, 'id') else None,
-        #     ctx.variables
-        # )
-
         # Load existing node outputs from state store if available
         if state_store:
             import logging
             log = logging.getLogger(__name__)
-            log.info(f"Loading existing state for execution {ctx.execution_id}")
-            
+
             state = await state_store.get_state(ctx.execution_id)
             if state and state.node_outputs:
-                log.info(f"Found existing outputs for {len(state.node_outputs)} nodes")
                 for node_id, output in state.node_outputs.items():
                     ctx.set_node_output(node_id, output)
             else:
@@ -85,24 +76,18 @@ class ViewBasedEngine:
     async def _execute_with_view(self, ctx: ExecutionContext, view: ExecutionView) -> None:
         import logging
         log = logging.getLogger(__name__)
-        
-        log.info(f"Starting execution with initial {len(view.execution_order)} levels")
-        
+
         # First execute the pre-computed levels
         for level_num, level_nodes in enumerate(view.execution_order):
-            log.info(f"Executing level {level_num} with {len(level_nodes)} nodes")
             tasks = []
             for node_view in level_nodes:
                 if self._can_execute_node_view(node_view):
-                    log.info(f"Executing node {node_view.node.id} of type {node_view.node.type}")
                     tasks.append(self._execute_node_view(ctx, node_view))
                 else:
                     log.warning(f"Cannot execute node {node_view.node.id} - dependencies not met")
 
             if tasks:
-                log.info(f"Awaiting {len(tasks)} tasks for level {level_num}")
                 await asyncio.gather(*tasks)
-                log.info(f"Level {level_num} completed")
             else:
                 log.warning(f"No tasks to execute for level {level_num}")
         
@@ -123,15 +108,12 @@ class ViewBasedEngine:
                 if current_exec_count < max_iter:
                     if self._can_execute_node_view(node_view):
                         ready_nodes.append(node_view)
-                        log.info(f"Found newly ready node: {node_id} (iteration {iteration})")
-            
+
             if not ready_nodes:
                 break
                 
-            log.info(f"Executing {len(ready_nodes)} newly ready nodes in iteration {iteration}")
             tasks = []
             for node_view in ready_nodes:
-                log.info(f"Executing node {node_view.node.id} of type {node_view.node.type}")
                 tasks.append(self._execute_node_view(ctx, node_view))
             
             await asyncio.gather(*tasks)

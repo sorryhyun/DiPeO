@@ -1,8 +1,10 @@
-"""Format strategies for unified diagram converter."""
+"""Compact format strategies for the unified diagram converter."""
+
+from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import yaml
 from dipeo_domain import DomainDiagram, DomainNode
@@ -16,481 +18,368 @@ from .shared_components import (
     extract_common_arrows,
 )
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
-class NativeJsonStrategy(FormatStrategy):
-    """Strategy for native/domain JSON format."""
+#                               helper mixins                                 #
 
-    @property
-    def format_id(self) -> str:
-        return "native"
+class _JsonMixin:
+    """Shared JSON helpers."""
 
-    @property
-    def format_info(self) -> Dict[str, str]:
-        return {
-            "name": "Domain JSON",
-            "description": "Canonical format for diagram structure and execution",
-            "extension": ".json",
-            "supports_import": True,
-            "supports_export": True,
-        }
-
-    def parse(self, content: str) -> Dict[str, Any]:
+    # NOTE: overriding instance methods via mixin
+    def parse(self, content: str) -> Dict[str, Any]:  # type: ignore[override]
         try:
             return json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON: {e}")
-            raise ValueError(f"Invalid JSON format: {e}") from e
+        except json.JSONDecodeError as err:
+            log.error("JSON parse error: %s", err)
+            raise ValueError(f"Invalid JSON: {err}") from err
 
-    def format(self, data: Dict[str, Any]) -> str:
+    def format(self, data: Dict[str, Any]) -> str:  # type: ignore[override]
         return json.dumps(data, indent=2, ensure_ascii=False)
 
+
+class _YamlMixin:
+    """Shared YAML helpers."""
+
+    def parse(self, content: str) -> Dict[str, Any]:  # type: ignore[override]
+        try:
+            return yaml.safe_load(content) or {}
+        except yaml.YAMLError as err:
+            log.error("YAML parse error: %s", err)
+            raise ValueError(f"Invalid YAML: {err}") from err
+
+    def format(self, data: Dict[str, Any]) -> str:  # type: ignore[override]
+        return yaml.dump(
+            data, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )
+
+
+#                               common helpers                                #
+def _node_id_map(nodes: List[Dict[str, Any]]) -> Dict[str, str]:
+    """Return mapping label → node-id from already built nodes list."""
+    m: Dict[str, str] = {}
+    for n in nodes:
+        label = n.get("data", {}).get("label", n["id"])
+        m[label] = n["id"]
+    return m
+
+
+def _round_pos(position: Dict[str, Any]) -> Dict[str, int]:
+    return {"x": round(position.get("x", 0)), "y": round(position.get("y", 0))}
+
+
+#  #
+#                               JSON strategy                                 #
+#  #
+class NativeJsonStrategy(_JsonMixin, FormatStrategy):
+    """Native / domain JSON format."""
+
+    # ---- minimal metadata ----
+    format_id = "native"
+    format_info = {
+        "name": "Domain JSON",
+        "description": "Canonical format for diagram structure and execution",
+        "extension": ".json",
+        "supports_import": True,
+        "supports_export": True,
+    }
+
+    # ---- extraction helpers ----
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        nodes = []
         nodes_data = coerce_to_dict(data.get("nodes", {}), id_key="id", prefix="node")
-
-        for index, (node_id, node_data) in enumerate(nodes_data.items()):
-            if isinstance(node_data, dict):
-                node = build_node(
-                    id=node_id,
-                    type_=node_data.get("type", "unknown"),
-                    pos=node_data.get("position", {}),
-                    **node_data.get("data", {})
-                )
-                ensure_position(node, index)
-                nodes.append(node)
-
-        return nodes
+        built: List[Dict[str, Any]] = []
+        for idx, (nid, ndata) in enumerate(nodes_data.items()):
+            node = build_node(
+                id=nid,
+                type_=ndata.get("type", "unknown"),
+                pos=ndata.get("position", {}),
+                **ndata.get("data", {}),
+            )
+            ensure_position(node, idx)
+            built.append(node)
+        return built
 
     def extract_arrows(
-        self, data: Dict[str, Any], nodes: Dict[str, Any]
+        self, data: Dict[str, Any], _nodes: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         return extract_common_arrows(data.get("arrows", {}))
 
+    # ---- export helpers ----
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
         return {
             "nodes": {
-                node.id: {
-                    "type": node.type,
-                    "position": {"x": node.position.x, "y": node.position.y}
-                    if hasattr(node.position, "x")
-                    else node.position,
-                    "data": node.data,
+                n.id: {
+                    "type": n.type,
+                    "position": getattr(n, "position", {}),
+                    "data": n.data,
                 }
-                for node in diagram.nodes
+                for n in diagram.nodes
             },
             "handles": {
-                handle.id: {
-                    "nodeId": handle.node_id,
-                    "label": handle.label,
-                    "direction": handle.direction,
-                    "dataType": handle.data_type,
-                    "position": handle.position,
+                h.id: {
+                    "nodeId": h.node_id,
+                    "label": h.label,
+                    "direction": h.direction,
+                    "dataType": h.data_type,
+                    "position": h.position,
                 }
-                for handle in diagram.handles
+                for h in diagram.handles
             },
             "arrows": {
-                arrow.id: {
-                    "source": arrow.source,
-                    "target": arrow.target,
-                    "data": arrow.data,
-                }
-                for arrow in diagram.arrows
+                a.id: {"source": a.source, "target": a.target, "data": a.data}
+                for a in diagram.arrows
             },
-            "persons": {person.id: person.model_dump() for person in diagram.persons},
-            "api_keys": {
-                api_key.id: api_key.model_dump() for api_key in diagram.api_keys
-            },
+            "persons": {p.id: p.model_dump() for p in diagram.persons},
+            "api_keys": {k.id: k.model_dump() for k in diagram.api_keys},
             "metadata": diagram.metadata.model_dump() if diagram.metadata else None,
         }
 
+    # ---- heuristics ----
     def detect_confidence(self, data: Dict[str, Any]) -> float:
-        if "nodes" in data and "handles" in data and "arrows" in data:
-            nodes = data.get("nodes", {})
-            if isinstance(nodes, dict):
-                return 0.95
-            if isinstance(nodes, list):
-                return 0.9
-        elif "nodes" in data:
+        nodes = data.get("nodes")
+        if isinstance(nodes, dict) and all(
+            k in data for k in ("handles", "arrows")
+        ):
+            return 0.95
+        if isinstance(nodes, list):
+            return 0.9
+        if nodes:
             return 0.5
         return 0.1
 
     def quick_match(self, content: str) -> bool:
-        """Quick check for JSON format with nodes/handles/arrows structure."""
-        content = content.strip()
-        if not (content.startswith('{') and content.endswith('}')):
-            return False
-        # Check for key indicators without full parse
-        return '"nodes"' in content or '"handles"' in content or '"arrows"' in content
-
-
-class LightYamlStrategy(FormatStrategy):
-    """Strategy for light YAML format."""
-
-    @property
-    def format_id(self) -> str:
-        return "light"
-
-    @property
-    def format_info(self) -> Dict[str, str]:
-        return {
-            "name": "Light YAML",
-            "description": "Simplified format using labels instead of IDs",
-            "extension": ".light.yaml",
-            "supports_import": True,
-            "supports_export": True,
-        }
-
-    def parse(self, content: str) -> Dict[str, Any]:
-        try:
-            return yaml.safe_load(content) or {}
-        except yaml.YAMLError as e:
-            logger.error(f"Failed to parse YAML: {e}")
-            raise ValueError(f"Invalid YAML format: {e}") from e
-
-    def format(self, data: Dict[str, Any]) -> str:
-        return yaml.dump(
-            data,
-            default_flow_style=False,
-            sort_keys=False,
-            allow_unicode=True
+        return content.lstrip().startswith("{") and any(
+            key in content for key in ('"nodes"', '"handles"', '"arrows"')
         )
 
+
+#  #
+#                                Light YAML                                   #
+#  #
+class LightYamlStrategy(_YamlMixin, FormatStrategy):
+    """Light YAML format (labels instead of IDs)."""
+
+    format_id = "light"
+    format_info = {
+        "name": "Light YAML",
+        "description": "Simplified format using labels instead of IDs",
+        "extension": ".light.yaml",
+        "supports_import": True,
+        "supports_export": True,
+    }
+
+    # ---- extraction helpers ----
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        nodes = []
-        node_list = data.get("nodes", [])
-
-        for index, node_data in enumerate(node_list):
-            if isinstance(node_data, dict):
-                node_id = node_data.get("label", f"node_{index}")
-                node_type = node_data.get("type", "unknown")
-                exclude_keys = {"type", "label", "arrows", "position", "id"}
-
-                node = build_node(
-                    id=node_id,
-                    type_=node_type,
-                    pos=node_data.get("position", {}),
-                    label=node_data.get("label"),
-                    **{k: v for k, v in node_data.items() if k not in exclude_keys}
-                )
-                ensure_position(node, index)
-                nodes.append(node)
-
-        return nodes
-
-    def extract_arrows(
-        self, data: Dict[str, Any], nodes: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        arrows = []
-        # Create mapping from labels to node IDs
-        node_by_label = {}
-        for node in nodes:
-            label = node.get("data", {}).get("label", node["id"])
-            node_by_label[label] = node["id"]
-
-        # Handle connections section for light YAML format
-        connections = data.get("connections", [])
-        for conn in connections:
-            if isinstance(conn, dict):
-                from_label = conn.get("from")
-                to_label = conn.get("to")
-
-                source_id = node_by_label.get(from_label)
-                target_id = node_by_label.get(to_label)
-
-                if source_id and target_id:
-                    arrow_data = conn.get("data", {})
-                    arrow_id = arrow_data.get("id", f"arrow_{len(arrows)}")
-
-                    # Determine handle names based on connection data
-                    source_handle = "default"
-                    target_handle = "default"
-
-                    # Check for branch info (e.g., from condition nodes)
-                    if "branch" in conn:
-                        source_handle = conn["branch"]
-
-                    arrows.append({
-                        "id": arrow_id,
-                        "source": f"{source_id}:{source_handle}",
-                        "target": f"{target_id}:{target_handle}",
-                        "data": arrow_data
-                    })
-
-        return arrows
-
-    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
-        nodes = []
-        connections = []
-
-        # Build node list
-        label_count = {}
-        node_labels = {}
-
-        # First pass: determine unique labels
-        for node in diagram.nodes:
-            base_label = node.data.get("label", node.id)
-
-            # Count occurrences of each label
-            if base_label in label_count:
-                label_count[base_label] += 1
-                # Add suffix for duplicates
-                unique_label = f"{base_label}~{label_count[base_label]}"
-            else:
-                label_count[base_label] = 0
-                unique_label = base_label
-
-            node_labels[node.id] = unique_label
-
-            node_data = {
-                "label": unique_label,
-                "type": node.type,
-                "position": {
-                    "x": round(node.position.get("x", 0)),
-                    "y": round(node.position.get("y", 0))
-                }
-            }
-
-            # Add other node properties
-            props = {k: v for k, v in node.data.items() if k not in ["label", "type", "position"]}
-            if props:
-                node_data["props"] = props
-
-            nodes.append(node_data)
-
-        # Build connections list
-        for arrow in diagram.arrows:
-            source_parts = arrow.source.split(":")
-            target_parts = arrow.target.split(":")
-
-            source_node_id = source_parts[0]
-            target_node_id = target_parts[0]
-
-            # Use the unique labels we created
-            source_label = node_labels.get(source_node_id)
-            target_label = node_labels.get(target_node_id)
-
-            if source_label and target_label:
-                conn = {
-                    "from": source_label,
-                    "to": target_label
-                }
-
-                # Add branch info for condition nodes
-                if len(source_parts) > 1 and source_parts[1] != "default":
-                    conn["branch"] = source_parts[1]
-
-                # Add arrow data if present
-                if hasattr(arrow, 'data') and arrow.data:
-                    conn["data"] = arrow.data
-
-                connections.append(conn)
-
-        result = {
-            "version": "light",
-            "nodes": nodes,
-            "connections": connections
-        }
-
-        if diagram.persons:
-            result["persons"] = [person.model_dump() for person in diagram.persons]
-        if hasattr(diagram, 'name') and diagram.name:
-            result["name"] = diagram.name
-
-        return result
-
-    def detect_confidence(self, data: Dict[str, Any]) -> float:
-        if "nodes" in data and isinstance(data["nodes"], list):
-            has_labels = any(
-                isinstance(n, dict) and "label" in n for n in data["nodes"]
+        nodes: List[Dict[str, Any]] = []
+        for idx, ndata in enumerate(data.get("nodes", [])):
+            if not isinstance(ndata, dict):
+                continue
+            node = build_node(
+                id=ndata.get("label", f"node_{idx}"),
+                type_=ndata.get("type", "unknown"),
+                pos=ndata.get("position", {}),
+                label=ndata.get("label"),
+                **{
+                    k: v
+                    for k, v in ndata.items()
+                    if k not in {"type", "label", "id", "position", "arrows"}
+                },
             )
-            if has_labels:
-                return 0.8
-            return 0.5
-        return 0.1
-
-    def quick_match(self, content: str) -> bool:
-        """Quick check for YAML format with nodes array."""
-        content = content.strip()
-        # Check for YAML indicators
-        if content.startswith('{') or content.startswith('['):
-            return False  # Likely JSON
-        return 'nodes:' in content and ('  - ' in content or '- label:' in content)
-
-
-class ReadableYamlStrategy(FormatStrategy):
-    """Strategy for readable YAML format."""
-
-    def __init__(self):
-        self.node_mapper = NodeTypeMapper()
-
-    @property
-    def format_id(self) -> str:
-        return "readable"
-
-    @property
-    def format_info(self) -> Dict[str, str]:
-        return {
-            "name": "Readable Workflow",
-            "description": "Human-friendly workflow format",
-            "extension": ".readable.yaml",
-            "supports_import": True,
-            "supports_export": True,
-        }
-
-    def parse(self, content: str) -> Dict[str, Any]:
-        try:
-            return yaml.safe_load(content) or {}
-        except yaml.YAMLError as e:
-            logger.error(f"Failed to parse YAML: {e}")
-            raise ValueError(f"Invalid YAML format: {e}") from e
-
-    def format(self, data: Dict[str, Any]) -> str:
-        return yaml.dump(
-            data,
-            default_flow_style=False,
-            sort_keys=False,
-            allow_unicode=True
-        )
-
-    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        nodes = []
-        workflow = data.get("workflow", [])
-
-        for index, step in enumerate(workflow):
-            if isinstance(step, dict):
-                for step_name, step_data in step.items():
-                    if isinstance(step_data, dict):
-                        node = build_node(
-                            id=step_name,
-                            type_=self._determine_node_type(step_data),
-                            pos=step_data.get("position", {}),
-                            label=step_name,
-                            **self._extract_properties(step_data)
-                        )
-                        ensure_position(node, index)
-                        nodes.append(node)
-
+            ensure_position(node, idx)
+            nodes.append(node)
         return nodes
 
     def extract_arrows(
-        self, data: Dict[str, Any], nodes: Dict[str, Any]
+        self, data: Dict[str, Any], nodes: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        arrows = []
-        node_ids = {n["id"] for n in nodes}
+        arrows: List[Dict[str, Any]] = []
+        label2id = _node_id_map(nodes)
 
-        flow = data.get("flow", [])
-        for connection in flow:
-            if isinstance(connection, str) and " -> " in connection:
-                parts = connection.split(" -> ")
-                if len(parts) == 2:
-                    source, target = parts[0].strip(), parts[1].strip()
-                    if source in node_ids and target in node_ids:
-                        arrows.append(
-                            {"source": f"{source}_output", "target": f"{target}_input"}
-                        )
-
+        for conn in data.get("connections", []):
+            if not isinstance(conn, dict):
+                continue
+            sid, tid = label2id.get(conn.get("from")), label2id.get(conn.get("to"))
+            if not (sid and tid):
+                continue
+            arrows.append(
+                {
+                    "id": conn.get("data", {}).get("id", f"arrow_{len(arrows)}"),
+                    "source": f"{sid}:{conn.get('branch', 'default')}",
+                    "target": f"{tid}:default",
+                    "data": conn.get("data", {}),
+                }
+            )
         return arrows
 
+    # ---- export ----
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
-        nodes_dict = {node.id: node for node in diagram.nodes}
+        nodes_out: List[Dict[str, Any]] = []
+        label_counts: Dict[str, int] = {}
+        id2label: Dict[str, str] = {}
 
-        workflow = []
-        for node in diagram.nodes:
-            step_name = node.data.get("label", node.id)
-            step_data = self._build_step_data(node)
-            workflow.append({step_name: step_data})
+        for n in diagram.nodes:
+            base = n.data.get("label", n.id)
+            suffix = label_counts.get(base, 0)
+            label_counts[base] = suffix + 1
+            label = f"{base}~{suffix}" if suffix else base
+            id2label[n.id] = label
 
-        flow = []
-        for arrow in diagram.arrows:
-            source_node = arrow.source.split(":")[0]
-            target_node = arrow.target.split(":")[0]
+            nodes_out.append(
+                {
+                    "label": label,
+                    "type": n.type,
+                    "position": _round_pos(getattr(n, "position", {})),
+                    "props": {
+                        k: v
+                        for k, v in n.data.items()
+                        if k not in {"label", "type", "position"}
+                    },
+                }
+            )
 
-            source = nodes_dict.get(source_node)
-            target = nodes_dict.get(target_node)
+        connections = []
+        for a in diagram.arrows:
+            sid, tid = (part.split(":")[0] for part in (a.source, a.target))
+            connections.append(
+                {
+                    "from": id2label[sid],
+                    "to": id2label[tid],
+                    **({"branch": a.source.split(":")[1]} if ":" in a.source else {}),
+                    **({"data": a.data} if a.data else {}),
+                }
+            )
 
-            if source and target:
-                source_label = source.data.get("label", source_node)
-                target_label = target.data.get("label", target_node)
-                flow.append(f"{source_label} -> {target_label}")
+        out: Dict[str, Any] = {"version": "light", "nodes": nodes_out}
+        if connections:
+            out["connections"] = connections
+        if diagram.persons:
+            out["persons"] = [p.model_dump() for p in diagram.persons]
+        if getattr(diagram, "name", None):
+            out["name"] = diagram.name
+        return out
 
-        result = {"workflow": workflow}
+    # ---- heuristics ----
+    def detect_confidence(self, data: Dict[str, Any]) -> float:
+        if isinstance(data.get("nodes"), list):
+            return 0.8 if any("label" in n for n in data["nodes"] if isinstance(n, dict)) else 0.5
+        return 0.1
+
+    def quick_match(self, content: str) -> bool:
+        stripped = content.lstrip()
+        return not stripped.startswith(("{", "[")) and "nodes:" in content
+
+
+#  #
+#                              Readable YAML                                  #
+#  #
+class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
+    """Human-friendly “workflow” YAML."""
+
+    format_id = "readable"
+    format_info = {
+        "name": "Readable Workflow",
+        "description": "Human-friendly workflow format",
+        "extension": ".readable.yaml",
+        "supports_import": True,
+        "supports_export": True,
+    }
+
+    def __init__(self) -> None:
+        self._mapper = NodeTypeMapper()
+
+    # ---- extraction ----
+    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        nodes: List[Dict[str, Any]] = []
+        for idx, step in enumerate(data.get("workflow", [])):
+            if not isinstance(step, dict):
+                continue
+            (name, cfg), = step.items()  # exactly one kv-pair
+            node = build_node(
+                id=name,
+                type_=self._mapper.determine_node_type(cfg).value,
+                pos=cfg.get("position", {}),
+                label=name,
+                **self._extract_props(cfg),
+            )
+            ensure_position(node, idx)
+            nodes.append(node)
+        return nodes
+
+    def extract_arrows(
+        self, data: Dict[str, Any], nodes: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        node_ids = {n["id"] for n in nodes}
+        arrows: List[Dict[str, Any]] = []
+        for line in data.get("flow", []):
+            if isinstance(line, str) and "->" in line:
+                src, dst = (x.strip() for x in line.split("->", 1))
+                if src in node_ids and dst in node_ids:
+                    arrows.append(
+                        {"source": f"{src}_output", "target": f"{dst}_input"}
+                    )
+        return arrows
+
+    # ---- export ----
+    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        workflow = [
+            {
+                (n.data.get("label") or n.id): self._step_from_node(n)
+            }
+            for n in diagram.nodes
+        ]
+        flow = [
+            f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}"
+            for a in diagram.arrows
+        ]
+        result: Dict[str, Any] = {"workflow": workflow}
         if flow:
             result["flow"] = flow
 
-        config = {}
+        cfg: Dict[str, Any] = {}
         if diagram.persons:
-            config["persons"] = [person.model_dump() for person in diagram.persons]
+            cfg["persons"] = [p.model_dump() for p in diagram.persons]
         if diagram.api_keys:
-            config["api_keys"] = [api_key.model_dump() for api_key in diagram.api_keys]
-
-        if config:
-            result["config"] = config
-
+            cfg["api_keys"] = [k.model_dump() for k in diagram.api_keys]
+        if cfg:
+            result["config"] = cfg
         return result
 
+    # ---- heuristics ----
     def detect_confidence(self, data: Dict[str, Any]) -> float:
-        if "workflow" in data and isinstance(data["workflow"], list):
-            if "flow" in data and isinstance(data["flow"], list):
-                return 0.9
-            return 0.6
+        wk, fl = data.get("workflow"), data.get("flow")
+        if isinstance(wk, list):
+            return 0.9 if isinstance(fl, list) else 0.6
         return 0.1
 
     def quick_match(self, content: str) -> bool:
-        """Quick check for readable workflow format."""
-        content = content.strip()
-        # Check for workflow and flow indicators
-        return 'workflow:' in content and (' -> ' in content or 'flow:' in content)
+        return "workflow:" in content and (" -> " in content or "flow:" in content)
 
-    def _determine_node_type(self, step_data: Dict[str, Any]) -> str:
-        """Determine node type from step data using shared NodeTypeMapper."""
-        node_type = self.node_mapper.determine_node_type(step_data)
-        return node_type.value
+    # ---- internal helpers ----
+    @staticmethod
+    def _extract_props(cfg: Dict[str, Any]) -> Dict[str, Any]:
+        mapping = {
+            "prompt": "prompt",
+            "person": "personId",
+            "model": "model",
+            "code": "code",
+            "language": "language",
+            "condition": "expression",
+            "data": "data",
+        }
+        return {dst: cfg[src] for src, dst in mapping.items() if src in cfg}
 
-    def _extract_properties(self, step_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract properties from step data."""
-        props = {}
-
-        if "prompt" in step_data:
-            props["prompt"] = step_data["prompt"]
-        if "person" in step_data:
-            props["personId"] = step_data["person"]
-        if "model" in step_data:
-            props["model"] = step_data["model"]
-        if "code" in step_data:
-            props["code"] = step_data["code"]
-        if "language" in step_data:
-            props["language"] = step_data["language"]
-        if "condition" in step_data:
-            props["expression"] = step_data["condition"]
-        if "data" in step_data:
-            props["data"] = step_data["data"]
-
-        return props
-
-    def _build_step_data(self, node: DomainNode) -> Dict[str, Any]:
-        """Build step data from node."""
-        data = {}
-
-        if node.type == "person_job":
-            if "prompt" in node.data:
-                data["prompt"] = node.data["prompt"]
-            if "personId" in node.data:
-                data["person"] = node.data["personId"]
-        elif node.type == "job":
-            if "code" in node.data:
-                data["code"] = node.data["code"]
-            if "language" in node.data:
-                data["language"] = node.data["language"]
-        elif node.type == "condition":
-            if "expression" in node.data:
-                data["condition"] = node.data["expression"]
-        elif node.type == "start":
-            if "data" in node.data:
-                data["data"] = node.data["data"]
-        elif node.type == "user_response":
-            if "prompt" in node.data:
-                data["prompt"] = node.data["prompt"]
-
-        return data
+    @staticmethod
+    def _step_from_node(node: DomainNode) -> Dict[str, Any]:
+        t = node.type
+        d = node.data
+        if t == "person_job":
+            return {k: d[k] for k in ("prompt", "personId") if k in d}
+        if t == "job":
+            return {k: d[k] for k in ("code", "language") if k in d}
+        if t == "condition":
+            return {"condition": d.get("expression")}
+        if t == "start":
+            return {"data": d.get("data")}
+        if t == "user_response":
+            return {"prompt": d.get("prompt")}
+        return {}
