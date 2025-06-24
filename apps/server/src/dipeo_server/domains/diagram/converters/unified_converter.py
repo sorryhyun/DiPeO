@@ -136,7 +136,8 @@ class UnifiedDiagramConverter(DiagramConverter):
             nodes_dict[node.id] = node
 
         # Extract arrows using strategy (handles both "arrows" and "connections")
-        arrows_list = strategy.extract_arrows(data, list(nodes_dict.values()))
+        # Pass the original node data list, not the DomainNode objects
+        arrows_list = strategy.extract_arrows(data, node_data_list)
         arrows_dict = {}
         for index, arrow_data in enumerate(arrows_list):
             arrow = self._create_arrow(arrow_data)

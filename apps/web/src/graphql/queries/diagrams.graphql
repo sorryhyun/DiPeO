@@ -94,7 +94,7 @@ mutation CreateDiagram($input: CreateDiagramInput!) {
 }
 
 mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
-  executeDiagram(input: $input) {
+  executeDiagram(data: $input) {
     success
     executionId
     message

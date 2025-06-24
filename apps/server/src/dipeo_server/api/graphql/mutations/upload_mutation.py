@@ -3,8 +3,11 @@
 import json
 import logging
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import yaml
 
 import strawberry
 from dipeo_domain import (
@@ -17,8 +20,11 @@ from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.diagram.converters import (
     backend_to_graphql,
     converter_registry,
+    graphql_to_backend,
 )
 from dipeo_server.domains.diagram.services.models import BackendDiagram
+
+from config import BASE_DIR
 
 from ..context import GraphQLContext
 from ..types import (
@@ -40,8 +46,8 @@ def validate_diagram(
     if not diagram.nodes:
         errors.append("Diagram must have at least one node")
 
-    node_ids = set(node.id for node in diagram.nodes)
-    handle_ids = set(handle.id for handle in diagram.handles)
+    node_ids = {node.id for node in diagram.nodes}
+    handle_ids = {handle.id for handle in diagram.handles}
 
     for arrow in diagram.arrows:
         if arrow.source not in handle_ids:
@@ -64,21 +70,21 @@ def validate_diagram(
                 f"Handle {handle.id} references unknown node: {handle.node_id}"
             )
 
-    person_ids = set(person.id for person in diagram.persons)
+    person_ids = {person.id for person in diagram.persons}
     for node in diagram.nodes:
         person_id = node.data.get("personId") if node.data else None
         if person_id and person_id not in person_ids:
             errors.append(f"Node {node.id} references unknown person: {person_id}")
 
     if api_key_service:
-        api_key_ids = set(api_key_service._store.keys())
+        api_key_ids = {api_key.get("id", "") for api_key in api_key_service.list_api_keys()}
         for person in diagram.persons:
             if person.api_key_id and person.api_key_id not in api_key_ids:
                 errors.append(
                     f"Person {person.id} references unknown API key: {person.api_key_id}"
                 )
     else:
-        api_key_ids = set(api_key.id for api_key in diagram.api_keys)
+        api_key_ids = {api_key.id for api_key in diagram.api_keys}
         for person in diagram.persons:
             if person.api_key_id and person.api_key_id not in api_key_ids:
                 errors.append(
@@ -143,9 +149,9 @@ class DiagramConvertResult:
 class UploadMutations:
     """Handles file uploads and diagram operations."""
 
-    @strawberry.mutation
+    @strawberry.mutation(description="Upload a file to the server")
     async def upload_file(
-        self, file: Upload, category: str = "general", info: strawberry.Info = None
+        self, file: Upload, category: str = "general"
     ) -> FileUploadResult:
         try:
             filename = file.filename
@@ -157,14 +163,23 @@ class UploadMutations:
                     success=False, message="File size exceeds 10MB limit"
                 )
 
-            upload_base = Path("files/uploads")
-            category_dir = upload_base / category
-            category_dir.mkdir(parents=True, exist_ok=True)
+            # Special handling for diagram files
+            if category.startswith("diagrams/"):
+                # Save directly to files/diagrams/{format}/ instead of files/uploads/
+                upload_base = BASE_DIR / "files"
+                category_dir = upload_base / category
+                category_dir.mkdir(parents=True, exist_ok=True)
+                # Use original filename for diagrams (no UUID prefix)
+                file_path = category_dir / filename
+            else:
+                # Regular upload flow for other files
+                upload_base = BASE_DIR / "files" / "uploads"
+                category_dir = upload_base / category
+                category_dir.mkdir(parents=True, exist_ok=True)
+                file_id = f"{uuid.uuid4().hex[:8]}_{filename}"
+                file_path = category_dir / file_id
 
-            file_id = f"{uuid.uuid4().hex[:8]}_{filename}"
-            file_path = category_dir / file_id
-
-            with open(file_path, "wb") as f:
+            with file_path.open("wb") as f:
                 f.write(file_content)
 
             file_ext = Path(filename).suffix.lower()
@@ -194,13 +209,13 @@ class UploadMutations:
                 success=False, message=f"Upload failed: {e!s}", error=str(e)
             )
 
-    @strawberry.mutation
+    @strawberry.mutation(description="Save a diagram from an uploaded file")
     async def save_diagram(
         self,
         file: Upload,
-        format: Optional[str] = None,
+        info: strawberry.Info,
+        file_format: Optional[str] = None,
         validate_only: bool = False,
-        info: strawberry.Info = None,
     ) -> DiagramSaveResult:
         context: GraphQLContext = info.context
 
@@ -214,11 +229,11 @@ class UploadMutations:
                     success=False, message="Diagram file exceeds 5MB limit"
                 )
 
-            detected_format = format.lower() if format else None
+            detected_format = file_format.lower() if file_format else None
             if not detected_format:
                 detected_format = converter_registry.detect_format(content_str)
                 if not detected_format:
-                    ext = Path(filename).suffix.lower()
+                    # Use filename pattern to detect format
                     if "light" in filename:
                         detected_format = DiagramFormat.light.value
                     elif "readable" in filename:
@@ -248,7 +263,7 @@ class UploadMutations:
                 )
 
             validation_errors = validate_diagram(
-                domain_diagram, context.api_key_service
+                domain_diagram, context.api_key_service if isinstance(context.api_key_service, APIKeyService) else None
             )
             if validation_errors:
                 return DiagramSaveResult(
@@ -267,11 +282,6 @@ class UploadMutations:
             # Use new services
             storage_service = context.diagram_storage_service
 
-            # Convert domain diagram to backend format using converter directly
-            from dipeo_server.domains.diagram.converters import graphql_to_backend
-            backend_model = graphql_to_backend(domain_diagram)
-            backend_dict = backend_model.model_dump(by_alias=True)
-
             # Generate diagram ID from filename
             diagram_id = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '')
 
@@ -287,10 +297,31 @@ class UploadMutations:
                 format_subdir = "readable/"
             elif detected_format == DiagramFormat.native.value:
                 format_subdir = "native/"
+
+            # Determine file extension based on format
+            if detected_format == DiagramFormat.native.value:
+                extension = ".json"
+            else:
+                extension = ".yaml"
             
-            # Save in format-specific subdirectory
-            path = f"{format_subdir}{diagram_id}.json"
-            await storage_service.write_file(path, backend_dict)
+            # If the detected format is the native format, use the backend dict directly
+            if detected_format == DiagramFormat.native.value:
+                # Convert domain diagram to backend format using converter directly
+                backend_model = graphql_to_backend(domain_diagram)
+                backend_dict = backend_model.model_dump()
+                save_content = backend_dict
+            else:
+                # For other formats, serialize the domain diagram to the target format
+                content_str = converter.serialize(domain_diagram)
+                # Parse the serialized content back to dict for storage service
+                if detected_format == DiagramFormat.light.value or detected_format == DiagramFormat.readable.value:
+                    save_content = yaml.safe_load(content_str)
+                else:
+                    save_content = json.loads(content_str)
+            
+            # Save in format-specific subdirectory with correct extension
+            path = f"{format_subdir}{diagram_id}{extension}"
+            await storage_service.write_file(path, save_content)
 
             logger.info(
                 f"Diagram saved: {filename} -> {diagram_id} (format: {detected_format})"
@@ -300,7 +331,7 @@ class UploadMutations:
                 success=True,
                 message=f"Successfully saved {filename}",
                 diagram_id=diagram_id,
-                diagram_name=backend_dict.get("metadata", {}).get("name", filename),
+                diagram_name=domain_diagram.metadata.name if domain_diagram.metadata else filename,
                 node_count=len(domain_diagram.nodes),
                 format_detected=detected_format,
             )
@@ -309,15 +340,13 @@ class UploadMutations:
             logger.error(f"Diagram save error: {e!s}")
             return DiagramSaveResult(success=False, message=f"Save failed: {e!s}")
 
-    @strawberry.mutation
+    @strawberry.mutation(description="Convert a diagram to a different format")
     async def convert_diagram(
         self,
         content: JSONScalar,
-        format: DiagramFormat = DiagramFormat.native,
+        target_format: DiagramFormat = DiagramFormat.native,
         include_metadata: bool = True,
-        info: strawberry.Info = None,
     ) -> DiagramConvertResult:
-        context: GraphQLContext = info.context
 
         try:
             if not isinstance(content, dict):
@@ -326,30 +355,30 @@ class UploadMutations:
                     error="Content must be a JSON object representing a diagram",
                 )
 
-            converter = converter_registry.get(format.value)
+            converter = converter_registry.get(target_format.value)
             if not converter:
                 return DiagramConvertResult(
-                    success=False, error=f"Unknown format: {format.value}"
+                    success=False, error=f"Unknown format: {target_format.value}"
                 )
 
-            format_info = converter_registry.get_info(format.value)
+            format_info = converter_registry.get_info(target_format.value)
             if not format_info.get("supports_export", True):
                 return DiagramConvertResult(
                     success=False,
-                    error=f"Format '{format.value}' does not support export",
+                    error=f"Format '{target_format.value}' does not support export",
                 )
 
             try:
                 # Convert arrays to dictionaries for backend format
                 converted_content = content.copy()
-                
+
                 # Convert arrays to dictionaries with ID as key
                 for field in ['nodes', 'arrows', 'persons', 'handles', 'apiKeys']:
                     if field in converted_content and isinstance(converted_content[field], list):
                         converted_content[field] = {
                             item['id']: item for item in converted_content[field]
                         }
-                
+
                 backend_diagram = BackendDiagram(**converted_content)
                 domain_diagram = backend_to_graphql(backend_diagram)
             except Exception as e:
@@ -358,7 +387,8 @@ class UploadMutations:
                 )
 
             if not include_metadata:
-                domain_diagram.metadata = DiagramMetadata(version="2.0.0")
+                now = datetime.now(timezone.utc).isoformat()
+                domain_diagram.metadata = DiagramMetadata(version="2.0.0", created=now, modified=now)
 
             content_str = converter.serialize(domain_diagram)
 
@@ -368,9 +398,9 @@ class UploadMutations:
 
             return DiagramConvertResult(
                 success=True,
-                message=f"Exported as {format.value} format",
+                message=f"Exported as {target_format.value} format",
                 content=content_str,
-                format=format.value,
+                format=target_format.value,
                 filename=filename,
             )
 

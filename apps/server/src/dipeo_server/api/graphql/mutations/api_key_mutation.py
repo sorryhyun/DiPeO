@@ -38,7 +38,7 @@ class ApiKeyMutations:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=input.service,
-                masked_key=f"{input.service.value}-****",
+                maskedKey=f"{input.service.value}-****",
             )
 
             return ApiKeyResult(

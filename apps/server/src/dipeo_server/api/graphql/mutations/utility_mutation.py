@@ -24,7 +24,7 @@ class UtilityMutations:
     """Utility mutations for file uploads, memory management, etc."""
 
     @strawberry.mutation
-    async def clear_conversations(self, info) -> DeleteResult:
+    async def clear_conversations(self, info: strawberry.Info) -> DeleteResult:
         """Clear all conversation history."""
         try:
             context: GraphQLContext = info.context
@@ -42,14 +42,14 @@ class UtilityMutations:
             )
 
     @strawberry.mutation
-    async def upload_file(self, input: FileUploadInput, info) -> FileUploadResult:
+    async def upload_file(self, file_input: FileUploadInput, _info: strawberry.Info) -> FileUploadResult:
         """Upload a file to the server (replaces REST endpoint)."""
         try:
             import aiofiles
 
             # Decode base64 content
             try:
-                file_content = base64.b64decode(input.content_base64)
+                file_content = base64.b64decode(file_input.content_base64)
             except Exception as e:
                 return FileUploadResult(
                     success=False, error=f"Invalid base64 encoding: {e!s}"
@@ -62,7 +62,7 @@ class UtilityMutations:
             # Generate unique filename to avoid conflicts
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             unique_id = str(uuid.uuid4())[:8]
-            filename_parts = os.path.splitext(input.filename)
+            filename_parts = os.path.splitext(file_input.filename)
             safe_filename = (
                 f"{filename_parts[0]}_{timestamp}_{unique_id}{filename_parts[1]}"
             )
@@ -81,7 +81,7 @@ class UtilityMutations:
                 success=True,
                 path=str(file_path),
                 size_bytes=file_size,
-                content_type=input.content_type,
+                content_type=file_input.content_type,
                 message=f"File uploaded successfully to {file_path}",
             )
 

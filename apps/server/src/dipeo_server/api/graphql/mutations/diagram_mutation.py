@@ -48,7 +48,7 @@ class DiagramMutations:
                 arrows=[],
                 handles=[],
                 persons=[],
-                api_keys=[],
+                apiKeys=[],
                 metadata=metadata,
             )
 

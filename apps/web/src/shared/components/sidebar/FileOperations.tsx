@@ -4,10 +4,13 @@ import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
 import { 
-  useSaveDiagramMutation
+  useSaveDiagramMutation,
+  useConvertDiagramMutation,
+  useUploadFileMutation
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
 import { useFileOperations } from '@/shared/hooks/useFileOperations';
+import { serializeDiagram } from '@/shared/utils/diagramSerializer';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -16,7 +19,9 @@ export const FileOperations: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [saveDiagramMutation] = useSaveDiagramMutation();
-  const { downloadAs, saveDiagram } = useFileOperations();
+  const [convertDiagramMutation] = useConvertDiagramMutation();
+  const [uploadFileMutation] = useUploadFileMutation();
+  const { saveDiagram } = useFileOperations();
 
   // Initialize diagram name from URL
   useEffect(() => {
@@ -58,7 +63,7 @@ export const FileOperations: React.FC = () => {
         throw new Error(saveResult.data?.saveDiagram?.message || 'Save failed');
       }
 
-      const { diagramId: newDiagramId, diagramName, nodeCount } = saveResult.data.saveDiagram;
+      const { diagramId: newDiagramId, diagramName } = saveResult.data.saveDiagram;
       
       toast.success(`Loaded ${diagramName}`);
 
@@ -88,15 +93,64 @@ export const FileOperations: React.FC = () => {
       const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
       const filename = `${finalName}.${extension}`;
       
-      // Save to server in format-specific directory
-      await saveDiagram(filename, selectedFormat);
+      // For native format, use the existing saveDiagram function
+      if (selectedFormat === DiagramFormat.NATIVE) {
+        await saveDiagram(filename, selectedFormat);
+        const formatDir = selectedFormat.toLowerCase();
+        toast.success(`Saved to ${formatDir}/${filename}`);
+        return;
+      }
       
-      toast.success(`Saved to ${selectedFormat}/${filename}`);
+      // For light and readable formats, use convert + upload approach
+      // First, serialize the current diagram state
+      const diagramContent = serializeDiagram();
+      
+      // Convert diagram to the desired format
+      const convertResult = await convertDiagramMutation({
+        variables: {
+          content: diagramContent,
+          targetFormat: selectedFormat,
+          includeMetadata: true
+        }
+      });
+      
+      if (!convertResult.data?.convertDiagram?.success) {
+        throw new Error(convertResult.data?.convertDiagram?.error || 'Conversion failed');
+      }
+      
+      // Get the converted content
+      const convertedContent = convertResult.data.convertDiagram.content;
+      if (!convertedContent) {
+        throw new Error('No content returned from conversion');
+      }
+      
+      // Determine the category based on format
+      const category = `diagrams/${selectedFormat}`;
+      
+      // Create a File object from the converted content
+      const file = new File([convertedContent], filename, { 
+        type: 'text/yaml' 
+      });
+      
+      // Upload the file directly to diagrams/{format}/ directory
+      const uploadResult = await uploadFileMutation({
+        variables: {
+          file,
+          category
+        }
+      });
+      
+      if (!uploadResult.data?.uploadFile?.success) {
+        throw new Error(uploadResult.data?.uploadFile?.error || 'Upload failed');
+      }
+      
+      // Show success message
+      toast.success(`Saved to ${category}/${filename}`);
     } catch (error) {
       console.error('Export error:', error);
       toast.error(error instanceof Error ? error.message : 'Export failed');
     }
-  }, [selectedFormat, diagramName, saveDiagram]);
+  }, [selectedFormat, diagramName, saveDiagram, convertDiagramMutation, uploadFileMutation]);
 
   const exportFormats = [
     { value: DiagramFormat.NATIVE, label: 'Native JSON' },

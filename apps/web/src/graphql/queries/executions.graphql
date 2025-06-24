@@ -71,7 +71,7 @@ subscription InteractivePrompts($executionId: ExecutionID!) {
 }
 
 mutation ControlExecution($input: ExecutionControlInput!) {
-  controlExecution(input: $input) {
+  controlExecution(data: $input) {
     success
     execution {
       id
@@ -83,7 +83,7 @@ mutation ControlExecution($input: ExecutionControlInput!) {
 }
 
 mutation SubmitInteractiveResponse($input: InteractiveResponseInput!) {
-  submitInteractiveResponse(input: $input) {
+  submitInteractiveResponse(data: $input) {
     success
     execution {
       id

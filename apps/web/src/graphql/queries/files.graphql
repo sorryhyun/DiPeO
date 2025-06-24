@@ -11,8 +11,8 @@ mutation UploadFile($file: Upload!, $category: String! = "general") {
   }
 }
 
-mutation SaveDiagram($file: Upload!, $format: String, $validateOnly: Boolean = false) {
-  saveDiagram(file: $file, format: $format, validateOnly: $validateOnly) {
+mutation SaveDiagram($file: Upload!, $fileFormat: String, $validateOnly: Boolean = false) {
+  saveDiagram(file: $file, fileFormat: $fileFormat, validateOnly: $validateOnly) {
     success
     message
     diagramId
@@ -22,8 +22,8 @@ mutation SaveDiagram($file: Upload!, $format: String, $validateOnly: Boolean = f
   }
 }
 
-mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat = native, $includeMetadata: Boolean = true) {
-  convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
+mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = native, $includeMetadata: Boolean = true) {
+  convertDiagram(content: $content, targetFormat: $targetFormat, includeMetadata: $includeMetadata) {
     success
     message
     error

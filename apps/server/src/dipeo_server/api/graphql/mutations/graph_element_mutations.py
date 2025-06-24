@@ -5,8 +5,10 @@ import uuid
 
 import strawberry
 from dipeo_domain import (
+    ArrowID as DomainArrowID,
     DomainArrow,
     DomainHandle,
+    HandleID as DomainHandleID,
     Vec2,
 )
 
@@ -34,15 +36,14 @@ class GraphElementMutations:
 
     @strawberry.mutation
     async def create_arrow(
-        self, diagram_id: DiagramID, input: CreateArrowInput, info
+        self, diagram_id: DiagramID, data: CreateArrowInput, info
     ) -> DiagramResult:
         """Creates arrow connection between handles."""
         try:
             context: GraphQLContext = info.context
             storage_service = context.diagram_storage_service
-            converter_service = context.diagram_converter_service
 
-            # Use input directly without conversion
+            # Use data directly without conversion
 
             # Load diagram using new services
             path = await storage_service.find_by_id(diagram_id)
@@ -51,8 +52,8 @@ class GraphElementMutations:
 
             diagram_data = await storage_service.read_file(path)
 
-            source_node_id, source_handle = input.source.split(":")
-            target_node_id, target_handle = input.target.split(":")
+            source_node_id, source_handle = data.source.split(":")
+            target_node_id, target_handle = data.target.split(":")
 
             if source_node_id not in diagram_data.get("nodes", {}):
                 return DiagramResult(
@@ -67,10 +68,10 @@ class GraphElementMutations:
             arrow_id = f"arrow_{str(uuid.uuid4())[:8]}"
 
             arrow = DomainArrow(
-                id=arrow_id,
-                source=input.source,
-                target=input.target,
-                data={"label": input.label} if input.label else None,
+                id=DomainArrowID(arrow_id),
+                source=DomainHandleID(data.source),
+                target=DomainHandleID(data.target),
+                data={"label": data.label} if data.label else None,
             )
 
             if "arrows" not in diagram_data:
@@ -99,7 +100,7 @@ class GraphElementMutations:
             )
 
     @strawberry.mutation
-    async def delete_arrow(self, id: ArrowID, info) -> DeleteResult:
+    async def delete_arrow(self, arrow_id: ArrowID, info) -> DeleteResult:
         """Removes arrow from diagram."""
         try:
             context: GraphQLContext = info.context
@@ -112,39 +113,39 @@ class GraphElementMutations:
 
             for file_info in file_infos:
                 temp_diagram = await storage_service.read_file(file_info.path)
-                if id in temp_diagram.get("arrows", {}):
+                if arrow_id in temp_diagram.get("arrows", {}):
                     diagram_path = file_info.path
                     diagram_data = temp_diagram
                     break
 
             if not diagram_data:
                 return DeleteResult(
-                    success=False, error=f"Arrow {id} not found in any diagram"
+                    success=False, error=f"Arrow {arrow_id} not found in any diagram"
                 )
 
-            del diagram_data["arrows"][id]
+            del diagram_data["arrows"][arrow_id]
 
             # Save diagram using new service
             await storage_service.write_file(diagram_path, diagram_data)
 
             return DeleteResult(
-                success=True, deleted_id=id, message=f"Deleted arrow {id}"
+                success=True, deleted_id=arrow_id, message=f"Deleted arrow {arrow_id}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to delete arrow {id}: {e}")
+            logger.error(f"Failed to delete arrow {arrow_id}: {e}")
             return DeleteResult(
                 success=False, error=f"Failed to delete arrow: {e!s}"
             )
 
     @strawberry.mutation
-    async def create_handle(self, input: CreateHandleInput, info) -> HandleResult:
+    async def create_handle(self, data: CreateHandleInput, info) -> HandleResult:
         """Creates handle for node connection point."""
         try:
             context: GraphQLContext = info.context
             storage_service = context.diagram_storage_service
 
-            # Use input directly without conversion
+            # Use data directly without conversion
 
             # Find diagram containing this node
             file_infos = await storage_service.list_files()
@@ -153,7 +154,7 @@ class GraphElementMutations:
 
             for file_info in file_infos:
                 temp_diagram = await storage_service.read_file(file_info.path)
-                if input.node_id in temp_diagram.get("nodes", {}):
+                if data.node_id in temp_diagram.get("nodes", {}):
                     diagram_path = file_info.path
                     diagram_data = temp_diagram
                     break
@@ -161,28 +162,25 @@ class GraphElementMutations:
             if not diagram_data:
                 return HandleResult(
                     success=False,
-                    error=f"Node {input.node_id} not found in any diagram",
+                    error=f"Node {data.node_id} not found in any diagram",
                 )
 
-            handle_id = f"{input.node_id}:{input.label}"
+            handle_id = f"{data.node_id}:{data.label}"
 
             if handle_id in diagram_data.get("handles", {}):
                 return HandleResult(
                     success=False,
-                    error=f"Handle '{input.label}' already exists for node {input.node_id}",
+                    error=f"Handle '{data.label}' already exists for node {data.node_id}",
                 )
 
             handle = DomainHandle(
-                id=handle_id,
-                nodeId=input.node_id,
-                label=input.label,
-                direction=input.direction,
-                dataType=input.data_type,
-                maxConnections=getattr(input, 'max_connections', 1),
-                position=Vec2(
-                    x=input.position.x, y=input.position.y
-                )
-                if input.position
+                id=DomainHandleID(handle_id),
+                nodeId=data.node_id,
+                label=data.label,
+                direction=data.direction,
+                dataType=data.data_type,
+                position=str(Vec2(x=data.position.x, y=data.position.y))
+                if data.position
                 else None,
             )
 
@@ -208,7 +206,7 @@ class GraphElementMutations:
             )
 
     @strawberry.mutation
-    async def delete_handle(self, id: HandleID, info) -> DeleteResult:
+    async def delete_handle(self, handle_id: HandleID, info) -> DeleteResult:
         """Removes handle and connected arrows."""
         try:
             context: GraphQLContext = info.context
@@ -221,21 +219,21 @@ class GraphElementMutations:
 
             for file_info in file_infos:
                 temp_diagram = await storage_service.read_file(file_info.path)
-                if id in temp_diagram.get("handles", {}):
+                if handle_id in temp_diagram.get("handles", {}):
                     diagram_path = file_info.path
                     diagram_data = temp_diagram
                     break
 
             if not diagram_data:
                 return DeleteResult(
-                    success=False, error=f"Handle {id} not found in any diagram"
+                    success=False, error=f"Handle {handle_id} not found in any diagram"
                 )
 
-            del diagram_data["handles"][id]
+            del diagram_data["handles"][handle_id]
 
             arrows_to_remove = []
             for arrow_id, arrow in diagram_data.get("arrows", {}).items():
-                if arrow["source"] == id or arrow["target"] == id:
+                if arrow["source"] == handle_id or arrow["target"] == handle_id:
                     arrows_to_remove.append(arrow_id)
 
             for arrow_id in arrows_to_remove:
@@ -246,12 +244,12 @@ class GraphElementMutations:
 
             return DeleteResult(
                 success=True,
-                deleted_id=id,
-                message=f"Deleted handle {id} and {len(arrows_to_remove)} connected arrows",
+                deleted_id=handle_id,
+                message=f"Deleted handle {handle_id} and {len(arrows_to_remove)} connected arrows",
             )
 
         except Exception as e:
-            logger.error(f"Failed to delete handle {id}: {e}")
+            logger.error(f"Failed to delete handle {handle_id}: {e}")
             return DeleteResult(
                 success=False, error=f"Failed to delete handle: {e!s}"
             )

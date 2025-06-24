@@ -248,5 +248,11 @@ class MemoryService:
             },
         }
 
+    def clear_all_conversations(self) -> None:
+        """Clear all conversation history for all persons."""
+        self.person_memories.clear()
+        self.all_messages.clear()
+        self.execution_metadata.clear()
+
 
 # MemoryService is already defined above

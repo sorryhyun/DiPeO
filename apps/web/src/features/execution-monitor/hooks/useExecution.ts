@@ -356,10 +356,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     const update = nodeData.nodeUpdates;
 
-    // The backend sends status values in UPPERCASE (e.g. "RUNNING", "COMPLETED").
-    // For historical reasons the frontend logic expects lowercase strings.
-    // To make the comparison robust across different capitalisation styles we
-    // normalise the received status value to lowercase once here.
     const status = (update.status || '').toLowerCase();
 
     if (status === 'running') {

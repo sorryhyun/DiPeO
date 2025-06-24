@@ -111,7 +111,7 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
       mutation: SaveDiagramDocument,
       variables: {
         file,
-        format,
+        fileFormat: format,
         validateOnly: false
       }
     });
