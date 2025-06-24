@@ -76,15 +76,19 @@
   --shadow-color: rgb(254 202 202); /* red-200 */
   border-color: var(--border-color);
   background-color: rgb(254 242 242); /* red-50 */
+  box-shadow: 0 0 0 3px var(--ring-color), 0 8px 12px -2px var(--shadow-color);
+  transform: scale(1.02);
 }
 
-/* Completed state */
+/* Completed state - Purple theme for better distinction */
 [data-completed="true"] {
-  --border-color: rgb(59 130 246); /* blue-500 */
-  --ring-color: rgb(147 197 253); /* blue-300 */
-  --shadow-color: rgb(191 219 254); /* blue-200 */
+  --border-color: rgb(147 51 234); /* purple-600 */
+  --ring-color: rgb(196 181 253); /* purple-300 */
+  --shadow-color: rgb(221 214 254); /* purple-200 */
   border-color: var(--border-color);
-  background-color: rgb(239 246 255); /* blue-50 */
+  background-color: rgb(250 245 255); /* purple-50 */
+  box-shadow: 0 0 0 3px var(--ring-color), 0 8px 12px -2px var(--shadow-color);
+  transform: scale(1.02);
 }
 
 /* Skipped state */

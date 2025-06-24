@@ -3,15 +3,15 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncIterator, Callable
-from typing import Any, Optional
+from typing import Any
 
+from dipeo_core import BaseService
 from dipeo_domain import ExecutionStatus
 from dipeo_domain.models import DomainDiagram
 
-from dipeo_server.core import BaseService
-from ..services.state_store import state_store
-from ..engine import SimplifiedEngine
-from ..handlers import get_handlers
+from dipeo_server.domains.execution.engine import ViewBasedEngine
+from dipeo_server.domains.execution.handlers import get_handlers
+from dipeo_server.infrastructure.persistence import state_store
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class ExecutionService(BaseService):
         file_service,
         diagram_service=None,
         notion_service=None,
-        diagram_execution_adapter=None,
+        execution_preparation_service=None,
     ) -> None:
         super().__init__()
         self.llm_service = llm_service
@@ -35,31 +35,31 @@ class ExecutionService(BaseService):
         self.file_service = file_service
         self.diagram_service = diagram_service
         self.notion_service = notion_service
-        self.diagram_execution_adapter = diagram_execution_adapter
+        self.execution_preparation_service = execution_preparation_service
 
     async def initialize(self) -> None:
         pass
 
     async def execute_diagram(
         self,
-        diagram: dict[str, Any],
+        diagram: dict[str, Any] | str,
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable[[dict[str, Any]], Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        if self.diagram_execution_adapter:
-            if isinstance(diagram, str):
-                ready_diagram = await self.diagram_execution_adapter.prepare_diagram_for_execution(
-                    diagram_id=diagram
-                )
-            else:
-                ready_diagram = await self.diagram_execution_adapter.prepare_diagram_dict_for_execution(
-                    diagram_dict=diagram
-                )
-
-            diagram_dict = ready_diagram.storage_format
+        log.info(f"ExecutionService.execute_diagram called with execution_id: {execution_id}")
+        if self.execution_preparation_service:
+            # Use the unified preparation service
+            ready_diagram = await self.execution_preparation_service.prepare_for_execution(
+                diagram=diagram,
+                validate=True
+            )
+            
+            diagram_dict = ready_diagram.backend_format
             api_keys = ready_diagram.api_keys
+            diagram_obj = ready_diagram.domain_model
         else:
+            # Fallback for compatibility
             if isinstance(diagram, dict):
                 diagram_obj = DomainDiagram.model_validate(diagram)
                 diagram_dict = diagram
@@ -69,15 +69,12 @@ class ExecutionService(BaseService):
 
             api_keys = self._inject_api_keys(diagram_dict)["api_keys"]
 
-        engine = SimplifiedEngine(get_handlers())
+        engine = ViewBasedEngine(get_handlers())
 
-        if not isinstance(diagram, dict):
-            diagram_obj = diagram
-        else:
-            diagram_obj = DomainDiagram.model_validate(diagram_dict)
+        diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None
+        await state_store.create_execution(execution_id, diagram_id, options.get("variables", {}))
 
-        await state_store.create_execution(execution_id, diagram_obj.id, options.get("variables", {}))
-
+        log.info(f"Starting execution {execution_id}")
         yield {
             "type": "execution_start",
             "execution_id": execution_id,
@@ -155,10 +152,17 @@ class ExecutionService(BaseService):
 
         final_status = "completed"
         for output in ctx.node_outputs.values():
-            if output.status == "failed":
+            # Check if status is in metadata
+            if output.metadata and output.metadata.get("status") == "failed":
                 final_status = "failed"
                 break
 
+        # Update execution status in state store
+        if final_status == "completed":
+            await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
+        elif final_status == "failed":
+            await state_store.update_status(execution_id, ExecutionStatus.FAILED)
+        
         await stream_callback({
             "type": "execution_complete",
             "execution_id": execution_id,

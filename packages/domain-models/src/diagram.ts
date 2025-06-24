@@ -51,8 +51,7 @@ export enum ForgettingMode {
 export enum DiagramFormat {
   NATIVE = 'native',
   LIGHT = 'light',
-  READABLE = 'readable',
-  NATIVE_YAML = 'native_yaml'
+  READABLE = 'readable'
 }
 
 export enum DBBlockSubType {
@@ -89,6 +88,7 @@ export interface Vec2 {
   x: number;
   y: number;
 }
+
 
 // Branded types for IDs
 export type NodeID = string & { readonly __brand: 'NodeID' };
@@ -164,15 +164,6 @@ export interface DomainDiagram {
   metadata?: DiagramMetadata | null;
 }
 
-// Dictionary format for internal use
-export interface DiagramDictFormat {
-  nodes: Record<NodeID, DomainNode>;
-  handles: Record<HandleID, DomainHandle>;
-  arrows: Record<ArrowID, DomainArrow>;
-  persons: Record<PersonID, DomainPerson>;
-  apiKeys: Record<ApiKeyID, DomainApiKey>;
-  metadata?: DiagramMetadata | null;
-}
 
 // Node data schemas - can be extended per node type
 export interface BaseNodeData {

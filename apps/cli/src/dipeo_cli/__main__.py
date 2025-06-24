@@ -50,7 +50,7 @@ def main():
         elif command == "monitor":
             monitor(args)
         elif command == "convert":
-            convert(args)
+            asyncio.run(convert(args))
         elif command == "stats":
             stats(args)
         else:

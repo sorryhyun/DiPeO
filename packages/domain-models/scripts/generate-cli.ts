@@ -23,7 +23,7 @@ const PY_TYPE_MAP: Record<string, string> = {
 
 const CLI_TYPES = new Set([
   'DomainNode', 'DomainArrow', 'DomainHandle', 'DomainPerson', 'DomainApiKey',
-  'DomainDiagram', 'DiagramDictFormat', 'DiagramMetadata', 'Vec2',
+  'DomainDiagram', 'DiagramMetadata', 'Vec2',
   'StartNodeData', 'PersonJobNodeData', 'ConditionNodeData', 'EndpointNodeData',
   'JobNodeData', 'DBNodeData', 'UserResponseNodeData'
 ]);

@@ -107,7 +107,7 @@ generate_code() {
     # Export GraphQL schema
     print_info "Exporting GraphQL schema..."
     cd "$SCRIPT_DIR/apps/server"
-    python -c "from dipeo_server.api.schema import schema; schema_str = schema.as_str(); open('../../apps/web/schema.graphql', 'w').write(schema_str); print(f'GraphQL schema exported to ../../apps/web/schema.graphql'); print(f'Schema length: {len(schema_str)} characters')"
+    python -c "from dipeo_server.api.graphql.schema import schema; schema_str = schema.as_str(); open('../../apps/web/schema.graphql', 'w').write(schema_str); print(f'GraphQL schema exported to ../../apps/web/schema.graphql'); print(f'Schema length: {len(schema_str)} characters')"
     if [ $? -eq 0 ]; then
         print_success "GraphQL schema exported successfully"
     else

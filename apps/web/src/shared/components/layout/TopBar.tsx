@@ -14,8 +14,7 @@ const TopBar = () => {
   // Use UI state for mode control
   const { activeCanvas } = useUIState();
   const { setReadOnly, setActiveCanvas } = useUnifiedStore();
-  
-  // Use only the diagram manager for file operations - much lighter weight
+
   // NOTE: This is the ONLY place where auto-save should be enabled to avoid duplicate saves
   const diagramManager = useDiagramManager({
     confirmOnNew: true,
@@ -31,10 +30,7 @@ const TopBar = () => {
     isDirty
   } = diagramManager;
   
-  
-  // Removed automatic loading of most recent diagram - this is now handled by useDiagramLoader
-  // The user can explicitly load diagrams through the file menu or URL parameter
-  
+
   // Handle monitor mode separately
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,8 +44,6 @@ const TopBar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
-
-  // Keyboard shortcuts could be added here if needed
 
   return (
     <header className="p-3 border-b bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm">

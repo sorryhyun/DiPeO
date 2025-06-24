@@ -3,10 +3,12 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from dipeo_domain import DiagramDictFormat, DomainArrow, DomainDiagram, DomainNode
+from dipeo_domain import DomainArrow, DomainDiagram, DomainNode
 
-from .base import DiagramConverter
-from .diagram_format_converter import diagram_dict_to_graphql
+from ..services.models import BackendDiagram
+
+from .base import DiagramConverter, FormatStrategy
+from .conversion_utils import backend_to_graphql, graphql_to_backend
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
@@ -14,7 +16,6 @@ from .shared_components import (
     PositionCalculator,
 )
 from .strategies import (
-    FormatStrategy,
     LightYamlStrategy,
     NativeJsonStrategy,
     ReadableYamlStrategy,
@@ -134,17 +135,15 @@ class UnifiedDiagramConverter(DiagramConverter):
             node = self._create_node(node_data, index)
             nodes_dict[node.id] = node
 
-        arrows_data = data.get("arrows", {})
-        if isinstance(arrows_data, dict):
-            arrows_dict = arrows_data
-        elif isinstance(arrows_data, list):
-            arrows_dict = {
-                key.get("id", f"key_{i}"): key for i, key in enumerate(arrows_data)
-            }
-        else:
-            arrows_dict = {}
+        # Extract arrows using strategy (handles both "arrows" and "connections")
+        arrows_list = strategy.extract_arrows(data, list(nodes_dict.values()))
+        arrows_dict = {}
+        for index, arrow_data in enumerate(arrows_list):
+            arrow = self._create_arrow(arrow_data)
+            if arrow:
+                arrows_dict[arrow.id] = arrow
 
-        diagram_dict = DiagramDictFormat(
+        diagram_dict = BackendDiagram(
             nodes=nodes_dict,
             handles=handles_dict,
             arrows=arrows_dict,
@@ -159,7 +158,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                     diagram_dict, node_id, node.type
                 )
 
-        return diagram_dict_to_graphql(diagram_dict)
+        return backend_to_graphql(diagram_dict)
 
     def _create_node(self, node_data: Dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""
@@ -204,6 +203,12 @@ class UnifiedDiagramConverter(DiagramConverter):
 
     def detect_format(self, content: str) -> Optional[str]:
         """Automatically detect format from content."""
+        # First try quick match for efficiency
+        for format_id, strategy in self.strategies.items():
+            if strategy.quick_match(content):
+                return format_id
+
+        # Fall back to full parsing if no quick match
         confidences: List[Tuple[str, float]] = []
 
         for format_id, strategy in self.strategies.items():
@@ -211,7 +216,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 data = strategy.parse(content)
                 confidence = strategy.detect_confidence(data)
                 confidences.append((format_id, confidence))
-            except:
+            except Exception:
                 confidences.append((format_id, 0.0))
 
         confidences.sort(key=lambda x: x[1], reverse=True)

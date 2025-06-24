@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from dipeo_core import ValidationError
 from dipeo_domain import DomainDiagram
-from dipeo_server.core import APIKeyService
+
+from dipeo_server.domains.apikey import APIKeyService
 
 
 class DiagramValidator:
@@ -19,7 +20,7 @@ class DiagramValidator:
 
         if isinstance(diagram, dict):
             if context == "storage" or context == "execution":
-                return self._validate_storage_format(diagram, context)
+                return self._validate_backend_format(diagram, context)
             try:
                 diagram = DomainDiagram.model_validate(diagram)
             except Exception as e:
@@ -83,7 +84,7 @@ class DiagramValidator:
 
         return errors
 
-    def _validate_storage_format(self, diagram: Dict[str, Any], context: str = "storage") -> List[str]:
+    def _validate_backend_format(self, diagram: Dict[str, Any], context: str = "backend") -> List[str]:
         errors = []
 
         nodes = diagram.get("nodes", {})

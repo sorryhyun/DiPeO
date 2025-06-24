@@ -277,7 +277,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         // Give ReactFlow a moment to position the nodes
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            rfInstance.fitView({ padding: 0.2, duration: 200 });
+            rfInstance.fitView({ padding: 0.3, duration: 200, maxZoom: 0.8 });
           });
         });
       }
@@ -370,10 +370,10 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
       {executionMode ? (
         // Execution mode: Split view with diagram and conversation
         <PanelGroup direction="vertical">
-          <Panel defaultSize={40} minSize={20}>
+          <Panel defaultSize={70} minSize={20}>
             {/* Diagram view in execution mode */}
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
-              <ReactFlow {...flowProps} onInit={handleInit} onViewportChange={handleViewportChange} />
+              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.7 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {/* Context menu disabled */}
@@ -381,7 +381,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
-          <Panel defaultSize={60} minSize={30}>
+          <Panel defaultSize={30} minSize={25}>
             {/* Conversation view */}
             <div className="h-full bg-white">
               <Suspense
@@ -401,7 +401,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         <PanelGroup direction="vertical">
           <Panel defaultSize={65} minSize={30}>
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
-              <ReactFlow {...flowProps} onInit={handleInit} onViewportChange={handleViewportChange} />
+              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.7 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {/* Context menu disabled */}

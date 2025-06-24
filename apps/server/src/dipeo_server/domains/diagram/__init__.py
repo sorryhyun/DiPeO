@@ -1,7 +1,7 @@
 # Barrel exports for diagram domain
 from dipeo_domain import ContentType, DataType, DiagramFormat, HandleDirection, NodeType
 
-from .converters.registry import ConverterRegistry
+from .converters.registry import converter_registry
 from .converters.unified_converter import UnifiedDiagramConverter
 
 __all__ = [
@@ -13,5 +13,5 @@ __all__ = [
     "ContentType",
     # Services and utilities
     "UnifiedDiagramConverter",
-    "ConverterRegistry",
+    "converter_registry",
 ]

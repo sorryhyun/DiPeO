@@ -31,18 +31,18 @@ logger = logging.getLogger(__name__)
 class StateStore:
     """Simple state storage for execution tracking."""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None) -> None:
         self.db_path = db_path or os.getenv("STATE_STORE_PATH", str(STATE_DB_PATH))
         self._conn: Optional[sqlite3.Connection] = None
         self._lock = asyncio.Lock()
         self._executor = ThreadPoolExecutor(max_workers=1)  # Single thread for SQLite
         self._thread_id: Optional[int] = None
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         await self._connect()
         await self._init_schema()
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         if self._conn:
             await asyncio.get_event_loop().run_in_executor(
                 self._executor, self._conn.close
@@ -50,7 +50,7 @@ class StateStore:
             self._conn = None
         self._executor.shutdown(wait=True)
 
-    async def _connect(self):
+    async def _connect(self) -> None:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
         loop = asyncio.get_event_loop()
@@ -67,12 +67,12 @@ class StateStore:
 
         self._conn = await loop.run_in_executor(self._executor, _connect_sync)
 
-    async def _execute(self, *args, **kwargs):
+    async def _execute(self, *args, **kwargs) -> sqlite3.Cursor:
         """Execute a database operation in the dedicated thread."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self._executor, self._conn.execute, *args, **kwargs)
 
-    async def _init_schema(self):
+    async def _init_schema(self) -> None:
         """Initialize database schema."""
         schema = """
         CREATE TABLE IF NOT EXISTS execution_states (
@@ -121,43 +121,19 @@ class StateStore:
         await self.save_state(state)
         return state
 
-    async def save_state(self, state: ExecutionState):
+    async def save_state(self, state: ExecutionState) -> None:
         """Save execution state to database."""
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
-            node_states_dict = {}
-            for node_id, node_state in state.node_states.items():
-                if hasattr(node_state, "model_dump"):
-                    node_states_dict[node_id] = node_state.model_dump()
-                elif hasattr(node_state, "dict"):  # Pydantic v1 compatibility
-                    node_states_dict[node_id] = node_state.dict()
-                elif isinstance(node_state, dict):
-                    node_states_dict[node_id] = node_state
-                else:
-                    # Fallback: convert to dict manually
-                    node_states_dict[node_id] = {
-                        "status": node_state.status.value if hasattr(node_state.status, 'value') else str(node_state.status),
-                        "started_at": node_state.started_at,
-                        "ended_at": node_state.ended_at,
-                        "error": node_state.error,
-                        "skip_reason": getattr(node_state, 'skip_reason', None),
-                        "token_usage": node_state.token_usage.model_dump() if hasattr(node_state, 'token_usage') and node_state.token_usage and hasattr(node_state.token_usage, "model_dump") else None
-                    }
+            node_states_dict = {
+                node_id: node_state.model_dump() if hasattr(node_state, "model_dump") else node_state
+                for node_id, node_state in state.node_states.items()
+            }
 
-            node_outputs_dict = {}
-            for node_id, node_output in state.node_outputs.items():
-                if hasattr(node_output, "model_dump"):
-                    node_outputs_dict[node_id] = node_output.model_dump()
-                elif hasattr(node_output, "dict"):  # Pydantic v1 compatibility
-                    node_outputs_dict[node_id] = node_output.dict()
-                elif isinstance(node_output, dict):
-                    node_outputs_dict[node_id] = node_output
-                else:
-                    # Fallback: convert to dict manually
-                    node_outputs_dict[node_id] = {
-                        "value": node_output.value,
-                        "metadata": node_output.metadata if hasattr(node_output, "metadata") else {}
-                    }
+            node_outputs_dict = {
+                node_id: node_output.model_dump() if hasattr(node_output, "model_dump") else node_output
+                for node_id, node_output in state.node_outputs.items()
+            }
 
             await self._execute(
                 """
@@ -234,7 +210,7 @@ class StateStore:
 
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: Optional[str] = None
-    ):
+    ) -> None:
         """Update execution status."""
         state = await self.get_state(execution_id)
         if not state:
@@ -260,7 +236,7 @@ class StateStore:
         output: Optional[NodeOutput] = None,
         error: Optional[str] = None,
         skip_reason: Optional[str] = None,
-    ):
+    ) -> None:
         """Update node execution status."""
         state = await self.get_state(execution_id)
         if not state:
@@ -306,7 +282,7 @@ class StateStore:
 
         await self.save_state(state)
 
-    async def update_variables(self, execution_id: str, variables: Dict[str, Any]):
+    async def update_variables(self, execution_id: str, variables: Dict[str, Any]) -> None:
         """Update execution variables."""
         state = await self.get_state(execution_id)
         if not state:
@@ -315,7 +291,7 @@ class StateStore:
         state.variables.update(variables)
         await self.save_state(state)
 
-    async def update_token_usage(self, execution_id: str, tokens: TokenUsage):
+    async def update_token_usage(self, execution_id: str, tokens: TokenUsage) -> None:
         """Update token usage statistics."""
         state = await self.get_state(execution_id)
         if not state:
@@ -368,7 +344,7 @@ class StateStore:
 
         return executions
 
-    async def cleanup_old_states(self, days: int = 7):
+    async def cleanup_old_states(self, days: int = 7) -> None:
         """Remove states older than specified days."""
         cutoff_date = datetime.now()
         cutoff_date = cutoff_date.replace(microsecond=0)
@@ -380,6 +356,28 @@ class StateStore:
         )
 
         await self._execute("VACUUM")
+
+    async def get_node_output(self, execution_id: str, node_id: str) -> Optional[NodeOutput]:
+        """Get output for a specific node from storage."""
+        logger.info(f"StateStore.get_node_output called for execution_id={execution_id}, node_id={node_id}")
+        
+        state = await self.get_state(execution_id)
+        if not state:
+            logger.warning(f"No state found for execution_id={execution_id}")
+            return None
+        
+        output = state.node_outputs.get(node_id)
+        if output:
+            if output.value is not None:
+                value_keys = list(output.value.keys()) if isinstance(output.value, dict) else f"Not a dict: {type(output.value)}"
+                logger.info(f"Found output for node {node_id}: value_keys={value_keys}")
+            else:
+                logger.warning(f"Found output for node {node_id} but value is None!")
+        else:
+            logger.warning(f"No output found for node {node_id} in state store")
+            logger.debug(f"Available node outputs: {list(state.node_outputs.keys())}")
+        
+        return output
 
 
 state_store = StateStore()

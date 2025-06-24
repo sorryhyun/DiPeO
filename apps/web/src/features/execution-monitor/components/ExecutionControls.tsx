@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { Button } from '@/shared/components/ui/buttons';
-import { useExecution } from '../hooks';
+import { useExecution, useMonitorMode } from '../hooks';
 import { useDiagramData } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { nodeId, ReactDiagram } from '@/core/types';
@@ -11,6 +11,7 @@ import { diagramId } from '@/core/types/branded';
 import { toast } from 'sonner';
 
 const ExecutionControls = () => {
+  const { isMonitorMode, diagramName } = useMonitorMode({ autoStart: true });
   const execution = useExecution({ showToasts: false });
   const { nodes, arrows } = useDiagramData();
   const { persons, handles, apiKeys } = useUnifiedStore(
@@ -32,6 +33,16 @@ const ExecutionControls = () => {
 
   return (
     <div className="flex items-center justify-center gap-4 p-4 bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">
+      {/* Monitor Mode Indicator */}
+      {isMonitorMode && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-md border border-blue-500/30">
+          <span className="animate-pulse">📡</span>
+          <span className="text-sm font-medium">
+            Monitor Mode {diagramName ? `- ${diagramName}` : ''}
+          </span>
+        </div>
+      )}
+      
       {runStatus === 'running' ? (
         <>
           <Button 
@@ -70,7 +81,7 @@ const ExecutionControls = () => {
             </>
           )}
         </>
-      ) : (
+      ) : !isMonitorMode ? (
         <Button 
           variant="outline" 
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
@@ -108,7 +119,7 @@ const ExecutionControls = () => {
         >
           ▶️ Run Diagram
         </Button>
-      )}
+      ) : null}
       
       <div className="whitespace-nowrap text-base font-medium ml-4">
         {runStatus === 'running' && <span className="text-blue-400 animate-pulse">⚡ Running...</span>}

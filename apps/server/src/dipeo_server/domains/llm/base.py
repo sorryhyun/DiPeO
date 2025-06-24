@@ -1,4 +1,3 @@
-# base.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -18,10 +17,19 @@ class ChatResult:
             v is not None
             for v in (self.prompt_tokens, self.completion_tokens, self.total_tokens)
         )
+    
+    @property
+    def usage(self) -> Optional[Dict[str, int]]:
+        if self.has_usage:
+            return {
+                "prompt_tokens": self.prompt_tokens,
+                "completion_tokens": self.completion_tokens,
+                "total_tokens": self.total_tokens,
+            }
+        return None
 
 
 class BaseAdapter(ABC):
-    """Minimal interface for an LLM adapter."""
 
     FALLBACK_MODELS: Dict[str, List[str]] = {"openai": ["gpt-4", "gpt-3.5-turbo"]}
 
@@ -31,34 +39,45 @@ class BaseAdapter(ABC):
         self.base_url = base_url
         self.client = self._initialize_client()
 
+    def _combine_prompts(self, cacheable_prompt: str, user_prompt: str) -> str:
+        parts = [p for p in [cacheable_prompt, user_prompt] if p]
+        return "\n\n".join(parts) if parts else ""
+    
+    def _safe_strip_prefill(self, prefill: str) -> str:
+        return prefill.strip() if prefill else ""
+
     @abstractmethod
     def _initialize_client(self) -> Any:
-        """Initialize the provider-specific client."""
         raise NotImplementedError
 
     @abstractmethod
     def _build_messages(
-        self, system_prompt: str, user_prompt: str = ""
-    ) -> List[Dict[str, str]]: ...
+        self,
+        system_prompt: str,
+        cacheable_prompt: str = "",
+        user_prompt: str = "",
+        citation_target: str = "",
+        **kwargs,
+    ) -> Any:
+        ...
 
     @abstractmethod
     def _make_api_call(self, messages: Any, **kwargs) -> Any:
-        """Make the actual API call to the provider."""
         raise NotImplementedError
 
     @abstractmethod
-    def _extract_text(self, response: Any) -> str:
+    def _extract_text_from_response(self, response: Any, **kwargs) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def _extract_usage(self, response: Any) -> Dict[str, int]:
+    def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
         raise NotImplementedError
 
     def chat(self, system_prompt: str, user_prompt: str = "", **kwargs) -> ChatResult:
-        msgs = self._build_messages(system_prompt, user_prompt)
-        resp = self._make_api_call(msgs, **kwargs)
-        text = self._extract_text(resp)
-        usage = self._extract_usage(resp)
+        msgs = self._build_messages(system_prompt, user_prompt=user_prompt, **kwargs)
+        resp = self._make_api_call(msgs, system_prompt=system_prompt, **kwargs)
+        text = self._extract_text_from_response(resp, **kwargs)
+        usage = self._extract_usage_from_response(resp) or {}
         return ChatResult(
             text=text,
             prompt_tokens=usage.get("prompt_tokens"),
@@ -70,10 +89,9 @@ class BaseAdapter(ABC):
     def chat_with_messages(
         self, messages: List[Dict[str, str]], **kwargs
     ) -> ChatResult:
-        """Chat with pre-built messages array (for conversation history)."""
         resp = self._make_api_call(messages, **kwargs)
-        text = self._extract_text(resp)
-        usage = self._extract_usage(resp)
+        text = self._extract_text_from_response(resp, **kwargs)
+        usage = self._extract_usage_from_response(resp) or {}
         return ChatResult(
             text=text,
             prompt_tokens=usage.get("prompt_tokens"),

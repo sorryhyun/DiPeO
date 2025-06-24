@@ -23,8 +23,6 @@ class DiPeoAPIClient:
         # HTTP client for queries/mutations
         transport = AIOHTTPTransport(url=self.http_url)
         self._client = Client(transport=transport, fetch_schema_from_transport=False)
-
-        # No need to create WebSocket clients here - they'll be created on demand
         return self
 
     async def __aexit__(self, *args):
@@ -61,7 +59,8 @@ class DiPeoAPIClient:
 
     async def execute_diagram(
         self,
-        diagram_id: str,
+        diagram_id: Optional[str] = None,
+        diagram_data: Optional[Dict[str, Any]] = None,
         variables: Optional[Dict[str, Any]] = None,
         debug_mode: bool = False,
         timeout: int = 300,
@@ -83,21 +82,23 @@ class DiPeoAPIClient:
             }
         """)
 
-        # Check if this is a temporary diagram (created by save_diagram)
+        # Prepare input data
         input_data = {
             "debugMode": debug_mode,
             "timeoutSeconds": timeout,
             "maxIterations": 1000,
         }
         
-        if diagram_id.startswith("temp_") and hasattr(self, '_temp_diagram_data'):
+        if diagram_data:
             # Use diagram data directly
-            input_data["diagramData"] = self._temp_diagram_data
+            input_data["diagramData"] = diagram_data
             if variables:
                 input_data["variables"] = variables
-        else:
+        elif diagram_id:
             # Use existing diagram ID
             input_data["diagramId"] = diagram_id
+        else:
+            raise ValueError("Either diagram_id or diagram_data must be provided")
             
         result = await self._client.execute_async(
             mutation,
@@ -110,6 +111,42 @@ class DiPeoAPIClient:
         raise Exception(
             response.get("error") or response.get("message", "Unknown error")
         )
+
+    async def convert_diagram(
+        self,
+        diagram_data: Dict[str, Any],
+        format: str = "native",
+        include_metadata: bool = True
+    ) -> Dict[str, Any]:
+        """Convert diagram to specified format using backend API."""
+        mutation = gql("""
+            mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
+                convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
+                    success
+                    message
+                    error
+                    content
+                    format
+                    filename
+                }
+            }
+        """)
+
+        result = await self._client.execute_async(
+            mutation,
+            variable_values={
+                "content": diagram_data,
+                "format": format.upper(),
+                "includeMetadata": include_metadata
+            }
+        )
+
+        response = result.get("convertDiagram")
+        if not response:
+            raise Exception(f"No response from convertDiagram mutation. Result: {result}")
+        if response["success"]:
+            return response
+        raise Exception(response.get("error") or "Conversion failed")
 
     async def subscribe_to_execution(
         self, execution_id: str
@@ -273,20 +310,10 @@ class DiPeoAPIClient:
     ) -> str:
         """Save a diagram and return its ID.
         
-        Note: Since there's no direct mutation to save a diagram with content,
-        we'll create an empty diagram and then execute directly with diagram_data.
-        For now, we'll return a temporary ID since execution can work with diagram_data directly.
+        This method is deprecated for CLI usage since we can execute diagrams
+        directly with diagram_data.
         """
-        from datetime import datetime
-        
-        # For CLI usage, we can execute diagrams directly without saving
-        # Return a temporary ID that indicates this is an unsaved diagram
-        diagram_name = diagram_data.get("metadata", {}).get("name", "cli_diagram")
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        temp_id = f"temp_{diagram_name}_{timestamp}"
-        
-        # Store the diagram data temporarily (in practice, the execute_diagram
-        # mutation will receive the diagram_data directly)
-        self._temp_diagram_data = diagram_data
-        
-        return temp_id
+        # This method is no longer needed for CLI usage
+        raise NotImplementedError(
+            "save_diagram is deprecated. Use execute_diagram with diagram_data instead."
+        )

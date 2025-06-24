@@ -1,9 +1,11 @@
 # Barrel exports for execution domain
 from dipeo_domain import EventType, ExecutionStatus, NodeExecutionStatus
 
-from .services.execution_service import ExecutionService
-from .engine import SimplifiedEngine
 from .context import ExecutionContext
+from .engine import ViewBasedEngine
+from .models import ExecutionReadyDiagram
+from .preparation_service import ExecutionPreparationService
+from .services.execution_service import ExecutionService
 from .validators import DiagramValidator
 
 __all__ = [
@@ -14,6 +16,8 @@ __all__ = [
     "ExecutionStatus",
     "NodeExecutionStatus",
     # Services and utilities
-    "SimplifiedEngine",
+    "ViewBasedEngine",
     "DiagramValidator",
+    "ExecutionPreparationService",
+    "ExecutionReadyDiagram",
 ]

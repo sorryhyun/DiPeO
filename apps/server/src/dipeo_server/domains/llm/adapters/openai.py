@@ -13,13 +13,26 @@ class ChatGPTAdapter(BaseAdapter):
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def _build_messages(
-        self, system_prompt: str, user_prompt: str = ""
+        self,
+        system_prompt: str,
+        cacheable_prompt: str = "",
+        user_prompt: str = "",
+        citation_target: str = "",
+        **kwargs,
     ) -> List[Dict[str, str]]:
         msgs: List[Dict[str, str]] = []
         if system_prompt:
             msgs.append({"role": "system", "content": system_prompt})
-        if user_prompt:
-            msgs.append({"role": "user", "content": user_prompt})
+        
+        # Combine cacheable and user prompts using the helper method
+        combined_prompt = self._combine_prompts(cacheable_prompt, user_prompt)
+        if combined_prompt:
+            msgs.append({"role": "user", "content": combined_prompt})
+        
+        # Handle citation_target if needed
+        if citation_target:
+            msgs.append({"role": "user", "content": f"Citation target: {citation_target}"})
+        
         return msgs
 
     def _make_api_call(self, messages: List[Dict[str, str]], **kwargs) -> Any:
@@ -29,11 +42,11 @@ class ChatGPTAdapter(BaseAdapter):
                 params[opt] = kwargs[opt]
         return self.client.chat.completions.create(**params)
 
-    def _extract_text(self, response: Any) -> str:
+    def _extract_text_from_response(self, response: Any, **kwargs) -> str:
         choice = response.choices[0] if response.choices else None
         return getattr(choice.message, "content", "") if choice else ""
 
-    def _extract_usage(self, response: Any) -> Dict[str, int]:
+    def _extract_usage_from_response(self, response: Any) -> Dict[str, int]:
         u = getattr(response, "usage", None)
         return (
             {
