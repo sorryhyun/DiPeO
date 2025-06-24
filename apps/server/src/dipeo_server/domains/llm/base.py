@@ -1,4 +1,3 @@
-# base.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -21,7 +20,6 @@ class ChatResult:
     
     @property
     def usage(self) -> Optional[Dict[str, int]]:
-        """Return usage as a dictionary for compatibility."""
         if self.has_usage:
             return {
                 "prompt_tokens": self.prompt_tokens,
@@ -32,7 +30,6 @@ class ChatResult:
 
 
 class BaseAdapter(ABC):
-    """Minimal interface for an LLM adapter."""
 
     FALLBACK_MODELS: Dict[str, List[str]] = {"openai": ["gpt-4", "gpt-3.5-turbo"]}
 
@@ -43,17 +40,14 @@ class BaseAdapter(ABC):
         self.client = self._initialize_client()
 
     def _combine_prompts(self, cacheable_prompt: str, user_prompt: str) -> str:
-        """Helper to combine cacheable and user prompts."""
         parts = [p for p in [cacheable_prompt, user_prompt] if p]
         return "\n\n".join(parts) if parts else ""
     
     def _safe_strip_prefill(self, prefill: str) -> str:
-        """Helper to safely strip whitespace from prefill text."""
         return prefill.strip() if prefill else ""
 
     @abstractmethod
     def _initialize_client(self) -> Any:
-        """Initialize the provider-specific client."""
         raise NotImplementedError
 
     @abstractmethod
@@ -65,22 +59,18 @@ class BaseAdapter(ABC):
         citation_target: str = "",
         **kwargs,
     ) -> Any:
-        """Build provider-specific message format."""
         ...
 
     @abstractmethod
     def _make_api_call(self, messages: Any, **kwargs) -> Any:
-        """Make the actual API call to the provider."""
         raise NotImplementedError
 
     @abstractmethod
     def _extract_text_from_response(self, response: Any, **kwargs) -> str:
-        """Extract text content from provider-specific response."""
         raise NotImplementedError
 
     @abstractmethod
     def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
-        """Extract token usage from provider-specific response."""
         raise NotImplementedError
 
     def chat(self, system_prompt: str, user_prompt: str = "", **kwargs) -> ChatResult:
@@ -99,7 +89,6 @@ class BaseAdapter(ABC):
     def chat_with_messages(
         self, messages: List[Dict[str, str]], **kwargs
     ) -> ChatResult:
-        """Chat with pre-built messages array (for conversation history)."""
         resp = self._make_api_call(messages, **kwargs)
         text = self._extract_text_from_response(resp, **kwargs)
         usage = self._extract_usage_from_response(resp) or {}

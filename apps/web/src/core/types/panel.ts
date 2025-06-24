@@ -1,25 +1,12 @@
-/**
- * Shared panel type definitions
- * Consolidates common panel patterns used across features
- */
-
-/**
- * Unified field types used across all panel forms
- */
 export const FIELD_TYPES = {
-  // Basic input types
   TEXT: 'text',
   NUMBER: 'number',
   BOOLEAN: 'checkbox',
   SELECT: 'select',
   TEXTAREA: 'textarea',
-  
-  // Domain-specific types
   PERSON_SELECT: 'personSelect',
   VARIABLE_TEXTAREA: 'variableTextArea',
   MAX_ITERATION: 'maxIteration',
-  
-  // Composite types
   LABEL_PERSON_ROW: 'labelPersonRow',
   ROW: 'row',
   CUSTOM: 'custom'
@@ -27,9 +14,6 @@ export const FIELD_TYPES = {
 
 export type FieldType = typeof FIELD_TYPES[keyof typeof FIELD_TYPES];
 
-/**
- * Validation result interface
- */
 export interface ValidationResult {
   isValid: boolean;
   error?: string;
@@ -37,66 +21,46 @@ export interface ValidationResult {
   fieldErrors?: Record<string, string>;
 }
 
-/**
- * Field validation function signature
- */
 export type FieldValidator<T = unknown> = (
   value: unknown,
   formData: T
 ) => ValidationResult | { isValid: boolean; error?: string };
 
-/**
- * Options configuration for select-like fields
- */
 export type OptionsConfig<T = unknown> = 
   | Array<{ value: string; label: string }>
   | (() => Promise<Array<{ value: string; label: string }>>)
   | ((formData: T) => Promise<Array<{ value: string; label: string }>>);
 
-/**
- * Conditional field rendering configuration
- */
 export interface ConditionalConfig<T = unknown> {
   field: keyof T & string;
   values: unknown[];
   operator?: 'equals' | 'notEquals' | 'includes';
 }
 
-/**
- * Base panel field configuration
- */
 export interface BasePanelFieldConfig {
   type: FieldType;
   label?: string;
   placeholder?: string;
   required?: boolean;
   className?: string;
-  // Field-specific properties
-  rows?: number; // For textarea
-  min?: number; // For number fields
-  max?: number; // For number fields
-  // For composite fields
-  labelPlaceholder?: string; // For labelPersonRow
-  personPlaceholder?: string; // For labelPersonRow
+  rows?: number;
+  min?: number;
+  max?: number;
+  labelPlaceholder?: string;
+  personPlaceholder?: string;
 }
 
-/**
- * Type-safe panel field configuration
- */
 export interface TypedPanelFieldConfig<T = unknown> extends BasePanelFieldConfig {
   name?: keyof T & string;
   disabled?: boolean | ((formData: T) => boolean);
   options?: OptionsConfig<T>;
   dependsOn?: Array<keyof T & string>;
   conditional?: ConditionalConfig<T>;
-  fields?: Array<TypedPanelFieldConfig<T>>; // For row type
+  fields?: Array<TypedPanelFieldConfig<T>>;
   validate?: FieldValidator<T>;
-  column?: 1 | 2; // Explicit column placement for two-column layouts
+  column?: 1 | 2;
 }
 
-/**
- * Panel layout configuration
- */
 export interface PanelLayoutConfig<T = unknown> {
   layout: 'single' | 'twoColumn';
   fields?: Array<TypedPanelFieldConfig<T>>;
@@ -105,25 +69,15 @@ export interface PanelLayoutConfig<T = unknown> {
   validate?: (formData: T) => ValidationResult;
 }
 
-/**
- * Generic form data wrapper for panel forms
- */
 export type PanelFormData<T extends Record<string, unknown>> = Partial<T> & {
-  // Allow additional UI-specific fields for runtime flexibility
   [key: string]: unknown;
 };
 
-/**
- * Field change handler signature
- */
 export type FieldChangeHandler<T = unknown> = (
   name: keyof T & string,
   value: unknown
 ) => void;
 
-/**
- * Panel form props interface
- */
 export interface PanelFormProps<T extends Record<string, unknown>> {
   data: PanelFormData<T>;
   config: PanelLayoutConfig<T>;
@@ -132,9 +86,6 @@ export interface PanelFormProps<T extends Record<string, unknown>> {
   className?: string;
 }
 
-/**
- * Field type mapping for domain to UI field types
- */
 export const DOMAIN_TO_UI_FIELD_TYPE: Record<string, FieldType> = {
   'string': FIELD_TYPES.TEXT,
   'number': FIELD_TYPES.NUMBER,
@@ -144,18 +95,12 @@ export const DOMAIN_TO_UI_FIELD_TYPE: Record<string, FieldType> = {
   'person': FIELD_TYPES.PERSON_SELECT,
 };
 
-/**
- * Helper to create typed panel form data
- */
 export function createPanelFormData<T extends Record<string, unknown>>(
   data: T
 ): PanelFormData<T> {
   return data as PanelFormData<T>;
 }
 
-/**
- * Field configuration builder for fluent API
- */
 export class FieldConfigBuilder<T extends Record<string, unknown> = Record<string, unknown>> {
   private config: TypedPanelFieldConfig<T>;
 
@@ -228,9 +173,6 @@ export class FieldConfigBuilder<T extends Record<string, unknown> = Record<strin
   }
 }
 
-/**
- * Create a field config using builder pattern
- */
 export function field<T extends Record<string, unknown> = Record<string, unknown>>(
   type: FieldType,
   name?: keyof T & string

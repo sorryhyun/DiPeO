@@ -183,65 +183,120 @@ class LightYamlStrategy(FormatStrategy):
         self, data: Dict[str, Any], nodes: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         arrows = []
-        node_by_label = {n.get("label", n["id"]): n["id"] for n in nodes}
+        # Create mapping from labels to node IDs
+        node_by_label = {}
+        for node in nodes:
+            label = node.get("data", {}).get("label", node["id"])
+            node_by_label[label] = node["id"]
 
-        for node_data in data.get("nodes", []):
-            if isinstance(node_data, dict) and "arrows" in node_data:
-                source_label = node_data.get("label")
-                source_id = node_by_label.get(source_label)
+        # Handle connections section for light YAML format
+        connections = data.get("connections", [])
+        for conn in connections:
+            if isinstance(conn, dict):
+                from_label = conn.get("from")
+                to_label = conn.get("to")
 
-                for arrow in node_data["arrows"]:
-                    if isinstance(arrow, dict):
-                        target_label = arrow.get("to")
-                        target_id = node_by_label.get(target_label)
+                source_id = node_by_label.get(from_label)
+                target_id = node_by_label.get(to_label)
 
-                        if source_id and target_id:
-                            arrows.append(
-                                {
-                                    "source": f"{source_id}_output",
-                                    "target": f"{target_id}_input",
-                                }
-                            )
+                if source_id and target_id:
+                    arrow_data = conn.get("data", {})
+                    arrow_id = arrow_data.get("id", f"arrow_{len(arrows)}")
+
+                    # Determine handle names based on connection data
+                    source_handle = "default"
+                    target_handle = "default"
+
+                    # Check for branch info (e.g., from condition nodes)
+                    if "branch" in conn:
+                        source_handle = conn["branch"]
+
+                    arrows.append({
+                        "id": arrow_id,
+                        "source": f"{source_id}:{source_handle}",
+                        "target": f"{target_id}:{target_handle}",
+                        "data": arrow_data
+                    })
 
         return arrows
 
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
         nodes = []
-
-        nodes_dict = {node.id: node for node in diagram.nodes}
-
-        arrows_by_source = {}
-        for arrow in diagram.arrows:
-            source_node = arrow.source.split(":")[0]
-            if source_node not in arrows_by_source:
-                arrows_by_source[source_node] = []
-
-            target_node = arrow.target.split(":")[0]
-            target = nodes_dict.get(target_node)
-            if target:
-                arrows_by_source[source_node].append(
-                    {"to": target.data.get("label", target_node)}
-                )
+        connections = []
 
         # Build node list
+        label_count = {}
+        node_labels = {}
+
+        # First pass: determine unique labels
         for node in diagram.nodes:
+            base_label = node.data.get("label", node.id)
+
+            # Count occurrences of each label
+            if base_label in label_count:
+                label_count[base_label] += 1
+                # Add suffix for duplicates
+                unique_label = f"{base_label}~{label_count[base_label]}"
+            else:
+                label_count[base_label] = 0
+                unique_label = base_label
+
+            node_labels[node.id] = unique_label
+
             node_data = {
+                "label": unique_label,
                 "type": node.type,
-                "label": node.data.get("label", node.id),
-                **{k: v for k, v in node.data.items() if k != "label"},
+                "position": {
+                    "x": round(node.position.get("x", 0)),
+                    "y": round(node.position.get("y", 0))
+                }
             }
 
-            if node.id in arrows_by_source:
-                node_data["arrows"] = arrows_by_source[node.id]
+            # Add other node properties
+            props = {k: v for k, v in node.data.items() if k not in ["label", "type", "position"]}
+            if props:
+                node_data["props"] = props
 
             nodes.append(node_data)
 
-        result = {"nodes": nodes}
+        # Build connections list
+        for arrow in diagram.arrows:
+            source_parts = arrow.source.split(":")
+            target_parts = arrow.target.split(":")
+
+            source_node_id = source_parts[0]
+            target_node_id = target_parts[0]
+
+            # Use the unique labels we created
+            source_label = node_labels.get(source_node_id)
+            target_label = node_labels.get(target_node_id)
+
+            if source_label and target_label:
+                conn = {
+                    "from": source_label,
+                    "to": target_label
+                }
+
+                # Add branch info for condition nodes
+                if len(source_parts) > 1 and source_parts[1] != "default":
+                    conn["branch"] = source_parts[1]
+
+                # Add arrow data if present
+                if hasattr(arrow, 'data') and arrow.data:
+                    conn["data"] = arrow.data
+
+                connections.append(conn)
+
+        result = {
+            "version": "light",
+            "nodes": nodes,
+            "connections": connections
+        }
 
         if diagram.persons:
             result["persons"] = [person.model_dump() for person in diagram.persons]
-        if diagram.api_keys:
-            result["api_keys"] = [api_key.model_dump() for api_key in diagram.api_keys]
+        if hasattr(diagram, 'name') and diagram.name:
+            result["name"] = diagram.name
 
         return result
 

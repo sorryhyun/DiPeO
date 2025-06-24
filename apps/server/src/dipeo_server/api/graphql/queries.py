@@ -16,7 +16,6 @@ from .types import (
     DomainApiKeyType,
     DomainDiagramType,
     DomainPersonType,
-    ExecutionEventType,
     ExecutionFilterInput,
     ExecutionID,
     ExecutionStateType,
@@ -27,11 +26,9 @@ from .types import (
 
 @strawberry.type
 class Query:
-    """GraphQL queries for diagrams, executions, and system info."""
 
     @strawberry.field
     async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
-        """Returns diagram by ID."""
         from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.get_diagram(id, info)
@@ -44,14 +41,12 @@ class Query:
         limit: int = 100,
         offset: int = 0,
     ) -> List[DomainDiagramType]:
-        """Returns filtered diagram list."""
         from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
 
     @strawberry.field
     async def execution(self, id: ExecutionID, info) -> Optional[ExecutionStateType]:
-        """Returns execution by ID."""
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.get_execution(id, info)
@@ -64,52 +59,31 @@ class Query:
         limit: int = 100,
         offset: int = 0,
     ) -> List[ExecutionStateType]:
-        """Returns filtered execution list."""
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.list_executions(filter, limit, offset, info)
 
-    @strawberry.field(
-        deprecation_reason="Events are no longer stored. Use execution state subscriptions instead."
-    )
-    async def execution_events(
-        self,
-        execution_id: ExecutionID,
-        info,
-        since_sequence: Optional[int] = None,
-        limit: int = 1000,
-    ) -> List[ExecutionEventType]:
-        """DEPRECATED: Returns empty list, use subscriptions instead."""
-        from .resolvers.execution import execution_resolver
-
-        return await execution_resolver.get_execution_events(
-            execution_id, since_sequence, limit, info
-        )
 
     @strawberry.field
     async def person(self, id: PersonID, info) -> Optional[DomainPersonType]:
-        """Returns person by ID."""
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_person(id, info)
 
     @strawberry.field
     async def persons(self, info, limit: int = 100) -> List[DomainPersonType]:
-        """Returns person list."""
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_persons(limit, info)
 
     @strawberry.field
     async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKeyType]:
-        """Returns API key by ID."""
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_api_key(id, info)
 
     @strawberry.field
     async def api_keys(self, info, service: Optional[str] = None) -> List[DomainApiKeyType]:
-        """Returns API key list, optionally filtered."""
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_api_keys(service, info)
@@ -118,14 +92,12 @@ class Query:
     async def available_models(
         self, service: str, api_key_id: ApiKeyID, info
     ) -> List[str]:
-        """Returns available models for service/API key."""
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_available_models(service, api_key_id, info)
 
     @strawberry.field
     async def system_info(self, info) -> JSONScalar:
-        """Returns system info and capabilities."""
         return {
             "version": "2.0.0",
             "supported_node_types": [t.value for t in NodeType],
@@ -136,7 +108,6 @@ class Query:
 
     @strawberry.field
     async def execution_capabilities(self, info) -> JSONScalar:
-        """Returns execution capabilities and features."""
         context = info.context
 
         storage_service = context.diagram_storage_service
@@ -170,7 +141,6 @@ class Query:
 
     @strawberry.field
     async def health(self, info) -> JSONScalar:
-        """Returns system health status."""
         context = info.context
 
         checks = {"database": False, "redis": False, "file_system": False}
@@ -212,7 +182,6 @@ class Query:
         offset: int = 0,
         since: Optional[datetime] = None,
     ) -> JSONScalar:
-        """Returns conversation data with filtering."""
         context = info.context
         memory_service = context.memory_service
 
@@ -292,7 +261,6 @@ class Query:
 
     @strawberry.field
     async def supported_formats(self, info) -> List[DiagramFormatInfo]:
-        """Returns supported diagram formats."""
         from dipeo_server.domains.diagram.converters import converter_registry
 
         formats = converter_registry.list_formats()

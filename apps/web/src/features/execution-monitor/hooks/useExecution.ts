@@ -355,12 +355,18 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     if (!nodeData?.nodeUpdates) return;
     
     const update = nodeData.nodeUpdates;
-    
-    if (update.status === 'running') {
+
+    // The backend sends status values in UPPERCASE (e.g. "RUNNING", "COMPLETED").
+    // For historical reasons the frontend logic expects lowercase strings.
+    // To make the comparison robust across different capitalisation styles we
+    // normalise the received status value to lowercase once here.
+    const status = (update.status || '').toLowerCase();
+
+    if (status === 'running') {
       handleNodeStart(update.nodeId, update.nodeType);
-    } else if (update.status === 'completed') {
+    } else if (status === 'completed') {
       handleNodeComplete(update.nodeId, update.tokensUsed || undefined, update.output);
-    } else if (update.status === 'failed') {
+    } else if (status === 'failed') {
       setNodeStates(prev => ({
         ...prev,
         [update.nodeId]: {
@@ -382,7 +388,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }
       
       onUpdate?.({ type: EventType.NODE_FAILED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(update.nodeId), error: update.error || undefined, status: NodeExecutionStatus.FAILED, timestamp: new Date().toISOString() });
-    } else if (update.status === 'skipped') {
+    } else if (status === 'skipped') {
       setExecution(prev => ({
         ...prev,
         completedNodes: prev.completedNodes + 1
@@ -404,7 +410,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       });
       
       onUpdate?.({ type: EventType.NODE_SKIPPED, executionId: executionId(executionIdRef.current!), nodeId: nodeId(update.nodeId), status: NodeExecutionStatus.SKIPPED, timestamp: new Date().toISOString() });
-    } else if (update.status === 'paused') {
+    } else if (status === 'paused') {
       setNodeStates(prev => ({
         ...prev,
         [update.nodeId]: {

@@ -15,12 +15,11 @@ interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
   config: PanelLayoutConfig<T>;
 }
 
-// Create dispatch tables for operators and field types
 const conditionalOperators = createHandlerTable<string, [unknown, unknown[]], boolean>({
   'equals': (fieldValue, values) => values.includes(fieldValue),
   'notEquals': (fieldValue, values) => !values.includes(fieldValue),
   'includes': (fieldValue, values) => values.includes(fieldValue)
-}, (fieldValue, values) => values.includes(fieldValue)); // Default to 'includes'
+}, (fieldValue, values) => values.includes(fieldValue));
 
 const fieldTypeMapping = createHandlerTable<string, [], UnifiedFieldType>({
   'text': () => FIELD_TYPES.TEXT,
@@ -30,7 +29,7 @@ const fieldTypeMapping = createHandlerTable<string, [], UnifiedFieldType>({
   'checkbox': () => FIELD_TYPES.BOOLEAN,
   'maxIteration': () => FIELD_TYPES.MAX_ITERATION,
   'personSelect': () => FIELD_TYPES.PERSON_SELECT
-}, () => FIELD_TYPES.TEXT); // Default to 'text'
+}, () => FIELD_TYPES.TEXT);
 
 export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   nodeId,
@@ -40,10 +39,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
 
   const { personsArray } = usePersonsData();
 
-  // Convert persons to the format expected by UnifiedFormField
   const personsForSelect = personsArray.map(person => ({ id: person.id, label: person.label }));
   
-  // Determine entity type based on data.type
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
     if (dataType === 'arrow') return 'arrow';
     if (dataType === 'person') return 'person';
@@ -52,8 +49,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   
   const entityType = getEntityType(data.type);
 
-  // Use enhanced property manager with panel schema support
-  // Use minimal delay for all entities to provide immediate feedback
   const {
     formData,
     updateField,
@@ -65,12 +60,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     panelConfig: config
   });
 
-  // Handle field updates with model pre-initialization
   const handleFieldUpdate = useCallback(async (name: string, value: unknown) => {
-    // Update field using property manager
     updateField(name as keyof T, value as T[keyof T]);
     
-    // If this is an API key selection for a person entity, update the service field
     if (data.type === 'person' && name === 'apiKeyId' && value) {
       try {
         const { data } = await apolloClient.query({
@@ -86,10 +78,9 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       }
     }
     
-    // If this is a model selection for a person entity, pre-initialize the model
     if (data.type === 'person' && name === 'model' && value) {
       try {
-        const personId = nodeId; // For person entities, nodeId is the person ID
+        const personId = nodeId;
         const { data: result } = await apolloClient.mutate({
           mutation: InitializeModelDocument,
           variables: { personId }
@@ -104,7 +95,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     }
   }, [updateField, formData, data]);
 
-  // Check if field should be rendered based on conditional rules
   const shouldRenderField = useCallback((fieldConfig: TypedPanelFieldConfig<T>): boolean => {
     if (!fieldConfig.conditional) return true;
     
@@ -114,19 +104,15 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     return conditionalOperators.executeOrDefault(operator, fieldValue, values);
   }, [formData]);
 
-  // Convert field type to UnifiedFormField type
   const getFieldType = (fieldConfig: TypedPanelFieldConfig<T>): UnifiedFieldType => {
     return fieldTypeMapping.executeOrDefault(fieldConfig.type);
   };
 
-  // Render individual field
   const renderField = useCallback((fieldConfig: TypedPanelFieldConfig<T>, index: number): React.ReactNode => {
     const key = fieldConfig.name ? `${fieldConfig.name}-${index}` : `field-${index}`;
     
-    // Check conditional rendering
     if (!shouldRenderField(fieldConfig)) return null;
     
-    // Handle special row type
     if (fieldConfig.type === 'row' && fieldConfig.fields) {
       return (
         <FormRow key={key} className={fieldConfig.className}>
@@ -135,7 +121,6 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       );
     }
     
-    // Handle labelPersonRow type
     if (fieldConfig.type === 'labelPersonRow') {
       return (
         <FormRow key={key}>
@@ -162,10 +147,8 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
       );
     }
     
-    // Skip non-standard field types
     if (fieldConfig.type === 'custom') return null;
     
-    // Find the processed field data
     const processedField = processedFields.find(pf => pf.field.name === fieldConfig.name);
     const options = processedField?.options;
     const isLoading = processedField?.isLoading;

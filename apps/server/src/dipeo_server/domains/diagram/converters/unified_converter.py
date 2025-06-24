@@ -135,15 +135,13 @@ class UnifiedDiagramConverter(DiagramConverter):
             node = self._create_node(node_data, index)
             nodes_dict[node.id] = node
 
-        arrows_data = data.get("arrows", {})
-        if isinstance(arrows_data, dict):
-            arrows_dict = arrows_data
-        elif isinstance(arrows_data, list):
-            arrows_dict = {
-                key.get("id", f"key_{i}"): key for i, key in enumerate(arrows_data)
-            }
-        else:
-            arrows_dict = {}
+        # Extract arrows using strategy (handles both "arrows" and "connections")
+        arrows_list = strategy.extract_arrows(data, list(nodes_dict.values()))
+        arrows_dict = {}
+        for index, arrow_data in enumerate(arrows_list):
+            arrow = self._create_arrow(arrow_data)
+            if arrow:
+                arrows_dict[arrow.id] = arrow
 
         diagram_dict = BackendDiagram(
             nodes=nodes_dict,

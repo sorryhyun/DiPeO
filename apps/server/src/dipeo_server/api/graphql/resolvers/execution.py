@@ -6,9 +6,6 @@ from typing import List, Optional
 
 from ..context import GraphQLContext
 from ..types import (
-    ExecutionEventType as ExecutionEvent,
-)
-from ..types import (
     ExecutionFilterInput,
     ExecutionID,
 )
@@ -100,14 +97,6 @@ class ExecutionResolver:
             logger.error(f"Failed to list executions: {e}")
             return []
 
-    async def get_execution_events(
-        self, execution_id: ExecutionID, since_sequence: Optional[int], limit: int, info
-    ) -> List[ExecutionEvent]:
-        """DEPRECATED: Returns empty list, use subscriptions instead."""
-        logger.warning(
-            f"DEPRECATED: get_execution_events called for {execution_id} - events are no longer stored"
-        )
-        return []
 
 
 execution_resolver = ExecutionResolver()
