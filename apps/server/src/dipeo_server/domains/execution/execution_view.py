@@ -96,14 +96,10 @@ class ExecutionView:
         import logging
         log = logging.getLogger(__name__)
         
-        if self.diagram.persons:
-            self.person_views = {p.id: p for p in self.diagram.persons}
-            log.info(f"Loaded {len(self.person_views)} persons")
+        if self.diagram.persons: self.person_views = {p.id: p for p in self.diagram.persons}
 
-        log.info(f"Building views for {len(self.diagram.nodes)} nodes")
         for node in self.diagram.nodes:
             handler = self._get_handler_for_type(node.type)
-            log.debug(f"Node {node.id} type {node.type} has handler: {handler is not None}")
             node_view = NodeView(node=node, handler=handler)
 
             if node.type == 'person_job' and node.data:
@@ -113,11 +109,9 @@ class ExecutionView:
 
             self.node_views[node.id] = node_view
 
-        log.info(f"Building views for {len(self.diagram.arrows)} arrows")
         for arrow in self.diagram.arrows:
             source_id = arrow.source.split(':')[0]
             target_id = arrow.target.split(':')[0]
-            log.debug(f"Arrow from {source_id} to {target_id}")
 
             if source_id in self.node_views and target_id in self.node_views:
                 edge_view = EdgeView(
@@ -146,14 +140,10 @@ class ExecutionView:
                 # Count only edges that don't go to the "first" handle
                 non_first_edges = [e for e in node_view.incoming_edges if e.target_handle != 'first']
                 in_degree[node_id] = len(non_first_edges)
-                log.info(f"Person job node {node_id} has {len(node_view.incoming_edges)} total edges, {in_degree[node_id]} non-first edges")
             else:
                 in_degree[node_id] = len(node_view.incoming_edges)
-            
-            log.info(f"Node {node_id} has in_degree {in_degree[node_id]} (incoming edges: {[e.arrow.source for e in node_view.incoming_edges]})")
 
         queue = [nv for nid, nv in self.node_views.items() if in_degree[nid] == 0]
-        log.info(f"Initial queue (nodes with no dependencies): {[nv.id for nv in queue]}")
         levels = []
 
         while queue:
@@ -163,7 +153,6 @@ class ExecutionView:
             next_queue = []
 
             for node_view in current_level:
-                log.info(f"Processing node {node_view.id} with {len(node_view.outgoing_edges)} outgoing edges")
                 for edge in node_view.outgoing_edges:
                     target_id = edge.target_view.id
                     # Only reduce in_degree if this edge was counted initially
@@ -172,8 +161,7 @@ class ExecutionView:
                         log.info(f"Skipping in_degree reduction for edge to first handle of person_job {target_id}")
                     else:
                         in_degree[target_id] -= 1
-                        log.info(f"Reduced in_degree of {target_id} to {in_degree[target_id]} (edge from {edge.arrow.source} to {edge.arrow.target})")
-                    
+
                     if in_degree[target_id] == 0:
                         log.info(f"Adding {target_id} to next queue")
                         next_queue.append(edge.target_view)
@@ -189,9 +177,7 @@ class ExecutionView:
         for node_id in self.node_views:
             if node_id not in scheduled_nodes:
                 log.warning(f"Node {node_id} was never scheduled! In-degree: {in_degree[node_id]}")
-        
-        log.info(f"Total nodes in graph: {len(self.node_views)}")
-        log.info(f"Nodes included in execution: {sum(len(level) for level in levels)}")
+
         return levels
 
     def get_node_view(self, node_id: str) -> Optional[NodeView]:

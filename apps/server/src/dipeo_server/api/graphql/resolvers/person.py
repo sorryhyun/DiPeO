@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional
 
-from dipeo_server.domains.llm.services import LLMService
+from dipeo_domain import LLMService
 
 from ..context import GraphQLContext
 from ..types import (
@@ -127,10 +127,12 @@ class PersonResolver:
         except ValueError:
             return False
 
-    def _map_service(self, service: str) -> LLMService:
-        """Maps service string to enum."""
+    def _map_service(self, service: str) -> str:
+        """Maps service string to enum value."""
         try:
-            return LLMService(service.lower())
+            # Validate that it's a valid LLMService, then return the string value
+            enum_value = LLMService(service.lower())
+            return enum_value.value
         except ValueError:
             raise ValueError(f"Unknown LLM service: {service}")
 

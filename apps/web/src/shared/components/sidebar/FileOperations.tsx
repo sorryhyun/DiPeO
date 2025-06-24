@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
@@ -12,10 +12,20 @@ import { useFileOperations } from '@/shared/hooks/useFileOperations';
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
+  const [diagramName, setDiagramName] = useState<string>('diagram');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [saveDiagramMutation] = useSaveDiagramMutation();
-  const { downloadAs } = useFileOperations();
+  const { downloadAs, saveDiagram } = useFileOperations();
+
+  // Initialize diagram name from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentDiagramId = urlParams.get('diagram');
+    if (currentDiagramId) {
+      setDiagramName(currentDiagramId);
+    }
+  }, []);
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -71,12 +81,22 @@ export const FileOperations: React.FC = () => {
 
   const handleExport = useCallback(async () => {
     try {
-      await downloadAs(selectedFormat, undefined, true);
+      // Use the user-provided name or default
+      const finalName = diagramName.trim() || 'diagram';
+      
+      // Generate filename based on format
+      const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
+      const filename = `${finalName}.${extension}`;
+      
+      // Save to server in format-specific directory
+      await saveDiagram(filename, selectedFormat);
+      
+      toast.success(`Saved to ${selectedFormat}/${filename}`);
     } catch (error) {
       console.error('Export error:', error);
       toast.error(error instanceof Error ? error.message : 'Export failed');
     }
-  }, [selectedFormat, downloadAs]);
+  }, [selectedFormat, diagramName, saveDiagram]);
 
   const exportFormats = [
     { value: DiagramFormat.NATIVE, label: 'Native JSON' },
@@ -125,6 +145,14 @@ export const FileOperations: React.FC = () => {
 
       {/* Export */}
       <div className="space-y-2">
+        <input
+          type="text"
+          value={diagramName}
+          onChange={(e) => setDiagramName(e.target.value)}
+          placeholder="Diagram name"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        
         <Select
           value={selectedFormat}
           onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat)}

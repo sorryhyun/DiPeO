@@ -5,6 +5,7 @@ import { TopBar, Sidebar } from './shared/components/layout';
 import { GlobalKeyboardHandler } from './shared/components/GlobalKeyboardHandler';
 import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './features/diagram-editor/contexts/CanvasContext';
 import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
+import { useUnifiedStore } from './core/store/unifiedStore';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/DiagramCanvas'));
@@ -26,10 +27,16 @@ function AppContent() {
     const checkMonitorMode = () => {
       const params = new URLSearchParams(window.location.search);
       const monitorParam = params.get('monitor') === 'true';
+      const diagramName = params.get('diagram');
       setReadOnly?.(monitorParam);
 
       if (monitorParam) {
         document.title = 'DiPeO - Monitor Mode';
+        
+        // Automatically switch to execution view when in monitor mode
+        if (diagramName) {
+          useUnifiedStore.getState().setActiveCanvas('execution');
+        }
       } else {
         document.title = 'DiPeO';
       }

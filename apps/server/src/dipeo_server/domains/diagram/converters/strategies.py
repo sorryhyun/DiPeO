@@ -165,7 +165,7 @@ class LightYamlStrategy(FormatStrategy):
             if isinstance(node_data, dict):
                 node_id = node_data.get("label", f"node_{index}")
                 node_type = node_data.get("type", "unknown")
-                exclude_keys = {"type", "label", "arrows", "position"}
+                exclude_keys = {"type", "label", "arrows", "position", "id"}
 
                 node = build_node(
                     id=node_id,
@@ -212,11 +212,11 @@ class LightYamlStrategy(FormatStrategy):
 
         arrows_by_source = {}
         for arrow in diagram.arrows:
-            source_node = arrow.source.split("_")[0]
+            source_node = arrow.source.split(":")[0]
             if source_node not in arrows_by_source:
                 arrows_by_source[source_node] = []
 
-            target_node = arrow.target.split("_")[0]
+            target_node = arrow.target.split(":")[0]
             target = nodes_dict.get(target_node)
             if target:
                 arrows_by_source[source_node].append(
@@ -349,8 +349,8 @@ class ReadableYamlStrategy(FormatStrategy):
 
         flow = []
         for arrow in diagram.arrows:
-            source_node = arrow.source.split("_")[0]
-            target_node = arrow.target.split("_")[0]
+            source_node = arrow.source.split(":")[0]
+            target_node = arrow.target.split(":")[0]
 
             source = nodes_dict.get(source_node)
             target = nodes_dict.get(target_node)

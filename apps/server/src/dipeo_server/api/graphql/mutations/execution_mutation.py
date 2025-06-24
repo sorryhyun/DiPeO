@@ -80,7 +80,6 @@ class ExecutionMutations:
                         execution_id=execution_id
                     ):
                         # Updates are handled by the execution service
-                        logger.debug(f"Received update: {update}")
                         pass
                 except Exception as e:
                     logger.error(f"Execution failed for {execution_id}: {e}")

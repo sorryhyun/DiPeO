@@ -84,7 +84,6 @@ class ExecutionService(BaseService):
             updates_queue = asyncio.Queue()
 
             async def stream_callback(update: dict[str, Any]) -> None:
-                log.debug(f"Stream callback received: {update}")
                 await updates_queue.put(update)
 
             engine_task = asyncio.create_task(
@@ -158,6 +157,12 @@ class ExecutionService(BaseService):
                 final_status = "failed"
                 break
 
+        # Update execution status in state store
+        if final_status == "completed":
+            await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
+        elif final_status == "failed":
+            await state_store.update_status(execution_id, ExecutionStatus.FAILED)
+        
         await stream_callback({
             "type": "execution_complete",
             "execution_id": execution_id,

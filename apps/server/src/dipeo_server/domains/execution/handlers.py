@@ -69,6 +69,11 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     
     conversation = ctx.get_conversation_history(person_id) if person_id else []
     exec_count = ctx.exec_counts.get(node.id, 0)
+    
+    forgetting_mode = node.data.get('forgettingMode') if node.data else None
+    
+    if forgetting_mode == 'on_every_turn' and exec_count > 1:
+        conversation = [msg for msg in conversation if msg.get('role') in ['system', 'user']]
 
     if not conversation or conversation[0].get("role") != "system":
         person_obj = None
@@ -103,6 +108,9 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
                     log.warning(f"'default' key not found in source output keys: {list(from_output.value.keys())}")
         else:
             log.warning(f"No output found for source node {source_node_id}!")
+
+    if 'conversation' in inputs and exec_count > 1:
+        conversation.append({"role": "user", "content": inputs['conversation']})
 
     if exec_count == 1 and first_only_prompt:
         prompt = first_only_prompt
@@ -275,7 +283,8 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
 
         if condition_type == 'detect_max_iterations':
             # Check execution counts of all incoming nodes
-            result = False
+            # Result should be True only if ALL person_job nodes have reached their max iterations
+            result = True
             for edge in ctx.find_edges_to(node.id):
                 source_node_id = edge.source.split(':')[0]
                 source_node = next((n for n in ctx.diagram.nodes if n.id == source_node_id), None)
@@ -284,8 +293,8 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
                     exec_count = ctx.exec_counts.get(source_node_id, 0)
                     max_iteration = source_node.data.get('maxIteration', 1) if source_node.data else 1
                     
-                    if exec_count >= max_iteration:
-                        result = True
+                    if exec_count < max_iteration:
+                        result = False
                         break
         else:
             result = False

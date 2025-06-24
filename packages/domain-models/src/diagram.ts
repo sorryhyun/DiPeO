@@ -51,8 +51,7 @@ export enum ForgettingMode {
 export enum DiagramFormat {
   NATIVE = 'native',
   LIGHT = 'light',
-  READABLE = 'readable',
-  NATIVE_YAML = 'native_yaml'
+  READABLE = 'readable'
 }
 
 export enum DBBlockSubType {

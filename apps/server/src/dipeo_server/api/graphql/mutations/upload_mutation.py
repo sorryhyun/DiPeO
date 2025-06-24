@@ -223,8 +223,6 @@ class UploadMutations:
                         detected_format = DiagramFormat.light.value
                     elif "readable" in filename:
                         detected_format = DiagramFormat.readable.value
-                    elif "native.yaml" in filename or "native_yaml" in filename:
-                        detected_format = DiagramFormat.native_yaml.value
                     else:
                         detected_format = DiagramFormat.native.value
 
@@ -281,7 +279,17 @@ class UploadMutations:
             if diagram_id == "quicksave" or "quicksave" in filename.lower():
                 diagram_id = "quicksave"
 
-            path = f"{diagram_id}.json"
+            # Determine subdirectory based on format
+            format_subdir = ""
+            if detected_format == DiagramFormat.light.value:
+                format_subdir = "light/"
+            elif detected_format == DiagramFormat.readable.value:
+                format_subdir = "readable/"
+            elif detected_format == DiagramFormat.native.value:
+                format_subdir = "native/"
+            
+            # Save in format-specific subdirectory
+            path = f"{format_subdir}{diagram_id}.json"
             await storage_service.write_file(path, backend_dict)
 
             logger.info(
@@ -332,7 +340,17 @@ class UploadMutations:
                 )
 
             try:
-                backend_diagram = BackendDiagram(**content)
+                # Convert arrays to dictionaries for backend format
+                converted_content = content.copy()
+                
+                # Convert arrays to dictionaries with ID as key
+                for field in ['nodes', 'arrows', 'persons', 'handles', 'apiKeys']:
+                    if field in converted_content and isinstance(converted_content[field], list):
+                        converted_content[field] = {
+                            item['id']: item for item in converted_content[field]
+                        }
+                
+                backend_diagram = BackendDiagram(**converted_content)
                 domain_diagram = backend_to_graphql(backend_diagram)
             except Exception as e:
                 return DiagramConvertResult(

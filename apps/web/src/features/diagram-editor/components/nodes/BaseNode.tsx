@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/buttons';
 import { getNodeConfig } from '@/core/config/helpers';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../hooks';
-import { useExecution } from '@/features/execution-monitor/hooks';
+import { useCanvasOperationsContext } from '../../contexts/CanvasContext';
 import { useUIState } from '@/shared/hooks/selectors';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
 import { nodeId } from '@/core/types';
@@ -23,8 +23,8 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeId: string) {
-  const { getNodeExecutionState } = useExecution();
-  const nodeState = getNodeExecutionState(nodeId);
+  const { executionOps } = useCanvasOperationsContext();
+  const nodeState = executionOps.getNodeExecutionState(nodeId);
   
   return useMemo(() => ({
     isRunning: nodeState?.status === 'running',
@@ -139,7 +139,7 @@ const StatusIndicator = React.memo(({ status }: { status: ReturnType<typeof useN
   
   if (status.isCompleted) {
     return (
-      <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full">
+      <div className="absolute -top-2 -right-2 w-4 h-4 bg-purple-600 rounded-full">
         <span className="absolute inset-0 text-white text-xs flex items-center justify-center">✓</span>
       </div>
     );

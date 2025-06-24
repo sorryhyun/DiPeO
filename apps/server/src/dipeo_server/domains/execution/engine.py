@@ -75,7 +75,6 @@ class ViewBasedEngine:
                 log.info(f"Found existing outputs for {len(state.node_outputs)} nodes")
                 for node_id, output in state.node_outputs.items():
                     ctx.set_node_output(node_id, output)
-                    log.debug(f"Loaded output for node {node_id}: value_keys={list(output.value.keys()) if output.value else 'None'}")
             else:
                 log.info("No existing node outputs found in state store")
 
@@ -108,10 +107,6 @@ class ViewBasedEngine:
                 log.warning(f"No tasks to execute for level {level_num}")
         
         # After initial levels, check for any nodes that became ready due to cycles
-        executed_nodes = set()
-        for level in view.execution_order:
-            for node in level:
-                executed_nodes.add(node.id)
         
         # Continue executing nodes that become ready
         max_iterations = 100  # Prevent infinite loops
@@ -121,7 +116,11 @@ class ViewBasedEngine:
             ready_nodes = []
             
             for node_id, node_view in view.node_views.items():
-                if node_id not in executed_nodes and node_view.output is None:
+                # Check if node has reached max iterations
+                max_iter = node_view.node.data.get('maxIteration', 1) if node_view.node.data else 1
+                current_exec_count = ctx.exec_counts.get(node_id, 0)
+                
+                if current_exec_count < max_iter:
                     if self._can_execute_node_view(node_view):
                         ready_nodes.append(node_view)
                         log.info(f"Found newly ready node: {node_id} (iteration {iteration})")
@@ -132,7 +131,6 @@ class ViewBasedEngine:
             log.info(f"Executing {len(ready_nodes)} newly ready nodes in iteration {iteration}")
             tasks = []
             for node_view in ready_nodes:
-                executed_nodes.add(node_view.id)
                 log.info(f"Executing node {node_view.node.id} of type {node_view.node.type}")
                 tasks.append(self._execute_node_view(ctx, node_view))
             
@@ -177,6 +175,11 @@ class ViewBasedEngine:
         node_view.exec_count += 1
         ctx.exec_counts[node.id] = node_view.exec_count
 
+        # Update node status to RUNNING in state store
+        await ctx.state_store.update_node_status(
+            ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
+        )
+
         if ctx.stream_callback:
             await ctx.stream_callback({
                 "type": "node_start",
@@ -189,6 +192,11 @@ class ViewBasedEngine:
 
             node_view.output = output
             ctx.set_node_output(node.id, output)
+
+            # Update node status to COMPLETED in state store
+            await ctx.state_store.update_node_status(
+                ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED
+            )
 
             if ctx.stream_callback:
                 metadata = output.metadata or {}

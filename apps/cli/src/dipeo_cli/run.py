@@ -273,6 +273,16 @@ async def run_command(args: List[str]) -> None:
 
     # Save results
     _save_results(result, options)
+    
+    # Kill server in debug mode to see final logs
+    if options.debug:
+        print("\n🐛 Debug: Stopping backend server to display final logs...")
+        await asyncio.sleep(0.5)  # Brief pause to ensure all logs are flushed
+        try:
+            subprocess.run(["pkill", "-f", "python main.py"], capture_output=True)
+            subprocess.run(["pkill", "-f", "hypercorn"], capture_output=True)
+        except Exception:
+            pass
 
 
 def _parse_run_options(args: List[str]) -> ExecutionOptions:

@@ -6,7 +6,7 @@ from typing import List, Optional
 import strawberry
 from dipeo_domain import NodeType
 
-from dipeo_server.domains.llm.services import LLMService
+from dipeo_domain import LLMService
 
 from .types import (
     ApiKeyID,
