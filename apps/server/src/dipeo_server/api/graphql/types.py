@@ -140,8 +140,17 @@ class DiagramMetadataType:
 class DomainNodeType:
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:
-        # Access the underlying Pydantic model's data
-        return self._pydantic_object.data if hasattr(self, "_pydantic_object") else None
+        # Try multiple ways to access the data
+        if hasattr(self, "_pydantic_object") and self._pydantic_object:
+            return self._pydantic_object.data
+        elif hasattr(self, "data") and self.data is not None:
+            return self.data
+        elif hasattr(self, "__strawberry_definition__"):
+            # Try to access through the Strawberry definition
+            origin = getattr(self, "__strawberry_definition__", {}).get("origin")
+            if origin and hasattr(origin, "data"):
+                return origin.data
+        return None
 
     @strawberry.field
     def handles(self) -> List[DomainHandleType]:

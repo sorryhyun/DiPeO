@@ -107,25 +107,24 @@
   box-shadow: 0 4px 6px -1px var(--shadow-color);
 }
 
-/* Force handles to be positioned on the edge */
+/* Handle hover effects for better UX */
 .react-flow__handle {
-  position: absolute !important;
+  opacity: 0.9;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.react-flow__handle-top {
-  top: -8px !important;
+.react-flow__handle:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
 
-.react-flow__handle-bottom {
-  bottom: -8px !important;
+/* Make handles slightly less prominent when node is not selected */
+[data-selected="false"] .react-flow__handle {
+  opacity: 0.85;
 }
 
-.react-flow__handle-left {
-  left: -8px !important;
-}
-
-.react-flow__handle-right {
-  right: -8px !important;
+[data-selected="false"]:hover .react-flow__handle {
+  opacity: 1;
 }
 
 /* Handle colors for different node colors */

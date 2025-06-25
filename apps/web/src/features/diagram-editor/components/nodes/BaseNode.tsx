@@ -99,7 +99,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
             offsetPercentage = 50;
           } else {
             // Distribute evenly with padding from edges
-            const padding = 20; // percentage from edge
+            const padding = 35; // significantly increased percentage from edge for better spacing
             const availableSpace = 100 - (2 * padding);
             const spacing = availableSpace / (count - 1);
             offsetPercentage = padding + (index * spacing);
@@ -248,10 +248,15 @@ export function BaseNode({
   
   // Determine node appearance based on state using data attributes
   const nodeClassNames = useMemo(() => {
-    const baseClasses = 'relative p-3 border-2 rounded-lg transition-all duration-200 min-w-32';
+    // Smaller sizing for start and endpoint nodes
+    const isSmallNode = type === 'start' || type === 'endpoint';
+    const padding = isSmallNode ? 'p-3' : 'p-5';
+    const minWidth = isSmallNode ? 'min-w-32' : 'min-w-48';
+    
+    const baseClasses = `relative ${padding} border-2 rounded-lg transition-all duration-200 ${minWidth}`;
     const executionClasses = isExecutionMode ? 'shadow-lg' : 'shadow-sm';
     return `${baseClasses} ${executionClasses} ${className || ''}`;
-  }, [isExecutionMode, className]);
+  }, [type, isExecutionMode, className]);
   
   // Memoize data attributes for dynamic styling
   const dataAttributes = useMemo(() => ({
@@ -336,6 +341,7 @@ export function BaseNode({
           position={handle.position}
           offset={handle.offset}
           color={handle.color}
+          nodeType={type}
           className={status.isRunning ? 'animate-pulse' : ''}
         />
       ))}
