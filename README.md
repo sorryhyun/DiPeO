@@ -11,6 +11,7 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ## Quickstart
 
+For Korean guide for quickstart, read [Korean docs](docs/korean_install_guide.md)
 
 ```bash
 # Start everything (first-time setup is automatic)
@@ -35,25 +36,11 @@ That's it! This single command will:
 
 ### `./dipeo` - Run Diagrams
 ```bash
-./dipeo run files/diagrams/example.yaml --debug
+./dipeo run files/diagrams/native/quicksave.json --debug
 ```
 
-## Quick Development Workflows
-
-**Full-stack development:**
-```bash
-make dev-all  # Start everything in one command
-```
-
-**Frontend-only changes:**
-```bash
-./dev.sh --frontend --watch
-```
-
-**Working with diagrams:**
-```bash
-./dipeo run your-diagram.yaml --debug
-```
+### Docs
+Note [docs](docs)
 
 ## Requirements
 - Node.js 22+ with pnpm 10+
