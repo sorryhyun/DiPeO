@@ -174,16 +174,24 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         for idx, ndata in enumerate(data.get("nodes", [])):
             if not isinstance(ndata, dict):
                 continue
+            
+            # Extract base properties
+            node_props = {
+                k: v
+                for k, v in ndata.items()
+                if k not in {"type", "label", "id", "position", "arrows", "props"}
+            }
+            
+            # Flatten props if they exist
+            if "props" in ndata and isinstance(ndata["props"], dict):
+                node_props.update(ndata["props"])
+            
             node = build_node(
                 id=ndata.get("label", f"node_{idx}"),
                 type_=ndata.get("type", "unknown"),
                 pos=ndata.get("position", {}),
                 label=ndata.get("label"),
-                **{
-                    k: v
-                    for k, v in ndata.items()
-                    if k not in {"type", "label", "id", "position", "arrows"}
-                },
+                **node_props
             )
             ensure_position(node, idx)
             nodes.append(node)
@@ -198,12 +206,28 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         for idx, conn in enumerate(data.get("connections", [])):
             if not isinstance(conn, dict):
                 continue
-            sid, tid = label2id.get(conn.get("from")), label2id.get(conn.get("to"))
+            
+            # Extract label and handle from "from" and "to" fields
+            from_str = conn.get("from", "")
+            to_str = conn.get("to", "")
+            
+            # Parse label:handle format
+            from_parts = from_str.split(":", 1)
+            to_parts = to_str.split(":", 1)
+            
+            from_label = from_parts[0]
+            to_label = to_parts[0]
+            
+            # Get handle names (default if not specified)
+            from_handle = from_parts[1] if len(from_parts) > 1 else conn.get("branch", "default")
+            to_handle = to_parts[1] if len(to_parts) > 1 else "default"
+            
+            sid = label2id.get(from_label)
+            tid = label2id.get(to_label)
             if not (sid and tid):
                 continue
             
             # Generate a unique arrow ID based on index
-            # We don't use source/target in ID to avoid issues with multiple arrows between same nodes
             arrow_id = f"arrow_{idx}"
             
             # Copy data but exclude the ID field since we're generating a new one
@@ -214,8 +238,8 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             arrows.append(
                 {
                     "id": arrow_id,
-                    "source": f"{sid}:{conn.get('branch', 'default')}",
-                    "target": f"{tid}:default",
+                    "source": f"{sid}:{from_handle}",
+                    "target": f"{tid}:{to_handle}",
                     "data": arrow_data,
                 }
             )
@@ -292,17 +316,32 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
 
         connections = []
         for a in diagram.arrows:
-            sid, tid = (part.split(":")[0] for part in (a.source, a.target))
+            # Extract node IDs and handle names
+            source_parts = a.source.split(":")
+            target_parts = a.target.split(":")
+            sid = source_parts[0]
+            tid = target_parts[0]
+            from_handle = source_parts[1] if len(source_parts) > 1 else "default"
+            to_handle = target_parts[1] if len(target_parts) > 1 else "default"
+            
+            # Build connection data with handle notation
+            from_label = id2label[sid]
+            to_label = id2label[tid]
+            
+            # Append handle to label if not default
+            if from_handle != "default":
+                from_label = f"{from_label}:{from_handle}"
+            if to_handle != "default":
+                to_label = f"{to_label}:{to_handle}"
+            
             conn_data = {
-                "from": id2label[sid],
-                "to": id2label[tid],
+                "from": from_label,
+                "to": to_label,
             }
             
-            # Add branch if not default
-            if ":" in a.source:
-                branch = a.source.split(":")[1]
-                if branch != "default":
-                    conn_data["branch"] = branch
+            # For condition branches, we still keep the branch field for clarity
+            if from_handle in ["True", "False"]:
+                conn_data["branch"] = from_handle
             
             # Add data but exclude internal/UI fields
             if a.data:
