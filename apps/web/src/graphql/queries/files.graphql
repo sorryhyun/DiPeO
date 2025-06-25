@@ -11,14 +11,13 @@ mutation UploadFile($file: Upload!, $category: String! = "general") {
   }
 }
 
-mutation SaveDiagram($file: Upload!, $fileFormat: String, $validateOnly: Boolean = false) {
-  saveDiagram(file: $file, fileFormat: $fileFormat, validateOnly: $validateOnly) {
-    success
-    message
-    diagramId
-    diagramName
+mutation ValidateDiagram($diagramContent: JSONScalar!) {
+  validateDiagram(diagramContent: $diagramContent) {
+    isValid
+    errors
     nodeCount
-    formatDetected
+    arrowCount
+    personCount
   }
 }
 

@@ -67,8 +67,8 @@ class DiPeoAPIClient:
     ) -> str:
         """Start diagram execution and return execution ID."""
         mutation = gql("""
-            mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
-                executeDiagram(input: $input) {
+            mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
+                executeDiagram(data: $data) {
                     success
                     execution {
                         id
@@ -102,7 +102,7 @@ class DiPeoAPIClient:
             
         result = await self._client.execute_async(
             mutation,
-            variable_values={"input": input_data},
+            variable_values={"data": input_data},
         )
 
         response = result["executeDiagram"]
@@ -238,8 +238,8 @@ class DiPeoAPIClient:
     ) -> bool:
         """Control a running execution (pause, resume, abort, skip_node)."""
         mutation = gql("""
-            mutation ControlExecution($input: ExecutionControlInput!) {
-                controlExecution(input: $input) {
+            mutation ControlExecution($data: ExecutionControlInput!) {
+                controlExecution(data: $data) {
                     success
                     execution {
                         id
@@ -256,7 +256,7 @@ class DiPeoAPIClient:
             input_data["nodeId"] = node_id
 
         result = await self._client.execute_async(
-            mutation, variable_values={"input": input_data}
+            mutation, variable_values={"data": input_data}
         )
 
         response = result["controlExecution"]
@@ -272,8 +272,8 @@ class DiPeoAPIClient:
     ) -> bool:
         """Submit response to an interactive prompt."""
         mutation = gql("""
-            mutation SubmitInteractiveResponse($input: InteractiveResponseInput!) {
-                submitInteractiveResponse(input: $input) {
+            mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
+                submitInteractiveResponse(data: $data) {
                     success
                     execution {
                         id
@@ -289,7 +289,7 @@ class DiPeoAPIClient:
         result = await self._client.execute_async(
             mutation,
             variable_values={
-                "input": {
+                "data": {
                     "executionId": execution_id,
                     "nodeId": node_id,
                     "response": response,

@@ -134,7 +134,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
 
       const result = await graphql.executeDiagram({
         variables: {
-          input: {
+          data: {
             diagramData,
             diagramId: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
             variables: (options as ExecutionOptions & { variables?: Record<string, unknown> })?.variables || {},
@@ -169,7 +169,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     try {
       await graphql.controlExecution({
         variables: {
-          input: {
+          data: {
             executionId: executionIdRef.current,
             action,
             nodeId: nodeIdStr
@@ -210,7 +210,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     try {
       await graphql.submitInteractiveResponse({
         variables: {
-          input: {
+          data: {
             executionId: executionIdRef.current,
             nodeId: interactivePrompt.nodeId,
             response

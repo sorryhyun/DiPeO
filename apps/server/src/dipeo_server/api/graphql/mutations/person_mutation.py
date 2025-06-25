@@ -310,3 +310,21 @@ class PersonMutations:
             return PersonResult(
                 success=False, error=f"Failed to initialize model: {e!s}"
             )
+
+    @strawberry.mutation
+    async def clear_conversations(self, info: strawberry.Info) -> DeleteResult:
+        """Clear all conversation history for all persons."""
+        try:
+            context: GraphQLContext = info.context
+            memory_service = context.memory_service
+
+            # Clear all conversations
+            memory_service.clear_all_conversations()
+
+            return DeleteResult(success=True, message="All conversations cleared")
+
+        except Exception as e:
+            logger.error(f"Failed to clear conversations: {e}")
+            return DeleteResult(
+                success=False, error=f"Failed to clear conversations: {e!s}"
+            )

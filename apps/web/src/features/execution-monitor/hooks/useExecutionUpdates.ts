@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { NodeExecutionStatus, ExecutionStatus, EventType } from '@dipeo/domain-models';
+import { NodeExecutionStatus, ExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/domain-models';
 import { nodeId, executionId } from '@/core/types';
-import { throttle } from '../utils/executionHelpers';
-import type { ExecutionUpdate } from '@dipeo/domain-models';
 import { useExecutionState } from './useExecutionState';
 
 interface UseExecutionUpdatesProps {
@@ -15,6 +13,8 @@ interface UseExecutionUpdatesProps {
   nodeUpdates?: any;
   interactivePrompts?: any;
 }
+
+const THROTTLE_DELAY = 50; // ms
 
 export function useExecutionUpdates({
   state,
@@ -38,8 +38,21 @@ export function useExecutionUpdates({
     currentRunningNodeRef,
   } = state;
 
-  // Handle node start
-  const handleNodeStart = useMemo(() => throttle((nodeIdStr: string, nodeType: string) => {
+  // Refs for throttling
+  const lastNodeStartRef = useRef<{ [nodeId: string]: number }>({});
+  const lastNodeCompleteRef = useRef<{ [nodeId: string]: number }>({});
+
+  // Handle node start with manual throttling
+  const handleNodeStart = useCallback((nodeIdStr: string, nodeType: string) => {
+    const now = Date.now();
+    const lastCall = lastNodeStartRef.current[nodeIdStr] || 0;
+    
+    if (now - lastCall < THROTTLE_DELAY) {
+      return;
+    }
+    
+    lastNodeStartRef.current[nodeIdStr] = now;
+    
     setCurrentNode(nodeIdStr);
     
     updateNodeState(nodeIdStr, {
@@ -61,10 +74,19 @@ export function useExecutionUpdates({
       status: NodeExecutionStatus.RUNNING, 
       timestamp: new Date().toISOString() 
     });
-  }, 50), [setCurrentNode, updateNodeState, executionActions, onUpdate, executionIdRef]);
+  }, [setCurrentNode, updateNodeState, executionActions, onUpdate, executionIdRef]);
 
-  // Handle node complete
-  const handleNodeComplete = useMemo(() => throttle((nodeIdStr: string, tokenCount?: number, output?: unknown) => {
+  // Handle node complete with manual throttling
+  const handleNodeComplete = useCallback((nodeIdStr: string, tokenCount?: number, output?: unknown) => {
+    const now = Date.now();
+    const lastCall = lastNodeCompleteRef.current[nodeIdStr] || 0;
+    
+    if (now - lastCall < THROTTLE_DELAY) {
+      return;
+    }
+    
+    lastNodeCompleteRef.current[nodeIdStr] = now;
+    
     incrementCompletedNodes();
     
     if (currentRunningNodeRef.current === nodeIdStr) {
@@ -93,7 +115,7 @@ export function useExecutionUpdates({
       status: NodeExecutionStatus.COMPLETED, 
       timestamp: new Date().toISOString() 
     });
-  }, 50), [incrementCompletedNodes, setCurrentNode, updateNodeState, executionActions, addToRunContext, onUpdate, executionIdRef, currentRunningNodeRef]);
+  }, [incrementCompletedNodes, setCurrentNode, updateNodeState, executionActions, addToRunContext, onUpdate, executionIdRef, currentRunningNodeRef]);
 
   // Process execution subscription updates
   useEffect(() => {
@@ -253,4 +275,12 @@ export function useExecutionUpdates({
       timestamp: new Date().toISOString() 
     });
   }, [interactivePrompts, setInteractivePrompt, onUpdate, executionIdRef]);
+
+  // Cleanup refs on unmount
+  useEffect(() => {
+    return () => {
+      lastNodeStartRef.current = {};
+      lastNodeCompleteRef.current = {};
+    };
+  }, []);
 }

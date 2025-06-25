@@ -7,8 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import yaml
-
 import strawberry
 from dipeo_domain import (
     DiagramMetadata,
@@ -16,20 +14,17 @@ from dipeo_domain import (
 )
 from strawberry.file_uploads import Upload
 
+from config import BASE_DIR
 from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.diagram.converters import (
     backend_to_graphql,
     converter_registry,
-    graphql_to_backend,
 )
 from dipeo_server.domains.diagram.services.models import BackendDiagram
-
-from config import BASE_DIR
 
 from ..context import GraphQLContext
 from ..types import (
     DiagramFormat,
-    DiagramID,
     FileUploadResult,
     JSONScalar,
 )
@@ -122,15 +117,14 @@ def backend_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
 
 
 @strawberry.type
-class DiagramSaveResult:
-    """Result of diagram save operation."""
-
-    success: bool
-    message: str
-    diagram_id: Optional[DiagramID] = None
-    diagram_name: Optional[str] = None
+class DiagramValidationResult:
+    """Result of diagram validation."""
+    
+    is_valid: bool
+    errors: List[str] = strawberry.field(default_factory=list)
     node_count: Optional[int] = None
-    format_detected: Optional[str] = None
+    arrow_count: Optional[int] = None
+    person_count: Optional[int] = None
 
 
 @strawberry.type
@@ -209,136 +203,58 @@ class UploadMutations:
                 success=False, message=f"Upload failed: {e!s}", error=str(e)
             )
 
-    @strawberry.mutation(description="Save a diagram from an uploaded file")
-    async def save_diagram(
+    @strawberry.mutation(description="Validate a diagram structure")
+    async def validate_diagram(
         self,
-        file: Upload,
         info: strawberry.Info,
-        file_format: Optional[str] = None,
-        validate_only: bool = False,
-    ) -> DiagramSaveResult:
+        diagram_content: JSONScalar,
+    ) -> DiagramValidationResult:
+        """Validate a diagram without saving it."""
         context: GraphQLContext = info.context
 
         try:
-            content = await file.read()
-            content_str = content.decode("utf-8")
-            filename = file.filename or "unnamed_diagram"
-
-            if len(content) > 5 * 1024 * 1024:
-                return DiagramSaveResult(
-                    success=False, message="Diagram file exceeds 5MB limit"
+            if not isinstance(diagram_content, dict):
+                return DiagramValidationResult(
+                    is_valid=False, 
+                    errors=["Diagram content must be a JSON object"]
                 )
 
-            detected_format = file_format.lower() if file_format else None
-            if not detected_format:
-                detected_format = converter_registry.detect_format(content_str)
-                if not detected_format:
-                    # Use filename pattern to detect format
-                    if "light" in filename:
-                        detected_format = DiagramFormat.light.value
-                    elif "readable" in filename:
-                        detected_format = DiagramFormat.readable.value
-                    else:
-                        detected_format = DiagramFormat.native.value
-
-            converter = converter_registry.get(detected_format)
-            if not converter:
-                return DiagramSaveResult(
-                    success=False, message=f"Unknown format: {detected_format}"
-                )
-
-            format_info = converter_registry.get_info(detected_format)
-            if not format_info.get("supports_import", True):
-                return DiagramSaveResult(
-                    success=False,
-                    message=f"Format '{detected_format}' does not support import",
-                )
-
+            # Create domain diagram from content
             try:
-                domain_diagram = converter.deserialize(content_str)
+                backend_diagram = BackendDiagram(**diagram_content)
+                domain_diagram = backend_to_graphql(backend_diagram)
             except Exception as e:
-                return DiagramSaveResult(
-                    success=False,
-                    message=f"Failed to parse {detected_format} format: {e!s}",
+                return DiagramValidationResult(
+                    is_valid=False,
+                    errors=[f"Invalid diagram structure: {e!s}"]
                 )
 
+            # Validate diagram
             validation_errors = validate_diagram(
-                domain_diagram, context.api_key_service if isinstance(context.api_key_service, APIKeyService) else None
+                domain_diagram, 
+                context.api_key_service if isinstance(context.api_key_service, APIKeyService) else None
             )
+            
             if validation_errors:
-                return DiagramSaveResult(
-                    success=False,
-                    message=f"Validation failed: {'; '.join(validation_errors)}",
+                return DiagramValidationResult(
+                    is_valid=False,
+                    errors=validation_errors
                 )
-
-            if validate_only:
-                return DiagramSaveResult(
-                    success=True,
-                    message="Diagram is valid",
-                    node_count=len(domain_diagram.nodes),
-                    format_detected=detected_format,
-                )
-
-            # Use new services
-            storage_service = context.diagram_storage_service
-
-            # Generate diagram ID from filename
-            diagram_id = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '')
-
-            # For quicksave, use "quicksave" as the ID
-            if diagram_id == "quicksave" or "quicksave" in filename.lower():
-                diagram_id = "quicksave"
-
-            # Determine subdirectory based on format
-            format_subdir = ""
-            if detected_format == DiagramFormat.light.value:
-                format_subdir = "light/"
-            elif detected_format == DiagramFormat.readable.value:
-                format_subdir = "readable/"
-            elif detected_format == DiagramFormat.native.value:
-                format_subdir = "native/"
-
-            # Determine file extension based on format
-            if detected_format == DiagramFormat.native.value:
-                extension = ".json"
-            else:
-                extension = ".yaml"
             
-            # If the detected format is the native format, use the backend dict directly
-            if detected_format == DiagramFormat.native.value:
-                # Convert domain diagram to backend format using converter directly
-                backend_model = graphql_to_backend(domain_diagram)
-                backend_dict = backend_model.model_dump()
-                save_content = backend_dict
-            else:
-                # For other formats, serialize the domain diagram to the target format
-                content_str = converter.serialize(domain_diagram)
-                # Parse the serialized content back to dict for storage service
-                if detected_format == DiagramFormat.light.value or detected_format == DiagramFormat.readable.value:
-                    save_content = yaml.safe_load(content_str)
-                else:
-                    save_content = json.loads(content_str)
-            
-            # Save in format-specific subdirectory with correct extension
-            path = f"{format_subdir}{diagram_id}{extension}"
-            await storage_service.write_file(path, save_content)
-
-            logger.info(
-                f"Diagram saved: {filename} -> {diagram_id} (format: {detected_format})"
-            )
-
-            return DiagramSaveResult(
-                success=True,
-                message=f"Successfully saved {filename}",
-                diagram_id=diagram_id,
-                diagram_name=domain_diagram.metadata.name if domain_diagram.metadata else filename,
+            return DiagramValidationResult(
+                is_valid=True,
+                errors=[],
                 node_count=len(domain_diagram.nodes),
-                format_detected=detected_format,
+                arrow_count=len(domain_diagram.arrows),
+                person_count=len(domain_diagram.persons)
             )
 
         except Exception as e:
-            logger.error(f"Diagram save error: {e!s}")
-            return DiagramSaveResult(success=False, message=f"Save failed: {e!s}")
+            logger.error(f"Diagram validation error: {e!s}")
+            return DiagramValidationResult(
+                is_valid=False,
+                errors=[f"Validation failed: {e!s}"]
+            )
 
     @strawberry.mutation(description="Convert a diagram to a different format")
     async def convert_diagram(
@@ -407,3 +323,4 @@ class UploadMutations:
         except Exception as e:
             logger.error(f"Stateful export error: {e!s}", exc_info=True)
             return DiagramConvertResult(success=False, error=str(e))
+

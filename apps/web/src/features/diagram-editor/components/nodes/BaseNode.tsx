@@ -7,6 +7,7 @@ import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../hooks';
 import { useCanvasOperationsContext } from '../../contexts/CanvasContext';
 import { useUIState } from '@/shared/hooks/selectors';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
 import { nodeId } from '@/core/types';
 import './BaseNode.css';
@@ -23,17 +24,24 @@ interface BaseNodeProps {
 
 // Custom hook for node execution status
 function useNodeStatus(nodeIdStr: string) {
+  // Get execution state directly from the store for real-time updates
+  const nodeExecutionState = useUnifiedStore(state => {
+    const nId = nodeId(nodeIdStr);
+    return state.execution.nodeStates.get(nId);
+  });
+  
+  // Also get from executionOps for hook state (progress, etc)
   const { executionOps } = useCanvasOperationsContext();
-  const nodeState = executionOps.getNodeExecutionState(nodeId(nodeIdStr));
+  const hookNodeState = executionOps.getNodeExecutionState(nodeId(nodeIdStr));
   
   return useMemo(() => ({
-    isRunning: nodeState?.status === 'running',
-    isSkipped: nodeState?.status === 'skipped',
-    isCompleted: nodeState?.status === 'completed',
-    hasError: nodeState?.status === 'error',
-    progress: nodeState?.progress,
-    error: nodeState?.error,
-  }), [nodeState]);
+    isRunning: nodeExecutionState?.status === NodeExecutionStatus.RUNNING || hookNodeState?.status === 'running',
+    isSkipped: nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || hookNodeState?.status === 'skipped',
+    isCompleted: nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || hookNodeState?.status === 'completed',
+    hasError: nodeExecutionState?.status === NodeExecutionStatus.FAILED || hookNodeState?.status === 'error',
+    progress: hookNodeState?.progress,
+    error: nodeExecutionState?.error || hookNodeState?.error,
+  }), [nodeExecutionState, hookNodeState]);
 }
 
 // Custom hook for handles generation with auto-spacing

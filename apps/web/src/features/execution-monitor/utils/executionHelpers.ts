@@ -23,27 +23,3 @@ export function getNodeColor(nodeType: string): string {
   return NODE_COLORS[nodeType as NodeType] || '#6b7280';
 }
 
-export function throttle<T extends (...args: Array<any>) => any>(fn: T, delay: number): T {
-  let lastCall = 0;
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  let lastArgs: Parameters<T> | null = null;
-  
-  return ((...args: Parameters<T>) => {
-    const now = Date.now();
-    lastArgs = args;
-    
-    if (now - lastCall >= delay) {
-      lastCall = now;
-      fn(...args);
-    } else if (!timeoutId) {
-      timeoutId = setTimeout(() => {
-        if (lastArgs) {
-          lastCall = Date.now();
-          fn(...lastArgs);
-        }
-        timeoutId = null;
-        lastArgs = null;
-      }, delay - (now - lastCall));
-    }
-  }) as T;
-}
