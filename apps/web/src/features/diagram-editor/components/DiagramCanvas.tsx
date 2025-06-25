@@ -373,7 +373,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           <Panel defaultSize={70} minSize={20}>
             {/* Diagram view in execution mode */}
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
-              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.7 }} onInit={handleInit} onViewportChange={handleViewportChange} />
+              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {/* Context menu disabled */}
@@ -401,7 +401,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         <PanelGroup direction="vertical">
           <Panel defaultSize={65} minSize={30}>
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
-              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.7 }} onInit={handleInit} onViewportChange={handleViewportChange} />
+              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               {/* Context menu disabled */}

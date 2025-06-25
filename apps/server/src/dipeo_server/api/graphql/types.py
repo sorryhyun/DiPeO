@@ -131,7 +131,7 @@ class DomainArrowType:
         return getattr(self, '_data', None) or getattr(self, 'data', None)
 
 
-@strawberry.experimental.pydantic.type(DomainPerson, fields=["id", "label", "service", "model", "api_key_id", "system_prompt", "forgetting_mode"])
+@strawberry.experimental.pydantic.type(DomainPerson, fields=["id", "label", "service", "model", "api_key_id", "system_prompt"])
 class DomainPersonType:
     @strawberry.field
     def type(self) -> str:
@@ -256,7 +256,6 @@ class CreatePersonInput:
     model: str
     api_key_id: ApiKeyID
     system_prompt: Optional[str] = None
-    forgetting_mode: ForgettingMode = ForgettingMode.no_forget
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     top_p: Optional[float] = None
@@ -269,7 +268,6 @@ class UpdatePersonInput:
     model: Optional[str] = None
     api_key_id: Optional[ApiKeyID] = None
     system_prompt: Optional[str] = None
-    forgetting_mode: Optional[ForgettingMode] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     top_p: Optional[float] = None

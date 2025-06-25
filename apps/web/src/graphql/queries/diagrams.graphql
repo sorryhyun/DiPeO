@@ -39,7 +39,6 @@ query GetDiagram($id: DiagramID!) {
       model
       systemPrompt
       apiKeyId
-      forgettingMode
       maskedApiKey
       type
     }

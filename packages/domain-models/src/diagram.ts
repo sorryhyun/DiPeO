@@ -130,7 +130,6 @@ export interface DomainPerson {
   model: string;
   apiKeyId?: ApiKeyID | null;
   systemPrompt?: string | null;
-  forgettingMode: ForgettingMode;
   type: 'person';
   maskedApiKey?: string | null;
 }

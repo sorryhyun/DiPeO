@@ -68,7 +68,6 @@ export function createImportState() {
         id: personId,
         label,
         apiKeyId: '',
-        forgettingMode: ForgettingMode.NO_FORGET,
         service: service as any,
         model,
         systemPrompt: '',

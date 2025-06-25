@@ -158,16 +158,38 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             getattr(person_obj, "system_prompt", None)
             or getattr(person_obj, "systemPrompt", "")
         ) if person_obj else ""
-        conversation.insert(0, {"role": "system", "content": system_prompt})
+        conversation.insert(0, {"role": "system", "content": system_prompt, "personId": person_id})
 
     # Gather edge inputs -----------------------------------------------------
     inputs = await _edge_inputs(node, ctx)
 
-    if "conversation" in inputs and exec_count > 1:
-        conversation.append({"role": "user", "content": inputs["conversation"]})
+    # Handle conversation state from upstream nodes
+    if "conversation" in inputs:
+        upstream_conv = inputs["conversation"]
+        if isinstance(upstream_conv, list) and upstream_conv:
+            # Extract the last user/assistant exchange from upstream conversation
+            last_exchange = []
+            for msg in reversed(upstream_conv):
+                if msg.get("role") in ["user", "assistant"]:
+                    last_exchange.append(msg)
+                    if len(last_exchange) == 2:  # Got both user and assistant
+                        break
+            
+            # Add the upstream conversation context as a user message
+            if last_exchange:
+                # Format the upstream exchange as context
+                context_parts = []
+                for msg in reversed(last_exchange):
+                    role = "Input" if msg.get("role") == "user" else "Response"
+                    context_parts.append(f"{role}: {msg.get('content', '')}")
+                
+                upstream_text = "\n".join(context_parts)
+                conversation.append({"role": "user", "content": upstream_text, "personId": person_id})
 
     if exec_count == 1 and first_only_prompt:
-        prompt = first_only_prompt.format(**inputs)
+        # Convert {{var}} to {var} for Python format()
+        prompt_template = first_only_prompt.replace('{{', '{').replace('}}', '}')
+        prompt = prompt_template.format(**inputs)
     else:
         prompt = default_prompt
 
@@ -194,7 +216,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             prompt = debate_txt + (prompt or "Based on the above arguments, judge which panel is more reasonable.")
 
     if prompt:
-        conversation.append({"role": "user", "content": prompt})
+        conversation.append({"role": "user", "content": prompt, "personId": person_id})
 
     # Call LLM ---------------------------------------------------------------
     person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
@@ -214,10 +236,22 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     response_text: str = llm_result.get("response", "")
     token_usage: int = llm_result.get("token_usage") or len(response_text.split())
 
-    ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text})
+    ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text, "personId": person_id})
 
+    # Check if any outgoing edges expect conversation_state
+    output_values = {"default": response_text}
+    
+    # Find edges from this node that have contentType="conversation_state"
+    for edge in ctx.diagram.arrows:
+        if edge.source.startswith(node.id + ":"):
+            edge_data = edge.data if edge.data and isinstance(edge.data, dict) else {}
+            if edge_data.get("contentType") == "conversation_state":
+                # Include full conversation history for conversation_state edges
+                output_values["conversation"] = ctx.get_conversation_history(person_id) if person_id else []
+                break
+    
     return create_node_output(
-        {"default": response_text},
+        output_values,
         {"model": person_cfg["model"], "tokens_used": token_usage},
     )
 

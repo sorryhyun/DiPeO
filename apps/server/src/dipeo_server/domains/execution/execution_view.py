@@ -133,6 +133,9 @@ class ExecutionView:
         log = logging.getLogger(__name__)
         
         in_degree = {}
+        # Track person_job nodes that have :first connections
+        person_job_first_sources = {}  # node_id -> source_node_id
+        
         for node_id, node_view in self.node_views.items():
             # For person_job nodes with a "first" handle, we only count non-"first" edges
             # This allows them to start when they receive their initial input
@@ -140,8 +143,36 @@ class ExecutionView:
                 # Count only edges that don't go to the "first" handle
                 non_first_edges = [e for e in node_view.incoming_edges if e.target_handle != 'first']
                 in_degree[node_id] = len(non_first_edges)
+                
+                # Track the source of :first connections
+                first_edges = [e for e in node_view.incoming_edges if e.target_handle == 'first']
+                if first_edges:
+                    # Store the source node ID
+                    person_job_first_sources[node_id] = first_edges[0].source_view.id
             else:
                 in_degree[node_id] = len(node_view.incoming_edges)
+
+        # Find person_job nodes that share the same :first source
+        source_to_nodes = {}
+        for node_id, source_id in person_job_first_sources.items():
+            if source_id not in source_to_nodes:
+                source_to_nodes[source_id] = []
+            source_to_nodes[source_id].append(node_id)
+        
+        # For nodes sharing the same :first source, check if they have dependencies between them
+        # If they do, we need to respect that ordering by adjusting in_degree
+        for source_id, node_ids in source_to_nodes.items():
+            if len(node_ids) > 1:
+                log.info(f"Nodes {node_ids} share :first source {source_id}")
+                # Check for dependencies between these nodes
+                for i, node_id in enumerate(node_ids):
+                    node_view = self.node_views[node_id]
+                    # Check if this node has edges to other nodes in the same group
+                    for edge in node_view.outgoing_edges:
+                        if edge.target_view.id in node_ids and edge.target_handle != 'first':
+                            # This creates a dependency - increase target's in_degree
+                            log.info(f"Found dependency: {node_id} -> {edge.target_view.id}")
+                            in_degree[edge.target_view.id] += 1
 
         queue = [nv for nid, nv in self.node_views.items() if in_degree[nid] == 0]
         levels = []

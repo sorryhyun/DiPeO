@@ -97,7 +97,7 @@ class PersonMemory:
             else:
                 content = message.content
 
-            visible_messages.append({"role": role, "content": content})
+            visible_messages.append({"role": role, "content": content, "personId": message.sender_person_id})
 
         return visible_messages
 
