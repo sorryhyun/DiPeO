@@ -1,6 +1,6 @@
 # DiPeO Makefile
 
-.PHONY: install-py install-web install-cli install-all codegen dev-server dev-web dev-all clean help lint-py format-py typecheck-py lint-all
+.PHONY: install-py install-web install-cli install-all codegen build-all dev-server dev-web dev-all clean help lint-py format-py typecheck-py lint-all
 
 # Default target
 help:
@@ -10,9 +10,10 @@ help:
 	@echo "  make install-web    - Install web dependencies"
 	@echo "  make install-cli    - Install CLI in editable mode"
 	@echo "  make codegen        - Generate code from domain models"
+	@echo "  make build-all      - Build all components with proper order"
 	@echo "  make dev-server     - Run development server"
 	@echo "  make dev-web        - Run web development server"
-	@echo "  make dev-all        - Run both servers"
+	@echo "  make dev-all        - Instructions for running both servers"
 	@echo "  make lint-py        - Run Python linter (ruff)"
 	@echo "  make format-py      - Format Python code"
 	@echo "  make typecheck-py   - Run Python type checker (mypy)"
@@ -41,7 +42,12 @@ install-all: install-py install-web install-cli
 # Code generation
 codegen:
 	@echo "🔄 Generating code from domain models..."
-	./dev.sh --generate
+	cd packages/domain-models && pnpm build
+
+# Build everything with proper dependency order
+build-all:
+	@echo "🔨 Building all components..."
+	./build-all.sh
 
 # Development servers
 dev-server:
@@ -54,7 +60,9 @@ dev-web:
 
 dev-all:
 	@echo "🚀 Starting all development servers..."
-	./dev.sh --all
+	@echo "Start backend in one terminal: make dev-server"
+	@echo "Start frontend in another terminal: make dev-web"
+	@echo "Or use tmux/screen to run both in parallel"
 
 # Linting and formatting
 lint-py:

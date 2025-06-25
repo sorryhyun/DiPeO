@@ -17,7 +17,6 @@ log = logging.getLogger(__name__)
 
 
 class ExecutionService(BaseService):
-
     def __init__(
         self,
         llm_service,
@@ -47,14 +46,17 @@ class ExecutionService(BaseService):
         execution_id: str,
         interactive_handler: Callable[[dict[str, Any]], Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        log.info(f"ExecutionService.execute_diagram called with execution_id: {execution_id}")
+        log.info(
+            f"ExecutionService.execute_diagram called with execution_id: {execution_id}"
+        )
         if self.execution_preparation_service:
             # Use the unified preparation service
-            ready_diagram = await self.execution_preparation_service.prepare_for_execution(
-                diagram=diagram,
-                validate=True
+            ready_diagram = (
+                await self.execution_preparation_service.prepare_for_execution(
+                    diagram=diagram, validate=True
+                )
             )
-            
+
             diagram_dict = ready_diagram.backend_format
             api_keys = ready_diagram.api_keys
             diagram_obj = ready_diagram.domain_model
@@ -72,7 +74,9 @@ class ExecutionService(BaseService):
         engine = ViewBasedEngine(get_handlers())
 
         diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None
-        await state_store.create_execution(execution_id, diagram_id, options.get("variables", {}))
+        await state_store.create_execution(
+            execution_id, diagram_id, options.get("variables", {})
+        )
 
         log.info(f"Starting execution {execution_id}")
         yield {
@@ -88,17 +92,18 @@ class ExecutionService(BaseService):
 
             engine_task = asyncio.create_task(
                 self._execute_with_new_engine(
-                    engine, diagram_obj, api_keys, execution_id,
-                    interactive_handler, stream_callback
+                    engine,
+                    diagram_obj,
+                    api_keys,
+                    execution_id,
+                    interactive_handler,
+                    stream_callback,
                 )
             )
 
             while True:
                 try:
-                    update = await asyncio.wait_for(
-                        updates_queue.get(),
-                        timeout=0.1
-                    )
+                    update = await asyncio.wait_for(updates_queue.get(), timeout=0.1)
                     yield update
 
                     if update.get("type") == "execution_complete":
@@ -119,7 +124,9 @@ class ExecutionService(BaseService):
 
         except Exception as e:
             log.error(f"Execution failed for {execution_id}: {e}")
-            await state_store.update_status(execution_id, ExecutionStatus.FAILED, error=str(e))
+            await state_store.update_status(
+                execution_id, ExecutionStatus.FAILED, error=str(e)
+            )
             yield {
                 "type": "execution_complete",
                 "execution_id": execution_id,
@@ -162,13 +169,14 @@ class ExecutionService(BaseService):
             await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
         elif final_status == "failed":
             await state_store.update_status(execution_id, ExecutionStatus.FAILED)
-        
-        await stream_callback({
-            "type": "execution_complete",
-            "execution_id": execution_id,
-            "status": final_status,
-        })
 
+        await stream_callback(
+            {
+                "type": "execution_complete",
+                "execution_id": execution_id,
+                "status": final_status,
+            }
+        )
 
     def _inject_api_keys(self, diagram: dict[str, Any]) -> dict[str, Any]:
         keys = {
@@ -176,4 +184,3 @@ class ExecutionService(BaseService):
             for info in self.api_key_service.list_api_keys()
         }
         return {**diagram, "api_keys": keys}
-

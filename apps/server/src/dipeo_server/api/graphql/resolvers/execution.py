@@ -98,5 +98,4 @@ class ExecutionResolver:
             return []
 
 
-
 execution_resolver = ExecutionResolver()

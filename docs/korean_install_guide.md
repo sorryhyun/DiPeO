@@ -28,5 +28,9 @@ https://git-scm.com/book/ko/v2/%EC%8B%9C%EC%9E%91%ED%95%98%EA%B8%B0-Git-%EC%84%A
 
 6. 실행
 
-bash ./dev.sh --all 을 누르면 서버 및 브라우저가 가동됩니다. 브라우저 주소에 http://localhost:3000/ 을 입력하고 누르면 다이어그램을 만드는 창이 나오게 됩니다.
+터미널을 두 개 열어서:
+- 첫 번째 터미널에서 `make dev-server` 실행 (백엔드 서버)
+- 두 번째 터미널에서 `make dev-web` 실행 (프론트엔드 서버)
+
+브라우저 주소에 http://localhost:3000/ 을 입력하고 누르면 다이어그램을 만드는 창이 나오게 됩니다.
 

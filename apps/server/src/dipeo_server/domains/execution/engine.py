@@ -17,7 +17,6 @@ from .services.state_store import StateStore
 
 
 class ViewBasedEngine:
-
     def __init__(self, handlers: Dict[str, Callable]) -> None:
         self.handlers = handlers
 
@@ -34,7 +33,6 @@ class ViewBasedEngine:
         interactive_handler: Optional[Callable] = None,
         stream_callback: Optional[Callable] = None,
     ) -> ExecutionContext:
-
         view = ExecutionView(diagram, self.handlers, api_keys)
 
         ctx = ExecutionContext(
@@ -60,6 +58,7 @@ class ViewBasedEngine:
         # Load existing node outputs from state store if available
         if state_store:
             import logging
+
             log = logging.getLogger(__name__)
 
             state = await state_store.get_state(ctx.execution_id)
@@ -73,8 +72,11 @@ class ViewBasedEngine:
 
         return ctx
 
-    async def _execute_with_view(self, ctx: ExecutionContext, view: ExecutionView) -> None:
+    async def _execute_with_view(
+        self, ctx: ExecutionContext, view: ExecutionView
+    ) -> None:
         import logging
+
         log = logging.getLogger(__name__)
 
         # First execute the pre-computed levels
@@ -84,56 +86,69 @@ class ViewBasedEngine:
                 if self._can_execute_node_view(node_view):
                     tasks.append(self._execute_node_view(ctx, node_view))
                 else:
-                    log.warning(f"Cannot execute node {node_view.node.id} - dependencies not met")
+                    log.warning(
+                        f"Cannot execute node {node_view.node.id} - dependencies not met"
+                    )
 
             if tasks:
                 await asyncio.gather(*tasks)
             else:
                 log.warning(f"No tasks to execute for level {level_num}")
-        
+
         # After initial levels, check for any nodes that became ready due to cycles
-        
+
         # Continue executing nodes that become ready
         max_iterations = 100  # Prevent infinite loops
         iteration = 0
         while iteration < max_iterations:
             iteration += 1
             ready_nodes = []
-            
+
             for node_id, node_view in view.node_views.items():
                 # Check if node has reached max iterations
-                max_iter = node_view.node.data.get('maxIteration', 1) if node_view.node.data else 1
+                max_iter = (
+                    node_view.node.data.get("maxIteration", 1)
+                    if node_view.node.data
+                    else 1
+                )
                 current_exec_count = ctx.exec_counts.get(node_id, 0)
-                
+
                 if current_exec_count < max_iter:
                     if self._can_execute_node_view(node_view):
                         ready_nodes.append(node_view)
 
             if not ready_nodes:
                 break
-                
+
             tasks = []
             for node_view in ready_nodes:
                 tasks.append(self._execute_node_view(ctx, node_view))
-            
+
             await asyncio.gather(*tasks)
-        
+
         log.info("All execution completed")
 
     def _can_execute_node_view(self, node_view: NodeView) -> bool:
         # For person_job nodes, check if they have input on their "first" handle
         # This allows them to start even if other inputs aren't ready yet
-        if node_view.node.type == 'person_job':
+        if node_view.node.type == "person_job":
             # Check if any edge to "first" handle has output
-            first_edges = [e for e in node_view.incoming_edges if e.target_handle == 'first']
-            if first_edges and any(edge.source_view.output is not None for edge in first_edges):
+            first_edges = [
+                e for e in node_view.incoming_edges if e.target_handle == "first"
+            ]
+            if first_edges and any(
+                edge.source_view.output is not None for edge in first_edges
+            ):
                 return True
-        
-        # For all other nodes (and person_job without first input), require all inputs
-        return all(edge.source_view.output is not None
-                   for edge in node_view.incoming_edges)
 
-    async def _execute_node_view(self, ctx: ExecutionContext, node_view: NodeView) -> None:
+        # For all other nodes (and person_job without first input), require all inputs
+        return all(
+            edge.source_view.output is not None for edge in node_view.incoming_edges
+        )
+
+    async def _execute_node_view(
+        self, ctx: ExecutionContext, node_view: NodeView
+    ) -> None:
         node = node_view.node
         handler = node_view.handler
 
@@ -147,8 +162,8 @@ class ViewBasedEngine:
                     "node_id": node.id,
                     "exec_id": f"{node.id}_1",
                     "status": "failed",
-                    "error": f"No handler found for node type: {node.type}"
-                }
+                    "error": f"No handler found for node type: {node.type}",
+                },
             )
             node_view.output = error_output
             return
@@ -163,11 +178,13 @@ class ViewBasedEngine:
         )
 
         if ctx.stream_callback:
-            await ctx.stream_callback({
-                "type": "node_start",
-                "node_id": node.id,
-                "node_type": node.type,
-            })
+            await ctx.stream_callback(
+                {
+                    "type": "node_start",
+                    "node_id": node.id,
+                    "node_type": node.type,
+                }
+            )
 
         try:
             output = await self._call_handler_with_view(handler, node, node_view, ctx)
@@ -186,15 +203,17 @@ class ViewBasedEngine:
                 outputs = output.value if isinstance(output.value, dict) else {}
                 error = metadata.get("error", None)
 
-                await ctx.stream_callback({
-                    "type": "node_complete",
-                    "node_id": node.id,
-                    "status": status,
-                    "output": output.model_dump(),
-                    "outputs": outputs,
-                    "error": error,
-                    "metadata": metadata,
-                })
+                await ctx.stream_callback(
+                    {
+                        "type": "node_complete",
+                        "node_id": node.id,
+                        "status": status,
+                        "output": output.model_dump(),
+                        "outputs": outputs,
+                        "error": error,
+                        "metadata": metadata,
+                    }
+                )
         except Exception as e:
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.FAILED
@@ -205,34 +224,32 @@ class ViewBasedEngine:
                     "node_id": node.id,
                     "exec_id": f"{node.id}_{node_view.exec_count}",
                     "status": "failed",
-                    "error": str(e)
-                }
+                    "error": str(e),
+                },
             )
             node_view.output = error_output
             ctx.set_node_output(node.id, error_output)
 
             if ctx.stream_callback:
-                await ctx.stream_callback({
-                    "type": "node_complete",
-                    "node_id": node.id,
-                    "status": "failed",
-                    "output": error_output.model_dump(),
-                    "outputs": {},
-                    "error": str(e),
-                    "metadata": error_output.metadata or {},
-                })
+                await ctx.stream_callback(
+                    {
+                        "type": "node_complete",
+                        "node_id": node.id,
+                        "status": "failed",
+                        "output": error_output.model_dump(),
+                        "outputs": {},
+                        "error": str(e),
+                        "metadata": error_output.metadata or {},
+                    }
+                )
 
     async def _call_handler_with_view(
-        self,
-        handler: Callable,
-        node,
-        node_view: NodeView,
-        ctx: ExecutionContext
+        self, handler: Callable, node, node_view: NodeView, ctx: ExecutionContext
     ) -> NodeOutput:
         import inspect
+
         sig = inspect.signature(handler)
 
-        if 'node_view' in sig.parameters:
+        if "node_view" in sig.parameters:
             return await handler(node=node, node_view=node_view, ctx=ctx)
         return await handler(node, ctx)
-

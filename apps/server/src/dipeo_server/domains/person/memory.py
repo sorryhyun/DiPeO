@@ -97,13 +97,14 @@ class PersonMemory:
             else:
                 content = message.content
 
-            visible_messages.append({"role": role, "content": content, "personId": message.sender_person_id})
+            visible_messages.append(
+                {"role": role, "content": content, "personId": message.sender_person_id}
+            )
 
         return visible_messages
 
 
 class MemoryService:
-
     def __init__(self, redis_url: Optional[str] = None):
         self.person_memories: Dict[str, PersonMemory] = {}
         self.all_messages: OrderedDict[str, Message] = OrderedDict()

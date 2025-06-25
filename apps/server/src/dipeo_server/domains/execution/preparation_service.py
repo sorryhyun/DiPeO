@@ -83,7 +83,9 @@ class ExecutionPreparationService(BaseService):
 
         # Step 2: Validate if requested
         if validate:
-            errors = self.validator._validate_backend_format(backend_data, context="execution")
+            errors = self.validator._validate_backend_format(
+                backend_data, context="execution"
+            )
             if errors:
                 raise ValidationError(f"Diagram validation failed: {'; '.join(errors)}")
 
@@ -101,19 +103,21 @@ class ExecutionPreparationService(BaseService):
                 elif not isinstance(backend_data["metadata"], dict):
                     # It's some other type, convert to dict if possible
                     backend_data["metadata"] = dict(backend_data["metadata"])
-            
+
             backend_diagram = BackendDiagram.model_validate(backend_data)
             domain_diagram = backend_to_graphql(backend_diagram)
 
         # Step 5: Update metadata if needed
-        if diagram_id and (not domain_diagram.metadata or not domain_diagram.metadata.id):
+        if diagram_id and (
+            not domain_diagram.metadata or not domain_diagram.metadata.id
+        ):
             if not domain_diagram.metadata:
                 domain_diagram.metadata = DiagramMetadata(
                     id=diagram_id,
                     name=diagram_id,
                     version="2.0.0",
                     created=datetime.now(timezone.utc).isoformat(),
-                    modified=datetime.now(timezone.utc).isoformat()
+                    modified=datetime.now(timezone.utc).isoformat(),
                 )
             else:
                 # Update the metadata ID
@@ -125,7 +129,11 @@ class ExecutionPreparationService(BaseService):
         execution_dict = self._build_execution_format(domain_diagram, api_keys)
 
         # Step 7: Determine final diagram ID
-        final_id = diagram_id or (domain_diagram.metadata.id if domain_diagram.metadata else None) or "unknown"
+        final_id = (
+            diagram_id
+            or (domain_diagram.metadata.id if domain_diagram.metadata else None)
+            or "unknown"
+        )
 
         return ExecutionReadyDiagram.from_dict(
             diagram_id=final_id,
@@ -153,7 +161,9 @@ class ExecutionPreparationService(BaseService):
     def _is_backend_format(self, data: Dict[str, Any]) -> bool:
         """Check if data is in backend format (dict-based nodes)."""
         if "nodes" in data and isinstance(data["nodes"], dict):
-            first_node = next(iter(data["nodes"].values()), None) if data["nodes"] else None
+            first_node = (
+                next(iter(data["nodes"].values()), None) if data["nodes"] else None
+            )
             if first_node and isinstance(first_node, dict):
                 return True
         return False
@@ -164,15 +174,16 @@ class ExecutionPreparationService(BaseService):
 
         persons = diagram.get("persons", {})
         if not isinstance(persons, dict):
-            raise ValidationError("Persons must be a dictionary with person IDs as keys")
+            raise ValidationError(
+                "Persons must be a dictionary with person IDs as keys"
+            )
 
         for person in persons.values():
             api_key_id = person.get("apiKeyId") or person.get("api_key_id")
             if api_key_id and api_key_id not in valid_api_keys:
                 all_keys = self.api_key_service.list_api_keys()
                 fallback = next(
-                    (k for k in all_keys if k["service"] == person.get("service")),
-                    None
+                    (k for k in all_keys if k["service"] == person.get("service")), None
                 )
                 if fallback:
                     logger.info(
@@ -220,7 +231,7 @@ class ExecutionPreparationService(BaseService):
                         "id": key_id,
                         "name": key_id,
                         "service": "openai",  # Default, should be updated
-                        "key": key_value
+                        "key": key_value,
                     }
 
             # Build execution hints
@@ -232,7 +243,9 @@ class ExecutionPreparationService(BaseService):
                     hints.start_nodes.append(node_id)
 
                 if node.get("type") in ["personJobNode", "person_job"]:
-                    person_id = node.get("data", {}).get("personId", node.get("data", {}).get("person_id"))
+                    person_id = node.get("data", {}).get(
+                        "personId", node.get("data", {}).get("person_id")
+                    )
                     if person_id:
                         hints.person_nodes[node_id] = person_id
 
@@ -244,10 +257,12 @@ class ExecutionPreparationService(BaseService):
                 if target_node_id not in hints.node_dependencies:
                     hints.node_dependencies[target_node_id] = []
 
-                arrow_label = arrow.get("data", {}).get("label") if arrow.get("data") else None
+                arrow_label = (
+                    arrow.get("data", {}).get("label") if arrow.get("data") else None
+                )
                 hint = ExecutionHint(
                     source=source_node_id,
-                    variable=arrow_label if arrow_label else "flow"
+                    variable=arrow_label if arrow_label else "flow",
                 )
                 hints.node_dependencies[target_node_id].append(hint)
 
@@ -259,7 +274,9 @@ class ExecutionPreparationService(BaseService):
 
         except Exception as e:
             logger.error(f"Failed to build execution format: {e}")
-            raise ValidationError(f"Failed to prepare diagram for execution: {e}") from e
+            raise ValidationError(
+                f"Failed to prepare diagram for execution: {e}"
+            ) from e
 
     @staticmethod
     def _extract_node_id(connection: str) -> str:

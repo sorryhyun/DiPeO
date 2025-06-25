@@ -62,10 +62,10 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       // Transform to PersonMemoryState format
       Object.entries(groupedByPerson).forEach(([pid, convs]) => {
         transformed[pid as PersonID] = {
-          personId: pid as PersonID,
           messages: convs.map((conv: any) => ({
             id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
             role: 'assistant' as const,
+            personId: pid as PersonID,
             content: conv.assistantResponse || '',
             timestamp: conv.timestamp,
             tokenCount: conv.tokenUsage?.total || 0,

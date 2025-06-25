@@ -4,7 +4,6 @@ from dipeo_domain import TokenUsage
 
 
 class TokenUsageService:
-
     @staticmethod
     def zero() -> TokenUsage:
         return TokenUsage(input=0, output=0, cached=0)

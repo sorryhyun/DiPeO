@@ -44,7 +44,9 @@ def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:  # noqa: D
             )
             return output
         except Exception as exc:  # pylint: disable=broad-except
-            _log.exception("%s node %s failed", node_type.upper(), node.id, exc_info=exc)
+            _log.exception(
+                "%s node %s failed", node_type.upper(), node.id, exc_info=exc
+            )
             error_output = create_node_output({}, {"error": str(exc)})
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output
@@ -153,12 +155,22 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
     # Ensure system prompt present
     if not conversation or conversation[0].get("role") != "system":
-        person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
+        person_obj = (
+            next((p for p in ctx.diagram.persons if p.id == person_id), None)
+            if person_id
+            else None
+        )
         system_prompt = (
-            getattr(person_obj, "system_prompt", None)
-            or getattr(person_obj, "systemPrompt", "")
-        ) if person_obj else ""
-        conversation.insert(0, {"role": "system", "content": system_prompt, "personId": person_id})
+            (
+                getattr(person_obj, "system_prompt", None)
+                or getattr(person_obj, "systemPrompt", "")
+            )
+            if person_obj
+            else ""
+        )
+        conversation.insert(
+            0, {"role": "system", "content": system_prompt, "personId": person_id}
+        )
 
     # Gather edge inputs -----------------------------------------------------
     inputs = await _edge_inputs(node, ctx)
@@ -174,7 +186,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
                     last_exchange.append(msg)
                     if len(last_exchange) == 2:  # Got both user and assistant
                         break
-            
+
             # Add the upstream conversation context as a user message
             if last_exchange:
                 # Format the upstream exchange as context
@@ -182,13 +194,15 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
                 for msg in reversed(last_exchange):
                     role = "Input" if msg.get("role") == "user" else "Response"
                     context_parts.append(f"{role}: {msg.get('content', '')}")
-                
+
                 upstream_text = "\n".join(context_parts)
-                conversation.append({"role": "user", "content": upstream_text, "personId": person_id})
+                conversation.append(
+                    {"role": "user", "content": upstream_text, "personId": person_id}
+                )
 
     if exec_count == 1 and first_only_prompt:
         # Convert {{var}} to {var} for Python format()
-        prompt_template = first_only_prompt.replace('{{', '{').replace('}}', '}')
+        prompt_template = first_only_prompt.replace("{{", "{").replace("}}", "}")
         prompt = prompt_template.format(**inputs)
     else:
         prompt = default_prompt
@@ -203,26 +217,44 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             other_conv = ctx.get_conversation_history(other_pid) if other_pid else []
             if not other_conv:
                 continue
-            label = other_node.data.get("label", other_node.id) if other_node.data else other_node.id
+            label = (
+                other_node.data.get("label", other_node.id)
+                if other_node.data
+                else other_node.id
+            )
             debate_messages = [m for m in other_conv if m.get("role") != "system"]
             if not debate_messages:
                 continue
             debate_context.append(f"\n{label}:\n")
             for msg in debate_messages:
                 role, content = msg.get("role"), msg.get("content", "")
-                debate_context.append(f"{'Input' if role == 'user' else 'Response'}: {content}\n")
+                debate_context.append(
+                    f"{'Input' if role == 'user' else 'Response'}: {content}\n"
+                )
         if debate_context:
-            debate_txt = "Here are the arguments from different panels:\n" + "".join(debate_context) + "\n\n"
-            prompt = debate_txt + (prompt or "Based on the above arguments, judge which panel is more reasonable.")
+            debate_txt = (
+                "Here are the arguments from different panels:\n"
+                + "".join(debate_context)
+                + "\n\n"
+            )
+            prompt = debate_txt + (
+                prompt
+                or "Based on the above arguments, judge which panel is more reasonable."
+            )
 
     if prompt:
         conversation.append({"role": "user", "content": prompt, "personId": person_id})
 
     # Call LLM ---------------------------------------------------------------
-    person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
+    person_obj = (
+        next((p for p in ctx.diagram.persons if p.id == person_id), None)
+        if person_id
+        else None
+    )
     person_cfg = {
         "service": getattr(person_obj, "service", "openai"),
-        "api_key_id": getattr(person_obj, "api_key_id", None) or getattr(person_obj, "apiKeyId", None),
+        "api_key_id": getattr(person_obj, "api_key_id", None)
+        or getattr(person_obj, "apiKeyId", None),
         "model": getattr(person_obj, "model", "gpt-4.1-nano"),
     }
 
@@ -236,20 +268,25 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     response_text: str = llm_result.get("response", "")
     token_usage: int = llm_result.get("token_usage") or len(response_text.split())
 
-    ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text, "personId": person_id})
+    ctx.add_to_conversation(
+        person_id,
+        {"role": "assistant", "content": response_text, "personId": person_id},
+    )
 
     # Check if any outgoing edges expect conversation_state
     output_values = {"default": response_text}
-    
+
     # Find edges from this node that have contentType="conversation_state"
     for edge in ctx.diagram.arrows:
         if edge.source.startswith(node.id + ":"):
             edge_data = edge.data if edge.data and isinstance(edge.data, dict) else {}
             if edge_data.get("contentType") == "conversation_state":
                 # Include full conversation history for conversation_state edges
-                output_values["conversation"] = ctx.get_conversation_history(person_id) if person_id else []
+                output_values["conversation"] = (
+                    ctx.get_conversation_history(person_id) if person_id else []
+                )
                 break
-    
+
     return create_node_output(
         output_values,
         {"model": person_cfg["model"], "tokens_used": token_usage},
@@ -262,20 +299,22 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
     # Get node data
     data = node.data or {}
-    
+
     # Check if we have direct data or need to collect from edges
     if (direct := data.get("data")) is not None:
         result_data = direct
     else:
         collected = await _edge_inputs(node, ctx)
         result_data = collected if collected else {}
-    
+
     # Handle file saving if enabled
     save_to_file = data.get("saveToFile", False) or data.get("save_to_file", False)
     if save_to_file:
         # Support both field names for backward compatibility
-        file_path = data.get("filePath") or data.get("fileName") or data.get("file_name")
-        
+        file_path = (
+            data.get("filePath") or data.get("fileName") or data.get("file_name")
+        )
+
         if file_path:
             try:
                 # Convert result data to string for saving
@@ -283,25 +322,23 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
                     content = str(result_data["default"])
                 else:
                     content = str(result_data)
-                
+
                 # Save to file
                 await ctx.file_service.write(file_path, content)
                 _log.info(f"Saved endpoint result to {file_path}")
-                
+
                 # Add save status to metadata
                 return create_node_output(
-                    {"default": result_data}, 
-                    {"saved_to": file_path}
+                    {"default": result_data}, {"saved_to": file_path}
                 )
             except Exception as exc:
                 _log.error(f"Failed to save endpoint result to {file_path}: {exc}")
                 return create_node_output(
-                    {"default": result_data},
-                    {"save_error": str(exc)}
+                    {"default": result_data}, {"save_error": str(exc)}
                 )
         else:
             _log.warning("saveToFile is true but no file path provided")
-    
+
     return create_node_output({"default": result_data})
 
 
@@ -327,7 +364,9 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
                 result = False
                 break
     input_val = await _edge_inputs(node, ctx, as_dict=False)
-    return create_node_output({"True" if result else "False": input_val}, {"condition_result": result})
+    return create_node_output(
+        {"True" if result else "False": input_val}, {"condition_result": result}
+    )
 
 
 @node_handler("db")

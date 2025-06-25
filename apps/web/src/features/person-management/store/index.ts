@@ -44,7 +44,6 @@ export const createPersonSlice: StateCreator<
       id: generatePersonId(),
       label,
       apiKeyId: '',
-      forgettingMode: ForgettingMode.NO_FORGET,
       service: service as LLMService,
       model,
       systemPrompt: '',

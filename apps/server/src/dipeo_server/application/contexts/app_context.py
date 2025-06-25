@@ -34,7 +34,6 @@ if TYPE_CHECKING:
 
 
 class AppContext:
-
     def __init__(self):
         self.api_key_service: Optional[SupportsAPIKey] = None
         self.llm_service: Optional[SupportsLLM] = None
@@ -58,7 +57,7 @@ class AppContext:
         self.notion_service = NotionService()
 
         self.diagram_storage_service = DiagramStorageService(
-            base_dir = BASE_DIR,
+            base_dir=BASE_DIR,
         )
         self.diagram_storage_adapter = DiagramStorageAdapter(
             storage_service=self.diagram_storage_service
@@ -68,7 +67,7 @@ class AppContext:
         self.execution_preparation_service = ExecutionPreparationService(
             storage_service=self.diagram_storage_service,
             validator=validator,
-            api_key_service=self.api_key_service
+            api_key_service=self.api_key_service,
         )
 
         self.execution_service = ExecutionService(

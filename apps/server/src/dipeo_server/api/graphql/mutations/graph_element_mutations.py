@@ -95,9 +95,7 @@ class GraphElementMutations:
             return DiagramResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to create arrow: {e}")
-            return DiagramResult(
-                success=False, error=f"Failed to create arrow: {e!s}"
-            )
+            return DiagramResult(success=False, error=f"Failed to create arrow: {e!s}")
 
     @strawberry.mutation
     async def delete_arrow(self, arrow_id: ArrowID, info) -> DeleteResult:
@@ -134,9 +132,7 @@ class GraphElementMutations:
 
         except Exception as e:
             logger.error(f"Failed to delete arrow {arrow_id}: {e}")
-            return DeleteResult(
-                success=False, error=f"Failed to delete arrow: {e!s}"
-            )
+            return DeleteResult(success=False, error=f"Failed to delete arrow: {e!s}")
 
     @strawberry.mutation
     async def create_handle(self, data: CreateHandleInput, info) -> HandleResult:
@@ -201,9 +197,7 @@ class GraphElementMutations:
             return HandleResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to create handle: {e}")
-            return HandleResult(
-                success=False, error=f"Failed to create handle: {e!s}"
-            )
+            return HandleResult(success=False, error=f"Failed to create handle: {e!s}")
 
     @strawberry.mutation
     async def delete_handle(self, handle_id: HandleID, info) -> DeleteResult:
@@ -250,6 +244,4 @@ class GraphElementMutations:
 
         except Exception as e:
             logger.error(f"Failed to delete handle {handle_id}: {e}")
-            return DeleteResult(
-                success=False, error=f"Failed to delete handle: {e!s}"
-            )
+            return DeleteResult(success=False, error=f"Failed to delete handle: {e!s}")

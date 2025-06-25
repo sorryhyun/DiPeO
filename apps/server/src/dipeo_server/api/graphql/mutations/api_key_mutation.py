@@ -50,9 +50,7 @@ class ApiKeyMutations:
             return ApiKeyResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to create API key: {e}")
-            return ApiKeyResult(
-                success=False, error=f"Failed to create API key: {e!s}"
-            )
+            return ApiKeyResult(success=False, error=f"Failed to create API key: {e!s}")
 
     @strawberry.mutation
     async def test_api_key(self, id: ApiKeyID, info) -> TestApiKeyResult:
@@ -112,6 +110,4 @@ class ApiKeyMutations:
 
         except Exception as e:
             logger.error(f"Failed to delete API key {id}: {e}")
-            return DeleteResult(
-                success=False, error=f"Failed to delete API key: {e!s}"
-            )
+            return DeleteResult(success=False, error=f"Failed to delete API key: {e!s}")

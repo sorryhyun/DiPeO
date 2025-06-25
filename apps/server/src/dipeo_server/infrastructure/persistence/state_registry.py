@@ -33,7 +33,11 @@ logger = logging.getLogger(__name__)
 class StateRegistry:
     """Lightweight registry that stores references to data."""
 
-    def __init__(self, db_path: Optional[str] = None, message_store: Optional['MessageStore'] = None):
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        message_store: Optional["MessageStore"] = None,
+    ):
         self.db_path = db_path or os.getenv("STATE_STORE_PATH", str(STATE_DB_PATH))
         self._conn: Optional[sqlite3.Connection] = None
         self._lock = asyncio.Lock()
@@ -73,7 +77,9 @@ class StateRegistry:
     async def _execute(self, *args, **kwargs):
         """Execute a database operation in the dedicated thread."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self._executor, self._conn.execute, *args, **kwargs)
+        return await loop.run_in_executor(
+            self._executor, self._conn.execute, *args, **kwargs
+        )
 
     async def _init_schema(self):
         """Initialize database schema."""
@@ -139,12 +145,18 @@ class StateRegistry:
                 else:
                     # Fallback: convert to dict manually
                     node_states_dict[node_id] = {
-                        "status": node_state.status.value if hasattr(node_state.status, 'value') else str(node_state.status),
+                        "status": node_state.status.value
+                        if hasattr(node_state.status, "value")
+                        else str(node_state.status),
                         "started_at": node_state.started_at,
                         "ended_at": node_state.ended_at,
                         "error": node_state.error,
-                        "skip_reason": getattr(node_state, 'skip_reason', None),
-                        "token_usage": node_state.token_usage.model_dump() if hasattr(node_state, 'token_usage') and node_state.token_usage and hasattr(node_state.token_usage, "model_dump") else None
+                        "skip_reason": getattr(node_state, "skip_reason", None),
+                        "token_usage": node_state.token_usage.model_dump()
+                        if hasattr(node_state, "token_usage")
+                        and node_state.token_usage
+                        and hasattr(node_state.token_usage, "model_dump")
+                        else None,
                     }
 
             node_outputs_dict = {}
@@ -159,7 +171,9 @@ class StateRegistry:
                     # Fallback: convert to dict manually
                     node_outputs_dict[node_id] = {
                         "value": node_output.value,
-                        "metadata": node_output.metadata if hasattr(node_output, "metadata") else {}
+                        "metadata": node_output.metadata
+                        if hasattr(node_output, "metadata")
+                        else {},
                     }
 
             await self._execute(
@@ -256,9 +270,7 @@ class StateRegistry:
         await self.save_state(state)
 
     async def get_node_output(
-        self, 
-        execution_id: str, 
-        node_id: str
+        self, execution_id: str, node_id: str
     ) -> Optional[NodeOutput]:
         """Get node output by execution and node ID."""
         state = await self.get_state(execution_id)
@@ -267,10 +279,7 @@ class StateRegistry:
         return state.node_outputs.get(node_id)
 
     async def update_node_output(
-        self, 
-        execution_id: str, 
-        node_id: str, 
-        output: NodeOutput
+        self, execution_id: str, node_id: str, output: NodeOutput
     ) -> None:
         """Store output, using references for large data."""
         state = await self.get_state(execution_id)
@@ -287,7 +296,7 @@ class StateRegistry:
                     node_id=node_id,
                     content={"conversation": conversation},
                     person_id=output.metadata.get("person_id"),
-                    token_count=output.metadata.get("token_count")
+                    token_count=output.metadata.get("token_count"),
                 )
                 # Replace conversation with reference
                 output.metadata["conversation_ref"] = message_ref

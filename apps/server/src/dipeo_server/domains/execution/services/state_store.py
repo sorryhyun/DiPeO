@@ -70,7 +70,9 @@ class StateStore:
     async def _execute(self, *args, **kwargs) -> sqlite3.Cursor:
         """Execute a database operation in the dedicated thread."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self._executor, self._conn.execute, *args, **kwargs)
+        return await loop.run_in_executor(
+            self._executor, self._conn.execute, *args, **kwargs
+        )
 
     async def _init_schema(self) -> None:
         """Initialize database schema."""
@@ -126,12 +128,16 @@ class StateStore:
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
             node_states_dict = {
-                node_id: node_state.model_dump() if hasattr(node_state, "model_dump") else node_state
+                node_id: node_state.model_dump()
+                if hasattr(node_state, "model_dump")
+                else node_state
                 for node_id, node_state in state.node_states.items()
             }
 
             node_outputs_dict = {
-                node_id: node_output.model_dump() if hasattr(node_output, "model_dump") else node_output
+                node_id: node_output.model_dump()
+                if hasattr(node_output, "model_dump")
+                else node_output
                 for node_id, node_output in state.node_outputs.items()
             }
 
@@ -282,7 +288,9 @@ class StateStore:
 
         await self.save_state(state)
 
-    async def update_variables(self, execution_id: str, variables: Dict[str, Any]) -> None:
+    async def update_variables(
+        self, execution_id: str, variables: Dict[str, Any]
+    ) -> None:
         """Update execution variables."""
         state = await self.get_state(execution_id)
         if not state:
@@ -357,26 +365,34 @@ class StateStore:
 
         await self._execute("VACUUM")
 
-    async def get_node_output(self, execution_id: str, node_id: str) -> Optional[NodeOutput]:
+    async def get_node_output(
+        self, execution_id: str, node_id: str
+    ) -> Optional[NodeOutput]:
         """Get output for a specific node from storage."""
-        logger.info(f"StateStore.get_node_output called for execution_id={execution_id}, node_id={node_id}")
-        
+        logger.info(
+            f"StateStore.get_node_output called for execution_id={execution_id}, node_id={node_id}"
+        )
+
         state = await self.get_state(execution_id)
         if not state:
             logger.warning(f"No state found for execution_id={execution_id}")
             return None
-        
+
         output = state.node_outputs.get(node_id)
         if output:
             if output.value is not None:
-                value_keys = list(output.value.keys()) if isinstance(output.value, dict) else f"Not a dict: {type(output.value)}"
+                value_keys = (
+                    list(output.value.keys())
+                    if isinstance(output.value, dict)
+                    else f"Not a dict: {type(output.value)}"
+                )
                 logger.info(f"Found output for node {node_id}: value_keys={value_keys}")
             else:
                 logger.warning(f"Found output for node {node_id} but value is None!")
         else:
             logger.warning(f"No output found for node {node_id} in state store")
             logger.debug(f"Available node outputs: {list(state.node_outputs.keys())}")
-        
+
         return output
 
 

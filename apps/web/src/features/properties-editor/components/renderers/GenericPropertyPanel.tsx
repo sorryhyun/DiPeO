@@ -149,7 +149,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     
     if (fieldConfig.type === 'custom') return null;
     
-    const processedField = processedFields.find(pf => pf.field.name === fieldConfig.name);
+    const processedField = processedFields.find((pf: { field: { name?: string } }) => pf.field.name === fieldConfig.name);
     const options = processedField?.options;
     const isLoading = processedField?.isLoading;
     

@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict
 
 from dipeo_core import BaseService
-from dipeo_domain import DiagramID
+from dipeo_domain import DiagramID, DomainDiagram
 
 from .storage_service import DiagramStorageService
 
@@ -19,7 +19,7 @@ class DiagramStorageAdapter(BaseService):
     async def initialize(self) -> None:
         await self.storage.initialize()
 
-    async def load_diagram(self, diagram_id: DiagramID) -> Dict[str, Any]:
+    async def load_diagram(self, diagram_id: DiagramID) -> DomainDiagram:
         if diagram_id == "quicksave":
             path = "quicksave.json"
         else:
@@ -28,9 +28,13 @@ class DiagramStorageAdapter(BaseService):
                 raise FileNotFoundError(f"Diagram not found: {diagram_id}")
             path = found_path
 
-        return await self.storage.read_file(path)
+        data = await self.storage.read_file(path)
+        # Convert dict to DomainDiagram
+        return DomainDiagram(**data)
 
-    async def save_diagram(self, diagram_id: str, diagram_data: Dict[str, Any]) -> str:
+    async def save_diagram(self, diagram_id: str, diagram: DomainDiagram) -> str:
+        # Convert DomainDiagram to dict for storage
+        diagram_data = diagram.model_dump(by_alias=True)
         await self.storage.write_file(f"{diagram_id}.json", diagram_data)
         return f"{diagram_id}.json"
 
@@ -44,4 +48,3 @@ class DiagramStorageAdapter(BaseService):
             await self.storage.delete_file(path)
             return True
         return False
-

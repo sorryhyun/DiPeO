@@ -11,6 +11,7 @@ class BackendDiagram(BaseModel):
     This is a simple wrapper around the dict format used for storage and execution.
     Fields are untyped dicts to avoid unnecessary conversions.
     """
+
     nodes: Dict[str, Any] = Field(default_factory=dict)
     arrows: Dict[str, Any] = Field(default_factory=dict)
     persons: Dict[str, Any] = Field(default_factory=dict)
@@ -24,6 +25,7 @@ class BackendDiagram(BaseModel):
 
 class ReadableFlow(BaseModel):
     """Readable YAML representation."""
+
     flow: List[str]
     prompts: Optional[Dict[str, str]] = None
     agents: Optional[Dict[str, Dict[str, Any]]] = None
@@ -31,6 +33,7 @@ class ReadableFlow(BaseModel):
 
 class FileInfo(BaseModel):
     """Information about a diagram file."""
+
     id: str
     name: str
     path: str

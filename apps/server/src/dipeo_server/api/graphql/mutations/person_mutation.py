@@ -55,9 +55,9 @@ class PersonMutations:
             person_data = person.model_dump()
             person_data.update(
                 {
-                    "temperature": getattr(person_input, 'temperature', 0.7),
-                    "maxTokens": getattr(person_input, 'max_tokens', 1000),
-                    "topP": getattr(person_input, 'top_p', 1.0),
+                    "temperature": getattr(person_input, "temperature", 0.7),
+                    "maxTokens": getattr(person_input, "max_tokens", 1000),
+                    "topP": getattr(person_input, "top_p", 1.0),
                 }
             )
 
@@ -79,9 +79,7 @@ class PersonMutations:
             return PersonResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to create person: {e}")
-            return PersonResult(
-                success=False, error=f"Failed to create person: {e!s}"
-            )
+            return PersonResult(success=False, error=f"Failed to create person: {e!s}")
 
     @strawberry.mutation
     async def update_person(
@@ -168,9 +166,7 @@ class PersonMutations:
             return PersonResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to update person: {e}")
-            return PersonResult(
-                success=False, error=f"Failed to update person: {e!s}"
-            )
+            return PersonResult(success=False, error=f"Failed to update person: {e!s}")
 
     @strawberry.mutation
     async def delete_person(
@@ -216,12 +212,12 @@ class PersonMutations:
 
         except Exception as e:
             logger.error(f"Failed to delete person {person_id}: {e}")
-            return DeleteResult(
-                success=False, error=f"Failed to delete person: {e!s}"
-            )
+            return DeleteResult(success=False, error=f"Failed to delete person: {e!s}")
 
     @strawberry.mutation
-    async def initialize_model(self, info: strawberry.Info[GraphQLContext], person_id: PersonID) -> PersonResult:
+    async def initialize_model(
+        self, info: strawberry.Info[GraphQLContext], person_id: PersonID
+    ) -> PersonResult:
         """Warms up model for faster first execution."""
         try:
             context: GraphQLContext = info.context

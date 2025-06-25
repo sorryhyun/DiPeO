@@ -18,11 +18,11 @@ def setup_middleware(app: FastAPI):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
     ]
-    
+
     # Add wildcard for development if needed
     if os.environ.get("ENVIRONMENT", "development") == "development":
         origins.append("*")
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

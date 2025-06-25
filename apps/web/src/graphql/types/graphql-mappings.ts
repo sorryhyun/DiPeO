@@ -1,10 +1,10 @@
 import type React from 'react';
 import type {
-  DomainNodeType as Node,
-  DomainArrowType as Arrow,
-  DomainHandleType as Handle,
-  DomainPersonType as Person,
-  DomainApiKeyType as ApiKey,
+  DomainNodeType,
+  DomainArrowType,
+  DomainHandleType,
+  DomainPersonType,
+  DomainApiKeyType,
   DomainDiagramType,
   Vec2Input
 } from '@/__generated__/graphql';
@@ -17,22 +17,22 @@ import {
 // different contexts where the same types are used
 
 // Domain types represent the server's data model
-export type DomainNode = Node;
-export type DomainArrow = Arrow;
-export type DomainHandle = Handle;
-export type DomainPerson = Person;
-export type DomainApiKey = ApiKey;
+export type DomainNode = DomainNodeType;
+export type DomainArrow = DomainArrowType;
+export type DomainHandle = DomainHandleType;
+export type DomainPerson = DomainPersonType;
+export type DomainApiKey = DomainApiKeyType;
 export type DomainDiagram = DomainDiagramType;
 
 export type ReactDiagram = DomainDiagramType;
 
 // Store format uses Maps for efficient lookups
 export interface StoreDiagram {
-  nodes: Map<NodeID, Node>;
-  handles: Map<HandleID, Handle>;
-  arrows: Map<ArrowID, Arrow>;
-  persons: Map<PersonID, Person>;
-  apiKeys: Map<ApiKeyID, ApiKey>;
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
+  apiKeys: Map<ApiKeyID, DomainApiKey>;
   metadata?: {
     id?: DiagramID;
     name?: string;
@@ -47,36 +47,36 @@ export interface StoreDiagram {
 
 // Convert from Domain/React format (arrays) to Store format (Maps)
 export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
-  nodes: Map<NodeID, Node>;
-  handles: Map<HandleID, Handle>;
-  arrows: Map<ArrowID, Arrow>;
-  persons: Map<PersonID, Person>;
-  apiKeys: Map<ApiKeyID, ApiKey>;
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
+  apiKeys: Map<ApiKeyID, DomainApiKey>;
 } {
-  const nodes = new Map<NodeID, Node>();
-  const handles = new Map<HandleID, Handle>();
-  const arrows = new Map<ArrowID, Arrow>();
-  const persons = new Map<PersonID, Person>();
-  const apiKeys = new Map<ApiKeyID, ApiKey>();
+  const nodes = new Map<NodeID, DomainNode>();
+  const handles = new Map<HandleID, DomainHandle>();
+  const arrows = new Map<ArrowID, DomainArrow>();
+  const persons = new Map<PersonID, DomainPerson>();
+  const apiKeys = new Map<ApiKeyID, DomainApiKey>();
 
   // Convert arrays to maps with branded IDs as keys
-  diagram.nodes?.forEach((node: Node) => {
+  diagram.nodes?.forEach((node: DomainNode) => {
     nodes.set(node.id as NodeID, node);
   });
 
-  diagram.handles?.forEach((handle: Handle) => {
+  diagram.handles?.forEach((handle: DomainHandle) => {
     handles.set(handle.id as HandleID, handle);
   });
 
-  diagram.arrows?.forEach((arrow: Arrow) => {
+  diagram.arrows?.forEach((arrow: DomainArrow) => {
     arrows.set(arrow.id as ArrowID, arrow);
   });
 
-  diagram.persons?.forEach((person: Person) => {
+  diagram.persons?.forEach((person: DomainPerson) => {
     persons.set(person.id as PersonID, person);
   });
 
-  diagram.apiKeys?.forEach((apiKey: ApiKey) => {
+  diagram.apiKeys?.forEach((apiKey: DomainApiKey) => {
     apiKeys.set(apiKey.id as ApiKeyID, apiKey);
   });
 
@@ -85,11 +85,11 @@ export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
 
 // Convert from Store format (Maps) back to Domain/React format (arrays)
 export function storeMapsToArrays(store: {
-  nodes: Map<NodeID, Node>;
-  handles: Map<HandleID, Handle>;
-  arrows: Map<ArrowID, Arrow>;
-  persons: Map<PersonID, Person>;
-  apiKeys: Map<ApiKeyID, ApiKey>;
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
+  apiKeys: Map<ApiKeyID, DomainApiKey>;
 }): Partial<DomainDiagramType> {
   return {
     nodes: Array.from(store.nodes.values()),
@@ -213,14 +213,14 @@ export function createEmptyDiagram(): ReactDiagram {
 export function getNodeHandles(
   diagram: ReactDiagram,
   nodeId: NodeID
-): Handle[] {
+): DomainHandle[] {
   return (diagram.handles || []).filter(
-    (handle: Handle) => handle.nodeId === nodeId
+    (handle: DomainHandle) => handle.nodeId === nodeId
   );
 }
 
-export function getHandleById(diagram: ReactDiagram, handleId: HandleID): Handle | undefined {
-  return (diagram.handles || []).find((handle: Handle) => handle.id === handleId);
+export function getHandleById(diagram: ReactDiagram, handleId: HandleID): DomainHandle | undefined {
+  return (diagram.handles || []).find((handle: DomainHandle) => handle.id === handleId);
 }
 
 export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
@@ -232,7 +232,7 @@ export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName:
 }
 
 // Check if two handles are compatible for connection
-export function areHandlesCompatible(source: Handle, target: Handle): boolean {
+export function areHandlesCompatible(source: DomainHandle, target: DomainHandle): boolean {
   // Basic compatibility: output can connect to input
   if (source.direction !== HandleDirection.OUTPUT || target.direction !== HandleDirection.INPUT) {
     return false;

@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 #                               helper mixins                                 #
 
+
 class _JsonMixin:
     """Shared JSON helpers."""
 
@@ -131,15 +132,15 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
             },
             "persons": {p.id: p.model_dump(by_alias=True) for p in diagram.persons},
             "api_keys": {k.id: k.model_dump(by_alias=True) for k in diagram.api_keys},
-            "metadata": diagram.metadata.model_dump(by_alias=True) if diagram.metadata else None,
+            "metadata": diagram.metadata.model_dump(by_alias=True)
+            if diagram.metadata
+            else None,
         }
 
     # ---- heuristics ----
     def detect_confidence(self, data: Dict[str, Any]) -> float:
         nodes = data.get("nodes")
-        if isinstance(nodes, dict) and all(
-            k in data for k in ("handles", "arrows")
-        ):
+        if isinstance(nodes, dict) and all(k in data for k in ("handles", "arrows")):
             return 0.95
         if isinstance(nodes, list):
             return 0.9
@@ -174,24 +175,24 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         for idx, ndata in enumerate(data.get("nodes", [])):
             if not isinstance(ndata, dict):
                 continue
-            
+
             # Extract base properties
             node_props = {
                 k: v
                 for k, v in ndata.items()
                 if k not in {"type", "label", "id", "position", "arrows", "props"}
             }
-            
+
             # Flatten props if they exist
             if "props" in ndata and isinstance(ndata["props"], dict):
                 node_props.update(ndata["props"])
-            
+
             node = build_node(
                 id=ndata.get("label", f"node_{idx}"),
                 type_=ndata.get("type", "unknown"),
                 pos=ndata.get("position", {}),
                 label=ndata.get("label"),
-                **node_props
+                **node_props,
             )
             ensure_position(node, idx)
             nodes.append(node)
@@ -206,35 +207,37 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         for idx, conn in enumerate(data.get("connections", [])):
             if not isinstance(conn, dict):
                 continue
-            
+
             # Extract label and handle from "from" and "to" fields
             from_str = conn.get("from", "")
             to_str = conn.get("to", "")
-            
+
             # Parse label:handle format
             from_parts = from_str.split(":", 1)
             to_parts = to_str.split(":", 1)
-            
+
             from_label = from_parts[0]
             to_label = to_parts[0]
-            
+
             # Get handle names (default if not specified)
-            from_handle = from_parts[1] if len(from_parts) > 1 else conn.get("branch", "default")
+            from_handle = (
+                from_parts[1] if len(from_parts) > 1 else conn.get("branch", "default")
+            )
             to_handle = to_parts[1] if len(to_parts) > 1 else "default"
-            
+
             sid = label2id.get(from_label)
             tid = label2id.get(to_label)
             if not (sid and tid):
                 continue
-            
+
             # Generate a unique arrow ID based on index
             arrow_id = f"arrow_{idx}"
-            
+
             # Copy data but exclude the ID field since we're generating a new one
             arrow_data = {}
             if conn.get("data"):
                 arrow_data = {k: v for k, v in conn["data"].items() if k != "id"}
-            
+
             arrows.append(
                 {
                     "id": arrow_id,
@@ -260,9 +263,11 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         for n in diagram.nodes:
             # Fix label extraction - ensure we get the actual label from data
             base = n.data.get("label") if n.data else None
-            if not base or base == n.type or base == str(n.type).split('.')[-1]:  # Also check if label is just the type name
+            if (
+                not base or base == n.type or base == str(n.type).split(".")[-1]
+            ):  # Also check if label is just the type name
                 # Use a better default based on node type
-                type_name = str(n.type).split('.')[-1]
+                type_name = str(n.type).split(".")[-1]
                 if type_name == "start":
                     base = "Start"
                 elif type_name == "endpoint":
@@ -274,7 +279,7 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
                 elif type_name == "person_job":
                     base = "Task"
                 else:
-                    base = type_name.replace('_', ' ').title()
+                    base = type_name.replace("_", " ").title()
 
             suffix = label_counts.get(base, 0)
             label_counts[base] = suffix + 1
@@ -284,8 +289,14 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             # Build the node output
             node_output: Dict[str, Any] = {
                 "label": label,
-                "type": str(n.type).split('.')[-1],  # Convert enum to string, just the value
-                "position": _round_pos(n.position.model_dump() if hasattr(n.position, 'model_dump') else n.position),
+                "type": str(n.type).split(".")[
+                    -1
+                ],  # Convert enum to string, just the value
+                "position": _round_pos(
+                    n.position.model_dump()
+                    if hasattr(n.position, "model_dump")
+                    else n.position
+                ),
             }
 
             # Add person field for person_job nodes
@@ -298,9 +309,17 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             if n.data:
                 filtered_props = {}
                 exclude_fields = {
-                    "label", "type", "position", "personId",
-                    "_handles", "inputs", "outputs",
-                    "id", "nodeId", "__typename", "flipped"
+                    "label",
+                    "type",
+                    "position",
+                    "personId",
+                    "_handles",
+                    "inputs",
+                    "outputs",
+                    "id",
+                    "nodeId",
+                    "__typename",
+                    "flipped",
                 }
 
                 for k, v in n.data.items():
@@ -323,38 +342,46 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             tid = target_parts[0]
             from_handle = source_parts[1] if len(source_parts) > 1 else "default"
             to_handle = target_parts[1] if len(target_parts) > 1 else "default"
-            
+
             # Build connection data with handle notation
             from_label = id2label[sid]
             to_label = id2label[tid]
-            
+
             # Append handle to label if not default
             if from_handle != "default":
                 from_label = f"{from_label}:{from_handle}"
             if to_handle != "default":
                 to_label = f"{to_label}:{to_handle}"
-            
+
             conn_data = {
                 "from": from_label,
                 "to": to_label,
             }
-            
+
             # For condition branches, we still keep the branch field for clarity
             if from_handle in ["True", "False"]:
                 conn_data["branch"] = from_handle
-            
+
             # Add data but exclude internal/UI fields
             if a.data:
                 # Fields to exclude from light yaml format
                 exclude_fields = {
-                    "id", "type", "_sourceNodeType", "_isFromConditionBranch",
-                    "controlPointOffsetX", "controlPointOffsetY"
+                    "id",
+                    "type",
+                    "_sourceNodeType",
+                    "_isFromConditionBranch",
+                    "controlPointOffsetX",
+                    "controlPointOffsetY",
                 }
                 # Only keep semantic fields like "label", "contentType", etc.
-                filtered_data = {k: v for k, v in a.data.items() if k not in exclude_fields}
-                if filtered_data:  # Only add data if there's something left after filtering
+                filtered_data = {
+                    k: v for k, v in a.data.items() if k not in exclude_fields
+                }
+                if (
+                    filtered_data
+                ):  # Only add data if there's something left after filtering
                     conn_data["data"] = filtered_data
-            
+
             connections.append(conn_data)
 
         out: Dict[str, Any] = {"version": "light", "nodes": nodes_out}
@@ -366,12 +393,14 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             for p in diagram.persons:
                 person_dict = p.model_dump()
                 # Convert enum values to strings (just the value, not the full enum name)
-                if 'service' in person_dict:
-                    person_dict['service'] = str(person_dict['service']).split('.')[-1]
-                if 'forgetting_mode' in person_dict:
-                    person_dict['forgetting_mode'] = str(person_dict['forgetting_mode']).split('.')[-1]
+                if "service" in person_dict:
+                    person_dict["service"] = str(person_dict["service"]).split(".")[-1]
+                if "forgetting_mode" in person_dict:
+                    person_dict["forgetting_mode"] = str(
+                        person_dict["forgetting_mode"]
+                    ).split(".")[-1]
                 # Remove unnecessary fields including 'id' and 'label' (since label is the key)
-                for field in ['id', 'label', 'type', '__typename', 'masked_api_key']:
+                for field in ["id", "label", "type", "__typename", "masked_api_key"]:
                     person_dict.pop(field, None)
                 # Use label as the key
                 persons_dict[p.label] = person_dict
@@ -383,7 +412,11 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
     # ---- heuristics ----
     def detect_confidence(self, data: Dict[str, Any]) -> float:
         if isinstance(data.get("nodes"), list):
-            return 0.8 if any("label" in n for n in data["nodes"] if isinstance(n, dict)) else 0.5
+            return (
+                0.8
+                if any("label" in n for n in data["nodes"] if isinstance(n, dict))
+                else 0.5
+            )
         return 0.1
 
     def quick_match(self, content: str) -> bool:
@@ -415,7 +448,7 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
         for idx, step in enumerate(data.get("workflow", [])):
             if not isinstance(step, dict):
                 continue
-            (name, cfg), = step.items()  # exactly one kv-pair
+            ((name, cfg),) = step.items()  # exactly one kv-pair
             node = build_node(
                 id=name,
                 type_=self._mapper.determine_node_type(cfg).value,
@@ -436,17 +469,13 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
             if isinstance(line, str) and "->" in line:
                 src, dst = (x.strip() for x in line.split("->", 1))
                 if src in node_ids and dst in node_ids:
-                    arrows.append(
-                        {"source": f"{src}_output", "target": f"{dst}_input"}
-                    )
+                    arrows.append({"source": f"{src}_output", "target": f"{dst}_input"})
         return arrows
 
     # ---- export ----
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
         workflow = [
-            {
-                (n.data.get("label") or n.id): self._step_from_node(n)
-            }
+            {(n.data.get("label") or n.id): self._step_from_node(n)}
             for n in diagram.nodes
         ]
         flow = [

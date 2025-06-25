@@ -26,7 +26,6 @@ from .types import (
 
 @strawberry.type
 class Query:
-
     @strawberry.field
     async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
         from .resolvers.diagram import diagram_resolver
@@ -63,7 +62,6 @@ class Query:
 
         return await execution_resolver.list_executions(filter, limit, offset, info)
 
-
     @strawberry.field
     async def person(self, id: PersonID, info) -> Optional[DomainPersonType]:
         from .resolvers.person import person_resolver
@@ -83,7 +81,9 @@ class Query:
         return await person_resolver.get_api_key(id, info)
 
     @strawberry.field
-    async def api_keys(self, info, service: Optional[str] = None) -> List[DomainApiKeyType]:
+    async def api_keys(
+        self, info, service: Optional[str] = None
+    ) -> List[DomainApiKeyType]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_api_keys(service, info)

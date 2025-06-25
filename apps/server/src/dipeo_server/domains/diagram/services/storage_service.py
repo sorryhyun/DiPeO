@@ -37,7 +37,9 @@ class DiagramStorageService(BaseService):
         logger.debug(f"Attempting to read file: {file_path}")
 
         if not file_path.exists():
-            logger.error(f"File does not exist: {file_path} (resolved from path: {path}, diagrams_dir: {self.diagrams_dir})")
+            logger.error(
+                f"File does not exist: {file_path} (resolved from path: {path}, diagrams_dir: {self.diagrams_dir})"
+            )
             raise FileNotFoundError(f"Diagram file not found: {path}")
 
         if not file_path.is_file():
@@ -105,9 +107,7 @@ class DiagramStorageService(BaseService):
             logger.error(f"Failed to delete file {path}: {e}")
             raise
 
-    async def list_files(
-        self, directory: Optional[str] = None
-    ) -> List[FileInfo]:
+    async def list_files(self, directory: Optional[str] = None) -> List[FileInfo]:
         """List all diagram files in the diagrams directory."""
         files = []
 
@@ -130,7 +130,7 @@ class DiagramStorageService(BaseService):
                     relative_path = file_path.relative_to(self.diagrams_dir)
 
                     format_type = self._determine_format_type(relative_path)
-                    
+
                     # Generate ID that includes subdirectory path (without extension)
                     # e.g., "light/quicksave" for "light/quicksave.yaml"
                     file_id = str(relative_path.with_suffix(""))
@@ -141,7 +141,9 @@ class DiagramStorageService(BaseService):
                         path=str(relative_path),
                         format=format_type,
                         extension=file_path.suffix[1:],
-                        modified=datetime.fromtimestamp(stats.st_mtime, tz=timezone.utc).isoformat(),
+                        modified=datetime.fromtimestamp(
+                            stats.st_mtime, tz=timezone.utc
+                        ).isoformat(),
                         size=stats.st_size,
                     )
 
@@ -188,9 +190,17 @@ class DiagramStorageService(BaseService):
 
     def _determine_format_type(self, relative_path: Path) -> str:
         path_str = str(relative_path)
-
-        if "readable" in path_str:
-            return "readable"
-        if relative_path.parent == Path():
-            return "light"
+        
+        # Check the first directory in the path
+        parts = relative_path.parts
+        if len(parts) > 1:
+            first_dir = parts[0]
+            if first_dir == "native":
+                return "native"
+            elif first_dir == "light":
+                return "light"
+            elif first_dir == "readable":
+                return "readable"
+        
+        # Default to native for files in root or unknown directories
         return "native"

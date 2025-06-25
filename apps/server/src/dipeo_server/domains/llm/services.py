@@ -31,7 +31,6 @@ class LLMService(BaseService):
         # No specific initialization needed for now
         pass
 
-
     def _get_api_key(self, api_key_id: str) -> str:
         """Get raw API key from service."""
         try:
@@ -39,8 +38,7 @@ class LLMService(BaseService):
             return api_key_data["key"]
         except APIKeyError as e:
             raise LLMServiceError(
-                service="api_key_service",
-                message=f"Failed to get API key: {e}"
+                service="api_key_service", message=f"Failed to get API key: {e}"
             )
 
     def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
@@ -49,8 +47,7 @@ class LLMService(BaseService):
 
         if provider not in VALID_LLM_SERVICES:
             raise LLMServiceError(
-                service=service,
-                message=f"Unsupported LLM service: {service}"
+                service=service, message=f"Unsupported LLM service: {service}"
             )
 
         cache_key = f"{provider}:{model}:{api_key_id}"
@@ -130,7 +127,7 @@ class LLMService(BaseService):
             raise LLMServiceError(
                 service=service or "chatgpt",
                 message=f"LLM call failed: {e}",
-                model=model
+                model=model,
             )
 
     def pre_initialize_model(self, service: str, model: str, api_key_id: str) -> bool:
@@ -142,7 +139,7 @@ class LLMService(BaseService):
             raise LLMServiceError(
                 service=service,
                 message=f"Failed to pre-initialize model: {e}",
-                model=model
+                model=model,
             )
 
     async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
@@ -160,7 +157,7 @@ class LLMService(BaseService):
             except Exception as e:
                 raise LLMServiceError(
                     service=normalized_service,
-                    message=f"Failed to fetch OpenAI models: {e}"
+                    message=f"Failed to fetch OpenAI models: {e}",
                 )
 
         return []

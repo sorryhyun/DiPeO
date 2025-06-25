@@ -139,7 +139,6 @@ class GraphQLGenerator {
 
 const ROOT_TYPES = /* GraphQL */`
 # Custom Scalar Types
-scalar JSON
 scalar NodeID
 scalar DiagramID
 scalar ExecutionID
@@ -149,46 +148,6 @@ scalar HandleID
 scalar ArrowID
 scalar DateTime
 
-# Basic Input Types
-input DomainDiagramInput {
-  nodes: [JSON!]!
-  handles: [JSON!]!
-  arrows: [JSON!]!
-  persons: [JSON!]!
-  apiKeys: [JSON!]!
-  metadata: JSON
-}
-
-input ExecutionOptionsInput {
-  mode: String
-  timeout: Float
-  variables: JSON
-  debug: Boolean
-}
-
-# Root Query Type (to be extended by server)
-type Query {
-  """Get a diagram by ID"""
-  diagram(id: String!): DomainDiagram
-  """List all diagrams"""
-  diagrams: [DiagramMetadata!]!
-  """Get execution state by ID"""
-  execution(id: String!): ExecutionState
-}
-
-# Root Mutation Type (to be extended by server)
-type Mutation {
-  """Create a diagram"""
-  createDiagram(input: DomainDiagramInput!): DomainDiagram!
-  """Update an existing diagram"""
-  updateDiagram(id: String!, input: DomainDiagramInput!): DomainDiagram!
-  """Delete a diagram"""
-  deleteDiagram(id: String!): Boolean!
-  """Execute a diagram"""
-  executeDiagram(diagramId: String!, options: ExecutionOptionsInput): ExecutionState!
-  """Stop an execution"""
-  stopExecution(executionId: String!): ExecutionState!
-}
 
 # Root Subscription Type (to be extended by server)
 type Subscription {

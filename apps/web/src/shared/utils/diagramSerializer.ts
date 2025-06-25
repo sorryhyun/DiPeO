@@ -34,6 +34,16 @@ export interface SerializedDiagram {
 function cleanNodeData(node: any): any {
   const { data, ...nodeProps } = node;
   
+  // Handle case where data is null or undefined
+  if (!data) {
+    return {
+      ...nodeProps,
+      data: {
+        label: nodeProps.type || 'Node'
+      }
+    };
+  }
+  
   // Remove UI-specific properties from data (but keep flipped for visual layout)
   const { _handles: _, inputs: _inputs, outputs: _outputs, type: _type, ...cleanData } = data as any;
   

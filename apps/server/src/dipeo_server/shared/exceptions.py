@@ -10,23 +10,27 @@ class AgentDiagramException(Exception):
         self.details = details or {}
 
 
-class ValidationError(AgentDiagramException): pass
+class ValidationError(AgentDiagramException):
+    pass
 
 
-class APIKeyError(AgentDiagramException): pass
+class APIKeyError(AgentDiagramException):
+    pass
 
 
-class APIKeyNotFoundError(APIKeyError): pass
+class APIKeyNotFoundError(APIKeyError):
+    pass
 
 
-class LLMServiceError(AgentDiagramException): pass
+class LLMServiceError(AgentDiagramException):
+    pass
 
 
-class DiagramExecutionError(AgentDiagramException): pass
+class DiagramExecutionError(AgentDiagramException):
+    pass
 
 
 class NodeExecutionError(DiagramExecutionError):
-
     def __init__(
         self,
         node_id: str,
@@ -40,7 +44,6 @@ class NodeExecutionError(DiagramExecutionError):
 
 
 class DependencyError(DiagramExecutionError):
-
     def __init__(
         self,
         node_id: str,
@@ -56,7 +59,6 @@ class DependencyError(DiagramExecutionError):
 
 
 class MaxIterationsError(DiagramExecutionError):
-
     def __init__(
         self,
         node_id: str,
@@ -71,7 +73,6 @@ class MaxIterationsError(DiagramExecutionError):
 
 
 class ConditionEvaluationError(NodeExecutionError):
-
     def __init__(
         self,
         node_id: str,
@@ -86,7 +87,6 @@ class ConditionEvaluationError(NodeExecutionError):
 
 
 class PersonJobExecutionError(NodeExecutionError):
-
     def __init__(
         self,
         node_id: str,
@@ -100,10 +100,13 @@ class PersonJobExecutionError(NodeExecutionError):
         )
 
 
-class FileOperationError(AgentDiagramException): pass
+class FileOperationError(AgentDiagramException):
+    pass
 
 
-class DatabaseError(AgentDiagramException): pass
+class DatabaseError(AgentDiagramException):
+    pass
 
 
-class ConfigurationError(AgentDiagramException): pass
+class ConfigurationError(AgentDiagramException):
+    pass

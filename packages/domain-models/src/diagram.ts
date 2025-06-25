@@ -187,7 +187,7 @@ export interface PersonJobNodeData extends BaseNodeData {
   firstOnlyPrompt: string;
   defaultPrompt?: string;
   maxIteration: number;
-  forgettingMode?: string;
+  forgettingMode?: ForgettingMode;
 }
 
 export interface EndpointNodeData extends BaseNodeData {

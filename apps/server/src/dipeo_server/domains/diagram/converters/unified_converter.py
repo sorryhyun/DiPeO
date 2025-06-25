@@ -3,7 +3,14 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from dipeo_domain import DataType, DomainArrow, DomainDiagram, DomainHandle, DomainNode, HandleDirection
+from dipeo_domain import (
+    DataType,
+    DomainArrow,
+    DomainDiagram,
+    DomainHandle,
+    DomainNode,
+    HandleDirection,
+)
 
 from ..services.models import BackendDiagram
 
@@ -120,7 +127,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                         "id": person_id,
                         "label": person_id,
                         "type": "person",
-                        **person_config
+                        **person_config,
                     }
                     persons_dict[person_id] = person_dict
             else:
@@ -186,7 +193,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                         label=handle_name,
                         direction=HandleDirection.output,
                         dataType=DataType.any,
-                        position="right"
+                        position="right",
                     )
 
             # Check target handle
@@ -201,7 +208,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                         label=handle_name,
                         direction=HandleDirection.input,
                         dataType=DataType.any,
-                        position="left"
+                        position="left",
                     )
 
         return backend_to_graphql(diagram_dict)
@@ -236,10 +243,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         )
 
         return DomainArrow(
-            id=arrow_id,
-            source=source,
-            target=target,
-            data=arrow_data.get("data")
+            id=arrow_id, source=source, target=target, data=arrow_data.get("data")
         )
 
     def validate(

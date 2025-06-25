@@ -1,1 +1,0 @@
-export { DiagramAdapter } from './DiagramAdapter';

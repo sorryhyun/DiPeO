@@ -33,9 +33,7 @@ class ExecutionMutations:
     """Handles diagram execution via GraphQL API."""
 
     @strawberry.mutation
-    async def execute_diagram(
-        self, data: ExecuteDiagramInput, info
-    ) -> ExecutionResult:
+    async def execute_diagram(self, data: ExecuteDiagramInput, info) -> ExecutionResult:
         """Starts diagram execution with provided configuration."""
         try:
             context: GraphQLContext = info.context
@@ -64,9 +62,7 @@ class ExecutionMutations:
                 "timeout": data.timeout_seconds,
             }
 
-            diagram_id = (
-                data.diagram_id if data.diagram_id else None
-            )
+            diagram_id = data.diagram_id if data.diagram_id else None
             await state_store.create_execution(execution_id, diagram_id, options)
 
             # Start the actual execution asynchronously
@@ -74,9 +70,7 @@ class ExecutionMutations:
                 try:
                     logger.info(f"Starting run_execution for {execution_id}")
                     async for _ in execution_service.execute_diagram(
-                        diagram=diagram_data,
-                        options=options,
-                        execution_id=execution_id
+                        diagram=diagram_data, options=options, execution_id=execution_id
                     ):
                         # Updates are handled by the execution service
                         pass
@@ -183,7 +177,9 @@ class ExecutionMutations:
 
             updated_state = await state_store.get_state(data.execution_id)
 
-            execution_state = ExecutionMutations._create_execution_state(data.execution_id, updated_state)
+            execution_state = ExecutionMutations._create_execution_state(
+                data.execution_id, updated_state
+            )
 
             return ExecutionResult(
                 success=True,
@@ -240,7 +236,9 @@ class ExecutionMutations:
 
             updated_state = await state_store.get_state(data.execution_id)
 
-            execution = ExecutionMutations._create_execution_state(data.execution_id, updated_state)
+            execution = ExecutionMutations._create_execution_state(
+                data.execution_id, updated_state
+            )
 
             return ExecutionResult(
                 success=True,

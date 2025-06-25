@@ -17,7 +17,7 @@ class ChatResult:
             v is not None
             for v in (self.prompt_tokens, self.completion_tokens, self.total_tokens)
         )
-    
+
     @property
     def usage(self) -> Optional[Dict[str, int]]:
         if self.has_usage:
@@ -30,7 +30,6 @@ class ChatResult:
 
 
 class BaseAdapter(ABC):
-
     FALLBACK_MODELS: Dict[str, List[str]] = {"openai": ["gpt-4", "gpt-3.5-turbo"]}
 
     def __init__(self, model_name: str, api_key: str, base_url: Optional[str] = None):
@@ -42,7 +41,7 @@ class BaseAdapter(ABC):
     def _combine_prompts(self, cacheable_prompt: str, user_prompt: str) -> str:
         parts = [p for p in [cacheable_prompt, user_prompt] if p]
         return "\n\n".join(parts) if parts else ""
-    
+
     def _safe_strip_prefill(self, prefill: str) -> str:
         return prefill.strip() if prefill else ""
 
@@ -58,8 +57,7 @@ class BaseAdapter(ABC):
         user_prompt: str = "",
         citation_target: str = "",
         **kwargs,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @abstractmethod
     def _make_api_call(self, messages: Any, **kwargs) -> Any:

@@ -24,6 +24,5 @@ mutation ClearConversations {
   clearConversations {
     success
     message
-    error
   }
 }

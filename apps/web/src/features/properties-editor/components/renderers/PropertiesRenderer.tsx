@@ -77,10 +77,13 @@ const PropertiesRenderer: React.FC<PropertiesRendererProps> = ({
     } else if (selectedNodeId) {
       const node = nodes?.find(n => n.id === selectedNodeId);
       if (node) {
-        title = `${node.data.label || 'Block'} Properties`;
+        // Safely access node.data which might be null
+        const nodeData = node.data || {};
+        const label = nodeData.label || 'Block';
+        title = `${label} Properties`;
         content = (
           <Suspense fallback={<LoadingFallback />}>
-            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...node.data, type: node.type || 'unknown' }} />
+            <UniversalPropertiesPanel nodeId={selectedNodeId} data={{ ...nodeData, type: node.type || 'unknown' }} />
           </Suspense>
         );
       }

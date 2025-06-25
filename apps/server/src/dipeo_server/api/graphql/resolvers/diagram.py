@@ -37,7 +37,9 @@ class DiagramResolver:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
 
             # Try new services first
-            storage_service: DiagramStorageService = info.context.diagram_storage_service
+            storage_service: DiagramStorageService = (
+                info.context.diagram_storage_service
+            )
 
             # Find and load the diagram
             path = await storage_service.find_by_id(diagram_id)
@@ -50,21 +52,26 @@ class DiagramResolver:
             if not diagram_data:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
-
-            # Check if this is a light format diagram (has version: light)
-            if diagram_data.get("version") == "light":
+            
+            # Determine format from path
+            from pathlib import Path
+            path_obj = Path(path)
+            format_from_path = storage_service._determine_format_type(path_obj)
+            
+            # Check if this is a light format diagram (from path or has version: light)
+            if format_from_path == "light" or diagram_data.get("version") == "light":
                 logger.info(f"Detected light format for diagram {diagram_id}")
-                
+
                 # Ensure api_keys is present as an empty list if not provided
                 if "api_keys" not in diagram_data:
                     diagram_data["api_keys"] = []
-                
+
                 # Convert the data to YAML string for converter processing
                 yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-                
+
                 # Use the converter to deserialize from light format
                 graphql_diagram = converter_registry.deserialize(yaml_content, "light")
-                
+
                 # Update metadata if needed
                 if not graphql_diagram.metadata or not graphql_diagram.metadata.id:
                     graphql_diagram.metadata = DiagramMetadata(
@@ -93,7 +100,9 @@ class DiagramResolver:
                         .title(),
                         "description": diagram_data.get("description", ""),
                         "version": diagram_data.get("version", "2.0.0"),
-                        "created": diagram_data.get("created", datetime.now(timezone.utc).isoformat()),
+                        "created": diagram_data.get(
+                            "created", datetime.now(timezone.utc).isoformat()
+                        ),
                         "modified": diagram_data.get(
                             "modified", datetime.now(timezone.utc).isoformat()
                         ),
@@ -128,7 +137,9 @@ class DiagramResolver:
         """Returns filtered diagram list."""
         try:
             # Use new storage service
-            storage_service: DiagramStorageService = info.context.diagram_storage_service
+            storage_service: DiagramStorageService = (
+                info.context.diagram_storage_service
+            )
 
             file_infos = await storage_service.list_files()
             all_diagrams = [
@@ -137,7 +148,7 @@ class DiagramResolver:
                     "name": fi.name,
                     "format": fi.format,
                     "size": fi.size,
-                    "modified": fi.modified
+                    "modified": fi.modified,
                 }
                 for fi in file_infos
             ]
@@ -151,7 +162,7 @@ class DiagramResolver:
                         if filter.name_contains.lower() in d["name"].lower()
                     ]
 
-                if hasattr(filter, 'format') and filter.format:
+                if hasattr(filter, "format") and filter.format:
                     filtered_diagrams = [
                         d for d in filtered_diagrams if d["format"] == filter.format
                     ]
@@ -160,10 +171,11 @@ class DiagramResolver:
                     filtered_diagrams = [
                         d
                         for d in filtered_diagrams
-                        if datetime.fromisoformat(d["modified"]) >= filter.modified_after
+                        if datetime.fromisoformat(d["modified"])
+                        >= filter.modified_after
                     ]
 
-                if hasattr(filter, 'modified_before') and filter.modified_before:
+                if hasattr(filter, "modified_before") and filter.modified_before:
                     filtered_diagrams = [
                         d
                         for d in filtered_diagrams

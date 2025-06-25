@@ -5,7 +5,6 @@ from dipeo_domain import DomainDiagram
 
 
 class DiagramConverter(ABC):
-
     @abstractmethod
     def serialize(self, diagram: DomainDiagram) -> str:
         pass
@@ -30,7 +29,6 @@ class DiagramConverter(ABC):
 
 
 class FormatStrategy(ABC):
-
     @abstractmethod
     def parse(self, content: str) -> Dict[str, Any]:
         pass

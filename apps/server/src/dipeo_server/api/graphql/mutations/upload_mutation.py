@@ -72,7 +72,9 @@ def validate_diagram(
             errors.append(f"Node {node.id} references unknown person: {person_id}")
 
     if api_key_service:
-        api_key_ids = {api_key.get("id", "") for api_key in api_key_service.list_api_keys()}
+        api_key_ids = {
+            api_key.get("id", "") for api_key in api_key_service.list_api_keys()
+        }
         for person in diagram.persons:
             if person.api_key_id and person.api_key_id not in api_key_ids:
                 errors.append(
@@ -119,7 +121,7 @@ def backend_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
 @strawberry.type
 class DiagramValidationResult:
     """Result of diagram validation."""
-    
+
     is_valid: bool
     errors: List[str] = strawberry.field(default_factory=list)
     node_count: Optional[int] = None
@@ -215,8 +217,7 @@ class UploadMutations:
         try:
             if not isinstance(diagram_content, dict):
                 return DiagramValidationResult(
-                    is_valid=False, 
-                    errors=["Diagram content must be a JSON object"]
+                    is_valid=False, errors=["Diagram content must be a JSON object"]
                 )
 
             # Create domain diagram from content
@@ -225,35 +226,32 @@ class UploadMutations:
                 domain_diagram = backend_to_graphql(backend_diagram)
             except Exception as e:
                 return DiagramValidationResult(
-                    is_valid=False,
-                    errors=[f"Invalid diagram structure: {e!s}"]
+                    is_valid=False, errors=[f"Invalid diagram structure: {e!s}"]
                 )
 
             # Validate diagram
             validation_errors = validate_diagram(
-                domain_diagram, 
-                context.api_key_service if isinstance(context.api_key_service, APIKeyService) else None
+                domain_diagram,
+                context.api_key_service
+                if isinstance(context.api_key_service, APIKeyService)
+                else None,
             )
-            
+
             if validation_errors:
-                return DiagramValidationResult(
-                    is_valid=False,
-                    errors=validation_errors
-                )
-            
+                return DiagramValidationResult(is_valid=False, errors=validation_errors)
+
             return DiagramValidationResult(
                 is_valid=True,
                 errors=[],
                 node_count=len(domain_diagram.nodes),
                 arrow_count=len(domain_diagram.arrows),
-                person_count=len(domain_diagram.persons)
+                person_count=len(domain_diagram.persons),
             )
 
         except Exception as e:
             logger.error(f"Diagram validation error: {e!s}")
             return DiagramValidationResult(
-                is_valid=False,
-                errors=[f"Validation failed: {e!s}"]
+                is_valid=False, errors=[f"Validation failed: {e!s}"]
             )
 
     @strawberry.mutation(description="Convert a diagram to a different format")
@@ -263,7 +261,6 @@ class UploadMutations:
         target_format: DiagramFormat = DiagramFormat.native,
         include_metadata: bool = True,
     ) -> DiagramConvertResult:
-
         try:
             if not isinstance(content, dict):
                 return DiagramConvertResult(
@@ -289,10 +286,12 @@ class UploadMutations:
                 converted_content = content.copy()
 
                 # Convert arrays to dictionaries with ID as key
-                for field in ['nodes', 'arrows', 'persons', 'handles', 'apiKeys']:
-                    if field in converted_content and isinstance(converted_content[field], list):
+                for field in ["nodes", "arrows", "persons", "handles", "apiKeys"]:
+                    if field in converted_content and isinstance(
+                        converted_content[field], list
+                    ):
                         converted_content[field] = {
-                            item['id']: item for item in converted_content[field]
+                            item["id"]: item for item in converted_content[field]
                         }
 
                 backend_diagram = BackendDiagram(**converted_content)
@@ -304,7 +303,9 @@ class UploadMutations:
 
             if not include_metadata:
                 now = datetime.now(timezone.utc).isoformat()
-                domain_diagram.metadata = DiagramMetadata(version="2.0.0", created=now, modified=now)
+                domain_diagram.metadata = DiagramMetadata(
+                    version="2.0.0", created=now, modified=now
+                )
 
             content_str = converter.serialize(domain_diagram)
 
@@ -323,4 +324,3 @@ class UploadMutations:
         except Exception as e:
             logger.error(f"Stateful export error: {e!s}", exc_info=True)
             return DiagramConvertResult(success=False, error=str(e))
-

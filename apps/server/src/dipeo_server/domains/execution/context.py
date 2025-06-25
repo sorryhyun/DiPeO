@@ -11,7 +11,6 @@ from .services.state_store import StateStore
 
 @dataclass
 class ExecutionContext:
-
     diagram: DomainDiagram
     edges: List[DomainArrow]
     node_outputs: Dict[str, NodeOutput] = field(default_factory=dict)
@@ -52,13 +51,7 @@ class ExecutionContext:
         return self.api_keys.get(service)
 
     def find_edges_from(self, node_id: str) -> List[DomainArrow]:
-        return [
-            edge for edge in self.edges
-            if edge.source.split(':')[0] == node_id
-        ]
+        return [edge for edge in self.edges if edge.source.split(":")[0] == node_id]
 
     def find_edges_to(self, node_id: str) -> List[DomainArrow]:
-        return [
-            edge for edge in self.edges
-            if edge.target.split(':')[0] == node_id
-        ]
+        return [edge for edge in self.edges if edge.target.split(":")[0] == node_id]
