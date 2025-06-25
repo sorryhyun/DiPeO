@@ -152,7 +152,7 @@ export const useFileOperations = () => {
         mutation: ConvertDiagramDocument,
         variables: {
           content: diagramContent,
-          format: format as any, // GraphQL expects uppercase enum values
+          targetFormat: format,
           includeMetadata
         }
       });
@@ -200,7 +200,7 @@ export const useFileOperations = () => {
         mutation: ConvertDiagramDocument,
         variables: {
           content: diagramContent,
-          format: format.toUpperCase() as any, // GraphQL expects uppercase enum values
+          targetFormat: format,
           includeMetadata
         }
       });

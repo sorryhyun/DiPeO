@@ -155,6 +155,7 @@ export const createExecutionSlice: StateCreator<
       context: {}
     };
     state.activeView = 'execution';
+    state.activeCanvas = 'execution';
     state.executionReadOnly = true;
   }),
   

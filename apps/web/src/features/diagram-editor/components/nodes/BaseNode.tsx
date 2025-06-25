@@ -22,9 +22,9 @@ interface BaseNodeProps {
 }
 
 // Custom hook for node execution status
-function useNodeStatus(nodeId: string) {
+function useNodeStatus(nodeIdStr: string) {
   const { executionOps } = useCanvasOperationsContext();
-  const nodeState = executionOps.getNodeExecutionState(nodeId);
+  const nodeState = executionOps.getNodeExecutionState(nodeId(nodeIdStr));
   
   return useMemo(() => ({
     isRunning: nodeState?.status === 'running',

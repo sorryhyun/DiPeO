@@ -73,7 +73,7 @@ class ExecutionMutations:
             async def run_execution():
                 try:
                     logger.info(f"Starting run_execution for {execution_id}")
-                    async for _ in await execution_service.execute_diagram(
+                    async for _ in execution_service.execute_diagram(
                         diagram=diagram_data,
                         options=options,
                         execution_id=execution_id
