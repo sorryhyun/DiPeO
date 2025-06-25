@@ -6,8 +6,7 @@ from .execution_mutation import ExecutionMutations
 from .graph_element_mutations import GraphElementMutations
 from .node_mutation import NodeMutations
 from .person_mutation import PersonMutations
-from .upload_mutation import DiagramConvertResult, DiagramSaveResult, UploadMutations
-from .utility_mutation import UtilityMutations
+from .upload_mutation import DiagramConvertResult, DiagramValidationResult, UploadMutations
 
 __all__ = [
     "ApiKeyMutations",
@@ -17,9 +16,8 @@ __all__ = [
     "NodeMutations",
     "PersonMutations",
     "DiagramConvertResult",
-    "DiagramSaveResult",
+    "DiagramValidationResult",
     "UploadMutations",
-    "UtilityMutations",
     "Mutation",
 ]
 
@@ -33,7 +31,6 @@ class Mutation(
     NodeMutations,
     PersonMutations,
     UploadMutations,
-    UtilityMutations,
 ):
     """Combined GraphQL mutation type."""
     pass

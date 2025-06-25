@@ -9,9 +9,6 @@ import {
   UploadFileDocument,
   type UploadFileMutation,
   type UploadFileMutationVariables,
-  SaveDiagramDocument,
-  type SaveDiagramMutation,
-  type SaveDiagramMutationVariables,
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
 
@@ -107,25 +104,39 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
   message: string;
 }> => {
   try {
-    const { data } = await apolloClient.mutate<SaveDiagramMutation, SaveDiagramMutationVariables>({
-      mutation: SaveDiagramDocument,
+    // Determine the subdirectory based on format
+    const formatValue = format || DiagramFormat.NATIVE;
+    let category = 'diagrams/';
+    if (formatValue === DiagramFormat.LIGHT) {
+      category = 'diagrams/light/';
+    } else if (formatValue === DiagramFormat.READABLE) {
+      category = 'diagrams/readable/';
+    } else if (formatValue === DiagramFormat.NATIVE) {
+      category = 'diagrams/native/';
+    }
+    
+    const { data } = await apolloClient.mutate<UploadFileMutation, UploadFileMutationVariables>({
+      mutation: UploadFileDocument,
       variables: {
         file,
-        format,
-        validateOnly: false
+        category
       }
     });
     
-    if (!data?.saveDiagram.success) {
-      throw new Error(data?.saveDiagram.message || 'Failed to save diagram');
+    if (!data?.uploadFile.success) {
+      throw new Error(data?.uploadFile.error || 'Failed to save diagram');
     }
+    
+    // Extract diagram ID from filename
+    const filename = file.name;
+    const diagramId = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '');
     
     return {
       success: true,
-      diagramId: data.saveDiagram.diagramId || undefined,
-      diagramName: data.saveDiagram.diagramName || undefined,
-      nodeCount: data.saveDiagram.nodeCount || undefined,
-      message: data.saveDiagram.message
+      diagramId: diagramId,
+      diagramName: filename,
+      nodeCount: undefined, // We don't have this info from upload_file
+      message: data.uploadFile.message || 'Diagram saved successfully'
     };
   } catch (error) {
     console.error('[Save diagram GraphQL]', error);

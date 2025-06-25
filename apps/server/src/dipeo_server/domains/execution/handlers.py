@@ -224,13 +224,51 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
 @node_handler("endpoint")
 async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
-    """Endpoint node – pass through explicit *data* or collected edge inputs."""
+    """Endpoint node – pass through data and optionally save to file."""
 
-    if (direct := (node.data or {}).get("data")) is not None:
-        return create_node_output({"default": direct})
-
-    collected = await _edge_inputs(node, ctx)
-    return create_node_output({"default": collected} if collected else {})
+    # Get node data
+    data = node.data or {}
+    
+    # Check if we have direct data or need to collect from edges
+    if (direct := data.get("data")) is not None:
+        result_data = direct
+    else:
+        collected = await _edge_inputs(node, ctx)
+        result_data = collected if collected else {}
+    
+    # Handle file saving if enabled
+    save_to_file = data.get("saveToFile", False) or data.get("save_to_file", False)
+    if save_to_file:
+        # Support both field names for backward compatibility
+        file_path = data.get("filePath") or data.get("fileName") or data.get("file_name")
+        
+        if file_path:
+            try:
+                # Convert result data to string for saving
+                if isinstance(result_data, dict) and "default" in result_data:
+                    content = str(result_data["default"])
+                else:
+                    content = str(result_data)
+                
+                # Save to file
+                await ctx.file_service.write(file_path, content)
+                _log.info(f"Saved endpoint result to {file_path}")
+                
+                # Add save status to metadata
+                return create_node_output(
+                    {"default": result_data}, 
+                    {"saved_to": file_path}
+                )
+            except Exception as exc:
+                _log.error(f"Failed to save endpoint result to {file_path}: {exc}")
+                return create_node_output(
+                    {"default": result_data},
+                    {"save_error": str(exc)}
+                )
+        else:
+            _log.warning("saveToFile is true but no file path provided")
+    
+    return create_node_output({"default": result_data})
 
 
 @node_handler("condition")

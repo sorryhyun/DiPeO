@@ -3,12 +3,12 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from dipeo_domain import DomainArrow, DomainDiagram, DomainNode
+from dipeo_domain import DataType, DomainArrow, DomainDiagram, DomainHandle, DomainNode, HandleDirection
 
 from ..services.models import BackendDiagram
 
 from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import backend_to_graphql, graphql_to_backend
+from .conversion_utils import backend_to_graphql
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
@@ -111,7 +111,20 @@ class UnifiedDiagramConverter(DiagramConverter):
 
         persons_data = data.get("persons", {})
         if isinstance(persons_data, dict):
-            persons_dict = persons_data
+            # For light format, transform the persons data
+            if fmt == "light":
+                persons_dict = {}
+                for person_id, person_config in persons_data.items():
+                    # Add required fields for DomainPerson
+                    person_dict = {
+                        "id": person_id,
+                        "label": person_id,
+                        "type": "person",
+                        **person_config
+                    }
+                    persons_dict[person_id] = person_dict
+            else:
+                persons_dict = persons_data
         elif isinstance(persons_data, list):
             persons_dict = {
                 person.get("id", f"person_{i}"): person
@@ -136,9 +149,10 @@ class UnifiedDiagramConverter(DiagramConverter):
             nodes_dict[node.id] = node
 
         # Extract arrows using strategy (handles both "arrows" and "connections")
-        arrows_list = strategy.extract_arrows(data, list(nodes_dict.values()))
+        # Pass the original node data list, not the DomainNode objects
+        arrows_list = strategy.extract_arrows(data, node_data_list)
         arrows_dict = {}
-        for index, arrow_data in enumerate(arrows_list):
+        for _index, arrow_data in enumerate(arrows_list):
             arrow = self._create_arrow(arrow_data)
             if arrow:
                 arrows_dict[arrow.id] = arrow
@@ -157,6 +171,38 @@ class UnifiedDiagramConverter(DiagramConverter):
                 self.handle_generator.generate_for_node(
                     diagram_dict, node_id, node.type
                 )
+
+        # Create any custom handles referenced by arrows but not yet defined
+        for arrow in arrows_dict.values():
+            # Check source handle
+            if ":" in arrow.source:
+                node_id, handle_name = arrow.source.split(":", 1)
+                handle_id = f"{node_id}:{handle_name}"
+                if handle_id not in diagram_dict.handles and node_id in nodes_dict:
+                    # Create output handle
+                    diagram_dict.handles[handle_id] = DomainHandle(
+                        id=handle_id,
+                        nodeId=node_id,
+                        label=handle_name,
+                        direction=HandleDirection.output,
+                        dataType=DataType.any,
+                        position="right"
+                    )
+
+            # Check target handle
+            if ":" in arrow.target:
+                node_id, handle_name = arrow.target.split(":", 1)
+                handle_id = f"{node_id}:{handle_name}"
+                if handle_id not in diagram_dict.handles and node_id in nodes_dict:
+                    # Create input handle
+                    diagram_dict.handles[handle_id] = DomainHandle(
+                        id=handle_id,
+                        nodeId=node_id,
+                        label=handle_name,
+                        direction=HandleDirection.input,
+                        dataType=DataType.any,
+                        position="left"
+                    )
 
         return backend_to_graphql(diagram_dict)
 
@@ -189,7 +235,12 @@ class UnifiedDiagramConverter(DiagramConverter):
             "id", self.arrow_builder.create_arrow_id(source, target)
         )
 
-        return DomainArrow(id=arrow_id, source=source, target=target)
+        return DomainArrow(
+            id=arrow_id,
+            source=source,
+            target=target,
+            data=arrow_data.get("data")
+        )
 
     def validate(
         self, content: str, format_id: Optional[str] = None

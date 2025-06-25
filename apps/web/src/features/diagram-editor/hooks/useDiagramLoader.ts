@@ -47,14 +47,22 @@ export function useDiagramLoader() {
 
   // Load diagram data into store - delay until after mount
   useEffect(() => {
-    if (!loading && data?.diagram && !hasLoaded && diagramIdFromUrl) {
-      setIsLoading(true);
+    if (!loading && !hasLoaded && diagramIdFromUrl) {
+      // Check if diagram was not found
+      if (data && !data.diagram) {
+        toast.error(`Diagram "${diagramIdFromUrl}" not found`);
+        setHasLoaded(true); // Prevent retry
+        return;
+      }
       
-      // Delay loading until after the component tree has mounted
-      const loadTimer = setTimeout(() => {
-        try {
-          // TypeScript needs reassurance that data.diagram is still defined
-          if (!data?.diagram) return;
+      if (data?.diagram) {
+        setIsLoading(true);
+        
+        // Delay loading until after the component tree has mounted
+        const loadTimer = setTimeout(() => {
+          try {
+            // TypeScript needs reassurance that data.diagram is still defined
+            if (!data?.diagram) return;
           
           // Convert GraphQL diagram to domain format
           const diagramWithCounts = {
@@ -117,6 +125,7 @@ export function useDiagramLoader() {
       
       // Cleanup timer on unmount
       return () => clearTimeout(loadTimer);
+      }
     }
   }, [data, loading, hasLoaded, diagramIdFromUrl]);
 

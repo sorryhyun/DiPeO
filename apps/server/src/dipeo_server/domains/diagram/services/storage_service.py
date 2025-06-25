@@ -130,9 +130,13 @@ class DiagramStorageService(BaseService):
                     relative_path = file_path.relative_to(self.diagrams_dir)
 
                     format_type = self._determine_format_type(relative_path)
+                    
+                    # Generate ID that includes subdirectory path (without extension)
+                    # e.g., "light/quicksave" for "light/quicksave.yaml"
+                    file_id = str(relative_path.with_suffix(""))
 
                     file_info = FileInfo(
-                        id=file_path.stem,
+                        id=file_id,
                         name=file_path.stem.replace("_", " ").replace("-", " ").title(),
                         path=str(relative_path),
                         format=format_type,
@@ -158,11 +162,24 @@ class DiagramStorageService(BaseService):
 
     async def find_by_id(self, diagram_id: str) -> Optional[str]:
         """Find a diagram file by its ID (filename without extension)."""
+        # First check if diagram_id already contains a path separator
+        # This handles cases like "light/quicksave" directly
         for ext in [".yaml", ".yml", ".json"]:
             path = f"{diagram_id}{ext}"
             if await self.exists(path):
                 return path
 
+        # Only check subdirectories if diagram_id doesn't contain a path separator
+        if "/" not in diagram_id:
+            # Then check subdirectories (light, readable, native)
+            subdirs = ["light", "readable", "native"]
+            for subdir in subdirs:
+                for ext in [".yaml", ".yml", ".json"]:
+                    path = f"{subdir}/{diagram_id}{ext}"
+                    if await self.exists(path):
+                        return path
+
+        # Finally, check all files using list_files (for any other subdirectories)
         for file_info in await self.list_files():
             if file_info.id == diagram_id:
                 return file_info.path

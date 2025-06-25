@@ -28,8 +28,8 @@ query GetPersons($limit: Int = 100) {
 }
 
 # Person Mutations
-mutation CreatePerson($diagramId: DiagramID!, $input: CreatePersonInput!) {
-  createPerson(diagramId: $diagramId, input: $input) {
+mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) {
+  createPerson(diagramId: $diagramId, personInput: $personInput) {
     success
     person {
       id
@@ -47,8 +47,8 @@ mutation CreatePerson($diagramId: DiagramID!, $input: CreatePersonInput!) {
   }
 }
 
-mutation UpdatePerson($input: UpdatePersonInput!) {
-  updatePerson(input: $input) {
+mutation UpdatePerson($personInput: UpdatePersonInput!) {
+  updatePerson(personInput: $personInput) {
     success
     person {
       id
@@ -66,8 +66,8 @@ mutation UpdatePerson($input: UpdatePersonInput!) {
   }
 }
 
-mutation DeletePerson($id: PersonID!) {
-  deletePerson(id: $id) {
+mutation DeletePerson($personId: PersonID!) {
+  deletePerson(personId: $personId) {
     success
     deletedId
     message

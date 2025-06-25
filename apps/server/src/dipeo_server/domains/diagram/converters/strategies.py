@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import yaml
 from dipeo_domain import DomainDiagram, DomainNode
@@ -129,9 +129,9 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
                 a.id: {"source": a.source, "target": a.target, "data": a.data}
                 for a in diagram.arrows
             },
-            "persons": {p.id: p.model_dump() for p in diagram.persons},
-            "api_keys": {k.id: k.model_dump() for k in diagram.api_keys},
-            "metadata": diagram.metadata.model_dump() if diagram.metadata else None,
+            "persons": {p.id: p.model_dump(by_alias=True) for p in diagram.persons},
+            "api_keys": {k.id: k.model_dump(by_alias=True) for k in diagram.api_keys},
+            "metadata": diagram.metadata.model_dump(by_alias=True) if diagram.metadata else None,
         }
 
     # ---- heuristics ----
@@ -174,16 +174,24 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         for idx, ndata in enumerate(data.get("nodes", [])):
             if not isinstance(ndata, dict):
                 continue
+            
+            # Extract base properties
+            node_props = {
+                k: v
+                for k, v in ndata.items()
+                if k not in {"type", "label", "id", "position", "arrows", "props"}
+            }
+            
+            # Flatten props if they exist
+            if "props" in ndata and isinstance(ndata["props"], dict):
+                node_props.update(ndata["props"])
+            
             node = build_node(
                 id=ndata.get("label", f"node_{idx}"),
                 type_=ndata.get("type", "unknown"),
                 pos=ndata.get("position", {}),
                 label=ndata.get("label"),
-                **{
-                    k: v
-                    for k, v in ndata.items()
-                    if k not in {"type", "label", "id", "position", "arrows"}
-                },
+                **node_props
             )
             ensure_position(node, idx)
             nodes.append(node)
@@ -195,65 +203,179 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         arrows: List[Dict[str, Any]] = []
         label2id = _node_id_map(nodes)
 
-        for conn in data.get("connections", []):
+        for idx, conn in enumerate(data.get("connections", [])):
             if not isinstance(conn, dict):
                 continue
-            sid, tid = label2id.get(conn.get("from")), label2id.get(conn.get("to"))
+            
+            # Extract label and handle from "from" and "to" fields
+            from_str = conn.get("from", "")
+            to_str = conn.get("to", "")
+            
+            # Parse label:handle format
+            from_parts = from_str.split(":", 1)
+            to_parts = to_str.split(":", 1)
+            
+            from_label = from_parts[0]
+            to_label = to_parts[0]
+            
+            # Get handle names (default if not specified)
+            from_handle = from_parts[1] if len(from_parts) > 1 else conn.get("branch", "default")
+            to_handle = to_parts[1] if len(to_parts) > 1 else "default"
+            
+            sid = label2id.get(from_label)
+            tid = label2id.get(to_label)
             if not (sid and tid):
                 continue
+            
+            # Generate a unique arrow ID based on index
+            arrow_id = f"arrow_{idx}"
+            
+            # Copy data but exclude the ID field since we're generating a new one
+            arrow_data = {}
+            if conn.get("data"):
+                arrow_data = {k: v for k, v in conn["data"].items() if k != "id"}
+            
             arrows.append(
                 {
-                    "id": conn.get("data", {}).get("id", f"arrow_{len(arrows)}"),
-                    "source": f"{sid}:{conn.get('branch', 'default')}",
-                    "target": f"{tid}:default",
-                    "data": conn.get("data", {}),
+                    "id": arrow_id,
+                    "source": f"{sid}:{from_handle}",
+                    "target": f"{tid}:{to_handle}",
+                    "data": arrow_data,
                 }
             )
         return arrows
 
     # ---- export ----
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+        # Create person ID to label mapping
+        person_id_to_label: Dict[str, str] = {}
+        if diagram.persons:
+            for person in diagram.persons:
+                person_id_to_label[person.id] = person.label
+
         nodes_out: List[Dict[str, Any]] = []
         label_counts: Dict[str, int] = {}
         id2label: Dict[str, str] = {}
 
         for n in diagram.nodes:
-            base = n.data.get("label", n.id)
+            # Fix label extraction - ensure we get the actual label from data
+            base = n.data.get("label") if n.data else None
+            if not base or base == n.type or base == str(n.type).split('.')[-1]:  # Also check if label is just the type name
+                # Use a better default based on node type
+                type_name = str(n.type).split('.')[-1]
+                if type_name == "start":
+                    base = "Start"
+                elif type_name == "endpoint":
+                    base = "End"
+                elif type_name == "db":
+                    base = "Database"
+                elif type_name == "condition":
+                    base = "Condition"
+                elif type_name == "person_job":
+                    base = "Task"
+                else:
+                    base = type_name.replace('_', ' ').title()
+
             suffix = label_counts.get(base, 0)
             label_counts[base] = suffix + 1
             label = f"{base}~{suffix}" if suffix else base
             id2label[n.id] = label
 
-            nodes_out.append(
-                {
-                    "label": label,
-                    "type": n.type,
-                    "position": _round_pos(getattr(n, "position", {})),
-                    "props": {
-                        k: v
-                        for k, v in n.data.items()
-                        if k not in {"label", "type", "position"}
-                    },
+            # Build the node output
+            node_output: Dict[str, Any] = {
+                "label": label,
+                "type": str(n.type).split('.')[-1],  # Convert enum to string, just the value
+                "position": _round_pos(n.position.model_dump() if hasattr(n.position, 'model_dump') else n.position),
+            }
+
+            # Add person field for person_job nodes
+            if n.type == "person_job" and n.data:
+                person_id = n.data.get("personId")
+                if person_id and person_id in person_id_to_label:
+                    node_output["person"] = person_id_to_label[person_id]
+
+            # Filter props to exclude unnecessary fields
+            if n.data:
+                filtered_props = {}
+                exclude_fields = {
+                    "label", "type", "position", "personId",
+                    "_handles", "inputs", "outputs",
+                    "id", "nodeId", "__typename", "flipped"
                 }
-            )
+
+                for k, v in n.data.items():
+                    if k not in exclude_fields:
+                        # Only include meaningful values
+                        if v is not None and v != "" and v != {} and v != []:
+                            filtered_props[k] = v
+
+                if filtered_props:
+                    node_output["props"] = filtered_props
+
+            nodes_out.append(node_output)
 
         connections = []
         for a in diagram.arrows:
-            sid, tid = (part.split(":")[0] for part in (a.source, a.target))
-            connections.append(
-                {
-                    "from": id2label[sid],
-                    "to": id2label[tid],
-                    **({"branch": a.source.split(":")[1]} if ":" in a.source else {}),
-                    **({"data": a.data} if a.data else {}),
+            # Extract node IDs and handle names
+            source_parts = a.source.split(":")
+            target_parts = a.target.split(":")
+            sid = source_parts[0]
+            tid = target_parts[0]
+            from_handle = source_parts[1] if len(source_parts) > 1 else "default"
+            to_handle = target_parts[1] if len(target_parts) > 1 else "default"
+            
+            # Build connection data with handle notation
+            from_label = id2label[sid]
+            to_label = id2label[tid]
+            
+            # Append handle to label if not default
+            if from_handle != "default":
+                from_label = f"{from_label}:{from_handle}"
+            if to_handle != "default":
+                to_label = f"{to_label}:{to_handle}"
+            
+            conn_data = {
+                "from": from_label,
+                "to": to_label,
+            }
+            
+            # For condition branches, we still keep the branch field for clarity
+            if from_handle in ["True", "False"]:
+                conn_data["branch"] = from_handle
+            
+            # Add data but exclude internal/UI fields
+            if a.data:
+                # Fields to exclude from light yaml format
+                exclude_fields = {
+                    "id", "type", "_sourceNodeType", "_isFromConditionBranch",
+                    "controlPointOffsetX", "controlPointOffsetY"
                 }
-            )
+                # Only keep semantic fields like "label", "contentType", etc.
+                filtered_data = {k: v for k, v in a.data.items() if k not in exclude_fields}
+                if filtered_data:  # Only add data if there's something left after filtering
+                    conn_data["data"] = filtered_data
+            
+            connections.append(conn_data)
 
         out: Dict[str, Any] = {"version": "light", "nodes": nodes_out}
         if connections:
             out["connections"] = connections
         if diagram.persons:
-            out["persons"] = [p.model_dump() for p in diagram.persons]
+            # Convert persons to dict keyed by label
+            persons_dict = {}
+            for p in diagram.persons:
+                person_dict = p.model_dump()
+                # Convert enum values to strings (just the value, not the full enum name)
+                if 'service' in person_dict:
+                    person_dict['service'] = str(person_dict['service']).split('.')[-1]
+                if 'forgetting_mode' in person_dict:
+                    person_dict['forgetting_mode'] = str(person_dict['forgetting_mode']).split('.')[-1]
+                # Remove unnecessary fields including 'id' and 'label' (since label is the key)
+                for field in ['id', 'label', 'type', '__typename', 'masked_api_key']:
+                    person_dict.pop(field, None)
+                # Use label as the key
+                persons_dict[p.label] = person_dict
+            out["persons"] = persons_dict
         if getattr(diagram, "name", None):
             out["name"] = diagram.name
         return out

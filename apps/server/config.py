@@ -26,9 +26,6 @@ CONVERSATION_LOG_DIR.mkdir(exist_ok=True)
 PROMPT_DIR = FILES_DIR / "prompts"
 PROMPT_DIR.mkdir(exist_ok=True)
 
-YAML_DIAGRAM_DIR = FILES_DIR / "yaml_diagrams"
-YAML_DIAGRAM_DIR.mkdir(exist_ok=True)
-
 # Database directory
 DATA_DIR = Path(__file__).parent / ".data"
 DATA_DIR.mkdir(exist_ok=True)

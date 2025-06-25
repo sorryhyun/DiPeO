@@ -14,9 +14,8 @@ from dipeo_domain import (
     TokenUsage,
 )
 from dipeo_domain import (
-    ExecutionState as ExecutionStateForGraphQL,
+    ExecutionState,
 )
-from dipeo_domain import ExecutionStatus as DomainExecutionStatus
 
 from ..context import GraphQLContext
 from ..types import (
@@ -35,7 +34,7 @@ class ExecutionMutations:
 
     @strawberry.mutation
     async def execute_diagram(
-        self, input: ExecuteDiagramInput, info
+        self, data: ExecuteDiagramInput, info
     ) -> ExecutionResult:
         """Starts diagram execution with provided configuration."""
         try:
@@ -43,13 +42,13 @@ class ExecutionMutations:
             execution_service = context.execution_service
             state_store = context.state_store
 
-            if input.diagram_data:
-                diagram_data = input.diagram_data
+            if data.diagram_data:
+                diagram_data = data.diagram_data
                 # The execution service expects dict format, so we don't need to convert
-            elif input.diagram_id:
+            elif data.diagram_id:
                 # Use new services
                 storage_service = context.diagram_storage_service
-                path = await storage_service.find_by_id(input.diagram_id)
+                path = await storage_service.find_by_id(data.diagram_id)
                 if path:
                     diagram_data = await storage_service.read_file(path)
                 else:
@@ -60,13 +59,13 @@ class ExecutionMutations:
             execution_id = str(uuid.uuid4())
 
             options = {
-                "debugMode": input.debug_mode,
-                "maxIterations": input.max_iterations,
-                "timeout": input.timeout_seconds,
+                "debugMode": data.debug_mode,
+                "maxIterations": data.max_iterations,
+                "timeout": data.timeout_seconds,
             }
 
             diagram_id = (
-                input.diagram_id if input.diagram_id else None
+                data.diagram_id if data.diagram_id else None
             )
             await state_store.create_execution(execution_id, diagram_id, options)
 
@@ -74,32 +73,32 @@ class ExecutionMutations:
             async def run_execution():
                 try:
                     logger.info(f"Starting run_execution for {execution_id}")
-                    async for update in execution_service.execute_diagram(
+                    async for _ in execution_service.execute_diagram(
                         diagram=diagram_data,
                         options=options,
                         execution_id=execution_id
                     ):
                         # Updates are handled by the execution service
                         pass
-                except Exception as e:
-                    logger.error(f"Execution failed for {execution_id}: {e}")
+                except Exception as ex:
+                    logger.error(f"Execution failed for {execution_id}: {ex}")
                     await state_store.update_status(
-                        execution_id, DomainExecutionStatus.FAILED, error=str(e)
+                        execution_id, ExecutionStatus.FAILED, error=str(ex)
                     )
 
             # Launch execution in background
             asyncio.create_task(run_execution())
 
             # Execution starts asynchronously; client monitors via subscriptions
-            execution = ExecutionStateForGraphQL(
+            execution = ExecutionState(
                 id=ExecutionID(execution_id),
-                status=DomainExecutionStatus.STARTED,
-                diagram_id=DiagramID(diagram_id) if diagram_id else None,
-                started_at=datetime.now(timezone.utc).isoformat(),
-                ended_at=None,
-                node_states={},
-                node_outputs={},
-                token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
+                status=ExecutionStatus.STARTED,
+                diagramId=DiagramID(diagram_id) if diagram_id else None,
+                startedAt=datetime.now(timezone.utc).isoformat(),
+                endedAt=None,
+                nodeStates={},
+                nodeOutputs={},
+                tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
                 error=None,
                 variables={},
             )
@@ -122,7 +121,7 @@ class ExecutionMutations:
 
     @strawberry.mutation
     async def control_execution(
-        self, input: ExecutionControlInput, info
+        self, data: ExecutionControlInput, info
     ) -> ExecutionResult:
         """Controls execution state (pause/resume/abort/skip)."""
         try:
@@ -130,78 +129,66 @@ class ExecutionMutations:
             state_store = context.state_store
             message_router = context.message_router
 
-            state = await state_store.get_state(input.execution_id)
+            state = await state_store.get_state(data.execution_id)
             if not state:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {input.execution_id} not found",
+                    error=f"Execution {data.execution_id} not found",
                 )
 
-            if input.action == "pause":
-                if input.node_id:
+            if data.action == "pause":
+                if data.node_id:
                     await state_store.update_node_status(
-                        input.execution_id,
-                        input.node_id,
+                        data.execution_id,
+                        data.node_id,
                         NodeExecutionStatus.PAUSED,
                     )
                 else:
                     await state_store.update_status(
-                        input.execution_id, DomainExecutionStatus.PAUSED
+                        data.execution_id, ExecutionStatus.PAUSED
                     )
-            elif input.action == "resume":
-                if input.node_id:
+            elif data.action == "resume":
+                if data.node_id:
                     await state_store.update_node_status(
-                        input.execution_id,
-                        input.node_id,
+                        data.execution_id,
+                        data.node_id,
                         NodeExecutionStatus.RUNNING,
                     )
                 else:
                     await state_store.update_status(
-                        input.execution_id, DomainExecutionStatus.RUNNING
+                        data.execution_id, ExecutionStatus.RUNNING
                     )
-            elif input.action == "abort":
+            elif data.action == "abort":
                 await state_store.update_status(
-                    input.execution_id, DomainExecutionStatus.ABORTED
+                    data.execution_id, ExecutionStatus.ABORTED
                 )
-            elif input.action == "skip" and input.node_id:
+            elif data.action == "skip" and data.node_id:
                 await state_store.update_node_status(
-                    input.execution_id,
-                    input.node_id,
+                    data.execution_id,
+                    data.node_id,
                     NodeExecutionStatus.SKIPPED,
                     skip_reason="Manual skip",
                 )
 
             control_message = {
-                "type": f"{input.action}_{'node' if input.node_id else 'execution'}",
-                "execution_id": input.execution_id,
-                "node_id": input.node_id,
+                "type": f"{data.action}_{'node' if data.node_id else 'execution'}",
+                "execution_id": data.execution_id,
+                "node_id": data.node_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
-                input.execution_id, control_message
+                data.execution_id, control_message
             )
 
-            updated_state = await state_store.get_state(input.execution_id)
+            updated_state = await state_store.get_state(data.execution_id)
 
-            execution_state = ExecutionStateForGraphQL(
-                id=ExecutionID(input.execution_id),
-                status=updated_state.status,
-                diagram_id=updated_state.diagram_id,
-                started_at=updated_state.started_at,
-                ended_at=updated_state.ended_at,
-                node_states=updated_state.node_states,
-                node_outputs=updated_state.node_outputs,
-                token_usage=updated_state.token_usage
-                or TokenUsage(input=0, output=0, cached=None, total=0),
-                error=updated_state.error,
-                variables=updated_state.variables,
-            )
+            execution_state = ExecutionMutations._create_execution_state(data.execution_id, updated_state)
 
             return ExecutionResult(
                 success=True,
                 execution=execution_state,
-                message=f"Execution control '{input.action}' sent successfully",
+                message=f"Execution control '{data.action}' sent successfully",
             )
 
         except ValueError as e:
@@ -215,7 +202,7 @@ class ExecutionMutations:
 
     @strawberry.mutation
     async def submit_interactive_response(
-        self, input: InteractiveResponseInput, info
+        self, data: InteractiveResponseInput, info
     ) -> ExecutionResult:
         """Handles interactive node responses from users."""
         try:
@@ -223,54 +210,42 @@ class ExecutionMutations:
             state_store = context.state_store
             message_router = context.message_router
 
-            execution_state = await state_store.get_state(input.execution_id)
+            execution_state = await state_store.get_state(data.execution_id)
             if not execution_state:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {input.execution_id} not found",
+                    error=f"Execution {data.execution_id} not found",
                 )
 
             if execution_state.status not in [
-                DomainExecutionStatus.STARTED,
-                DomainExecutionStatus.RUNNING,
+                ExecutionStatus.STARTED,
+                ExecutionStatus.RUNNING,
             ]:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {input.execution_id} is not running (status: {execution_state.status})",
+                    error=f"Execution {data.execution_id} is not running (status: {execution_state.status})",
                 )
 
             interactive_message = {
                 "type": "interactive_response",
-                "executionId": input.execution_id,
-                "nodeId": input.node_id,
-                "response": input.response,
+                "executionId": data.execution_id,
+                "nodeId": data.node_id,
+                "response": data.response,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
-                input.execution_id, interactive_message
+                data.execution_id, interactive_message
             )
 
-            updated_state = await state_store.get_state(input.execution_id)
+            updated_state = await state_store.get_state(data.execution_id)
 
-            execution = ExecutionStateForGraphQL(
-                id=ExecutionID(input.execution_id),
-                status=updated_state.status,
-                diagram_id=updated_state.diagram_id,
-                started_at=updated_state.started_at,
-                ended_at=updated_state.ended_at,
-                node_states=updated_state.node_states,
-                node_outputs=updated_state.node_outputs,
-                token_usage=updated_state.token_usage
-                or TokenUsage(input=0, output=0, cached=None, total=0),
-                error=updated_state.error,
-                variables=updated_state.variables,
-            )
+            execution = ExecutionMutations._create_execution_state(data.execution_id, updated_state)
 
             return ExecutionResult(
                 success=True,
                 execution=execution,
-                message=f"Interactive response submitted for node {input.node_id}",
+                message=f"Interactive response submitted for node {data.node_id}",
             )
 
         except ValueError as e:
@@ -281,6 +256,22 @@ class ExecutionMutations:
             return ExecutionResult(
                 success=False, error=f"Failed to submit interactive response: {e!s}"
             )
+
+    @staticmethod
+    def _create_execution_state(execution_id: str, state) -> ExecutionState:
+        return ExecutionState(
+            id=ExecutionID(execution_id),
+            status=state.status,
+            diagramId=state.diagram_id,
+            startedAt=state.started_at,
+            endedAt=state.ended_at,
+            nodeStates=state.node_states,
+            nodeOutputs=state.node_outputs,
+            tokenUsage=state.token_usage
+            or TokenUsage(input=0, output=0, cached=None, total=0),
+            error=state.error,
+            variables=state.variables,
+        )
 
 
 def _map_status(status: str) -> ExecutionStatus:

@@ -1,11 +1,19 @@
 """GraphQL resolvers for diagram operations."""
 
 import logging
+import json
+import yaml
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
-from dipeo_server.domains.diagram.converters import backend_to_graphql
+from dipeo_domain import DiagramMetadata, DomainDiagram
+
+from dipeo_server.domains.diagram.converters import (
+    backend_to_graphql,
+    graphql_to_backend,
+    converter_registry,
+)
 from dipeo_server.domains.diagram.services import DiagramStorageService
 from dipeo_server.domains.diagram.services.models import BackendDiagram
 
@@ -14,7 +22,6 @@ from ..types import (
     DiagramID,
     DomainDiagramType,
 )
-from dipeo_domain import DiagramMetadata, DomainDiagram
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +40,10 @@ class DiagramResolver:
             storage_service: DiagramStorageService = info.context.diagram_storage_service
 
             # Find and load the diagram
-            if diagram_id == "quicksave":
-                path = "quicksave.json"
-            else:
-                path = await storage_service.find_by_id(diagram_id)
-                if not path:
-                    logger.error(f"Diagram not found: {diagram_id}")
-                    return None
+            path = await storage_service.find_by_id(diagram_id)
+            if not path:
+                logger.error(f"Diagram not found: {diagram_id}")
+                return None
 
             diagram_data = await storage_service.read_file(path)
 
@@ -47,25 +51,64 @@ class DiagramResolver:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
 
-            if "metadata" not in diagram_data or not diagram_data["metadata"]:
-                diagram_data["metadata"] = {
-                    "id": diagram_id,
-                    "name": diagram_id.replace("/", " - ")
-                    .replace(".yaml", "")
-                    .replace(".yml", "")
-                    .replace(".json", "")
-                    .replace("_", " ")
-                    .title(),
-                    "description": diagram_data.get("description", ""),
-                    "version": diagram_data.get("version", "2.0.0"),
-                    "created": diagram_data.get("created", datetime.now().isoformat()),
-                    "modified": diagram_data.get(
-                        "modified", datetime.now().isoformat()
-                    ),
-                }
+            # Check if this is a light format diagram (has version: light)
+            if diagram_data.get("version") == "light":
+                logger.info(f"Detected light format for diagram {diagram_id}")
+                
+                # Ensure api_keys is present as an empty list if not provided
+                if "api_keys" not in diagram_data:
+                    diagram_data["api_keys"] = []
+                
+                # Convert the data to YAML string for converter processing
+                yaml_content = yaml.dump(diagram_data, default_flow_style=False)
+                
+                # Use the converter to deserialize from light format
+                graphql_diagram = converter_registry.deserialize(yaml_content, "light")
+                
+                # Update metadata if needed
+                if not graphql_diagram.metadata or not graphql_diagram.metadata.id:
+                    graphql_diagram.metadata = DiagramMetadata(
+                        id=diagram_id,
+                        name=diagram_id.replace("/", " - ")
+                        .replace(".yaml", "")
+                        .replace(".yml", "")
+                        .replace(".json", "")
+                        .replace("_", " ")
+                        .title(),
+                        description="Light format diagram",
+                        version="light",
+                        created=datetime.now(timezone.utc).isoformat(),
+                        modified=datetime.now(timezone.utc).isoformat(),
+                    )
+            else:
+                # Original handling for non-light formats
+                if "metadata" not in diagram_data or not diagram_data["metadata"]:
+                    diagram_data["metadata"] = {
+                        "id": diagram_id,
+                        "name": diagram_id.replace("/", " - ")
+                        .replace(".yaml", "")
+                        .replace(".yml", "")
+                        .replace(".json", "")
+                        .replace("_", " ")
+                        .title(),
+                        "description": diagram_data.get("description", ""),
+                        "version": diagram_data.get("version", "2.0.0"),
+                        "created": diagram_data.get("created", datetime.now(timezone.utc).isoformat()),
+                        "modified": diagram_data.get(
+                            "modified", datetime.now(timezone.utc).isoformat()
+                        ),
+                    }
 
-            diagram_dict = BackendDiagram(**diagram_data)
-            graphql_diagram = backend_to_graphql(diagram_dict)
+                # Check if the data is in native format (lists) or backend format (dicts)
+                if isinstance(diagram_data.get("nodes", {}), list):
+                    # Native format - parse as DomainDiagram first, then convert to BackendDiagram
+                    domain_diagram = DomainDiagram(**diagram_data)
+                    diagram_dict = graphql_to_backend(domain_diagram)
+                    graphql_diagram = domain_diagram
+                else:
+                    # Backend format - parse directly as BackendDiagram
+                    diagram_dict = BackendDiagram(**diagram_data)
+                    graphql_diagram = backend_to_graphql(diagram_dict)
 
             handle_index = defaultdict(list)
             for handle in graphql_diagram.handles:
