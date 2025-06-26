@@ -1,5 +1,6 @@
 """Shared components for diagram format converters."""
 
+import logging
 from typing import Any, ClassVar, Dict, List, Optional, Union, Callable
 
 from dipeo_domain import (
@@ -12,6 +13,8 @@ from dipeo_domain import (
 )
 
 from ..services.models import BackendDiagram
+
+logger = logging.getLogger(__name__)
 
 
 class HandleGenerator:
@@ -224,8 +227,14 @@ def ensure_position(
 
 
 def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
-    """Return [{id, source, target}, …] regardless of storage shape."""
-    if not arrows_data:  # short-circuit None / {}
+    """Return [{id, source, target, data}, …] regardless of storage shape."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.debug(f"extract_common_arrows received: type={type(arrows_data)}, len={len(arrows_data) if hasattr(arrows_data, '__len__') else 'N/A'}")
+    
+    if not arrows_data:  # short-circuit None / {} / []
+        logger.debug("arrows_data is empty or None")
         return []
 
     # Turn both mapping and list forms into an iterable of (id, obj) pairs
@@ -235,7 +244,19 @@ def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
         else ((d.get("id"), d) for d in arrows_data if isinstance(d, dict))
     )
 
-    return [
-        {"id": aid, "source": ad.get("source"), "target": ad.get("target")}
+    result = [
+        {
+            "id": aid, 
+            "source": ad.get("source"), 
+            "target": ad.get("target"),
+            "data": ad.get("data")  # Include data field to preserve labels and other properties
+        }
         for aid, ad in items
     ]
+    
+    logger.debug(f"extract_common_arrows returning {len(result)} arrows")
+    for arrow in result:
+        if arrow.get("data"):
+            logger.debug(f"Arrow {arrow['id']} has data: {arrow['data']}")
+    
+    return result

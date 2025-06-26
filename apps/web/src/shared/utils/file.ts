@@ -133,7 +133,7 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
     
     return {
       success: true,
-      diagramId: diagramId,
+      diagramId,
       diagramName: filename,
       nodeCount: undefined, // We don't have this info from upload_file
       message: data.uploadFile.message || 'Diagram saved successfully'
@@ -220,7 +220,7 @@ export const fileToBase64 = (file: File): Promise<string> => {
 /**
  * Error handling wrapper for file operations
  */
-export function withFileErrorHandling<TArgs extends any[], TReturn>(
+export function withFileErrorHandling<TArgs extends unknown[], TReturn>(
   operation: (...args: TArgs) => Promise<TReturn>,
   operationName: string
 ): (...args: TArgs) => Promise<TReturn> {

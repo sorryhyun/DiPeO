@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useGetDiagramQuery } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
-import { diagramId } from '@/core/types';
+import { diagramId, arrowId } from '@/core/types';
 import { domainToReactDiagram, diagramToStoreMaps } from '@/graphql/types';
+import { migrateArrowBranchData } from '../utils/arrowMigration';
 
 /**
  * Hook that loads a diagram from the backend when a diagram ID is present in the URL
@@ -41,7 +42,6 @@ export function useDiagramLoader() {
   const { data, loading, error } = useGetDiagramQuery({
     variables: { id: diagramId(diagramIdFromUrl || '') },
     skip: !diagramIdFromUrl || hasLoaded,
-    // Always use cache-first for better performance
     fetchPolicy: 'cache-first'
   });
 
@@ -61,7 +61,6 @@ export function useDiagramLoader() {
         // Delay loading until after the component tree has mounted
         const loadTimer = setTimeout(() => {
           try {
-            // TypeScript needs reassurance that data.diagram is still defined
             if (!data?.diagram) return;
           
           // Convert GraphQL diagram to domain format
@@ -75,6 +74,17 @@ export function useDiagramLoader() {
           
           // Convert arrays to Maps for the store
           const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
+          
+          // Migrate arrow data to ensure condition arrows have branch data
+          const migratedArrows = migrateArrowBranchData(
+            Array.from(arrows.values()),
+            nodes
+          );
+          
+          // Update arrows map with migrated data
+          migratedArrows.forEach(arrow => {
+            arrows.set(arrowId(arrow.id), arrow);
+          });
           
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();
@@ -90,22 +100,12 @@ export function useDiagramLoader() {
               persons,
               apiKeys,
               nodesArray: reactDiagram.nodes || [],
-              arrowsArray: reactDiagram.arrows || [],
+              arrowsArray: migratedArrows,
               personsArray: reactDiagram.persons || [],
               dataVersion: state.dataVersion + 1  // Single increment
             }));
           });
-          
-          // Debug logging
-          console.log('Diagram loaded:', {
-            nodeCount: nodes.size,
-            handleCount: handles.size,
-            arrowCount: arrows.size,
-            personCount: persons.size,
-            apiKeyCount: apiKeys.size,
-            nodes: Array.from(nodes.entries()),
-            handles: Array.from(handles.entries())
-          });
+
           
           // Mark as loaded after store is updated
           setHasLoaded(true);

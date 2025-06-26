@@ -15,33 +15,7 @@ export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
 }
 
 // Pre-computed constants
-const HANDLE_SIZE = 16;
-const HALF_HANDLE_SIZE = HANDLE_SIZE / 2;
 const HANDLE_DISTANCE = 30; // Increased distance from node edge
-
-// Pre-computed position lookups
-const HANDLE_POS = {
-  [Position.Top]: (offset: number) => ({
-    left: `${offset}%`,
-    top: `-${HANDLE_DISTANCE}px`,
-    transform: 'translateX(-50%)'
-  }),
-  [Position.Bottom]: (offset: number) => ({
-    left: `${offset}%`,
-    bottom: `-${HANDLE_DISTANCE}px`,
-    transform: 'translateX(-50%)'
-  }),
-  [Position.Left]: (offset: number) => ({
-    top: `${offset}%`,
-    left: `-${HANDLE_DISTANCE}px`,
-    transform: 'translateY(-50%)'
-  }),
-  [Position.Right]: (offset: number) => ({
-    top: `${offset}%`,
-    right: `-${HANDLE_DISTANCE}px`,
-    transform: 'translateY(-50%)'
-  })
-} as const;
 
 const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   nodeId: _nodeId,
@@ -76,7 +50,7 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '11px',
+      fontSize: '12px',
       fontWeight: 600,
       color: 'white',
       cursor: 'pointer',

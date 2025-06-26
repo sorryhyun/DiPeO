@@ -1,6 +1,6 @@
 // Reusable component for rendering property panels based on selection
 import React, { Suspense, useCallback } from 'react';
-import { Dict, DomainArrow, DomainPerson } from '@/core/types';
+import { DomainArrow, DomainPerson } from '@/core/types';
 import { DiPeoNode } from '@/features/diagram-editor/adapters/DiagramAdapter';
 import { LoadingFallback } from '@/shared/components/ui/feedback';
 

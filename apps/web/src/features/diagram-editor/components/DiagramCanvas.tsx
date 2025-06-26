@@ -26,11 +26,9 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useCanvasContext } from "../contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
-import ContextMenu from "./controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
 import { DomainArrow, arrowId, nodeId } from '@/core/types';
-import { NodeType } from '@dipeo/domain-models';
 import { arrowToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
 
 // Lazy‑loaded tabs
@@ -103,6 +101,7 @@ function useCommonFlowProps({
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
     const edges = arrows.map(arrow => arrowToReact(arrow)) as Edge[];
+
     
     const baseProps = {
       fitView: false, // We'll handle fitView manually
@@ -143,16 +142,12 @@ function useCommonFlowProps({
     return {
       ...baseProps,
       onNodeClick: (event: React.MouseEvent, n: ReactFlowNode) => {
-        // Only select on left click for moving/connecting
-        if (event.button === 0) {
-          selectNode(n.id);
-        }
+        // Disable left-click selection - only allow moving/connecting
+        // Properties can be opened via right-click
       },
       onEdgeClick: (event: React.MouseEvent, e: Edge) => {
-        // Only select on left click
-        if (event.button === 0) {
-          selectArrow(e.id);
-        }
+        // Disable left-click selection - only allow moving/connecting
+        // Properties can be opened via right-click
       },
       onNodeDragStart,
       onNodeDragStop,
@@ -330,6 +325,10 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     clearSelection,
   });
 
+  // Debug logging for arrow data
+  useEffect(() => {
+  }, [executionMode, arrows]);
+
   /** --------------------------------------------------
    * Context‑menu helpers
    * --------------------------------------------------*/
@@ -339,28 +338,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     "gpt-4.1-nano"
   );
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
-
-  /** --------------------------------------------------
-   * Render helpers
-   * --------------------------------------------------*/
-  const renderContextMenu = () =>
-    showContextMenu && (
-      <Suspense fallback={null}>
-        <ContextMenu
-          position={contextMenu!.position!}
-          target={contextMenu!.target || "pane"}
-          selectedNodeId={selectedNodeId ? nodeId(selectedNodeId) : null}
-          selectedArrowId={selectedArrowId ? arrowId(selectedArrowId) : null}
-          containerRef={flowWrapperRef as React.RefObject<HTMLDivElement>}
-          onAddNode={(type, position) => addNode(type, position)}
-          onAddPerson={handleAddPerson}
-          onDeleteNode={deleteNode}
-          onDeleteArrow={deleteArrow}
-          onClose={closeContextMenu!}
-          projectPosition={projectPosition}
-        />
-      </Suspense>
-    );
 
   /** --------------------------------------------------
    * JSX

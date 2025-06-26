@@ -31,7 +31,7 @@ const ConversationDashboard: React.FC = () => {
     []
   );
 
-  const { personsArray, personsMap, getPersonById } = usePersonsData();
+  const { personsArray, personsMap } = usePersonsData();
   const { selectedId } = useUIState();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -147,7 +147,7 @@ const ConversationDashboard: React.FC = () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return 0;
 
     return conversationData[dashboardSelectedPerson].messages
-      .reduce((sum: number, msg: any) => sum + (msg.tokenCount || 0), 0);
+      .reduce((sum: number, msg) => sum + (msg.tokenCount || 0), 0);
   }, [dashboardSelectedPerson, conversationData]);
 
   // Memoize whole conversation data with stable dependency
@@ -160,7 +160,7 @@ const ConversationDashboard: React.FC = () => {
     const messages: ConversationMessage[] = [];
     Object.entries(conversationData).forEach(([key, personData]) => {
       // Add personId to each message
-      const messagesWithPersonId = (personData as any).messages.map((msg: any) => ({
+      const messagesWithPersonId = personData.messages.map((msg) => ({
         ...msg,
         personId: personId(key)
       } as ConversationMessage));
@@ -341,7 +341,7 @@ const ConversationDashboard: React.FC = () => {
         </div>
 
         <MessageList
-          messages={personMemory.messages.map((msg: any) => ({
+          messages={personMemory.messages.map((msg) => ({
             ...msg,
             personId: dashboardSelectedPerson
           }))}

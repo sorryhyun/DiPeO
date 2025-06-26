@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { DomainPerson, PersonID } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
-import { ForgettingMode, LLMService, NodeType } from '@dipeo/domain-models';
+import { LLMService, NodeType } from '@dipeo/domain-models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 export interface PersonSlice {

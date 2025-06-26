@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal, Select } from '@/shared/components/ui';
 import { createErrorHandlerFactory, DomainApiKey } from '@/core/types';
 import { LLMService } from '@dipeo/domain-models';
-import { useUnifiedStore, useApiKeyOperations } from '@/shared/hooks';
+import { useApiKeyOperations } from '@/shared/hooks';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 
 interface ApiKeysModalProps {
@@ -21,8 +21,6 @@ const API_SERVICES = [
 ] as const;
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
-  const { apiKeys } = useUnifiedStore();
-  
   // Use GraphQL operations for API key management
   const graphQLOperations = useApiKeyOperations();
   

@@ -1,13 +1,12 @@
 import React from 'react';
 import { Settings, Trash2 } from 'lucide-react';
-import { ArrowData, Dict, DomainPerson } from '@/core/types';
+import { ArrowData, Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
 import { PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
 import { NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { GenericPropertyPanel } from '../renderers/GenericPropertyPanel';
 import { useNodeOperations, useArrowOperations, usePersonOperations } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { nodeId, arrowId, personId } from '@/core/types';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };

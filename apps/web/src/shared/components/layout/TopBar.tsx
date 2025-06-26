@@ -68,7 +68,7 @@ const TopBar = () => {
             onClick={() => {
               // Load quicksave.json by updating the URL parameter and refreshing
               const url = new URL(window.location.href);
-              url.searchParams.set('diagram', 'quicksave');
+              url.searchParams.set('diagram', 'native/quicksave');
               
               // Loading quicksave
               

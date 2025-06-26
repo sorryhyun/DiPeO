@@ -36,14 +36,19 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
   defaults: { conditionType: 'simple', condition: '', label: '' },
   
   // Panel configuration overrides
-  panelLayout: 'single',
-  panelFieldOrder: ['label', 'conditionType', 'expression'],
+  panelLayout: 'twoColumn',
+  panelFieldOrder: ['label', 'conditionType', 'condition', 'expression'],
   panelFieldOverrides: {
     conditionType: {
       options: [
         { value: 'expression', label: 'Expression' },
-        { value: 'detect_max_iterations', label: 'Max Iterations' }
-      ]
+        { value: 'detect_max_iterations', label: '🔁 Max Iterations' }
+      ],
+      column: 2
+    },
+    condition: {
+      column: 2,
+      disabled: (formData) => formData?.conditionType === 'detect_max_iterations'
     }
   },
   panelCustomFields: [
@@ -52,6 +57,7 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
       name: 'label',
       label: 'Block Label',
       placeholder: 'Condition',
+      column: 1,
       validate: (_value) => ({
         isValid: true // Label is optional
       })
@@ -62,6 +68,7 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
       label: 'Expression',
       placeholder: "e.g., x > 10 and y == 'yes' (Python syntax)",
       rows: 3,
+      column: 2,
       conditional: {
         field: 'conditionType',
         values: ['expression'],

@@ -28,7 +28,7 @@ import {
 const devtoolsOptions = {
   serialize: {
     // Custom replacer to handle Map serialization
-    replacer: (key: string, value: any) => {
+    replacer: (key: string, value: unknown) => {
       if (value instanceof Map) {
         return {
           _type: 'Map',
@@ -38,9 +38,9 @@ const devtoolsOptions = {
       return value;
     },
     // Custom reviver to restore Maps
-    reviver: (key: string, value: any) => {
-      if (value && typeof value === 'object' && value._type === 'Map') {
-        return new Map(value._value);
+    reviver: (key: string, value: unknown) => {
+      if (value && typeof value === 'object' && '_type' in value && value._type === 'Map' && '_value' in value) {
+        return new Map(value._value as Array<[unknown, unknown]>);
       }
       return value;
     }

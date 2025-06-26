@@ -18,7 +18,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   color: string;
   handles: NodeConfigItem['handles'];
   fields: FieldConfig[];
-  defaults: Record<string, any>;
+  defaults: Record<string, unknown>;
   
   // Panel configuration properties (optional overrides)
   panelLayout?: 'single' | 'twoColumn';
@@ -56,7 +56,7 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
     }
     
     if (field.type === 'textarea') {
-      panelField.rows = (field as any).rows || 4;
+      panelField.rows = (field as FieldConfig & { rows?: number }).rows || 4;
     }
     
     if (field.type === 'number') {

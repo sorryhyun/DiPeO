@@ -5,7 +5,10 @@ import { useUIState } from '@/shared/hooks/selectors';
 import { arrowId, ArrowData } from '@/core/types';
 import { getQuadraticPoint } from '@/shared/utils/geometry';
 
-export type CustomArrowProps = EdgeProps;
+export type CustomArrowProps = EdgeProps & {
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+};
 
 export const CustomArrow = React.memo<CustomArrowProps>(({
   id,
@@ -21,6 +24,8 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   data,
   markerEnd,
   selected = false,
+  sourceHandle,
+  targetHandle: _targetHandle,
 }) => {
   const { screenToFlowPosition } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
@@ -32,6 +37,44 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const arrowData = data as ArrowData | undefined;
   const controlPointOffsetX = Number(arrowData?.controlPointOffsetX ?? 0);
   const controlPointOffsetY = Number(arrowData?.controlPointOffsetY ?? 0);
+
+  // Memoize label content - moved here to avoid initialization error
+  const labelContent = useMemo(() => {
+    // Check if this is a branch arrow from a condition node
+    // by looking at the source handle name
+    const isConditionBranch = sourceHandle === 'True' || sourceHandle === 'False' || 
+                             sourceHandle === 'true' || sourceHandle === 'false';
+    
+    if (arrowData?.branch) {
+      return <span>{arrowData.branch === 'true' ? '✅' : '❌'}</span>;
+    }
+    
+    // If no explicit branch data but it's from a condition node, infer from handle name
+    if (isConditionBranch) {
+      const isTrueBranch = sourceHandle === 'True' || sourceHandle === 'true';
+      return <span>{isTrueBranch ? '✅' : '❌'}</span>;
+    }
+    
+    if (arrowData?.contentType) {
+      const icons: Record<string, string> = {
+        'conversation_state': '💬',
+        'variable_in_object': '📦',
+        'raw_text': '📝',
+        'empty': '⚪',
+        'generic': '🔄',
+      };
+      return <span>{icons[arrowData.contentType] || '📋'}</span>;
+    }
+    
+    // If arrow has a label but no contentType, assume it's raw text
+    if (arrowData?.label) {
+      return <span>📝</span>;
+    }
+    
+    // No emoji for arrows without explicit contentType or label
+    return null;
+  }, [arrowData?.branch, arrowData?.contentType, arrowData?.label, source, sourceHandle]);
+
 
   // Create a type-safe wrapper that updates arrow data in the store
   const handleUpdateData = useCallback((edgeId: string, newData: Partial<ArrowData>) => {
@@ -206,27 +249,9 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     maxWidth: '200px',
     cursor: isDragging ? 'grabbing' : 'grab',
     userSelect: 'none' as const,
+    zIndex: 1000, // Ensure labels are above other elements
   }), [labelX, labelY, selected, isExecutionMode, isDragging]);
 
-  // Memoize label content
-  const labelContent = useMemo(() => {
-    if (arrowData?.branch) {
-      return <span>{arrowData.branch === 'true' ? '✅' : '❌'}</span>;
-    }
-    
-    if (arrowData?.contentType) {
-      const icons: Record<string, string> = {
-        'conversation_state': '💬',
-        'variable_in_object': '📦',
-        'raw_text': '📝',
-        'empty': '⚪',
-        'generic': '🔄',
-      };
-      return <span>{icons[arrowData.contentType] || '📋'}</span>;
-    }
-    
-    return null;
-  }, [arrowData?.branch, arrowData?.contentType]);
 
   return (
     <>
@@ -246,7 +271,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
               {arrowData?.label && (
                 <span>{arrowData.label}</span>
               )}
-              {/* Show a drag handle if no content */}
+              {/* Show a drag handle if no emoji and no label */}
               {!labelContent && !arrowData?.label && (
                 <span className="text-gray-400">⋮⋮</span>
               )}

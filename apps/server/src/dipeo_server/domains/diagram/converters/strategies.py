@@ -87,7 +87,7 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
 
     # ---- extraction helpers ----
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        nodes_data = coerce_to_dict(data.get("nodes", {}), id_key="id", prefix="node")
+        nodes_data = coerce_to_dict(data.get("nodes", []), id_key="id", prefix="node")
         built: List[Dict[str, Any]] = []
         for idx, (nid, ndata) in enumerate(nodes_data.items()):
             node = build_node(
@@ -103,7 +103,7 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
     def extract_arrows(
         self, data: Dict[str, Any], _nodes: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        return extract_common_arrows(data.get("arrows", {}))
+        return extract_common_arrows(data.get("arrows", []))
 
     # ---- export helpers ----
     def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
@@ -488,9 +488,29 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
 
         cfg: Dict[str, Any] = {}
         if diagram.persons:
-            cfg["persons"] = [p.model_dump() for p in diagram.persons]
+            persons_list = []
+            for p in diagram.persons:
+                person_dict = p.model_dump()
+                # Convert enum values to strings
+                if "service" in person_dict:
+                    person_dict["service"] = str(person_dict["service"]).split(".")[-1]
+                if "forgetting_mode" in person_dict:
+                    person_dict["forgetting_mode"] = str(person_dict["forgetting_mode"]).split(".")[-1]
+                # Remove masked_api_key from readable format
+                person_dict.pop("masked_api_key", None)
+                persons_list.append(person_dict)
+            cfg["persons"] = persons_list
         if diagram.api_keys:
-            cfg["api_keys"] = [k.model_dump() for k in diagram.api_keys]
+            api_keys_list = []
+            for k in diagram.api_keys:
+                key_dict = k.model_dump()
+                # Convert service enum to string
+                if "service" in key_dict:
+                    key_dict["service"] = str(key_dict["service"]).split(".")[-1]
+                # Remove masked_key from readable format
+                key_dict.pop("masked_key", None)
+                api_keys_list.append(key_dict)
+            cfg["api_keys"] = api_keys_list
         if cfg:
             result["config"] = cfg
         return result

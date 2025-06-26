@@ -1,13 +1,10 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Button } from '@/shared/components/ui/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
 import { useDiagramData } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { nodeId, ReactDiagram } from '@/core/types';
 import { useShallow } from 'zustand/react/shallow';
-import { useFileOperations } from '@/shared/hooks/useFileOperations';
-import { DiagramFormat } from '@dipeo/domain-models';
-import { diagramId } from '@/core/types/branded';
 import { toast } from 'sonner';
 
 const ExecutionControls = () => {
@@ -21,7 +18,6 @@ const ExecutionControls = () => {
       apiKeys: state.apiKeys
     }))
   );
-  const fileOps = useFileOperations();
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 

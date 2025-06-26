@@ -14,6 +14,24 @@ interface CrudActions<T extends Entity, ID extends EntityId> {
   delete: (state: Draft<UnifiedStore>, id: ID) => void;
 }
 
+// Type-safe entity map getter
+function getEntityMap<T extends Entity, ID extends EntityId>(
+  state: Draft<UnifiedStore>,
+  entityType: EntityType
+): Map<ID, T> {
+  return state[entityType] as Map<ID, T>;
+}
+
+// Type-safe entity map setter
+function setEntityMap<T extends Entity, ID extends EntityId>(
+  state: Draft<UnifiedStore>,
+  entityType: EntityType,
+  map: Map<ID, T>
+): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (state as any)[entityType] = map;
+}
+
 // Generic CRUD factory
 export function createCrudActions<T extends Entity, ID extends EntityId>(
   entityType: EntityType,
@@ -25,9 +43,9 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
 ): CrudActions<T, ID> {
   return {
     add: (state, entity) => {
-      const map = state[entityType] as Map<ID, T>;
+      const map = getEntityMap<T, ID>(state, entityType);
       const newMap = updateMap(map, entity.id as ID, entity);
-      state[entityType] = newMap as any;
+      setEntityMap(state, entityType, newMap);
       state.dataVersion += 1;
       
       options?.onAdd?.(state, entity);
@@ -37,11 +55,11 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
     },
     
     update: (state, id, updates) => {
-      const map = state[entityType] as Map<ID, T>;
+      const map = getEntityMap<T, ID>(state, entityType);
       const newMap = updateEntity(map as Map<string, T>, id as string, updates);
       
       if (newMap) {
-        state[entityType] = newMap as any;
+        setEntityMap(state, entityType, newMap as Map<ID, T>);
         state.dataVersion += 1;
         
         const entity = newMap.get(id as string);
@@ -56,9 +74,9 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
     delete: (state, id) => {
       options?.onDelete?.(state, id);
       
-      const map = state[entityType] as Map<ID, T>;
+      const map = getEntityMap<T, ID>(state, entityType);
       const newMap = updateMap(map, id, null, 'delete');
-      state[entityType] = newMap as any;
+      setEntityMap(state, entityType, newMap);
       state.dataVersion += 1;
       
       // Clear selection if deleted

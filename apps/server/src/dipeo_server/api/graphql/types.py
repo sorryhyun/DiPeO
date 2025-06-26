@@ -160,9 +160,7 @@ class DomainNodeType:
 
 @strawberry.experimental.pydantic.type(DomainArrow, fields=["id", "source", "target"])
 class DomainArrowType:
-    @strawberry.field
-    def data(self) -> Optional[JSONScalar]:
-        return self._pydantic_object.data if hasattr(self, "_pydantic_object") else None
+    data: Optional[JSONScalar] = strawberry.auto
 
 
 @strawberry.experimental.pydantic.type(

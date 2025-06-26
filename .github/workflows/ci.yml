@@ -48,8 +48,8 @@ jobs:
 
     - name: Generate code
       run: |
-        chmod +x ./dev.sh
-        ./dev.sh --generate
+        chmod +x ./build-all.sh
+        bash ./build-all.sh
 
     - name: Build packages
       run: pnpm build:packages

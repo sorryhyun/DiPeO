@@ -57,7 +57,7 @@ const PersonItem = React.memo<{
       onClick={() => onClick(person.id)}
     >
       <div className="flex items-center gap-2">
-        <span className="text-base">🤖</span>
+        <span className="text-base">👤</span>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-xs truncate">{person.label}</p>
         </div>
