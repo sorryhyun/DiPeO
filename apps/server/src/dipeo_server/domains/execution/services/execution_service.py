@@ -11,9 +11,7 @@ from dipeo_domain.models import DomainDiagram
 
 from dipeo_server.domains.execution.engine import ViewBasedEngine
 from dipeo_server.domains.execution.handlers import get_handlers
-from dipeo_server.domains.execution.services.token_calculation_service import (
-    TokenCalculationService,
-)
+from dipeo_server.domains.llm.token_usage_service import TokenUsageService
 from dipeo_server.infrastructure.persistence import state_store
 
 log = logging.getLogger(__name__)
@@ -177,7 +175,7 @@ class ExecutionService(BaseService):
                 break
 
         # Aggregate token usage from all node outputs
-        total_token_usage = TokenCalculationService.aggregate_node_token_usage(
+        total_token_usage = TokenUsageService.aggregate_node_token_usage(
             ctx.node_outputs
         )
         

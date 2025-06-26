@@ -13,7 +13,7 @@ from tenacity import (
 
 from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.llm import ChatResult, create_adapter
-from dipeo_server.domains.llm.service_utils.token_usage_service import TokenUsageService
+from dipeo_server.domains.llm.token_usage_service import TokenUsageService
 from dipeo_server.shared.constants import VALID_LLM_SERVICES
 from dipeo_server.shared.utils.errors import normalize_service_name
 

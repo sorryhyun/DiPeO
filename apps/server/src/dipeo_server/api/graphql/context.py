@@ -50,7 +50,7 @@ class GraphQLContext(BaseContext):
         self.state_store = state_store  # Use global instance
         self.file_service = app_context.file_service
         self.llm_service = app_context.llm_service
-        self.memory_service = app_context.memory_service
+        self.conversation_service = app_context.conversation_service  # ConversationService now handles memory functionality
         self.notion_service = app_context.notion_service
         self.message_router = message_router  # Use global instance
         self.event_bus = app_context.event_bus

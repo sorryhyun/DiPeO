@@ -32,7 +32,6 @@ if TYPE_CHECKING:
         SupportsExecution,
         SupportsFile,
         SupportsLLM,
-        SupportsMemory,
         SupportsNotion,
     )
 
@@ -87,7 +86,6 @@ class AppContext:
             self.notion_service,
             self.execution_preparation_service,
             self.event_bus,
-            self.conversation_service,  # ConversationService now handles both memory and person functionality
         )
 
         await self.llm_service.initialize()
