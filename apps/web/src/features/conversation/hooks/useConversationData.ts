@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useGetConversationsQuery } from '@/__generated__/graphql';
-import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/features/execution-monitor/types';
+import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/core/types/conversation';
 import type { PersonID } from '@dipeo/domain-models';
 
 const MESSAGES_PER_PAGE = 50;

@@ -4,9 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import strawberry
-from dipeo_domain import NodeType
-
-from dipeo_domain import LLMService
+from dipeo_domain import LLMService, NodeType
 
 from .types import (
     ApiKeyID,
@@ -275,3 +273,71 @@ class Query:
             )
             for fmt in formats
         ]
+
+    @strawberry.field
+    async def execution_order(self, execution_id: ExecutionID, info) -> JSONScalar:
+        """Get the execution order of nodes for a specific execution."""
+        from .resolvers.diagram import diagram_resolver
+        from .resolvers.execution import execution_resolver
+
+        execution = await execution_resolver.get_execution(execution_id, info)
+        if not execution:
+            return {"executionId": execution_id, "nodes": [], "error": "Execution not found"}
+
+        # Create a mapping of node_id to node_name from the diagram
+        node_names = {}
+        diagram_id = getattr(execution._pydantic_object, 'diagram_id', None) if hasattr(execution, '_pydantic_object') else None
+        if diagram_id:
+            diagram = await diagram_resolver.get_diagram(diagram_id, info)
+            if diagram and hasattr(diagram, '_pydantic_object') and diagram._pydantic_object.nodes:
+                for node in diagram._pydantic_object.nodes:
+                    # Use display_name if available, otherwise try data.label, fallback to node.id
+                    if node.display_name:
+                        node_names[node.id] = node.display_name
+                    elif hasattr(node, 'data') and isinstance(node.data, dict) and 'label' in node.data:
+                        node_names[node.id] = node.data['label']
+                    else:
+                        node_names[node.id] = node.id
+
+        # Extract node execution order from node_states
+        node_order = []
+        if hasattr(execution, '_pydantic_object') and execution._pydantic_object.node_states:
+            node_states_dict = execution._pydantic_object.node_states
+            for node_id, node_state in node_states_dict.items():
+                # Handle if node_state is a pydantic model
+                if hasattr(node_state, 'model_dump'):
+                    node_state = node_state.model_dump()
+                elif not isinstance(node_state, dict):
+                    continue
+
+                if node_state.get("startedAt"):
+                    node_info = {
+                        "nodeId": node_id,
+                        "nodeName": node_names.get(node_id, node_id),  # Use actual node name from diagram
+                        "status": node_state.get("status", "PENDING"),
+                        "startedAt": node_state.get("startedAt"),
+                        "endedAt": node_state.get("endedAt"),
+                        "error": node_state.get("error"),
+                        "tokenUsage": node_state.get("tokenUsage"),
+                    }
+
+                    # Calculate duration if both timestamps exist
+                    if node_info["startedAt"] and node_info["endedAt"]:
+                        start = datetime.fromisoformat(node_info["startedAt"].replace("Z", "+00:00"))
+                        end = datetime.fromisoformat(node_info["endedAt"].replace("Z", "+00:00"))
+                        duration = (end - start).total_seconds() * 1000  # Convert to milliseconds
+                        node_info["duration"] = int(duration)
+
+                    node_order.append(node_info)
+
+        # Sort by startedAt timestamp
+        node_order.sort(key=lambda x: x.get("startedAt", ""))
+
+        return {
+            "executionId": execution_id,
+            "status": execution._pydantic_object.status if hasattr(execution, '_pydantic_object') else None,
+            "startedAt": execution._pydantic_object.started_at if hasattr(execution, '_pydantic_object') else None,
+            "endedAt": execution._pydantic_object.ended_at if hasattr(execution, '_pydantic_object') else None,
+            "nodes": node_order,
+            "totalNodes": len(node_order),
+        }

@@ -145,11 +145,12 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         }
       });
       
-      if (result.data?.executeDiagram.success && result.data.executeDiagram.executionId) {
+      if (result.data?.executeDiagram.success && result.data.executeDiagram.execution?.id) {
+        const execId = result.data.executeDiagram.execution.id;
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
-        startExecution(result.data.executeDiagram.executionId, totalNodes, formatDuration);
-        executionActions.startExecution(result.data.executeDiagram.executionId);
-        onUpdate?.({ type: EventType.EXECUTION_STARTED, executionId: executionId(result.data.executeDiagram.executionId), timestamp: new Date().toISOString() });
+        startExecution(execId, totalNodes, formatDuration);
+        executionActions.startExecution(execId);
+        onUpdate?.({ type: EventType.EXECUTION_STARTED, executionId: executionId(execId), timestamp: new Date().toISOString() });
       } else {
         throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
       }

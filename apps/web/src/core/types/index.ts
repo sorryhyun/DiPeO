@@ -3,6 +3,7 @@ export * from './core';
 export * from './errors';
 export * from './utilities';
 export * from './panel';
+export * from './conversation';
 
 export type { SelectableID, SelectableType } from '@/core/store/slices/uiSlice';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   User, MessageSquare,
-  Search, Filter, Download, DollarSign
+  Search, Filter, Download, DollarSign, List, Activity
 } from 'lucide-react';
 import { Button, Input, Select } from '@/shared/components/ui';
 import { downloadFile } from '@/shared/utils/file';
@@ -9,12 +9,14 @@ import { toast } from 'sonner';
 import { useConversationData } from '../../hooks';
 import { useUIState, usePersonsData } from '@/shared/hooks/selectors';
 import { MessageList } from '../MessageList';
-import { ConversationFilters, ConversationMessage } from '@/features/execution-monitor/types';
+import { ExecutionOrderView } from '@/features/execution-monitor/components';
+import { ConversationFilters, ConversationMessage } from '@/core/types/conversation';
 import { PersonID, executionId, personId } from '@/core/types';
 import { debounce, throttle } from '@/shared/utils/math';
 import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'conversation' | 'execution-order'>('conversation');
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
   const [filters, setFilters] = useState<ConversationFilters>({
     searchTerm: '',
@@ -355,30 +357,65 @@ const ConversationDashboard: React.FC = () => {
     );
   };
 
+  // Render tab switcher
+  const renderTabSwitcher = () => (
+    <div className="flex items-center border-b bg-white px-4">
+      <button
+        className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          activeTab === 'conversation'
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`}
+        onClick={() => setActiveTab('conversation')}
+      >
+        <MessageSquare className="h-4 w-4" />
+        <span>Conversation</span>
+      </button>
+      <button
+        className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          activeTab === 'execution-order'
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`}
+        onClick={() => setActiveTab('execution-order')}
+      >
+        <List className="h-4 w-4" />
+        <span>Execution Order</span>
+      </button>
+    </div>
+  );
+
   const isEmbedded = true; // Always embedded since we don't have routing
   
   if (isEmbedded) {
     // Embedded view - no expansion controls or person bar
     return (
       <div className="h-full flex flex-col">
-        {renderPersonBar()}
-        {showFilters && renderFilters()}
-        <div className="flex-1 flex overflow-hidden">
-          {isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <span className="text-gray-500">Loading conversations...</span>
+        {renderTabSwitcher()}
+        {activeTab === 'conversation' ? (
+          <>
+            {renderPersonBar()}
+            {showFilters && renderFilters()}
+            <div className="flex-1 flex overflow-hidden">
+              {isLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="text-gray-500">Loading conversations...</span>
+                </div>
+              ) : dashboardSelectedPerson ? (
+                renderConversation()
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : dashboardSelectedPerson ? (
-            renderConversation()
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
-              </div>
-            </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <ExecutionOrderView />
+        )}
       </div>
     );
   }

@@ -140,7 +140,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     exec_count = ctx.exec_counts.get(node.id, 0)
     data = node.data or {}
 
-    person_id: Optional[str] = data.get("personId")
+    person_id: Optional[str] = data.get("personId") or data.get("person")
     first_only_prompt: str = data.get("firstOnlyPrompt", "")
     default_prompt: str = data.get("defaultPrompt", "")
     max_iteration: int = int(data.get("maxIteration", 1))
