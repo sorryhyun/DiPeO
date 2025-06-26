@@ -104,6 +104,33 @@ async def _edge_inputs(
         if not from_output:
             _log.warning("No output for source node %s → %s", src_id, node.id)
             continue
+            
+        # Check if this edge is from a condition node
+        src_node = next((n for n in ctx.diagram.nodes if n.id == src_id), None)
+        if src_node and src_node.type == "condition":
+            # Get the condition result from the source node's metadata
+            condition_result = from_output.metadata.get("condition_result", False)
+            
+            # Get the branch this edge represents from arrow data
+            edge_branch = edge.data.get("branch", None) if edge.data else None
+            
+            # If edge has branch data, check if it matches the condition result
+            if edge_branch is not None:
+                # Convert string "true"/"false" to boolean for comparison
+                edge_branch_bool = edge_branch.lower() == "true"
+                
+                # Skip this edge if it's from a non-matching branch
+                if edge_branch_bool != condition_result:
+                    _log.debug(
+                        "Skipping edge from condition node %s to %s - "
+                        "branch %s doesn't match condition result %s",
+                        src_id,
+                        node.id,
+                        edge_branch,
+                        condition_result
+                    )
+                    continue
+                    
         label = edge.data.get("label", "default") if edge.data else "default"
         if label in from_output.value:
             results[label] = from_output.value[label]
@@ -174,31 +201,92 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
     # Gather edge inputs -----------------------------------------------------
     inputs = await _edge_inputs(node, ctx)
+    
+    if inputs:
+        _log.debug(
+            "Person node %s (%s) received inputs with keys: %s",
+            node.id,
+            person_id,
+            list(inputs.keys())
+        )
 
     # Handle conversation state from upstream nodes
     if "conversation" in inputs:
         upstream_conv = inputs["conversation"]
         if isinstance(upstream_conv, list) and upstream_conv:
-            # Extract the last user/assistant exchange from upstream conversation
-            last_exchange = []
-            for msg in reversed(upstream_conv):
-                if msg.get("role") in ["user", "assistant"]:
-                    last_exchange.append(msg)
-                    if len(last_exchange) == 2:  # Got both user and assistant
-                        break
-
-            # Add the upstream conversation context as a user message
-            if last_exchange:
-                # Format the upstream exchange as context
-                context_parts = []
-                for msg in reversed(last_exchange):
-                    role = "Input" if msg.get("role") == "user" else "Response"
-                    context_parts.append(f"{role}: {msg.get('content', '')}")
-
-                upstream_text = "\n".join(context_parts)
-                conversation.append(
-                    {"role": "user", "content": upstream_text, "personId": person_id}
+            _log.debug(
+                "Node %s (%s) received conversation with %d messages",
+                node.id,
+                person_id,
+                len(upstream_conv)
+            )
+            # Check if we're in a conversation loop by looking for our own messages
+            our_messages_count = sum(
+                1 for msg in upstream_conv 
+                if msg.get("personId") == person_id and msg.get("role") == "assistant"
+            )
+            
+            # If we see our own messages, we're in a loop - merge intelligently
+            if our_messages_count > 0:
+                _log.debug(
+                    "Detected conversation loop for %s - found %d of our messages",
+                    person_id,
+                    our_messages_count
                 )
+                # Find the last complete exchange that doesn't include our own messages
+                last_other_exchange = []
+                for i in range(len(upstream_conv) - 1, -1, -1):
+                    msg = upstream_conv[i]
+                    # Skip our own messages and system messages
+                    if msg.get("personId") == person_id or msg.get("role") == "system":
+                        continue
+                    # Collect messages from other participants
+                    if msg.get("role") in ["user", "assistant"]:
+                        last_other_exchange.append(msg)
+                        # Stop after finding one complete exchange from another person
+                        if len(last_other_exchange) >= 1 and msg.get("role") == "assistant":
+                            break
+                
+                # Only add if we found new content from other participants
+                if last_other_exchange:
+                    # Get the last message from another participant
+                    last_msg = last_other_exchange[0]
+                    # Check if this content is already in our conversation
+                    content_exists = any(
+                        msg.get("content") == last_msg.get("content") 
+                        for msg in conversation
+                    )
+                    
+                    if not content_exists:
+                        # Add as a user message to prompt response
+                        conversation.append({
+                            "role": "user", 
+                            "content": last_msg.get("content", ""),
+                            "personId": person_id,
+                            "source": f"from_{last_msg.get('personId', 'unknown')}"
+                        })
+            else:
+                # Not in a loop - use original logic for first iteration
+                # Extract the last user/assistant exchange from upstream conversation
+                last_exchange = []
+                for msg in reversed(upstream_conv):
+                    if msg.get("role") in ["user", "assistant"]:
+                        last_exchange.append(msg)
+                        if len(last_exchange) == 2:  # Got both user and assistant
+                            break
+
+                # Add the upstream conversation context as a user message
+                if last_exchange:
+                    # Format the upstream exchange as context
+                    context_parts = []
+                    for msg in reversed(last_exchange):
+                        role = "Input" if msg.get("role") == "user" else "Response"
+                        context_parts.append(f"{role}: {msg.get('content', '')}")
+
+                    upstream_text = "\n".join(context_parts)
+                    conversation.append(
+                        {"role": "user", "content": upstream_text, "personId": person_id}
+                    )
 
     if exec_count == 1 and first_only_prompt:
         # Convert {{var}} to {var} for Python format()
@@ -282,8 +370,13 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             edge_data = edge.data if edge.data and isinstance(edge.data, dict) else {}
             if edge_data.get("contentType") == "conversation_state":
                 # Include full conversation history for conversation_state edges
-                output_values["conversation"] = (
-                    ctx.get_conversation_history(person_id) if person_id else []
+                conv_history = ctx.get_conversation_history(person_id) if person_id else []
+                output_values["conversation"] = conv_history
+                _log.debug(
+                    "Node %s outputting conversation_state with %d messages to %s",
+                    node.id,
+                    len(conv_history),
+                    edge.target
                 )
                 break
 
@@ -363,10 +456,47 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
             if exec_count < max_iter:
                 result = False
                 break
-    input_val = await _edge_inputs(node, ctx, as_dict=False)
-    return create_node_output(
-        {"True" if result else "False": input_val}, {"condition_result": result}
+
+    # Collect *all* incoming payloads so they can be forwarded unchanged.
+    # This guarantees that labels such as "conversation" survive the condition
+    # check and reach downstream nodes (e.g. a person_job expecting a
+    # "conversation" input).
+    inputs = await _edge_inputs(node, ctx, as_dict=True)
+
+    # We forward all inputs as-is **plus** expose the boolean result through
+    # metadata.  Keeping the payload unchanged means any downstream edge whose
+    # label equals the original label ("conversation", "topic", …) will still
+    # receive the expected value.
+
+    # For backward compatibility also duplicate the payload under a key that
+    # matches the boolean branch ("True" / "False").  Existing diagrams that
+    # relied on that behaviour will keep working, while new ones can simply
+    # consume the original labels.
+
+    branch_key = "True" if result else "False"
+    value: Dict[str, Any] = {**inputs}  # shallow copy – labels preserved
+    value[branch_key] = inputs
+    
+    # Add default key if not present to ensure downstream nodes can access data
+    if "default" not in value and inputs:
+        # Use the first available input as default
+        first_key = next(iter(inputs.keys()), None)
+        if first_key:
+            value["default"] = inputs[first_key]
+            _log.debug(
+                "Condition node %s adding default output from key '%s'",
+                node.id,
+                first_key
+            )
+
+    _log.debug(
+        "Condition node %s outputting %s branch with keys: %s",
+        node.id,
+        branch_key,
+        list(value.keys())
     )
+    
+    return create_node_output(value, {"condition_result": result})
 
 
 @node_handler("db")

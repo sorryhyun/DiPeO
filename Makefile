@@ -9,7 +9,7 @@ help:
 	@echo "  make install-py     - Install Python dependencies"
 	@echo "  make install-web    - Install web dependencies"
 	@echo "  make install-cli    - Install CLI in editable mode"
-	@echo "  make codegen        - Generate code from domain models"
+	@echo "  make codegen        - Generate all code (backend + frontend) from domain models"
 	@echo "  make build-all      - Build all components with proper order"
 	@echo "  make dev-server     - Run development server"
 	@echo "  make dev-web        - Run web development server"
@@ -43,6 +43,8 @@ install-all: install-py install-web install-cli
 codegen:
 	@echo "🔄 Generating code from domain models..."
 	cd packages/domain-models && pnpm build
+	@echo "🔄 Generating GraphQL types for web app..."
+	pnpm --filter web codegen
 
 # Build everything with proper dependency order
 build-all:

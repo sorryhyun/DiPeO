@@ -116,15 +116,15 @@ class StateRegistry:
         state = ExecutionState(
             id=ExecutionID(execution_id),
             status=ExecutionStatus.STARTED,
-            diagram_id=DiagramID(diagram_id) if diagram_id else None,
-            started_at=now,
-            ended_at=None,
-            node_states={},
-            node_outputs={},
-            token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
+            diagramId=DiagramID(diagram_id) if diagram_id else None,
+            startedAt=now,
+            endedAt=None,
+            nodeStates={},
+            nodeOutputs={},
+            tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
             error=None,
             variables=variables or {},
-            is_active=True,
+            isActive=True,
         )
 
         await self.save_state(state)
@@ -237,12 +237,12 @@ class StateRegistry:
         return ExecutionState(
             id=ExecutionID(row[0]),
             status=ExecutionStatus(row[1]),
-            diagram_id=DiagramID(row[2]) if row[2] else None,
-            started_at=row[3],
-            ended_at=row[4],
-            node_states=node_states,
-            node_outputs=node_outputs,
-            token_usage=TokenUsage(**token_usage_dict)
+            diagramId=DiagramID(row[2]) if row[2] else None,
+            startedAt=row[3],
+            endedAt=row[4],
+            nodeStates=node_states,
+            nodeOutputs=node_outputs,
+            tokenUsage=TokenUsage(**token_usage_dict)
             if token_usage_dict
             else TokenUsage(input=0, output=0, cached=None),
             error=row[8],
@@ -325,11 +325,11 @@ class StateRegistry:
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
-                started_at=now if status == NodeExecutionStatus.RUNNING else None,
-                ended_at=None,
+                startedAt=now if status == NodeExecutionStatus.RUNNING else None,
+                endedAt=None,
                 error=None,
-                skip_reason=None,
-                token_usage=None,
+                skipReason=None,
+                tokenUsage=None,
             )
         else:
             state.node_states[node_id].status = status

@@ -118,6 +118,9 @@ const TopBar = () => {
             onClick={() => {
               if (activeCanvas === 'execution') {
                 setActiveCanvas('main');
+                // Clear execution state when leaving execution mode
+                const { stopExecution } = useUnifiedStore.getState();
+                stopExecution();
                 // When leaving execution mode, readOnly remains controlled by monitor mode
               } else {
                 setActiveCanvas('execution');

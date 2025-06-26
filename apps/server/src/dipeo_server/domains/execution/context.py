@@ -4,9 +4,7 @@ from typing import Any, Callable, Dict, List, Optional
 from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput
 
 from dipeo_server.domains.llm.services import LLMService
-from dipeo_server.infrastructure.persistence import FileService
-
-from .services.state_store import StateStore
+from dipeo_server.infrastructure.persistence import FileService, StateRegistry
 
 
 @dataclass
@@ -23,9 +21,9 @@ class ExecutionContext:
 
     llm_service: LLMService = field(default=None)
     file_service: FileService = field(default=None)
-    memory_service: Optional[any] = field(default=None)
-    notion_service: Optional[any] = field(default=None)
-    state_store: StateStore = field(default=None)
+    memory_service: Optional[Any] = field(default=None)
+    notion_service: Optional[Any] = field(default=None)
+    state_store: StateRegistry = field(default=None)
     interactive_handler: Optional[Callable] = field(default=None)
     stream_callback: Optional[Callable] = field(default=None)
 

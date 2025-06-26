@@ -258,6 +258,11 @@ export function BaseNode({
   const { activeCanvas } = useUIState();
   const isExecutionMode = activeCanvas === 'execution';
   
+  // Get selected person from store to highlight person_job nodes
+  const selectedPersonId = useUnifiedStore(state => 
+    state.selectedType === 'person' ? state.selectedId : null
+  );
+  
   // Use custom hooks
   const nId = nodeId(id);
   const status = useNodeStatus(id);
@@ -270,6 +275,13 @@ export function BaseNode({
     updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
   }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
+  
+  // Check if this person_job node is assigned to the selected person
+  const isAssignedToSelectedPerson = useMemo(() => {
+    return type === 'person_job' && 
+           selectedPersonId && 
+           data?.person === selectedPersonId;
+  }, [type, selectedPersonId, data?.person]);
 
   
   // Determine node appearance based on state using data attributes
@@ -315,6 +327,13 @@ export function BaseNode({
     >
       {/* Status indicators */}
       <StatusIndicator status={status} />
+      
+      {/* Person assignment indicator */}
+      {isAssignedToSelectedPerson && (
+        <div className="absolute -top-3 -left-3 w-8 h-8 bg-purple-500 rounded-full animate-pulse flex items-center justify-center">
+          <span className="text-white text-lg">👤</span>
+        </div>
+      )}
       
       {/* Flip button */}
       {selected && showFlipButton && !status.isRunning && (

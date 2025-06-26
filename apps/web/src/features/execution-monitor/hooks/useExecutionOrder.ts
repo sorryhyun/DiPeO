@@ -2,9 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import { ExecutionID, NodeID } from '@/core/types';
 
+// TODO: Implement executionOrder query in GraphQL schema
+// For now, using execution query to get basic execution state
 const EXECUTION_ORDER_QUERY = gql`
-  query ExecutionOrder($executionId: ID!) {
-    executionOrder(executionId: $executionId)
+  query ExecutionOrder($executionId: ExecutionID!) {
+    execution(id: $executionId) {
+      id
+      status
+      startedAt
+      endedAt
+      nodeStates
+      nodeOutputs
+      tokenUsage {
+        input
+        output
+        cached
+        total
+      }
+    }
   }
 `;
 
@@ -43,16 +58,49 @@ export const useExecutionOrder = (executionId?: ExecutionID) => {
   });
 
   useEffect(() => {
-    if (data?.executionOrder) {
-      setExecutionOrder(data.executionOrder);
+    if (data?.execution) {
+      // TODO: Parse nodeStates to build execution order
+      // For now, create a minimal implementation
+      const executionData: ExecutionOrderData = {
+        executionId: executionId!,
+        status: data.execution.status,
+        startedAt: data.execution.startedAt,
+        endedAt: data.execution.endedAt,
+        nodes: [],
+        totalNodes: 0,
+      };
+      
+      // Parse nodeStates if available
+      if (data.execution.nodeStates) {
+        try {
+          const nodeStates = typeof data.execution.nodeStates === 'string' 
+            ? JSON.parse(data.execution.nodeStates) 
+            : data.execution.nodeStates;
+          
+          executionData.nodes = Object.entries(nodeStates).map(([nodeId, state]: [string, any]) => ({
+            nodeId: nodeId as NodeID,
+            nodeName: state.nodeName || nodeId,
+            status: state.status || 'pending',
+            startedAt: state.startedAt,
+            endedAt: state.endedAt,
+            duration: state.duration,
+            error: state.error,
+          }));
+          executionData.totalNodes = executionData.nodes.length;
+        } catch (e) {
+          console.error('Failed to parse nodeStates:', e);
+        }
+      }
+      
+      setExecutionOrder(executionData);
     }
-  }, [data]);
+  }, [data, executionId]);
 
   const refreshExecutionOrder = useCallback(async () => {
     if (executionId) {
       const result = await refetch({ executionId });
-      if (result.data?.executionOrder) {
-        setExecutionOrder(result.data.executionOrder);
+      if (result.data?.execution) {
+        // Data will be processed by the useEffect above
       }
     }
   }, [executionId, refetch]);

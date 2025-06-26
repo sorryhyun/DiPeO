@@ -22,7 +22,7 @@ export function GlobalKeyboardHandler() {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         try {
-          await saveDiagram();
+          await saveDiagram('quicksave.json');
           // Success toast is already shown by saveDiagram
         } catch (error) {
           console.error('Failed to upload diagram:', error);

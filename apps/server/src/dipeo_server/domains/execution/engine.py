@@ -1,7 +1,7 @@
 """Execution engine using ExecutionView for efficiency."""
 
 import asyncio
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 from uuid import uuid4
 
 from dipeo_domain.models import DomainDiagram, NodeExecutionStatus, NodeOutput
@@ -13,7 +13,6 @@ from ..integrations.notion import NotionService
 from ..person.memory import MemoryService
 from .context import ExecutionContext
 from .execution_view import ExecutionView, NodeView
-from .services.state_store import StateStore
 
 
 class ViewBasedEngine:
@@ -28,7 +27,7 @@ class ViewBasedEngine:
         file_service: FileService,
         memory_service: MemoryService,
         notion_service: NotionService,
-        state_store: StateStore = None,
+        state_store: Optional[Any] = None,
         execution_id: Optional[str] = None,
         interactive_handler: Optional[Callable] = None,
         stream_callback: Optional[Callable] = None,
@@ -105,17 +104,32 @@ class ViewBasedEngine:
             ready_nodes = []
 
             for node_id, node_view in view.node_views.items():
-                # Check if node has reached max iterations
-                max_iter = (
-                    node_view.node.data.get("maxIteration", 1)
-                    if node_view.node.data
-                    else 1
-                )
-                current_exec_count = ctx.exec_counts.get(node_id, 0)
-
-                if current_exec_count < max_iter:
-                    if self._can_execute_node_view(node_view):
-                        ready_nodes.append(node_view)
+                # Only job and person_job nodes have maxIteration limits
+                if node_view.node.type in ["job", "person_job"]:
+                    max_iter = (
+                        node_view.node.data.get("maxIteration", 1)
+                        if node_view.node.data
+                        else 1
+                    )
+                    current_exec_count = ctx.exec_counts.get(node_id, 0)
+                    
+                    if current_exec_count >= max_iter:
+                        # Skip this node as it reached max iterations
+                        continue
+                
+                # For all other nodes (including condition), no iteration limit
+                if self._can_execute_node_view(node_view):
+                    log.debug(f"Node {node_id} is ready to execute")
+                    ready_nodes.append(node_view)
+                else:
+                    # More detailed logging for nodes that aren't ready
+                    incoming_status = []
+                    for edge in node_view.incoming_edges:
+                        has_output = edge.source_view.output is not None
+                        incoming_status.append(f"{edge.source_view.id}:{has_output}")
+                    log.debug(
+                        f"Node {node_id} is not ready. Incoming edges: {incoming_status}"
+                    )
 
             if not ready_nodes:
                 break
@@ -142,9 +156,42 @@ class ViewBasedEngine:
                 return True
 
         # For all other nodes (and person_job without first input), require all inputs
-        return all(
-            edge.source_view.output is not None for edge in node_view.incoming_edges
-        )
+        # But also check if edges from condition nodes match the condition result
+        for edge in node_view.incoming_edges:
+            # Check if this edge is from a condition node
+            if edge.source_view.node.type == "condition" and edge.source_view.output is not None:
+                # Get the condition result from the source node's metadata
+                condition_result = edge.source_view.output.metadata.get("condition_result", False)
+                
+                # Get the branch this edge represents from arrow data
+                edge_branch = edge.arrow.data.get("branch", None) if edge.arrow.data else None
+                
+                # If edge has branch data, check if it matches the condition result
+                if edge_branch is not None:
+                    # Convert string "true"/"false" to boolean for comparison
+                    edge_branch_bool = edge_branch.lower() == "true"
+                    
+                    # Skip this edge if it's from a non-matching branch
+                    if edge_branch_bool != condition_result:
+                        log.debug(
+                            f"Skipping edge from {edge.source_view.id} to {node_view.id} - "
+                            f"branch {edge_branch} doesn't match condition result {condition_result}"
+                        )
+                        continue
+                    
+                    # If branch matches, check if the edge has output
+                    if edge.source_view.output is None:
+                        return False
+                else:
+                    # No branch data, treat normally
+                    if edge.source_view.output is None:
+                        return False
+            else:
+                # Normal edge, check if it has output
+                if edge.source_view.output is None:
+                    return False
+        
+        return True
 
     async def _execute_node_view(
         self, ctx: ExecutionContext, node_view: NodeView
