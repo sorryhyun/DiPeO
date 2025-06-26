@@ -24,7 +24,7 @@ class ExecutionService(BaseService):
         self,
         llm_service,
         api_key_service,
-        memory_service,
+        conversation_service,
         file_service,
         diagram_service=None,
         notion_service=None,
@@ -34,7 +34,7 @@ class ExecutionService(BaseService):
         super().__init__()
         self.llm_service = llm_service
         self.api_key_service = api_key_service
-        self.memory_service = memory_service
+        self.conversation_service = conversation_service
         self.file_service = file_service
         self.diagram_service = diagram_service
         self.notion_service = notion_service
@@ -79,7 +79,8 @@ class ExecutionService(BaseService):
         engine = ViewBasedEngine(get_handlers())
 
         diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None
-        await state_store.create_execution(
+        # Create execution in cache only for active executions
+        await state_store.create_execution_in_cache(
             execution_id, diagram_id, options.get("variables", {})
         )
 
@@ -159,7 +160,7 @@ class ExecutionService(BaseService):
             api_keys=api_keys,
             llm_service=self.llm_service,
             file_service=self.file_service,
-            memory_service=self.memory_service,
+            conversation_service=self.conversation_service,
             notion_service=self.notion_service,
             state_store=state_store,
             execution_id=execution_id,
@@ -179,22 +180,67 @@ class ExecutionService(BaseService):
         total_token_usage = TokenCalculationService.aggregate_node_token_usage(
             ctx.node_outputs
         )
+        
+        # Use accumulated token usage from context if available
+        if hasattr(ctx, 'get_total_token_usage'):
+            ctx_token_usage = ctx.get_total_token_usage()
+            if ctx_token_usage:
+                total_token_usage = ctx_token_usage
 
-        # Update token usage in state store
-        if total_token_usage:
-            await state_store.update_token_usage(execution_id, total_token_usage)
+        # Get the final state from cache
+        final_state = await state_store.get_state_from_cache(execution_id)
+        if final_state:
+            # Update final state with status and token usage
+            if final_status == "completed":
+                final_state.status = ExecutionStatus.COMPLETED
+            elif final_status == "failed":
+                final_state.status = ExecutionStatus.FAILED
+            
+            if total_token_usage:
+                final_state.token_usage = total_token_usage
+            
+            # Persist final state to database
+            await state_store.persist_final_state(final_state)
+            
+            # Persist conversation history if conversation service has pending data
+            if hasattr(self.conversation_service, 'persist_execution_conversations'):
+                await self.conversation_service.persist_execution_conversations(execution_id)
+        else:
+            # Fallback to old behavior if state not in cache
+            if total_token_usage:
+                await state_store.update_token_usage(execution_id, total_token_usage)
+            
+            if final_status == "completed":
+                await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
+            elif final_status == "failed":
+                await state_store.update_status(execution_id, ExecutionStatus.FAILED)
 
-        # Update execution status in state store
-        if final_status == "completed":
-            await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
-        elif final_status == "failed":
-            await state_store.update_status(execution_id, ExecutionStatus.FAILED)
-
+        # Build final state snapshot
+        from dipeo_domain import NodeExecutionStatus
+        node_states = {}
+        for node_id, output in ctx.node_outputs.items():
+            status = NodeExecutionStatus.COMPLETED
+            if output.metadata and output.metadata.get("status") == "failed":
+                status = NodeExecutionStatus.FAILED
+            node_states[node_id] = {
+                "status": status.value,
+                "started_at": None,  # Would need to track
+                "ended_at": None,    # Would need to track
+            }
+        
+        final_state_snapshot = {
+            "execution_id": execution_id,
+            "status": final_status,
+            "node_states": node_states,
+            "token_usage": total_token_usage.model_dump() if total_token_usage else None,
+        }
+        
         await stream_callback(
             {
                 "type": "execution_complete",
                 "execution_id": execution_id,
                 "status": final_status,
+                "state_snapshot": final_state_snapshot,
             }
         )
 

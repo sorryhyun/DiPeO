@@ -10,7 +10,7 @@ from dipeo_server.domains.llm.services import LLMService
 from dipeo_server.infrastructure.persistence import FileService
 
 from ..integrations.notion import NotionService
-from ..person.memory import MemoryService
+from ..conversation import ConversationService
 from .context import ExecutionContext
 from .execution_view import ExecutionView, NodeView
 
@@ -25,8 +25,8 @@ class ViewBasedEngine:
         api_keys: Dict[str, str],
         llm_service: LLMService,
         file_service: FileService,
-        memory_service: MemoryService,
-        notion_service: NotionService,
+        conversation_service: ConversationService,
+        notion_service: NotionService = None,
         state_store: Optional[Any] = None,
         execution_id: Optional[str] = None,
         interactive_handler: Optional[Callable] = None,
@@ -41,7 +41,7 @@ class ViewBasedEngine:
             api_keys=api_keys,
             llm_service=llm_service,
             file_service=file_service,
-            memory_service=memory_service,
+            conversation_service=conversation_service,
             notion_service=notion_service,
             state_store=state_store,
         )
@@ -293,6 +293,25 @@ class ViewBasedEngine:
                 status = metadata.get("status", "completed")
                 outputs = output.value if isinstance(output.value, dict) else {}
                 error = metadata.get("error", None)
+                
+                # Build state snapshot for real-time updates
+                from dipeo_domain import NodeExecutionStatus
+                node_states = {}
+                if hasattr(ctx, '_execution_view') and ctx._execution_view:
+                    for nid, nview in ctx._execution_view.node_views.items():
+                        if nview.output is not None:
+                            node_states[nid] = {
+                                "status": NodeExecutionStatus.COMPLETED.value,
+                                "started_at": None,  # Would need to track this
+                                "ended_at": None,    # Would need to track this
+                            }
+                
+                state_snapshot = {
+                    "execution_id": ctx.execution_id,
+                    "status": "running",  # Execution is still running
+                    "node_states": node_states,
+                    "token_usage": ctx.get_total_token_usage().model_dump() if hasattr(ctx, 'get_total_token_usage') else None,
+                }
 
                 await ctx.stream_callback(
                     {
@@ -303,6 +322,7 @@ class ViewBasedEngine:
                         "outputs": outputs,
                         "error": error,
                         "metadata": metadata,
+                        "state_snapshot": state_snapshot,
                     }
                 )
         except Exception as e:
@@ -323,6 +343,33 @@ class ViewBasedEngine:
             ctx.set_node_output(node.id, error_output)
 
             if ctx.stream_callback:
+                # Build state snapshot for real-time updates
+                from dipeo_domain import NodeExecutionStatus
+                node_states = {}
+                if hasattr(ctx, '_execution_view') and ctx._execution_view:
+                    for nid, nview in ctx._execution_view.node_views.items():
+                        if nview.output is not None:
+                            node_states[nid] = {
+                                "status": NodeExecutionStatus.COMPLETED.value,
+                                "started_at": None,
+                                "ended_at": None,
+                            }
+                
+                # Current node failed
+                node_states[node.id] = {
+                    "status": NodeExecutionStatus.FAILED.value,
+                    "started_at": None,
+                    "ended_at": None,
+                    "error": str(e),
+                }
+                
+                state_snapshot = {
+                    "execution_id": ctx.execution_id,
+                    "status": "running",  # Execution might still continue
+                    "node_states": node_states,
+                    "token_usage": ctx.get_total_token_usage().model_dump() if hasattr(ctx, 'get_total_token_usage') else None,
+                }
+                
                 await ctx.stream_callback(
                     {
                         "type": "node_complete",
@@ -332,6 +379,7 @@ class ViewBasedEngine:
                         "outputs": {},
                         "error": str(e),
                         "metadata": error_output.metadata or {},
+                        "state_snapshot": state_snapshot,
                     }
                 )
 

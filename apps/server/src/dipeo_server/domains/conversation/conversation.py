@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from dipeo_domain.models import DomainPerson
+
 
 @dataclass
 class Message:
@@ -40,8 +42,8 @@ class Message:
 
 
 @dataclass
-class PersonMemory:
-    """Memory state for a specific person with proper cleanup."""
+class PersonConversation:
+    """Conversation state for a specific person with proper cleanup."""
 
     person_id: str
     messages: List[Message] = field(default_factory=list)
@@ -50,7 +52,7 @@ class PersonMemory:
     MAX_MESSAGES = 100
 
     def add_message(self, message: Message) -> None:
-        """Add a message to memory with automatic cleanup of old messages."""
+        """Add a message to conversation with automatic cleanup of old messages."""
         self.messages.append(message)
 
         if len(self.messages) > self.MAX_MESSAGES:
@@ -104,11 +106,15 @@ class PersonMemory:
         return visible_messages
 
 
-class MemoryService:
-    def __init__(self, redis_url: Optional[str] = None):
-        self.person_memories: Dict[str, PersonMemory] = {}
+class ConversationService:
+    """Service for managing conversations between persons (LLM agents)."""
+    
+    def __init__(self, redis_url: Optional[str] = None, message_store=None):
+        self.person_conversations: Dict[str, PersonConversation] = {}
         self.all_messages: OrderedDict[str, Message] = OrderedDict()
         self.execution_metadata: Dict[str, Dict[str, Any]] = {}
+        self.message_store = message_store
+        self._pending_persistence: Dict[str, List[Message]] = {}
 
         self.MAX_GLOBAL_MESSAGES = 10000
 
@@ -121,10 +127,10 @@ class MemoryService:
     def _get_message(self, message_id: str) -> Optional[Message]:
         return self.all_messages.get(message_id)
 
-    def get_or_create_person_memory(self, person_id: str) -> PersonMemory:
-        if person_id not in self.person_memories:
-            self.person_memories[person_id] = PersonMemory(person_id=person_id)
-        return self.person_memories[person_id]
+    def get_or_create_person_conversation(self, person_id: str) -> PersonConversation:
+        if person_id not in self.person_conversations:
+            self.person_conversations[person_id] = PersonConversation(person_id=person_id)
+        return self.person_conversations[person_id]
 
     def add_message_to_conversation(
         self,
@@ -159,8 +165,13 @@ class MemoryService:
         self._store_message(message)
 
         for person_id in participant_person_ids:
-            person_memory = self.get_or_create_person_memory(person_id)
-            person_memory.add_message(message)
+            person_conversation = self.get_or_create_person_conversation(person_id)
+            person_conversation.add_message(message)
+        
+        # Queue for deferred persistence
+        if execution_id not in self._pending_persistence:
+            self._pending_persistence[execution_id] = []
+        self._pending_persistence[execution_id].append(message)
 
         if execution_id not in self.execution_metadata:
             self.execution_metadata[execution_id] = {
@@ -189,29 +200,29 @@ class MemoryService:
         self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
         """Make a person forget messages."""
-        person_memory = self.get_or_create_person_memory(person_id)
+        person_conversation = self.get_or_create_person_conversation(person_id)
 
         if execution_id:
-            person_memory.forget_messages_from_execution(execution_id)
+            person_conversation.forget_messages_from_execution(execution_id)
         else:
-            for message in person_memory.messages:
-                person_memory.forgotten_message_ids.add(message.id)
+            for message in person_conversation.messages:
+                person_conversation.forgotten_message_ids.add(message.id)
 
     def forget_own_messages_for_person(
         self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
         """Make a person forget only their own messages."""
-        person_memory = self.get_or_create_person_memory(person_id)
+        person_conversation = self.get_or_create_person_conversation(person_id)
 
         if execution_id:
-            person_memory.forget_own_messages_from_execution(execution_id)
+            person_conversation.forget_own_messages_from_execution(execution_id)
         else:
-            person_memory.forget_own_messages()
+            person_conversation.forget_own_messages()
 
     def get_conversation_for_person(self, person_id: str) -> List[Dict[str, Any]]:
         """Get all visible messages for a person."""
-        person_memory = self.get_or_create_person_memory(person_id)
-        return person_memory.get_visible_messages(person_id)
+        person_conversation = self.get_or_create_person_conversation(person_id)
+        return person_conversation.get_visible_messages(person_id)
 
     def get_execution_metadata(self, execution_id: str) -> Optional[Dict[str, Any]]:
         """Get metadata for an execution."""
@@ -237,23 +248,81 @@ class MemoryService:
 
         return removed_count
 
-    def get_memory_stats(self) -> Dict[str, Any]:
-        """Get statistics about memory usage."""
+    def get_conversation_stats(self) -> Dict[str, Any]:
+        """Get statistics about conversation usage."""
         return {
             "total_messages": len(self.all_messages),
-            "active_persons": len(self.person_memories),
+            "active_persons": len(self.person_conversations),
             "active_executions": len(self.execution_metadata),
             "person_message_counts": {
-                person_id: len(memory.messages)
-                for person_id, memory in self.person_memories.items()
+                person_id: len(conversation.messages)
+                for person_id, conversation in self.person_conversations.items()
             },
         }
 
     def clear_all_conversations(self) -> None:
         """Clear all conversation history for all persons."""
-        self.person_memories.clear()
+        self.person_conversations.clear()
         self.all_messages.clear()
         self.execution_metadata.clear()
+        self._pending_persistence.clear()
+    
+    async def persist_execution_conversations(self, execution_id: str) -> None:
+        """Persist all pending conversations for an execution."""
+        if execution_id in self._pending_persistence:
+            messages = self._pending_persistence.pop(execution_id)
+            if self.message_store and messages:
+                # Group messages by node_id for batch storage
+                messages_by_node: Dict[str, List[Message]] = {}
+                for msg in messages:
+                    if msg.node_id:
+                        if msg.node_id not in messages_by_node:
+                            messages_by_node[msg.node_id] = []
+                        messages_by_node[msg.node_id].append(msg)
+                
+                # Store messages for each node
+                for node_id, node_messages in messages_by_node.items():
+                    conversation = [msg.to_dict() for msg in node_messages]
+                    await self.message_store.store_message(
+                        execution_id=execution_id,
+                        node_id=node_id,
+                        content={"conversation": conversation},
+                        person_id=node_messages[0].sender_person_id,
+                        token_count=sum(msg.token_count or 0 for msg in node_messages),
+                    )
 
-
-# MemoryService is already defined above
+    # Person configuration methods (from PersonService)
+    def get_person_config(self, person: Optional[DomainPerson]) -> Dict[str, Any]:
+        """Extract LLM configuration from a person object."""
+        if not person:
+            return {
+                "service": "openai",
+                "api_key_id": None,
+                "model": "gpt-4.1-nano",
+                "system_prompt": ""
+            }
+        
+        return {
+            "service": getattr(person, "service", "openai"),
+            "api_key_id": getattr(person, "api_key_id", None) or getattr(person, "apiKeyId", None),
+            "model": getattr(person, "model", "gpt-4.1-nano"),
+            "system_prompt": getattr(person, "system_prompt", None) or getattr(person, "systemPrompt", "")
+        }
+    
+    def find_person_by_id(self, persons: List[DomainPerson], person_id: str) -> Optional[DomainPerson]:
+        """Find a person by ID in a list of persons."""
+        return next((p for p in persons if p.id == person_id), None)
+    
+    def prepare_prompt(
+        self, 
+        exec_count: int,
+        first_only_prompt: str,
+        default_prompt: str,
+        inputs: Dict[str, Any]
+    ) -> str:
+        """Prepare the prompt based on execution count and templates."""
+        if exec_count == 1 and first_only_prompt:
+            # Convert {{var}} to {var} for Python format()
+            prompt_template = first_only_prompt.replace("{{", "{").replace("}}", "}")
+            return prompt_template.format(**inputs)
+        return default_prompt

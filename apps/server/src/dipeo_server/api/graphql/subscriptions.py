@@ -63,8 +63,12 @@ class Subscription:
 
         logger.info(f"Starting execution updates subscription for {execution_id}")
 
-        # First, yield the current state if it exists
-        state = await state_store.get_state(execution_id)
+        # First, try to get from cache, then fall back to DB for initial state
+        state = await state_store.get_state_from_cache(execution_id)
+        if not state:
+            # Fall back to database for historical executions
+            state = await state_store.get_state(execution_id)
+        
         if state:
             yield state
             
@@ -94,10 +98,19 @@ class Subscription:
                     # Wait for updates with a timeout for connection health
                     update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
                     
-                    # Fetch the latest state after receiving an update
-                    state = await state_store.get_state(execution_id)
-                    if state:
-                        yield state
+                    # Check if update contains state snapshot
+                    if "state_snapshot" in update and update["state_snapshot"]:
+                        # Use state snapshot from event to avoid DB/cache query
+                        snapshot = update["state_snapshot"]
+                        # We need to get the full state, but we can optimize by checking cache first
+                        state = await state_store.get_state_from_cache(execution_id)
+                        if state:
+                            yield state
+                    else:
+                        # Fetch the latest state from cache after receiving an update
+                        state = await state_store.get_state_from_cache(execution_id)
+                        if state:
+                            yield state
                         
                         # Check if execution is complete
                         if state.status in [
@@ -111,8 +124,8 @@ class Subscription:
                             break
                             
                 except asyncio.TimeoutError:
-                    # Send periodic heartbeat by re-fetching state
-                    state = await state_store.get_state(execution_id)
+                    # Send periodic heartbeat by re-fetching state from cache
+                    state = await state_store.get_state_from_cache(execution_id)
                     if state:
                         yield state
                         
@@ -143,8 +156,12 @@ class Subscription:
         sequence = 0
         last_node_states = {}
         
-        # Process initial state
-        state = await state_store.get_state(execution_id)
+        # Process initial state from cache first
+        state = await state_store.get_state_from_cache(execution_id)
+        if not state:
+            # Fall back to database for historical executions
+            state = await state_store.get_state(execution_id)
+            
         if state:
             current_node_states = state.node_states or {}
             last_node_states = {
@@ -367,7 +384,11 @@ class Subscription:
 
         try:
             while True:
-                state = await state_store.get_state(execution_id)
+                # Use cache for active execution monitoring
+                state = await state_store.get_state_from_cache(execution_id)
+                if not state:
+                    # Fall back to database if not in cache
+                    state = await state_store.get_state(execution_id)
 
                 # TODO: Check for actual interactive prompts in the state
                 # For now, this is a placeholder implementation

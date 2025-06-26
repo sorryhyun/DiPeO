@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
 
 from dipeo_domain.models import DomainNode, NodeExecutionStatus, NodeOutput
 
 from .context import ExecutionContext
+
+if TYPE_CHECKING:
+    from .execution_view import NodeView
 
 _log = logging.getLogger(__name__)
 
@@ -30,12 +33,12 @@ _handlers: Dict[str, _HandlerFn] = {}
 def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:
     """Return a wrapper that transparently manages node‑status lifecycle."""
 
-    async def _wrapped(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # type: ignore[override]
+    async def _wrapped(node: DomainNode, ctx: ExecutionContext, **kwargs: Any) -> NodeOutput:  # type: ignore[override]
         await ctx.state_store.update_node_status(
             ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
         )
         try:
-            output = await func(node, ctx)
+            output = await func(node, ctx, **kwargs)
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output
             )
@@ -83,13 +86,23 @@ async def _edge_inputs(
     ctx: ExecutionContext,
     *,
     as_dict: bool = True,
+    node_view: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """Collect downstream values from all incoming edges.
 
     Returned mapping keys are the *edge labels* (defaulting to "default").
     If *as_dict* is False, only the first matching payload is returned.
     """
-
+    
+    # If we have a node_view, use its condition-aware getter
+    if node_view is not None and hasattr(node_view, 'get_active_inputs'):
+        results = node_view.get_active_inputs()
+        if not as_dict and results:
+            return next(iter(results.values()), None)
+        return results
+    
+    # Fallback to legacy behavior if no node_view
+    # This path should be removed once all handlers are updated
     results: Dict[str, Any] = {}
     for edge in ctx.find_edges_to(node.id):
         src_id = edge.source.split(":")[0]
@@ -98,46 +111,18 @@ async def _edge_inputs(
             _log.warning("No output for source node %s → %s", src_id, node.id)
             continue
 
-        src_node = next((n for n in ctx.diagram.nodes if n.id == src_id), None)
-        if src_node and src_node.type == "condition":
-            condition_result = from_output.metadata.get("condition_result", False)
-            edge_branch = edge.data.get("branch", None) if edge.data else None
-
-            if edge_branch is not None:
-                edge_branch_bool = edge_branch.lower() == "true"
-                if edge_branch_bool != condition_result:
-                    continue
-
         label = edge.data.get("label", "default") if edge.data else "default"
 
-        if src_node and src_node.type == "condition":
-            source_handle = edge.source.split(":")[1] if ":" in edge.source else "default"
-
-            if label in from_output.value:
-                results[label] = from_output.value[label]
-            elif label == "default" and source_handle in from_output.value:
-                results[label] = from_output.value[source_handle]
-            elif "conversation" in from_output.value and label == "default":
-                results[label] = from_output.value["conversation"]
-            elif "default" in from_output.value:
-                results[label] = from_output.value["default"]
-            else:
-                _log.warning(
-                    "Edge label '%s' missing in output from condition node %s (keys=%s)",
-                    label,
-                    src_id,
-                    list(from_output.value.keys()),
-                )
+        if label in from_output.value:
+            results[label] = from_output.value[label]
         else:
-            if label in from_output.value:
-                results[label] = from_output.value[label]
-            else:
-                _log.warning(
-                    "Edge label '%s' missing in output from %s (keys=%s)",
-                    label,
-                    src_id,
-                    list(from_output.value.keys()),
-                )
+            _log.warning(
+                "Edge label '%s' missing in output from %s (keys=%s)",
+                label,
+                src_id,
+                list(from_output.value.keys()),
+            )
+    
     if as_dict:
         return results
     return next(iter(results.values()), None)  # type: ignore[return-value]
@@ -150,231 +135,232 @@ async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
 
 @node_handler("person_job")
-async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
-    """Handle conversational *person_job* node with minimal boilerplate.
-
-    This keeps the original behaviour (first‑turn prompt, default prompt,
-    judge‑panel aggregation, forgetting modes, …) but relies on helpers for
-    edge traversal and status updates.
-    """
-
+async def execute_person_job(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
+    """Handle conversational *person_job* node using domain services."""
     exec_count = ctx.exec_counts.get(node.id, 0)
     data = node.data or {}
-
+    
+    # Extract node configuration
     person_id: Optional[str] = data.get("personId") or data.get("person")
     first_only_prompt: str = data.get("firstOnlyPrompt", "")
     default_prompt: str = data.get("defaultPrompt", "")
-    max_iteration: int = int(data.get("maxIteration", 1))
     forgetting_mode: Optional[str] = data.get("forgettingMode")
     is_judge: bool = "judge" in data.get("label", "").lower()
-
-    conversation = ctx.get_conversation_history(person_id) if person_id else []
-
+    
+    if not person_id:
+        return create_node_output({}, {"error": "No personId specified"})
+    
+    # Get person configuration
+    person_obj = ctx.conversation_service.find_person_by_id(ctx.diagram.persons, person_id)
+    person_config = ctx.conversation_service.get_person_config(person_obj)
+    
+    # Handle forgetting mode
     if forgetting_mode == "on_every_turn" and exec_count > 1:
-        conversation = [m for m in conversation if m.get("role") in {"system", "user"}]
-
-    # Ensure system prompt present
-    if not conversation or conversation[0].get("role") != "system":
-        person_obj = (
-            next((p for p in ctx.diagram.persons if p.id == person_id), None)
-            if person_id
-            else None
+        # Forget messages from previous turns
+        ctx.conversation_service.forget_own_messages_for_person(
+            person_id, ctx.execution_id
         )
-        system_prompt = (
-            (
-                getattr(person_obj, "system_prompt", None)
-                or getattr(person_obj, "systemPrompt", "")
-            )
-            if person_obj
-            else ""
-        )
-        conversation.insert(
-            0, {"role": "system", "content": system_prompt, "personId": person_id}
-        )
+    
+    # Get conversation history from memory service
+    conversation = ctx.conversation_service.get_conversation_for_person(
+        person_id, ctx.execution_id
+    )
 
-    inputs = await _edge_inputs(node, ctx)
-
+    # Collect inputs from edges
+    inputs = await _edge_inputs(node, ctx, node_view=node_view)
+    
+    # Handle conversation inputs (multi-person conversation loops)
     if "conversation" in inputs:
         upstream_conv = inputs["conversation"]
         if isinstance(upstream_conv, list) and upstream_conv:
-            # Check if we're in a conversation loop by looking for our own messages
+            # Check if we're in a conversation loop
             our_messages_count = sum(
                 1 for msg in upstream_conv
                 if msg.get("personId") == person_id and msg.get("role") == "assistant"
             )
-
+            
             if our_messages_count > 0:
-                _log.debug(
-                    "Detected conversation loop for %s - found %d of our messages",
-                    person_id,
-                    our_messages_count
-                )
-                last_other_exchange = []
+                # In a loop - extract last exchange from other persons
+                last_other_msg = None
                 for i in range(len(upstream_conv) - 1, -1, -1):
                     msg = upstream_conv[i]
-                    if msg.get("personId") == person_id or msg.get("role") == "system":
-                        continue
-                    if msg.get("role") in ["user", "assistant"]:
-                        last_other_exchange.append(msg)
-                        if len(last_other_exchange) >= 1 and msg.get("role") == "assistant":
-                            break
-
-                if last_other_exchange:
-                    last_msg = last_other_exchange[0]
-                    content_exists = any(
-                        msg.get("content") == last_msg.get("content")
-                        for msg in conversation
+                    if msg.get("personId") != person_id and msg.get("role") == "assistant":
+                        last_other_msg = msg
+                        break
+                
+                if last_other_msg:
+                    # Add as a message to memory service
+                    await ctx.conversation_service.add_message_to_conversation(
+                        sender_person_id=last_other_msg.get('personId', 'unknown'),
+                        participant_person_ids=[person_id],
+                        content=last_other_msg.get('content', ''),
+                        execution_id=ctx.execution_id,
+                        node_id=node.id,
+                        node_label=data.get('label', node.id)
                     )
-
-                    if not content_exists:
-                        conversation.append({
-                            "role": "user",
-                            "content": last_msg.get("content", ""),
-                            "personId": person_id,
-                            "source": f"from_{last_msg.get('personId', 'unknown')}"
-                        })
             else:
-                # Not in a loop - use original logic for first iteration
-                # Extract the last user/assistant exchange from upstream conversation
+                # Not in a loop - format upstream conversation as context
                 last_exchange = []
                 for msg in reversed(upstream_conv):
                     if msg.get("role") in ["user", "assistant"]:
                         last_exchange.append(msg)
-                        if len(last_exchange) == 2:  # Got both user and assistant
+                        if len(last_exchange) == 2:
                             break
-
-                # Add the upstream conversation context as a user message
+                
                 if last_exchange:
-                    # Format the upstream exchange as context
                     context_parts = []
                     for msg in reversed(last_exchange):
                         role = "Input" if msg.get("role") == "user" else "Response"
                         context_parts.append(f"{role}: {msg.get('content', '')}")
-
+                    
                     upstream_text = "\n".join(context_parts)
-                    conversation.append(
-                        {"role": "user", "content": upstream_text, "personId": person_id}
+                    # Add as a user message
+                    await ctx.conversation_service.add_message_to_conversation(
+                        sender_person_id="user",
+                        participant_person_ids=[person_id],
+                        content=upstream_text,
+                        execution_id=ctx.execution_id,
+                        node_id=node.id,
+                        node_label=data.get('label', node.id)
                     )
 
-    if exec_count == 1 and first_only_prompt:
-        # Convert {{var}} to {var} for Python format()
-        prompt_template = first_only_prompt.replace("{{", "{").replace("}}", "}")
-        prompt = prompt_template.format(**inputs)
-    else:
-        prompt = default_prompt
-
+    # Prepare prompt
+    prompt = ctx.conversation_service.prepare_prompt(
+        exec_count, first_only_prompt, default_prompt, inputs
+    )
+    
+    # Handle judge aggregation
     if is_judge:
-        debate_context: list[str] = []
+        debate_context_parts = []
         for other_node in ctx.diagram.nodes:
             if other_node.type != "person_job" or other_node.id == node.id:
                 continue
-            other_pid = other_node.data.get("personId") if other_node.data else None
-            other_conv = ctx.get_conversation_history(other_pid) if other_pid else []
-            if not other_conv:
+            
+            other_person_id = other_node.data.get("personId") if other_node.data else None
+            if not other_person_id:
                 continue
-            label = (
-                other_node.data.get("label", other_node.id)
-                if other_node.data
-                else other_node.id
+            
+            # Get conversation for the other person
+            other_conv = ctx.conversation_service.get_conversation_for_agent(
+                other_person_id, ctx.execution_id
             )
+            
+            # Filter out system messages
             debate_messages = [m for m in other_conv if m.get("role") != "system"]
             if not debate_messages:
                 continue
-            debate_context.append(f"\n{label}:\n")
+            
+            label = other_node.data.get("label", other_node.id) if other_node.data else other_node.id
+            debate_context_parts.append(f"\n{label}:\n")
+            
             for msg in debate_messages:
-                role, content = msg.get("role"), msg.get("content", "")
-                debate_context.append(
-                    f"{'Input' if role == 'user' else 'Response'}: {content}\n"
-                )
-        if debate_context:
+                role = "Input" if msg.get("role") == "user" else "Response"
+                content = msg.get("content", "")
+                debate_context_parts.append(f"{role}: {content}\n")
+        
+        if debate_context_parts:
             debate_txt = (
                 "Here are the arguments from different panels:\n"
-                + "".join(debate_context)
+                + "".join(debate_context_parts)
                 + "\n\n"
             )
             prompt = debate_txt + (
-                prompt
-                or "Based on the above arguments, judge which panel is more reasonable."
+                prompt or "Based on the above arguments, judge which panel is more reasonable."
             )
-
+    
+    # Add prompt as user message if present
     if prompt:
-        conversation.append({"role": "user", "content": prompt, "personId": person_id})
+        await ctx.conversation_service.add_message_to_conversation(
+            sender_agent_id="user",
+            participant_agent_ids=[person_id],
+            content=prompt,
+            execution_id=ctx.execution_id,
+            node_id=node.id,
+            node_label=data.get('label', node.id)
+        )
 
-    person_obj = (
-        next((p for p in ctx.diagram.persons if p.id == person_id), None)
-        if person_id
-        else None
+    # Get updated conversation from memory service
+    conversation = ctx.conversation_service.get_conversation_for_person(
+        person_id, ctx.execution_id
     )
-    person_cfg = {
-        "service": getattr(person_obj, "service", "openai"),
-        "api_key_id": getattr(person_obj, "api_key_id", None)
-        or getattr(person_obj, "apiKeyId", None),
-        "model": getattr(person_obj, "model", "gpt-4.1-nano"),
-    }
-
+    
+    # Call LLM with conversation
     llm_result = await ctx.llm_service.call_llm(
-        service=person_cfg["service"],
-        api_key_id=person_cfg["api_key_id"],
-        model=person_cfg["model"],
+        service=person_config["service"],
+        api_key_id=person_config["api_key_id"],
+        model=person_config["model"],
         messages=conversation,
     )
 
     response_text: str = llm_result.get("response", "")
     token_usage_obj = llm_result.get("token_usage")
-
-    # Extract total token count from TokenUsage object
-    if token_usage_obj and hasattr(token_usage_obj, "total"):
-        token_usage: int = token_usage_obj.total
-    else:
-        # Fallback to word count if no token usage available
-        token_usage: int = len(response_text.split())
-
-    ctx.add_to_conversation(
-        person_id,
-        {"role": "assistant", "content": response_text, "personId": person_id},
+    
+    # Add response to memory
+    message = await ctx.conversation_service.add_message_to_conversation(
+        sender_person_id=person_id,
+        participant_person_ids=[person_id],
+        content=response_text,
+        execution_id=ctx.execution_id,
+        node_id=node.id,
+        node_label=data.get('label', node.id),
+        input_tokens=getattr(token_usage_obj, "input", 0) if token_usage_obj else 0,
+        output_tokens=getattr(token_usage_obj, "output", 0) if token_usage_obj else 0,
+        cached_tokens=getattr(token_usage_obj, "cached", 0) if token_usage_obj and hasattr(token_usage_obj, "cached") else 0
     )
 
+    # Prepare output values
     output_values = {"default": response_text}
-
+    
+    # Check if we need to output conversation state
     for edge in ctx.diagram.arrows:
         if edge.source.startswith(node.id + ":"):
             edge_data = edge.data if edge.data and isinstance(edge.data, dict) else {}
             if edge_data.get("contentType") == "conversation_state":
-                conv_history = ctx.get_conversation_history(person_id) if person_id else []
+                # Get full conversation history for output
+                conv_history = ctx.conversation_service.get_conversation_for_agent(
+                    person_id, ctx.execution_id
+                )
                 output_values["conversation"] = conv_history
                 break
 
-    # Prepare token usage metadata in the expected format
+    # Prepare token usage metadata
     token_usage_metadata = {}
     if token_usage_obj and hasattr(token_usage_obj, "__dict__"):
-        # Convert TokenUsage object to dict
         token_usage_metadata = {
             "input": getattr(token_usage_obj, "input", 0),
             "output": getattr(token_usage_obj, "output", 0),
-            "total": getattr(token_usage_obj, "total", token_usage),
+            "total": getattr(token_usage_obj, "total", 0),
         }
         if hasattr(token_usage_obj, "cached"):
             token_usage_metadata["cached"] = token_usage_obj.cached
-    else:
-        # Fallback for simple token count
-        token_usage_metadata = {
-            "input": 0,
-            "output": token_usage,
-            "total": token_usage,
-        }
-
+        
+        # Accumulate token usage in context
+        from dipeo_domain import TokenUsage as DomainTokenUsage
+        ctx.add_token_usage(
+            node.id, 
+            DomainTokenUsage(**token_usage_metadata)
+        )
+    
     return create_node_output(
         output_values,
         {
-            "model": person_cfg["model"],
-            "tokens_used": token_usage,  # Keep for backward compatibility
-            "tokenUsage": token_usage_metadata  # Add proper format for state registry
+            "model": person_config["model"],
+            "tokens_used": token_usage_metadata.get("total", 0),
+            "tokenUsage": token_usage_metadata
         },
     )
 
 
 @node_handler("endpoint")
-async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
+async def execute_endpoint(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """Endpoint node – pass through data and optionally save to file."""
 
     data = node.data or {}
@@ -382,7 +368,7 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
     if (direct := data.get("data")) is not None:
         result_data = direct
     else:
-        collected = await _edge_inputs(node, ctx)
+        collected = await _edge_inputs(node, ctx, node_view=node_view)
         result_data = collected if collected else {}
 
     save_to_file = data.get("saveToFile", False) or data.get("save_to_file", False)
@@ -416,7 +402,11 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
 
 @node_handler("condition")
-async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
+async def execute_condition(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """Condition node: currently supports *detect_max_iterations*."""
 
     data = node.data or {}
@@ -438,7 +428,7 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
                 break
 
     # Collect all incoming payloads and forward them unchanged
-    inputs = await _edge_inputs(node, ctx, as_dict=True)
+    inputs = await _edge_inputs(node, ctx, as_dict=True, node_view=node_view)
 
     # Forward inputs with branch key for backward compatibility
     branch_key = "True" if result else "False"
@@ -464,14 +454,18 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
 
 
 @node_handler("db")
-async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
+async def execute_db(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """File‑based DB node supporting *read*, *write* and *append* operations."""
 
     data = node.data or {}
     operation = data.get("operation", "read")
     file_path = data.get("sourceDetails", "")
 
-    input_val = await _edge_inputs(node, ctx, as_dict=False)
+    input_val = await _edge_inputs(node, ctx, as_dict=False, node_view=node_view)
 
     try:
         if operation == "read":
@@ -501,13 +495,17 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
 
 @node_handler("notion")
-async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
+async def execute_notion(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """Wrapper around `ctx.notion_service.execute_action`."""
 
     data = node.data or {}
     action = data.get("action", "read")
     database_id = data.get("database_id", "")
-    payload = await _edge_inputs(node, ctx)
+    payload = await _edge_inputs(node, ctx, node_view=node_view)
 
     result = await ctx.notion_service.execute_action(
         action=action,

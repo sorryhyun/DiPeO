@@ -18,7 +18,7 @@ from dipeo_server.domains.execution import (
 from dipeo_server.domains.execution.validators import DiagramValidator
 from dipeo_server.domains.integrations import NotionService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
-from dipeo_server.domains.person import MemoryService
+from dipeo_server.domains.conversation import ConversationService
 from dipeo_server.infrastructure.messaging import message_router
 from dipeo_server.infrastructure.messaging.event_bus import (
     EventBus,
@@ -42,7 +42,7 @@ class AppContext:
         self.api_key_service: Optional[SupportsAPIKey] = None
         self.llm_service: Optional[SupportsLLM] = None
         self.file_service: Optional[SupportsFile] = None
-        self.memory_service: Optional[SupportsMemory] = None
+        self.conversation_service: Optional[ConversationService] = None
         self.execution_service: Optional[SupportsExecution] = None
         self.notion_service: Optional[SupportsNotion] = None
         self.diagram_storage_service: Optional[DiagramStorageService] = None
@@ -59,7 +59,7 @@ class AppContext:
         self.event_bus = MessageRouterEventBus(message_router)
 
         self.api_key_service = APIKeyService()
-        self.memory_service = MemoryService()
+        self.conversation_service = ConversationService()
         self.llm_service = LLMService(self.api_key_service)
         self.file_service = FileService(base_dir=BASE_DIR)
         self.notion_service = NotionService()
@@ -81,12 +81,13 @@ class AppContext:
         self.execution_service = ExecutionService(
             self.llm_service,
             self.api_key_service,
-            self.memory_service,
+            self.conversation_service,
             self.file_service,
             None,
             self.notion_service,
             self.execution_preparation_service,
             self.event_bus,
+            self.conversation_service,  # ConversationService now handles both memory and person functionality
         )
 
         await self.llm_service.initialize()
@@ -128,10 +129,10 @@ def get_file_service() -> "SupportsFile":
     return app_context.file_service
 
 
-def get_memory_service() -> "SupportsMemory":
-    if app_context.memory_service is None:
+def get_conversation_service() -> ConversationService:
+    if app_context.conversation_service is None:
         raise RuntimeError("Application context not initialized")
-    return app_context.memory_service
+    return app_context.conversation_service
 
 
 def get_execution_service() -> "SupportsExecution":
@@ -172,3 +173,5 @@ def get_event_bus() -> EventBus:
     if app_context.event_bus is None:
         raise RuntimeError("Application context not initialized")
     return app_context.event_bus
+
+

@@ -48,6 +48,55 @@ class NodeView:
                     inputs[edge.label] = value
         return inputs
 
+    def get_active_inputs(self) -> Dict[str, Any]:
+        """Get inputs from edges that are active based on condition routing.
+        
+        This method filters inputs based on condition node routing decisions,
+        returning only values from edges that match the condition result.
+        """
+        import logging
+        log = logging.getLogger(__name__)
+        
+        inputs = {}
+        
+        for edge in self.incoming_edges:
+            # Skip edges from nodes that have no output
+            if not edge.source_view.output:
+                log.debug(f"Skipping edge from {edge.source_view.id} - no output")
+                continue
+            
+            # Check if this is from a condition node
+            if edge.source_view.node.type == "condition":
+                condition_result = edge.source_view.output.metadata.get("condition_result", False)
+                edge_branch = edge.arrow.data.get("branch", None) if edge.arrow.data else None
+                
+                # If edge has a branch specification, it must match the condition result
+                if edge_branch is not None:
+                    edge_branch_bool = edge_branch.lower() == "true"
+                    if edge_branch_bool != condition_result:
+                        log.debug(
+                            f"Skipping edge from condition {edge.source_view.id} - "
+                            f"branch {edge_branch} doesn't match result {condition_result}"
+                        )
+                        continue
+            
+            # Extract value based on label
+            label = edge.label
+            source_values = edge.source_view.output.value
+            
+            if label in source_values:
+                inputs[label] = source_values[label]
+            elif label == "default" and "conversation" in source_values:
+                # Special case for conversation passthrough
+                inputs[label] = source_values["conversation"]
+            else:
+                log.warning(
+                    f"Edge label '{label}' not found in output from {edge.source_view.id} "
+                    f"(available: {list(source_values.keys())})"
+                )
+        
+        return inputs
+
 
 @dataclass
 class EdgeView:
