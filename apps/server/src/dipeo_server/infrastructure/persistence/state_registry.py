@@ -138,43 +138,15 @@ class StateRegistry:
             for node_id, node_state in state.node_states.items():
                 if hasattr(node_state, "model_dump"):
                     node_states_dict[node_id] = node_state.model_dump()
-                elif hasattr(node_state, "dict"):  # Pydantic v1 compatibility
-                    node_states_dict[node_id] = node_state.dict()
-                elif isinstance(node_state, dict):
-                    node_states_dict[node_id] = node_state
                 else:
-                    # Fallback: convert to dict manually
-                    node_states_dict[node_id] = {
-                        "status": node_state.status.value
-                        if hasattr(node_state.status, "value")
-                        else str(node_state.status),
-                        "started_at": node_state.started_at,
-                        "ended_at": node_state.ended_at,
-                        "error": node_state.error,
-                        "skip_reason": getattr(node_state, "skip_reason", None),
-                        "token_usage": node_state.token_usage.model_dump()
-                        if hasattr(node_state, "token_usage")
-                        and node_state.token_usage
-                        and hasattr(node_state.token_usage, "model_dump")
-                        else None,
-                    }
+                    node_states_dict[node_id] = node_state
 
             node_outputs_dict = {}
             for node_id, node_output in state.node_outputs.items():
                 if hasattr(node_output, "model_dump"):
                     node_outputs_dict[node_id] = node_output.model_dump()
-                elif hasattr(node_output, "dict"):  # Pydantic v1 compatibility
-                    node_outputs_dict[node_id] = node_output.dict()
-                elif isinstance(node_output, dict):
-                    node_outputs_dict[node_id] = node_output
                 else:
-                    # Fallback: convert to dict manually
-                    node_outputs_dict[node_id] = {
-                        "value": node_output.value,
-                        "metadata": node_output.metadata
-                        if hasattr(node_output, "metadata")
-                        else {},
-                    }
+                    node_outputs_dict[node_id] = node_output
 
             await self._execute(
                 """
@@ -370,7 +342,21 @@ class StateRegistry:
         await self.save_state(state)
 
     async def update_token_usage(self, execution_id: str, tokens: TokenUsage):
-        """Update token usage statistics."""
+        """Update token usage statistics.
+
+        Note: This method REPLACES the total token usage, it does not add to it.
+        For incremental updates, retrieve the state, modify, and save.
+        """
+        state = await self.get_state(execution_id)
+        if not state:
+            raise ValueError(f"Execution {execution_id} not found")
+
+        # Replace the entire token usage with the new total
+        state.token_usage = tokens
+        await self.save_state(state)
+
+    async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
+        """Add token usage to existing statistics (incremental update)."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")

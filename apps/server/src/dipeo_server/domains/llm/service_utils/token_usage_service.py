@@ -44,6 +44,13 @@ class TokenUsageService:
                 output=usage[1] if len(usage) > 1 else 0,
             )
 
+        if service == "openai":
+            return TokenUsage(
+                input=usage['prompt_tokens'],
+                output=usage['completion_tokens'],
+                total=usage['prompt_tokens'] + usage['completion_tokens'],
+            )
+
         input_tokens = (
             getattr(usage, "input_tokens", None)
             or getattr(usage, "prompt_tokens", None)
@@ -55,14 +62,6 @@ class TokenUsageService:
             or 0
         )
         cached_tokens = 0
-
-        if service == "openai":
-            if hasattr(usage, "input_tokens_details") and hasattr(
-                usage.input_tokens_details, "cached_tokens"
-            ):
-                cached_tokens = usage.input_tokens_details.cached_tokens or 0
-        else:
-            cached_tokens = getattr(usage, "cached_tokens", 0)
 
         return TokenUsage(
             input=input_tokens, output=output_tokens, cached=cached_tokens

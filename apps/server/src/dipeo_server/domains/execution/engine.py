@@ -54,7 +54,6 @@ class ViewBasedEngine:
 
         ctx._execution_view = view
 
-        # Load existing node outputs from state store if available
         if state_store:
             import logging
 
@@ -78,7 +77,6 @@ class ViewBasedEngine:
 
         log = logging.getLogger(__name__)
 
-        # First execute the pre-computed levels
         for level_num, level_nodes in enumerate(view.execution_order):
             tasks = []
             for node_view in level_nodes:
@@ -94,17 +92,13 @@ class ViewBasedEngine:
             else:
                 log.warning(f"No tasks to execute for level {level_num}")
 
-        # After initial levels, check for any nodes that became ready due to cycles
-
-        # Continue executing nodes that become ready
-        max_iterations = 100  # Prevent infinite loops
+        max_iterations = 100
         iteration = 0
         while iteration < max_iterations:
             iteration += 1
             ready_nodes = []
 
             for node_id, node_view in view.node_views.items():
-                # Only job and person_job nodes have maxIteration limits
                 if node_view.node.type in ["job", "person_job"]:
                     max_iter = (
                         node_view.node.data.get("maxIteration", 1)
@@ -114,15 +108,11 @@ class ViewBasedEngine:
                     current_exec_count = ctx.exec_counts.get(node_id, 0)
                     
                     if current_exec_count >= max_iter:
-                        # Skip this node as it reached max iterations
                         continue
-                
-                # For all other nodes (including condition), no iteration limit
                 if self._can_execute_node_view(node_view):
                     log.debug(f"Node {node_id} is ready to execute")
                     ready_nodes.append(node_view)
                 else:
-                    # More detailed logging for nodes that aren't ready
                     incoming_status = []
                     for edge in node_view.incoming_edges:
                         has_output = edge.source_view.output is not None
@@ -139,14 +129,26 @@ class ViewBasedEngine:
                 tasks.append(self._execute_node_view(ctx, node_view))
 
             await asyncio.gather(*tasks)
+            
+            # After executing nodes, check if any condition nodes triggered a loop
+            for node_view in ready_nodes:
+                if node_view.node.type == "condition" and node_view.output:
+                    condition_result = node_view.output.metadata.get("condition_result", False)
+                    if not condition_result:  # False means loop should continue
+                        # Find all nodes that should re-execute in the loop
+                        self._clear_loop_node_outputs(node_view, view, ctx)
 
         log.info("All execution completed")
 
     def _can_execute_node_view(self, node_view: NodeView) -> bool:
-        # For person_job nodes, check if they have input on their "first" handle
-        # This allows them to start even if other inputs aren't ready yet
+        import logging
+        log = logging.getLogger(__name__)
+        
+        # If node already has output, it's already been executed
+        if node_view.output is not None:
+            return False
+            
         if node_view.node.type == "person_job":
-            # Check if any edge to "first" handle has output
             first_edges = [
                 e for e in node_view.incoming_edges if e.target_handle == "first"
             ]
@@ -154,44 +156,85 @@ class ViewBasedEngine:
                 edge.source_view.output is not None for edge in first_edges
             ):
                 return True
-
-        # For all other nodes (and person_job without first input), require all inputs
-        # But also check if edges from condition nodes match the condition result
         for edge in node_view.incoming_edges:
-            # Check if this edge is from a condition node
-            if edge.source_view.node.type == "condition" and edge.source_view.output is not None:
-                # Get the condition result from the source node's metadata
-                condition_result = edge.source_view.output.metadata.get("condition_result", False)
-                
-                # Get the branch this edge represents from arrow data
-                edge_branch = edge.arrow.data.get("branch", None) if edge.arrow.data else None
-                
-                # If edge has branch data, check if it matches the condition result
-                if edge_branch is not None:
-                    # Convert string "true"/"false" to boolean for comparison
-                    edge_branch_bool = edge_branch.lower() == "true"
+            if edge.source_view.node.type == "condition":
+                log.debug(
+                    f"Checking condition edge from {edge.source_view.id} to {node_view.id}, "
+                    f"output exists: {edge.source_view.output is not None}"
+                )
+                if edge.source_view.output is not None:
+                    condition_result = edge.source_view.output.metadata.get("condition_result", False)
+                    edge_branch = edge.arrow.data.get("branch", None) if edge.arrow.data else None
                     
-                    # Skip this edge if it's from a non-matching branch
-                    if edge_branch_bool != condition_result:
-                        log.debug(
-                            f"Skipping edge from {edge.source_view.id} to {node_view.id} - "
-                            f"branch {edge_branch} doesn't match condition result {condition_result}"
-                        )
-                        continue
+                    log.debug(
+                        f"Condition result: {condition_result}, edge branch: {edge_branch}, "
+                        f"edge data: {edge.arrow.data}"
+                    )
                     
-                    # If branch matches, check if the edge has output
-                    if edge.source_view.output is None:
-                        return False
+                    if edge_branch is not None:
+                        edge_branch_bool = edge_branch.lower() == "true"
+                        
+                        if edge_branch_bool != condition_result:
+                            log.debug(
+                                f"Skipping edge from {edge.source_view.id} to {node_view.id} - "
+                                f"branch {edge_branch} doesn't match condition result {condition_result}"
+                            )
+                            # This edge doesn't match the condition, skip to next edge
+                            continue
+                        
+                        # This edge matches the condition, check if output exists
+                        if edge.source_view.output is None:
+                            return False
+                    else:
+                        # No branch specified, require output to exist
+                        if edge.source_view.output is None:
+                            return False
                 else:
-                    # No branch data, treat normally
-                    if edge.source_view.output is None:
-                        return False
+                    # Condition node has no output yet
+                    return False
             else:
-                # Normal edge, check if it has output
+                # Non-condition node
                 if edge.source_view.output is None:
+                    log.debug(
+                        f"Node {node_view.id} waiting for output from {edge.source_view.id}"
+                    )
                     return False
         
+        log.debug(f"Node {node_view.id} is ready to execute")
         return True
+    
+    def _clear_loop_node_outputs(
+        self, condition_view: NodeView, view: ExecutionView, ctx: ExecutionContext
+    ) -> None:
+        """Clear outputs of nodes that should re-execute when a condition triggers a loop."""
+        import logging
+        log = logging.getLogger(__name__)
+        
+        # Find edges from the condition node with false branch
+        false_edges = [
+            edge for edge in condition_view.outgoing_edges
+            if edge.arrow.data and edge.arrow.data.get("branch", "").lower() == "false"
+        ]
+        
+        # Only clear direct targets of false branches for now
+        for edge in false_edges:
+            target_view = edge.target_view
+            if target_view and target_view.output is not None:
+                # Check if this node hasn't reached its max iterations yet
+                max_iter = 1
+                if target_view.node.type in ["job", "person_job"] and target_view.node.data:
+                    max_iter = target_view.node.data.get("maxIteration", 1)
+                
+                current_exec_count = ctx.exec_counts.get(target_view.id, 0)
+                if current_exec_count < max_iter:
+                    log.debug(
+                        f"Clearing output for node {target_view.id} to allow re-execution in loop "
+                        f"(exec_count: {current_exec_count}, max_iter: {max_iter})"
+                    )
+                    target_view.output = None
+                    # Also clear from context
+                    if target_view.id in ctx.node_outputs:
+                        del ctx.node_outputs[target_view.id]
 
     async def _execute_node_view(
         self, ctx: ExecutionContext, node_view: NodeView
@@ -219,7 +262,6 @@ class ViewBasedEngine:
         node_view.exec_count += 1
         ctx.exec_counts[node.id] = node_view.exec_count
 
-        # Update node status to RUNNING in state store
         await ctx.state_store.update_node_status(
             ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
         )
@@ -239,7 +281,6 @@ class ViewBasedEngine:
             node_view.output = output
             ctx.set_node_output(node.id, output)
 
-            # Update node status to COMPLETED in state store
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED
             )

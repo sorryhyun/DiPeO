@@ -23,9 +23,6 @@ class DBOperation(str, Enum):
     APPEND = "APPEND"
 
 
-# Generic decorator / registry utilities                                     #
-
-
 _HandlerFn = Callable[[DomainNode, ExecutionContext], Awaitable[NodeOutput]]
 _handlers: Dict[str, _HandlerFn] = {}
 
@@ -53,7 +50,7 @@ def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:  # noqa: D
             )
             return error_output
 
-    _wrapped.__name__ = func.__name__  # keep tooling happy
+    _wrapped.__name__ = func.__name__
     return _wrapped
 
 
@@ -62,18 +59,14 @@ def node_handler(node_type: str) -> Callable[[_HandlerFn], _HandlerFn]:
 
     def decorator(func: _HandlerFn) -> _HandlerFn:
         _handlers[node_type] = _wrap_with_state(node_type, func)
-        return func  # func is returned unwrapped for type checkers/tests
+        return func
 
     return decorator
 
 
 def get_handlers() -> Dict[str, _HandlerFn]:
     """Return a *copy* of the internal handler registry."""
-    # Provide the *wrapped* callables – the engine never needs the raw ones.
     return {k: _wrap_with_state(k, v) for k, v in _handlers.items()}
-
-
-# Tiny helpers shared by multiple handlers                                    #
 
 
 def create_node_output(  # noqa: D401
@@ -105,52 +98,53 @@ async def _edge_inputs(
             _log.warning("No output for source node %s → %s", src_id, node.id)
             continue
             
-        # Check if this edge is from a condition node
         src_node = next((n for n in ctx.diagram.nodes if n.id == src_id), None)
         if src_node and src_node.type == "condition":
-            # Get the condition result from the source node's metadata
             condition_result = from_output.metadata.get("condition_result", False)
-            
-            # Get the branch this edge represents from arrow data
             edge_branch = edge.data.get("branch", None) if edge.data else None
             
-            # If edge has branch data, check if it matches the condition result
             if edge_branch is not None:
-                # Convert string "true"/"false" to boolean for comparison
                 edge_branch_bool = edge_branch.lower() == "true"
-                
-                # Skip this edge if it's from a non-matching branch
                 if edge_branch_bool != condition_result:
-                    _log.debug(
-                        "Skipping edge from condition node %s to %s - "
-                        "branch %s doesn't match condition result %s",
-                        src_id,
-                        node.id,
-                        edge_branch,
-                        condition_result
-                    )
                     continue
                     
         label = edge.data.get("label", "default") if edge.data else "default"
-        if label in from_output.value:
-            results[label] = from_output.value[label]
+        
+        if src_node and src_node.type == "condition":
+            source_handle = edge.source.split(":")[1] if ":" in edge.source else "default"
+            
+            if label in from_output.value:
+                results[label] = from_output.value[label]
+            elif label == "default" and source_handle in from_output.value:
+                results[label] = from_output.value[source_handle]
+            elif "conversation" in from_output.value and label == "default":
+                results[label] = from_output.value["conversation"]
+            elif "default" in from_output.value:
+                results[label] = from_output.value["default"]
+            else:
+                _log.warning(
+                    "Edge label '%s' missing in output from condition node %s (keys=%s)",
+                    label,
+                    src_id,
+                    list(from_output.value.keys()),
+                )
         else:
-            _log.warning(
-                "Edge label '%s' missing in output from %s (keys=%s)",
-                label,
-                src_id,
-                list(from_output.value.keys()),
-            )
+            if label in from_output.value:
+                results[label] = from_output.value[label]
+            else:
+                _log.warning(
+                    "Edge label '%s' missing in output from %s (keys=%s)",
+                    label,
+                    src_id,
+                    list(from_output.value.keys()),
+                )
     if as_dict:
         return results
     return next(iter(results.values()), None)  # type: ignore[return-value]
 
 
-# Concrete node handlers                                                      #
-
-
 @node_handler("start")
-async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """Kick‑off node: no input, always succeeds."""
     return create_node_output({"default": ""}, {"message": "Execution started"})
 
@@ -174,7 +168,6 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     forgetting_mode: Optional[str] = data.get("forgettingMode")
     is_judge: bool = "judge" in data.get("label", "").lower()
 
-    # Conversation history ---------------------------------------------------
     conversation = ctx.get_conversation_history(person_id) if person_id else []
 
     if forgetting_mode == "on_every_turn" and exec_count > 1:
@@ -199,66 +192,41 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             0, {"role": "system", "content": system_prompt, "personId": person_id}
         )
 
-    # Gather edge inputs -----------------------------------------------------
     inputs = await _edge_inputs(node, ctx)
     
-    if inputs:
-        _log.debug(
-            "Person node %s (%s) received inputs with keys: %s",
-            node.id,
-            person_id,
-            list(inputs.keys())
-        )
-
-    # Handle conversation state from upstream nodes
     if "conversation" in inputs:
         upstream_conv = inputs["conversation"]
         if isinstance(upstream_conv, list) and upstream_conv:
-            _log.debug(
-                "Node %s (%s) received conversation with %d messages",
-                node.id,
-                person_id,
-                len(upstream_conv)
-            )
             # Check if we're in a conversation loop by looking for our own messages
             our_messages_count = sum(
                 1 for msg in upstream_conv 
                 if msg.get("personId") == person_id and msg.get("role") == "assistant"
             )
             
-            # If we see our own messages, we're in a loop - merge intelligently
             if our_messages_count > 0:
                 _log.debug(
                     "Detected conversation loop for %s - found %d of our messages",
                     person_id,
                     our_messages_count
                 )
-                # Find the last complete exchange that doesn't include our own messages
                 last_other_exchange = []
                 for i in range(len(upstream_conv) - 1, -1, -1):
                     msg = upstream_conv[i]
-                    # Skip our own messages and system messages
                     if msg.get("personId") == person_id or msg.get("role") == "system":
                         continue
-                    # Collect messages from other participants
                     if msg.get("role") in ["user", "assistant"]:
                         last_other_exchange.append(msg)
-                        # Stop after finding one complete exchange from another person
                         if len(last_other_exchange) >= 1 and msg.get("role") == "assistant":
                             break
                 
-                # Only add if we found new content from other participants
                 if last_other_exchange:
-                    # Get the last message from another participant
                     last_msg = last_other_exchange[0]
-                    # Check if this content is already in our conversation
                     content_exists = any(
                         msg.get("content") == last_msg.get("content") 
                         for msg in conversation
                     )
                     
                     if not content_exists:
-                        # Add as a user message to prompt response
                         conversation.append({
                             "role": "user", 
                             "content": last_msg.get("content", ""),
@@ -295,7 +263,6 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     else:
         prompt = default_prompt
 
-    # Judge nodes collect debates from other person_job panels ---------------
     if is_judge:
         debate_context: list[str] = []
         for other_node in ctx.diagram.nodes:
@@ -333,7 +300,6 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     if prompt:
         conversation.append({"role": "user", "content": prompt, "personId": person_id})
 
-    # Call LLM ---------------------------------------------------------------
     person_obj = (
         next((p for p in ctx.diagram.persons if p.id == person_id), None)
         if person_id
@@ -354,35 +320,56 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
     )
 
     response_text: str = llm_result.get("response", "")
-    token_usage: int = llm_result.get("token_usage") or len(response_text.split())
+    token_usage_obj = llm_result.get("token_usage")
+    
+    # Extract total token count from TokenUsage object
+    if token_usage_obj and hasattr(token_usage_obj, "total"):
+        token_usage: int = token_usage_obj.total
+    else:
+        # Fallback to word count if no token usage available
+        token_usage: int = len(response_text.split())
 
     ctx.add_to_conversation(
         person_id,
         {"role": "assistant", "content": response_text, "personId": person_id},
     )
 
-    # Check if any outgoing edges expect conversation_state
     output_values = {"default": response_text}
 
-    # Find edges from this node that have contentType="conversation_state"
     for edge in ctx.diagram.arrows:
         if edge.source.startswith(node.id + ":"):
             edge_data = edge.data if edge.data and isinstance(edge.data, dict) else {}
             if edge_data.get("contentType") == "conversation_state":
-                # Include full conversation history for conversation_state edges
                 conv_history = ctx.get_conversation_history(person_id) if person_id else []
                 output_values["conversation"] = conv_history
-                _log.debug(
-                    "Node %s outputting conversation_state with %d messages to %s",
-                    node.id,
-                    len(conv_history),
-                    edge.target
-                )
                 break
 
+    # Prepare token usage metadata in the expected format
+    token_usage_metadata = {}
+    if token_usage_obj and hasattr(token_usage_obj, "__dict__"):
+        # Convert TokenUsage object to dict
+        token_usage_metadata = {
+            "input": getattr(token_usage_obj, "input", 0),
+            "output": getattr(token_usage_obj, "output", 0),
+            "total": getattr(token_usage_obj, "total", token_usage),
+        }
+        if hasattr(token_usage_obj, "cached"):
+            token_usage_metadata["cached"] = token_usage_obj.cached
+    else:
+        # Fallback for simple token count
+        token_usage_metadata = {
+            "input": 0,
+            "output": token_usage,
+            "total": token_usage,
+        }
+    
     return create_node_output(
         output_values,
-        {"model": person_cfg["model"], "tokens_used": token_usage},
+        {
+            "model": person_cfg["model"], 
+            "tokens_used": token_usage,  # Keep for backward compatibility
+            "tokenUsage": token_usage_metadata  # Add proper format for state registry
+        },
     )
 
 
@@ -390,37 +377,30 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
     """Endpoint node – pass through data and optionally save to file."""
 
-    # Get node data
     data = node.data or {}
 
-    # Check if we have direct data or need to collect from edges
     if (direct := data.get("data")) is not None:
         result_data = direct
     else:
         collected = await _edge_inputs(node, ctx)
         result_data = collected if collected else {}
 
-    # Handle file saving if enabled
     save_to_file = data.get("saveToFile", False) or data.get("save_to_file", False)
     if save_to_file:
-        # Support both field names for backward compatibility
         file_path = (
             data.get("filePath") or data.get("fileName") or data.get("file_name")
         )
 
         if file_path:
             try:
-                # Convert result data to string for saving
                 if isinstance(result_data, dict) and "default" in result_data:
                     content = str(result_data["default"])
                 else:
                     content = str(result_data)
 
-                # Save to file
                 await ctx.file_service.write(file_path, content)
                 _log.info(f"Saved endpoint result to {file_path}")
 
-                # Add save status to metadata
                 return create_node_output(
                     {"default": result_data}, {"saved_to": file_path}
                 )
@@ -457,37 +437,21 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
                 result = False
                 break
 
-    # Collect *all* incoming payloads so they can be forwarded unchanged.
-    # This guarantees that labels such as "conversation" survive the condition
-    # check and reach downstream nodes (e.g. a person_job expecting a
-    # "conversation" input).
+    # Collect all incoming payloads and forward them unchanged
     inputs = await _edge_inputs(node, ctx, as_dict=True)
 
-    # We forward all inputs as-is **plus** expose the boolean result through
-    # metadata.  Keeping the payload unchanged means any downstream edge whose
-    # label equals the original label ("conversation", "topic", …) will still
-    # receive the expected value.
-
-    # For backward compatibility also duplicate the payload under a key that
-    # matches the boolean branch ("True" / "False").  Existing diagrams that
-    # relied on that behaviour will keep working, while new ones can simply
-    # consume the original labels.
-
+    # Forward inputs with branch key for backward compatibility
     branch_key = "True" if result else "False"
-    value: Dict[str, Any] = {**inputs}  # shallow copy – labels preserved
+    value: Dict[str, Any] = {**inputs}
     value[branch_key] = inputs
     
-    # Add default key if not present to ensure downstream nodes can access data
     if "default" not in value and inputs:
-        # Use the first available input as default
-        first_key = next(iter(inputs.keys()), None)
-        if first_key:
-            value["default"] = inputs[first_key]
-            _log.debug(
-                "Condition node %s adding default output from key '%s'",
-                node.id,
-                first_key
-            )
+        if "conversation" in inputs:
+            value["default"] = inputs["conversation"]
+        else:
+            first_key = next(iter(inputs.keys()), None)
+            if first_key:
+                value["default"] = inputs[first_key]
 
     _log.debug(
         "Condition node %s outputting %s branch with keys: %s",
@@ -507,12 +471,10 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # 
     operation = data.get("operation", "read")
     file_path = data.get("sourceDetails", "")
 
-    # For write/append we need input data from edges
     input_val = await _edge_inputs(node, ctx, as_dict=False)
 
     try:
         if operation == "read":
-            # Prefer async if available
             if hasattr(ctx.file_service, "aread"):
                 result = await ctx.file_service.aread(file_path)
             else:
@@ -525,7 +487,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # 
             if hasattr(ctx.file_service, "aread"):
                 try:
                     existing = await ctx.file_service.aread(file_path)
-                except Exception:  # file may not exist yet
+                except Exception:
                     pass
             await ctx.file_service.write(file_path, existing + str(input_val))
             result = f"Appended to {file_path}"

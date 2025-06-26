@@ -11,6 +11,9 @@ from dipeo_domain.models import DomainDiagram
 
 from dipeo_server.domains.execution.engine import ViewBasedEngine
 from dipeo_server.domains.execution.handlers import get_handlers
+from dipeo_server.domains.execution.services.token_calculation_service import (
+    TokenCalculationService,
+)
 from dipeo_server.infrastructure.persistence import state_store
 
 log = logging.getLogger(__name__)
@@ -158,11 +161,21 @@ class ExecutionService(BaseService):
         )
 
         final_status = "completed"
+
+        # Check for failures
         for output in ctx.node_outputs.values():
-            # Check if status is in metadata
             if output.metadata and output.metadata.get("status") == "failed":
                 final_status = "failed"
                 break
+
+        # Aggregate token usage from all node outputs
+        total_token_usage = TokenCalculationService.aggregate_node_token_usage(
+            ctx.node_outputs
+        )
+
+        # Update token usage in state store
+        if total_token_usage:
+            await state_store.update_token_usage(execution_id, total_token_usage)
 
         # Update execution status in state store
         if final_status == "completed":

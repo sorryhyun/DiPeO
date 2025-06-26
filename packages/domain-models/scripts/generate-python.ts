@@ -33,7 +33,12 @@ const INTEGER_FIELDS = new Set([
   'statusCode',
   'totalTokens',
   'promptTokens',
-  'completionTokens'
+  'completionTokens',
+  // TokenUsage fields
+  'input',
+  'output',
+  'cached',
+  'total'
 ]);
 const RE_BRAND   = /&\s*{.*/;                       // "… & { readonly … }"
 const RE_IMPORT  = /^import\([^)]+\)\.(.+)$/;     // unwrap import()
