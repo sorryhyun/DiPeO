@@ -108,17 +108,6 @@ class SchemaGenerator {
       JSON.stringify(schemas, null, 2)
     );
 
-    // Write module schemas (simplified - just use 'diagram' for now)
-    const moduleSchemas = this.groupByModule(schemas);
-    await Promise.all(
-      Object.entries(moduleSchemas).map(([module, moduleSchemas]) =>
-        writeFile(
-          join(outputDir, `${module}.schema.json`),
-          JSON.stringify(moduleSchemas, null, 2)
-        )
-      )
-    );
-
     console.log(`✅ Generated schemas for ${schemas.length} types`);
     console.log(`📁 Output: ${outputDir}`);
   }
@@ -130,17 +119,6 @@ class SchemaGenerator {
       .map(e => join(e.path, e.name));
   }
 
-  private groupByModule(schemas: SchemaDefinition[]): Record<string, SchemaDefinition[]> {
-    // Simplified module extraction - enhance as needed
-    const modules: Record<string, SchemaDefinition[]> = {};
-
-    for (const schema of schemas) {
-      const module = 'diagram'; // Simplified
-      (modules[module] ??= []).push(schema);
-    }
-
-    return modules;
-  }
 }
 
 //--- Entry Point

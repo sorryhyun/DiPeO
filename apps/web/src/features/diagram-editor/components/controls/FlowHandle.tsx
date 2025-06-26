@@ -11,35 +11,11 @@ export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   offset?: number;
   color?: string;
   className?: string;
+  nodeType?: string;
 }
 
 // Pre-computed constants
-const HANDLE_SIZE = 16;
-const HALF_HANDLE_SIZE = HANDLE_SIZE / 2;
-
-// Pre-computed position lookups
-const HANDLE_POS = {
-  [Position.Top]: (offset: number) => ({
-    left: `${offset}%`,
-    top: `-${HALF_HANDLE_SIZE}px`,
-    transform: 'translateX(-50%)'
-  }),
-  [Position.Bottom]: (offset: number) => ({
-    left: `${offset}%`,
-    bottom: `-${HALF_HANDLE_SIZE}px`,
-    transform: 'translateX(-50%)'
-  }),
-  [Position.Left]: (offset: number) => ({
-    top: `${offset}%`,
-    left: `-${HALF_HANDLE_SIZE}px`,
-    transform: 'translateY(-50%)'
-  }),
-  [Position.Right]: (offset: number) => ({
-    top: `${offset}%`,
-    right: `-${HALF_HANDLE_SIZE}px`,
-    transform: 'translateY(-50%)'
-  })
-} as const;
+const HANDLE_DISTANCE = 30; // Increased distance from node edge
 
 const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   nodeId: _nodeId,
@@ -49,6 +25,7 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   offset = 50,
   color,
   className,
+  nodeType,
   ...props
 }) => {
   const rfType = type === 'output' ? 'source' : 'target';
@@ -56,16 +33,20 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   // Memoize computed styles for integrated pill-shaped handle
   const handleStyle = useMemo(() => {
     const baseColor = color || (type === 'output' ? '#16a34a' : '#2563eb');
+    // Use smaller distance for start/endpoint nodes
+    const isSmallNode = nodeType === 'start' || nodeType === 'endpoint';
+    const distance = isSmallNode ? 20 : HANDLE_DISTANCE;
+    
     return {
       width: 'auto',
-      minWidth: '60px',
-      height: '24px',
+      minWidth: '50px',
+      height: '20px',
       backgroundColor: type === 'output' 
         ? 'rgba(34, 197, 94, 0.9)' 
         : 'rgba(59, 130, 246, 0.9)',
       border: `2px solid ${baseColor}`,
       borderRadius: '12px',
-      padding: '0 10px',
+      padding: '0 8px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -73,10 +54,38 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
       fontWeight: 600,
       color: 'white',
       cursor: 'pointer',
-      ...HANDLE_POS[position](offset),
+      ...(() => {
+        // Custom position calculation using dynamic distance
+        switch (position) {
+          case Position.Top:
+            return {
+              left: `${offset}%`,
+              top: `-${distance}px`,
+              transform: 'translateX(-50%)'
+            };
+          case Position.Bottom:
+            return {
+              left: `${offset}%`,
+              bottom: `-${distance}px`,
+              transform: 'translateX(-50%)'
+            };
+          case Position.Left:
+            return {
+              top: `${offset}%`,
+              left: `-${distance}px`,
+              transform: 'translateY(-50%)'
+            };
+          case Position.Right:
+            return {
+              top: `${offset}%`,
+              right: `-${distance}px`,
+              transform: 'translateY(-50%)'
+            };
+        }
+      })(),
       position: 'absolute' as const,
     };
-  }, [position, offset, color, type]);
+  }, [position, offset, color, type, nodeType]);
 
   return (
     <Handle
@@ -102,6 +111,7 @@ export const FlowHandle = React.memo(FlowHandleComponent, (prevProps, nextProps)
     prevProps.position === nextProps.position &&
     prevProps.offset === nextProps.offset &&
     prevProps.color === nextProps.color &&
-    prevProps.className === nextProps.className
+    prevProps.className === nextProps.className &&
+    prevProps.nodeType === nextProps.nodeType
   );
 });

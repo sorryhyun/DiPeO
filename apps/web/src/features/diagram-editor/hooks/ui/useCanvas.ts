@@ -14,7 +14,7 @@ import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson,  createHandleId, nodeId } from '@/core/types';
 import { nodeToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
-import type { NodeID, ArrowID, PersonID, HandleID  } from '@dipeo/domain-models';
+import { NodeType, type NodeID, type ArrowID, type HandleID  } from '@dipeo/domain-models';
 
 
 // Helper hook for efficient Map to Array conversion
@@ -102,13 +102,6 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     rafIdRef.current = undefined;
   }, [storeState]);
   
-  const batchPositionUpdate = useCallback((nodeId: NodeID, position: { x: number; y: number }) => {
-    positionUpdateQueueRef.current.set(nodeId, position);
-    
-    if (!rafIdRef.current) {
-      rafIdRef.current = requestAnimationFrame(processBatchedPositionUpdates);
-    }
-  }, [processBatchedPositionUpdates]);
   
   // Cleanup on unmount
   React.useEffect(() => {
@@ -197,16 +190,30 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
         return match && match[1] ? match[1] : handleName;
       };
       
+      const cleanSourceHandle = stripSuffix(connection.sourceHandle);
+      const cleanTargetHandle = stripSuffix(connection.targetHandle);
+      
       const sourceHandleId = createHandleId(
         nodeId(connection.source),
-        stripSuffix(connection.sourceHandle)
+        cleanSourceHandle
       );
       const targetHandleId = createHandleId(
         nodeId(connection.target),
-        stripSuffix(connection.targetHandle)
+        cleanTargetHandle
       );
       
-      storeState.addArrow(sourceHandleId, targetHandleId);
+      // Check if this is a connection from a condition node's True/False handle
+      let arrowData: Record<string, any> | undefined;
+      const sourceHandleName = cleanSourceHandle.toLowerCase();
+      if (sourceHandleName === 'true' || sourceHandleName === 'false') {
+        // Get the source node to verify it's a condition node
+        const sourceNode = storeState.nodesMap.get(nodeId(connection.source));
+        if (sourceNode && sourceNode.type === NodeType.CONDITION) {
+          arrowData = { branch: sourceHandleName };
+        }
+      }
+      
+      storeState.addArrow(sourceHandleId, targetHandleId, arrowData);
     }
   }, [readOnly, storeState]);
   

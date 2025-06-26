@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { DomainPerson, PersonID } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
-import { ForgettingMode, LLMService, NodeType } from '@dipeo/domain-models';
+import { LLMService, NodeType } from '@dipeo/domain-models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 export interface PersonSlice {
@@ -44,7 +44,6 @@ export const createPersonSlice: StateCreator<
       id: generatePersonId(),
       label,
       apiKeyId: '',
-      forgettingMode: ForgettingMode.NO_FORGET,
       service: service as LLMService,
       model,
       systemPrompt: '',

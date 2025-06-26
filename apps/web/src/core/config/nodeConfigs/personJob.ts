@@ -30,7 +30,7 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     }
   ],
   defaults: { 
-    personId: '', 
+    person: '', 
     maxIteration: 1, 
     firstOnlyPrompt: '', 
     defaultPrompt: '', 

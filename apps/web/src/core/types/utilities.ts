@@ -3,7 +3,7 @@
  */
 
 import { nanoid } from 'nanoid';
-import { Vec2, DataType as DomainDataType, ApiKeyID, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
+import { DataType as DomainDataType, ApiKeyID, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
 import {
   nodeId,
   arrowId,
@@ -12,7 +12,6 @@ import {
 } from './branded';
 
 const DEFAULT_ID_LENGTH = 4;
-const SHORT_ID_LENGTH = 4;
 
 export function generateId(length: number = DEFAULT_ID_LENGTH): string {
   return nanoid(length);

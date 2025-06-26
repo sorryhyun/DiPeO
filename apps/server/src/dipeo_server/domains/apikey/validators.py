@@ -11,10 +11,10 @@ def validate_service_name(service: str, valid_services: Set[str]) -> str:
 
     # Service aliases
     aliases = {
-        'chatgpt': 'openai',
-        'claude': 'anthropic',
-        'gemini': 'google',
-        'xai': 'grok'
+        "chatgpt": "openai",
+        "claude": "anthropic",
+        "gemini": "google",
+        "xai": "grok",
     }
 
     normalized = aliases.get(normalized, normalized)
@@ -33,7 +33,7 @@ def validate_api_key_format(key: str, service: str) -> None:
         raise ValidationError("API key cannot be empty")
 
     # Service-specific validation
-    if service == 'openai' and not key.startswith('sk-'):
+    if service == "openai" and not key.startswith("sk-"):
         raise ValidationError("OpenAI API keys must start with 'sk-'")
-    elif service == 'anthropic' and not key.startswith('sk-ant-'):
+    if service == "anthropic" and not key.startswith("sk-ant-"):
         raise ValidationError("Anthropic API keys must start with 'sk-ant-'")

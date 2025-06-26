@@ -44,14 +44,39 @@ class GraphQLGenerator {
     let clean = ts.trim();
     if (clean.startsWith('import(')) clean = clean.replace(IMPORT_RE, '$1');
     if (BRAND_RE.test(clean)) clean = 'string';
+    
+    // Handle string literal types (e.g., 'person' -> String)
+    if (clean.startsWith('"') || clean.startsWith("'")) {
+      clean = 'string';
+    }
 
     const result =
       clean.endsWith('[]')
         ? `[${this.type(clean.slice(0, -2))}]${nonNull ? '!' : ''}`
       : clean.startsWith('Record<') || clean === 'object'
         ? `JSON${nonNull ? '!' : ''}`
-      : UNION_RE.test(clean) && !clean.includes('"')
-        ? clean.split('|').map(t => this.type(t.trim(), false)).join(' | ')
+      : UNION_RE.test(clean)
+        ? (() => {
+            // Handle union types
+            const types = clean.split('|').map(t => t.trim());
+            const hasNull = types.includes('null') || types.includes('undefined');
+            const nonNullTypes = types.filter(t => t !== 'null' && t !== 'undefined');
+            
+            // Check if all non-null types are string literals
+            const allStringLiterals = nonNullTypes.every(t => 
+              t.startsWith('"') || t.startsWith("'")
+            );
+            
+            if (allStringLiterals) {
+              return `String${!hasNull && nonNull ? '!' : ''}`;
+            }
+            
+            if (nonNullTypes.length === 1) {
+              return this.type(nonNullTypes[0], !hasNull && nonNull);
+            }
+            // For multiple non-null types, just use the first one for GraphQL
+            return this.type(nonNullTypes[0], !hasNull && nonNull);
+          })()
         : (TYPE_MAP[clean as keyof typeof TYPE_MAP] ?? clean) + (nonNull ? '!' : '');
 
     this.cache.set(key, result);
@@ -87,52 +112,47 @@ class GraphQLGenerator {
 
   generate(): string {
     const sb = new SB();
-    for (const s of this.schemas.filter(x => x.type === 'enum')) sb.push(this.genEnum(s));
+    
+    // Add GraphQL schema header comment
+    sb.push('# Generated GraphQL schema from TypeScript domain models\n');
+    sb.push('# This file is auto-generated - DO NOT EDIT\n\n');
+    
+    // Generate enums (skip descriptions that look like file-level comments)
+    for (const s of this.schemas.filter(x => x.type === 'enum')) {
+      // Skip file-level descriptions that were incorrectly attached to enums
+      if (s.description?.includes('source of truth')) {
+        const enumWithoutDesc = { ...s, description: undefined };
+        sb.push(this.genEnum(enumWithoutDesc));
+      } else {
+        sb.push(this.genEnum(s));
+      }
+    }
+    
+    // Generate types
     for (const s of this.schemas.filter(x => x.type === 'interface')) sb.push(this.genType(s));
+    
+    // Add root types
     sb.push(ROOT_TYPES);
     return sb.toString();
   }
 }
 
 const ROOT_TYPES = /* GraphQL */`
-scalar JSON
+# Custom Scalar Types
+scalar NodeID
+scalar DiagramID
+scalar ExecutionID
+scalar PersonID
+scalar ApiKeyID
+scalar HandleID
+scalar ArrowID
+scalar DateTime
 
-input DomainDiagramInput {
-  nodes: [JSON!]!
-  handles: [JSON!]!
-  arrows: [JSON!]!
-  persons: [JSON!]!
-  apiKeys: [JSON!]!
-  metadata: JSON
-}
 
-input ExecutionOptionsInput {
-  mode: String
-  timeout: Float
-  variables: JSON
-  debug: Boolean
-}
-
-type Query {
-  """Get a diagram by ID"""
-  diagram(id: String!): DomainDiagram
-  """List all diagrams"""
-  diagrams: [DiagramMetadata!]!
-  """Get execution state by ID"""
-  execution(id: String!): ExecutionState
-}
-
-type Mutation {
-  """Create a diagram"""
-  createDiagram(input: DomainDiagramInput!): DomainDiagram!
-  """Update an existing diagram"""
-  updateDiagram(id: String!, input: DomainDiagramInput!): DomainDiagram!
-  """Delete a diagram"""
-  deleteDiagram(id: String!): Boolean!
-  """Execute a diagram"""
-  executeDiagram(diagramId: String!, options: ExecutionOptionsInput): ExecutionState!
-  """Stop an execution"""
-  stopExecution(executionId: String!): ExecutionState!
+# Root Subscription Type (to be extended by server)
+type Subscription {
+  """Real-time execution updates"""
+  executionUpdates(executionId: ID!): ExecutionState!
 }
 `;
 

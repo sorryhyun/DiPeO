@@ -3,18 +3,19 @@
  * into a format that can be saved to the backend
  */
 
-import { HandleDirection, DataType } from '@dipeo/domain-models';
+import { HandleDirection, DataType, NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@dipeo/domain-models';
+import { DomainNode, DomainArrow, DomainPerson, DomainHandle, DomainApiKey } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
 import { storeMapsToArrays } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // The serialized diagram should match the GraphQL schema format
 export interface SerializedDiagram {
-  nodes: any[];
-  arrows: any[];
-  persons: any[];
-  handles: any[];
-  apiKeys: any[];
+  nodes: DomainNode[];
+  arrows: DomainArrow[];
+  persons: DomainPerson[];
+  handles: DomainHandle[];
+  apiKeys: DomainApiKey[];
   metadata: {
     name?: string | null;
     description?: string | null;
@@ -31,11 +32,21 @@ export interface SerializedDiagram {
 /**
  * Cleans node data by removing React Flow UI-specific properties
  */
-function cleanNodeData(node: any): any {
+function cleanNodeData(node: DomainNode): DomainNode {
   const { data, ...nodeProps } = node;
   
+  // Handle case where data is null or undefined
+  if (!data) {
+    return {
+      ...nodeProps,
+      data: {
+        label: nodeProps.type || 'Node'
+      }
+    };
+  }
+  
   // Remove UI-specific properties from data (but keep flipped for visual layout)
-  const { _handles: _, inputs: _inputs, outputs: _outputs, type: _type, ...cleanData } = data as any;
+  const { _handles: _, inputs: _inputs, outputs: _outputs, type: _type, ...cleanData } = data as Record<string, unknown>;
   
   // Ensure required fields are present for validation
   const nodeData = {
@@ -89,8 +100,8 @@ function cleanNodeData(node: any): any {
 /**
  * Generates handles for a node based on its type configuration
  */
-function generateHandlesForNode(node: any): any[] {
-  const handles: any[] = [];
+function generateHandlesForNode(node: DomainNode): DomainHandle[] {
+  const handles: DomainHandle[] = [];
   const nodeType = node.type as string;
   const config = UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS];
   
@@ -100,10 +111,10 @@ function generateHandlesForNode(node: any): any[] {
   
   // Generate input handles
   if (config.handles.input) {
-    config.handles.input.forEach((handleConfig: any) => {
+    config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
       const handleId = `${node.id}:${handleConfig.id}`;
       handles.push({
-        id: handleId,
+        id: handleId as import('@dipeo/domain-models').HandleID,
         nodeId: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.INPUT,
@@ -115,10 +126,10 @@ function generateHandlesForNode(node: any): any[] {
   
   // Generate output handles
   if (config.handles.output) {
-    config.handles.output.forEach((handleConfig: any) => {
+    config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
       const handleId = `${node.id}:${handleConfig.id}`;
       handles.push({
-        id: handleId,
+        id: handleId as import('@dipeo/domain-models').HandleID,
         nodeId: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.OUTPUT,
@@ -139,27 +150,27 @@ function getStoreStateWithMaps() {
   
   // Direct access to store properties should give us Maps
   // But in case they're serialized, we'll ensure they're Maps
-  const ensureMap = (value: any): Map<any, any> => {
+  const ensureMap = <K, V>(value: unknown): Map<K, V> => {
     if (value instanceof Map) {
       return value;
     }
     // Handle devtools serialized format
-    if (value && typeof value === 'object' && value._type === 'Map' && Array.isArray(value._value)) {
-      return new Map(value._value);
+    if (value && typeof value === 'object' && '_type' in value && value._type === 'Map' && '_value' in value && Array.isArray(value._value)) {
+      return new Map(value._value) as Map<K, V>;
     }
     // If it's a plain object, try to convert it
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return new Map(Object.entries(value));
+      return new Map(Object.entries(value)) as Map<K, V>;
     }
-    return new Map();
+    return new Map<K, V>();
   };
   
   return {
-    nodes: ensureMap(state.nodes),
-    handles: ensureMap(state.handles),
-    arrows: ensureMap(state.arrows),
-    persons: ensureMap(state.persons),
-    apiKeys: ensureMap(state.apiKeys)
+    nodes: ensureMap<NodeID, DomainNode>(state.nodes),
+    handles: ensureMap<HandleID, DomainHandle>(state.handles),
+    arrows: ensureMap<ArrowID, DomainArrow>(state.arrows),
+    persons: ensureMap<PersonID, DomainPerson>(state.persons),
+    apiKeys: ensureMap<ApiKeyID, DomainApiKey>(state.apiKeys)
   };
 }
 
@@ -189,7 +200,7 @@ export function serializeDiagram(): SerializedDiagram {
 
   // Clean node data and generate handles
   const cleanNodes = diagramArrays.nodes?.map(node => cleanNodeData(node)) || [];
-  const generatedHandles: any[] = [];
+  const generatedHandles: DomainHandle[] = [];
   
   // Generate handles for all nodes
   cleanNodes.forEach(node => {

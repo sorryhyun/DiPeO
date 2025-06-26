@@ -23,7 +23,7 @@ export interface Snapshot {
 
 interface Transaction {
   id: string;
-  changes: any[];
+  changes: unknown[];
   timestamp: number;
 }
 

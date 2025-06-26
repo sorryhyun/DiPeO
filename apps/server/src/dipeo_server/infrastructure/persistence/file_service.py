@@ -67,10 +67,8 @@ class FileService(BaseService):
         if file_path.suffix.lower() == ".docx":
             # For docx, we'll use sync method in executor
             loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
-                None, self._read_docx, file_path
-            )
-        elif file_path.suffix.lower() == ".json":
+            return await loop.run_in_executor(None, self._read_docx, file_path)
+        if file_path.suffix.lower() == ".json":
             async with aiofiles.open(file_path, encoding=encoding) as f:
                 content = await f.read()
                 return json.loads(content)
@@ -81,9 +79,7 @@ class FileService(BaseService):
         elif file_path.suffix.lower() == ".csv":
             # For csv, we'll use sync method in executor
             loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
-                None, self._read_csv, file_path, encoding
-            )
+            return await loop.run_in_executor(None, self._read_csv, file_path, encoding)
         else:
             async with aiofiles.open(file_path, encoding=encoding) as f:
                 return await f.read()

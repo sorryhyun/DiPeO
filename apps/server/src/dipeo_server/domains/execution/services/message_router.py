@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 class MessageRouter:
-
     def __init__(self):
         self.worker_id = "single-worker"
         self.local_handlers: Dict[str, Callable] = {}

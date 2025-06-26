@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Hash } from 'lucide-react';
 import { DomainPerson } from '@/core/types';
-import { ConversationMessage } from '@/features/execution-monitor/types';
+import { ConversationMessage } from '@/core/types/conversation';
 
 interface MessageListProps {
   messages: ConversationMessage[];

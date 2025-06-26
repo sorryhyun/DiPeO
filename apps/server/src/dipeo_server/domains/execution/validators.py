@@ -9,7 +9,6 @@ from dipeo_server.domains.apikey import APIKeyService
 
 
 class DiagramValidator:
-
     def __init__(self, api_key_service: Optional[APIKeyService] = None):
         self.api_key_service = api_key_service
 
@@ -77,14 +76,18 @@ class DiagramValidator:
 
         if self.api_key_service and diagram.persons:
             for person in diagram.persons:
-                if person.api_key_id and not self.api_key_service.get_api_key(person.api_key_id):
+                if person.api_key_id and not self.api_key_service.get_api_key(
+                    person.api_key_id
+                ):
                     errors.append(
                         f"Person '{person.id}' references non-existent API key '{person.api_key_id}'"
                     )
 
         return errors
 
-    def _validate_backend_format(self, diagram: Dict[str, Any], context: str = "backend") -> List[str]:
+    def _validate_backend_format(
+        self, diagram: Dict[str, Any], context: str = "backend"
+    ) -> List[str]:
         errors = []
 
         nodes = diagram.get("nodes", {})
@@ -97,9 +100,16 @@ class DiagramValidator:
 
         node_ids = set(nodes.keys())
         if context == "execution":
-            start_nodes = [nid for nid, node in nodes.items() if node.get("type") == "start" or node.get("data", {}).get("type") == "start"]
+            start_nodes = [
+                nid
+                for nid, node in nodes.items()
+                if node.get("type") == "start"
+                or node.get("data", {}).get("type") == "start"
+            ]
             if not start_nodes:
-                errors.append("Diagram must have at least one 'start' node for execution")
+                errors.append(
+                    "Diagram must have at least one 'start' node for execution"
+                )
 
         arrows = diagram.get("arrows", {})
         if isinstance(arrows, dict):

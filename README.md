@@ -25,13 +25,13 @@ That's it! This single command will:
 
 ## Essential Scripts
 
-### `./dev.sh` - More Control
+### Makefile Commands
 ```bash
-./dev.sh --all                    # Start both services
-./dev.sh --frontend --watch       # Frontend with hot reload
-./dev.sh --backend                # Backend only
-./dev.sh --generate               # Regenerate code
-./dev.sh --install-cli            # Setup CLI tool
+make dev-server                   # Start backend server
+make dev-web                      # Start frontend server
+make build-all                    # Build all components
+make codegen                      # Generate code from domain models
+make install-all                  # Install all dependencies
 ```
 
 ### `./dipeo` - Run Diagrams

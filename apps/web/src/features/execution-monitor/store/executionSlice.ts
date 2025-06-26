@@ -163,6 +163,7 @@ export const createExecutionSlice: StateCreator<
     state.execution.isRunning = false;
     state.execution.isPaused = false;
     state.execution.runningNodes.clear();
+    state.execution.nodeStates.clear(); // Clear all node highlights
     state.executionReadOnly = false;
   }),
   

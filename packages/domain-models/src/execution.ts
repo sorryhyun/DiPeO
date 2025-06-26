@@ -5,7 +5,7 @@
  */
 
 import type { NodeID, DiagramID } from './diagram.js';
-import type { Message, MemoryState, MemoryConfig } from './person.js';
+import type { Message, MemoryState, MemoryConfig } from './conversation.js';
 
 // Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };

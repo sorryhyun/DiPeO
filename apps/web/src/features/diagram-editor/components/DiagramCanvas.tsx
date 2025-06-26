@@ -26,11 +26,9 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
 import { useCanvasContext } from "../contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
-import ContextMenu from "./controls/ContextMenu";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
-import { DomainArrow, arrowId, nodeId } from '@/core/types';
-import { NodeType } from '@dipeo/domain-models';
+import { DomainArrow, arrowId, nodeId, NodeID, PersonID } from '@/core/types';
 import { arrowToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
 
 // Lazy‑loaded tabs
@@ -103,6 +101,7 @@ function useCommonFlowProps({
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
     const edges = arrows.map(arrow => arrowToReact(arrow)) as Edge[];
+
     
     const baseProps = {
       fitView: false, // We'll handle fitView manually
@@ -136,23 +135,18 @@ function useCommonFlowProps({
       // Remove drag threshold for immediate interaction
       nodeDragThreshold: 0,
       selectNodesOnDrag: false,
-      // Prevent delay on selection
-      // connectionMode: 'loose', // Removed due to type incompatibility
     } as const;
 
     return {
       ...baseProps,
       onNodeClick: (event: React.MouseEvent, n: ReactFlowNode) => {
-        // Only select on left click for moving/connecting
-        if (event.button === 0) {
+        // Enable left-click selection only for person nodes
+        if (n.type === 'person') {
           selectNode(n.id);
         }
+        // For other nodes, left-click is disabled - properties can be opened via right-click
       },
       onEdgeClick: (event: React.MouseEvent, e: Edge) => {
-        // Only select on left click
-        if (event.button === 0) {
-          selectArrow(e.id);
-        }
       },
       onNodeDragStart,
       onNodeDragStop,
@@ -166,6 +160,20 @@ function useCommonFlowProps({
         // Ensure properties tab is shown
         const { setDashboardTab } = useUnifiedStore.getState();
         setDashboardTab('properties');
+        
+        // If it's a person_job node, also show which person it's assigned to
+        if (node.type === 'person_job' && node.data.person) {
+          // This will trigger highlighting of the person in the sidebar via the store
+          const { select } = useUnifiedStore.getState();
+          setTimeout(() => {
+            // Brief highlight of the person
+            select(node.data.person as PersonID, 'person');
+            setTimeout(() => {
+              // Return to node selection
+              select(node.id as NodeID, 'node');
+            }, 1000);
+          }, 100);
+        }
       },
       onEdgeContextMenu: (
         event: React.MouseEvent,
@@ -183,10 +191,6 @@ function useCommonFlowProps({
           evt.preventDefault();
         }
         clearSelection();
-        // Disable context menu
-        // if (evt && 'preventDefault' in evt) {
-        //   onPaneContextMenu?.(evt as React.MouseEvent);
-        // }
       },
       className: executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100",
     } satisfies Parameters<typeof ReactFlow>[0];
@@ -211,9 +215,7 @@ function useCommonFlowProps({
 }
 
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
-  /** --------------------------------------------------
-   * Stores & Hooks
-   * --------------------------------------------------*/
+   // Stores & Hooks
   const context = useCanvasContext();
   
   // Extract from canvas hook
@@ -241,14 +243,13 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   const {
     selectedNodeId,
     selectedArrowId,
+    selectedPersonId,
     selectNode,
     selectArrow,
     clearSelection,
   } = context;
 
-  /** --------------------------------------------------
-   * React Flow instance helpers
-   * --------------------------------------------------*/
+   // React Flow instance helpers
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   
@@ -268,13 +269,10 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   
   // Fit view when nodes are loaded from URL
   useEffect(() => {
-    // Check if nodes were just loaded (count increased from 0)
     if (rfInstance && nodes.length > 0 && prevNodeCount.current === 0 && !hasFitView.current) {
-      // Check if we're loading from URL
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.has('diagram')) {
         hasFitView.current = true;
-        // Give ReactFlow a moment to position the nodes
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             rfInstance.fitView({ padding: 0.3, duration: 200, maxZoom: 0.8 });
@@ -308,6 +306,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     [onNodeDrop, projectPosition, rfInstance]
   );
 
+
   /** --------------------------------------------------
    * Memoised ReactFlow props shared by both modes
    * --------------------------------------------------*/
@@ -340,31 +339,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   );
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
-  /** --------------------------------------------------
-   * Render helpers
-   * --------------------------------------------------*/
-  const renderContextMenu = () =>
-    showContextMenu && (
-      <Suspense fallback={null}>
-        <ContextMenu
-          position={contextMenu!.position!}
-          target={contextMenu!.target || "pane"}
-          selectedNodeId={selectedNodeId ? nodeId(selectedNodeId) : null}
-          selectedArrowId={selectedArrowId ? arrowId(selectedArrowId) : null}
-          containerRef={flowWrapperRef as React.RefObject<HTMLDivElement>}
-          onAddNode={(type, position) => addNode(type, position)}
-          onAddPerson={handleAddPerson}
-          onDeleteNode={deleteNode}
-          onDeleteArrow={deleteArrow}
-          onClose={closeContextMenu!}
-          projectPosition={projectPosition}
-        />
-      </Suspense>
-    );
-
-  /** --------------------------------------------------
-   * JSX
-   * --------------------------------------------------*/
+  //* JSX
   return (
     <div className="h-full flex flex-col">
       {executionMode ? (
@@ -373,11 +348,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           <Panel defaultSize={70} minSize={20}>
             {/* Diagram view in execution mode */}
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
-              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.7 }} onInit={handleInit} onViewportChange={handleViewportChange} />
+              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-              {/* Context menu disabled */}
-              {/* {renderContextMenu()} */}
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
@@ -401,11 +374,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         <PanelGroup direction="vertical">
           <Panel defaultSize={65} minSize={30}>
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
-              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.7 }} onInit={handleInit} onViewportChange={handleViewportChange} />
+              <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
               <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-              {/* Context menu disabled */}
-              {/* {renderContextMenu()} */}
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />

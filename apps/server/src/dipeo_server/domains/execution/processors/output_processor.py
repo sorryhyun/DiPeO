@@ -64,13 +64,13 @@ class OutputProcessor:
         if conversation_history is not None:
             output["conversation_history"] = conversation_history
         if token_count > 0:
-            output["token_count"] = token_count
+            output["token_count"] = str(token_count)
         if input_tokens > 0:
-            output["input_tokens"] = input_tokens
+            output["input_tokens"] = str(input_tokens)
         if output_tokens > 0:
-            output["output_tokens"] = output_tokens
+            output["output_tokens"] = str(output_tokens)
         if cached_tokens > 0:
-            output["cached_tokens"] = cached_tokens
+            output["cached_tokens"] = str(cached_tokens)
         if model:
             output["model"] = model
 
@@ -90,17 +90,17 @@ class OutputProcessor:
             output["conversation_history"] = conversation_history
         if token_usage:
             if token_usage.total > 0:
-                output["token_count"] = token_usage.total
+                output["token_count"] = str(token_usage.total)
             if token_usage.input > 0:
-                output["input_tokens"] = token_usage.input
+                output["input_tokens"] = str(token_usage.input)
             if token_usage.output > 0:
-                output["output_tokens"] = token_usage.output
+                output["output_tokens"] = str(token_usage.output)
             if token_usage.cached > 0:
-                output["cached_tokens"] = token_usage.cached
+                output["cached_tokens"] = str(token_usage.cached)
         if model:
             output["model"] = model
         if execution_time is not None:
-            output["execution_time"] = execution_time
+            output["execution_time"] = str(execution_time)
 
         return output
 
@@ -110,8 +110,8 @@ class OutputProcessor:
             from dipeo_domain import TokenUsage
 
             return TokenUsage(
-                input=value.get("input_tokens", 0),
-                output=value.get("output_tokens", 0),
-                cached=value.get("cached_tokens", 0),
+                input=int(value.get("input_tokens", 0)),
+                output=int(value.get("output_tokens", 0)),
+                cached=int(value.get("cached_tokens", 0)),
             )
         return None

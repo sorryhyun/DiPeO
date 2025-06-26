@@ -56,53 +56,88 @@ class Subscription:
     async def execution_updates(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
     ) -> AsyncGenerator[ExecutionStateType, None]:
-        """Streams execution state changes."""
+        """Streams execution state changes using push-based updates."""
         context: GraphQLContext = info.context
         state_store = context.state_store
+        event_bus = context.event_bus
 
         logger.info(f"Starting execution updates subscription for {execution_id}")
 
-        last_update = 0
-        retries = 0
-        max_retries = 50  # 5 seconds total (50 * 100ms)
+        # First, try to get from cache, then fall back to DB for initial state
+        state = await state_store.get_state_from_cache(execution_id)
+        if not state:
+            # Fall back to database for historical executions
+            state = await state_store.get_state(execution_id)
+        
+        if state:
+            yield state
+            
+            # If already completed, return immediately
+            if state.status in [
+                ExecutionStatus.COMPLETED,
+                ExecutionStatus.FAILED,
+                ExecutionStatus.ABORTED,
+            ]:
+                logger.info(
+                    f"Execution {execution_id} already completed with status: {state.status}"
+                )
+                return
 
+        # Subscribe to real-time updates via EventBus
+        updates_queue = asyncio.Queue()
+        
+        async def handle_update(event: dict) -> None:
+            await updates_queue.put(event)
+        
+        channel = f"execution:{execution_id}"
+        subscription_id = await event_bus.subscribe(channel, handle_update)
+        
         try:
             while True:
-                # Get latest state
-                state = await state_store.get_state(execution_id)
-
-                if state:
-                    retries = 0  # Reset retries on successful fetch
-                    yield state
-
-                    # Check if execution is complete
-                    if state.status in [
-                        ExecutionStatus.COMPLETED,
-                        ExecutionStatus.FAILED,
-                        ExecutionStatus.ABORTED,
-                    ]:
-                        logger.info(
-                            f"Execution {execution_id} completed with status: {state.status}"
-                        )
-                        break
-                else:
-                    # No state found - might be a race condition
-                    retries += 1
-                    if retries > max_retries:
-                        logger.error(
-                            f"Execution {execution_id} not found after {max_retries} retries"
-                        )
-                        raise ValueError(f"Execution {execution_id} not found")
-
-                # Poll interval (100ms)
-                await asyncio.sleep(0.1)
-
+                try:
+                    # Wait for updates with a timeout for connection health
+                    update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
+                    
+                    # Check if update contains state snapshot
+                    if "state_snapshot" in update and update["state_snapshot"]:
+                        # Use state snapshot from event to avoid DB/cache query
+                        snapshot = update["state_snapshot"]
+                        # We need to get the full state, but we can optimize by checking cache first
+                        state = await state_store.get_state_from_cache(execution_id)
+                        if state:
+                            yield state
+                    else:
+                        # Fetch the latest state from cache after receiving an update
+                        state = await state_store.get_state_from_cache(execution_id)
+                        if state:
+                            yield state
+                        
+                        # Check if execution is complete
+                        if state.status in [
+                            ExecutionStatus.COMPLETED,
+                            ExecutionStatus.FAILED,
+                            ExecutionStatus.ABORTED,
+                        ]:
+                            logger.info(
+                                f"Execution {execution_id} completed with status: {state.status}"
+                            )
+                            break
+                            
+                except asyncio.TimeoutError:
+                    # Send periodic heartbeat by re-fetching state from cache
+                    state = await state_store.get_state_from_cache(execution_id)
+                    if state:
+                        yield state
+                        
         except asyncio.CancelledError:
             logger.info(f"Subscription cancelled for execution {execution_id}")
             raise
         except Exception as e:
             logger.error(f"Error in execution stream for {execution_id}: {e}")
             raise
+        finally:
+            # Cleanup subscription
+            await event_bus.unsubscribe(subscription_id)
 
     @strawberry.subscription
     async def execution_events(
@@ -111,93 +146,112 @@ class Subscription:
         execution_id: ExecutionID,
         event_types: Optional[List[EventType]] = None,
     ) -> AsyncGenerator[ExecutionEventType, None]:
-        """Streams specific execution event types."""
+        """Streams specific execution event types using push-based updates."""
         context: GraphQLContext = info.context
         state_store = context.state_store
+        event_bus = context.event_bus
 
         logger.info(f"Starting event stream subscription for {execution_id}")
 
         sequence = 0
         last_node_states = {}
+        
+        # Process initial state from cache first
+        state = await state_store.get_state_from_cache(execution_id)
+        if not state:
+            # Fall back to database for historical executions
+            state = await state_store.get_state(execution_id)
+            
+        if state:
+            current_node_states = state.node_states or {}
+            last_node_states = {
+                nid: ns for nid, ns in current_node_states.items()
+            }
+
+        # Subscribe to real-time updates
+        updates_queue = asyncio.Queue()
+        
+        async def handle_update(event: dict) -> None:
+            await updates_queue.put(event)
+        
+        channel = f"execution:{execution_id}"
+        subscription_id = await event_bus.subscribe(channel, handle_update)
 
         try:
             while True:
-                # Get latest state
-                state = await state_store.get_state(execution_id)
-
-                if state:
-                    current_node_states = state.node_states or {}
-
-                    # Check for node status changes
-                    for node_id, node_state in current_node_states.items():
-                        old_state = last_node_states.get(node_id)
-
-                        if not old_state or old_state.status != node_state.status:
-                            sequence += 1
-                            event_type = _get_event_type_for_node_status(
-                                node_state.status
-                            )
-
-                            if event_types and event_type not in event_types:
-                                continue
-
-                            node_output = state.node_outputs.get(node_id)
-                            output_value = node_output.value if node_output else None
-
+                try:
+                    # Wait for updates
+                    update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
+                    
+                    # Process update based on type
+                    if update.get("type") == "node_start":
+                        sequence += 1
+                        event_type = EventType.NODE_STARTED
+                        
+                        if not event_types or event_type in event_types:
                             yield ExecutionEventType(
                                 execution_id=execution_id,
                                 sequence=sequence,
                                 event_type=event_type,
-                                node_id=NodeID(node_id),
-                                timestamp=node_state.ended_at
-                                or node_state.started_at
-                                or datetime.now().isoformat(),
+                                node_id=NodeID(update["node_id"]),
+                                timestamp=datetime.now().isoformat(),
+                                data={"status": "running"},
+                            )
+                    
+                    elif update.get("type") == "node_complete":
+                        sequence += 1
+                        status = update.get("status", "completed")
+                        event_type = {
+                            "completed": EventType.NODE_COMPLETED,
+                            "failed": EventType.NODE_FAILED,
+                            "skipped": EventType.NODE_SKIPPED,
+                        }.get(status, EventType.NODE_COMPLETED)
+                        
+                        if not event_types or event_type in event_types:
+                            output_data = update.get("output", {})
+                            yield ExecutionEventType(
+                                execution_id=execution_id,
+                                sequence=sequence,
+                                event_type=event_type,
+                                node_id=NodeID(update["node_id"]),
+                                timestamp=datetime.now().isoformat(),
                                 data={
-                                    "status": node_state.status.value,
-                                    "output": output_value,
-                                    "error": node_state.error,
+                                    "status": status,
+                                    "output": output_data.get("value") if isinstance(output_data, dict) else None,
+                                    "error": update.get("error"),
                                 },
                             )
-
-                    # Update tracked states (deep copy to avoid serialization issues)
-                    last_node_states = {
-                        nid: ns for nid, ns in current_node_states.items()
-                    }
-
-                    if state.status in [
-                        ExecutionStatus.COMPLETED,
-                        ExecutionStatus.FAILED,
-                        ExecutionStatus.ABORTED,
-                    ]:
+                    
+                    elif update.get("type") == "execution_complete":
                         sequence += 1
+                        status = update.get("status", "completed")
                         final_event_type = {
-                            ExecutionStatus.COMPLETED: EventType.EXECUTION_COMPLETED,
-                            ExecutionStatus.FAILED: EventType.EXECUTION_FAILED,
-                            ExecutionStatus.ABORTED: EventType.EXECUTION_ABORTED,
-                        }.get(state.status, EventType.EXECUTION_UPDATE)
-
+                            "completed": EventType.EXECUTION_COMPLETED,
+                            "failed": EventType.EXECUTION_FAILED,
+                            "aborted": EventType.EXECUTION_ABORTED,
+                        }.get(status, EventType.EXECUTION_UPDATE)
+                        
                         if not event_types or final_event_type in event_types:
                             yield ExecutionEventType(
                                 execution_id=execution_id,
                                 sequence=sequence,
                                 event_type=final_event_type,
                                 node_id=None,
-                                timestamp=datetime.fromtimestamp(
-                                    state.last_updated
-                                ).isoformat(),
+                                timestamp=datetime.now().isoformat(),
                                 data={
-                                    "status": state.status.value,
-                                    "error": state.error,
+                                    "status": status,
+                                    "error": update.get("error"),
                                 },
                             )
-
+                        
                         logger.info(
                             f"Event stream completed for execution {execution_id}"
                         )
                         break
-
-                # Poll interval (100ms)
-                await asyncio.sleep(0.1)
+                        
+                except asyncio.TimeoutError:
+                    # Heartbeat - no action needed
+                    pass
 
         except asyncio.CancelledError:
             logger.info(f"Event subscription cancelled for execution {execution_id}")
@@ -205,6 +259,9 @@ class Subscription:
         except Exception as e:
             logger.error(f"Error in event stream for {execution_id}: {e}")
             raise
+        finally:
+            # Cleanup subscription
+            await event_bus.unsubscribe(subscription_id)
 
     @strawberry.subscription
     async def node_updates(
@@ -213,84 +270,83 @@ class Subscription:
         execution_id: ExecutionID,
         node_types: Optional[List[NodeType]] = None,
     ) -> AsyncGenerator[NodeExecution, None]:
-        """Streams node execution updates with optional filtering."""
+        """Streams node execution updates with optional filtering using push-based updates."""
         context: GraphQLContext = info.context
         state_store = context.state_store
+        event_bus = context.event_bus
 
         logger.info(f"Starting node updates subscription for {execution_id}")
 
-        last_node_states = {}
-        retries = 0
-        max_retries = 50  # 5 seconds total (50 * 100ms)
+        # Subscribe to real-time updates
+        updates_queue = asyncio.Queue()
+        
+        async def handle_update(event: dict) -> None:
+            await updates_queue.put(event)
+        
+        channel = f"execution:{execution_id}"
+        subscription_id = await event_bus.subscribe(channel, handle_update)
 
         try:
             while True:
-                # Get latest state
-                state = await state_store.get_state(execution_id)
-
-                if state:
-                    retries = 0  # Reset retries on successful fetch
-                    # Check for node status changes
-                    current_node_states = state.node_states or {}
-
-                    for node_id, node_state in current_node_states.items():
-                        old_state = last_node_states.get(node_id)
-
-                        if not old_state or old_state.status != node_state.status:
-                            node_type = NodeType.job
-
-                            if node_types and node_type not in node_types:
-                                continue
-
-                            node_output = state.node_outputs.get(node_id)
-                            output_value = node_output.value if node_output else None
-                            tokens_used = None
-
-                            if node_state.token_usage:
-                                tokens_used = node_state.token_usage.total
-
-                            yield NodeExecution(
-                                execution_id=execution_id,
-                                node_id=NodeID(node_id),
-                                node_type=node_type,
-                                status=node_state.status,
-                                progress=None,
-                                output=output_value,
-                                error=node_state.error,
-                                tokens_used=tokens_used,
-                                timestamp=datetime.fromisoformat(
-                                    node_state.ended_at
-                                    or node_state.started_at
-                                    or datetime.now().isoformat()
-                                ),
-                            )
-
-                    # Update tracked states (deep copy to avoid serialization issues)
-                    last_node_states = {
-                        nid: ns for nid, ns in current_node_states.items()
-                    }
-
-                    # Check if execution is complete
-                    if state.status in [
-                        ExecutionStatus.COMPLETED,
-                        ExecutionStatus.FAILED,
-                        ExecutionStatus.ABORTED,
-                    ]:
+                try:
+                    # Wait for updates
+                    update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
+                    
+                    # Process node updates
+                    if update.get("type") in ["node_start", "node_complete"]:
+                        node_id = update.get("node_id")
+                        if not node_id:
+                            continue
+                            
+                        # Get node type from update or default to job
+                        node_type = NodeType(update.get("node_type", "job"))
+                        
+                        if node_types and node_type not in node_types:
+                            continue
+                        
+                        # Extract status from update
+                        if update.get("type") == "node_start":
+                            status = NodeExecutionStatus.RUNNING
+                        else:
+                            status_str = update.get("status", "completed")
+                            status = {
+                                "completed": NodeExecutionStatus.COMPLETED,
+                                "failed": NodeExecutionStatus.FAILED,
+                                "skipped": NodeExecutionStatus.SKIPPED,
+                            }.get(status_str, NodeExecutionStatus.COMPLETED)
+                        
+                        # Extract output and metadata
+                        output_data = update.get("output", {})
+                        output_value = None
+                        tokens_used = None
+                        
+                        if isinstance(output_data, dict):
+                            output_value = output_data.get("value")
+                            metadata = output_data.get("metadata", {})
+                            if "tokens_used" in metadata:
+                                tokens_used = metadata["tokens_used"]
+                        
+                        yield NodeExecution(
+                            execution_id=execution_id,
+                            node_id=NodeID(node_id),
+                            node_type=node_type,
+                            status=status,
+                            progress=None,
+                            output=output_value,
+                            error=update.get("error"),
+                            tokens_used=tokens_used,
+                            timestamp=datetime.now(),
+                        )
+                    
+                    elif update.get("type") == "execution_complete":
                         logger.info(
                             f"Node updates completed for execution {execution_id}"
                         )
                         break
-                else:
-                    # No state found - might be a race condition
-                    retries += 1
-                    if retries > max_retries:
-                        logger.error(
-                            f"Execution {execution_id} not found after {max_retries} retries"
-                        )
-                        raise ValueError(f"Execution {execution_id} not found")
-
-                # Poll interval (100ms)
-                await asyncio.sleep(0.1)
+                        
+                except asyncio.TimeoutError:
+                    # Heartbeat - no action needed
+                    pass
 
         except asyncio.CancelledError:
             logger.info(
@@ -300,6 +356,9 @@ class Subscription:
         except Exception as e:
             logger.error(f"Error in node update stream for {execution_id}: {e}")
             raise
+        finally:
+            # Cleanup subscription
+            await event_bus.unsubscribe(subscription_id)
 
     @strawberry.subscription
     async def diagram_changes(
@@ -325,7 +384,11 @@ class Subscription:
 
         try:
             while True:
-                state = await state_store.get_state(execution_id)
+                # Use cache for active execution monitoring
+                state = await state_store.get_state_from_cache(execution_id)
+                if not state:
+                    # Fall back to database if not in cache
+                    state = await state_store.get_state(execution_id)
 
                 # TODO: Check for actual interactive prompts in the state
                 # For now, this is a placeholder implementation

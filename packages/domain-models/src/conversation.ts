@@ -6,6 +6,7 @@ import { PersonID } from "./diagram.js";
  */
 export interface Message {
   id?: string;
+  personId: PersonID;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp?: string;
@@ -22,7 +23,6 @@ export interface ConversationMetadata {
 }
 
 export interface Conversation {
-  personId: PersonID;
   messages: Message[];
   metadata?: ConversationMetadata;
 }

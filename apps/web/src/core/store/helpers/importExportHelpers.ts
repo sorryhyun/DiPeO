@@ -1,5 +1,5 @@
 import {  DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson,  apiKeyId } from '@/core/types';
-import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, NodeType, ForgettingMode, Vec2 } from '@dipeo/domain-models';
+import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, type HandleID, NodeType, Vec2, LLMService } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
 import { generateNodeLabel } from '@/core/config/nodeMeta';
 import { getNodeDefaults } from '@/core/config';
@@ -9,7 +9,7 @@ export function createNode(type: NodeType, position: Vec2, initialData?: Record<
   const id = generateNodeId();
   const configDefaults = getNodeDefaults(type);
   
-  const label = initialData?.label || configDefaults.label || generateNodeLabel(type, id);
+  const label = String(initialData?.label || configDefaults.label || generateNodeLabel(type, id));
   
   return {
     id,
@@ -24,7 +24,7 @@ export function createNode(type: NodeType, position: Vec2, initialData?: Record<
       label,
     },
     displayName: label,
-    handles: [] // Handles will be added separately
+    handles: []
   };
 }
 
@@ -55,8 +55,8 @@ export function createImportState() {
       const arrowId = generateArrowId();
       arrows.set(arrowId, {
         id: arrowId,
-        source: source as any,
-        target: target as any,
+        source: source as HandleID,
+        target: target as HandleID,
         data: data || {},
       });
       return arrowId;
@@ -67,11 +67,10 @@ export function createImportState() {
       persons.set(personId, {
         id: personId,
         label,
-        apiKeyId: '',
-        forgettingMode: ForgettingMode.NO_FORGET,
-        service: service as any,
+        apiKeyId: null,
+        service: service as LLMService,
         model,
-        systemPrompt: '',
+        systemPrompt: null,
         type: 'person',
         maskedApiKey: null
       });
@@ -83,7 +82,7 @@ export function createImportState() {
       apiKeys.set(id, {
         id,
         label,
-        service: service as any,
+        service: service as LLMService,
         maskedKey: '••••••••'
       });
       return id;

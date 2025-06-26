@@ -68,7 +68,7 @@ const TopBar = () => {
             onClick={() => {
               // Load quicksave.json by updating the URL parameter and refreshing
               const url = new URL(window.location.href);
-              url.searchParams.set('diagram', 'quicksave');
+              url.searchParams.set('diagram', 'native/quicksave');
               
               // Loading quicksave
               
@@ -118,6 +118,9 @@ const TopBar = () => {
             onClick={() => {
               if (activeCanvas === 'execution') {
                 setActiveCanvas('main');
+                // Clear execution state when leaving execution mode
+                const { stopExecution } = useUnifiedStore.getState();
+                stopExecution();
                 // When leaving execution mode, readOnly remains controlled by monitor mode
               } else {
                 setActiveCanvas('execution');

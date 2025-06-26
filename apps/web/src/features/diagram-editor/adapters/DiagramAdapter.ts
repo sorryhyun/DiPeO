@@ -143,8 +143,8 @@ export class DiagramAdapter {
       type: graphQLTypeToNodeKind(node.type),
       position: { ...node.position }, // Clone to prevent mutations
       data: {
-        ...node.data,
-        label: ((node.data as Record<string, unknown>).label as string) || '',
+        ...(node.data || {}), // Spread all existing node data first
+        label: ((node.data as Record<string, unknown>)?.label as string) || node.displayName || '', // Use label from data or displayName as fallback
         inputs,
         outputs,
         _handles: handles // Store original handles for reference

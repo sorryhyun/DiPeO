@@ -99,7 +99,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
             offsetPercentage = 50;
           } else {
             // Distribute evenly with padding from edges
-            const padding = 20; // percentage from edge
+            const padding = 35; // significantly increased percentage from edge for better spacing
             const availableSpace = 100 - (2 * padding);
             const spacing = availableSpace / (count - 1);
             offsetPercentage = padding + (index * spacing);
@@ -173,12 +173,12 @@ const NodeHeader = React.memo(({
   icon, 
   label, 
   configLabel,
-  isExecutionMode 
+  _isExecutionMode 
 }: { 
   icon: string;
   label?: string;
   configLabel: string;
-  isExecutionMode: boolean;
+  _isExecutionMode: boolean;
 }) => (
   <div className="flex items-center justify-center gap-2 mb-2">
     <span className="text-xl">{icon}</span>
@@ -192,16 +192,42 @@ NodeHeader.displayName = 'NodeHeader';
 // Memoized node body component
 const NodeBody = React.memo(({ 
   data, 
-  isExecutionMode 
+  _isExecutionMode 
 }: { 
   data: Array<[string, unknown]>;
-  isExecutionMode: boolean;
+  _isExecutionMode: boolean;
 }) => (
   <div className="space-y-1">
     {data.map(([key, value]) => {
       // Skip rendering objects
       if (typeof value === 'object' && value !== null) {
         return null;
+      }
+      
+      // Special handling for conditionType - use emojis
+      if (key === 'conditionType') {
+        const emoji = value === 'expression' ? '📝' : 
+                     value === 'detect_max_iterations' ? '🔄' : 
+                     value === 'simple' ? '✓' : 
+                     value === 'complex' ? '⚙️' : '🔀';
+        const displayText = value === 'detect_max_iterations' ? 'Max Iter' : String(value);
+        return (
+          <div key={key} className="text-sm text-black font-medium text-center">
+            <span className="text-xs text-gray-500">type:</span> {emoji} {displayText}
+          </div>
+        );
+      }
+      
+      // Special handling for forgettingMode - use emojis
+      if (key === 'forgettingMode') {
+        const emoji = value === 'keep_first' ? '📌' : 
+                     value === 'keep_last' ? '📍' : 
+                     value === 'summarize' ? '📄' : '❓';
+        return (
+          <div key={key} className="text-sm text-black font-medium text-center">
+            <span className="text-xs text-gray-500">mode:</span> {emoji} {String(value)}
+          </div>
+        );
       }
       
       const displayValue = typeof value === 'string' && value.length > 20 
@@ -232,6 +258,11 @@ export function BaseNode({
   const { activeCanvas } = useUIState();
   const isExecutionMode = activeCanvas === 'execution';
   
+  // Get selected person from store to highlight person_job nodes
+  const selectedPersonId = useUnifiedStore(state => 
+    state.selectedType === 'person' ? state.selectedId : null
+  );
+  
   // Use custom hooks
   const nId = nodeId(id);
   const status = useNodeStatus(id);
@@ -244,14 +275,26 @@ export function BaseNode({
     updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
   }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
+  
+  // Check if this person_job node is assigned to the selected person
+  const isAssignedToSelectedPerson = useMemo(() => {
+    return type === 'person_job' && 
+           selectedPersonId && 
+           data?.person === selectedPersonId;
+  }, [type, selectedPersonId, data?.person]);
 
   
   // Determine node appearance based on state using data attributes
   const nodeClassNames = useMemo(() => {
-    const baseClasses = 'relative p-3 border-2 rounded-lg transition-all duration-200 min-w-32';
+    // Smaller sizing for start and endpoint nodes
+    const isSmallNode = type === 'start' || type === 'endpoint';
+    const padding = isSmallNode ? 'p-4' : 'p-5';
+    const minWidth = isSmallNode ? 'min-w-40' : 'min-w-48';
+    
+    const baseClasses = `relative ${padding} border-2 rounded-lg transition-all duration-200 ${minWidth}`;
     const executionClasses = isExecutionMode ? 'shadow-lg' : 'shadow-sm';
     return `${baseClasses} ${executionClasses} ${className || ''}`;
-  }, [isExecutionMode, className]);
+  }, [type, isExecutionMode, className]);
   
   // Memoize data attributes for dynamic styling
   const dataAttributes = useMemo(() => ({
@@ -285,6 +328,13 @@ export function BaseNode({
       {/* Status indicators */}
       <StatusIndicator status={status} />
       
+      {/* Person assignment indicator */}
+      {isAssignedToSelectedPerson && (
+        <div className="absolute -top-3 -left-3 w-8 h-8 bg-purple-500 rounded-full animate-pulse flex items-center justify-center">
+          <span className="text-white text-lg">👤</span>
+        </div>
+      )}
+      
       {/* Flip button */}
       {selected && showFlipButton && !status.isRunning && (
         <Button
@@ -305,12 +355,12 @@ export function BaseNode({
           icon={config.icon}
           label={String(data.label || data.name || '')}
           configLabel={config.label}
-          isExecutionMode={isExecutionMode}
+          _isExecutionMode={isExecutionMode}
         />
         
         {/* Node data display - only show if there's data to display */}
         {displayData.length > 0 && (
-          <NodeBody data={displayData} isExecutionMode={isExecutionMode} />
+          <NodeBody data={displayData} _isExecutionMode={isExecutionMode} />
         )}
         
         {/* Progress or error message */}
@@ -336,6 +386,7 @@ export function BaseNode({
           position={handle.position}
           offset={handle.offset}
           color={handle.color}
+          nodeType={type}
           className={status.isRunning ? 'animate-pulse' : ''}
         />
       ))}

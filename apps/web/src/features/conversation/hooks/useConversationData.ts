@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useGetConversationsQuery } from '@/__generated__/graphql';
-import type { ConversationFilters, ConversationMessage, PersonMemoryConfig, PersonMemoryState } from '@/features/execution-monitor/types';
+import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/core/types/conversation';
 import type { PersonID } from '@dipeo/domain-models';
 
 const MESSAGES_PER_PAGE = 50;
@@ -62,10 +62,10 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       // Transform to PersonMemoryState format
       Object.entries(groupedByPerson).forEach(([pid, convs]) => {
         transformed[pid as PersonID] = {
-          personId: pid as PersonID,
           messages: convs.map((conv: any) => ({
             id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
             role: 'assistant' as const,
+            personId: pid as PersonID,
             content: conv.assistantResponse || '',
             timestamp: conv.timestamp,
             tokenCount: conv.tokenUsage?.total || 0,

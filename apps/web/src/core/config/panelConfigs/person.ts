@@ -1,6 +1,6 @@
 import type { PanelLayoutConfig, PersonFormData } from '@/features/diagram-editor/types/panel';
 import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument, GetAvailableModelsDocument } from '@/__generated__/graphql';
+import { GetApiKeysDocument, GetAvailableModelsDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
 
 interface ExtendedPersonFormData extends PersonFormData {
   apiKeyId?: string;
@@ -24,11 +24,11 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
       label: 'API Key',
       options: async () => {
         try {
-          const { data } = await apolloClient.query({
+          const { data } = await apolloClient.query<GetApiKeysQuery>({
             query: GetApiKeysDocument,
             fetchPolicy: 'network-only'
           });
-          return data.apiKeys.map((key: any) => ({
+          return data.apiKeys.map((key) => ({
             value: key.id,
             label: `${key.label} (${key.service})`
           }));
@@ -50,11 +50,11 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
         }
         try {
           // Get service from selected API key
-          const { data: apiKeysData } = await apolloClient.query({
+          const { data: apiKeysData } = await apolloClient.query<GetApiKeysQuery>({
             query: GetApiKeysDocument,
             fetchPolicy: 'cache-first'
           });
-          const selectedKey = apiKeysData.apiKeys.find((k: any) => k.id === data.apiKeyId);
+          const selectedKey = apiKeysData.apiKeys.find((k) => k.id === data.apiKeyId);
           if (!selectedKey) {
             return [];
           }

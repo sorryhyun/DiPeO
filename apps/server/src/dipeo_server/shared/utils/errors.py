@@ -79,9 +79,7 @@ def handle_service_exceptions(func):
         except AgentDiagramException:
             raise
         except Exception as e:
-            raise AgentDiagramException(
-                f"Unexpected error in {func.__name__}: {e!s}"
-            )
+            raise AgentDiagramException(f"Unexpected error in {func.__name__}: {e!s}")
 
     return wrapper
 
@@ -194,6 +192,7 @@ def handle_internal_errors(func: Callable) -> Callable:
 
 
 # Service normalization utilities
+
 
 def normalize_service_name(service: str) -> str:
     """Normalize service name to provider name using centralized mapping.

@@ -39,7 +39,6 @@ query GetDiagram($id: DiagramID!) {
       model
       systemPrompt
       apiKeyId
-      forgettingMode
       maskedApiKey
       type
     }
@@ -96,7 +95,9 @@ mutation CreateDiagram($input: CreateDiagramInput!) {
 mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
   executeDiagram(data: $data) {
     success
-    executionId
+    execution {
+      id
+    }
     message
     error
   }

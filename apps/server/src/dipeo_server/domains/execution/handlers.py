@@ -2,18 +2,21 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
 
 from dipeo_domain.models import DomainNode, NodeExecutionStatus, NodeOutput
 
 from .context import ExecutionContext
 
+if TYPE_CHECKING:
+    from .execution_view import NodeView
+
 _log = logging.getLogger(__name__)
 
 __all__ = [
     "DBOperation",
-    "node_handler",
     "get_handlers",
+    "node_handler",
 ]
 
 
@@ -23,35 +26,34 @@ class DBOperation(str, Enum):
     APPEND = "APPEND"
 
 
-# Generic decorator / registry utilities                                     #
-
-
 _HandlerFn = Callable[[DomainNode, ExecutionContext], Awaitable[NodeOutput]]
 _handlers: Dict[str, _HandlerFn] = {}
 
 
-def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:  # noqa: D401
+def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:
     """Return a wrapper that transparently manages node‑status lifecycle."""
 
-    async def _wrapped(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # type: ignore[override]
+    async def _wrapped(node: DomainNode, ctx: ExecutionContext, **kwargs: Any) -> NodeOutput:  # type: ignore[override]
         await ctx.state_store.update_node_status(
             ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
         )
         try:
-            output = await func(node, ctx)
+            output = await func(node, ctx, **kwargs)
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output
             )
             return output
         except Exception as exc:  # pylint: disable=broad-except
-            _log.exception("%s node %s failed", node_type.upper(), node.id, exc_info=exc)
+            _log.exception(
+                "%s node %s failed", node_type.upper(), node.id, exc_info=exc
+            )
             error_output = create_node_output({}, {"error": str(exc)})
             await ctx.state_store.update_node_status(
                 ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output
             )
             return error_output
 
-    _wrapped.__name__ = func.__name__  # keep tooling happy
+    _wrapped.__name__ = func.__name__
     return _wrapped
 
 
@@ -60,21 +62,17 @@ def node_handler(node_type: str) -> Callable[[_HandlerFn], _HandlerFn]:
 
     def decorator(func: _HandlerFn) -> _HandlerFn:
         _handlers[node_type] = _wrap_with_state(node_type, func)
-        return func  # func is returned unwrapped for type checkers/tests
+        return func
 
     return decorator
 
 
 def get_handlers() -> Dict[str, _HandlerFn]:
     """Return a *copy* of the internal handler registry."""
-    # Provide the *wrapped* callables – the engine never needs the raw ones.
     return {k: _wrap_with_state(k, v) for k, v in _handlers.items()}
 
 
-# Tiny helpers shared by multiple handlers                                    #
-
-
-def create_node_output(  # noqa: D401
+def create_node_output(
     value: Dict[str, Any] | None = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> NodeOutput:
@@ -88,13 +86,23 @@ async def _edge_inputs(
     ctx: ExecutionContext,
     *,
     as_dict: bool = True,
+    node_view: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """Collect downstream values from all incoming edges.
 
     Returned mapping keys are the *edge labels* (defaulting to "default").
     If *as_dict* is False, only the first matching payload is returned.
     """
-
+    
+    # If we have a node_view, use its condition-aware getter
+    if node_view is not None and hasattr(node_view, 'get_active_inputs'):
+        results = node_view.get_active_inputs()
+        if not as_dict and results:
+            return next(iter(results.values()), None)
+        return results
+    
+    # Fallback to legacy behavior if no node_view
+    # This path should be removed once all handlers are updated
     results: Dict[str, Any] = {}
     for edge in ctx.find_edges_to(node.id):
         src_id = edge.source.split(":")[0]
@@ -102,7 +110,9 @@ async def _edge_inputs(
         if not from_output:
             _log.warning("No output for source node %s → %s", src_id, node.id)
             continue
+
         label = edge.data.get("label", "default") if edge.data else "default"
+
         if label in from_output.value:
             results[label] = from_output.value[label]
         else:
@@ -112,167 +122,97 @@ async def _edge_inputs(
                 src_id,
                 list(from_output.value.keys()),
             )
+    
     if as_dict:
         return results
     return next(iter(results.values()), None)  # type: ignore[return-value]
 
 
-# Concrete node handlers                                                      #
-
-
 @node_handler("start")
-async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """Kick‑off node: no input, always succeeds."""
     return create_node_output({"default": ""}, {"message": "Execution started"})
 
 
 @node_handler("person_job")
-async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: C901, D401 – complex but now self‑contained
-    """Handle conversational *person_job* node with minimal boilerplate.
-
-    This keeps the original behaviour (first‑turn prompt, default prompt,
-    judge‑panel aggregation, forgetting modes, …) but relies on helpers for
-    edge traversal and status updates.
-    """
-
-    exec_count = ctx.exec_counts.get(node.id, 0)
-    data = node.data or {}
-
-    person_id: Optional[str] = data.get("personId")
-    first_only_prompt: str = data.get("firstOnlyPrompt", "")
-    default_prompt: str = data.get("defaultPrompt", "")
-    max_iteration: int = int(data.get("maxIteration", 1))
-    forgetting_mode: Optional[str] = data.get("forgettingMode")
-    is_judge: bool = "judge" in data.get("label", "").lower()
-
-    # Conversation history ---------------------------------------------------
-    conversation = ctx.get_conversation_history(person_id) if person_id else []
-
-    if forgetting_mode == "on_every_turn" and exec_count > 1:
-        conversation = [m for m in conversation if m.get("role") in {"system", "user"}]
-
-    # Ensure system prompt present
-    if not conversation or conversation[0].get("role") != "system":
-        person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
-        system_prompt = (
-            getattr(person_obj, "system_prompt", None)
-            or getattr(person_obj, "systemPrompt", "")
-        ) if person_obj else ""
-        conversation.insert(0, {"role": "system", "content": system_prompt})
-
-    # Gather edge inputs -----------------------------------------------------
-    inputs = await _edge_inputs(node, ctx)
-
-    if "conversation" in inputs and exec_count > 1:
-        conversation.append({"role": "user", "content": inputs["conversation"]})
-
-    if exec_count == 1 and first_only_prompt:
-        prompt = first_only_prompt.format(**inputs)
-    else:
-        prompt = default_prompt
-
-    # Judge nodes collect debates from other person_job panels ---------------
-    if is_judge:
-        debate_context: list[str] = []
-        for other_node in ctx.diagram.nodes:
-            if other_node.type != "person_job" or other_node.id == node.id:
-                continue
-            other_pid = other_node.data.get("personId") if other_node.data else None
-            other_conv = ctx.get_conversation_history(other_pid) if other_pid else []
-            if not other_conv:
-                continue
-            label = other_node.data.get("label", other_node.id) if other_node.data else other_node.id
-            debate_messages = [m for m in other_conv if m.get("role") != "system"]
-            if not debate_messages:
-                continue
-            debate_context.append(f"\n{label}:\n")
-            for msg in debate_messages:
-                role, content = msg.get("role"), msg.get("content", "")
-                debate_context.append(f"{'Input' if role == 'user' else 'Response'}: {content}\n")
-        if debate_context:
-            debate_txt = "Here are the arguments from different panels:\n" + "".join(debate_context) + "\n\n"
-            prompt = debate_txt + (prompt or "Based on the above arguments, judge which panel is more reasonable.")
-
-    if prompt:
-        conversation.append({"role": "user", "content": prompt})
-
-    # Call LLM ---------------------------------------------------------------
-    person_obj = next((p for p in ctx.diagram.persons if p.id == person_id), None) if person_id else None
-    person_cfg = {
-        "service": getattr(person_obj, "service", "openai"),
-        "api_key_id": getattr(person_obj, "api_key_id", None) or getattr(person_obj, "apiKeyId", None),
-        "model": getattr(person_obj, "model", "gpt-4.1-nano"),
-    }
-
-    llm_result = await ctx.llm_service.call_llm(
-        service=person_cfg["service"],
-        api_key_id=person_cfg["api_key_id"],
-        model=person_cfg["model"],
-        messages=conversation,
+async def execute_person_job(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
+    """Handle conversational person_job node using domain service."""
+    # Collect inputs from edges
+    inputs = await _edge_inputs(node, ctx, node_view=node_view)
+    
+    # Delegate to conversation service
+    result = await ctx.conversation_service.execute_person_job(
+        node=node,
+        execution_id=ctx.execution_id,
+        exec_count=ctx.exec_counts.get(node.id, 0),
+        inputs=inputs,
+        diagram=ctx.diagram,
+        llm_service=ctx.llm_service
     )
-
-    response_text: str = llm_result.get("response", "")
-    token_usage: int = llm_result.get("token_usage") or len(response_text.split())
-
-    ctx.add_to_conversation(person_id, {"role": "assistant", "content": response_text})
-
-    return create_node_output(
-        {"default": response_text},
-        {"model": person_cfg["model"], "tokens_used": token_usage},
-    )
+    
+    # Handle token usage accumulation
+    if result.get("token_usage"):
+        ctx.add_token_usage(node.id, result["token_usage"])
+    
+    return create_node_output(result["output_values"], result["metadata"])
 
 
 @node_handler("endpoint")
-async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_endpoint(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """Endpoint node – pass through data and optionally save to file."""
 
-    # Get node data
     data = node.data or {}
-    
-    # Check if we have direct data or need to collect from edges
+
     if (direct := data.get("data")) is not None:
         result_data = direct
     else:
-        collected = await _edge_inputs(node, ctx)
+        collected = await _edge_inputs(node, ctx, node_view=node_view)
         result_data = collected if collected else {}
-    
-    # Handle file saving if enabled
+
     save_to_file = data.get("saveToFile", False) or data.get("save_to_file", False)
     if save_to_file:
-        # Support both field names for backward compatibility
-        file_path = data.get("filePath") or data.get("fileName") or data.get("file_name")
-        
+        file_path = (
+            data.get("filePath") or data.get("fileName") or data.get("file_name")
+        )
+
         if file_path:
             try:
-                # Convert result data to string for saving
                 if isinstance(result_data, dict) and "default" in result_data:
                     content = str(result_data["default"])
                 else:
                     content = str(result_data)
-                
-                # Save to file
+
                 await ctx.file_service.write(file_path, content)
                 _log.info(f"Saved endpoint result to {file_path}")
-                
-                # Add save status to metadata
+
                 return create_node_output(
-                    {"default": result_data}, 
-                    {"saved_to": file_path}
+                    {"default": result_data}, {"saved_to": file_path}
                 )
             except Exception as exc:
                 _log.error(f"Failed to save endpoint result to {file_path}: {exc}")
                 return create_node_output(
-                    {"default": result_data},
-                    {"save_error": str(exc)}
+                    {"default": result_data}, {"save_error": str(exc)}
                 )
         else:
             _log.warning("saveToFile is true but no file path provided")
-    
+
     return create_node_output({"default": result_data})
 
 
 @node_handler("condition")
-async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_condition(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """Condition node: currently supports *detect_max_iterations*."""
 
     data = node.data or {}
@@ -292,24 +232,49 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
             if exec_count < max_iter:
                 result = False
                 break
-    input_val = await _edge_inputs(node, ctx, as_dict=False)
-    return create_node_output({"True" if result else "False": input_val}, {"condition_result": result})
+
+    # Collect all incoming payloads and forward them unchanged
+    inputs = await _edge_inputs(node, ctx, as_dict=True, node_view=node_view)
+
+    # Forward inputs with branch key for backward compatibility
+    branch_key = "True" if result else "False"
+    value: Dict[str, Any] = {**inputs}
+    value[branch_key] = inputs
+
+    if "default" not in value and inputs:
+        if "conversation" in inputs:
+            value["default"] = inputs["conversation"]
+        else:
+            first_key = next(iter(inputs.keys()), None)
+            if first_key:
+                value["default"] = inputs[first_key]
+
+    _log.debug(
+        "Condition node %s outputting %s branch with keys: %s",
+        node.id,
+        branch_key,
+        list(value.keys())
+    )
+
+    return create_node_output(value, {"condition_result": result})
 
 
 @node_handler("db")
-async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_db(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """File‑based DB node supporting *read*, *write* and *append* operations."""
 
     data = node.data or {}
     operation = data.get("operation", "read")
     file_path = data.get("sourceDetails", "")
 
-    # For write/append we need input data from edges
-    input_val = await _edge_inputs(node, ctx, as_dict=False)
+    input_val = await _edge_inputs(node, ctx, as_dict=False, node_view=node_view)
 
     try:
         if operation == "read":
-            # Prefer async if available
             if hasattr(ctx.file_service, "aread"):
                 result = await ctx.file_service.aread(file_path)
             else:
@@ -322,13 +287,13 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # 
             if hasattr(ctx.file_service, "aread"):
                 try:
                     existing = await ctx.file_service.aread(file_path)
-                except Exception:  # file may not exist yet
+                except Exception:
                     pass
             await ctx.file_service.write(file_path, existing + str(input_val))
             result = f"Appended to {file_path}"
         else:
             result = "Unknown operation"
-    except Exception as exc:  # noqa: PERF203
+    except Exception as exc:
         _log.warning("DB op %s failed: %s", operation, exc)
         result = f"Error: {exc}"
 
@@ -336,13 +301,17 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # 
 
 
 @node_handler("notion")
-async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_notion(
+    node: DomainNode, 
+    ctx: ExecutionContext,
+    node_view: Optional["NodeView"] = None
+) -> NodeOutput:
     """Wrapper around `ctx.notion_service.execute_action`."""
 
     data = node.data or {}
     action = data.get("action", "read")
     database_id = data.get("database_id", "")
-    payload = await _edge_inputs(node, ctx)
+    payload = await _edge_inputs(node, ctx, node_view=node_view)
 
     result = await ctx.notion_service.execute_action(
         action=action,

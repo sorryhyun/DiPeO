@@ -39,8 +39,7 @@ mutation CreateApiKey($input: CreateApiKeyInput!) {
 mutation TestApiKey($id: ApiKeyID!) {
   testApiKey(id: $id) {
     success
-    valid
-    availableModels
+    message
     error
   }
 }
@@ -48,8 +47,6 @@ mutation TestApiKey($id: ApiKeyID!) {
 mutation DeleteApiKey($id: ApiKeyID!) {
   deleteApiKey(id: $id) {
     success
-    deletedId
     message
-    error
   }
 }

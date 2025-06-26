@@ -11,12 +11,12 @@ export const personBatchJobConfig = createUnifiedConfig<PersonBatchJobFormData>(
     output: [{ id: 'default', position: 'right' }]
   },
   fields: [
-    { name: 'personId', type: 'person', label: 'Person', required: true, placeholder: 'Select person...' },
+    { name: 'person', type: 'person', label: 'Person', required: true, placeholder: 'Select person...' },
     { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, placeholder: 'Enter prompt template' },
     { name: 'batchSize', type: 'number', label: 'Batch Size', required: true, min: 1, max: 100 }
   ],
   defaults: { 
-    personId: '', 
+    person: '', 
     prompt: '', 
     batchSize: 10,
     maxIteration: 1,

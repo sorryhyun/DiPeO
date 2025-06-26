@@ -18,13 +18,13 @@ This is the persistent format that defines the diagram structure. React Flow UI 
 A simplified version of Domain JSON for better readability:
   - Handles are embedded within their parent nodes
   - Position coordinates are rounded to integers
-  - IDs are replaced with human-readable labels
+  - IDs are removed and uses labels to index
   - Duplicate labels get suffixes (~1, ~2) to ensure uniqueness
   - Maintains the same structural information as Domain JSON
 
 3. Readable YAML
 An alternative representation optimized for understanding workflows:
   - Workflows are expressed as connected flows
-  - Shows how data moves between nodes
+  - Shows how data moves between nodes, next to the each arrow
   - Node and person definitions are listed separately
   - Designed for easy comprehension of diagram logic

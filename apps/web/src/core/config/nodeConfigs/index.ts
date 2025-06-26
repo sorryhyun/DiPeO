@@ -12,7 +12,7 @@ import { dbConfig } from './db';
 import { userResponseConfig } from './userResponse';
 import { notionConfig } from './notion';
 
-export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<any>> = {
+export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> = {
   start: startConfig,
   condition: conditionConfig,
   job: jobConfig,

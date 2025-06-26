@@ -60,7 +60,7 @@ export function isArrowSelected(state: SelectionState, arrowId: ArrowID): boolea
   return state.selectedArrows.has(arrowId);
 }
 
-export function clearSelection(state: SelectionState): SelectionState {
+export function clearSelection(_state: SelectionState): SelectionState {
   return {
     selectedNodes: new Set(),
     selectedArrows: new Set(),

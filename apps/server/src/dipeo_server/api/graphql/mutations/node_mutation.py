@@ -4,7 +4,8 @@ import logging
 import uuid
 
 import strawberry
-from dipeo_domain import DomainNode, NodeType, Vec2, NodeID as DomainNodeID
+from dipeo_domain import DomainNode, NodeType, Vec2
+from dipeo_domain import NodeID as DomainNodeID
 
 from ..context import GraphQLContext
 from ..types import (
@@ -41,7 +42,7 @@ class NodeMutations:
                 path = await diagram_service.find_by_id(diagram_id)
                 if not path:
                     return NodeResult(success=False, error="Diagram not found")
-            
+
             diagram_data = await diagram_service.read_file(path)
             if not diagram_data:
                 return NodeResult(success=False, error="Diagram not found")

@@ -54,6 +54,7 @@ class DiagramMutations:
 
             # Use new services - convert to storage format
             from dipeo_server.domains.diagram.converters import graphql_to_backend
+
             backend_model = graphql_to_backend(diagram_model)
             storage_dict = backend_model.model_dump(by_alias=True)
             path = f"{input.name}.json"
@@ -96,6 +97,4 @@ class DiagramMutations:
 
         except Exception as e:
             logger.error(f"Failed to delete diagram {id}: {e}")
-            return DeleteResult(
-                success=False, error=f"Failed to delete diagram: {e!s}"
-            )
+            return DeleteResult(success=False, error=f"Failed to delete diagram: {e!s}")

@@ -6,7 +6,7 @@ import { usePersonsData } from '@/shared/hooks/selectors';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from '../fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from '../fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument, InitializeModelDocument } from '@/__generated__/graphql';
+import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
 import { createHandlerTable } from '@/shared/utils/dispatchTable';
 
 interface GenericPropertyPanelProps<T extends Record<string, unknown>> {
@@ -65,11 +65,11 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     
     if (data.type === 'person' && name === 'apiKeyId' && value) {
       try {
-        const { data } = await apolloClient.query({
+        const { data } = await apolloClient.query<GetApiKeysQuery>({
           query: GetApiKeysDocument,
           fetchPolicy: 'cache-first'
         });
-        const selectedKey = data.apiKeys.find((k: any) => k.id === value);
+        const selectedKey = data.apiKeys.find((k) => k.id === value);
         if (selectedKey) {
           updateField('service' as keyof T, selectedKey.service as T[keyof T]);
         }
@@ -135,10 +135,10 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
           />
           <UnifiedFormField
             type="personSelect"
-            name="personId"
+            name="person"
             label="Person"
-            value={formData.personId as FieldValue}
-            onChange={(v) => handleFieldUpdate('personId', v)}
+            value={formData.person as FieldValue}
+            onChange={(v) => handleFieldUpdate('person', v)}
             placeholder={fieldConfig.personPlaceholder}
             disabled={isReadOnly}
             persons={personsForSelect}
@@ -149,7 +149,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
     
     if (fieldConfig.type === 'custom') return null;
     
-    const processedField = processedFields.find(pf => pf.field.name === fieldConfig.name);
+    const processedField = processedFields.find((pf: { field: { name?: string } }) => pf.field.name === fieldConfig.name);
     const options = processedField?.options;
     const isLoading = processedField?.isLoading;
     

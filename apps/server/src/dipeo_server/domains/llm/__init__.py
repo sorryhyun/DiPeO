@@ -4,6 +4,7 @@ from dipeo_domain import ForgettingMode, LLMService
 from .base import BaseAdapter, ChatResult
 from .factory import create_adapter
 from .services import LLMService as LLMServiceClass
+from .token_usage_service import TokenUsageService
 
 # Supported models mapping
 SUPPORTED_MODELS = {
@@ -32,4 +33,5 @@ __all__ = [
     "create_adapter",
     "SUPPORTED_MODELS",
     "LLMServiceClass",
+    "TokenUsageService",
 ]

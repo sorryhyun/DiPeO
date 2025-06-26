@@ -1,6 +1,7 @@
 """Shared components for diagram format converters."""
 
-from typing import Any, ClassVar, Dict, List, Optional, Union, Callable
+import logging
+from typing import Any, Callable, ClassVar, Dict, Union
 
 from dipeo_domain import (
     DataType,
@@ -13,37 +14,75 @@ from dipeo_domain import (
 
 from ..services.models import BackendDiagram
 
+logger = logging.getLogger(__name__)
+
 
 class HandleGenerator:
     """Generate the default and custom handles for a node."""
 
-    def _push(self, diagram: Union[DomainDiagram, BackendDiagram]) -> Callable[[str, DomainHandle], None]:
+    def _push(
+        self, diagram: Union[DomainDiagram, BackendDiagram]
+    ) -> Callable[[str, DomainHandle], None]:
         """Return the correct ‘writer’ for handles (dict vs list)."""
         if isinstance(diagram, BackendDiagram):
-            return diagram.handles.__setitem__          # dict-style
-        return diagram.handles.append                  # list-style
+            return diagram.handles.__setitem__  # dict-style
+        return diagram.handles.append  # list-style
 
-    def generate_for_node(self, diagram: Union[DomainDiagram, BackendDiagram],
-                          node_id: str, node_type: str) -> None:
+    def generate_for_node(
+        self,
+        diagram: Union[DomainDiagram, BackendDiagram],
+        node_id: str,
+        node_type: str,
+    ) -> None:
         """Generate all default handles required by `node_type`."""
         push = self._push(diagram)
 
         # (suffix, label, direction, dtype, condition)
         table = [
-            ("input",  "input",  HandleDirection.input,  DataType.any,      node_type != "start"),
-            ("output", "output", HandleDirection.output, DataType.any,      node_type != "endpoint"),
-            ("true",   "true",   HandleDirection.output, DataType.boolean,  node_type == "condition"),
-            ("false",  "false",  HandleDirection.output, DataType.boolean,  node_type == "condition"),
+            (
+                "input",
+                "input",
+                HandleDirection.input,
+                DataType.any,
+                node_type != "start",
+            ),
+            (
+                "output",
+                "output",
+                HandleDirection.output,
+                DataType.any,
+                node_type != "endpoint",
+            ),
+            (
+                "true",
+                "true",
+                HandleDirection.output,
+                DataType.boolean,
+                node_type == "condition",
+            ),
+            (
+                "false",
+                "false",
+                HandleDirection.output,
+                DataType.boolean,
+                node_type == "condition",
+            ),
         ]
         for suffix, label, direction, dtype, keep in table:
             if not keep:
                 continue
             hid = f"{node_id}:{suffix}"
-            push(hid, DomainHandle(
-                id=hid, nodeId=node_id, label=label,
-                direction=direction, dataType=dtype,
-                position="left" if direction is HandleDirection.input else "right",
-            ))
+            push(
+                hid,
+                DomainHandle(
+                    id=hid,
+                    nodeId=node_id,
+                    label=label,
+                    direction=direction,
+                    dataType=dtype,
+                    position="left" if direction is HandleDirection.input else "right",
+                ),
+            )
 
 
 class PositionCalculator:
@@ -154,7 +193,9 @@ class ArrowBuilder:
         return arrow_id, source_handle, target_handle
 
 
-def coerce_to_dict(seq_or_map: Any, id_key: str = 'id', prefix: str = 'obj') -> Dict[str, Any]:
+def coerce_to_dict(
+    seq_or_map: Any, id_key: str = "id", prefix: str = "obj"
+) -> Dict[str, Any]:
     if isinstance(seq_or_map, dict):
         return seq_or_map
     if isinstance(seq_or_map, list):
@@ -170,15 +211,14 @@ def coerce_to_dict(seq_or_map: Any, id_key: str = 'id', prefix: str = 'obj') -> 
 
 
 def build_node(id: str, type_: str, pos: Dict[str, float], **data) -> Dict[str, Any]:
-    return {
-        "id": id,
-        "type": type_,
-        "position": pos,
-        **data
-    }
+    return {"id": id, "type": type_, "position": pos, **data}
 
 
-def ensure_position(node_dict: Dict[str, Any], index: int, position_calculator: PositionCalculator = None) -> None:
+def ensure_position(
+    node_dict: Dict[str, Any],
+    index: int,
+    position_calculator: PositionCalculator = None,
+) -> None:
     if "position" not in node_dict or not node_dict["position"]:
         if position_calculator is None:
             position_calculator = PositionCalculator()
@@ -187,15 +227,36 @@ def ensure_position(node_dict: Dict[str, Any], index: int, position_calculator: 
 
 
 def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
-    """Return [{id, source, target}, …] regardless of storage shape."""
-    if not arrows_data:                          # short-circuit None / {}
+    """Return [{id, source, target, data}, …] regardless of storage shape."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.debug(f"extract_common_arrows received: type={type(arrows_data)}, len={len(arrows_data) if hasattr(arrows_data, '__len__') else 'N/A'}")
+
+    if not arrows_data:  # short-circuit None / {} / []
+        logger.debug("arrows_data is empty or None")
         return []
 
     # Turn both mapping and list forms into an iterable of (id, obj) pairs
-    items = (arrows_data.items() if isinstance(arrows_data, dict)
-             else ((d.get("id"), d) for d in arrows_data if isinstance(d, dict)))
+    items = (
+        arrows_data.items()
+        if isinstance(arrows_data, dict)
+        else ((d.get("id"), d) for d in arrows_data if isinstance(d, dict))
+    )
 
-    return [
-        {"id": aid, "source": ad.get("source"), "target": ad.get("target")}
+    result = [
+        {
+            "id": aid,
+            "source": ad.get("source"),
+            "target": ad.get("target"),
+            "data": ad.get("data")  # Include data field to preserve labels and other properties
+        }
         for aid, ad in items
     ]
+
+    logger.debug(f"extract_common_arrows returning {len(result)} arrows")
+    for arrow in result:
+        if arrow.get("data"):
+            logger.debug(f"Arrow {arrow['id']} has data: {arrow['data']}")
+
+    return result

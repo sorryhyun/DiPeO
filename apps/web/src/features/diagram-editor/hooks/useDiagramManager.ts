@@ -114,8 +114,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   });
   const [isDirty, setIsDirty] = useState(false);
   
-  const autoSaveInterval$ef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isLoadingDiagram = useRef(false);
   
   const isEmpty = canvas.nodesArray.length === 0;
   const canExecute = !execution.isRunning && canvas.nodesArray.length > 0;
@@ -123,7 +121,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const arrowCount = canvas.arrowsArray.length;
   const personCount = canvas.personsArray.length;
   
-  const { debouncedSave, saveImmediately, cancelPendingSave } = useDebouncedSave({
+  const { debouncedSave, cancelPendingSave } = useDebouncedSave({
     delay: autoSaveInterval,
     onSave: async (filename: string) => {
       if (storeOps.nodes.size === 0) return;

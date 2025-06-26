@@ -7,7 +7,6 @@ query GetPerson($id: PersonID!) {
     model
     apiKeyId
     systemPrompt
-    forgettingMode
     maskedApiKey
     type
   }
@@ -21,7 +20,6 @@ query GetPersons($limit: Int = 100) {
     model
     apiKeyId
     systemPrompt
-    forgettingMode
     maskedApiKey
     type
   }
@@ -38,7 +36,6 @@ mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) 
       model
       apiKeyId
       systemPrompt
-      forgettingMode
       maskedApiKey
       type
     }
@@ -57,7 +54,6 @@ mutation UpdatePerson($personInput: UpdatePersonInput!) {
       model
       apiKeyId
       systemPrompt
-      forgettingMode
       maskedApiKey
       type
     }
@@ -85,7 +81,6 @@ mutation InitializeModel($personId: PersonID!) {
       model
       apiKeyId
       systemPrompt
-      forgettingMode
       maskedApiKey
       type
     }

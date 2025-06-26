@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { DomainArrow, DomainHandle, DomainNode } from '@/core/types';
+import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
 import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID  } from '@dipeo/domain-models';
 import { UnifiedStore } from '../unifiedStore.types';
 
@@ -28,7 +28,7 @@ export interface ComputedSlice {
   // Selection helpers
   getSelectedNode: () => DomainNode | undefined;
   getSelectedArrow: () => DomainArrow | undefined;
-  getSelectedPerson: () => any | undefined;
+  getSelectedPerson: () => DomainPerson | undefined;
   
   // Execution state helpers
   getRunningNodes: () => DomainNode[];

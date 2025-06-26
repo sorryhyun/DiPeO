@@ -15,7 +15,7 @@ export function getNodeConfig(type: NodeType) {
   return UNIFIED_NODE_CONFIGS[type] || UNIFIED_NODE_CONFIGS.start;
 }
 
-export function validateNodeData(type: NodeType, data: Record<string, any>) {
+export function validateNodeData(type: NodeType, data: Record<string, unknown>) {
   const config = getNodeConfig(type);
   const errors: string[] = [];
   

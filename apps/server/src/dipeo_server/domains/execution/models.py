@@ -8,12 +8,14 @@ from pydantic import BaseModel, Field
 
 class ExecutionHint(BaseModel):
     """Hint for execution dependencies."""
+
     source: str
     variable: str = "flow"
 
 
 class ExecutionHints(BaseModel):
     """Collection of execution hints for the engine."""
+
     start_nodes: List[str] = Field(default_factory=list)
     person_nodes: Dict[str, str] = Field(default_factory=dict)  # node_id -> person_id
     node_dependencies: Dict[str, List[ExecutionHint]] = Field(default_factory=dict)
@@ -21,6 +23,7 @@ class ExecutionHints(BaseModel):
 
 class ExecutionReadyDiagram(BaseModel):
     """Diagram ready for execution with all required data."""
+
     diagram_id: str
     backend_format: Dict[str, Any]
     api_keys: Dict[str, str]
@@ -40,7 +43,11 @@ class ExecutionReadyDiagram(BaseModel):
         domain_model: Optional[DomainDiagram] = None,
     ) -> "ExecutionReadyDiagram":
         """Create from dict data."""
-        hints = ExecutionHints(**execution_hints) if isinstance(execution_hints, dict) else execution_hints
+        hints = (
+            ExecutionHints(**execution_hints)
+            if isinstance(execution_hints, dict)
+            else execution_hints
+        )
         return cls(
             diagram_id=diagram_id,
             backend_format=backend_format,

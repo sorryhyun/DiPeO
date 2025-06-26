@@ -2,14 +2,13 @@ import React, { Suspense } from 'react';
 import { useCanvas } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { LoadingFallback } from '@/shared/components/ui/feedback';
-import { personId, DomainPerson } from '@/core/types';
 
 // Lazy load the properties renderer
 const PropertiesRenderer = React.lazy(() => import('./renderers/PropertiesRenderer'));
 
 export const PropertiesTab: React.FC = () => {
   const { nodes, arrows, personsArray } = useCanvas();
-  const { selectedId, selectedType, persons: personsMap } = useUnifiedStore();
+  const { selectedId, selectedType } = useUnifiedStore();
   
   // Derive selected IDs based on selectedType
   const selectedNodeId = selectedType === 'node' ? selectedId : null;

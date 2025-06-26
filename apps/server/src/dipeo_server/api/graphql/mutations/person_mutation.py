@@ -4,7 +4,9 @@ import logging
 import uuid
 
 import strawberry
-from dipeo_domain import DomainPerson, ForgettingMode, LLMService, PersonID as DomainPersonID
+from dipeo_domain import DomainPerson, LLMService
+from dipeo_domain import PersonID as DomainPersonID
+
 from ..context import GraphQLContext
 from ..types import (
     CreatePersonInput,
@@ -49,16 +51,15 @@ class PersonMutations:
                 model=person_input.model,
                 apiKeyId=person_input.api_key_id,
                 systemPrompt=person_input.system_prompt or "",
-                forgettingMode=person_input.forgetting_mode,
                 type="person",
             )
 
             person_data = person.model_dump()
             person_data.update(
                 {
-                    "temperature": getattr(person_input, 'temperature', 0.7),
-                    "maxTokens": getattr(person_input, 'max_tokens', 1000),
-                    "topP": getattr(person_input, 'top_p', 1.0),
+                    "temperature": getattr(person_input, "temperature", 0.7),
+                    "maxTokens": getattr(person_input, "max_tokens", 1000),
+                    "topP": getattr(person_input, "top_p", 1.0),
                 }
             )
 
@@ -80,9 +81,7 @@ class PersonMutations:
             return PersonResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to create person: {e}")
-            return PersonResult(
-                success=False, error=f"Failed to create person: {e!s}"
-            )
+            return PersonResult(success=False, error=f"Failed to create person: {e!s}")
 
     @strawberry.mutation
     async def update_person(
@@ -122,8 +121,6 @@ class PersonMutations:
                 person_data["apiKeyId"] = person_input.api_key_id
             if person_input.system_prompt is not None:
                 person_data["systemPrompt"] = person_input.system_prompt
-            if person_input.forgetting_mode is not None:
-                person_data["forgettingMode"] = person_input.forgetting_mode.value
             if person_input.temperature is not None:
                 person_data["temperature"] = person_input.temperature
             if person_input.max_tokens is not None:
@@ -136,13 +133,6 @@ class PersonMutations:
             except ValueError:
                 service = LLMService.openai
 
-            try:
-                forgetting_mode = ForgettingMode(
-                    person_data.get("forgettingMode", "none")
-                )
-            except ValueError:
-                forgetting_mode = ForgettingMode.no_forget
-
             updated_person = DomainPerson(
                 id=person_input.id,
                 label=person_data["label"],
@@ -150,7 +140,6 @@ class PersonMutations:
                 model=person_data.get("model", person_data.get("modelName", "gpt-4")),
                 apiKeyId=person_data.get("apiKeyId", ""),
                 systemPrompt=person_data.get("systemPrompt", ""),
-                forgettingMode=forgetting_mode,
                 type=person_data.get("type", "person"),
             )
 
@@ -179,9 +168,7 @@ class PersonMutations:
             return PersonResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             logger.error(f"Failed to update person: {e}")
-            return PersonResult(
-                success=False, error=f"Failed to update person: {e!s}"
-            )
+            return PersonResult(success=False, error=f"Failed to update person: {e!s}")
 
     @strawberry.mutation
     async def delete_person(
@@ -227,12 +214,12 @@ class PersonMutations:
 
         except Exception as e:
             logger.error(f"Failed to delete person {person_id}: {e}")
-            return DeleteResult(
-                success=False, error=f"Failed to delete person: {e!s}"
-            )
+            return DeleteResult(success=False, error=f"Failed to delete person: {e!s}")
 
     @strawberry.mutation
-    async def initialize_model(self, info: strawberry.Info[GraphQLContext], person_id: PersonID) -> PersonResult:
+    async def initialize_model(
+        self, info: strawberry.Info[GraphQLContext], person_id: PersonID
+    ) -> PersonResult:
         """Warms up model for faster first execution."""
         try:
             context: GraphQLContext = info.context
@@ -266,7 +253,7 @@ class PersonMutations:
 
             # Initialize the model by making a simple call
             messages = [
-                {"role": "user", "content": "Say 'initialized'"}
+                {"role": "user", "content": "Say 'initialized'", "personId": person_id}
             ]
             await llm_service.call_llm(
                 service=service_str,
@@ -281,13 +268,6 @@ class PersonMutations:
             except ValueError:
                 service = LLMService.openai
 
-            try:
-                forgetting_mode = ForgettingMode(
-                    person_data.get("forgettingMode", "none")
-                )
-            except ValueError:
-                forgetting_mode = ForgettingMode.no_forget
-
             person = DomainPerson(
                 id=person_id,
                 label=person_data.get("label", ""),
@@ -295,7 +275,6 @@ class PersonMutations:
                 model=model,
                 apiKeyId=api_key_id,
                 systemPrompt=person_data.get("systemPrompt", ""),
-                forgettingMode=forgetting_mode,
                 type=person_data.get("type", "person"),
             )
 

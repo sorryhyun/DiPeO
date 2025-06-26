@@ -23,16 +23,18 @@ class ChatGPTAdapter(BaseAdapter):
         msgs: List[Dict[str, str]] = []
         if system_prompt:
             msgs.append({"role": "system", "content": system_prompt})
-        
+
         # Combine cacheable and user prompts using the helper method
         combined_prompt = self._combine_prompts(cacheable_prompt, user_prompt)
         if combined_prompt:
             msgs.append({"role": "user", "content": combined_prompt})
-        
+
         # Handle citation_target if needed
         if citation_target:
-            msgs.append({"role": "user", "content": f"Citation target: {citation_target}"})
-        
+            msgs.append(
+                {"role": "user", "content": f"Citation target: {citation_target}"}
+            )
+
         return msgs
 
     def _make_api_call(self, messages: List[Dict[str, str]], **kwargs) -> Any:

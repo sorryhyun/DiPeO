@@ -1,1 +1,1 @@
-export { usePersonOperations } from './usePersonOperations';
+export * from './usePersonOperations';

@@ -5,6 +5,7 @@ type DBFormDataType = {
   label?: string;
   subType?: string;
   sourceDetails?: string;
+  operation?: string;
   [key: string]: unknown;
 };
 
@@ -22,17 +23,18 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
     output: [{ id: 'default', position: 'bottom', offset: { x: 30, y: 0 } }]
   },
   fields: [], // Fields are defined in panelCustomFields to match backend expectations
-  defaults: { label: '', subType: 'fixed_prompt', sourceDetails: '' },
+  defaults: { label: '', subType: 'fixed_prompt', sourceDetails: '', operation: 'read' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'subType', 'sourceDetails'],
+  panelFieldOrder: ['label', 'subType', 'operation', 'sourceDetails'],
   panelCustomFields: [
     {
       type: 'text',
       name: 'label',
       label: 'Block Label',
-      placeholder: 'Database'
+      placeholder: 'Database',
+      column: 1
     },
     {
       type: 'select',
@@ -41,7 +43,20 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
       options: [
         { value: 'fixed_prompt', label: 'Fixed Prompt' },
         { value: 'file', label: 'File' }
-      ]
+      ],
+      column: 1
+    },
+    {
+      type: 'select',
+      name: 'operation',
+      label: 'Operation',
+      options: [
+        { value: 'read', label: 'Read' },
+        { value: 'write', label: 'Write' },
+        { value: 'update', label: 'Update' },
+        { value: 'delete', label: 'Delete' }
+      ],
+      column: 1
     },
     {
       type: 'variableTextArea',
@@ -49,6 +64,7 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
       label: 'Source Details',
       rows: 6,
       placeholder: 'Enter content or file path...',
+      column: 2,
       validate: (value, formData) => {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return { isValid: false, error: 'Source details are required' };

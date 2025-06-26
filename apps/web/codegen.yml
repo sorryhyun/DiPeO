@@ -1,7 +1,7 @@
 # GraphQL Code Generation Configuration
 
 overwrite: true
-schema: "./schema.graphql"
+schema: "../server/schema.graphql"
 documents: 
   - "src/**/*.graphql"
   - "src/**/*.{ts,tsx}"
@@ -28,7 +28,6 @@ generates:
         HandleDirection: "@dipeo/domain-models#HandleDirection"
         DataType: "@dipeo/domain-models#DataType"
         LLMService: "@dipeo/domain-models#LLMService"
-        ForgettingMode: "@dipeo/domain-models#ForgettingMode"
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"
         ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
         EventType: "@dipeo/domain-models#EventType"

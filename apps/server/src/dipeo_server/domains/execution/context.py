@@ -1,17 +1,14 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput
+from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput, TokenUsage
 
 from dipeo_server.domains.llm.services import LLMService
-from dipeo_server.infrastructure.persistence import FileService
-
-from .services.state_store import StateStore
+from dipeo_server.infrastructure.persistence import FileService, StateRegistry
 
 
 @dataclass
 class ExecutionContext:
-
     diagram: DomainDiagram
     edges: List[DomainArrow]
     node_outputs: Dict[str, NodeOutput] = field(default_factory=dict)
@@ -24,13 +21,16 @@ class ExecutionContext:
 
     llm_service: LLMService = field(default=None)
     file_service: FileService = field(default=None)
-    memory_service: Optional[any] = field(default=None)
-    notion_service: Optional[any] = field(default=None)
-    state_store: StateStore = field(default=None)
+    conversation_service: Optional[Any] = field(default=None)
+    notion_service: Optional[Any] = field(default=None)
+    state_store: StateRegistry = field(default=None)
     interactive_handler: Optional[Callable] = field(default=None)
     stream_callback: Optional[Callable] = field(default=None)
+    
+    # Token usage accumulation
+    _token_accumulator: Dict[str, TokenUsage] = field(default_factory=dict, init=False)
 
-    def get_node_output(self, node_id: str) -> NodeOutput | None:
+    def get_node_output(self, node_id: str) -> Optional[NodeOutput]:
         return self.node_outputs.get(node_id)
 
     def set_node_output(self, node_id: str, output: NodeOutput) -> None:
@@ -48,17 +48,29 @@ class ExecutionContext:
             self.persons[person_id] = []
         self.persons[person_id].append(message)
 
-    def get_api_key(self, service: str) -> str | None:
+    def get_api_key(self, service: str) -> Optional[str]:
         return self.api_keys.get(service)
 
     def find_edges_from(self, node_id: str) -> List[DomainArrow]:
-        return [
-            edge for edge in self.edges
-            if edge.source.split(':')[0] == node_id
-        ]
+        return [edge for edge in self.edges if edge.source.split(":")[0] == node_id]
 
     def find_edges_to(self, node_id: str) -> List[DomainArrow]:
-        return [
-            edge for edge in self.edges
-            if edge.target.split(':')[0] == node_id
-        ]
+        return [edge for edge in self.edges if edge.target.split(":")[0] == node_id]
+    
+    def add_token_usage(self, node_id: str, tokens: TokenUsage) -> None:
+        """Accumulate token usage in memory for later persistence."""
+        self._token_accumulator[node_id] = tokens
+    
+    def get_total_token_usage(self) -> TokenUsage:
+        """Calculate total token usage from accumulator."""
+        if not self._token_accumulator:
+            return TokenUsage(input=0, output=0, total=0)
+        
+        total = TokenUsage(input=0, output=0, total=0)
+        for tokens in self._token_accumulator.values():
+            total.input += tokens.input
+            total.output += tokens.output
+            total.total += tokens.total
+            if tokens.cached:
+                total.cached = (total.cached or 0) + tokens.cached
+        return total
