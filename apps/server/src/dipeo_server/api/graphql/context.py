@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict
 from fastapi import Request
 from strawberry.fastapi import BaseContext
 
-from dipeo_server.application.contexts import AppContext
-from dipeo_server.application.contexts.app_context import get_app_context
+from dipeo_server.application.app_context import AppContext, get_app_context
 from dipeo_server.infrastructure.messaging import message_router
 from dipeo_server.infrastructure.persistence import state_store
 
@@ -54,6 +53,7 @@ class GraphQLContext(BaseContext):
         self.memory_service = app_context.memory_service
         self.notion_service = app_context.notion_service
         self.message_router = message_router  # Use global instance
+        self.event_bus = app_context.event_bus
 
         # Additional context data
         self.user_data: Dict[str, Any] = {}

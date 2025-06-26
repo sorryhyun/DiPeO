@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from dipeo_server.api.graphql.context import get_graphql_context
 from dipeo_server.api.graphql.schema import create_graphql_router
 from dipeo_server.api.middleware import setup_middleware
-from dipeo_server.application.contexts import lifespan
+from dipeo_server.application.app_context import lifespan
 
 load_dotenv()
 

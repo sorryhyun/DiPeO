@@ -190,17 +190,17 @@ class DiagramStorageService(BaseService):
 
     def _determine_format_type(self, relative_path: Path) -> str:
         path_str = str(relative_path)
-        
+
         # Check the first directory in the path
         parts = relative_path.parts
         if len(parts) > 1:
             first_dir = parts[0]
             if first_dir == "native":
                 return "native"
-            elif first_dir == "light":
+            if first_dir == "light":
                 return "light"
-            elif first_dir == "readable":
+            if first_dir == "readable":
                 return "readable"
-        
+
         # Default to native for files in root or unknown directories
         return "native"

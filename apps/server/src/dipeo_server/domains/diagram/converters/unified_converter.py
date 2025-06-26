@@ -13,7 +13,6 @@ from dipeo_domain import (
 )
 
 from ..services.models import BackendDiagram
-
 from .base import DiagramConverter, FormatStrategy
 from .conversion_utils import backend_to_graphql
 from .shared_components import (

@@ -9,12 +9,9 @@ import strawberry
 from dipeo_domain import (
     DiagramID,
     ExecutionID,
-    ExecutionStatus,
-    NodeExecutionStatus,
-    TokenUsage,
-)
-from dipeo_domain import (
     ExecutionState,
+    ExecutionStatus,
+    TokenUsage,
 )
 
 from ..context import GraphQLContext
@@ -131,23 +128,13 @@ class ExecutionMutations:
                 )
 
             if data.action == "pause":
-                if data.node_id:
-                    await state_store.update_node_status(
-                        data.execution_id,
-                        data.node_id,
-                        NodeExecutionStatus.PAUSED,
-                    )
+                if data.node_id: pass
                 else:
                     await state_store.update_status(
                         data.execution_id, ExecutionStatus.PAUSED
                     )
             elif data.action == "resume":
-                if data.node_id:
-                    await state_store.update_node_status(
-                        data.execution_id,
-                        data.node_id,
-                        NodeExecutionStatus.RUNNING,
-                    )
+                if data.node_id: pass
                 else:
                     await state_store.update_status(
                         data.execution_id, ExecutionStatus.RUNNING
@@ -156,13 +143,7 @@ class ExecutionMutations:
                 await state_store.update_status(
                     data.execution_id, ExecutionStatus.ABORTED
                 )
-            elif data.action == "skip" and data.node_id:
-                await state_store.update_node_status(
-                    data.execution_id,
-                    data.node_id,
-                    NodeExecutionStatus.SKIPPED,
-                    skip_reason="Manual skip",
-                )
+            elif data.action == "skip" and data.node_id: pass
 
             control_message = {
                 "type": f"{data.action}_{'node' if data.node_id else 'execution'}",

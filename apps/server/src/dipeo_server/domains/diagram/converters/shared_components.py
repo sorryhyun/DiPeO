@@ -1,7 +1,7 @@
 """Shared components for diagram format converters."""
 
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, ClassVar, Dict, Union
 
 from dipeo_domain import (
     DataType,
@@ -230,9 +230,9 @@ def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
     """Return [{id, source, target, data}, …] regardless of storage shape."""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     logger.debug(f"extract_common_arrows received: type={type(arrows_data)}, len={len(arrows_data) if hasattr(arrows_data, '__len__') else 'N/A'}")
-    
+
     if not arrows_data:  # short-circuit None / {} / []
         logger.debug("arrows_data is empty or None")
         return []
@@ -246,17 +246,17 @@ def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
 
     result = [
         {
-            "id": aid, 
-            "source": ad.get("source"), 
+            "id": aid,
+            "source": ad.get("source"),
             "target": ad.get("target"),
             "data": ad.get("data")  # Include data field to preserve labels and other properties
         }
         for aid, ad in items
     ]
-    
+
     logger.debug(f"extract_common_arrows returning {len(result)} arrows")
     for arrow in result:
         if arrow.get("data"):
             logger.debug(f"Arrow {arrow['id']} has data: {arrow['data']}")
-    
+
     return result

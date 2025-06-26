@@ -35,5 +35,5 @@ def validate_api_key_format(key: str, service: str) -> None:
     # Service-specific validation
     if service == "openai" and not key.startswith("sk-"):
         raise ValidationError("OpenAI API keys must start with 'sk-'")
-    elif service == "anthropic" and not key.startswith("sk-ant-"):
+    if service == "anthropic" and not key.startswith("sk-ant-"):
         raise ValidationError("Anthropic API keys must start with 'sk-ant-'")

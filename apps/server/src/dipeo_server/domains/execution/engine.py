@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Callable, Dict, Optional
 from uuid import uuid4
 
-from dipeo_domain.models import DomainDiagram, NodeExecutionStatus, NodeOutput
+from dipeo_domain.models import DomainDiagram, NodeOutput
 
 from dipeo_server.domains.llm.services import LLMService
 from dipeo_server.infrastructure.persistence import FileService
@@ -106,7 +106,7 @@ class ViewBasedEngine:
                         else 1
                     )
                     current_exec_count = ctx.exec_counts.get(node_id, 0)
-                    
+
                     if current_exec_count >= max_iter:
                         continue
                 if self._can_execute_node_view(node_view):
@@ -129,7 +129,7 @@ class ViewBasedEngine:
                 tasks.append(self._execute_node_view(ctx, node_view))
 
             await asyncio.gather(*tasks)
-            
+
             # After executing nodes, check if any condition nodes triggered a loop
             for node_view in ready_nodes:
                 if node_view.node.type == "condition" and node_view.output:
@@ -143,11 +143,11 @@ class ViewBasedEngine:
     def _can_execute_node_view(self, node_view: NodeView) -> bool:
         import logging
         log = logging.getLogger(__name__)
-        
+
         # If node already has output, it's already been executed
         if node_view.output is not None:
             return False
-            
+
         if node_view.node.type == "person_job":
             first_edges = [
                 e for e in node_view.incoming_edges if e.target_handle == "first"
@@ -165,15 +165,15 @@ class ViewBasedEngine:
                 if edge.source_view.output is not None:
                     condition_result = edge.source_view.output.metadata.get("condition_result", False)
                     edge_branch = edge.arrow.data.get("branch", None) if edge.arrow.data else None
-                    
+
                     log.debug(
                         f"Condition result: {condition_result}, edge branch: {edge_branch}, "
                         f"edge data: {edge.arrow.data}"
                     )
-                    
+
                     if edge_branch is not None:
                         edge_branch_bool = edge_branch.lower() == "true"
-                        
+
                         if edge_branch_bool != condition_result:
                             log.debug(
                                 f"Skipping edge from {edge.source_view.id} to {node_view.id} - "
@@ -181,7 +181,7 @@ class ViewBasedEngine:
                             )
                             # This edge doesn't match the condition, skip to next edge
                             continue
-                        
+
                         # This edge matches the condition, check if output exists
                         if edge.source_view.output is None:
                             return False
@@ -199,23 +199,23 @@ class ViewBasedEngine:
                         f"Node {node_view.id} waiting for output from {edge.source_view.id}"
                     )
                     return False
-        
+
         log.debug(f"Node {node_view.id} is ready to execute")
         return True
-    
+
     def _clear_loop_node_outputs(
         self, condition_view: NodeView, view: ExecutionView, ctx: ExecutionContext
     ) -> None:
         """Clear outputs of nodes that should re-execute when a condition triggers a loop."""
         import logging
         log = logging.getLogger(__name__)
-        
+
         # Find edges from the condition node with false branch
         false_edges = [
             edge for edge in condition_view.outgoing_edges
             if edge.arrow.data and edge.arrow.data.get("branch", "").lower() == "false"
         ]
-        
+
         # Only clear direct targets of false branches for now
         for edge in false_edges:
             target_view = edge.target_view
@@ -224,7 +224,7 @@ class ViewBasedEngine:
                 max_iter = 1
                 if target_view.node.type in ["job", "person_job"] and target_view.node.data:
                     max_iter = target_view.node.data.get("maxIteration", 1)
-                
+
                 current_exec_count = ctx.exec_counts.get(target_view.id, 0)
                 if current_exec_count < max_iter:
                     log.debug(
@@ -243,9 +243,10 @@ class ViewBasedEngine:
         handler = node_view.handler
 
         if not handler:
-            await ctx.state_store.update_node_status(
-                ctx.execution_id, node.id, NodeExecutionStatus.FAILED
-            )
+            # Node-level persistence removed - only persist at diagram level
+            # await ctx.state_store.update_node_status(
+            #     ctx.execution_id, node.id, NodeExecutionStatus.FAILED
+            # )
             error_output = NodeOutput(
                 value={},
                 metadata={
@@ -262,9 +263,10 @@ class ViewBasedEngine:
         node_view.exec_count += 1
         ctx.exec_counts[node.id] = node_view.exec_count
 
-        await ctx.state_store.update_node_status(
-            ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
-        )
+        # Node-level persistence removed - only persist at diagram level
+        # await ctx.state_store.update_node_status(
+        #     ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
+        # )
 
         if ctx.stream_callback:
             await ctx.stream_callback(
@@ -281,9 +283,10 @@ class ViewBasedEngine:
             node_view.output = output
             ctx.set_node_output(node.id, output)
 
-            await ctx.state_store.update_node_status(
-                ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED
-            )
+            # Node-level persistence removed - only persist at diagram level
+            # await ctx.state_store.update_node_status(
+            #     ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED
+            # )
 
             if ctx.stream_callback:
                 metadata = output.metadata or {}
@@ -303,9 +306,10 @@ class ViewBasedEngine:
                     }
                 )
         except Exception as e:
-            await ctx.state_store.update_node_status(
-                ctx.execution_id, node.id, NodeExecutionStatus.FAILED
-            )
+            # Node-level persistence removed - only persist at diagram level
+            # await ctx.state_store.update_node_status(
+            #     ctx.execution_id, node.id, NodeExecutionStatus.FAILED
+            # )
             error_output = NodeOutput(
                 value={},
                 metadata={

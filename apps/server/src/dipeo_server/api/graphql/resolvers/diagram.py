@@ -1,18 +1,17 @@
 """GraphQL resolvers for diagram operations."""
 
 import logging
-import json
-import yaml
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import List, Optional
 
+import yaml
 from dipeo_domain import DiagramMetadata, DomainDiagram
 
 from dipeo_server.domains.diagram.converters import (
     backend_to_graphql,
-    graphql_to_backend,
     converter_registry,
+    graphql_to_backend,
 )
 from dipeo_server.domains.diagram.services import DiagramStorageService
 from dipeo_server.domains.diagram.services.models import BackendDiagram
@@ -52,12 +51,12 @@ class DiagramResolver:
             if not diagram_data:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
-            
+
             # Determine format from path
             from pathlib import Path
             path_obj = Path(path)
             format_from_path = storage_service._determine_format_type(path_obj)
-            
+
             # Check if this is a light format diagram (from path or has version: light)
             if format_from_path == "light" or diagram_data.get("version") == "light":
                 logger.info(f"Detected light format for diagram {diagram_id}")

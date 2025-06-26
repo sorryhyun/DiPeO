@@ -29,6 +29,7 @@ class ExecutionService(BaseService):
         diagram_service=None,
         notion_service=None,
         execution_preparation_service=None,
+        event_bus=None,
     ) -> None:
         super().__init__()
         self.llm_service = llm_service
@@ -38,6 +39,7 @@ class ExecutionService(BaseService):
         self.diagram_service = diagram_service
         self.notion_service = notion_service
         self.execution_preparation_service = execution_preparation_service
+        self.event_bus = event_bus
 
     async def initialize(self) -> None:
         pass
@@ -92,6 +94,11 @@ class ExecutionService(BaseService):
 
             async def stream_callback(update: dict[str, Any]) -> None:
                 await updates_queue.put(update)
+                
+                # Also publish to EventBus for WebSocket subscribers
+                if self.event_bus:
+                    channel = f"execution:{execution_id}"
+                    await self.event_bus.publish(channel, update)
 
             engine_task = asyncio.create_task(
                 self._execute_with_new_engine(

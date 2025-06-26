@@ -68,7 +68,7 @@ class FileService(BaseService):
             # For docx, we'll use sync method in executor
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, self._read_docx, file_path)
-        elif file_path.suffix.lower() == ".json":
+        if file_path.suffix.lower() == ".json":
             async with aiofiles.open(file_path, encoding=encoding) as f:
                 content = await f.read()
                 return json.loads(content)

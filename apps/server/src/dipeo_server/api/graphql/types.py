@@ -14,10 +14,10 @@ from dipeo_domain import (
     DomainHandle,
     DomainNode,
     DomainPerson,
+    EventType,
     ExecutionEvent,
     ExecutionState,
     ExecutionStatus,
-    EventType,
     ForgettingMode,
     HandleDirection,
     LLMService,
@@ -143,9 +143,9 @@ class DomainNodeType:
         # Try multiple ways to access the data
         if hasattr(self, "_pydantic_object") and self._pydantic_object:
             return self._pydantic_object.data
-        elif hasattr(self, "data") and self.data is not None:
+        if hasattr(self, "data") and self.data is not None:
             return self.data
-        elif hasattr(self, "__strawberry_definition__"):
+        if hasattr(self, "__strawberry_definition__"):
             # Try to access through the Strawberry definition
             origin = getattr(self, "__strawberry_definition__", {}).get("origin")
             if origin and hasattr(origin, "data"):

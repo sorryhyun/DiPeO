@@ -12,8 +12,8 @@ _log = logging.getLogger(__name__)
 
 __all__ = [
     "DBOperation",
-    "node_handler",
     "get_handlers",
+    "node_handler",
 ]
 
 
@@ -27,7 +27,7 @@ _HandlerFn = Callable[[DomainNode, ExecutionContext], Awaitable[NodeOutput]]
 _handlers: Dict[str, _HandlerFn] = {}
 
 
-def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:  # noqa: D401
+def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:
     """Return a wrapper that transparently manages node‑status lifecycle."""
 
     async def _wrapped(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # type: ignore[override]
@@ -69,7 +69,7 @@ def get_handlers() -> Dict[str, _HandlerFn]:
     return {k: _wrap_with_state(k, v) for k, v in _handlers.items()}
 
 
-def create_node_output(  # noqa: D401
+def create_node_output(
     value: Dict[str, Any] | None = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> NodeOutput:
@@ -97,22 +97,22 @@ async def _edge_inputs(
         if not from_output:
             _log.warning("No output for source node %s → %s", src_id, node.id)
             continue
-            
+
         src_node = next((n for n in ctx.diagram.nodes if n.id == src_id), None)
         if src_node and src_node.type == "condition":
             condition_result = from_output.metadata.get("condition_result", False)
             edge_branch = edge.data.get("branch", None) if edge.data else None
-            
+
             if edge_branch is not None:
                 edge_branch_bool = edge_branch.lower() == "true"
                 if edge_branch_bool != condition_result:
                     continue
-                    
+
         label = edge.data.get("label", "default") if edge.data else "default"
-        
+
         if src_node and src_node.type == "condition":
             source_handle = edge.source.split(":")[1] if ":" in edge.source else "default"
-            
+
             if label in from_output.value:
                 results[label] = from_output.value[label]
             elif label == "default" and source_handle in from_output.value:
@@ -150,7 +150,7 @@ async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
 
 
 @node_handler("person_job")
-async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: C901, D401 – complex but now self‑contained
+async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """Handle conversational *person_job* node with minimal boilerplate.
 
     This keeps the original behaviour (first‑turn prompt, default prompt,
@@ -193,16 +193,16 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
         )
 
     inputs = await _edge_inputs(node, ctx)
-    
+
     if "conversation" in inputs:
         upstream_conv = inputs["conversation"]
         if isinstance(upstream_conv, list) and upstream_conv:
             # Check if we're in a conversation loop by looking for our own messages
             our_messages_count = sum(
-                1 for msg in upstream_conv 
+                1 for msg in upstream_conv
                 if msg.get("personId") == person_id and msg.get("role") == "assistant"
             )
-            
+
             if our_messages_count > 0:
                 _log.debug(
                     "Detected conversation loop for %s - found %d of our messages",
@@ -218,17 +218,17 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
                         last_other_exchange.append(msg)
                         if len(last_other_exchange) >= 1 and msg.get("role") == "assistant":
                             break
-                
+
                 if last_other_exchange:
                     last_msg = last_other_exchange[0]
                     content_exists = any(
-                        msg.get("content") == last_msg.get("content") 
+                        msg.get("content") == last_msg.get("content")
                         for msg in conversation
                     )
-                    
+
                     if not content_exists:
                         conversation.append({
-                            "role": "user", 
+                            "role": "user",
                             "content": last_msg.get("content", ""),
                             "personId": person_id,
                             "source": f"from_{last_msg.get('personId', 'unknown')}"
@@ -321,7 +321,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
     response_text: str = llm_result.get("response", "")
     token_usage_obj = llm_result.get("token_usage")
-    
+
     # Extract total token count from TokenUsage object
     if token_usage_obj and hasattr(token_usage_obj, "total"):
         token_usage: int = token_usage_obj.total
@@ -362,11 +362,11 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
             "output": token_usage,
             "total": token_usage,
         }
-    
+
     return create_node_output(
         output_values,
         {
-            "model": person_cfg["model"], 
+            "model": person_cfg["model"],
             "tokens_used": token_usage,  # Keep for backward compatibility
             "tokenUsage": token_usage_metadata  # Add proper format for state registry
         },
@@ -374,7 +374,7 @@ async def execute_person_job(node: DomainNode, ctx: ExecutionContext) -> NodeOut
 
 
 @node_handler("endpoint")
-async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """Endpoint node – pass through data and optionally save to file."""
 
     data = node.data or {}
@@ -416,7 +416,7 @@ async def execute_endpoint(node: DomainNode, ctx: ExecutionContext) -> NodeOutpu
 
 
 @node_handler("condition")
-async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """Condition node: currently supports *detect_max_iterations*."""
 
     data = node.data or {}
@@ -444,7 +444,7 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
     branch_key = "True" if result else "False"
     value: Dict[str, Any] = {**inputs}
     value[branch_key] = inputs
-    
+
     if "default" not in value and inputs:
         if "conversation" in inputs:
             value["default"] = inputs["conversation"]
@@ -459,12 +459,12 @@ async def execute_condition(node: DomainNode, ctx: ExecutionContext) -> NodeOutp
         branch_key,
         list(value.keys())
     )
-    
+
     return create_node_output(value, {"condition_result": result})
 
 
 @node_handler("db")
-async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """File‑based DB node supporting *read*, *write* and *append* operations."""
 
     data = node.data or {}
@@ -493,7 +493,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # 
             result = f"Appended to {file_path}"
         else:
             result = "Unknown operation"
-    except Exception as exc:  # noqa: PERF203
+    except Exception as exc:
         _log.warning("DB op %s failed: %s", operation, exc)
         result = f"Error: {exc}"
 
@@ -501,7 +501,7 @@ async def execute_db(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # 
 
 
 @node_handler("notion")
-async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:  # noqa: D401
+async def execute_notion(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
     """Wrapper around `ctx.notion_service.execute_action`."""
 
     data = node.data or {}

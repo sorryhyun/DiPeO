@@ -20,6 +20,10 @@ from dipeo_server.domains.integrations import NotionService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
 from dipeo_server.domains.person import MemoryService
 from dipeo_server.infrastructure.messaging import message_router
+from dipeo_server.infrastructure.messaging.event_bus import (
+    EventBus,
+    MessageRouterEventBus,
+)
 from dipeo_server.infrastructure.persistence import FileService, state_store
 
 if TYPE_CHECKING:
@@ -44,11 +48,15 @@ class AppContext:
         self.diagram_storage_service: Optional[DiagramStorageService] = None
         self.diagram_storage_adapter: Optional[DiagramStorageAdapter] = None
         self.execution_preparation_service: Optional[ExecutionPreparationService] = None
+        self.event_bus: Optional[EventBus] = None
 
     async def startup(self):
         await state_store.initialize()
 
         await message_router.initialize()
+
+        # Initialize EventBus with MessageRouter integration
+        self.event_bus = MessageRouterEventBus(message_router)
 
         self.api_key_service = APIKeyService()
         self.memory_service = MemoryService()
@@ -78,6 +86,7 @@ class AppContext:
             None,
             self.notion_service,
             self.execution_preparation_service,
+            self.event_bus,
         )
 
         await self.llm_service.initialize()
@@ -157,3 +166,9 @@ def get_execution_preparation_service() -> ExecutionPreparationService:
     if app_context.execution_preparation_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.execution_preparation_service
+
+
+def get_event_bus() -> EventBus:
+    if app_context.event_bus is None:
+        raise RuntimeError("Application context not initialized")
+    return app_context.event_bus

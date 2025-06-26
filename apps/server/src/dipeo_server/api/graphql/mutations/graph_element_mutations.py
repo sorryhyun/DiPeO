@@ -6,10 +6,14 @@ import uuid
 import strawberry
 from dipeo_domain import (
     ArrowID as DomainArrowID,
+)
+from dipeo_domain import (
     DomainArrow,
     DomainHandle,
-    HandleID as DomainHandleID,
     Vec2,
+)
+from dipeo_domain import (
+    HandleID as DomainHandleID,
 )
 
 from dipeo_server.domains.diagram.converters import backend_to_graphql

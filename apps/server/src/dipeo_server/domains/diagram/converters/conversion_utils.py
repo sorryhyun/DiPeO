@@ -1,7 +1,7 @@
 """Shared conversion utilities for backend and GraphQL models."""
 
 from collections.abc import Mapping
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from dipeo_domain import DomainDiagram
 
