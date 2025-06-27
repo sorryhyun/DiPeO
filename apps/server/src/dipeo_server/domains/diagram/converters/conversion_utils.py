@@ -1,7 +1,7 @@
 """Shared conversion utilities for backend and GraphQL models."""
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from dipeo_domain import DomainDiagram
 
@@ -17,7 +17,7 @@ FIELD_NAMES = (
 )  # attrs on BackendDiagram
 
 
-def _dict_to_list(mapping: Dict[str, Any]) -> List[Any]:
+def _dict_to_list(mapping: dict[str, Any]) -> list[Any]:
     """Convert a {id: obj} mapping to a list[dict], adding missing 'id' fields."""
     return [
         (

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 import anthropic
 
@@ -53,7 +53,7 @@ class ClaudeAdapter(BaseAdapter):
         user_prompt: str = "",
         citation_target: str = "",
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build provider-specific message format."""
         blocks = self._anthropic_text_blocks(
             cacheable_prompt=cacheable_prompt,
@@ -89,7 +89,7 @@ class ClaudeAdapter(BaseAdapter):
 
         return ""
 
-    def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
+    def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         """Extract token usage from provider-specific response."""
         if hasattr(response, "usage"):
             usage = response.usage

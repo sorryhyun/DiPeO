@@ -1,6 +1,6 @@
 """Models for execution domain."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dipeo_domain import DomainDiagram
 from pydantic import BaseModel, Field
@@ -16,19 +16,19 @@ class ExecutionHint(BaseModel):
 class ExecutionHints(BaseModel):
     """Collection of execution hints for the engine."""
 
-    start_nodes: List[str] = Field(default_factory=list)
-    person_nodes: Dict[str, str] = Field(default_factory=dict)  # node_id -> person_id
-    node_dependencies: Dict[str, List[ExecutionHint]] = Field(default_factory=dict)
+    start_nodes: list[str] = Field(default_factory=list)
+    person_nodes: dict[str, str] = Field(default_factory=dict)  # node_id -> person_id
+    node_dependencies: dict[str, list[ExecutionHint]] = Field(default_factory=dict)
 
 
 class ExecutionReadyDiagram(BaseModel):
     """Diagram ready for execution with all required data."""
 
     diagram_id: str
-    backend_format: Dict[str, Any]
-    api_keys: Dict[str, str]
+    backend_format: dict[str, Any]
+    api_keys: dict[str, str]
     execution_hints: ExecutionHints
-    domain_model: Optional[DomainDiagram] = None
+    domain_model: DomainDiagram | None = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -37,10 +37,10 @@ class ExecutionReadyDiagram(BaseModel):
     def from_dict(
         cls,
         diagram_id: str,
-        backend_format: Dict[str, Any],
-        api_keys: Dict[str, str],
-        execution_hints: Dict[str, Any],
-        domain_model: Optional[DomainDiagram] = None,
+        backend_format: dict[str, Any],
+        api_keys: dict[str, str],
+        execution_hints: dict[str, Any],
+        domain_model: DomainDiagram | None = None,
     ) -> "ExecutionReadyDiagram":
         """Create from dict data."""
         hints = (

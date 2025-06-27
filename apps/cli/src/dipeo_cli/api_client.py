@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, TypeVar
+from collections.abc import AsyncGenerator, Callable
+from typing import Any, TypeVar
 
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
@@ -16,9 +17,9 @@ class DiPeoAPIClient:
         self.host = host
         self.http_url = f"http://{host}/graphql"
         self.ws_url = f"ws://{host}/graphql"
-        self._client: Optional[Client] = None
+        self._client: Client | None = None
         # Store multiple subscription clients to avoid concurrent connection issues
-        self._subscription_clients: Dict[str, Optional[Client]] = {
+        self._subscription_clients: dict[str, Client | None] = {
             "execution": None,
             "nodes": None,
             "prompts": None
@@ -75,7 +76,7 @@ class DiPeoAPIClient:
                     print(f"❌ Connection failed after {self.max_retries} attempts")
         raise ConnectionError(f"Failed to connect to server at {self.host} after {self.max_retries} attempts: {last_error}")
 
-    async def _execute_query(self, query: str, variables: Optional[Dict] = None) -> Dict:
+    async def _execute_query(self, query: str, variables: dict | None = None) -> dict:
         """Execute a GraphQL query and return the result."""
         async def _do_execute():
             parsed_query = gql(query)
@@ -85,9 +86,9 @@ class DiPeoAPIClient:
 
     async def execute_diagram(
         self,
-        diagram_id: Optional[str] = None,
-        diagram_data: Optional[Dict[str, Any]] = None,
-        variables: Optional[Dict[str, Any]] = None,
+        diagram_id: str | None = None,
+        diagram_data: dict[str, Any] | None = None,
+        variables: dict[str, Any] | None = None,
         debug_mode: bool = False,
         timeout: int = 300,
     ) -> str:
@@ -141,10 +142,10 @@ class DiPeoAPIClient:
 
     async def convert_diagram(
         self,
-        diagram_data: Dict[str, Any],
+        diagram_data: dict[str, Any],
         format: str = "native",
         include_metadata: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Convert diagram to specified format using backend API."""
         mutation = gql("""
             mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
@@ -178,7 +179,7 @@ class DiPeoAPIClient:
 
     async def subscribe_to_execution(
         self, execution_id: str
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any]]:
         """Subscribe to execution updates."""
         subscription = gql("""
             subscription ExecutionUpdates($executionId: ExecutionID!) {
@@ -210,8 +211,8 @@ class DiPeoAPIClient:
             yield result["executionUpdates"]
 
     async def subscribe_to_node_updates(
-        self, execution_id: str, node_types: Optional[List[str]] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        self, execution_id: str, node_types: list[str] | None = None
+    ) -> AsyncGenerator[dict[str, Any]]:
         """Subscribe to node execution updates."""
         subscription = gql("""
             subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
@@ -241,7 +242,7 @@ class DiPeoAPIClient:
 
     async def subscribe_to_interactive_prompts(
         self, execution_id: str
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any]]:
         """Subscribe to interactive prompt notifications."""
         subscription = gql("""
             subscription InteractivePrompts($executionId: ExecutionID!) {
@@ -262,7 +263,7 @@ class DiPeoAPIClient:
             yield result["interactivePrompts"]
 
     async def control_execution(
-        self, execution_id: str, action: str, node_id: Optional[str] = None
+        self, execution_id: str, action: str, node_id: str | None = None
     ) -> bool:
         """Control a running execution (pause, resume, abort, skip_node)."""
         mutation = gql("""
@@ -337,7 +338,7 @@ class DiPeoAPIClient:
         return response["success"]
 
     async def save_diagram(
-        self, diagram_data: Dict[str, Any], filename: Optional[str] = None
+        self, diagram_data: dict[str, Any], filename: str | None = None
     ) -> str:
         """Save a diagram and return its ID.
         

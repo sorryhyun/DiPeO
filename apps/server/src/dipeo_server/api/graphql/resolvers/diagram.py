@@ -2,8 +2,7 @@
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 import yaml
 from dipeo_domain import DiagramMetadata, DomainDiagram
@@ -30,7 +29,7 @@ class DiagramResolver:
 
     async def get_diagram(
         self, diagram_id: DiagramID, info
-    ) -> Optional[DomainDiagramType]:
+    ) -> DomainDiagramType | None:
         """Returns diagram by ID."""
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
@@ -84,8 +83,8 @@ class DiagramResolver:
                         .title(),
                         description="Light format diagram",
                         version="light",
-                        created=datetime.now(timezone.utc).isoformat(),
-                        modified=datetime.now(timezone.utc).isoformat(),
+                        created=datetime.now(UTC).isoformat(),
+                        modified=datetime.now(UTC).isoformat(),
                     )
             else:
                 # Original handling for non-light formats
@@ -101,10 +100,10 @@ class DiagramResolver:
                         "description": diagram_data.get("description", ""),
                         "version": diagram_data.get("version", "2.0.0"),
                         "created": diagram_data.get(
-                            "created", datetime.now(timezone.utc).isoformat()
+                            "created", datetime.now(UTC).isoformat()
                         ),
                         "modified": diagram_data.get(
-                            "modified", datetime.now(timezone.utc).isoformat()
+                            "modified", datetime.now(UTC).isoformat()
                         ),
                     }
 
@@ -132,8 +131,8 @@ class DiagramResolver:
             return None
 
     async def list_diagrams(
-        self, filter: Optional[DiagramFilterInput], limit: int, offset: int, info
-    ) -> List[DomainDiagramType]:
+        self, filter: DiagramFilterInput | None, limit: int, offset: int, info
+    ) -> list[DomainDiagramType]:
         """Returns filtered diagram list."""
         try:
             # Use new storage service

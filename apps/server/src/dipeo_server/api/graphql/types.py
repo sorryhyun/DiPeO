@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, NewType, Optional
+from typing import NewType
 
 import strawberry
 
@@ -139,7 +139,7 @@ class DiagramMetadataType:
 )
 class DomainNodeType:
     @strawberry.field
-    def data(self) -> Optional[JSONScalar]:
+    def data(self) -> JSONScalar | None:
         # Try multiple ways to access the data
         if hasattr(self, "_pydantic_object") and self._pydantic_object:
             return self._pydantic_object.data
@@ -153,14 +153,14 @@ class DomainNodeType:
         return None
 
     @strawberry.field
-    def handles(self) -> List[DomainHandleType]:
+    def handles(self) -> list[DomainHandleType]:
         # Handles are resolved at the diagram level
         return []
 
 
 @strawberry.experimental.pydantic.type(DomainArrow, fields=["id", "source", "target"])
 class DomainArrowType:
-    data: Optional[JSONScalar] = strawberry.auto
+    data: JSONScalar | None = strawberry.auto
 
 
 @strawberry.experimental.pydantic.type(
@@ -173,7 +173,7 @@ class DomainPersonType:
         return "person"
 
     @strawberry.field
-    def masked_api_key(self) -> Optional[str]:
+    def masked_api_key(self) -> str | None:
         if hasattr(self, "_pydantic_object") and self._pydantic_object.api_key_id:
             return f"****{str(self._pydantic_object.api_key_id)[-4:]}"
         return None
@@ -269,7 +269,7 @@ class ExecutionStateType:
 )
 class ExecutionEventType:
     @strawberry.field
-    def data(self) -> Optional[JSONScalar]:
+    def data(self) -> JSONScalar | None:
         if hasattr(self, "_pydantic_object"):
             return self._pydantic_object.data
         return None
@@ -287,23 +287,23 @@ class CreateNodeInput:
     type: NodeTypeEnum
     position: Vec2Input
     label: str
-    properties: Optional[JSONScalar] = None
+    properties: JSONScalar | None = None
 
 
 @strawberry.input
 class UpdateNodeInput:
     id: NodeID
-    position: Optional[Vec2Input] = None
-    label: Optional[str] = None
-    properties: Optional[JSONScalar] = None
+    position: Vec2Input | None = None
+    label: str | None = None
+    properties: JSONScalar | None = None
 
 
 @strawberry.input
 class CreateDiagramInput:
     name: str
-    description: Optional[str] = None
-    author: Optional[str] = None
-    tags: List[str] = strawberry.field(default_factory=list)
+    description: str | None = None
+    author: str | None = None
+    tags: list[str] = strawberry.field(default_factory=list)
 
 
 @strawberry.input
@@ -312,22 +312,22 @@ class CreatePersonInput:
     service: LLMServiceEnum
     model: str
     api_key_id: ApiKeyID
-    system_prompt: Optional[str] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
+    system_prompt: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    top_p: float | None = None
 
 
 @strawberry.input
 class UpdatePersonInput:
     id: PersonID
-    label: Optional[str] = None
-    model: Optional[str] = None
-    api_key_id: Optional[ApiKeyID] = None
-    system_prompt: Optional[str] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
+    label: str | None = None
+    model: str | None = None
+    api_key_id: ApiKeyID | None = None
+    system_prompt: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    top_p: float | None = None
 
 
 @strawberry.input
@@ -339,19 +339,19 @@ class CreateApiKeyInput:
 
 @strawberry.input
 class ExecuteDiagramInput:
-    diagram_id: Optional[DiagramID] = None
-    diagram_data: Optional[JSONScalar] = None
-    variables: Optional[JSONScalar] = None
+    diagram_id: DiagramID | None = None
+    diagram_data: JSONScalar | None = None
+    variables: JSONScalar | None = None
     debug_mode: bool = False
     max_iterations: int = 100
-    timeout_seconds: Optional[int] = None
+    timeout_seconds: int | None = None
 
 
 @strawberry.input
 class ExecutionControlInput:
     execution_id: ExecutionID
     action: str  # pause, resume, abort, skip_node
-    node_id: Optional[NodeID] = None
+    node_id: NodeID | None = None
 
 
 @strawberry.input
@@ -365,7 +365,7 @@ class InteractiveResponseInput:
 class CreateArrowInput:
     source: str  # format: "nodeId:handleId"
     target: str  # format: "nodeId:handleId"
-    label: Optional[str] = None
+    label: str | None = None
 
 
 @strawberry.input
@@ -381,25 +381,25 @@ class CreateHandleInput:
 class FileUploadInput:
     filename: str
     content_base64: str
-    content_type: Optional[str] = None
+    content_type: str | None = None
 
 
 @strawberry.input
 class DiagramFilterInput:
-    name_contains: Optional[str] = None
-    author: Optional[str] = None
-    tags: Optional[List[str]] = None
-    created_after: Optional[datetime] = None
-    created_before: Optional[datetime] = None
-    modified_after: Optional[datetime] = None
+    name_contains: str | None = None
+    author: str | None = None
+    tags: list[str] | None = None
+    created_after: datetime | None = None
+    created_before: datetime | None = None
+    modified_after: datetime | None = None
 
 
 @strawberry.input
 class ExecutionFilterInput:
-    diagram_id: Optional[DiagramID] = None
-    status: Optional[ExecutionStatusEnum] = None
-    started_after: Optional[datetime] = None
-    started_before: Optional[datetime] = None
+    diagram_id: DiagramID | None = None
+    status: ExecutionStatusEnum | None = None
+    started_after: datetime | None = None
+    started_before: datetime | None = None
     active_only: bool = False
 
 
@@ -407,63 +407,63 @@ class ExecutionFilterInput:
 @strawberry.type
 class MutationResult:
     success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
+    message: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class DiagramResult(MutationResult):
-    diagram: Optional[DomainDiagramType] = None
+    diagram: DomainDiagramType | None = None
 
 
 @strawberry.type
 class NodeResult(MutationResult):
-    node: Optional[DomainNodeType] = None
+    node: DomainNodeType | None = None
 
 
 @strawberry.type
 class PersonResult(MutationResult):
-    person: Optional[DomainPersonType] = None
+    person: DomainPersonType | None = None
 
 
 @strawberry.type
 class ApiKeyResult(MutationResult):
-    api_key: Optional[DomainApiKeyType] = None
+    api_key: DomainApiKeyType | None = None
 
 
 @strawberry.type
 class TestApiKeyResult(MutationResult):
-    valid: Optional[bool] = None
-    available_models: Optional[List[str]] = None
+    valid: bool | None = None
+    available_models: list[str] | None = None
 
 
 @strawberry.type
 class ExecutionResult(MutationResult):
-    execution: Optional[ExecutionStateType] = None
-    execution_id: Optional[str] = None
+    execution: ExecutionStateType | None = None
+    execution_id: str | None = None
 
 
 @strawberry.type
 class DeleteResult(MutationResult):
     deleted_count: int = 0
-    deleted_id: Optional[str] = None
+    deleted_id: str | None = None
 
 
 @strawberry.type
 class HandleResult(MutationResult):
-    handle: Optional[DomainHandleType] = None
+    handle: DomainHandleType | None = None
 
 
 @strawberry.type
 class ArrowResult(MutationResult):
-    arrow: Optional[DomainArrowType] = None
+    arrow: DomainArrowType | None = None
 
 
 @strawberry.type
 class FileUploadResult(MutationResult):
-    path: Optional[str] = None
-    size_bytes: Optional[int] = None
-    content_type: Optional[str] = None
+    path: str | None = None
+    size_bytes: int | None = None
+    content_type: str | None = None
 
 
 @strawberry.type
@@ -478,66 +478,66 @@ class DiagramFormatInfo:
 
 # Export all types
 __all__ = [
-    # Scalar types
-    "NodeID",
-    "DiagramID",
-    "ExecutionID",
-    "PersonID",
     "ApiKeyID",
-    "HandleID",
+    "ApiKeyResult",
     "ArrowID",
-    "JSONScalar",
-    # Domain types
-    "Vec2Type",
-    "TokenUsageType",
-    "NodeStateType",
-    "NodeOutputType",
-    "DomainHandleType",
-    "DiagramMetadataType",
-    "DomainNodeType",
-    "DomainArrowType",
-    "DomainPersonType",
-    "DomainApiKeyType",
-    "DomainDiagramType",
-    "ExecutionStateType",
-    "ExecutionEventType",
-    # Input types
-    "Vec2Input",
-    "CreateNodeInput",
-    "UpdateNodeInput",
-    "CreateDiagramInput",
-    "CreatePersonInput",
-    "UpdatePersonInput",
+    "ArrowResult",
     "CreateApiKeyInput",
+    "CreateArrowInput",
+    "CreateDiagramInput",
+    "CreateHandleInput",
+    "CreateNodeInput",
+    "CreatePersonInput",
+    "DataTypeEnum",
+    "DeleteResult",
+    "DiagramFilterInput",
+    "DiagramFormatEnum",
+    "DiagramFormatInfo",
+    "DiagramID",
+    "DiagramMetadataType",
+    "DiagramResult",
+    "DomainApiKeyType",
+    "DomainArrowType",
+    "DomainDiagramType",
+    "DomainHandleType",
+    "DomainNodeType",
+    "DomainPersonType",
+    "EventTypeEnum",
     "ExecuteDiagramInput",
     "ExecutionControlInput",
-    "InteractiveResponseInput",
-    "CreateArrowInput",
-    "CreateHandleInput",
-    "FileUploadInput",
-    "DiagramFilterInput",
+    "ExecutionEventType",
     "ExecutionFilterInput",
-    # Result types
-    "MutationResult",
-    "DiagramResult",
-    "NodeResult",
-    "PersonResult",
-    "ApiKeyResult",
-    "TestApiKeyResult",
+    "ExecutionID",
     "ExecutionResult",
-    "DeleteResult",
-    "HandleResult",
-    "ArrowResult",
+    "ExecutionStateType",
+    "ExecutionStatusEnum",
+    "FileUploadInput",
     "FileUploadResult",
-    "DiagramFormatInfo",
-    # Enums (re-exported for convenience)
-    "NodeTypeEnum",
-    "LLMServiceEnum",
     "ForgettingModeEnum",
     "HandleDirectionEnum",
-    "DataTypeEnum",
-    "ExecutionStatusEnum",
-    "DiagramFormatEnum",
-    "EventTypeEnum",
+    "HandleID",
+    "HandleResult",
+    "InteractiveResponseInput",
+    "JSONScalar",
+    "LLMServiceEnum",
+    # Result types
+    "MutationResult",
     "NodeExecutionStatusEnum",
+    # Scalar types
+    "NodeID",
+    "NodeOutputType",
+    "NodeResult",
+    "NodeStateType",
+    # Enums (re-exported for convenience)
+    "NodeTypeEnum",
+    "PersonID",
+    "PersonResult",
+    "TestApiKeyResult",
+    "TokenUsageType",
+    "UpdateNodeInput",
+    "UpdatePersonInput",
+    # Input types
+    "Vec2Input",
+    # Domain types
+    "Vec2Type",
 ]

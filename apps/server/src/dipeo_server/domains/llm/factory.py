@@ -1,11 +1,10 @@
-from typing import Optional
 
 from .adapters import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter, GrokAdapter
 from .base import BaseAdapter
 
 
 def create_adapter(
-    provider: str, model_name: str, api_key: str, base_url: Optional[str] = None
+    provider: str, model_name: str, api_key: str, base_url: str | None = None
 ) -> BaseAdapter:
     """Factory function to create LLM adapters based on provider.
 

@@ -1,7 +1,7 @@
 """Unified converter that uses format strategies."""
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from dipeo_domain import (
     DataType,
@@ -38,7 +38,7 @@ class UnifiedDiagramConverter(DiagramConverter):
     """
 
     def __init__(self):
-        self.strategies: Dict[str, FormatStrategy] = {}
+        self.strategies: dict[str, FormatStrategy] = {}
         self.handle_generator = HandleGenerator()
         self.position_calculator = PositionCalculator()
         self.node_mapper = NodeTypeMapper()
@@ -62,7 +62,7 @@ class UnifiedDiagramConverter(DiagramConverter):
             raise ValueError(f"Unknown format: {format_id}")
         self.active_format = format_id
 
-    def get_strategy(self, format_id: Optional[str] = None) -> FormatStrategy:
+    def get_strategy(self, format_id: str | None = None) -> FormatStrategy:
         """Get strategy for the specified format."""
         fmt = format_id or getattr(self, "active_format", None)
         if not fmt:
@@ -74,7 +74,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
         return strategy
 
-    def serialize(self, diagram: DomainDiagram, format_id: Optional[str] = None) -> str:
+    def serialize(self, diagram: DomainDiagram, format_id: str | None = None) -> str:
         """Convert domain diagram to format-specific string."""
         fmt = format_id or getattr(self, "active_format", None)
         if not fmt:
@@ -87,7 +87,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         return strategy.format(data)
 
     def deserialize(
-        self, content: str, format_id: Optional[str] = None
+        self, content: str, format_id: str | None = None
     ) -> DomainDiagram:
         """Convert format-specific string to domain diagram."""
         fmt = format_id or getattr(self, "active_format", None)
@@ -218,7 +218,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
         return backend_to_graphql(diagram_dict)
 
-    def _create_node(self, node_data: Dict[str, Any], index: int) -> DomainNode:
+    def _create_node(self, node_data: dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""
         node_id = node_data.get("id", f"node_{index}")
         node_type = node_data.get("type", "unknown")
@@ -235,7 +235,7 @@ class UnifiedDiagramConverter(DiagramConverter):
             id=node_id, type=node_type, position=position, data=properties
         )
 
-    def _create_arrow(self, arrow_data: Dict[str, Any]) -> Optional[DomainArrow]:
+    def _create_arrow(self, arrow_data: dict[str, Any]) -> DomainArrow | None:
         """Create a domain arrow from arrow data."""
         source = arrow_data.get("source")
         target = arrow_data.get("target")
@@ -252,8 +252,8 @@ class UnifiedDiagramConverter(DiagramConverter):
         )
 
     def validate(
-        self, content: str, format_id: Optional[str] = None
-    ) -> Tuple[bool, List[str]]:
+        self, content: str, format_id: str | None = None
+    ) -> tuple[bool, list[str]]:
         """Validate content without full deserialization."""
         try:
             self.deserialize(content, format_id)
@@ -261,7 +261,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         except Exception as e:
             return False, [str(e)]
 
-    def detect_format(self, content: str) -> Optional[str]:
+    def detect_format(self, content: str) -> str | None:
         """Automatically detect format from content."""
         # First try quick match for efficiency
         for format_id, strategy in self.strategies.items():
@@ -269,7 +269,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 return format_id
 
         # Fall back to full parsing if no quick match
-        confidences: List[Tuple[str, float]] = []
+        confidences: list[tuple[str, float]] = []
 
         for format_id, strategy in self.strategies.items():
             try:
@@ -293,14 +293,14 @@ class UnifiedDiagramConverter(DiagramConverter):
             return 1.0
         return 0.0
 
-    def get_supported_formats(self) -> List[Dict[str, str]]:
+    def get_supported_formats(self) -> list[dict[str, str]]:
         """Get information about all supported formats."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()
         ]
 
-    def get_export_formats(self) -> List[Dict[str, str]]:
+    def get_export_formats(self) -> list[dict[str, str]]:
         """Get formats that support export."""
         return [
             {"id": format_id, **strategy.format_info}
@@ -308,7 +308,7 @@ class UnifiedDiagramConverter(DiagramConverter):
             if strategy.format_info.get("supports_export", True)
         ]
 
-    def get_import_formats(self) -> List[Dict[str, str]]:
+    def get_import_formats(self) -> list[dict[str, str]]:
         """Get formats that support import."""
         return [
             {"id": format_id, **strategy.format_info}

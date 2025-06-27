@@ -1,5 +1,5 @@
 # openai_adapter.py
-from typing import Any, Dict, List
+from typing import Any
 
 from openai import OpenAI
 
@@ -19,8 +19,8 @@ class ChatGPTAdapter(BaseAdapter):
         user_prompt: str = "",
         citation_target: str = "",
         **kwargs,
-    ) -> List[Dict[str, str]]:
-        msgs: List[Dict[str, str]] = []
+    ) -> list[dict[str, str]]:
+        msgs: list[dict[str, str]] = []
         if system_prompt:
             msgs.append({"role": "system", "content": system_prompt})
 
@@ -37,7 +37,7 @@ class ChatGPTAdapter(BaseAdapter):
 
         return msgs
 
-    def _make_api_call(self, messages: List[Dict[str, str]], **kwargs) -> Any:
+    def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> Any:
         params = {"model": self.model_name, "messages": messages}
         for opt in ("temperature", "max_tokens", "n", "top_p"):
             if opt in kwargs and kwargs[opt] is not None:
@@ -48,7 +48,7 @@ class ChatGPTAdapter(BaseAdapter):
         choice = response.choices[0] if response.choices else None
         return getattr(choice.message, "content", "") if choice else ""
 
-    def _extract_usage_from_response(self, response: Any) -> Dict[str, int]:
+    def _extract_usage_from_response(self, response: Any) -> dict[str, int]:
         u = getattr(response, "usage", None)
         return (
             {
@@ -60,6 +60,6 @@ class ChatGPTAdapter(BaseAdapter):
             else {}
         )
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         models = self.client.models.list().data
         return [m.id for m in models if "gpt" in m.id]

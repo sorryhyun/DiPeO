@@ -3,7 +3,6 @@
 import json
 import os
 import uuid
-from typing import Dict, List, Optional
 
 from dipeo_core import BaseService, SupportsAPIKey
 
@@ -18,12 +17,12 @@ class APIKeyService(BaseService, SupportsAPIKey):
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 
-    def __init__(self, store_file: Optional[str] = None):
+    def __init__(self, store_file: str | None = None):
         super().__init__()
         self.store_file = store_file or os.getenv(
             "API_KEY_STORE_FILE", f"{BASE_DIR}/files/apikeys.json"
         )
-        self._store: Dict[str, dict] = {}
+        self._store: dict[str, dict] = {}
         self._load_store()
 
     async def initialize(self) -> None:
@@ -71,7 +70,7 @@ class APIKeyService(BaseService, SupportsAPIKey):
             }
         return info
 
-    def list_api_keys(self) -> List[dict]:
+    def list_api_keys(self) -> list[dict]:
         result = []
         for key_id, info in self._store.items():
             # Handle both old and new format API keys
@@ -118,9 +117,9 @@ class APIKeyService(BaseService, SupportsAPIKey):
     def update_api_key(
         self,
         key_id: str,
-        label: Optional[str] = None,
-        service: Optional[str] = None,
-        key: Optional[str] = None,
+        label: str | None = None,
+        service: str | None = None,
+        key: str | None = None,
     ) -> dict:
         """Update an existing API key."""
         if key_id not in self._store:

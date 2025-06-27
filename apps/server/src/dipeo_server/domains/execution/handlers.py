@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
-from dipeo_domain.models import DomainNode, NodeExecutionStatus, NodeOutput as DomainNodeOutput
 from dipeo_domain import NodeOutput
+from dipeo_domain.models import DomainNode, NodeExecutionStatus
 
 from .context import ExecutionContext
 
@@ -29,7 +31,7 @@ class DBOperation(str, Enum):
 
 
 _HandlerFn = Callable[[DomainNode, ExecutionContext], Awaitable[NodeOutput]]
-_handlers: Dict[str, _HandlerFn] = {}
+_handlers: dict[str, _HandlerFn] = {}
 
 
 def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:
@@ -73,14 +75,14 @@ def node_handler(node_type: str) -> Callable[[_HandlerFn], _HandlerFn]:
     return decorator
 
 
-def get_handlers() -> Dict[str, _HandlerFn]:
+def get_handlers() -> dict[str, _HandlerFn]:
     """Return a *copy* of the internal handler registry."""
     return _handlers.copy()
 
 
 def create_node_output(
-    value: Dict[str, Any] | None = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    value: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> NodeOutput:
     """Utility to save a few keystrokes when constructing outputs."""
 
@@ -92,8 +94,8 @@ async def _edge_inputs(
     context: ExecutionContext,
     *,
     as_dict: bool = True,
-    node_view: "NodeView",
-) -> Dict[str, Any]:
+    node_view: NodeView,
+) -> dict[str, Any]:
     """Collect downstream values from all incoming edges.
 
     Returned mapping keys are the *edge labels* (defaulting to "default").
@@ -114,7 +116,7 @@ async def execute_start(node: DomainNode, context: ExecutionContext) -> NodeOutp
 
 @node_handler("person_job")
 async def execute_person_job(
-    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: NodeView | None = None
 ) -> NodeOutput:
     """Handle conversational person_job node using domain service."""
     # Collect inputs from edges
@@ -139,7 +141,7 @@ async def execute_person_job(
 
 @node_handler("endpoint")
 async def execute_endpoint(
-    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: NodeView | None = None
 ) -> NodeOutput:
     """Endpoint node – pass through data and optionally save to file."""
 
@@ -183,7 +185,7 @@ async def execute_endpoint(
 
 @node_handler("condition")
 async def execute_condition(
-    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: NodeView | None = None
 ) -> NodeOutput:
     """Condition node: currently supports *detect_max_iterations*."""
 
@@ -210,7 +212,7 @@ async def execute_condition(
 
     # Forward inputs with branch key for backward compatibility
     branch_key = "True" if result else "False"
-    value: Dict[str, Any] = {**inputs}
+    value: dict[str, Any] = {**inputs}
     value[branch_key] = inputs
 
     if "default" not in value and inputs:
@@ -233,7 +235,7 @@ async def execute_condition(
 
 @node_handler("db")
 async def execute_db(
-    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: NodeView | None = None
 ) -> NodeOutput:
     """File‑based DB node supporting *read*, *write* and *append* operations."""
 
@@ -255,10 +257,8 @@ async def execute_db(
         elif operation == "append":
             existing = ""
             if hasattr(context.file_service, "aread"):
-                try:
+                with contextlib.suppress(Exception):
                     existing = await context.file_service.aread(file_path)
-                except Exception:
-                    pass
             await context.file_service.write(file_path, existing + str(input_val))
             result = f"Appended to {file_path}"
         else:
@@ -272,7 +272,7 @@ async def execute_db(
 
 @node_handler("notion")
 async def execute_notion(
-    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: NodeView | None = None
 ) -> NodeOutput:
     """Wrapper around `context.notion_service.execute_action`."""
 

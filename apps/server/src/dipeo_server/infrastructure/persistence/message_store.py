@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiosqlite
 
@@ -36,16 +36,16 @@ class MessageStore:
         self,
         execution_id: str,
         node_id: str,
-        content: Dict[str, Any],
-        person_id: Optional[str] = None,
-        token_count: Optional[int] = None,
+        content: dict[str, Any],
+        person_id: str | None = None,
+        token_count: int | None = None,
     ) -> str:
         """Store message and return reference ID."""
         message_id = f"{execution_id}:{node_id}:{datetime.utcnow().timestamp()}"
 
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
-                """INSERT INTO messages 
+                """INSERT INTO messages
                    (id, execution_id, node_id, person_id, content, token_count)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (
@@ -61,35 +61,33 @@ class MessageStore:
 
         return message_id
 
-    async def get_message(self, message_id: str) -> Optional[Dict[str, Any]]:
+    async def get_message(self, message_id: str) -> dict[str, Any] | None:
         """Retrieve message by reference ID."""
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute(
-                "SELECT content FROM messages WHERE id = ?", (message_id,)
-            ) as cursor:
-                row = await cursor.fetchone()
-                return json.loads(row[0]) if row else None
+        async with aiosqlite.connect(self.db_path) as db, db.execute(
+            "SELECT content FROM messages WHERE id = ?", (message_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return json.loads(row[0]) if row else None
 
     async def get_conversation_messages(
         self, execution_id: str, person_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get all messages for a person in an execution."""
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute(
-                """SELECT id, content, token_count, created_at 
-                   FROM messages 
+        async with aiosqlite.connect(self.db_path) as db, db.execute(
+            """SELECT id, content, token_count, created_at
+                   FROM messages
                    WHERE execution_id = ? AND person_id = ?
                    ORDER BY created_at""",
-                (execution_id, person_id),
-            ) as cursor:
-                messages = []
-                async for row in cursor:
-                    messages.append(
-                        {
-                            "id": row[0],
-                            "content": json.loads(row[1]),
-                            "token_count": row[2],
-                            "timestamp": row[3],
-                        }
-                    )
-                return messages
+            (execution_id, person_id),
+        ) as cursor:
+            messages = []
+            async for row in cursor:
+                messages.append(
+                    {
+                        "id": row[0],
+                        "content": json.loads(row[1]),
+                        "token_count": row[2],
+                        "timestamp": row[3],
+                    }
+                )
+            return messages

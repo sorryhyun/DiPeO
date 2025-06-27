@@ -2,8 +2,8 @@
 
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import AsyncGenerator, List, Optional
 
 import strawberry
 from dipeo_domain import EventType, ExecutionStatus, NodeExecutionStatus, NodeType
@@ -30,10 +30,10 @@ class NodeExecution:
     node_id: NodeID
     node_type: NodeType
     status: str
-    progress: Optional[str] = None
-    output: Optional[JSONScalar] = None
-    error: Optional[str] = None
-    tokens_used: Optional[int] = None
+    progress: str | None = None
+    output: JSONScalar | None = None
+    error: str | None = None
+    tokens_used: int | None = None
     timestamp: datetime
 
 
@@ -44,7 +44,7 @@ class InteractivePrompt:
     execution_id: ExecutionID
     node_id: NodeID
     prompt: str
-    timeout_seconds: Optional[int] = None
+    timeout_seconds: int | None = None
     timestamp: datetime
 
 
@@ -55,7 +55,7 @@ class Subscription:
     @strawberry.subscription
     async def execution_updates(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[ExecutionStateType, None]:
+    ) -> AsyncGenerator[ExecutionStateType]:
         """Streams execution state changes using push-based updates."""
         context: GraphQLContext = info.context
         state_store = context.state_store
@@ -99,9 +99,9 @@ class Subscription:
                     update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
 
                     # Check if update contains state snapshot
-                    if "state_snapshot" in update and update["state_snapshot"]:
+                    if update.get("state_snapshot"):
                         # Use state snapshot from event to avoid DB/cache query
-                        snapshot = update["state_snapshot"]
+                        update["state_snapshot"]
                         # We need to get the full state, but we can optimize by checking cache first
                         state = await state_store.get_state_from_cache(execution_id)
                         if state:
@@ -123,7 +123,7 @@ class Subscription:
                             )
                             break
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Send periodic heartbeat by re-fetching state from cache
                     state = await state_store.get_state_from_cache(execution_id)
                     if state:
@@ -144,8 +144,8 @@ class Subscription:
         self,
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
-        event_types: Optional[List[EventType]] = None,
-    ) -> AsyncGenerator[ExecutionEventType, None]:
+        event_types: list[EventType] | None = None,
+    ) -> AsyncGenerator[ExecutionEventType]:
         """Streams specific execution event types using push-based updates."""
         context: GraphQLContext = info.context
         state_store = context.state_store
@@ -154,7 +154,6 @@ class Subscription:
         logger.info(f"Starting event stream subscription for {execution_id}")
 
         sequence = 0
-        last_node_states = {}
 
         # Process initial state from cache first
         state = await state_store.get_state_from_cache(execution_id)
@@ -164,7 +163,7 @@ class Subscription:
 
         if state:
             current_node_states = state.node_states or {}
-            last_node_states = {nid: ns for nid, ns in current_node_states.items()}
+            dict(current_node_states.items())
 
         # Subscribe to real-time updates
         updates_queue = asyncio.Queue()
@@ -249,7 +248,7 @@ class Subscription:
                         )
                         break
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Heartbeat - no action needed
                     pass
 
@@ -268,11 +267,10 @@ class Subscription:
         self,
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
-        node_types: Optional[List[NodeType]] = None,
-    ) -> AsyncGenerator[NodeExecution, None]:
+        node_types: list[NodeType] | None = None,
+    ) -> AsyncGenerator[NodeExecution]:
         """Streams node execution updates with optional filtering using push-based updates."""
         context: GraphQLContext = info.context
-        state_store = context.state_store
         event_bus = context.event_bus
 
         logger.info(f"Starting node updates subscription for {execution_id}")
@@ -344,7 +342,7 @@ class Subscription:
                         )
                         break
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Heartbeat - no action needed
                     pass
 
@@ -363,7 +361,7 @@ class Subscription:
     @strawberry.subscription
     async def diagram_changes(
         self, info: strawberry.Info[GraphQLContext], diagram_id: DiagramID
-    ) -> AsyncGenerator[DomainDiagramType, None]:
+    ) -> AsyncGenerator[DomainDiagramType]:
         """Streams diagram modifications (not implemented)."""
         logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
         while False:
@@ -372,14 +370,13 @@ class Subscription:
     @strawberry.subscription
     async def interactive_prompts(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[Optional[InteractivePrompt], None]:
+    ) -> AsyncGenerator[InteractivePrompt | None]:
         """Streams interactive prompts requiring user response."""
         context: GraphQLContext = info.context
         state_store = context.state_store
 
         logger.info(f"Starting interactive prompts subscription for {execution_id}")
 
-        processed_prompts = set()
         has_yielded = False
 
         try:

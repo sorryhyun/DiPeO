@@ -1,7 +1,8 @@
 """Execution engine using ExecutionView for efficiency."""
 
 import asyncio
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 from uuid import uuid4
 
 from dipeo_core import HandlerRegistry
@@ -10,10 +11,10 @@ from dipeo_domain.models import DomainDiagram, NodeOutput
 from dipeo_server.domains.llm.services import LLMService
 from dipeo_server.infrastructure.persistence import FileService
 
-from ..integrations.notion import NotionService
 from ..conversation import ConversationService
+from ..integrations.notion import NotionService
 from .context import ExecutionContext
-from .execution_view import ExecutionView, NodeView, EdgeView
+from .execution_view import EdgeView, ExecutionView, NodeView
 
 
 class ViewBasedEngine:
@@ -23,16 +24,16 @@ class ViewBasedEngine:
     async def execute_diagram(
         self,
         diagram: DomainDiagram,
-        api_keys: Dict[str, str],
+        api_keys: dict[str, str],
         llm_service: LLMService,
         file_service: FileService,
         conversation_service: ConversationService,
         notion_service: NotionService = None,
-        api_key_service: Optional[Any] = None,
-        state_store: Optional[Any] = None,
-        execution_id: Optional[str] = None,
-        interactive_handler: Optional[Callable] = None,
-        stream_callback: Optional[Callable] = None,
+        api_key_service: Any | None = None,
+        state_store: Any | None = None,
+        execution_id: str | None = None,
+        interactive_handler: Callable | None = None,
+        stream_callback: Callable | None = None,
     ) -> ExecutionContext:
         view = ExecutionView(diagram, self.handler_registry, api_keys)
 
@@ -188,12 +189,12 @@ class ViewBasedEngine:
             return False
 
         required_edges = self._get_required_edges(node_view, context)
-        
+
         # If no required edges (e.g., start node), it can execute
         if not required_edges:
             log.debug(f"Node {node_view.id} has no required edges, can execute")
             return True
-            
+
         matched_edge_found = False
 
         # Check if all required edges are satisfied
@@ -419,36 +420,35 @@ class ViewBasedEngine:
     ) -> NodeOutput:
         # All handlers now use the new BaseNodeHandler interface
         # which expects props, context, inputs, and services
-        
+
         # Get node definition from registry
         node_def = self.handler_registry.get(node.type)
         if not node_def:
             raise ValueError(f"No handler found for node type: {node.type}")
-        
+
         # Update current node ID
         context.current_node_id = node.id
-        
+
         # Convert contexts
         runtime_context = context.to_runtime_context(node_view)
-        
+
         # Validate and parse node data
         node_data = node.data or {}
         props = node_def.node_schema(**node_data)
-        
+
         # Collect inputs from node_view
         inputs = {}
         if node_view:
             inputs = node_view.get_active_inputs()
-        
+
         # Create services
         services = context.get_services_dict()
-        
+
         # Execute handler
-        result = await handler(
+        return await handler(
             props=props,
             context=runtime_context,
             inputs=inputs,
             services=services,
         )
-        
-        return result
+

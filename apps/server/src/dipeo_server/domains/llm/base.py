@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
 class ChatResult:
     text: str
-    prompt_tokens: Optional[int] = None
-    completion_tokens: Optional[int] = None
-    total_tokens: Optional[int] = None
-    raw_response: Optional[Any] = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    raw_response: Any | None = None
 
     @property
     def has_usage(self) -> bool:
@@ -19,7 +19,7 @@ class ChatResult:
         )
 
     @property
-    def usage(self) -> Optional[Dict[str, int]]:
+    def usage(self) -> dict[str, int | None] | None:
         if self.has_usage:
             return {
                 "prompt_tokens": self.prompt_tokens,
@@ -30,9 +30,9 @@ class ChatResult:
 
 
 class BaseAdapter(ABC):
-    FALLBACK_MODELS: Dict[str, List[str]] = {"openai": ["gpt-4", "gpt-3.5-turbo"]}
+    FALLBACK_MODELS: dict[str, list[str]] = {"openai": ["gpt-4", "gpt-3.5-turbo"]}
 
-    def __init__(self, model_name: str, api_key: str, base_url: Optional[str] = None):
+    def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         self.model_name = model_name
         self.api_key = api_key
         self.base_url = base_url
@@ -68,7 +68,7 @@ class BaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
+    def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         raise NotImplementedError
 
     def chat(self, system_prompt: str, user_prompt: str = "", **kwargs) -> ChatResult:
@@ -85,7 +85,7 @@ class BaseAdapter(ABC):
         )
 
     def chat_with_messages(
-        self, messages: List[Dict[str, str]], **kwargs
+        self, messages: list[dict[str, str]], **kwargs
     ) -> ChatResult:
         resp = self._make_api_call(messages, **kwargs)
         text = self._extract_text_from_response(resp, **kwargs)
@@ -98,5 +98,5 @@ class BaseAdapter(ABC):
             raw_response=resp,
         )
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return self.FALLBACK_MODELS.get("openai", [])

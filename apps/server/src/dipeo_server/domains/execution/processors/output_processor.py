@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo_server.domains.llm.token_usage_service import TokenUsageService
 
@@ -17,14 +17,14 @@ class OutputProcessor:
         return value
 
     @staticmethod
-    def extract_conversation_history(value: Any) -> List[Dict[str, str]]:
+    def extract_conversation_history(value: Any) -> list[dict[str, str]]:
         """Extract conversation history from PersonJob output."""
         if isinstance(value, dict) and value.get("_type") == "personjob_output":
             return value.get("conversation_history", [])
         return []
 
     @staticmethod
-    def extract_metadata(value: Any) -> Dict[str, Any]:
+    def extract_metadata(value: Any) -> dict[str, Any]:
         """Extract metadata from PersonJob output."""
         if isinstance(value, dict) and value.get("_type") == "personjob_output":
             metadata = {}
@@ -48,19 +48,19 @@ class OutputProcessor:
         return isinstance(value, dict) and value.get("_type") == "personjob_output"
 
     @staticmethod
-    def process_list(values: List[Any]) -> List[Any]:
+    def process_list(values: list[Any]) -> list[Any]:
         return [OutputProcessor.extract_value(v) for v in values]
 
     @staticmethod
     def create_personjob_output(
         text: str,
-        conversation_history: List[Dict[str, str]] = None,
+        conversation_history: list[dict[str, str]] | None = None,
         token_count: int = 0,
         input_tokens: int = 0,
         output_tokens: int = 0,
         cached_tokens: int = 0,
-        model: str = None,
-    ) -> Dict[str, Any]:
+        model: str | None = None,
+    ) -> dict[str, Any]:
         output = {"_type": "personjob_output", "text": text}
 
         if conversation_history is not None:
@@ -91,10 +91,10 @@ class OutputProcessor:
     def create_personjob_output_from_tokens(
         text: str,
         token_usage: "TokenUsage",
-        conversation_history: List[Dict[str, str]] = None,
-        model: str = None,
-        execution_time: float = None,
-    ) -> Dict[str, Any]:
+        conversation_history: list[dict[str, str]] | None = None,
+        model: str | None = None,
+        execution_time: float | None = None,
+    ) -> dict[str, Any]:
         output = {"_type": "personjob_output", "text": text}
 
         if conversation_history is not None:

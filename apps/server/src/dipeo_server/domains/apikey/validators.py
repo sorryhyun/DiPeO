@@ -1,11 +1,10 @@
 """API Key validation rules."""
 
-from typing import Set
 
 from dipeo_server.shared.exceptions import ValidationError
 
 
-def validate_service_name(service: str, valid_services: Set[str]) -> str:
+def validate_service_name(service: str, valid_services: set[str]) -> str:
     """Validate and normalize service name."""
     normalized = service.lower().strip()
 

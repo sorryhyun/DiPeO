@@ -75,7 +75,7 @@ class ExecutionService(BaseService, SupportsExecution):
 
         # Import node_handlers to ensure handlers are registered
         from .. import node_handlers  # noqa: F401
-        
+
         # Get the global registry which has all registered handlers
         registry = get_global_registry()
         log.info(f"Registry has {len(registry.list_types())} registered handlers: {registry.list_types()}")
@@ -123,7 +123,7 @@ class ExecutionService(BaseService, SupportsExecution):
                     if update.get("type") == "execution_complete":
                         break
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     if engine_task.done():
                         try:
                             await engine_task

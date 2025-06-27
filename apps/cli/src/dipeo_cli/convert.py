@@ -4,13 +4,12 @@ Convert command implementation for DiPeO CLI.
 
 import json
 from pathlib import Path
-from typing import List
 
 from .api_client import DiPeoAPIClient
 from .utils import DiagramLoader
 
 
-async def convert_command(args: List[str]) -> None:
+async def convert_command(args: list[str]) -> None:
     """Execute convert command - converts between JSON and YAML formats using backend API"""
     if len(args) < 2:
         print("Error: Usage: convert <input> <output>")

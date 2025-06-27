@@ -2,9 +2,9 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 from dipeo_core import BaseService, SupportsDiagram
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class DiagramStorageService(BaseService, SupportsDiagram):
     """Handles file I/O operations for diagram files that implements the SupportsDiagram protocol."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         super().__init__()
         self.diagrams_dir = (base_dir or BASE_DIR) / "files" / "diagrams"
         logger.info(f"DiagramStorageService initialized with dir: {self.diagrams_dir}")
@@ -31,7 +31,7 @@ class DiagramStorageService(BaseService, SupportsDiagram):
         self.diagrams_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Ensured diagrams directory exists: {self.diagrams_dir}")
 
-    async def read_file(self, path: str) -> Dict[str, Any]:
+    async def read_file(self, path: str) -> dict[str, Any]:
         """Read a diagram file and return its contents as a dictionary."""
         file_path = self.diagrams_dir / path
         logger.debug(f"Attempting to read file: {file_path}")
@@ -65,7 +65,7 @@ class DiagramStorageService(BaseService, SupportsDiagram):
             logger.error(f"Failed to read file {path}: {e}")
             raise
 
-    async def write_file(self, path: str, content: Dict[str, Any]) -> None:
+    async def write_file(self, path: str, content: dict[str, Any]) -> None:
         """Write a dictionary to a diagram file."""
         file_path = self.diagrams_dir / path
 
@@ -107,7 +107,7 @@ class DiagramStorageService(BaseService, SupportsDiagram):
             logger.error(f"Failed to delete file {path}: {e}")
             raise
 
-    async def list_files(self, directory: Optional[str] = None) -> List[FileInfo]:
+    async def list_files(self, directory: str | None = None) -> list[FileInfo]:
         """List all diagram files in the diagrams directory."""
         files = []
 
@@ -142,7 +142,7 @@ class DiagramStorageService(BaseService, SupportsDiagram):
                         format=format_type,
                         extension=file_path.suffix[1:],
                         modified=datetime.fromtimestamp(
-                            stats.st_mtime, tz=timezone.utc
+                            stats.st_mtime, tz=UTC
                         ).isoformat(),
                         size=stats.st_size,
                     )
@@ -162,7 +162,7 @@ class DiagramStorageService(BaseService, SupportsDiagram):
         file_path = self.diagrams_dir / path
         return file_path.exists() and file_path.is_file()
 
-    async def find_by_id(self, diagram_id: str) -> Optional[str]:
+    async def find_by_id(self, diagram_id: str) -> str | None:
         """Find a diagram file by its ID (filename without extension)."""
         # First check if diagram_id already contains a path separator
         # This handles cases like "light/quicksave" directly
@@ -189,7 +189,7 @@ class DiagramStorageService(BaseService, SupportsDiagram):
         return None
 
     def _determine_format_type(self, relative_path: Path) -> str:
-        path_str = str(relative_path)
+        str(relative_path)
 
         # Check the first directory in the path
         parts = relative_path.parts

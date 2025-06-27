@@ -1,8 +1,8 @@
 """In-memory cache for active executions."""
 
-from typing import Dict, Optional
 import asyncio
 from datetime import datetime, timedelta
+
 from dipeo_domain import ExecutionState, TokenUsage
 
 
@@ -10,12 +10,12 @@ class ExecutionCache:
     """In-memory cache for active executions to avoid DB access during execution."""
 
     def __init__(self, ttl_minutes: int = 60):
-        self._cache: Dict[str, ExecutionState] = {}
-        self._last_access: Dict[str, datetime] = {}
+        self._cache: dict[str, ExecutionState] = {}
+        self._last_access: dict[str, datetime] = {}
         self._ttl = timedelta(minutes=ttl_minutes)
         self._lock = asyncio.Lock()
 
-    async def get(self, execution_id: str) -> Optional[ExecutionState]:
+    async def get(self, execution_id: str) -> ExecutionState | None:
         """Get execution state from cache."""
         async with self._lock:
             if execution_id in self._cache:
@@ -57,7 +57,7 @@ class ExecutionCache:
         async with self._lock:
             return execution_id in self._cache
 
-    async def get_all_active(self) -> Dict[str, ExecutionState]:
+    async def get_all_active(self) -> dict[str, ExecutionState]:
         """Get all active executions from cache."""
         async with self._lock:
             return dict(self._cache)

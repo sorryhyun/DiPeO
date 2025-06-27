@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import strawberry
 from dipeo_domain import (
@@ -85,7 +85,7 @@ class ExecutionMutations:
                 id=ExecutionID(execution_id),
                 status=ExecutionStatus.STARTED,
                 diagramId=DiagramID(diagram_id) if diagram_id else None,
-                startedAt=datetime.now(timezone.utc).isoformat(),
+                startedAt=datetime.now(UTC).isoformat(),
                 endedAt=None,
                 nodeStates={},
                 nodeOutputs={},
@@ -152,7 +152,7 @@ class ExecutionMutations:
                 "type": f"{data.action}_{'node' if data.node_id else 'execution'}",
                 "execution_id": data.execution_id,
                 "node_id": data.node_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
@@ -211,7 +211,7 @@ class ExecutionMutations:
                 "executionId": data.execution_id,
                 "nodeId": data.node_id,
                 "response": data.response,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             await message_router.broadcast_to_execution(

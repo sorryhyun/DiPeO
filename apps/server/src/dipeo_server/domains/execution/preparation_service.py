@@ -1,8 +1,8 @@
 """Service for preparing diagrams for execution."""
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from datetime import UTC, datetime
+from typing import Any
 
 from dipeo_core import BaseService, ValidationError
 from dipeo_domain import DiagramMetadata, DomainDiagram
@@ -40,8 +40,8 @@ class ExecutionPreparationService(BaseService):
 
     async def prepare_for_execution(
         self,
-        diagram: Union[str, Dict[str, Any], DomainDiagram],
-        diagram_id: Optional[str] = None,
+        diagram: str | dict[str, Any] | DomainDiagram,
+        diagram_id: str | None = None,
         validate: bool = True,
     ) -> ExecutionReadyDiagram:
         """Prepare any diagram input for execution.
@@ -116,8 +116,8 @@ class ExecutionPreparationService(BaseService):
                     id=diagram_id,
                     name=diagram_id,
                     version="2.0.0",
-                    created=datetime.now(timezone.utc).isoformat(),
-                    modified=datetime.now(timezone.utc).isoformat(),
+                    created=datetime.now(UTC).isoformat(),
+                    modified=datetime.now(UTC).isoformat(),
                 )
             else:
                 # Update the metadata ID
@@ -143,7 +143,7 @@ class ExecutionPreparationService(BaseService):
             domain_model=domain_diagram,
         )
 
-    async def _load_from_storage(self, diagram_id: str) -> Dict[str, Any]:
+    async def _load_from_storage(self, diagram_id: str) -> dict[str, Any]:
         """Load diagram from storage."""
         logger.info(f"Loading diagram {diagram_id} from storage")
 
@@ -158,7 +158,7 @@ class ExecutionPreparationService(BaseService):
         logger.debug(f"Loading diagram from {path}")
         return await self.storage.read_file(path)
 
-    def _is_backend_format(self, data: Dict[str, Any]) -> bool:
+    def _is_backend_format(self, data: dict[str, Any]) -> bool:
         """Check if data is in backend format (dict-based nodes)."""
         if "nodes" in data and isinstance(data["nodes"], dict):
             first_node = (
@@ -168,7 +168,7 @@ class ExecutionPreparationService(BaseService):
                 return True
         return False
 
-    def _fix_api_key_references(self, diagram: Dict[str, Any]) -> Dict[str, Any]:
+    def _fix_api_key_references(self, diagram: dict[str, Any]) -> dict[str, Any]:
         """Fix invalid API key references in diagram."""
         valid_api_keys = {key["id"] for key in self.api_key_service.list_api_keys()}
 
@@ -200,7 +200,7 @@ class ExecutionPreparationService(BaseService):
 
         return diagram
 
-    def _extract_api_keys(self, diagram: Dict[str, Any]) -> Dict[str, str]:
+    def _extract_api_keys(self, diagram: dict[str, Any]) -> dict[str, str]:
         """Extract API keys needed for execution."""
         keys = {}
 
@@ -218,8 +218,8 @@ class ExecutionPreparationService(BaseService):
         return keys
 
     def _build_execution_format(
-        self, diagram: DomainDiagram, api_keys: Dict[str, str]
-    ) -> Dict[str, Any]:
+        self, diagram: DomainDiagram, api_keys: dict[str, str]
+    ) -> dict[str, Any]:
         """Build execution format with hints."""
         try:
             backend_model = graphql_to_backend(diagram)

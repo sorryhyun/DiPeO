@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dipeo_core import BaseService, ExecutionError, SupportsNotion
 from notion_client import Client
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class NotionService(BaseService, SupportsNotion):
     def __init__(self):
         super().__init__()
-        self._clients: Dict[str, Client] = {}
+        self._clients: dict[str, Client] = {}
 
     async def initialize(self) -> None:
         """Initialize the Notion service."""
@@ -22,17 +22,16 @@ class NotionService(BaseService, SupportsNotion):
             self._clients[api_key] = Client(auth=api_key)
         return self._clients[api_key]
 
-    async def retrieve_page(self, page_id: str, api_key: str) -> Dict[str, Any]:
+    async def retrieve_page(self, page_id: str, api_key: str) -> dict[str, Any]:
         """Retrieve page metadata"""
         try:
             client = self._get_client(api_key)
-            response = client.pages.retrieve(page_id=page_id)
-            return response
+            return client.pages.retrieve(page_id=page_id)
         except Exception as e:
             logger.error(f"Failed to retrieve Notion page: {e}")
             raise ExecutionError(f"Notion API error: {e!s}")
 
-    async def list_blocks(self, page_id: str, api_key: str) -> List[Dict[str, Any]]:
+    async def list_blocks(self, page_id: str, api_key: str) -> list[dict[str, Any]]:
         """List all blocks in a page"""
         try:
             client = self._get_client(api_key)
@@ -54,25 +53,23 @@ class NotionService(BaseService, SupportsNotion):
             raise ExecutionError(f"Notion API error: {e!s}")
 
     async def append_blocks(
-        self, page_id: str, blocks: List[Dict[str, Any]], api_key: str
-    ) -> Dict[str, Any]:
+        self, page_id: str, blocks: list[dict[str, Any]], api_key: str
+    ) -> dict[str, Any]:
         """Append blocks to a page"""
         try:
             client = self._get_client(api_key)
-            response = client.blocks.children.append(block_id=page_id, children=blocks)
-            return response
+            return client.blocks.children.append(block_id=page_id, children=blocks)
         except Exception as e:
             logger.error(f"Failed to append Notion blocks: {e}")
             raise ExecutionError(f"Notion API error: {e!s}")
 
     async def update_block(
-        self, block_id: str, block_data: Dict[str, Any], api_key: str
-    ) -> Dict[str, Any]:
+        self, block_id: str, block_data: dict[str, Any], api_key: str
+    ) -> dict[str, Any]:
         """Update a block"""
         try:
             client = self._get_client(api_key)
-            response = client.blocks.update(block_id=block_id, **block_data)
-            return response
+            return client.blocks.update(block_id=block_id, **block_data)
         except Exception as e:
             logger.error(f"Failed to update Notion block: {e}")
             raise ExecutionError(f"Notion API error: {e!s}")
@@ -80,10 +77,10 @@ class NotionService(BaseService, SupportsNotion):
     async def query_database(
         self,
         database_id: str,
-        filter: Optional[Dict] = None,
-        sorts: Optional[List] = None,
-        api_key: str = None,
-    ) -> List[Dict[str, Any]]:
+        filter: dict | None = None,
+        sorts: list | None = None,
+        api_key: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Query a Notion database"""
         try:
             client = self._get_client(api_key)
@@ -113,11 +110,11 @@ class NotionService(BaseService, SupportsNotion):
 
     async def create_page(
         self,
-        parent: Dict[str, Any],
-        properties: Dict[str, Any],
-        children: Optional[List[Dict]] = None,
-        api_key: str = None,
-    ) -> Dict[str, Any]:
+        parent: dict[str, Any],
+        properties: dict[str, Any],
+        children: list[dict] | None = None,
+        api_key: str | None = None,
+    ) -> dict[str, Any]:
         """Create a new page in Notion"""
         try:
             client = self._get_client(api_key)
@@ -125,13 +122,12 @@ class NotionService(BaseService, SupportsNotion):
             if children:
                 page_data["children"] = children
 
-            response = client.pages.create(**page_data)
-            return response
+            return client.pages.create(**page_data)
         except Exception as e:
             logger.error(f"Failed to create Notion page: {e}")
             raise ExecutionError(f"Notion API error: {e!s}")
 
-    def extract_text_from_blocks(self, blocks: List[Dict[str, Any]]) -> str:
+    def extract_text_from_blocks(self, blocks: list[dict[str, Any]]) -> str:
         """Extract plain text from Notion blocks"""
         text_parts = []
 
@@ -158,7 +154,7 @@ class NotionService(BaseService, SupportsNotion):
 
     def create_text_block(
         self, text: str, block_type: str = "paragraph"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a text block for Notion"""
         return {
             "object": "block",

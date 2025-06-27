@@ -1,7 +1,6 @@
 """GraphQL queries for DiPeO API."""
 
 from datetime import datetime
-from typing import List, Optional
 
 import strawberry
 from dipeo_domain import LLMService, NodeType
@@ -25,7 +24,7 @@ from .types import (
 @strawberry.type
 class Query:
     @strawberry.field
-    async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
+    async def diagram(self, id: DiagramID, info) -> DomainDiagramType | None:
         from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.get_diagram(id, info)
@@ -34,16 +33,16 @@ class Query:
     async def diagrams(
         self,
         info,
-        filter: Optional[DiagramFilterInput] = None,
+        filter: DiagramFilterInput | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[DomainDiagramType]:
+    ) -> list[DomainDiagramType]:
         from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
 
     @strawberry.field
-    async def execution(self, id: ExecutionID, info) -> Optional[ExecutionStateType]:
+    async def execution(self, id: ExecutionID, info) -> ExecutionStateType | None:
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.get_execution(id, info)
@@ -52,36 +51,36 @@ class Query:
     async def executions(
         self,
         info,
-        filter: Optional[ExecutionFilterInput] = None,
+        filter: ExecutionFilterInput | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[ExecutionStateType]:
+    ) -> list[ExecutionStateType]:
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.list_executions(filter, limit, offset, info)
 
     @strawberry.field
-    async def person(self, id: PersonID, info) -> Optional[DomainPersonType]:
+    async def person(self, id: PersonID, info) -> DomainPersonType | None:
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_person(id, info)
 
     @strawberry.field
-    async def persons(self, info, limit: int = 100) -> List[DomainPersonType]:
+    async def persons(self, info, limit: int = 100) -> list[DomainPersonType]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_persons(limit, info)
 
     @strawberry.field
-    async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKeyType]:
+    async def api_key(self, id: ApiKeyID, info) -> DomainApiKeyType | None:
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_api_key(id, info)
 
     @strawberry.field
     async def api_keys(
-        self, info, service: Optional[str] = None
-    ) -> List[DomainApiKeyType]:
+        self, info, service: str | None = None
+    ) -> list[DomainApiKeyType]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_api_keys(service, info)
@@ -89,7 +88,7 @@ class Query:
     @strawberry.field
     async def available_models(
         self, service: str, api_key_id: ApiKeyID, info
-    ) -> List[str]:
+    ) -> list[str]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_available_models(service, api_key_id, info)
@@ -172,13 +171,13 @@ class Query:
     async def conversations(
         self,
         info,
-        person_id: Optional[PersonID] = None,
-        execution_id: Optional[ExecutionID] = None,
-        search: Optional[str] = None,
+        person_id: PersonID | None = None,
+        execution_id: ExecutionID | None = None,
+        search: str | None = None,
         show_forgotten: bool = False,
         limit: int = 100,
         offset: int = 0,
-        since: Optional[datetime] = None,
+        since: datetime | None = None,
     ) -> JSONScalar:
         context = info.context
         conversation_service = context.conversation_service
@@ -261,7 +260,7 @@ class Query:
         }
 
     @strawberry.field
-    async def supported_formats(self, info) -> List[DiagramFormatInfo]:
+    async def supported_formats(self, info) -> list[DiagramFormatInfo]:
         from dipeo_server.domains.diagram.converters import converter_registry
 
         formats = converter_registry.list_formats()

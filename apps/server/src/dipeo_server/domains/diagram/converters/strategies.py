@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 from dipeo_domain import DomainDiagram, DomainNode
@@ -28,44 +28,44 @@ class _JsonMixin:
     """Shared JSON helpers."""
 
     # NOTE: overriding instance methods via mixin
-    def parse(self, content: str) -> Dict[str, Any]:  # type: ignore[override]
+    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
         try:
             return json.loads(content)
         except json.JSONDecodeError as err:
             log.error("JSON parse error: %s", err)
             raise ValueError(f"Invalid JSON: {err}") from err
 
-    def format(self, data: Dict[str, Any]) -> str:  # type: ignore[override]
+    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
         return json.dumps(data, indent=2, ensure_ascii=False)
 
 
 class _YamlMixin:
     """Shared YAML helpers."""
 
-    def parse(self, content: str) -> Dict[str, Any]:  # type: ignore[override]
+    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
         try:
             return yaml.safe_load(content) or {}
         except yaml.YAMLError as err:
             log.error("YAML parse error: %s", err)
             raise ValueError(f"Invalid YAML: {err}") from err
 
-    def format(self, data: Dict[str, Any]) -> str:  # type: ignore[override]
+    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
         return yaml.dump(
             data, default_flow_style=False, sort_keys=False, allow_unicode=True
         )
 
 
 #                               common helpers                                #
-def _node_id_map(nodes: List[Dict[str, Any]]) -> Dict[str, str]:
+def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
     """Return mapping label → node-id from already built nodes list."""
-    m: Dict[str, str] = {}
+    m: dict[str, str] = {}
     for n in nodes:
         label = n.get("data", {}).get("label", n["id"])
         m[label] = n["id"]
     return m
 
 
-def _round_pos(position: Dict[str, Any]) -> Dict[str, int]:
+def _round_pos(position: dict[str, Any]) -> dict[str, int]:
     return {"x": round(position.get("x", 0)), "y": round(position.get("y", 0))}
 
 
@@ -86,9 +86,9 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
     }
 
     # ---- extraction helpers ----
-    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
         nodes_data = coerce_to_dict(data.get("nodes", []), id_key="id", prefix="node")
-        built: List[Dict[str, Any]] = []
+        built: list[dict[str, Any]] = []
         for idx, (nid, ndata) in enumerate(nodes_data.items()):
             node = build_node(
                 id=nid,
@@ -101,12 +101,12 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
         return built
 
     def extract_arrows(
-        self, data: Dict[str, Any], _nodes: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, data: dict[str, Any], _nodes: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         return extract_common_arrows(data.get("arrows", []))
 
     # ---- export helpers ----
-    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         return {
             "nodes": {
                 n.id: {
@@ -138,7 +138,7 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
         }
 
     # ---- heuristics ----
-    def detect_confidence(self, data: Dict[str, Any]) -> float:
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         nodes = data.get("nodes")
         if isinstance(nodes, dict) and all(k in data for k in ("handles", "arrows")):
             return 0.95
@@ -170,16 +170,16 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
     }
 
     # ---- extraction helpers ----
-    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        nodes: List[Dict[str, Any]] = []
-        
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        nodes: list[dict[str, Any]] = []
+
         # Build persons label to ID mapping if persons exist
-        persons_label_to_id: Dict[str, str] = {}
+        persons_label_to_id: dict[str, str] = {}
         if "persons" in data and isinstance(data["persons"], dict):
             # In light format, persons are keyed by label
             for label in data["persons"]:
                 persons_label_to_id[label] = label  # In light format, ID equals label
-        
+
         for idx, ndata in enumerate(data.get("nodes", [])):
             if not isinstance(ndata, dict):
                 continue
@@ -211,9 +211,9 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         return nodes
 
     def extract_arrows(
-        self, data: Dict[str, Any], nodes: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        arrows: List[Dict[str, Any]] = []
+        self, data: dict[str, Any], nodes: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        arrows: list[dict[str, Any]] = []
         label2id = _node_id_map(nodes)
 
         for idx, conn in enumerate(data.get("connections", [])):
@@ -261,16 +261,16 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         return arrows
 
     # ---- export ----
-    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         # Create person ID to label mapping
-        person_id_to_label: Dict[str, str] = {}
+        person_id_to_label: dict[str, str] = {}
         if diagram.persons:
             for person in diagram.persons:
                 person_id_to_label[person.id] = person.label
 
-        nodes_out: List[Dict[str, Any]] = []
-        label_counts: Dict[str, int] = {}
-        id2label: Dict[str, str] = {}
+        nodes_out: list[dict[str, Any]] = []
+        label_counts: dict[str, int] = {}
+        id2label: dict[str, str] = {}
 
         for n in diagram.nodes:
             # Fix label extraction - ensure we get the actual label from data
@@ -299,7 +299,7 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             id2label[n.id] = label
 
             # Build the node output
-            node_output: Dict[str, Any] = {
+            node_output: dict[str, Any] = {
                 "label": label,
                 "type": str(n.type).split(".")[
                     -1
@@ -396,7 +396,7 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
 
             connections.append(conn_data)
 
-        out: Dict[str, Any] = {"version": "light", "nodes": nodes_out}
+        out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
         if connections:
             out["connections"] = connections
         if diagram.persons:
@@ -422,7 +422,7 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         return out
 
     # ---- heuristics ----
-    def detect_confidence(self, data: Dict[str, Any]) -> float:
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         if isinstance(data.get("nodes"), list):
             return (
                 0.8
@@ -455,8 +455,8 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
         self._mapper = NodeTypeMapper()
 
     # ---- extraction ----
-    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        nodes: List[Dict[str, Any]] = []
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        nodes: list[dict[str, Any]] = []
         for idx, step in enumerate(data.get("workflow", [])):
             if not isinstance(step, dict):
                 continue
@@ -473,10 +473,10 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
         return nodes
 
     def extract_arrows(
-        self, data: Dict[str, Any], nodes: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, data: dict[str, Any], nodes: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         label2id = _node_id_map(nodes)
-        arrows: List[Dict[str, Any]] = []
+        arrows: list[dict[str, Any]] = []
         for idx, line in enumerate(data.get("flow", [])):
             if isinstance(line, str) and "->" in line:
                 src_label, dst_label = (x.strip() for x in line.split("->", 1))
@@ -491,7 +491,7 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
         return arrows
 
     # ---- export ----
-    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         workflow = [
             {(n.data.get("label") or n.id): self._step_from_node(n)}
             for n in diagram.nodes
@@ -500,11 +500,11 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
             f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}"
             for a in diagram.arrows
         ]
-        result: Dict[str, Any] = {"workflow": workflow}
+        result: dict[str, Any] = {"workflow": workflow}
         if flow:
             result["flow"] = flow
 
-        cfg: Dict[str, Any] = {}
+        cfg: dict[str, Any] = {}
         if diagram.persons:
             persons_list = []
             for p in diagram.persons:
@@ -536,7 +536,7 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
         return result
 
     # ---- heuristics ----
-    def detect_confidence(self, data: Dict[str, Any]) -> float:
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         wk, fl = data.get("workflow"), data.get("flow")
         if isinstance(wk, list):
             return 0.9 if isinstance(fl, list) else 0.6
@@ -547,7 +547,7 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
 
     # ---- internal helpers ----
     @staticmethod
-    def _extract_props(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_props(cfg: dict[str, Any]) -> dict[str, Any]:
         mapping = {
             "prompt": "prompt",
             "person": "personId",
@@ -560,7 +560,7 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
         return {dst: cfg[src] for src, dst in mapping.items() if src in cfg}
 
     @staticmethod
-    def _step_from_node(node: DomainNode) -> Dict[str, Any]:
+    def _step_from_node(node: DomainNode) -> dict[str, Any]:
         t = node.type
         d = node.data
         if t == "person_job":

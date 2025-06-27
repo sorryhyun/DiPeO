@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -11,16 +11,16 @@ class Message:
     role: str
     content: str
     timestamp: datetime
-    sender_person_id: Optional[str] = None
-    execution_id: Optional[str] = None
-    node_id: Optional[str] = None
-    node_label: Optional[str] = None
-    token_count: Optional[int] = None
-    input_tokens: Optional[int] = None
-    output_tokens: Optional[int] = None
-    cached_tokens: Optional[int] = None
+    sender_person_id: str | None = None
+    execution_id: str | None = None
+    node_id: str | None = None
+    node_label: str | None = None
+    token_count: int | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cached_tokens: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "role": self.role,
@@ -42,9 +42,9 @@ class PersonConversation:
     """Conversation state for a specific person with proper cleanup."""
 
     person_id: str
-    messages: List[Message] = field(default_factory=list)
+    messages: list[Message] = field(default_factory=list)
     forgotten_message_ids: set[str] = field(default_factory=set)
-    last_execution_id: Optional[str] = None
+    last_execution_id: str | None = None
     MAX_MESSAGES = 100
 
     def add_message(self, message: Message) -> None:
@@ -79,7 +79,7 @@ class PersonConversation:
             ):
                 self.forgotten_message_ids.add(message.id)
 
-    def get_visible_messages(self, current_person_id: str) -> List[Dict[str, Any]]:
+    def get_visible_messages(self, current_person_id: str) -> list[dict[str, Any]]:
         visible_messages = []
 
         for message in self.messages:

@@ -7,7 +7,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from dipeo_domain import (
     DiagramID,
@@ -20,8 +20,8 @@ from dipeo_domain import (
     TokenUsage,
 )
 
-from .message_store import MessageStore
 from .execution_cache import ExecutionCache
+from .message_store import MessageStore
 
 try:
     from config import STATE_DB_PATH
@@ -36,14 +36,14 @@ class StateRegistry:
 
     def __init__(
         self,
-        db_path: Optional[str] = None,
+        db_path: str | None = None,
         message_store: Optional["MessageStore"] = None,
     ):
         self.db_path = db_path or os.getenv("STATE_STORE_PATH", str(STATE_DB_PATH))
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._lock = asyncio.Lock()
         self._executor = ThreadPoolExecutor(max_workers=1)  # Single thread for SQLite
-        self._thread_id: Optional[int] = None
+        self._thread_id: int | None = None
         self.message_store = message_store
         self._execution_cache = ExecutionCache(ttl_minutes=60)
 
@@ -99,7 +99,7 @@ class StateRegistry:
             variables TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
         """
@@ -111,8 +111,8 @@ class StateRegistry:
     async def create_execution(
         self,
         execution_id: str,
-        diagram_id: Optional[str] = None,
-        variables: Optional[Dict[str, Any]] = None,
+        diagram_id: str | None = None,
+        variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
         now = datetime.now().isoformat()
         state = ExecutionState(
@@ -163,7 +163,7 @@ class StateRegistry:
 
             await self._execute(
                 """
-                INSERT OR REPLACE INTO execution_states 
+                INSERT OR REPLACE INTO execution_states
                 (execution_id, status, diagram_id, started_at, ended_at,
                  node_states, node_outputs, token_usage, error, variables)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -186,7 +186,7 @@ class StateRegistry:
                 ),
             )
 
-    async def get_state(self, execution_id: str) -> Optional[ExecutionState]:
+    async def get_state(self, execution_id: str) -> ExecutionState | None:
         """Get execution state by ID, checking cache first."""
         # Check cache first
         cached_state = await self._execution_cache.get(execution_id)
@@ -241,7 +241,7 @@ class StateRegistry:
         )
 
     async def update_status(
-        self, execution_id: str, status: ExecutionStatus, error: Optional[str] = None
+        self, execution_id: str, status: ExecutionStatus, error: str | None = None
     ):
         """Update execution status."""
         state = await self.get_state(execution_id)
@@ -262,7 +262,7 @@ class StateRegistry:
 
     async def get_node_output(
         self, execution_id: str, node_id: str
-    ) -> Optional[NodeOutput]:
+    ) -> NodeOutput | None:
         """Get node output by execution and node ID."""
         state = await self.get_state(execution_id)
         if not state:
@@ -312,9 +312,9 @@ class StateRegistry:
         execution_id: str,
         node_id: str,
         status: NodeExecutionStatus,
-        output: Optional[NodeOutput] = None,
-        error: Optional[str] = None,
-        skip_reason: Optional[str] = None,
+        output: NodeOutput | None = None,
+        error: str | None = None,
+        skip_reason: str | None = None,
     ):
         """Update node execution status."""
         state = await self.get_state(execution_id)
@@ -361,7 +361,7 @@ class StateRegistry:
 
         await self.save_state(state)
 
-    async def update_variables(self, execution_id: str, variables: Dict[str, Any]):
+    async def update_variables(self, execution_id: str, variables: dict[str, Any]):
         """Update execution variables."""
         state = await self.get_state(execution_id)
         if not state:
@@ -412,7 +412,7 @@ class StateRegistry:
 
     async def list_executions(
         self, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List recent executions with metadata."""
         cursor = await self._execute(
             """
@@ -457,15 +457,15 @@ class StateRegistry:
 
         await self._execute("VACUUM")
 
-    async def get_state_from_cache(self, execution_id: str) -> Optional[ExecutionState]:
+    async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
         """Get execution state from cache only, no database fallback."""
         return await self._execution_cache.get(execution_id)
 
     async def create_execution_in_cache(
         self,
         execution_id: str,
-        diagram_id: Optional[str] = None,
-        variables: Optional[Dict[str, Any]] = None,
+        diagram_id: str | None = None,
+        variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
         """Create execution in cache only for active executions."""
         now = datetime.now().isoformat()

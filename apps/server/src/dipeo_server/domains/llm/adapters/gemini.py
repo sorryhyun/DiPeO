@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import google.genai as genai
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class GeminiAdapter(BaseAdapter):
     """Adapter for Google Gemini models via the genai API."""
 
-    def __init__(self, model_name: str, api_key: str, base_url: Optional[str] = None):
+    def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         # Gemini doesn't use base_url, but we accept it for consistency
         super().__init__(model_name, api_key, base_url)
 
@@ -29,7 +29,7 @@ class GeminiAdapter(BaseAdapter):
         user_prompt: str = "",
         citation_target: str = "",
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build provider-specific message format."""
         # Use base class helper to combine prompts
         combined_prompt = self._combine_prompts(cacheable_prompt, user_prompt)
@@ -48,7 +48,7 @@ class GeminiAdapter(BaseAdapter):
         """Extract text content from provider-specific response."""
         return response.text if hasattr(response, "text") else ""
 
-    def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
+    def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         """Extract token usage from provider-specific response."""
         if hasattr(response, "usage_metadata"):
             usage = response.usage_metadata
@@ -83,7 +83,7 @@ class GeminiAdapter(BaseAdapter):
             safety_settings=kwargs.get("gemini_safety_settings"),
         )
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         """List available Gemini models."""
         logger.info("[Gemini] Fetching available models from Gemini API")
         try:

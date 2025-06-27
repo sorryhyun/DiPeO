@@ -2,7 +2,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
@@ -13,20 +13,20 @@ class DiagramConverter:
     """Converts diagram between different formats for API compatibility"""
 
     @staticmethod
-    def dict_to_list(mapping: Dict[str, Any]) -> List[Any]:
+    def dict_to_list(mapping: dict[str, Any]) -> list[Any]:
         return [
             ({**value, "id": key} if isinstance(value, dict) and "id" not in value else value)
             for key, value in mapping.items()
         ]
 
     @staticmethod
-    def list_to_dict(items: List[Any]) -> Dict[str, Any]:
+    def list_to_dict(items: list[Any]) -> dict[str, Any]:
         if isinstance(items, dict):
             return items
         return {item["id"]: item for item in items if isinstance(item, dict) and "id" in item}
 
     @classmethod
-    def to_graphql_format(cls, diagram: Dict[str, Any]) -> Dict[str, Any]:
+    def to_graphql_format(cls, diagram: dict[str, Any]) -> dict[str, Any]:
         """Convert diagram from file format to GraphQL format (lists)."""
         result = diagram.copy()
 
@@ -49,7 +49,7 @@ class DiagramValidator:
     """Validates diagram structure using local models"""
 
     @staticmethod
-    def validate_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_diagram(diagram: dict[str, Any]) -> dict[str, Any]:
         """Validate diagram structure and apply defaults"""
         # Ensure all required fields exist with proper defaults
         if "nodes" not in diagram:
@@ -98,7 +98,7 @@ class DiagramLoader:
     """Handles loading and saving diagrams"""
 
     @staticmethod
-    def load(file_path: str) -> Dict[str, Any]:
+    def load(file_path: str) -> dict[str, Any]:
         """Load diagram from JSON or YAML file"""
         path = Path(file_path)
 
@@ -114,7 +114,7 @@ class DiagramLoader:
         return DiagramValidator.validate_diagram(diagram)
 
     @staticmethod
-    def save(diagram: Dict[str, Any], file_path: str) -> None:
+    def save(diagram: dict[str, Any], file_path: str) -> None:
         """Save diagram to JSON or YAML file"""
         path = Path(file_path)
 

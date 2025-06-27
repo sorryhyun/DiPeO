@@ -1,5 +1,5 @@
 import time
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 from dipeo_core import APIKeyError, BaseService, LLMServiceError, SupportsLLM
 from dipeo_domain import LLMService as LLMServiceEnum
@@ -72,7 +72,7 @@ class LLMService(BaseService, SupportsLLM):
         normalized_service = normalize_service_name(client_name)
         return TokenUsageService.from_usage(usage, normalized_service)
 
-    def _extract_result_and_usage(self, result: Any) -> Tuple[str, Any]:
+    def _extract_result_and_usage(self, result: Any) -> tuple[str, Any]:
         """Extract text and usage from adapter result."""
         if isinstance(result, ChatResult):
             return result.text, result.usage
@@ -95,17 +95,17 @@ class LLMService(BaseService, SupportsLLM):
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
     )
     async def _call_llm_with_messages_retry(
-        self, client: Any, messages: List[dict]
+        self, client: Any, messages: list[dict]
     ) -> Any:
         """Internal method for LLM calls with messages array and retry logic."""
         return client.chat_with_messages(messages=messages)
 
     async def call_llm(
         self,
-        service: Optional[str],
+        service: str | None,
         api_key_id: str,
         model: str,
-        messages: Union[str, List[dict]],
+        messages: str | list[dict],
         system_prompt: str = "",
     ) -> dict[str, str | float]:
         """Make a call to the specified LLM service with retry logic."""
@@ -142,7 +142,7 @@ class LLMService(BaseService, SupportsLLM):
                 model=model,
             )
 
-    async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
+    async def get_available_models(self, service: str, api_key_id: str) -> list[str]:
         """Get available models for a service."""
         raw_key = self._get_api_key(api_key_id)
         normalized_service = normalize_service_name(service)
@@ -152,8 +152,7 @@ class LLMService(BaseService, SupportsLLM):
                 import openai
 
                 client = openai.OpenAI(api_key=raw_key)
-                models = [model.id for model in client.models.list()]
-                return models
+                return [model.id for model in client.models.list()]
             except Exception as e:
                 raise LLMServiceError(
                     service=normalized_service,

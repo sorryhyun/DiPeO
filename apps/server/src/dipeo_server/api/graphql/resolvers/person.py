@@ -1,7 +1,6 @@
 """GraphQL resolvers for person and API key operations."""
 
 import logging
-from typing import List, Optional
 
 from dipeo_domain import LLMService
 
@@ -23,7 +22,7 @@ logger = logging.getLogger(__name__)
 class PersonResolver:
     """Handles person and API key queries."""
 
-    async def get_person(self, person_id: PersonID, info) -> Optional[DomainPerson]:
+    async def get_person(self, person_id: PersonID, info) -> DomainPerson | None:
         """Returns person by ID."""
         # Persons are diagram-scoped
         logger.warning(
@@ -31,13 +30,13 @@ class PersonResolver:
         )
         return None
 
-    async def list_persons(self, limit: int, info) -> List[DomainPerson]:
+    async def list_persons(self, limit: int, info) -> list[DomainPerson]:
         """Returns person list."""
         # Persons are diagram-scoped
         logger.warning("list_persons called - persons are diagram-scoped")
         return []
 
-    async def get_api_key(self, api_key_id: ApiKeyID, info) -> Optional[DomainApiKey]:
+    async def get_api_key(self, api_key_id: ApiKeyID, info) -> DomainApiKey | None:
         """Returns API key by ID."""
         try:
             context: GraphQLContext = info.context
@@ -55,19 +54,18 @@ class PersonResolver:
                 )
                 return None
 
-            pydantic_api_key = DomainApiKey(
+            return DomainApiKey(
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=self._map_service(api_key_data["service"]),
             )
 
-            return pydantic_api_key
 
         except Exception as e:
             logger.error(f"Failed to get API key {api_key_id}: {e}")
             return None
 
-    async def list_api_keys(self, service: Optional[str], info) -> List[DomainApiKey]:
+    async def list_api_keys(self, service: str | None, info) -> list[DomainApiKey]:
         """Returns API key list, optionally filtered."""
         try:
             context: GraphQLContext = info.context
@@ -101,17 +99,16 @@ class PersonResolver:
 
     async def get_available_models(
         self, service: str, api_key_id: ApiKeyID, info
-    ) -> List[str]:
+    ) -> list[str]:
         """Returns available models for service/API key."""
         try:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
 
-            models = await llm_service.get_available_models(
+            return await llm_service.get_available_models(
                 service=service, api_key_id=api_key_id
             )
 
-            return models
 
         except Exception as e:
             logger.error(

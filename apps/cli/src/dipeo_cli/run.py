@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .api_client import DiPeoAPIClient
 from .utils import DiagramConverter, DiagramLoader
@@ -29,8 +29,8 @@ class ExecutionOptions:
     debug: bool = False
     keep_server: bool = False  # Keep server running after debug execution
     timeout: int = 300  # 5 minutes
-    output_file: Optional[str] = None
-    diagram_file: Optional[str] = None
+    output_file: str | None = None
+    diagram_file: str | None = None
 
 
 class DiagramRunner:
@@ -42,8 +42,8 @@ class DiagramRunner:
         self.last_activity_time = time.time()
 
     async def execute(
-        self, diagram: Dict[str, Any], host: str = "localhost:8000"
-    ) -> Dict[str, Any]:
+        self, diagram: dict[str, Any], host: str = "localhost:8000"
+    ) -> dict[str, Any]:
         """Execute diagram via GraphQL"""
         result = {
             "context": {},
@@ -89,7 +89,7 @@ class DiagramRunner:
         return result
 
     async def _handle_execution_streams(
-        self, client: DiPeoAPIClient, execution_id: str, result: Dict[str, Any]
+        self, client: DiPeoAPIClient, execution_id: str, result: dict[str, Any]
     ):
         """Handle all execution update streams"""
         # Create concurrent tasks for different streams
@@ -124,7 +124,7 @@ class DiagramRunner:
                 result.update(exec_result or {})
 
     async def _handle_node_stream(
-        self, client: DiPeoAPIClient, execution_id: str, result: Dict[str, Any]
+        self, client: DiPeoAPIClient, execution_id: str, result: dict[str, Any]
     ) -> None:
         """Handle node update stream"""
         try:
@@ -197,8 +197,8 @@ class DiagramRunner:
                 print(f"Error in prompt stream: {e}")
 
     async def _handle_execution_stream(
-        self, client: DiPeoAPIClient, execution_id: str, result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, client: DiPeoAPIClient, execution_id: str, result: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle execution state stream"""
         try:
             async for update in client.subscribe_to_execution(execution_id):
@@ -238,7 +238,7 @@ class DiagramRunner:
         return {}
 
 
-async def run_command(args: List[str]) -> None:
+async def run_command(args: list[str]) -> None:
     """Execute run command"""
     if not args:
         print("Error: Missing input file")
@@ -293,7 +293,7 @@ async def run_command(args: List[str]) -> None:
             print(" (--keep-server flag used)")
 
 
-def _parse_run_options(args: List[str]) -> ExecutionOptions:
+def _parse_run_options(args: list[str]) -> ExecutionOptions:
     """Parse command line options for run command"""
     options = ExecutionOptions()
 
@@ -327,7 +327,7 @@ def _parse_run_options(args: List[str]) -> ExecutionOptions:
     return options
 
 
-async def _run_monitor_mode(diagram: Dict[str, Any], options: ExecutionOptions) -> None:
+async def _run_monitor_mode(diagram: dict[str, Any], options: ExecutionOptions) -> None:
     """Handle monitor mode setup"""
     import webbrowser
     from pathlib import Path
@@ -444,7 +444,7 @@ async def _restart_backend_server() -> None:
         raise
 
 
-def _save_results(result: Dict[str, Any], options: ExecutionOptions) -> None:
+def _save_results(result: dict[str, Any], options: ExecutionOptions) -> None:
     """Save execution results"""
     Path("files/results").mkdir(parents=True, exist_ok=True)
     save_path = options.output_file or "files/results/results.json"

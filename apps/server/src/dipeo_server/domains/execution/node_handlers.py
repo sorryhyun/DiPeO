@@ -3,7 +3,8 @@
 This module migrates from the decorator-based approach to the BaseNodeHandler architecture.
 """
 
-from typing import Any, Dict, Optional
+import contextlib
+from typing import Any
 
 from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
 from dipeo_domain.models import DomainNode
@@ -12,10 +13,7 @@ from pydantic import BaseModel, Field
 from .handlers import (
     NodeOutput,
     create_node_output,
-    _edge_inputs,
-    DBOperation,
 )
-
 
 # Pydantic schemas for node data validation
 
@@ -26,20 +24,20 @@ class StartNodeData(BaseModel):
 
 class PersonJobNodeData(BaseModel):
     """Schema for person_job node data."""
-    personId: Optional[str] = Field(None, alias="person")
+    personId: str | None = Field(None, alias="person")
     firstOnlyPrompt: str = ""
     defaultPrompt: str = ""
-    forgettingMode: Optional[str] = None
+    forgettingMode: str | None = None
     label: str = ""
     maxIteration: int = 1
 
 
 class EndpointNodeData(BaseModel):
     """Schema for endpoint node data."""
-    data: Optional[Any] = None
+    data: Any | None = None
     saveToFile: bool = Field(False, alias="save_to_file")
-    filePath: Optional[str] = Field(None, alias="file_path")
-    fileName: Optional[str] = Field(None, alias="file_name")
+    filePath: str | None = Field(None, alias="file_path")
+    fileName: str | None = Field(None, alias="file_name")
 
 
 class ConditionNodeData(BaseModel):
@@ -62,7 +60,7 @@ class NotionNodeData(BaseModel):
 class UserResponseNodeData(BaseModel):
     """Schema for user_response node data."""
     prompt: str = ""
-    timeout: Optional[int] = None
+    timeout: int | None = None
 
 
 class PersonBatchJobNodeData(BaseModel):
@@ -95,8 +93,8 @@ class StartNodeHandler(BaseNodeHandler):
         self,
         props: StartNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute start node."""
         return create_node_output({"default": ""}, {"message": "Execution started"})
@@ -126,23 +124,23 @@ class PersonJobNodeHandler(BaseNodeHandler):
         self,
         props: PersonJobNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute person_job node."""
         conversation_service = services["conversation_service"]
         llm_service = services["llm_service"]
-        
+
         # Create a DomainNode for compatibility with existing service
         node = DomainNode(
             id=context.current_node_id,
             type="person_job",
             data=props.model_dump(exclude_unset=True),
         )
-        
+
         # Get diagram from context
         diagram = services.get("diagram")
-        
+
         # Delegate to conversation service
         result = await conversation_service.execute_person_job(
             node=node,
@@ -152,12 +150,12 @@ class PersonJobNodeHandler(BaseNodeHandler):
             diagram=diagram,
             llm_service=llm_service,
         )
-        
+
         # Handle token usage accumulation if needed
         if result.get("token_usage") and "token_service" in services:
             token_service = services["token_service"]
             token_service.add_token_usage(context.current_node_id, result["token_usage"])
-        
+
         return create_node_output(result["output_values"], result["metadata"])
 
 
@@ -185,29 +183,29 @@ class EndpointNodeHandler(BaseNodeHandler):
         self,
         props: EndpointNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute endpoint node."""
         file_service = services["file_service"]
-        
+
         if props.data is not None:
             result_data = props.data
         else:
             result_data = inputs if inputs else {}
-        
+
         if props.saveToFile:
             file_path = props.filePath or props.fileName
-            
+
             if file_path:
                 try:
                     if isinstance(result_data, dict) and "default" in result_data:
                         content = str(result_data["default"])
                     else:
                         content = str(result_data)
-                    
+
                     await file_service.write(file_path, content)
-                    
+
                     return create_node_output(
                         {"default": result_data}, {"saved_to": file_path}
                     )
@@ -215,7 +213,7 @@ class EndpointNodeHandler(BaseNodeHandler):
                     return create_node_output(
                         {"default": result_data}, {"save_error": str(exc)}
                     )
-        
+
         return create_node_output({"default": result_data})
 
 
@@ -239,18 +237,18 @@ class ConditionNodeHandler(BaseNodeHandler):
         self,
         props: ConditionNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute condition node."""
         if props.conditionType != "detect_max_iterations":
             return create_node_output({"False": None}, {"condition_result": False})
-        
+
         # Get diagram to check upstream nodes
         diagram = services.get("diagram")
         if not diagram:
             return create_node_output({"False": None}, {"condition_result": False})
-        
+
         # True only if all upstream person_job nodes reached their max_iterations
         result = True
         for edge in context.edges:
@@ -263,12 +261,12 @@ class ConditionNodeHandler(BaseNodeHandler):
                     if exec_count < max_iter:
                         result = False
                         break
-        
+
         # Forward inputs with branch key for backward compatibility
         branch_key = "True" if result else "False"
-        value: Dict[str, Any] = {**inputs}
+        value: dict[str, Any] = {**inputs}
         value[branch_key] = inputs
-        
+
         if "default" not in value and inputs:
             if "conversation" in inputs:
                 value["default"] = inputs["conversation"]
@@ -276,7 +274,7 @@ class ConditionNodeHandler(BaseNodeHandler):
                 first_key = next(iter(inputs.keys()), None)
                 if first_key:
                     value["default"] = inputs[first_key]
-        
+
         return create_node_output(value, {"condition_result": result})
 
 
@@ -304,21 +302,21 @@ class DBNodeHandler(BaseNodeHandler):
         self,
         props: DBNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute db node."""
         file_service = services["file_service"]
-        
+
         # Get single input value
         input_val = None
         if inputs:
             # Get first non-empty value
-            for key, val in inputs.items():
+            for _key, val in inputs.items():
                 if val is not None:
                     input_val = val
                     break
-        
+
         try:
             if props.operation == "read":
                 if hasattr(file_service, "aread"):
@@ -331,17 +329,15 @@ class DBNodeHandler(BaseNodeHandler):
             elif props.operation == "append":
                 existing = ""
                 if hasattr(file_service, "aread"):
-                    try:
+                    with contextlib.suppress(Exception):
                         existing = await file_service.aread(props.sourceDetails)
-                    except Exception:
-                        pass
                 await file_service.write(props.sourceDetails, existing + str(input_val))
                 result = f"Appended to {props.sourceDetails}"
             else:
                 result = "Unknown operation"
         except Exception as exc:
             result = f"Error: {exc}"
-        
+
         return create_node_output({"default": result, "topic": result})
 
 
@@ -369,12 +365,12 @@ class NotionNodeHandler(BaseNodeHandler):
         self,
         props: NotionNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute notion node."""
         notion_service = services["notion_service"]
-        
+
         result = await notion_service.execute_action(
             action=props.action,
             database_id=props.database_id,
@@ -403,8 +399,8 @@ class UserResponseNodeHandler(BaseNodeHandler):
         self,
         props: UserResponseNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute user_response node."""
         # Check if we have an interactive handler
@@ -415,7 +411,7 @@ class UserResponseNodeHandler(BaseNodeHandler):
             if inputs:
                 input_str = str(inputs.get("default", inputs))
                 message = f"{message}\n\nContext: {input_str}"
-            
+
             # Call the interactive handler
             response = await exec_context.interactive_handler({
                 "type": "user_input_required",
@@ -423,14 +419,13 @@ class UserResponseNodeHandler(BaseNodeHandler):
                 "prompt": message,
                 "timeout": props.timeout,
             })
-            
+
             return create_node_output({"default": response, "user_response": response})
-        else:
-            # If no interactive handler, return empty response
-            return create_node_output(
-                {"default": "", "user_response": ""}, 
-                {"warning": "No interactive handler available"}
-            )
+        # If no interactive handler, return empty response
+        return create_node_output(
+            {"default": "", "user_response": ""},
+            {"warning": "No interactive handler available"}
+        )
 
 
 @register_handler
@@ -457,23 +452,23 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         self,
         props: PersonBatchJobNodeData,
         context: RuntimeContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
         """Execute person_batch_job node."""
         conversation_service = services["conversation_service"]
         llm_service = services["llm_service"]
         diagram = services.get("diagram")
-        
+
         # Prepare prompt with inputs
         prompt = props.prompt
         if inputs:
             input_str = str(inputs.get("default", inputs))
             prompt = f"{prompt}\n\nInput: {input_str}"
-        
+
         results = {}
         metadata = {"person_count": len(props.personIds)}
-        
+
         if props.parallelExecution:
             # Execute in parallel
             import asyncio
@@ -498,10 +493,10 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                     llm_service=llm_service,
                 )
                 tasks.append(task)
-            
+
             responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for person_id, response in zip(props.personIds, responses):
+
+            for person_id, response in zip(props.personIds, responses, strict=False):
                 if isinstance(response, Exception):
                     results[person_id] = {"error": str(response)}
                 else:
@@ -530,7 +525,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                     results[person_id] = response.get("output_values", {}).get("default", "")
                 except Exception as e:
                     results[person_id] = {"error": str(e)}
-        
+
         # Aggregate results if requested
         if props.aggregateResults:
             aggregated = "\n\n".join([
@@ -538,8 +533,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                 for pid, result in results.items()
             ])
             return create_node_output({"default": aggregated, "results": results}, metadata)
-        else:
-            return create_node_output({"default": results, "results": results}, metadata)
+        return create_node_output({"default": results, "results": results}, metadata)
 
 
 # The handlers are now auto-registered using @register_handler decorator

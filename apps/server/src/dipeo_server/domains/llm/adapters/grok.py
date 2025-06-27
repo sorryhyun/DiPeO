@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import anthropic
 
@@ -23,7 +23,7 @@ class GrokAdapter(BaseAdapter):
         user_prompt: str = "",
         citation_target: str = "",
         **kwargs,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Build provider-specific message format."""
         if citation_target:
             raise NotImplementedError("Citation not supported in Grok adapter")
@@ -55,7 +55,7 @@ class GrokAdapter(BaseAdapter):
             return response.content[0].text
         return ""
 
-    def _extract_usage_from_response(self, response: Any) -> Optional[Dict[str, int]]:
+    def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         """Extract token usage from provider-specific response."""
         if hasattr(response, "usage"):
             usage = response.usage

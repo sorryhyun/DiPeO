@@ -3,8 +3,9 @@
 import asyncio
 import logging
 import traceback
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict, Type
+from typing import Any
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
@@ -34,7 +35,7 @@ class ResponseFormatter:
     """Standardize API responses."""
 
     @staticmethod
-    def success(data: Any = None, message: str = None) -> Dict[str, Any]:
+    def success(data: Any = None, message: str | None = None) -> dict[str, Any]:
         """Format successful response."""
         response = {"success": True}
         if data is not None:
@@ -45,7 +46,7 @@ class ResponseFormatter:
 
     @staticmethod
     def error(
-        message: str, details: Dict[str, Any] = None, status_code: int = 400
+        message: str, details: dict[str, Any] | None = None, status_code: int = 400
     ) -> JSONResponse:
         """Format error response."""
         content = {"success": False, "error": message}
@@ -57,7 +58,7 @@ class ResponseFormatter:
     @staticmethod
     def paginated(
         items: list, total: int, page: int = 1, per_page: int = 20
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Format paginated response."""
         return {
             "items": items,
@@ -91,7 +92,7 @@ class ErrorHandler:
     """Centralized error handling with consistent responses."""
 
     # Map exception types to HTTP status codes
-    error_mappings: Dict[Type[Exception], int] = {
+    error_mappings: dict[type[Exception], int] = {
         ValidationError: 400,
         ConfigurationError: 400,
         APIKeyError: 401,
@@ -122,7 +123,7 @@ class ErrorHandler:
     @classmethod
     def format_error_response(
         cls, exception: Exception, include_trace: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Format exception into a consistent error response."""
         error_type = type(exception).__name__
         error_message = str(exception)

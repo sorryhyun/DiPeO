@@ -4,7 +4,6 @@ These types are used throughout the system to ensure consistency.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +14,7 @@ class TimestampedModel(BaseModel):
     """Base model for entities with timestamps."""
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
     def update_timestamp(self):
         """Update the updated_at timestamp."""

@@ -1,27 +1,27 @@
 import uuid
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from dipeo_core import BaseService, SupportsMemory
-from dipeo_domain.models import DomainPerson, DomainNode, DomainDiagram
+from dipeo_domain.models import DomainDiagram, DomainNode, DomainPerson
 
 if TYPE_CHECKING:
     from dipeo_server.domains.llm.services import LLMService
 
-from .conversation import PersonConversation, Message
+from .conversation import Message, PersonConversation
 
 
 class ConversationService(BaseService, SupportsMemory):
     """Service for managing conversations between persons (LLM agents) that implements the SupportsMemory protocol."""
 
-    def __init__(self, redis_url: Optional[str] = None, message_store=None):
+    def __init__(self, redis_url: str | None = None, message_store=None):
         super().__init__()
-        self.person_conversations: Dict[str, PersonConversation] = {}
+        self.person_conversations: dict[str, PersonConversation] = {}
         self.all_messages: OrderedDict[str, Message] = OrderedDict()
-        self.execution_metadata: Dict[str, Dict[str, Any]] = {}
+        self.execution_metadata: dict[str, dict[str, Any]] = {}
         self.message_store = message_store
-        self._pending_persistence: Dict[str, List[Message]] = {}
+        self._pending_persistence: dict[str, list[Message]] = {}
 
         self.MAX_GLOBAL_MESSAGES = 10000
 
@@ -36,7 +36,7 @@ class ConversationService(BaseService, SupportsMemory):
         while len(self.all_messages) > self.MAX_GLOBAL_MESSAGES:
             self.all_messages.popitem(last=False)
 
-    def _get_message(self, message_id: str) -> Optional[Message]:
+    def _get_message(self, message_id: str) -> Message | None:
         return self.all_messages.get(message_id)
 
     def get_or_create_person_conversation(self, person_id: str) -> PersonConversation:
@@ -51,14 +51,14 @@ class ConversationService(BaseService, SupportsMemory):
         content: str,
         sender_person_id: str,
         execution_id: str,
-        participant_person_ids: List[str],
+        participant_person_ids: list[str],
         role: str = "assistant",
-        node_id: Optional[str] = None,
-        node_label: Optional[str] = None,
-        token_count: Optional[int] = None,
-        input_tokens: Optional[int] = None,
-        output_tokens: Optional[int] = None,
-        cached_tokens: Optional[int] = None,
+        node_id: str | None = None,
+        node_label: str | None = None,
+        token_count: int | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cached_tokens: int | None = None,
     ) -> Message:
         """Create and add message to conversation."""
         message = Message(
@@ -111,7 +111,7 @@ class ConversationService(BaseService, SupportsMemory):
         return message
 
     def forget_for_person(
-        self, person_id: str, execution_id: Optional[str] = None
+        self, person_id: str, execution_id: str | None = None
     ) -> None:
         """Make a person forget messages."""
         person_conversation = self.get_or_create_person_conversation(person_id)
@@ -123,7 +123,7 @@ class ConversationService(BaseService, SupportsMemory):
                 person_conversation.forgotten_message_ids.add(message.id)
 
     def forget_own_messages_for_person(
-        self, person_id: str, execution_id: Optional[str] = None
+        self, person_id: str, execution_id: str | None = None
     ) -> None:
         """Make a person forget only their own messages."""
         person_conversation = self.get_or_create_person_conversation(person_id)
@@ -133,12 +133,12 @@ class ConversationService(BaseService, SupportsMemory):
         else:
             person_conversation.forget_own_messages()
 
-    def get_conversation_for_person(self, person_id: str) -> List[Dict[str, Any]]:
+    def get_conversation_for_person(self, person_id: str) -> list[dict[str, Any]]:
         """Get all visible messages for a person."""
         person_conversation = self.get_or_create_person_conversation(person_id)
         return person_conversation.get_visible_messages(person_id)
 
-    def get_execution_metadata(self, execution_id: str) -> Optional[Dict[str, Any]]:
+    def get_execution_metadata(self, execution_id: str) -> dict[str, Any] | None:
         """Get metadata for an execution."""
         return self.execution_metadata.get(execution_id)
 
@@ -162,7 +162,7 @@ class ConversationService(BaseService, SupportsMemory):
 
         return removed_count
 
-    def get_conversation_stats(self) -> Dict[str, Any]:
+    def get_conversation_stats(self) -> dict[str, Any]:
         """Get statistics about conversation usage."""
         return {
             "total_messages": len(self.all_messages),
@@ -187,7 +187,7 @@ class ConversationService(BaseService, SupportsMemory):
             messages = self._pending_persistence.pop(execution_id)
             if self.message_store and messages:
                 # Group messages by node_id for batch storage
-                messages_by_node: Dict[str, List[Message]] = {}
+                messages_by_node: dict[str, list[Message]] = {}
                 for msg in messages:
                     if msg.node_id:
                         if msg.node_id not in messages_by_node:
@@ -206,7 +206,7 @@ class ConversationService(BaseService, SupportsMemory):
                     )
 
     # Person configuration methods (from PersonService)
-    def get_person_config(self, person: Optional[DomainPerson]) -> Dict[str, Any]:
+    def get_person_config(self, person: DomainPerson | None) -> dict[str, Any]:
         """Extract LLM configuration from a person object."""
         if not person:
             return {
@@ -226,8 +226,8 @@ class ConversationService(BaseService, SupportsMemory):
         }
 
     def find_person_by_id(
-        self, persons: List[DomainPerson], person_id: str
-    ) -> Optional[DomainPerson]:
+        self, persons: list[DomainPerson], person_id: str
+    ) -> DomainPerson | None:
         """Find a person by ID in a list of persons."""
         return next((p for p in persons if p.id == person_id), None)
 
@@ -236,7 +236,7 @@ class ConversationService(BaseService, SupportsMemory):
         exec_count: int,
         first_only_prompt: str,
         default_prompt: str,
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
     ) -> str:
         """Prepare the prompt based on execution count and templates."""
         if exec_count == 1 and first_only_prompt:
@@ -247,7 +247,7 @@ class ConversationService(BaseService, SupportsMemory):
 
     def handle_conversation_inputs(
         self,
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
         person_id: str,
         execution_id: str,
         node_id: str,
@@ -318,7 +318,7 @@ class ConversationService(BaseService, SupportsMemory):
         node: DomainNode,
         diagram: DomainDiagram,
         execution_id: str,
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
     ) -> str:
         """Prepare debate context for judge nodes by aggregating conversations from inputs or memory."""
         debate_context_parts = []
@@ -412,18 +412,18 @@ class ConversationService(BaseService, SupportsMemory):
         node: DomainNode,
         execution_id: str,
         exec_count: int,
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
         diagram: DomainDiagram,
         llm_service: "LLMService",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a person_job node - orchestrate the entire conversational flow."""
         data = node.data or {}
 
         # Extract node configuration
-        person_id: Optional[str] = data.get("personId") or data.get("person")
+        person_id: str | None = data.get("personId") or data.get("person")
         first_only_prompt: str = data.get("firstOnlyPrompt", "")
         default_prompt: str = data.get("defaultPrompt", "")
-        forgetting_mode: Optional[str] = data.get("forgettingMode")
+        forgetting_mode: str | None = data.get("forgettingMode")
         is_judge: bool = "judge" in data.get("label", "").lower()
 
         if not person_id:
@@ -554,8 +554,8 @@ class ConversationService(BaseService, SupportsMemory):
         return self.get_or_create_person_conversation(person_id)
 
     def get_conversation_history(
-        self, person_id: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        self, person_id: str, limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """Get conversation history for a person."""
         conversation = self.get_conversation_for_person(person_id)
         if limit:
@@ -566,7 +566,7 @@ class ConversationService(BaseService, SupportsMemory):
         self,
         execution_id: str,
         node_id: str,
-        conversation: List[Dict[str, Any]],
+        conversation: list[dict[str, Any]],
         person_id: str,
         token_count: int = 0,
     ) -> None:

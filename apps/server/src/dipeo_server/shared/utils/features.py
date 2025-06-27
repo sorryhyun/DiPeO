@@ -2,7 +2,7 @@
 
 import os
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class FeatureFlag(Enum):
@@ -32,7 +32,7 @@ class FeatureFlag(Enum):
 class FeatureFlagManager:
     """Manages feature flags for the application."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize feature flag manager."""
         self._flags = config or {}
         self._load_from_environment()
@@ -80,7 +80,7 @@ class FeatureFlagManager:
 
     def is_enabled(self, flag: FeatureFlag) -> bool:
         """Check if a feature flag is enabled."""
-        return self._flags.get(flag.value, False)
+        return bool(self._flags.get(flag.value, False))
 
     def enable(self, flag: FeatureFlag) -> None:
         """Enable a feature flag."""
@@ -94,7 +94,7 @@ class FeatureFlagManager:
         """Set a feature flag to a specific value."""
         self._flags[flag.value] = value
 
-    def get_all_flags(self) -> Dict[str, bool]:
+    def get_all_flags(self) -> dict[str, bool]:
         """Get all feature flags and their current values."""
         return self._flags.copy()
 
@@ -123,7 +123,7 @@ def disable_feature(flag: FeatureFlag) -> None:
     _feature_flags.disable(flag)
 
 
-def configure_features(config: Dict[str, bool]) -> None:
+def configure_features(config: dict[str, bool]) -> None:
     """Configure multiple features at once."""
     for flag_name, value in config.items():
         try:
@@ -134,13 +134,13 @@ def configure_features(config: Dict[str, bool]) -> None:
             pass
 
 
-def get_feature_flags() -> Dict[str, bool]:
+def get_feature_flags() -> dict[str, bool]:
     """Get all current feature flags."""
     return _feature_flags.get_all_flags()
 
 
 # Feature status reporting
-def get_feature_status() -> Dict[str, Any]:
+def get_feature_status() -> dict[str, Any]:
     """Get current feature status."""
     return {
         "streaming_enabled": is_feature_enabled(FeatureFlag.ENABLE_STREAMING),

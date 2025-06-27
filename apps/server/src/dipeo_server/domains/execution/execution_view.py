@@ -1,7 +1,8 @@
 """Execution view for efficient access to DomainDiagram."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from dipeo_core import HandlerRegistry
 from dipeo_domain.models import (
@@ -18,11 +19,11 @@ class NodeView:
     node: DomainNode
     handler: Callable
 
-    incoming_edges: List["EdgeView"] = field(default_factory=list)
-    outgoing_edges: List["EdgeView"] = field(default_factory=list)
-    person: Optional[DomainPerson] = None
+    incoming_edges: list["EdgeView"] = field(default_factory=list)
+    outgoing_edges: list["EdgeView"] = field(default_factory=list)
+    person: DomainPerson | None = None
 
-    output: Optional[NodeOutput] = None
+    output: NodeOutput | None = None
     exec_count: int = 0
 
     @property
@@ -34,13 +35,13 @@ class NodeView:
         return self.node.type
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         return self.node.data or {}
 
-    def get_incoming_by_handle(self, handle: str) -> List["EdgeView"]:
+    def get_incoming_by_handle(self, handle: str) -> list["EdgeView"]:
         return [e for e in self.incoming_edges if e.target_handle == handle]
 
-    def get_input_values(self) -> Dict[str, Any]:
+    def get_input_values(self) -> dict[str, Any]:
         inputs = {}
         for edge in self.incoming_edges:
             if edge.source_view.output:
@@ -49,7 +50,7 @@ class NodeView:
                     inputs[edge.label] = value
         return inputs
 
-    def get_active_inputs(self) -> Dict[str, Any]:
+    def get_active_inputs(self) -> dict[str, Any]:
         """Get inputs from edges that are active based on condition routing.
 
         This method filters inputs based on condition node routing decisions,
@@ -154,15 +155,15 @@ class ExecutionView:
         self,
         diagram: DomainDiagram,
         handler_registry: HandlerRegistry,
-        api_keys: Dict[str, str],
+        api_keys: dict[str, str],
     ) -> None:
         self.diagram = diagram
         self.handler_registry = handler_registry
         self.api_keys = api_keys
 
-        self.node_views: Dict[str, NodeView] = {}
-        self.edge_views: List[EdgeView] = []
-        self.person_views: Dict[str, DomainPerson] = {}
+        self.node_views: dict[str, NodeView] = {}
+        self.edge_views: list[EdgeView] = []
+        self.person_views: dict[str, DomainPerson] = {}
 
         self._build_views()
         self.execution_order = self._compute_execution_order()
@@ -170,7 +171,7 @@ class ExecutionView:
     def _build_views(self) -> None:
         import logging
 
-        log = logging.getLogger(__name__)
+        logging.getLogger(__name__)
 
         if self.diagram.persons:
             self.person_views = {p.id: p for p in self.diagram.persons}
@@ -201,13 +202,13 @@ class ExecutionView:
                 self.node_views[source_id].outgoing_edges.append(edge_view)
                 self.node_views[target_id].incoming_edges.append(edge_view)
 
-    def _get_handler_for_type(self, node_type: str) -> Optional[Callable]:
+    def _get_handler_for_type(self, node_type: str) -> Callable | None:
         # Get handler from registry - the handler is already wrapped in NodeDefinition
         # We just need to return the handler function itself
         node_def = self.handler_registry.get(node_type)
         return node_def.handler if node_def else None
 
-    def _compute_execution_order(self) -> List[List[NodeView]]:
+    def _compute_execution_order(self) -> list[list[NodeView]]:
         import logging
 
         log = logging.getLogger(__name__)
@@ -252,10 +253,10 @@ class ExecutionView:
 
         return levels
 
-    def get_node_view(self, node_id: str) -> Optional[NodeView]:
+    def get_node_view(self, node_id: str) -> NodeView | None:
         return self.node_views.get(node_id)
 
-    def get_ready_nodes(self) -> List[NodeView]:
+    def get_ready_nodes(self) -> list[NodeView]:
         ready = []
         for node_view in self.node_views.values():
             if node_view.output is None:
@@ -267,7 +268,7 @@ class ExecutionView:
                     ready.append(node_view)
         return ready
 
-    def get_person_api_key(self, person_id: str) -> Optional[str]:
+    def get_person_api_key(self, person_id: str) -> str | None:
         person = self.person_views.get(person_id)
         if person and hasattr(person, "api_key_id"):
             return self.api_keys.get(person.api_key_id)

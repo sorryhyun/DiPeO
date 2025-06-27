@@ -1,6 +1,6 @@
 """Pydantic models for diagram converter and storage services."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,12 +12,12 @@ class BackendDiagram(BaseModel):
     Fields are untyped dicts to avoid unnecessary conversions.
     """
 
-    nodes: Dict[str, Any] = Field(default_factory=dict)
-    arrows: Dict[str, Any] = Field(default_factory=dict)
-    persons: Dict[str, Any] = Field(default_factory=dict)
-    handles: Dict[str, Any] = Field(default_factory=dict)
-    api_keys: Dict[str, Any] = Field(default_factory=dict)
-    metadata: Optional[Dict[str, Any]] = None
+    nodes: dict[str, Any] = Field(default_factory=dict)
+    arrows: dict[str, Any] = Field(default_factory=dict)
+    persons: dict[str, Any] = Field(default_factory=dict)
+    handles: dict[str, Any] = Field(default_factory=dict)
+    api_keys: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] | None = None
 
     class Config:
         extra = "allow"  # Allow additional fields like _execution_hints
@@ -26,9 +26,9 @@ class BackendDiagram(BaseModel):
 class ReadableFlow(BaseModel):
     """Readable YAML representation."""
 
-    flow: List[str]
-    prompts: Optional[Dict[str, str]] = None
-    agents: Optional[Dict[str, Dict[str, Any]]] = None
+    flow: list[str]
+    prompts: dict[str, str] | None = None
+    agents: dict[str, dict[str, Any]] | None = None
 
 
 class FileInfo(BaseModel):
@@ -42,6 +42,6 @@ class FileInfo(BaseModel):
     modified: str
     size: int
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dict for backward compatibility."""
         return self.model_dump()

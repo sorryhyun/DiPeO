@@ -22,18 +22,18 @@ from .features import (
 __all__ = [
     # Error handling
     "ErrorHandler",
-    "ResponseFormatter",
-    "handle_api_errors",
-    "handle_internal_errors",
-    "handle_service_exceptions",
-    "normalize_service_name",
     # Feature flags
     "FeatureFlag",
     "FeatureFlagManager",
+    "ResponseFormatter",
     "configure_features",
     "disable_feature",
     "enable_feature",
     "get_feature_flags",
     "get_feature_status",
+    "handle_api_errors",
+    "handle_internal_errors",
+    "handle_service_exceptions",
     "is_feature_enabled",
+    "normalize_service_name",
 ]

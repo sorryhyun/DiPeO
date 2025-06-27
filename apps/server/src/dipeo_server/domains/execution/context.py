@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from dipeo_core import RuntimeContext
 from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput, TokenUsage
@@ -11,28 +12,28 @@ from dipeo_server.infrastructure.persistence import FileService, StateRegistry
 @dataclass
 class ExecutionContext:
     diagram: DomainDiagram
-    edges: List[DomainArrow]
-    node_outputs: Dict[str, NodeOutput] = field(default_factory=dict)
+    edges: list[DomainArrow]
+    node_outputs: dict[str, NodeOutput] = field(default_factory=dict)
     current_node_id: str = ""
     execution_id: str = ""
-    exec_counts: Dict[str, int] = field(default_factory=dict)
-    variables: Dict[str, Any] = field(default_factory=dict)
-    persons: Dict[str, Any] = field(default_factory=dict)
-    api_keys: Dict[str, str] = field(default_factory=dict)
+    exec_counts: dict[str, int] = field(default_factory=dict)
+    variables: dict[str, Any] = field(default_factory=dict)
+    persons: dict[str, Any] = field(default_factory=dict)
+    api_keys: dict[str, str] = field(default_factory=dict)
 
     llm_service: LLMService = field(default=None)
     file_service: FileService = field(default=None)
-    conversation_service: Optional[Any] = field(default=None)
-    notion_service: Optional[Any] = field(default=None)
-    api_key_service: Optional[Any] = field(default=None)
+    conversation_service: Any | None = field(default=None)
+    notion_service: Any | None = field(default=None)
+    api_key_service: Any | None = field(default=None)
     state_store: StateRegistry = field(default=None)
-    interactive_handler: Optional[Callable] = field(default=None)
-    stream_callback: Optional[Callable] = field(default=None)
+    interactive_handler: Callable | None = field(default=None)
+    stream_callback: Callable | None = field(default=None)
 
     # Token usage accumulation
-    _token_accumulator: Dict[str, TokenUsage] = field(default_factory=dict, init=False)
+    _token_accumulator: dict[str, TokenUsage] = field(default_factory=dict, init=False)
 
-    def get_node_output(self, node_id: str) -> Optional[NodeOutput]:
+    def get_node_output(self, node_id: str) -> NodeOutput | None:
         return self.node_outputs.get(node_id)
 
     def set_node_output(self, node_id: str, output: NodeOutput) -> None:
@@ -42,21 +43,21 @@ class ExecutionContext:
         self.exec_counts[node_id] = self.exec_counts.get(node_id, 0) + 1
         return self.exec_counts[node_id]
 
-    def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
+    def get_conversation_history(self, person_id: str) -> list[dict[str, Any]]:
         return self.persons.get(person_id, [])
 
-    def add_to_conversation(self, person_id: str, message: Dict[str, Any]) -> None:
+    def add_to_conversation(self, person_id: str, message: dict[str, Any]) -> None:
         if person_id not in self.persons:
             self.persons[person_id] = []
         self.persons[person_id].append(message)
 
-    def get_api_key(self, service: str) -> Optional[str]:
+    def get_api_key(self, service: str) -> str | None:
         return self.api_keys.get(service)
 
-    def find_edges_from(self, node_id: str) -> List[DomainArrow]:
+    def find_edges_from(self, node_id: str) -> list[DomainArrow]:
         return [edge for edge in self.edges if edge.source.split(":")[0] == node_id]
 
-    def find_edges_to(self, node_id: str) -> List[DomainArrow]:
+    def find_edges_to(self, node_id: str) -> list[DomainArrow]:
         return [edge for edge in self.edges if edge.target.split(":")[0] == node_id]
 
     def add_token_usage(self, node_id: str, tokens: TokenUsage) -> None:
@@ -77,7 +78,7 @@ class ExecutionContext:
                 total.cached = (total.cached or 0) + tokens.cached
         return total
 
-    def to_runtime_context(self, node_view: Optional[Any] = None) -> RuntimeContext:
+    def to_runtime_context(self, node_view: Any | None = None) -> RuntimeContext:
         """Convert ExecutionContext to RuntimeContext for BaseNodeHandler compatibility."""
         # Extract edges from diagram
         edges = []
@@ -90,12 +91,12 @@ class ExecutionContext:
                 }
                 for edge in self.diagram.arrows
             ]
-        
+
         # Extract nodes from diagram
         nodes = []
         if self.diagram and hasattr(self.diagram, "nodes"):
             nodes = [n.model_dump() for n in self.diagram.nodes]
-        
+
         # Get current outputs from node_view if available
         outputs = {}
         if node_view:
@@ -103,13 +104,13 @@ class ExecutionContext:
             for node_id, view in node_view.graph.nodes.items():
                 if view.output:
                     outputs[node_id] = view.output.value
-        
+
         # Get persons info
         persons_dict = {}
         if self.diagram and hasattr(self.diagram, "persons"):
             for person in self.diagram.persons:
                 persons_dict[person.id] = person.model_dump()
-        
+
         return RuntimeContext(
             execution_id=self.execution_id,
             current_node_id=self.current_node_id,
@@ -124,7 +125,7 @@ class ExecutionContext:
             diagram_id=self.diagram.metadata.id if self.diagram.metadata else None,
         )
 
-    def get_services_dict(self) -> Dict[str, Any]:
+    def get_services_dict(self) -> dict[str, Any]:
         """Create services dictionary for handler injection."""
         return {
             "llm_service": self.llm_service,

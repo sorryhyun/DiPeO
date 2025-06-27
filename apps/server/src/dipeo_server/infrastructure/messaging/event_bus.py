@@ -3,7 +3,8 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Set
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +13,13 @@ class EventBus(ABC):
     """Abstract base class for event bus implementations."""
 
     @abstractmethod
-    async def publish(self, channel: str, event: Dict[str, Any]) -> None:
+    async def publish(self, channel: str, event: dict[str, Any]) -> None:
         """Publish an event to a channel."""
         pass
 
     @abstractmethod
     async def subscribe(
-        self, channel: str, handler: Callable[[Dict[str, Any]], None]
+        self, channel: str, handler: Callable[[dict[str, Any]], None]
     ) -> str:
         """Subscribe to events on a channel. Returns subscription ID."""
         pass
@@ -33,7 +34,7 @@ class EventBus(ABC):
         """Close all connections and clean up resources."""
         pass
 
-    async def get_last_event(self, channel: str) -> Optional[Dict[str, Any]]:
+    async def get_last_event(self, channel: str) -> dict[str, Any] | None:
         """Get the last event published to a channel (optional implementation)."""
         return None
 
@@ -42,12 +43,12 @@ class InMemoryEventBus(EventBus):
     """In-memory event bus implementation for single-instance deployments."""
 
     def __init__(self):
-        self._subscribers: Dict[str, Dict[str, Callable]] = {}
-        self._subscription_to_channel: Dict[str, str] = {}
+        self._subscribers: dict[str, dict[str, Callable]] = {}
+        self._subscription_to_channel: dict[str, str] = {}
         self._lock = asyncio.Lock()
         self._subscription_counter = 0
 
-    async def publish(self, channel: str, event: Dict[str, Any]) -> None:
+    async def publish(self, channel: str, event: dict[str, Any]) -> None:
         """Publish an event to all subscribers of a channel."""
         async with self._lock:
             subscribers = self._subscribers.get(channel, {}).copy()
@@ -67,7 +68,7 @@ class InMemoryEventBus(EventBus):
                 logger.error(f"Error in event handler: {result}")
 
     async def subscribe(
-        self, channel: str, handler: Callable[[Dict[str, Any]], None]
+        self, channel: str, handler: Callable[[dict[str, Any]], None]
     ) -> str:
         """Subscribe to events on a channel."""
         async with self._lock:
@@ -106,7 +107,7 @@ class InMemoryEventBus(EventBus):
             self._subscription_to_channel.clear()
 
     async def _call_handler(
-        self, sub_id: str, handler: Callable, event: Dict[str, Any]
+        self, sub_id: str, handler: Callable, event: dict[str, Any]
     ) -> None:
         """Call an event handler safely."""
         try:
@@ -124,12 +125,12 @@ class MessageRouterEventBus(EventBus):
 
     def __init__(self, message_router):
         self.message_router = message_router
-        self._local_subscribers: Dict[str, List[Callable]] = {}
+        self._local_subscribers: dict[str, list[Callable]] = {}
         self._lock = asyncio.Lock()
-        self._last_event_cache: Dict[str, Dict[str, Any]] = {}
+        self._last_event_cache: dict[str, dict[str, Any]] = {}
         self._cache_ttl = 60  # Cache events for 60 seconds
 
-    async def publish(self, channel: str, event: Dict[str, Any]) -> None:
+    async def publish(self, channel: str, event: dict[str, Any]) -> None:
         """Publish event to both local subscribers and WebSocket connections."""
         # Cache the event for fallback
         event_with_timestamp = {**event, "_timestamp": asyncio.get_event_loop().time()}
@@ -153,7 +154,7 @@ class MessageRouterEventBus(EventBus):
             await self.message_router.broadcast_to_execution(execution_id, event)
 
     async def subscribe(
-        self, channel: str, handler: Callable[[Dict[str, Any]], None]
+        self, channel: str, handler: Callable[[dict[str, Any]], None]
     ) -> str:
         """Subscribe to events on a channel."""
         async with self._lock:
@@ -176,7 +177,7 @@ class MessageRouterEventBus(EventBus):
             self._local_subscribers.clear()
             self._last_event_cache.clear()
 
-    async def get_last_event(self, channel: str) -> Optional[Dict[str, Any]]:
+    async def get_last_event(self, channel: str) -> dict[str, Any] | None:
         """Get the last event published to a channel (if still in cache)."""
         cached_event = self._last_event_cache.get(channel)
         if cached_event:

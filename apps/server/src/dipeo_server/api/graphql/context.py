@@ -1,6 +1,6 @@
 """GraphQL context for providing access to services."""
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Request
 from strawberry.fastapi import BaseContext
@@ -60,7 +60,7 @@ class GraphQLContext(BaseContext):
         self.memory_service = self.conversation_service
 
         # Additional context data
-        self.user_data: Dict[str, Any] = {}
+        self.user_data: dict[str, Any] = {}
 
     @property
     def can_read_api_keys(self) -> bool:

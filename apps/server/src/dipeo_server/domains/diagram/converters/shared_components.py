@@ -1,13 +1,16 @@
 """Shared components for diagram format converters."""
 
 import logging
-from typing import Any, Callable, ClassVar, Dict, Union
+from collections.abc import Callable
+from typing import Any, ClassVar
 
 from dipeo_domain import (
     DataType,
     DomainDiagram,
     DomainHandle,
     HandleDirection,
+    HandleID,
+    NodeID,
     NodeType,
     Vec2,
 )
@@ -21,16 +24,19 @@ class HandleGenerator:
     """Generate the default and custom handles for a node."""
 
     def _push(
-        self, diagram: Union[DomainDiagram, BackendDiagram]
+        self, diagram: DomainDiagram | BackendDiagram
     ) -> Callable[[str, DomainHandle], None]:
         """Return the correct ‘writer’ for handles (dict vs list)."""
         if isinstance(diagram, BackendDiagram):
             return diagram.handles.__setitem__  # dict-style
-        return diagram.handles.append  # list-style
+        # For list-style, create a wrapper that ignores the key
+        def append_handle(key: str, handle: DomainHandle) -> None:
+            diagram.handles.append(handle)
+        return append_handle
 
     def generate_for_node(
         self,
-        diagram: Union[DomainDiagram, BackendDiagram],
+        diagram: DomainDiagram | BackendDiagram,
         node_id: str,
         node_type: str,
     ) -> None:
@@ -44,8 +50,8 @@ class HandleGenerator:
             push(
                 hid,
                 DomainHandle(
-                    id=hid,
-                    nodeId=node_id,
+                    id=HandleID(hid),
+                    nodeId=NodeID(node_id),
                     label="default",
                     direction=HandleDirection.input,
                     dataType=DataType.any,
@@ -53,7 +59,6 @@ class HandleGenerator:
                 ),
             )
             # Also create output handle for db nodes
-            hid_out = f"{node_id}:default"
             # Since both use "default", we need to differentiate by position/direction
             # The unified converter will handle creating the proper output handle
             return
@@ -96,8 +101,8 @@ class HandleGenerator:
             push(
                 hid,
                 DomainHandle(
-                    id=hid,
-                    nodeId=node_id,
+                    id=HandleID(hid),
+                    nodeId=NodeID(node_id),
                     label=label,
                     direction=direction,
                     dataType=dtype,
@@ -146,7 +151,7 @@ class NodeTypeMapper:
     """Maps various node type representations to standard NodeType enum."""
 
     # Common mappings across different formats
-    TYPE_MAPPINGS: ClassVar[Dict[str, NodeType]] = {
+    TYPE_MAPPINGS: ClassVar[dict[str, NodeType]] = {
         # Direct mappings
         "start": NodeType.start,
         "person_job": NodeType.person_job,
@@ -169,7 +174,7 @@ class NodeTypeMapper:
 
     @classmethod
     def determine_node_type(
-        cls, step_data: Dict[str, Any], is_first: bool = False
+        cls, step_data: dict[str, Any], is_first: bool = False
     ) -> NodeType:
         """Determine node type from step data structure."""
         # Check for explicit type field
@@ -216,7 +221,7 @@ class ArrowBuilder:
 
 def coerce_to_dict(
     seq_or_map: Any, id_key: str = "id", prefix: str = "obj"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if isinstance(seq_or_map, dict):
         return seq_or_map
     if isinstance(seq_or_map, list):
@@ -231,12 +236,12 @@ def coerce_to_dict(
     return {}
 
 
-def build_node(id: str, type_: str, pos: Dict[str, float], **data) -> Dict[str, Any]:
+def build_node(id: str, type_: str, pos: dict[str, float], **data) -> dict[str, Any]:
     return {"id": id, "type": type_, "position": pos, **data}
 
 
 def ensure_position(
-    node_dict: Dict[str, Any],
+    node_dict: dict[str, Any],
     index: int,
     position_calculator: PositionCalculator = None,
 ) -> None:

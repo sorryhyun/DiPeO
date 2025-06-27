@@ -1,12 +1,14 @@
 """Application context and dependency injection configuration."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, AsyncGenerator, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
 from config import BASE_DIR
 from dipeo_server.domains.apikey import APIKeyService
+from dipeo_server.domains.conversation import ConversationService
 from dipeo_server.domains.diagram.services import (
     DiagramStorageAdapter,
     DiagramStorageService,
@@ -18,7 +20,6 @@ from dipeo_server.domains.execution import (
 from dipeo_server.domains.execution.validators import DiagramValidator
 from dipeo_server.domains.integrations import NotionService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
-from dipeo_server.domains.conversation import ConversationService
 from dipeo_server.infrastructure.messaging import message_router
 from dipeo_server.infrastructure.messaging.event_bus import (
     EventBus,
@@ -29,38 +30,38 @@ from dipeo_server.infrastructure.persistence import FileService, state_store
 if TYPE_CHECKING:
     from dipeo_core import (
         SupportsAPIKey,
+        SupportsDiagram,
         SupportsExecution,
         SupportsFile,
         SupportsLLM,
-        SupportsNotion,
         SupportsMemory,
-        SupportsDiagram,
+        SupportsNotion,
     )
 else:
     # Import protocols for runtime validation
     from dipeo_core import (
         SupportsAPIKey,
+        SupportsDiagram,
         SupportsExecution,
         SupportsFile,
         SupportsLLM,
-        SupportsNotion,
         SupportsMemory,
-        SupportsDiagram,
+        SupportsNotion,
     )
 
 
 class AppContext:
     def __init__(self):
-        self.api_key_service: Optional[SupportsAPIKey] = None
-        self.llm_service: Optional[SupportsLLM] = None
-        self.file_service: Optional[SupportsFile] = None
-        self.conversation_service: Optional[SupportsMemory] = None
-        self.execution_service: Optional[SupportsExecution] = None
-        self.notion_service: Optional[SupportsNotion] = None
-        self.diagram_storage_service: Optional[SupportsDiagram] = None
-        self.diagram_storage_adapter: Optional[DiagramStorageAdapter] = None
-        self.execution_preparation_service: Optional[ExecutionPreparationService] = None
-        self.event_bus: Optional[EventBus] = None
+        self.api_key_service: SupportsAPIKey | None = None
+        self.llm_service: SupportsLLM | None = None
+        self.file_service: SupportsFile | None = None
+        self.conversation_service: SupportsMemory | None = None
+        self.execution_service: SupportsExecution | None = None
+        self.notion_service: SupportsNotion | None = None
+        self.diagram_storage_service: SupportsDiagram | None = None
+        self.diagram_storage_adapter: DiagramStorageAdapter | None = None
+        self.execution_preparation_service: ExecutionPreparationService | None = None
+        self.event_bus: EventBus | None = None
 
     async def startup(self):
         await state_store.initialize()

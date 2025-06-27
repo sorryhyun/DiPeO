@@ -6,7 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import aiofiles
 import yaml
@@ -20,7 +20,7 @@ from dipeo_server.shared.exceptions import FileOperationError, ValidationError
 class FileService(BaseService, SupportsFile):
     """Unified file service for all file operations that implements the SupportsFile protocol."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         super().__init__()
         self.base_dir = base_dir or Path.cwd()
         # Use directories from config.py instead of creating them
@@ -35,7 +35,7 @@ class FileService(BaseService, SupportsFile):
 
     def read(
         self, path: str, relative_to: str = "base", encoding: str = "utf-8"
-    ) -> Union[str, Dict[str, Any]]:
+    ) -> str | dict[str, Any]:
         """Read file with automatic format detection."""
         file_path = self._resolve_and_validate_path(path, relative_to)
 
@@ -57,7 +57,7 @@ class FileService(BaseService, SupportsFile):
 
     async def aread(
         self, path: str, relative_to: str = "base", encoding: str = "utf-8"
-    ) -> Union[str, Dict[str, Any]]:
+    ) -> str | dict[str, Any]:
         """Async read file with automatic format detection."""
         file_path = self._resolve_and_validate_path(path, relative_to)
 
@@ -89,7 +89,7 @@ class FileService(BaseService, SupportsFile):
         path: str,
         content: Any,
         relative_to: str = "",
-        format: Optional[str] = None,
+        format: str | None = None,
         encoding: str = "utf-8",
     ) -> str:
         """Write file with automatic format handling."""
@@ -152,7 +152,7 @@ class FileService(BaseService, SupportsFile):
         doc = Document(str(file_path))
         return "\n".join([para.text for para in doc.paragraphs])
 
-    def _read_csv(self, file_path: Path, encoding: str) -> List[Dict[str, Any]]:
+    def _read_csv(self, file_path: Path, encoding: str) -> list[dict[str, Any]]:
         """Read CSV file and return as list of dictionaries."""
         with open(file_path, encoding=encoding) as f:
             reader = csv.DictReader(f)
@@ -207,8 +207,8 @@ class FileService(BaseService, SupportsFile):
             await f.write(text_content)
 
     async def save_file(
-        self, content: bytes, filename: str, target_path: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, content: bytes, filename: str, target_path: str | None = None
+    ) -> dict[str, Any]:
         """Save uploaded file to the uploads directory."""
         if target_path:
             file_path = self._resolve_and_validate_path(

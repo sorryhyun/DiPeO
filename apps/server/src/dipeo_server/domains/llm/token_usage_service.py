@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from dipeo_domain import NodeOutput, TokenUsage
 
@@ -20,7 +20,7 @@ class TokenUsageService:
         )
 
     @staticmethod
-    def to_dict(usage: TokenUsage) -> Dict[str, float]:
+    def to_dict(usage: TokenUsage) -> dict[str, float]:
         return {
             "input": usage.input,
             "output": usage.output,
@@ -37,11 +37,11 @@ class TokenUsageService:
         )
 
     @staticmethod
-    def from_usage(usage: Any, service: Optional[str] = None) -> TokenUsage:
+    def from_usage(usage: Any, service: str | None = None) -> TokenUsage:
         if not usage:
             return TokenUsageService.zero()
 
-        if service == "gemini" and isinstance(usage, (list, tuple)):
+        if service == "gemini" and isinstance(usage, list | tuple):
             return TokenUsage(
                 input=usage[0] if len(usage) > 0 else 0,
                 output=usage[1] if len(usage) > 1 else 0,
@@ -72,8 +72,8 @@ class TokenUsageService:
 
     @staticmethod
     def aggregate_node_token_usage(
-        node_outputs: Dict[str, NodeOutput],
-    ) -> Optional[TokenUsage]:
+        node_outputs: dict[str, NodeOutput],
+    ) -> TokenUsage | None:
         total_token_usage = None
 
         for node_id, output in node_outputs.items():
@@ -119,7 +119,7 @@ class TokenUsageService:
         return total_token_usage
 
     @staticmethod
-    def extract_token_usage_from_metadata(metadata: Dict) -> Optional[TokenUsage]:
+    def extract_token_usage_from_metadata(metadata: dict) -> TokenUsage | None:
         token_usage_data = metadata.get("tokenUsage")
         if not token_usage_data or not isinstance(token_usage_data, dict):
             return None
@@ -132,7 +132,7 @@ class TokenUsageService:
         )
 
     @staticmethod
-    def extract_from_personjob_output(value: Any) -> Optional[TokenUsage]:
+    def extract_from_personjob_output(value: Any) -> TokenUsage | None:
         """Extract token usage from PersonJob output."""
         if isinstance(value, dict) and value.get("_type") == "personjob_output":
             return TokenUsage(
@@ -143,7 +143,7 @@ class TokenUsageService:
         return None
 
     @staticmethod
-    def to_personjob_metadata(token_usage: Optional[TokenUsage]) -> Dict[str, str]:
+    def to_personjob_metadata(token_usage: TokenUsage | None) -> dict[str, str]:
         """Convert TokenUsage to PersonJob metadata format."""
         metadata = {}
         if token_usage:

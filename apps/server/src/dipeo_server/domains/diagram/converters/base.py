@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from dipeo_domain import DomainDiagram
 
@@ -13,7 +13,7 @@ class DiagramConverter(ABC):
     def deserialize(self, content: str) -> DomainDiagram:
         pass
 
-    def validate(self, content: str) -> Tuple[bool, List[str]]:
+    def validate(self, content: str) -> tuple[bool, list[str]]:
         try:
             self.deserialize(content)
             return True, []
@@ -30,29 +30,29 @@ class DiagramConverter(ABC):
 
 class FormatStrategy(ABC):
     @abstractmethod
-    def parse(self, content: str) -> Dict[str, Any]:
+    def parse(self, content: str) -> dict[str, Any]:
         pass
 
     @abstractmethod
-    def format(self, data: Dict[str, Any]) -> str:
+    def format(self, data: dict[str, Any]) -> str:
         pass
 
     @abstractmethod
-    def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
     def extract_arrows(
-        self, data: Dict[str, Any], nodes: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, data: dict[str, Any], nodes: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    def build_export_data(self, diagram: DomainDiagram) -> Dict[str, Any]:
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         pass
 
     @abstractmethod
-    def detect_confidence(self, data: Dict[str, Any]) -> float:
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         pass
 
     @property
@@ -62,7 +62,7 @@ class FormatStrategy(ABC):
 
     @property
     @abstractmethod
-    def format_info(self) -> Dict[str, str]:
+    def format_info(self) -> dict[str, str]:
         pass
 
     def quick_match(self, content: str) -> bool:
