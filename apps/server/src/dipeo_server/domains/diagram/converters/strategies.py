@@ -188,7 +188,8 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             node_props = {
                 k: v
                 for k, v in ndata.items()
-                if k not in {"type", "label", "id", "position", "arrows", "props", "person"}
+                if k
+                not in {"type", "label", "id", "position", "arrows", "props", "person"}
             }
 
             # Handle person field separately - convert label to personId
@@ -483,11 +484,13 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
                 src_id = label2id.get(src_label)
                 dst_id = label2id.get(dst_label)
                 if src_id and dst_id:
-                    arrows.append({
-                        "id": f"arrow_{idx}",
-                        "source": f"{src_id}:output",
-                        "target": f"{dst_id}:input"
-                    })
+                    arrows.append(
+                        {
+                            "id": f"arrow_{idx}",
+                            "source": f"{src_id}:output",
+                            "target": f"{dst_id}:input",
+                        }
+                    )
         return arrows
 
     # ---- export ----

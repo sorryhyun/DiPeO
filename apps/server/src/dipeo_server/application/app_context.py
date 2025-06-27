@@ -13,18 +13,11 @@ from dipeo_server.domains.diagram.services import (
     DiagramStorageAdapter,
     DiagramStorageService,
 )
-from dipeo_server.domains.execution import (
-    ExecutionPreparationService,
-    ExecutionService,
-)
+from dipeo_server.domains.execution import ExecutionPreparationService
 from dipeo_server.domains.execution.validators import DiagramValidator
 from dipeo_server.domains.integrations import NotionService
 from dipeo_server.domains.llm import LLMServiceClass as LLMService
 from dipeo_server.infrastructure.messaging import message_router
-from dipeo_server.infrastructure.messaging.event_bus import (
-    EventBus,
-    MessageRouterEventBus,
-)
 from dipeo_server.infrastructure.persistence import FileService, state_store
 
 if TYPE_CHECKING:
@@ -61,15 +54,11 @@ class AppContext:
         self.diagram_storage_service: SupportsDiagram | None = None
         self.diagram_storage_adapter: DiagramStorageAdapter | None = None
         self.execution_preparation_service: ExecutionPreparationService | None = None
-        self.event_bus: EventBus | None = None
 
     async def startup(self):
         await state_store.initialize()
 
         await message_router.initialize()
-
-        # Initialize EventBus with MessageRouter integration
-        self.event_bus = MessageRouterEventBus(message_router)
 
         self.api_key_service = APIKeyService()
         self.conversation_service = ConversationService()
@@ -91,21 +80,12 @@ class AppContext:
             api_key_service=self.api_key_service,
         )
 
-        self.execution_service = ExecutionService(
-            self.llm_service,
-            self.api_key_service,
-            self.conversation_service,
-            self.file_service,
-            None,
-            self.notion_service,
-            self.execution_preparation_service,
-            self.event_bus,
-        )
+        # Execution service will be initialized in UnifiedAppContext
+        self.execution_service = None  # type: ignore[assignment]
 
         await self.llm_service.initialize()
         await self.diagram_storage_service.initialize()
         await self.notion_service.initialize()
-        await self.execution_service.initialize()
 
         # Validate protocol compliance
         self._validate_protocol_compliance()
@@ -122,7 +102,7 @@ class AppContext:
             (self.llm_service, SupportsLLM, "LLMService"),
             (self.file_service, SupportsFile, "FileService"),
             (self.conversation_service, SupportsMemory, "ConversationService"),
-            (self.execution_service, SupportsExecution, "ExecutionService"),
+            (self.execution_service, SupportsExecution, "UnifiedExecutionService"),
             (self.notion_service, SupportsNotion, "NotionService"),
             (self.diagram_storage_service, SupportsDiagram, "DiagramStorageService"),
         ]
@@ -202,7 +182,3 @@ def get_execution_preparation_service() -> ExecutionPreparationService:
     return app_context.execution_preparation_service
 
 
-def get_event_bus() -> EventBus:
-    if app_context.event_bus is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.event_bus

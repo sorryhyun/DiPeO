@@ -60,7 +60,6 @@ class PersonResolver:
                 service=self._map_service(api_key_data["service"]),
             )
 
-
         except Exception as e:
             logger.error(f"Failed to get API key {api_key_id}: {e}")
             return None
@@ -108,7 +107,6 @@ class PersonResolver:
             return await llm_service.get_available_models(
                 service=service, api_key_id=api_key_id
             )
-
 
         except Exception as e:
             logger.error(

@@ -7,22 +7,23 @@ and defines server-specific exceptions that extend the core taxonomy.
 from typing import Any
 
 # Re-export base exceptions
-from dipeo_core.base.exceptions import (
+from dipeo_core.base.exceptions import (  # noqa: F401
+    ConfigurationError,
     DiPeOError,
     ExecutionError,
     ServiceError,
+    ValidationError,
 )
 
 # Re-export core exceptions for backward compatibility
-from dipeo_core.errors import (
+from dipeo_core.errors import (  # noqa: F401
+    APIKeyError,
+    DependencyError,
+    FileOperationError,
+    LLMServiceError,
+    MaxIterationsError,
     NodeExecutionError,
 )
-
-# Legacy alias
-AgentDiagramException = DiPeOError
-
-# Legacy alias for DiagramExecutionError -> ExecutionError
-DiagramExecutionError = ExecutionError
 
 
 # Server-specific exceptions that extend the core taxonomy
@@ -66,4 +67,5 @@ class PersonJobExecutionError(NodeExecutionError):
 
 class DatabaseError(ServiceError):
     """Error when performing database operations."""
+
     pass

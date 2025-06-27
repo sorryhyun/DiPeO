@@ -63,9 +63,12 @@ class MessageStore:
 
     async def get_message(self, message_id: str) -> dict[str, Any] | None:
         """Retrieve message by reference ID."""
-        async with aiosqlite.connect(self.db_path) as db, db.execute(
-            "SELECT content FROM messages WHERE id = ?", (message_id,)
-        ) as cursor:
+        async with (
+            aiosqlite.connect(self.db_path) as db,
+            db.execute(
+                "SELECT content FROM messages WHERE id = ?", (message_id,)
+            ) as cursor,
+        ):
             row = await cursor.fetchone()
             return json.loads(row[0]) if row else None
 
@@ -73,13 +76,16 @@ class MessageStore:
         self, execution_id: str, person_id: str
     ) -> list[dict[str, Any]]:
         """Get all messages for a person in an execution."""
-        async with aiosqlite.connect(self.db_path) as db, db.execute(
-            """SELECT id, content, token_count, created_at
+        async with (
+            aiosqlite.connect(self.db_path) as db,
+            db.execute(
+                """SELECT id, content, token_count, created_at
                    FROM messages
                    WHERE execution_id = ? AND person_id = ?
                    ORDER BY created_at""",
-            (execution_id, person_id),
-        ) as cursor:
+                (execution_id, person_id),
+            ) as cursor,
+        ):
             messages = []
             async for row in cursor:
                 messages.append(

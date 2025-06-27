@@ -68,7 +68,9 @@ class NodeView:
         for edge in self.incoming_edges:
             if edge.source_view.output is None:
                 continue
-            (first_edges if edge.target_handle == "first" else default_edges).append(edge)
+            (first_edges if edge.target_handle == "first" else default_edges).append(
+                edge
+            )
 
         selected_edges: list[EdgeView] = []
         if self.node.type == "person_job":
@@ -83,7 +85,6 @@ class NodeView:
             selected_edges = first_edges + default_edges
 
         for edge in selected_edges:
-
             # Check if this is from a condition node
             if edge.source_view.node.type == "condition":
                 condition_result = edge.source_view.output.metadata.get(

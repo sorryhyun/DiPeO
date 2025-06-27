@@ -2,7 +2,6 @@
 Stats command implementation for DiPeO CLI.
 """
 
-
 from .utils import DiagramLoader
 
 

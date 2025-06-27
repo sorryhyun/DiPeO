@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 
-import { Project, InterfaceDeclaration, EnumDeclaration, Type } from 'ts-morph';
+import { Project, InterfaceDeclaration, EnumDeclaration, TypeAliasDeclaration, Type } from 'ts-morph';
 import { readdir, writeFile, mkdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -10,11 +10,12 @@ import process from 'node:process';
 //--- Types
 export interface SchemaDefinition {
   name: string;
-  type: 'interface' | 'enum';
+  type: 'interface' | 'enum' | 'type-alias';
   properties?: Record<string, PropertyInfo>;
   values?: string[];
   extends?: string[];
   description?: string;
+  aliasType?: string;
 }
 
 interface PropertyInfo {
@@ -33,7 +34,8 @@ class SchemaExtractor {
     const src = this.project.addSourceFileAtPath(filePath);
     return [
       ...src.getInterfaces().map(i => this.extractInterface(i)).filter(Boolean),
-      ...src.getEnums().map(e => this.extractEnum(e)).filter(Boolean)
+      ...src.getEnums().map(e => this.extractEnum(e)).filter(Boolean),
+      ...src.getTypeAliases().map(t => this.extractTypeAlias(t)).filter(Boolean)
     ] as SchemaDefinition[];
   }
 
@@ -61,6 +63,19 @@ class SchemaExtractor {
     const description = this.getJsDoc(decl);
 
     return { name, type: 'enum', values, description };
+  }
+
+  private extractTypeAlias(decl: TypeAliasDeclaration): SchemaDefinition | null {
+    const name = decl.getName();
+    const aliasType = decl.getType().getText();
+    const description = this.getJsDoc(decl);
+
+    // Only include simple type aliases that reference other types
+    if (aliasType.includes('{') || aliasType.includes('[') || aliasType.includes('|') || aliasType.includes('&')) {
+      return null;
+    }
+
+    return { name, type: 'type-alias', aliasType, description };
   }
 
   private getJsDoc(node: any): string | undefined {

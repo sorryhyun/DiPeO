@@ -383,6 +383,24 @@ export class PythonGenerator {
       lines.push('');
     }
 
+    // Generate type aliases
+    const typeAliases = this.schemas.filter(s => s.type === 'type-alias');
+    for (const aliasSchema of typeAliases) {
+      if (aliasSchema.aliasType) {
+        // Extract the actual type name from import syntax
+        const match = aliasSchema.aliasType.match(/\.([A-Za-z]+)$/);
+        if (match) {
+          const targetType = match[1];
+          // Only generate if the target type exists
+          if (interfaces.some(i => i.name === targetType) || enums.some(e => e.name === targetType)) {
+            lines.push(`# Type alias from TypeScript`);
+            lines.push(`${aliasSchema.name} = ${targetType}`);
+            lines.push('');
+          }
+        }
+      }
+    }
+
 
     // Write to file
     await fs.mkdir(path.dirname(outputPath), { recursive: true });

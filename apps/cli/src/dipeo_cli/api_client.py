@@ -9,11 +9,16 @@ from gql.transport.websockets import (
     WebsocketsTransport,
 )  # For GraphQL subscriptions only
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class DiPeoAPIClient:
-    def __init__(self, host: str = "localhost:8000", max_retries: int = 3, retry_delay: float = 1.0):
+    def __init__(
+        self,
+        host: str = "localhost:8000",
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
+    ):
         self.host = host
         self.http_url = f"http://{host}/graphql"
         self.ws_url = f"ws://{host}/graphql"
@@ -22,7 +27,7 @@ class DiPeoAPIClient:
         self._subscription_clients: dict[str, Client | None] = {
             "execution": None,
             "nodes": None,
-            "prompts": None
+            "prompts": None,
         }
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -55,7 +60,7 @@ class DiPeoAPIClient:
             self._subscription_clients[subscription_type] = Client(
                 transport=ws_transport,
                 fetch_schema_from_transport=False,
-                execute_timeout=None  # Disable timeout for subscriptions
+                execute_timeout=None,  # Disable timeout for subscriptions
             )
         return self._subscription_clients[subscription_type]
 
@@ -65,22 +70,34 @@ class DiPeoAPIClient:
         for attempt in range(self.max_retries):
             try:
                 return await func(*args, **kwargs)
-            except (TransportQueryError, TransportServerError, ConnectionError, OSError) as e:
+            except (
+                TransportQueryError,
+                TransportServerError,
+                ConnectionError,
+                OSError,
+            ) as e:
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
-                    print(f"⚠️  Connection failed (attempt {attempt + 1}/{self.max_retries}): {e!s}")
+                    delay = self.retry_delay * (2**attempt)  # Exponential backoff
+                    print(
+                        f"⚠️  Connection failed (attempt {attempt + 1}/{self.max_retries}): {e!s}"
+                    )
                     print(f"   Retrying in {delay:.1f}s...")
                     await asyncio.sleep(delay)
                 else:
                     print(f"❌ Connection failed after {self.max_retries} attempts")
-        raise ConnectionError(f"Failed to connect to server at {self.host} after {self.max_retries} attempts: {last_error}")
+        raise ConnectionError(
+            f"Failed to connect to server at {self.host} after {self.max_retries} attempts: {last_error}"
+        )
 
     async def _execute_query(self, query: str, variables: dict | None = None) -> dict:
         """Execute a GraphQL query and return the result."""
+
         async def _do_execute():
             parsed_query = gql(query)
-            return await self._client.execute_async(parsed_query, variable_values=variables or {})
+            return await self._client.execute_async(
+                parsed_query, variable_values=variables or {}
+            )
 
         return await self._retry_with_backoff(_do_execute)
 
@@ -144,7 +161,7 @@ class DiPeoAPIClient:
         self,
         diagram_data: dict[str, Any],
         format: str = "native",
-        include_metadata: bool = True
+        include_metadata: bool = True,
     ) -> dict[str, Any]:
         """Convert diagram to specified format using backend API."""
         mutation = gql("""
@@ -166,13 +183,15 @@ class DiPeoAPIClient:
             variable_values={
                 "content": diagram_data,
                 "format": format.upper(),
-                "includeMetadata": include_metadata
-            }
+                "includeMetadata": include_metadata,
+            },
         )
 
         response = result.get("convertDiagram")
         if not response:
-            raise Exception(f"No response from convertDiagram mutation. Result: {result}")
+            raise Exception(
+                f"No response from convertDiagram mutation. Result: {result}"
+            )
         if response["success"]:
             return response
         raise Exception(response.get("error") or "Conversion failed")
@@ -285,9 +304,7 @@ class DiPeoAPIClient:
             input_data["nodeId"] = node_id
 
         result = await self._retry_with_backoff(
-            self._client.execute_async,
-            mutation,
-            variable_values={"data": input_data}
+            self._client.execute_async, mutation, variable_values={"data": input_data}
         )
 
         response = result["controlExecution"]
@@ -341,7 +358,7 @@ class DiPeoAPIClient:
         self, diagram_data: dict[str, Any], filename: str | None = None
     ) -> str:
         """Save a diagram and return its ID.
-        
+
         This method is deprecated for CLI usage since we can execute diagrams
         directly with diagram_data.
         """

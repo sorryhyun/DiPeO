@@ -4,6 +4,7 @@ from .executor import BaseExecutor, ExecutorInterface
 from .handlers import (
     BaseNodeHandler,
     HandlerRegistry,
+    create_node_output,
     get_global_registry,
     register_handler,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
+    "create_node_output",
     # Utilities
     "runtime_to_execution_context",
     "execution_to_runtime_context",

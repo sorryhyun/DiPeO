@@ -54,3 +54,16 @@ DEFAULT_MEMORY_LIMIT: Final[int] = 100  # Maximum number of memories to retain
 DEFAULT_CONTEXT_WINDOW: Final[int] = (
     10  # Number of recent messages to include in context
 )
+
+
+def normalize_service_name(service: str) -> str:
+    """Normalize service name to provider name using centralized mapping.
+
+    Args:
+        service: The service name to normalize
+
+    Returns:
+        The normalized service name
+    """
+    normalized = (service or DEFAULT_SERVICE).lower()
+    return SERVICE_ALIASES.get(normalized, normalized)

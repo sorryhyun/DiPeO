@@ -86,9 +86,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
         return strategy.format(data)
 
-    def deserialize(
-        self, content: str, format_id: str | None = None
-    ) -> DomainDiagram:
+    def deserialize(self, content: str, format_id: str | None = None) -> DomainDiagram:
         """Convert format-specific string to domain diagram."""
         fmt = format_id or getattr(self, "active_format", None)
 
@@ -176,8 +174,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         for node_id, node in nodes_dict.items():
             # Check if this node has any handles already
             node_has_handles = any(
-                handle.nodeId == node_id
-                for handle in handles_dict.values()
+                handle.nodeId == node_id for handle in handles_dict.values()
             )
             if not node_has_handles:
                 self.handle_generator.generate_for_node(

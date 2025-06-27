@@ -8,12 +8,12 @@ from uuid import uuid4
 from dipeo_core import HandlerRegistry
 from dipeo_domain.models import DomainDiagram, NodeOutput
 
+from dipeo_server.application.execution_context import ExecutionContext
 from dipeo_server.domains.llm.services import LLMService
 from dipeo_server.infrastructure.persistence import FileService
 
 from ..conversation import ConversationService
 from ..integrations.notion import NotionService
-from .context import ExecutionContext
 from .execution_view import EdgeView, ExecutionView, NodeView
 
 
@@ -130,8 +130,10 @@ class ViewBasedEngine:
 
             # Add metadata for nodes that have exceeded maxIteration
             for node_id, node_view in view.node_views.items():
-                if (node_view.node.type in ["job", "person_job"]
-                    and context.exec_counts.get(node_id, 0) >= node_view.node.data.get("maxIteration", 1)
+                if (
+                    node_view.node.type in ["job", "person_job"]
+                    and context.exec_counts.get(node_id, 0)
+                    >= node_view.node.data.get("maxIteration", 1)
                     and node_view.output
                     and not node_view.output.metadata.get("skipped_due_to_max_iter")
                 ):
@@ -155,20 +157,29 @@ class ViewBasedEngine:
 
         log.info("All execution completed")
 
-    def _get_required_edges(self, node_view: NodeView, context: ExecutionContext) -> list[EdgeView]:
+    def _get_required_edges(
+        self, node_view: NodeView, context: ExecutionContext
+    ) -> list[EdgeView]:
         if node_view.node.type == "person_job":
             exec_count = context.exec_counts.get(node_view.id, 0)
 
-            first_edges = [e for e in node_view.incoming_edges if e.target_handle == "first"]
-            default_edges = [e for e in node_view.incoming_edges if e.target_handle == "default"]
+            first_edges = [
+                e for e in node_view.incoming_edges if e.target_handle == "first"
+            ]
+            default_edges = [
+                e for e in node_view.incoming_edges if e.target_handle == "default"
+            ]
 
             # ── first execution ─────────────────────────────────────────────
             if exec_count == 0:
-                return [e for e in first_edges if e.source_view.output is not None] \
-                    or [e for e in default_edges if e.source_view.output is not None]
+                return [e for e in first_edges if e.source_view.output is not None] or [
+                    e for e in default_edges if e.source_view.output is not None
+                ]
 
             # ── 2nd execution and later ────────────────────────────────────
-            ready_defaults = [e for e in default_edges if e.source_view.output is not None]
+            ready_defaults = [
+                e for e in default_edges if e.source_view.output is not None
+            ]
 
             # If none of the default edges has data yet we *must* wait, so
             # keep the full list → the node will stay “not ready”.
@@ -304,7 +315,9 @@ class ViewBasedEngine:
             )
 
         try:
-            output = await self._call_handler_with_view(handler, node, node_view, context)
+            output = await self._call_handler_with_view(
+                handler, node, node_view, context
+            )
 
             node_view.output = output
             context.set_node_output(node.id, output)
@@ -451,4 +464,3 @@ class ViewBasedEngine:
             inputs=inputs,
             services=services,
         )
-

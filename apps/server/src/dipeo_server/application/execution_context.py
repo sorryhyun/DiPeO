@@ -1,34 +1,31 @@
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from dipeo_core import RuntimeContext
-from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput, TokenUsage
-
-from dipeo_server.domains.llm.services import LLMService
-from dipeo_server.infrastructure.persistence import FileService, StateRegistry
+from dipeo_domain.models import DomainArrow, NodeOutput, TokenUsage
 
 
 @dataclass
 class ExecutionContext:
-    diagram: DomainDiagram
-    edges: list[DomainArrow]
-    node_outputs: dict[str, NodeOutput] = field(default_factory=dict)
-    current_node_id: str = ""
-    execution_id: str = ""
-    exec_counts: dict[str, int] = field(default_factory=dict)
-    variables: dict[str, Any] = field(default_factory=dict)
-    persons: dict[str, Any] = field(default_factory=dict)
-    api_keys: dict[str, str] = field(default_factory=dict)
+    """Pure data container for execution state - no service dependencies."""
 
-    llm_service: LLMService = field(default=None)
-    file_service: FileService = field(default=None)
-    conversation_service: Any | None = field(default=None)
-    notion_service: Any | None = field(default=None)
-    api_key_service: Any | None = field(default=None)
-    state_store: StateRegistry = field(default=None)
-    interactive_handler: Callable | None = field(default=None)
-    stream_callback: Callable | None = field(default=None)
+    # Core execution data
+    execution_id: str
+    diagram_id: str
+
+    # State
+    node_outputs: dict[str, NodeOutput] = field(default_factory=dict)
+    variables: dict[str, Any] = field(default_factory=dict)
+    exec_counts: dict[str, int] = field(default_factory=dict)
+    current_node_id: str = ""
+
+    # Structure (for handlers that need it)
+    nodes: list[Any] = field(default_factory=list)  # DomainNode list
+    edges: list[DomainArrow] = field(default_factory=list)
+    persons: dict[str, Any] = field(default_factory=dict)  # Person configurations
+
+    # API keys (needed for some operations)
+    api_keys: dict[str, str] = field(default_factory=dict)
 
     # Token usage accumulation
     _token_accumulator: dict[str, TokenUsage] = field(default_factory=dict, init=False)
@@ -80,36 +77,34 @@ class ExecutionContext:
 
     def to_runtime_context(self, node_view: Any | None = None) -> RuntimeContext:
         """Convert ExecutionContext to RuntimeContext for BaseNodeHandler compatibility."""
-        # Extract edges from diagram
-        edges = []
-        if self.diagram and hasattr(self.diagram, "arrows"):
-            edges = [
-                {
-                    "source": edge.source,
-                    "target": edge.target,
-                    "data": edge.data,
-                }
-                for edge in self.diagram.arrows
-            ]
+        # Convert edges to dict format
+        edges = [
+            {
+                "source": edge.source,
+                "target": edge.target,
+                "data": edge.data,
+            }
+            for edge in self.edges
+        ]
 
-        # Extract nodes from diagram
+        # Convert nodes to dict format if they are domain objects
         nodes = []
-        if self.diagram and hasattr(self.diagram, "nodes"):
-            nodes = [n.model_dump() for n in self.diagram.nodes]
+        for node in self.nodes:
+            if hasattr(node, "model_dump"):
+                nodes.append(node.model_dump())
+            else:
+                nodes.append(node)
 
         # Get current outputs from node_view if available
         outputs = {}
-        if node_view:
+        if node_view and hasattr(node_view, "node_views"):
             # Collect outputs from completed nodes
-            for node_id, view in node_view.graph.nodes.items():
+            for node_id, view in node_view.node_views.items():
                 if view.output:
                     outputs[node_id] = view.output.value
-
-        # Get persons info
-        persons_dict = {}
-        if self.diagram and hasattr(self.diagram, "persons"):
-            for person in self.diagram.persons:
-                persons_dict[person.id] = person.model_dump()
+        else:
+            # Use stored outputs
+            outputs = {k: v.value for k, v in self.node_outputs.items() if v}
 
         return RuntimeContext(
             execution_id=self.execution_id,
@@ -120,20 +115,7 @@ class ExecutionContext:
             outputs=outputs,
             exec_cnt=self.exec_counts,
             variables=self.variables,
-            persons=persons_dict,
+            persons=self.persons,
             api_keys=self.api_keys,
-            diagram_id=self.diagram.metadata.id if self.diagram.metadata else None,
+            diagram_id=self.diagram_id,
         )
-
-    def get_services_dict(self) -> dict[str, Any]:
-        """Create services dictionary for handler injection."""
-        return {
-            "llm_service": self.llm_service,
-            "api_key_service": self.api_key_service,
-            "conversation_service": self.conversation_service,
-            "file_service": self.file_service,
-            "notion_service": self.notion_service,
-            "diagram": self.diagram,
-            "token_service": self,  # ExecutionContext itself has add_token_usage
-            "execution_context": self,  # For user_response handler
-        }

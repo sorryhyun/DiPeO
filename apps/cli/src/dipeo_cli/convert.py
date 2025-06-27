@@ -45,9 +45,7 @@ async def convert_command(args: list[str]) -> None:
                 print(f"Format: {format_name}")
 
             result = await client.convert_diagram(
-                diagram_data=diagram,
-                format=format_name,
-                include_metadata=True
+                diagram_data=diagram, format=format_name, include_metadata=True
             )
 
             if result["content"]:
@@ -56,7 +54,9 @@ async def convert_command(args: list[str]) -> None:
                 with open(output_path, "w") as f:
                     f.write(result["content"])
 
-                print(f"✓ Converted: {input_path} → {output_path} (format: {result['format']})")
+                print(
+                    f"✓ Converted: {input_path} → {output_path} (format: {result['format']})"
+                )
             else:
                 print("Error: Conversion returned empty content")
 

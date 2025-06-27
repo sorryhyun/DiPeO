@@ -1,4 +1,3 @@
-
 import json
 from datetime import datetime
 from pathlib import Path
@@ -15,7 +14,11 @@ class DiagramConverter:
     @staticmethod
     def dict_to_list(mapping: dict[str, Any]) -> list[Any]:
         return [
-            ({**value, "id": key} if isinstance(value, dict) and "id" not in value else value)
+            (
+                {**value, "id": key}
+                if isinstance(value, dict) and "id" not in value
+                else value
+            )
             for key, value in mapping.items()
         ]
 
@@ -23,7 +26,11 @@ class DiagramConverter:
     def list_to_dict(items: list[Any]) -> dict[str, Any]:
         if isinstance(items, dict):
             return items
-        return {item["id"]: item for item in items if isinstance(item, dict) and "id" in item}
+        return {
+            item["id"]: item
+            for item in items
+            if isinstance(item, dict) and "id" in item
+        }
 
     @classmethod
     def to_graphql_format(cls, diagram: dict[str, Any]) -> dict[str, Any]:
@@ -53,13 +60,25 @@ class DiagramValidator:
         """Validate diagram structure and apply defaults"""
         # Ensure all required fields exist with proper defaults
         if "nodes" not in diagram:
-            diagram["nodes"] = {} if not isinstance(diagram.get("nodes"), list) else diagram["nodes"]
+            diagram["nodes"] = (
+                {} if not isinstance(diagram.get("nodes"), list) else diagram["nodes"]
+            )
         if "arrows" not in diagram:
-            diagram["arrows"] = {} if not isinstance(diagram.get("arrows"), list) else diagram["arrows"]
+            diagram["arrows"] = (
+                {} if not isinstance(diagram.get("arrows"), list) else diagram["arrows"]
+            )
         if "handles" not in diagram:
-            diagram["handles"] = {} if not isinstance(diagram.get("handles"), list) else diagram["handles"]
+            diagram["handles"] = (
+                {}
+                if not isinstance(diagram.get("handles"), list)
+                else diagram["handles"]
+            )
         if "persons" not in diagram:
-            diagram["persons"] = {} if not isinstance(diagram.get("persons"), list) else diagram["persons"]
+            diagram["persons"] = (
+                {}
+                if not isinstance(diagram.get("persons"), list)
+                else diagram["persons"]
+            )
         # Handle both camelCase and snake_case for API keys
         if "apiKeys" not in diagram and "api_keys" not in diagram:
             diagram["apiKeys"] = {}

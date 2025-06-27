@@ -7,9 +7,8 @@ import uuid
 from dipeo_core import BaseService, SupportsAPIKey
 
 from config import BASE_DIR
-from dipeo_server.shared.constants import VALID_LLM_SERVICES
+from dipeo_server.shared.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo_server.shared.exceptions import APIKeyError, ValidationError
-from dipeo_server.shared.utils.errors import normalize_service_name
 
 
 class APIKeyService(BaseService, SupportsAPIKey):

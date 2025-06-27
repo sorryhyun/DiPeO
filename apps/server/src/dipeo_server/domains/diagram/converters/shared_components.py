@@ -29,9 +29,11 @@ class HandleGenerator:
         """Return the correct ‘writer’ for handles (dict vs list)."""
         if isinstance(diagram, BackendDiagram):
             return diagram.handles.__setitem__  # dict-style
+
         # For list-style, create a wrapper that ignores the key
         def append_handle(key: str, handle: DomainHandle) -> None:
             diagram.handles.append(handle)
+
         return append_handle
 
     def generate_for_node(

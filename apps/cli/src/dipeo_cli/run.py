@@ -70,9 +70,13 @@ class DiagramRunner:
 
                 if self.options.debug:
                     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                    print(f"[🕰️ {timestamp}] 🚀 Execution started with ID: {execution_id}")
+                    print(
+                        f"[🕰️ {timestamp}] 🚀 Execution started with ID: {execution_id}"
+                    )
                     if self.options.mode == ExecutionMode.MONITOR:
-                        print(f"[🕰️ {timestamp}] 📊 Monitor mode active - server will keep running")
+                        print(
+                            f"[🕰️ {timestamp}] 📊 Monitor mode active - server will keep running"
+                        )
 
                 # Subscribe to updates
                 await self._handle_execution_streams(client, execution_id, result)
@@ -193,7 +197,10 @@ class DiagramRunner:
             pass
         except Exception as e:
             # Ignore subscription errors - interactive prompts are optional
-            if self.options.debug and "Subscription field must return AsyncIterable" not in str(e):
+            if (
+                self.options.debug
+                and "Subscription field must return AsyncIterable" not in str(e)
+            ):
                 print(f"Error in prompt stream: {e}")
 
     async def _handle_execution_stream(
@@ -211,7 +218,9 @@ class DiagramRunner:
                     token_usage = update.get("tokenUsage", {})
                     return {
                         "context": update.get("nodeOutputs", {}),
-                        "total_token_count": token_usage.get("total", 0) if token_usage else 0,
+                        "total_token_count": token_usage.get("total", 0)
+                        if token_usage
+                        else 0,
                     }
 
                 if status in ["FAILED", "ABORTED"]:
@@ -275,19 +284,31 @@ async def run_command(args: list[str]) -> None:
     _save_results(result, options)
 
     # Kill server in debug mode to see final logs (unless --keep-server is used or monitor mode is active)
-    if options.debug and not options.keep_server and options.mode != ExecutionMode.MONITOR:
+    if (
+        options.debug
+        and not options.keep_server
+        and options.mode != ExecutionMode.MONITOR
+    ):
         print("\n🐛 Debug: Stopping backend server to display final logs...")
         await asyncio.sleep(0.5)  # Brief pause to ensure all logs are flushed
         try:
-            subprocess.run(["pkill", "-f", "python main.py"], check=False, capture_output=True)
-            subprocess.run(["pkill", "-f", "hypercorn"], check=False, capture_output=True)
+            subprocess.run(
+                ["pkill", "-f", "python main.py"], check=False, capture_output=True
+            )
+            subprocess.run(
+                ["pkill", "-f", "hypercorn"], check=False, capture_output=True
+            )
         except Exception:
             pass
-    elif options.debug and (options.keep_server or options.mode == ExecutionMode.MONITOR):
+    elif options.debug and (
+        options.keep_server or options.mode == ExecutionMode.MONITOR
+    ):
         print("\n🐛 Debug: Server kept running", end="")
         if options.mode == ExecutionMode.MONITOR:
             print(" (monitor mode active)")
-            print("📊 Monitor remains available at: http://localhost:3000/?monitor=true")
+            print(
+                "📊 Monitor remains available at: http://localhost:3000/?monitor=true"
+            )
             print("   ℹ️  Press Ctrl+C to stop the server when done monitoring")
         else:
             print(" (--keep-server flag used)")
@@ -361,15 +382,14 @@ async def _restart_backend_server() -> None:
         # Kill processes listening on port 8000
         kill_result = subprocess.run(
             ["pkill", "-f", "python main.py"],
-            check=False, capture_output=True,
-            text=True
+            check=False,
+            capture_output=True,
+            text=True,
         )
 
         # Also try to kill hypercorn processes
         subprocess.run(
-            ["pkill", "-f", "hypercorn"],
-            check=False, capture_output=True,
-            text=True
+            ["pkill", "-f", "hypercorn"], check=False, capture_output=True, text=True
         )
 
         # Give processes time to shut down
@@ -394,7 +414,7 @@ async def _restart_backend_server() -> None:
             env=env,
             stdout=None,  # Show output in terminal
             stderr=None,  # Show errors in terminal
-            start_new_session=True
+            start_new_session=True,
         )
 
         print("⏳ Waiting for server to start...")
@@ -408,7 +428,9 @@ async def _restart_backend_server() -> None:
         while time.time() - start_time < max_wait_time:
             try:
                 # Use client with retry logic
-                async with DiPeoAPIClient("localhost:8000", max_retries=1, retry_delay=0.5) as client:
+                async with DiPeoAPIClient(
+                    "localhost:8000", max_retries=1, retry_delay=0.5
+                ) as client:
                     # Try a simple health check query
                     query = """
                         query HealthCheck {
@@ -423,7 +445,9 @@ async def _restart_backend_server() -> None:
                 if elapsed < max_wait_time:
                     # Show progress with timestamp
                     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                    print(f"   [🕰️ {timestamp}] Server not ready yet ({elapsed:.1f}s elapsed)...")
+                    print(
+                        f"   [🕰️ {timestamp}] Server not ready yet ({elapsed:.1f}s elapsed)..."
+                    )
                     await asyncio.sleep(0.5)
                 else:
                     print(f"❌ Server failed to start after {max_wait_time}s")
@@ -440,7 +464,9 @@ async def _restart_backend_server() -> None:
 
     except Exception as e:
         print(f"❌ Error starting backend server: {e}")
-        print("Please start the server manually with: cd apps/server && LOG_LEVEL=DEBUG python main.py")
+        print(
+            "Please start the server manually with: cd apps/server && LOG_LEVEL=DEBUG python main.py"
+        )
         raise
 
 

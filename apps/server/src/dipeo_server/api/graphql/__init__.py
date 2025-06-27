@@ -1,5 +1,5 @@
 """GraphQL API modules."""
 
-from .schema import schema
+from .schema import unified_schema as schema
 
 __all__ = ["schema"]

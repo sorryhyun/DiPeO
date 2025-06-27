@@ -1,6 +1,5 @@
 """API Key validation rules."""
 
-
 from dipeo_server.shared.exceptions import ValidationError
 
 
