@@ -172,6 +172,14 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
     # ---- extraction helpers ----
     def extract_nodes(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         nodes: List[Dict[str, Any]] = []
+        
+        # Build persons label to ID mapping if persons exist
+        persons_label_to_id: Dict[str, str] = {}
+        if "persons" in data and isinstance(data["persons"], dict):
+            # In light format, persons are keyed by label
+            for label in data["persons"]:
+                persons_label_to_id[label] = label  # In light format, ID equals label
+        
         for idx, ndata in enumerate(data.get("nodes", [])):
             if not isinstance(ndata, dict):
                 continue
@@ -180,15 +188,19 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
             node_props = {
                 k: v
                 for k, v in ndata.items()
-                if k not in {"type", "label", "id", "position", "arrows", "props"}
+                if k not in {"type", "label", "id", "position", "arrows", "props", "person"}
             }
+
+            # Handle person field separately - convert label to personId
+            if "person" in ndata and ndata["person"] in persons_label_to_id:
+                node_props["personId"] = persons_label_to_id[ndata["person"]]
 
             # Flatten props if they exist
             if "props" in ndata and isinstance(ndata["props"], dict):
                 node_props.update(ndata["props"])
 
             node = build_node(
-                id=ndata.get("label", f"node_{idx}"),
+                id=f"node_{idx}",
                 type_=ndata.get("type", "unknown"),
                 pos=ndata.get("position", {}),
                 label=ndata.get("label"),
@@ -450,7 +462,7 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
                 continue
             ((name, cfg),) = step.items()  # exactly one kv-pair
             node = build_node(
-                id=name,
+                id=f"node_{idx}",
                 type_=self._mapper.determine_node_type(cfg).value,
                 pos=cfg.get("position", {}),
                 label=name,
@@ -463,13 +475,19 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
     def extract_arrows(
         self, data: Dict[str, Any], nodes: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        node_ids = {n["id"] for n in nodes}
+        label2id = _node_id_map(nodes)
         arrows: List[Dict[str, Any]] = []
-        for line in data.get("flow", []):
+        for idx, line in enumerate(data.get("flow", [])):
             if isinstance(line, str) and "->" in line:
-                src, dst = (x.strip() for x in line.split("->", 1))
-                if src in node_ids and dst in node_ids:
-                    arrows.append({"source": f"{src}_output", "target": f"{dst}_input"})
+                src_label, dst_label = (x.strip() for x in line.split("->", 1))
+                src_id = label2id.get(src_label)
+                dst_id = label2id.get(dst_label)
+                if src_id and dst_id:
+                    arrows.append({
+                        "id": f"arrow_{idx}",
+                        "source": f"{src_id}:output",
+                        "target": f"{dst_id}:input"
+                    })
         return arrows
 
     # ---- export ----
@@ -495,7 +513,9 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
                 if "service" in person_dict:
                     person_dict["service"] = str(person_dict["service"]).split(".")[-1]
                 if "forgetting_mode" in person_dict:
-                    person_dict["forgetting_mode"] = str(person_dict["forgetting_mode"]).split(".")[-1]
+                    person_dict["forgetting_mode"] = str(
+                        person_dict["forgetting_mode"]
+                    ).split(".")[-1]
                 # Remove masked_api_key from readable format
                 person_dict.pop("masked_api_key", None)
                 persons_list.append(person_dict)

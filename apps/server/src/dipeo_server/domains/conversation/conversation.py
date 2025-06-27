@@ -100,5 +100,3 @@ class PersonConversation:
             )
 
         return visible_messages
-
-

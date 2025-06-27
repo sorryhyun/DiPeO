@@ -295,10 +295,10 @@ class PersonMutations:
         """Clear all conversation history for all persons."""
         try:
             context: GraphQLContext = info.context
-            memory_service = context.memory_service
+            conversation_service = context.conversation_service
 
             # Clear all conversations
-            memory_service.clear_all_conversations()
+            conversation_service.clear_all_conversations()
 
             return DeleteResult(success=True, message="All conversations cleared")
 

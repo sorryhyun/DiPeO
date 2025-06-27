@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
+from dipeo_core import RuntimeContext
 from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput, TokenUsage
 
 from dipeo_server.domains.llm.services import LLMService
@@ -23,10 +24,11 @@ class ExecutionContext:
     file_service: FileService = field(default=None)
     conversation_service: Optional[Any] = field(default=None)
     notion_service: Optional[Any] = field(default=None)
+    api_key_service: Optional[Any] = field(default=None)
     state_store: StateRegistry = field(default=None)
     interactive_handler: Optional[Callable] = field(default=None)
     stream_callback: Optional[Callable] = field(default=None)
-    
+
     # Token usage accumulation
     _token_accumulator: Dict[str, TokenUsage] = field(default_factory=dict, init=False)
 
@@ -56,16 +58,16 @@ class ExecutionContext:
 
     def find_edges_to(self, node_id: str) -> List[DomainArrow]:
         return [edge for edge in self.edges if edge.target.split(":")[0] == node_id]
-    
+
     def add_token_usage(self, node_id: str, tokens: TokenUsage) -> None:
         """Accumulate token usage in memory for later persistence."""
         self._token_accumulator[node_id] = tokens
-    
+
     def get_total_token_usage(self) -> TokenUsage:
         """Calculate total token usage from accumulator."""
         if not self._token_accumulator:
             return TokenUsage(input=0, output=0, total=0)
-        
+
         total = TokenUsage(input=0, output=0, total=0)
         for tokens in self._token_accumulator.values():
             total.input += tokens.input
@@ -74,3 +76,63 @@ class ExecutionContext:
             if tokens.cached:
                 total.cached = (total.cached or 0) + tokens.cached
         return total
+
+    def to_runtime_context(self, node_view: Optional[Any] = None) -> RuntimeContext:
+        """Convert ExecutionContext to RuntimeContext for BaseNodeHandler compatibility."""
+        # Extract edges from diagram
+        edges = []
+        if self.diagram and hasattr(self.diagram, "arrows"):
+            edges = [
+                {
+                    "source": edge.source,
+                    "target": edge.target,
+                    "data": edge.data,
+                }
+                for edge in self.diagram.arrows
+            ]
+        
+        # Extract nodes from diagram
+        nodes = []
+        if self.diagram and hasattr(self.diagram, "nodes"):
+            nodes = [n.model_dump() for n in self.diagram.nodes]
+        
+        # Get current outputs from node_view if available
+        outputs = {}
+        if node_view:
+            # Collect outputs from completed nodes
+            for node_id, view in node_view.graph.nodes.items():
+                if view.output:
+                    outputs[node_id] = view.output.value
+        
+        # Get persons info
+        persons_dict = {}
+        if self.diagram and hasattr(self.diagram, "persons"):
+            for person in self.diagram.persons:
+                persons_dict[person.id] = person.model_dump()
+        
+        return RuntimeContext(
+            execution_id=self.execution_id,
+            current_node_id=self.current_node_id,
+            edges=edges,
+            nodes=nodes,
+            results={},  # Not used in current handlers
+            outputs=outputs,
+            exec_cnt=self.exec_counts,
+            variables=self.variables,
+            persons=persons_dict,
+            api_keys=self.api_keys,
+            diagram_id=self.diagram.metadata.id if self.diagram.metadata else None,
+        )
+
+    def get_services_dict(self) -> Dict[str, Any]:
+        """Create services dictionary for handler injection."""
+        return {
+            "llm_service": self.llm_service,
+            "api_key_service": self.api_key_service,
+            "conversation_service": self.conversation_service,
+            "file_service": self.file_service,
+            "notion_service": self.notion_service,
+            "diagram": self.diagram,
+            "token_service": self,  # ExecutionContext itself has add_token_usage
+            "execution_context": self,  # For user_response handler
+        }

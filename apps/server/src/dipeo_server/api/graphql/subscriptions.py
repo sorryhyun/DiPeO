@@ -68,10 +68,10 @@ class Subscription:
         if not state:
             # Fall back to database for historical executions
             state = await state_store.get_state(execution_id)
-        
+
         if state:
             yield state
-            
+
             # If already completed, return immediately
             if state.status in [
                 ExecutionStatus.COMPLETED,
@@ -85,19 +85,19 @@ class Subscription:
 
         # Subscribe to real-time updates via EventBus
         updates_queue = asyncio.Queue()
-        
+
         async def handle_update(event: dict) -> None:
             await updates_queue.put(event)
-        
+
         channel = f"execution:{execution_id}"
         subscription_id = await event_bus.subscribe(channel, handle_update)
-        
+
         try:
             while True:
                 try:
                     # Wait for updates with a timeout for connection health
                     update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
-                    
+
                     # Check if update contains state snapshot
                     if "state_snapshot" in update and update["state_snapshot"]:
                         # Use state snapshot from event to avoid DB/cache query
@@ -111,7 +111,7 @@ class Subscription:
                         state = await state_store.get_state_from_cache(execution_id)
                         if state:
                             yield state
-                        
+
                         # Check if execution is complete
                         if state.status in [
                             ExecutionStatus.COMPLETED,
@@ -122,13 +122,13 @@ class Subscription:
                                 f"Execution {execution_id} completed with status: {state.status}"
                             )
                             break
-                            
+
                 except asyncio.TimeoutError:
                     # Send periodic heartbeat by re-fetching state from cache
                     state = await state_store.get_state_from_cache(execution_id)
                     if state:
                         yield state
-                        
+
         except asyncio.CancelledError:
             logger.info(f"Subscription cancelled for execution {execution_id}")
             raise
@@ -155,25 +155,23 @@ class Subscription:
 
         sequence = 0
         last_node_states = {}
-        
+
         # Process initial state from cache first
         state = await state_store.get_state_from_cache(execution_id)
         if not state:
             # Fall back to database for historical executions
             state = await state_store.get_state(execution_id)
-            
+
         if state:
             current_node_states = state.node_states or {}
-            last_node_states = {
-                nid: ns for nid, ns in current_node_states.items()
-            }
+            last_node_states = {nid: ns for nid, ns in current_node_states.items()}
 
         # Subscribe to real-time updates
         updates_queue = asyncio.Queue()
-        
+
         async def handle_update(event: dict) -> None:
             await updates_queue.put(event)
-        
+
         channel = f"execution:{execution_id}"
         subscription_id = await event_bus.subscribe(channel, handle_update)
 
@@ -182,12 +180,12 @@ class Subscription:
                 try:
                     # Wait for updates
                     update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
-                    
+
                     # Process update based on type
                     if update.get("type") == "node_start":
                         sequence += 1
                         event_type = EventType.NODE_STARTED
-                        
+
                         if not event_types or event_type in event_types:
                             yield ExecutionEventType(
                                 execution_id=execution_id,
@@ -197,7 +195,7 @@ class Subscription:
                                 timestamp=datetime.now().isoformat(),
                                 data={"status": "running"},
                             )
-                    
+
                     elif update.get("type") == "node_complete":
                         sequence += 1
                         status = update.get("status", "completed")
@@ -206,7 +204,7 @@ class Subscription:
                             "failed": EventType.NODE_FAILED,
                             "skipped": EventType.NODE_SKIPPED,
                         }.get(status, EventType.NODE_COMPLETED)
-                        
+
                         if not event_types or event_type in event_types:
                             output_data = update.get("output", {})
                             yield ExecutionEventType(
@@ -217,11 +215,13 @@ class Subscription:
                                 timestamp=datetime.now().isoformat(),
                                 data={
                                     "status": status,
-                                    "output": output_data.get("value") if isinstance(output_data, dict) else None,
+                                    "output": output_data.get("value")
+                                    if isinstance(output_data, dict)
+                                    else None,
                                     "error": update.get("error"),
                                 },
                             )
-                    
+
                     elif update.get("type") == "execution_complete":
                         sequence += 1
                         status = update.get("status", "completed")
@@ -230,7 +230,7 @@ class Subscription:
                             "failed": EventType.EXECUTION_FAILED,
                             "aborted": EventType.EXECUTION_ABORTED,
                         }.get(status, EventType.EXECUTION_UPDATE)
-                        
+
                         if not event_types or final_event_type in event_types:
                             yield ExecutionEventType(
                                 execution_id=execution_id,
@@ -243,12 +243,12 @@ class Subscription:
                                     "error": update.get("error"),
                                 },
                             )
-                        
+
                         logger.info(
                             f"Event stream completed for execution {execution_id}"
                         )
                         break
-                        
+
                 except asyncio.TimeoutError:
                     # Heartbeat - no action needed
                     pass
@@ -279,10 +279,10 @@ class Subscription:
 
         # Subscribe to real-time updates
         updates_queue = asyncio.Queue()
-        
+
         async def handle_update(event: dict) -> None:
             await updates_queue.put(event)
-        
+
         channel = f"execution:{execution_id}"
         subscription_id = await event_bus.subscribe(channel, handle_update)
 
@@ -291,19 +291,19 @@ class Subscription:
                 try:
                     # Wait for updates
                     update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
-                    
+
                     # Process node updates
                     if update.get("type") in ["node_start", "node_complete"]:
                         node_id = update.get("node_id")
                         if not node_id:
                             continue
-                            
+
                         # Get node type from update or default to job
                         node_type = NodeType(update.get("node_type", "job"))
-                        
+
                         if node_types and node_type not in node_types:
                             continue
-                        
+
                         # Extract status from update
                         if update.get("type") == "node_start":
                             status = NodeExecutionStatus.RUNNING
@@ -314,18 +314,18 @@ class Subscription:
                                 "failed": NodeExecutionStatus.FAILED,
                                 "skipped": NodeExecutionStatus.SKIPPED,
                             }.get(status_str, NodeExecutionStatus.COMPLETED)
-                        
+
                         # Extract output and metadata
                         output_data = update.get("output", {})
                         output_value = None
                         tokens_used = None
-                        
+
                         if isinstance(output_data, dict):
                             output_value = output_data.get("value")
                             metadata = output_data.get("metadata", {})
                             if "tokens_used" in metadata:
                                 tokens_used = metadata["tokens_used"]
-                        
+
                         yield NodeExecution(
                             execution_id=execution_id,
                             node_id=NodeID(node_id),
@@ -337,13 +337,13 @@ class Subscription:
                             tokens_used=tokens_used,
                             timestamp=datetime.now(),
                         )
-                    
+
                     elif update.get("type") == "execution_complete":
                         logger.info(
                             f"Node updates completed for execution {execution_id}"
                         )
                         break
-                        
+
                 except asyncio.TimeoutError:
                     # Heartbeat - no action needed
                     pass

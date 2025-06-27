@@ -29,19 +29,19 @@ class DiagramConverter:
     def to_graphql_format(cls, diagram: Dict[str, Any]) -> Dict[str, Any]:
         """Convert diagram from file format to GraphQL format (lists)."""
         result = diagram.copy()
-        
+
         # Convert dict fields to lists
         for field in ["nodes", "arrows", "handles", "persons"]:
             if field in result and isinstance(result[field], dict):
                 result[field] = cls.dict_to_list(result[field])
-        
+
         # Handle API keys with both camelCase and snake_case
         if "apiKeys" in result and isinstance(result["apiKeys"], dict):
             result["apiKeys"] = cls.dict_to_list(result["apiKeys"])
         elif "api_keys" in result and isinstance(result["api_keys"], dict):
             result["apiKeys"] = cls.dict_to_list(result["api_keys"])
             del result["api_keys"]
-        
+
         return result
 
 
@@ -72,7 +72,7 @@ class DiagramValidator:
         if isinstance(api_keys, list):
             api_keys = {k["id"]: k for k in api_keys}
             diagram["apiKeys"] = api_keys
-        
+
         if not api_keys and diagram["persons"]:
             diagram["apiKeys"][DEFAULT_API_KEY] = {
                 "id": DEFAULT_API_KEY,

@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from typing import List
 
-import yaml
-
 from .api_client import DiPeoAPIClient
 from .utils import DiagramLoader
 
@@ -24,7 +22,7 @@ async def convert_command(args: List[str]) -> None:
     try:
         # Load diagram locally (still need to read the file)
         diagram = DiagramLoader.load(input_path)
-        
+
         # Determine output format from file extension
         output_ext = Path(output_path).suffix.lower()
         if output_ext in [".yaml", ".yml"]:
@@ -39,30 +37,30 @@ async def convert_command(args: List[str]) -> None:
                 format_name = "readable"
             else:
                 format_name = "native"  # Default to native JSON
-        
+
         # Use backend API for conversion
         async with DiPeoAPIClient() as client:
             # Debug: print what we're sending
             if "--debug" in args:
                 print(f"Sending diagram data: {json.dumps(diagram, indent=2)[:200]}...")
                 print(f"Format: {format_name}")
-            
+
             result = await client.convert_diagram(
                 diagram_data=diagram,
                 format=format_name,
                 include_metadata=True
             )
-            
+
             if result["content"]:
                 # Write the converted content
                 Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                 with open(output_path, "w") as f:
                     f.write(result["content"])
-                
+
                 print(f"✓ Converted: {input_path} → {output_path} (format: {result['format']})")
             else:
-                print(f"Error: Conversion returned empty content")
-                
+                print("Error: Conversion returned empty content")
+
     except FileNotFoundError as e:
         print(f"Error: {e}")
     except Exception as e:

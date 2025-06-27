@@ -54,6 +54,7 @@ class DiagramResolver:
 
             # Determine format from path
             from pathlib import Path
+
             path_obj = Path(path)
             format_from_path = storage_service._determine_format_type(path_obj)
 

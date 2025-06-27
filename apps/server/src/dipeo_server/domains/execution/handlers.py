@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import functools
 import logging
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
 
-from dipeo_domain.models import DomainNode, NodeExecutionStatus, NodeOutput
+from dipeo_domain.models import DomainNode, NodeExecutionStatus, NodeOutput as DomainNodeOutput
+from dipeo_domain import NodeOutput
 
 from .context import ExecutionContext
 
@@ -33,14 +35,17 @@ _handlers: Dict[str, _HandlerFn] = {}
 def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:
     """Return a wrapper that transparently manages node‑status lifecycle."""
 
-    async def _wrapped(node: DomainNode, ctx: ExecutionContext, **kwargs: Any) -> NodeOutput:  # type: ignore[override]
-        await ctx.state_store.update_node_status(
-            ctx.execution_id, node.id, NodeExecutionStatus.RUNNING
+    @functools.wraps(func)
+    async def _wrapped(
+        node: DomainNode, context: ExecutionContext, **kwargs: Any
+    ) -> NodeOutput:  # type: ignore[override]
+        await context.state_store.update_node_status(
+            context.execution_id, node.id, NodeExecutionStatus.RUNNING
         )
         try:
-            output = await func(node, ctx, **kwargs)
-            await ctx.state_store.update_node_status(
-                ctx.execution_id, node.id, NodeExecutionStatus.COMPLETED, output
+            output = await func(node, context, **kwargs)
+            await context.state_store.update_node_status(
+                context.execution_id, node.id, NodeExecutionStatus.COMPLETED, output
             )
             return output
         except Exception as exc:  # pylint: disable=broad-except
@@ -48,12 +53,13 @@ def _wrap_with_state(node_type: str, func: _HandlerFn) -> _HandlerFn:
                 "%s node %s failed", node_type.upper(), node.id, exc_info=exc
             )
             error_output = create_node_output({}, {"error": str(exc)})
-            await ctx.state_store.update_node_status(
-                ctx.execution_id, node.id, NodeExecutionStatus.FAILED, error_output
+            await context.state_store.update_node_status(
+                context.execution_id, node.id, NodeExecutionStatus.FAILED, error_output
             )
             return error_output
 
-    _wrapped.__name__ = func.__name__
+    # Store the original function for signature inspection
+    _wrapped.__wrapped__ = func
     return _wrapped
 
 
@@ -69,7 +75,7 @@ def node_handler(node_type: str) -> Callable[[_HandlerFn], _HandlerFn]:
 
 def get_handlers() -> Dict[str, _HandlerFn]:
     """Return a *copy* of the internal handler registry."""
-    return {k: _wrap_with_state(k, v) for k, v in _handlers.items()}
+    return _handlers.copy()
 
 
 def create_node_output(
@@ -78,94 +84,62 @@ def create_node_output(
 ) -> NodeOutput:
     """Utility to save a few keystrokes when constructing outputs."""
 
-    return NodeOutput(value=value or {}, metadata=metadata or {})
+    return NodeOutput(value=value or {}, metadata=metadata)
 
 
 async def _edge_inputs(
     node: DomainNode,
-    ctx: ExecutionContext,
+    context: ExecutionContext,
     *,
     as_dict: bool = True,
-    node_view: Optional[Any] = None,
+    node_view: "NodeView",
 ) -> Dict[str, Any]:
     """Collect downstream values from all incoming edges.
 
     Returned mapping keys are the *edge labels* (defaulting to "default").
     If *as_dict* is False, only the first matching payload is returned.
     """
-    
-    # If we have a node_view, use its condition-aware getter
-    if node_view is not None and hasattr(node_view, 'get_active_inputs'):
-        results = node_view.get_active_inputs()
-        if not as_dict and results:
-            return next(iter(results.values()), None)
-        return results
-    
-    # Fallback to legacy behavior if no node_view
-    # This path should be removed once all handlers are updated
-    results: Dict[str, Any] = {}
-    for edge in ctx.find_edges_to(node.id):
-        src_id = edge.source.split(":")[0]
-        from_output = ctx.get_node_output(src_id)
-        if not from_output:
-            _log.warning("No output for source node %s → %s", src_id, node.id)
-            continue
 
-        label = edge.data.get("label", "default") if edge.data else "default"
-
-        if label in from_output.value:
-            results[label] = from_output.value[label]
-        else:
-            _log.warning(
-                "Edge label '%s' missing in output from %s (keys=%s)",
-                label,
-                src_id,
-                list(from_output.value.keys()),
-            )
-    
-    if as_dict:
-        return results
-    return next(iter(results.values()), None)  # type: ignore[return-value]
+    results = node_view.get_active_inputs()
+    if not as_dict and results:
+        return next(iter(results.values()), None)
+    return results
 
 
 @node_handler("start")
-async def execute_start(node: DomainNode, ctx: ExecutionContext) -> NodeOutput:
+async def execute_start(node: DomainNode, context: ExecutionContext) -> NodeOutput:
     """Kick‑off node: no input, always succeeds."""
     return create_node_output({"default": ""}, {"message": "Execution started"})
 
 
 @node_handler("person_job")
 async def execute_person_job(
-    node: DomainNode, 
-    ctx: ExecutionContext,
-    node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
 ) -> NodeOutput:
     """Handle conversational person_job node using domain service."""
     # Collect inputs from edges
-    inputs = await _edge_inputs(node, ctx, node_view=node_view)
-    
+    inputs = await _edge_inputs(node, context, node_view=node_view)
+
     # Delegate to conversation service
-    result = await ctx.conversation_service.execute_person_job(
+    result = await context.conversation_service.execute_person_job(
         node=node,
-        execution_id=ctx.execution_id,
-        exec_count=ctx.exec_counts.get(node.id, 0),
+        execution_id=context.execution_id,
+        exec_count=context.exec_counts.get(node.id, 0),
         inputs=inputs,
-        diagram=ctx.diagram,
-        llm_service=ctx.llm_service
+        diagram=context.diagram,
+        llm_service=context.llm_service,
     )
-    
+
     # Handle token usage accumulation
     if result.get("token_usage"):
-        ctx.add_token_usage(node.id, result["token_usage"])
-    
+        context.add_token_usage(node.id, result["token_usage"])
+
     return create_node_output(result["output_values"], result["metadata"])
 
 
 @node_handler("endpoint")
 async def execute_endpoint(
-    node: DomainNode, 
-    ctx: ExecutionContext,
-    node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
 ) -> NodeOutput:
     """Endpoint node – pass through data and optionally save to file."""
 
@@ -174,7 +148,7 @@ async def execute_endpoint(
     if (direct := data.get("data")) is not None:
         result_data = direct
     else:
-        collected = await _edge_inputs(node, ctx, node_view=node_view)
+        collected = await _edge_inputs(node, context, node_view=node_view)
         result_data = collected if collected else {}
 
     save_to_file = data.get("saveToFile", False) or data.get("save_to_file", False)
@@ -190,7 +164,7 @@ async def execute_endpoint(
                 else:
                     content = str(result_data)
 
-                await ctx.file_service.write(file_path, content)
+                await context.file_service.write(file_path, content)
                 _log.info(f"Saved endpoint result to {file_path}")
 
                 return create_node_output(
@@ -209,9 +183,7 @@ async def execute_endpoint(
 
 @node_handler("condition")
 async def execute_condition(
-    node: DomainNode, 
-    ctx: ExecutionContext,
-    node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
 ) -> NodeOutput:
     """Condition node: currently supports *detect_max_iterations*."""
 
@@ -223,18 +195,18 @@ async def execute_condition(
 
     # True only if *all* upstream person_job nodes reached their max_iterations
     result = True
-    for edge in ctx.find_edges_to(node.id):
+    for edge in context.find_edges_to(node.id):
         src_node_id = edge.source.split(":")[0]
-        src_node = next((n for n in ctx.diagram.nodes if n.id == src_node_id), None)
+        src_node = next((n for n in context.diagram.nodes if n.id == src_node_id), None)
         if src_node and src_node.type == "person_job":
-            exec_count = ctx.exec_counts.get(src_node_id, 0)
+            exec_count = context.exec_counts.get(src_node_id, 0)
             max_iter = int((src_node.data or {}).get("maxIteration", 1))
             if exec_count < max_iter:
                 result = False
                 break
 
     # Collect all incoming payloads and forward them unchanged
-    inputs = await _edge_inputs(node, ctx, as_dict=True, node_view=node_view)
+    inputs = await _edge_inputs(node, context, as_dict=True, node_view=node_view)
 
     # Forward inputs with branch key for backward compatibility
     branch_key = "True" if result else "False"
@@ -253,7 +225,7 @@ async def execute_condition(
         "Condition node %s outputting %s branch with keys: %s",
         node.id,
         branch_key,
-        list(value.keys())
+        list(value.keys()),
     )
 
     return create_node_output(value, {"condition_result": result})
@@ -261,9 +233,7 @@ async def execute_condition(
 
 @node_handler("db")
 async def execute_db(
-    node: DomainNode, 
-    ctx: ExecutionContext,
-    node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
 ) -> NodeOutput:
     """File‑based DB node supporting *read*, *write* and *append* operations."""
 
@@ -271,25 +241,25 @@ async def execute_db(
     operation = data.get("operation", "read")
     file_path = data.get("sourceDetails", "")
 
-    input_val = await _edge_inputs(node, ctx, as_dict=False, node_view=node_view)
+    input_val = await _edge_inputs(node, context, as_dict=False, node_view=node_view)
 
     try:
         if operation == "read":
-            if hasattr(ctx.file_service, "aread"):
-                result = await ctx.file_service.aread(file_path)
+            if hasattr(context.file_service, "aread"):
+                result = await context.file_service.aread(file_path)
             else:
-                result = ctx.file_service.read(file_path)
+                result = context.file_service.read(file_path)
         elif operation == "write":
-            await ctx.file_service.write(file_path, str(input_val))
+            await context.file_service.write(file_path, str(input_val))
             result = f"Saved to {file_path}"
         elif operation == "append":
             existing = ""
-            if hasattr(ctx.file_service, "aread"):
+            if hasattr(context.file_service, "aread"):
                 try:
-                    existing = await ctx.file_service.aread(file_path)
+                    existing = await context.file_service.aread(file_path)
                 except Exception:
                     pass
-            await ctx.file_service.write(file_path, existing + str(input_val))
+            await context.file_service.write(file_path, existing + str(input_val))
             result = f"Appended to {file_path}"
         else:
             result = "Unknown operation"
@@ -302,18 +272,16 @@ async def execute_db(
 
 @node_handler("notion")
 async def execute_notion(
-    node: DomainNode, 
-    ctx: ExecutionContext,
-    node_view: Optional["NodeView"] = None
+    node: DomainNode, context: ExecutionContext, node_view: Optional["NodeView"] = None
 ) -> NodeOutput:
-    """Wrapper around `ctx.notion_service.execute_action`."""
+    """Wrapper around `context.notion_service.execute_action`."""
 
     data = node.data or {}
     action = data.get("action", "read")
     database_id = data.get("database_id", "")
-    payload = await _edge_inputs(node, ctx, node_view=node_view)
+    payload = await _edge_inputs(node, context, node_view=node_view)
 
-    result = await ctx.notion_service.execute_action(
+    result = await context.notion_service.execute_action(
         action=action,
         database_id=database_id,
         data=payload,

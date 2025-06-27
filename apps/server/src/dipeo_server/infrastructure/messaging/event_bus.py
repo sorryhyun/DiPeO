@@ -32,7 +32,7 @@ class EventBus(ABC):
     async def close(self) -> None:
         """Close all connections and clean up resources."""
         pass
-    
+
     async def get_last_event(self, channel: str) -> Optional[Dict[str, Any]]:
         """Get the last event published to a channel (optional implementation)."""
         return None
@@ -132,12 +132,9 @@ class MessageRouterEventBus(EventBus):
     async def publish(self, channel: str, event: Dict[str, Any]) -> None:
         """Publish event to both local subscribers and WebSocket connections."""
         # Cache the event for fallback
-        event_with_timestamp = {
-            **event,
-            "_timestamp": asyncio.get_event_loop().time()
-        }
+        event_with_timestamp = {**event, "_timestamp": asyncio.get_event_loop().time()}
         self._last_event_cache[channel] = event_with_timestamp
-        
+
         # Publish to local subscribers
         async with self._lock:
             local_handlers = self._local_subscribers.get(channel, []).copy()
@@ -178,7 +175,7 @@ class MessageRouterEventBus(EventBus):
         async with self._lock:
             self._local_subscribers.clear()
             self._last_event_cache.clear()
-    
+
     async def get_last_event(self, channel: str) -> Optional[Dict[str, Any]]:
         """Get the last event published to a channel (if still in cache)."""
         cached_event = self._last_event_cache.get(channel)

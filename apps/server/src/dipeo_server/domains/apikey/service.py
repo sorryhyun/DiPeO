@@ -5,7 +5,7 @@ import os
 import uuid
 from typing import Dict, List, Optional
 
-from dipeo_core import BaseService
+from dipeo_core import BaseService, SupportsAPIKey
 
 from config import BASE_DIR
 from dipeo_server.shared.constants import VALID_LLM_SERVICES
@@ -13,8 +13,8 @@ from dipeo_server.shared.exceptions import APIKeyError, ValidationError
 from dipeo_server.shared.utils.errors import normalize_service_name
 
 
-class APIKeyService(BaseService):
-    """Service for managing API keys."""
+class APIKeyService(BaseService, SupportsAPIKey):
+    """Service for managing API keys that implements the SupportsAPIKey protocol."""
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 

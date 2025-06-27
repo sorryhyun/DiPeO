@@ -15,7 +15,6 @@ if TYPE_CHECKING:
         SupportsExecution,
         SupportsFile,
         SupportsLLM,
-        SupportsMemory,
         SupportsNotion,
     )
 
@@ -34,8 +33,8 @@ class GraphQLContext(BaseContext):
     execution_service: "SupportsExecution"
     file_service: "SupportsFile"
     llm_service: "SupportsLLM"
-    memory_service: "SupportsMemory"
     notion_service: "SupportsNotion"
+    conversation_service: Any  # ConversationService
 
     def __init__(self, request: Request, app_context: AppContext):
         super().__init__()
@@ -50,10 +49,15 @@ class GraphQLContext(BaseContext):
         self.state_store = state_store  # Use global instance
         self.file_service = app_context.file_service
         self.llm_service = app_context.llm_service
-        self.conversation_service = app_context.conversation_service  # ConversationService now handles memory functionality
+        self.conversation_service = (
+            app_context.conversation_service
+        )  # ConversationService now handles memory functionality
         self.notion_service = app_context.notion_service
         self.message_router = message_router  # Use global instance
         self.event_bus = app_context.event_bus
+
+        # Backward compatibility alias
+        self.memory_service = self.conversation_service
 
         # Additional context data
         self.user_data: Dict[str, Any] = {}

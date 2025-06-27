@@ -128,13 +128,15 @@ class ExecutionMutations:
                 )
 
             if data.action == "pause":
-                if data.node_id: pass
+                if data.node_id:
+                    pass
                 else:
                     await state_store.update_status(
                         data.execution_id, ExecutionStatus.PAUSED
                     )
             elif data.action == "resume":
-                if data.node_id: pass
+                if data.node_id:
+                    pass
                 else:
                     await state_store.update_status(
                         data.execution_id, ExecutionStatus.RUNNING
@@ -143,7 +145,8 @@ class ExecutionMutations:
                 await state_store.update_status(
                     data.execution_id, ExecutionStatus.ABORTED
                 )
-            elif data.action == "skip" and data.node_id: pass
+            elif data.action == "skip" and data.node_id:
+                pass
 
             control_message = {
                 "type": f"{data.action}_{'node' if data.node_id else 'execution'}",

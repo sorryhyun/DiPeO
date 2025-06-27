@@ -135,14 +135,16 @@ class StateRegistry:
     async def save_state(self, state: ExecutionState):
         """Save execution state to database and cache."""
         # Update cache for active executions
-        if state.is_active if hasattr(state, "is_active") else (
-            state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING]
+        if (
+            state.is_active
+            if hasattr(state, "is_active")
+            else (state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING])
         ):
             await self._execution_cache.set(state.id, state)
         else:
             # Remove from cache if execution is no longer active
             await self._execution_cache.remove(state.id)
-        
+
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
             node_states_dict = {}
@@ -190,7 +192,7 @@ class StateRegistry:
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
             return cached_state
-            
+
         # Fall back to database
         cursor = await self._execute(
             """
@@ -278,10 +280,14 @@ class StateRegistry:
         # For PersonJob outputs with conversation history
         if output.metadata and output.metadata.get("_type") == "personjob_output":
             # Check if execution is active - defer persistence for active executions
-            is_active = state.is_active if hasattr(state, "is_active") else (
-                state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING]
+            is_active = (
+                state.is_active
+                if hasattr(state, "is_active")
+                else (
+                    state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING]
+                )
             )
-            
+
             if not is_active:
                 # Only persist conversation for completed executions
                 conversation = output.metadata.get("conversation_history", [])
@@ -375,7 +381,7 @@ class StateRegistry:
         if cached_state:
             await self._execution_cache.update_token_usage(execution_id, tokens)
             return
-        
+
         # Fall back to database update
         state = await self.get_state(execution_id)
         if not state:
@@ -450,11 +456,11 @@ class StateRegistry:
         )
 
         await self._execute("VACUUM")
-    
+
     async def get_state_from_cache(self, execution_id: str) -> Optional[ExecutionState]:
         """Get execution state from cache only, no database fallback."""
         return await self._execution_cache.get(execution_id)
-    
+
     async def create_execution_in_cache(
         self,
         execution_id: str,
@@ -476,20 +482,20 @@ class StateRegistry:
             variables=variables or {},
             isActive=True,
         )
-        
+
         # Only store in cache, not in database
         await self._execution_cache.set(execution_id, state)
         return state
-    
+
     async def persist_final_state(self, state: ExecutionState):
         """Persist final state to database and remove from cache."""
         # Ensure the state is marked as inactive
         state.is_active = False
-        
+
         # Save to database
         async with self._lock:
             await self.save_state(state)
-        
+
         # Remove from cache after persisting
         await self._execution_cache.remove(state.id)
 

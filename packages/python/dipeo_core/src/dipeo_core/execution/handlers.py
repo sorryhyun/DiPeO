@@ -144,7 +144,7 @@ class HandlerRegistry:
 _global_registry = HandlerRegistry()
 
 
-def register_handler(handler: BaseNodeHandler) -> BaseNodeHandler:
+def register_handler(handler_class: type[BaseNodeHandler]) -> type[BaseNodeHandler]:
     """Decorator to register a handler class.
 
     Example:
@@ -152,8 +152,10 @@ def register_handler(handler: BaseNodeHandler) -> BaseNodeHandler:
         class MyHandler(BaseNodeHandler):
             ...
     """
-    _global_registry.register(handler())
-    return handler
+    # Instantiate the handler and register it
+    handler_instance = handler_class()
+    _global_registry.register(handler_instance)
+    return handler_class
 
 
 def get_global_registry() -> HandlerRegistry:

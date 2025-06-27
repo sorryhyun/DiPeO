@@ -37,6 +37,27 @@ class HandleGenerator:
         """Generate all default handles required by `node_type`."""
         push = self._push(diagram)
 
+        # Special handling for database nodes - they use "default" instead of input/output
+        if node_type == "db":
+            # Input handle
+            hid = f"{node_id}:default"
+            push(
+                hid,
+                DomainHandle(
+                    id=hid,
+                    nodeId=node_id,
+                    label="default",
+                    direction=HandleDirection.input,
+                    dataType=DataType.any,
+                    position="left",
+                ),
+            )
+            # Also create output handle for db nodes
+            hid_out = f"{node_id}:default"
+            # Since both use "default", we need to differentiate by position/direction
+            # The unified converter will handle creating the proper output handle
+            return
+
         # (suffix, label, direction, dtype, condition)
         table = [
             (
@@ -229,9 +250,12 @@ def ensure_position(
 def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
     """Return [{id, source, target, data}, …] regardless of storage shape."""
     import logging
+
     logger = logging.getLogger(__name__)
 
-    logger.debug(f"extract_common_arrows received: type={type(arrows_data)}, len={len(arrows_data) if hasattr(arrows_data, '__len__') else 'N/A'}")
+    logger.debug(
+        f"extract_common_arrows received: type={type(arrows_data)}, len={len(arrows_data) if hasattr(arrows_data, '__len__') else 'N/A'}"
+    )
 
     if not arrows_data:  # short-circuit None / {} / []
         logger.debug("arrows_data is empty or None")
@@ -249,7 +273,9 @@ def extract_common_arrows(arrows_data: Any) -> list[dict[str, Any]]:
             "id": aid,
             "source": ad.get("source"),
             "target": ad.get("target"),
-            "data": ad.get("data")  # Include data field to preserve labels and other properties
+            "data": ad.get(
+                "data"
+            ),  # Include data field to preserve labels and other properties
         }
         for aid, ad in items
     ]

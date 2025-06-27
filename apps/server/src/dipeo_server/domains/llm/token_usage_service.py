@@ -49,9 +49,9 @@ class TokenUsageService:
 
         if service == "openai":
             return TokenUsage(
-                input=usage['prompt_tokens'],
-                output=usage['completion_tokens'],
-                total=usage['prompt_tokens'] + usage['completion_tokens'],
+                input=usage["prompt_tokens"],
+                output=usage["completion_tokens"],
+                total=usage["prompt_tokens"] + usage["completion_tokens"],
             )
 
         input_tokens = (
@@ -130,3 +130,32 @@ class TokenUsageService:
             cached=token_usage_data.get("cached", 0),
             total=token_usage_data.get("total", 0),
         )
+
+    @staticmethod
+    def extract_from_personjob_output(value: Any) -> Optional[TokenUsage]:
+        """Extract token usage from PersonJob output."""
+        if isinstance(value, dict) and value.get("_type") == "personjob_output":
+            return TokenUsage(
+                input=int(value.get("input_tokens", 0)),
+                output=int(value.get("output_tokens", 0)),
+                cached=int(value.get("cached_tokens", 0)),
+            )
+        return None
+
+    @staticmethod
+    def to_personjob_metadata(token_usage: Optional[TokenUsage]) -> Dict[str, str]:
+        """Convert TokenUsage to PersonJob metadata format."""
+        metadata = {}
+        if token_usage:
+            if token_usage.total and token_usage.total > 0:
+                metadata["token_count"] = str(token_usage.total)
+            elif token_usage.input + token_usage.output > 0:
+                metadata["token_count"] = str(token_usage.input + token_usage.output)
+
+            if token_usage.input > 0:
+                metadata["input_tokens"] = str(token_usage.input)
+            if token_usage.output > 0:
+                metadata["output_tokens"] = str(token_usage.output)
+            if token_usage.cached and token_usage.cached > 0:
+                metadata["cached_tokens"] = str(token_usage.cached)
+        return metadata

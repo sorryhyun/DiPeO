@@ -4,12 +4,13 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .api_client import DiPeoAPIClient
-from .utils import DiagramLoader, DiagramConverter
+from .utils import DiagramConverter, DiagramLoader
 
 
 class ExecutionMode(Enum):
@@ -26,6 +27,7 @@ class ExecutionOptions:
     pre_initialize: bool = True
     stream: bool = True
     debug: bool = False
+    keep_server: bool = False  # Keep server running after debug execution
     timeout: int = 300  # 5 minutes
     output_file: Optional[str] = None
     diagram_file: Optional[str] = None
@@ -54,7 +56,8 @@ class DiagramRunner:
             try:
                 # For CLI, we can execute diagrams directly without saving
                 if self.options.debug:
-                    print("🐛 Debug: Executing diagram directly...")
+                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                    print(f"[🕰️ {timestamp}] 🐛 Debug: Executing diagram directly...")
 
                 # Execute the diagram directly with diagram_data
                 execution_id = await client.execute_diagram(
@@ -66,7 +69,10 @@ class DiagramRunner:
                 result["execution_id"] = execution_id
 
                 if self.options.debug:
-                    print(f"🚀 Execution started with ID: {execution_id}")
+                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                    print(f"[🕰️ {timestamp}] 🚀 Execution started with ID: {execution_id}")
+                    if self.options.mode == ExecutionMode.MONITOR:
+                        print(f"[🕰️ {timestamp}] 📊 Monitor mode active - server will keep running")
 
                 # Subscribe to updates
                 await self._handle_execution_streams(client, execution_id, result)
@@ -76,7 +82,8 @@ class DiagramRunner:
 
             except Exception as e:
                 if self.options.debug:
-                    print(f"❌ Error during execution: {e!s}")
+                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                    print(f"[🕰️ {timestamp}] ❌ Error during execution: {e!s}")
                 result["error"] = str(e)
 
         return result
@@ -131,6 +138,8 @@ class DiagramRunner:
                     print(f"\n🔄 Executing node: {node_id}")
                     if self.options.debug:
                         self.node_timings[node_id] = {"start": time.time()}
+                        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                        print(f"   [🕰️ {timestamp}] Node started")
 
                 elif status == "completed":
                     if self.options.stream:
@@ -142,7 +151,8 @@ class DiagramRunner:
                             self.node_timings[node_id]["end"]
                             - self.node_timings[node_id]["start"]
                         )
-                        print(f"   Duration: {duration:.2f}s")
+                        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                        print(f"   [🕰️ {timestamp}] Duration: {duration:.2f}s")
 
                     # Accumulate token count
                     tokens_used = update.get("tokensUsed", 0)
@@ -168,7 +178,7 @@ class DiagramRunner:
                 # Skip None values (used when no prompts are available)
                 if prompt is None:
                     continue
-                    
+
                 node_id = prompt.get("nodeId")
                 prompt_text = prompt.get("prompt", "Input required:")
 
@@ -244,7 +254,7 @@ async def run_command(args: List[str]) -> None:
 
     # Load diagram
     diagram = DiagramLoader.load(file_path)
-    
+
     # Convert to GraphQL format if needed
     diagram = DiagramConverter.to_graphql_format(diagram)
 
@@ -263,16 +273,24 @@ async def run_command(args: List[str]) -> None:
 
     # Save results
     _save_results(result, options)
-    
-    # Kill server in debug mode to see final logs
-    if options.debug:
+
+    # Kill server in debug mode to see final logs (unless --keep-server is used or monitor mode is active)
+    if options.debug and not options.keep_server and options.mode != ExecutionMode.MONITOR:
         print("\n🐛 Debug: Stopping backend server to display final logs...")
         await asyncio.sleep(0.5)  # Brief pause to ensure all logs are flushed
         try:
-            subprocess.run(["pkill", "-f", "python main.py"], capture_output=True)
-            subprocess.run(["pkill", "-f", "hypercorn"], capture_output=True)
+            subprocess.run(["pkill", "-f", "python main.py"], check=False, capture_output=True)
+            subprocess.run(["pkill", "-f", "hypercorn"], check=False, capture_output=True)
         except Exception:
             pass
+    elif options.debug and (options.keep_server or options.mode == ExecutionMode.MONITOR):
+        print("\n🐛 Debug: Server kept running", end="")
+        if options.mode == ExecutionMode.MONITOR:
+            print(" (monitor mode active)")
+            print("📊 Monitor remains available at: http://localhost:3000/?monitor=true")
+            print("   ℹ️  Press Ctrl+C to stop the server when done monitoring")
+        else:
+            print(" (--keep-server flag used)")
 
 
 def _parse_run_options(args: List[str]) -> ExecutionOptions:
@@ -296,6 +314,8 @@ def _parse_run_options(args: List[str]) -> ExecutionOptions:
             options.stream = False
         elif arg == "--debug":
             options.debug = True
+        elif arg == "--keep-server":
+            options.keep_server = True
         elif arg.startswith("--timeout="):
             try:
                 options.timeout = int(arg.split("=")[1])
@@ -311,57 +331,61 @@ async def _run_monitor_mode(diagram: Dict[str, Any], options: ExecutionOptions) 
     """Handle monitor mode setup"""
     import webbrowser
     from pathlib import Path
-    
+
     # Extract diagram ID from file path (e.g., quicksave.json -> quicksave)
     if options.diagram_file:
         diagram_id = Path(options.diagram_file).stem
     else:
         # Fallback to metadata name or "unknown"
         diagram_id = diagram.get("metadata", {}).get("name", "unknown")
-    
+
     # Open browser with both monitor mode and diagram ID
     monitor_url = f"http://localhost:3000/?monitor=true&diagram={diagram_id}"
     webbrowser.open(monitor_url)
-    
+
     # Wait for browser to load
     await asyncio.sleep(2.0)
     print(f"✓ Monitor ready - Diagram: {diagram_id}")
 
+    if options.debug:
+        print("💡 Tip: Server will remain running after execution for monitoring")
+
 
 async def _restart_backend_server() -> None:
     """Restart the backend server to ensure latest code is loaded"""
-    print("🐛 Debug: Restarting backend server with DEBUG logging...")
-    
+    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    print(f"[🕰️ {timestamp}] 🐛 Debug: Restarting backend server with DEBUG logging...")
+
     # Kill any existing server processes
     try:
         # Kill processes listening on port 8000
         kill_result = subprocess.run(
             ["pkill", "-f", "python main.py"],
-            capture_output=True,
+            check=False, capture_output=True,
             text=True
         )
-        
+
         # Also try to kill hypercorn processes
         subprocess.run(
             ["pkill", "-f", "hypercorn"],
-            capture_output=True,
+            check=False, capture_output=True,
             text=True
         )
-        
+
         # Give processes time to shut down
         await asyncio.sleep(1.0)
-        
+
         print("🔄 Killed existing server processes")
     except Exception as e:
         print(f"⚠️  Could not kill existing processes: {e}")
-    
+
     # Start new server process with DEBUG logging
     server_path = Path(__file__).parent.parent.parent.parent.parent / "apps" / "server"
     env = os.environ.copy()
     env["LOG_LEVEL"] = "DEBUG"
-    
+
     start_cmd = ["python", "main.py"]
-    
+
     try:
         # Start server in background with debug output visible
         process = subprocess.Popen(
@@ -372,31 +396,48 @@ async def _restart_backend_server() -> None:
             stderr=None,  # Show errors in terminal
             start_new_session=True
         )
-        
+
         print("⏳ Waiting for server to start...")
-        
-        # Wait for server to be ready
-        max_attempts = 20  # 10 seconds timeout
-        for i in range(max_attempts):
+
+        # Wait for server to be ready with better health check
+        print("⏳ Waiting for server to be ready...")
+        max_wait_time = 10  # seconds
+        start_time = time.time()
+        server_ready = False
+
+        while time.time() - start_time < max_wait_time:
             try:
-                async with DiPeoAPIClient("localhost:8000") as client:
-                    # Try to connect with a simple query
+                # Use client with retry logic
+                async with DiPeoAPIClient("localhost:8000", max_retries=1, retry_delay=0.5) as client:
+                    # Try a simple health check query
                     query = """
-                        query {
+                        query HealthCheck {
                             __typename
                         }
                     """
                     await client._execute_query(query)
+                    server_ready = True
                     break
-            except Exception:
-                if i == max_attempts - 1:
-                    print("❌ Failed to start backend server")
+            except Exception as e:
+                elapsed = time.time() - start_time
+                if elapsed < max_wait_time:
+                    # Show progress with timestamp
+                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                    print(f"   [🕰️ {timestamp}] Server not ready yet ({elapsed:.1f}s elapsed)...")
+                    await asyncio.sleep(0.5)
+                else:
+                    print(f"❌ Server failed to start after {max_wait_time}s")
+                    print(f"   Last error: {e!s}")
                     raise
-                await asyncio.sleep(0.5)
-        
-        print("✅ Backend server started with DEBUG logging")
+
+        if not server_ready:
+            print("❌ Failed to start backend server")
+            raise Exception("Server startup timeout")
+
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        print(f"[🕰️ {timestamp}] ✅ Backend server started with DEBUG logging")
         print("📋 You should see [DEBUG] messages in the server output\n")
-        
+
     except Exception as e:
         print(f"❌ Error starting backend server: {e}")
         print("Please start the server manually with: cd apps/server && LOG_LEVEL=DEBUG python main.py")

@@ -3,6 +3,7 @@ from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+from dipeo_core import BaseService, SupportsMemory
 from dipeo_domain.models import DomainPerson, DomainNode, DomainDiagram
 
 if TYPE_CHECKING:
@@ -10,10 +11,12 @@ if TYPE_CHECKING:
 
 from .conversation import PersonConversation, Message
 
-class ConversationService:
-    """Service for managing conversations between persons (LLM agents)."""
+
+class ConversationService(BaseService, SupportsMemory):
+    """Service for managing conversations between persons (LLM agents) that implements the SupportsMemory protocol."""
 
     def __init__(self, redis_url: Optional[str] = None, message_store=None):
+        super().__init__()
         self.person_conversations: Dict[str, PersonConversation] = {}
         self.all_messages: OrderedDict[str, Message] = OrderedDict()
         self.execution_metadata: Dict[str, Dict[str, Any]] = {}
@@ -21,6 +24,11 @@ class ConversationService:
         self._pending_persistence: Dict[str, List[Message]] = {}
 
         self.MAX_GLOBAL_MESSAGES = 10000
+
+    async def initialize(self) -> None:
+        """Initialize the conversation service."""
+        # Service is already initialized in __init__
+        pass
 
     def _store_message(self, message: Message) -> None:
         self.all_messages[message.id] = message
@@ -33,22 +41,24 @@ class ConversationService:
 
     def get_or_create_person_conversation(self, person_id: str) -> PersonConversation:
         if person_id not in self.person_conversations:
-            self.person_conversations[person_id] = PersonConversation(person_id=person_id)
+            self.person_conversations[person_id] = PersonConversation(
+                person_id=person_id
+            )
         return self.person_conversations[person_id]
 
     def add_message_to_conversation(
-            self,
-            content: str,
-            sender_person_id: str,
-            execution_id: str,
-            participant_person_ids: List[str],
-            role: str = "assistant",
-            node_id: Optional[str] = None,
-            node_label: Optional[str] = None,
-            token_count: Optional[int] = None,
-            input_tokens: Optional[int] = None,
-            output_tokens: Optional[int] = None,
-            cached_tokens: Optional[int] = None,
+        self,
+        content: str,
+        sender_person_id: str,
+        execution_id: str,
+        participant_person_ids: List[str],
+        role: str = "assistant",
+        node_id: Optional[str] = None,
+        node_label: Optional[str] = None,
+        token_count: Optional[int] = None,
+        input_tokens: Optional[int] = None,
+        output_tokens: Optional[int] = None,
+        cached_tokens: Optional[int] = None,
     ) -> Message:
         """Create and add message to conversation."""
         message = Message(
@@ -101,7 +111,7 @@ class ConversationService:
         return message
 
     def forget_for_person(
-            self, person_id: str, execution_id: Optional[str] = None
+        self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
         """Make a person forget messages."""
         person_conversation = self.get_or_create_person_conversation(person_id)
@@ -113,7 +123,7 @@ class ConversationService:
                 person_conversation.forgotten_message_ids.add(message.id)
 
     def forget_own_messages_for_person(
-            self, person_id: str, execution_id: Optional[str] = None
+        self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
         """Make a person forget only their own messages."""
         person_conversation = self.get_or_create_person_conversation(person_id)
@@ -128,10 +138,6 @@ class ConversationService:
         person_conversation = self.get_or_create_person_conversation(person_id)
         return person_conversation.get_visible_messages(person_id)
 
-    def get_conversation_for_agent(self, person_id: str, execution_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get all visible messages for an agent - alias for get_conversation_for_person."""
-        return self.get_conversation_for_person(person_id)
-
     def get_execution_metadata(self, execution_id: str) -> Optional[Dict[str, Any]]:
         """Get metadata for an execution."""
         return self.execution_metadata.get(execution_id)
@@ -145,8 +151,8 @@ class ConversationService:
         for exec_id, metadata in self.execution_metadata.items():
             start_time = metadata.get("start_time")
             if (
-                    start_time
-                    and (current_time - start_time).total_seconds() > max_age_hours * 3600
+                start_time
+                and (current_time - start_time).total_seconds() > max_age_hours * 3600
             ):
                 execution_ids_to_remove.append(exec_id)
 
@@ -207,26 +213,30 @@ class ConversationService:
                 "service": "openai",
                 "api_key_id": None,
                 "model": "gpt-4.1-nano",
-                "system_prompt": ""
+                "system_prompt": "",
             }
 
         return {
             "service": getattr(person, "service", "openai"),
-            "api_key_id": getattr(person, "api_key_id", None) or getattr(person, "apiKeyId", None),
+            "api_key_id": getattr(person, "api_key_id", None)
+            or getattr(person, "apiKeyId", None),
             "model": getattr(person, "model", "gpt-4.1-nano"),
-            "system_prompt": getattr(person, "system_prompt", None) or getattr(person, "systemPrompt", "")
+            "system_prompt": getattr(person, "system_prompt", None)
+            or getattr(person, "systemPrompt", ""),
         }
 
-    def find_person_by_id(self, persons: List[DomainPerson], person_id: str) -> Optional[DomainPerson]:
+    def find_person_by_id(
+        self, persons: List[DomainPerson], person_id: str
+    ) -> Optional[DomainPerson]:
         """Find a person by ID in a list of persons."""
         return next((p for p in persons if p.id == person_id), None)
 
     def prepare_prompt(
-            self,
-            exec_count: int,
-            first_only_prompt: str,
-            default_prompt: str,
-            inputs: Dict[str, Any]
+        self,
+        exec_count: int,
+        first_only_prompt: str,
+        default_prompt: str,
+        inputs: Dict[str, Any],
     ) -> str:
         """Prepare the prompt based on execution count and templates."""
         if exec_count == 1 and first_only_prompt:
@@ -236,12 +246,12 @@ class ConversationService:
         return default_prompt
 
     def handle_conversation_inputs(
-            self,
-            inputs: Dict[str, Any],
-            person_id: str,
-            execution_id: str,
-            node_id: str,
-            node_label: str
+        self,
+        inputs: Dict[str, Any],
+        person_id: str,
+        execution_id: str,
+        node_id: str,
+        node_label: str,
     ) -> None:
         """Handle conversation inputs from upstream nodes (multi-person conversation loops)."""
         if "conversation" not in inputs:
@@ -253,7 +263,8 @@ class ConversationService:
 
         # Check if we're in a conversation loop
         our_messages_count = sum(
-            1 for msg in upstream_conv
+            1
+            for msg in upstream_conv
             if msg.get("personId") == person_id and msg.get("role") == "assistant"
         )
 
@@ -269,12 +280,12 @@ class ConversationService:
             if last_other_msg:
                 # Add as a message to memory service
                 self.add_message_to_conversation(
-                    sender_person_id=last_other_msg.get('personId', 'unknown'),
+                    sender_person_id=last_other_msg.get("personId", "unknown"),
                     participant_person_ids=[person_id],
-                    content=last_other_msg.get('content', ''),
+                    content=last_other_msg.get("content", ""),
                     execution_id=execution_id,
                     node_id=node_id,
-                    node_label=node_label
+                    node_label=node_label,
                 )
         else:
             # Not in a loop - format upstream conversation as context
@@ -299,23 +310,72 @@ class ConversationService:
                     content=upstream_text,
                     execution_id=execution_id,
                     node_id=node_id,
-                    node_label=node_label
+                    node_label=node_label,
                 )
 
     def prepare_judge_context(
-            self,
-            node: DomainNode,
-            diagram: DomainDiagram,
-            execution_id: str
+        self,
+        node: DomainNode,
+        diagram: DomainDiagram,
+        execution_id: str,
+        inputs: Dict[str, Any],
     ) -> str:
-        """Prepare debate context for judge nodes by aggregating conversations from other person_job nodes."""
+        """Prepare debate context for judge nodes by aggregating conversations from inputs or memory."""
         debate_context_parts = []
 
+        # First check if conversation data is available in inputs (from edges)
+        if "conversation" in inputs:
+            conv_data = inputs["conversation"]
+            if isinstance(conv_data, list):
+                # Group messages by personId
+                person_conversations = {}
+                for msg in conv_data:
+                    person_id = msg.get("personId", "unknown")
+                    if person_id not in person_conversations:
+                        person_conversations[person_id] = []
+                    person_conversations[person_id].append(msg)
+
+                # Format conversations by person
+                for person_id, messages in person_conversations.items():
+                    # Find the label for this person
+                    label = person_id
+                    for other_node in diagram.nodes:
+                        if other_node.type == "person_job":
+                            other_data = other_node.data or {}
+                            other_person_id = other_data.get(
+                                "person"
+                            ) or other_data.get("personId")
+                            if other_person_id == person_id:
+                                label = other_data.get("label", person_id)
+                                break
+
+                    # Don't include judge panels in the context
+                    if "judge" not in label.lower():
+                        debate_context_parts.append(f"\n{label}:\n")
+                        # Show all non-system messages
+                        for msg in messages:
+                            if msg.get("role") != "system":
+                                role = (
+                                    "Input" if msg.get("role") == "user" else "Response"
+                                )
+                                content = msg.get("content", "")
+                                debate_context_parts.append(f"{role}: {content}\n")
+
+                if debate_context_parts:
+                    return (
+                        "Here are the arguments from different panels:\n"
+                        + "".join(debate_context_parts)
+                        + "\n\n"
+                    )
+
+        # Fallback to memory-based approach if no conversation in inputs
         for other_node in diagram.nodes:
             if other_node.type != "person_job" or other_node.id == node.id:
                 continue
 
-            other_person_id = other_node.data.get("personId") if other_node.data else None
+            other_person_id = (
+                other_node.data.get("personId") if other_node.data else None
+            )
             if not other_person_id:
                 continue
 
@@ -327,7 +387,11 @@ class ConversationService:
             if not debate_messages:
                 continue
 
-            label = other_node.data.get("label", other_node.id) if other_node.data else other_node.id
+            label = (
+                other_node.data.get("label", other_node.id)
+                if other_node.data
+                else other_node.id
+            )
             debate_context_parts.append(f"\n{label}:\n")
 
             for msg in debate_messages:
@@ -337,20 +401,20 @@ class ConversationService:
 
         if debate_context_parts:
             return (
-                    "Here are the arguments from different panels:\n"
-                    + "".join(debate_context_parts)
-                    + "\n\n"
+                "Here are the arguments from different panels:\n"
+                + "".join(debate_context_parts)
+                + "\n\n"
             )
         return ""
 
     async def execute_person_job(
-            self,
-            node: DomainNode,
-            execution_id: str,
-            exec_count: int,
-            inputs: Dict[str, Any],
-            diagram: DomainDiagram,
-            llm_service: "LLMService"
+        self,
+        node: DomainNode,
+        execution_id: str,
+        exec_count: int,
+        inputs: Dict[str, Any],
+        diagram: DomainDiagram,
+        llm_service: "LLMService",
     ) -> Dict[str, Any]:
         """Execute a person_job node - orchestrate the entire conversational flow."""
         data = node.data or {}
@@ -363,10 +427,7 @@ class ConversationService:
         is_judge: bool = "judge" in data.get("label", "").lower()
 
         if not person_id:
-            return {
-                "output_values": {},
-                "metadata": {"error": "No personId specified"}
-            }
+            return {"output_values": {}, "metadata": {"error": "No personId specified"}}
 
         # Get person configuration
         person_obj = self.find_person_by_id(diagram.persons, person_id)
@@ -383,7 +444,7 @@ class ConversationService:
             person_id=person_id,
             execution_id=execution_id,
             node_id=node.id,
-            node_label=data.get('label', node.id)
+            node_label=data.get("label", node.id),
         )
 
         # Prepare prompt
@@ -393,10 +454,13 @@ class ConversationService:
 
         # Handle judge aggregation
         if is_judge:
-            judge_context = self.prepare_judge_context(node, diagram, execution_id)
+            judge_context = self.prepare_judge_context(
+                node, diagram, execution_id, inputs
+            )
             if judge_context:
                 prompt = judge_context + (
-                        prompt or "Based on the above arguments, judge which panel is more reasonable."
+                    prompt
+                    or "Based on the above arguments, judge which panel is more reasonable."
                 )
 
         # Add prompt as user message if present
@@ -407,7 +471,7 @@ class ConversationService:
                 content=prompt,
                 execution_id=execution_id,
                 node_id=node.id,
-                node_label=data.get('label', node.id)
+                node_label=data.get("label", node.id),
             )
 
         # Get updated conversation from memory service
@@ -431,11 +495,14 @@ class ConversationService:
             content=response_text,
             execution_id=execution_id,
             node_id=node.id,
-            node_label=data.get('label', node.id),
+            node_label=data.get("label", node.id),
             input_tokens=getattr(token_usage_obj, "input", 0) if token_usage_obj else 0,
-            output_tokens=getattr(token_usage_obj, "output", 0) if token_usage_obj else 0,
-            cached_tokens=getattr(token_usage_obj, "cached", 0) if token_usage_obj and hasattr(token_usage_obj,
-                                                                                               "cached") else 0
+            output_tokens=getattr(token_usage_obj, "output", 0)
+            if token_usage_obj
+            else 0,
+            cached_tokens=getattr(token_usage_obj, "cached", 0)
+            if token_usage_obj and hasattr(token_usage_obj, "cached")
+            else 0,
         )
 
         # Prepare output values
@@ -444,7 +511,9 @@ class ConversationService:
         # Check if we need to output conversation state
         for edge in diagram.arrows:
             if edge.source.startswith(node.id + ":"):
-                edge_data = edge.data if edge.data and isinstance(edge.data, dict) else {}
+                edge_data = (
+                    edge.data if edge.data and isinstance(edge.data, dict) else {}
+                )
                 if edge_data.get("contentType") == "conversation_state":
                     # Get full conversation history for output
                     conv_history = self.get_conversation_for_person(person_id)
@@ -466,6 +535,7 @@ class ConversationService:
 
             # Create domain token usage object for context
             from dipeo_domain import TokenUsage as DomainTokenUsage
+
             token_usage_domain = DomainTokenUsage(**token_usage_metadata)
 
         return {
@@ -473,7 +543,59 @@ class ConversationService:
             "metadata": {
                 "model": person_config["model"],
                 "tokens_used": token_usage_metadata.get("total", 0),
-                "tokenUsage": token_usage_metadata
+                "tokenUsage": token_usage_metadata,
             },
-            "token_usage": token_usage_domain
+            "token_usage": token_usage_domain,
         }
+
+    # Protocol compliance methods (SupportsMemory)
+    def get_or_create_person_memory(self, person_id: str) -> PersonConversation:
+        """Get or create person memory - alias for get_or_create_person_conversation."""
+        return self.get_or_create_person_conversation(person_id)
+
+    def get_conversation_history(
+        self, person_id: str, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Get conversation history for a person."""
+        conversation = self.get_conversation_for_person(person_id)
+        if limit:
+            return conversation[-limit:]
+        return conversation
+
+    async def save_conversation_log(
+        self,
+        execution_id: str,
+        node_id: str,
+        conversation: List[Dict[str, Any]],
+        person_id: str,
+        token_count: int = 0,
+    ) -> None:
+        """Save conversation log for a specific execution and node."""
+        # Create messages from conversation data
+        for msg_data in conversation:
+            message = Message(
+                id=msg_data.get("id", str(uuid.uuid4())),
+                role=msg_data.get("role", "assistant"),
+                content=msg_data.get("content", ""),
+                timestamp=msg_data.get("timestamp", datetime.now()),
+                sender_person_id=person_id,
+                execution_id=execution_id,
+                node_id=node_id,
+                token_count=msg_data.get("token_count", 0),
+            )
+            self._store_message(message)
+
+            # Queue for deferred persistence
+            if execution_id not in self._pending_persistence:
+                self._pending_persistence[execution_id] = []
+            self._pending_persistence[execution_id].append(message)
+
+        # Persist immediately if message store is available
+        if self.message_store:
+            await self.message_store.store_message(
+                execution_id=execution_id,
+                node_id=node_id,
+                content={"conversation": conversation},
+                person_id=person_id,
+                token_count=token_count,
+            )

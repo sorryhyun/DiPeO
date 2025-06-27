@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from dipeo_server.domains.llm.token_usage_service import TokenUsageService
+
 if TYPE_CHECKING:
     from dipeo_domain import TokenUsage
 
@@ -63,14 +65,23 @@ class OutputProcessor:
 
         if conversation_history is not None:
             output["conversation_history"] = conversation_history
-        if token_count > 0:
-            output["token_count"] = str(token_count)
-        if input_tokens > 0:
-            output["input_tokens"] = str(input_tokens)
-        if output_tokens > 0:
-            output["output_tokens"] = str(output_tokens)
-        if cached_tokens > 0:
-            output["cached_tokens"] = str(cached_tokens)
+
+        # Create TokenUsage object and use TokenUsageService for conversion
+        if any([token_count, input_tokens, output_tokens, cached_tokens]):
+            from dipeo_domain import TokenUsage
+
+            # Use token_count as total, or calculate from input+output
+            total = token_count if token_count > 0 else (input_tokens + output_tokens)
+
+            token_usage = TokenUsage(
+                input=input_tokens,
+                output=output_tokens,
+                cached=cached_tokens,
+                total=total,
+            )
+            token_metadata = TokenUsageService.to_personjob_metadata(token_usage)
+            output.update(token_metadata)
+
         if model:
             output["model"] = model
 
@@ -88,15 +99,11 @@ class OutputProcessor:
 
         if conversation_history is not None:
             output["conversation_history"] = conversation_history
-        if token_usage:
-            if token_usage.total > 0:
-                output["token_count"] = str(token_usage.total)
-            if token_usage.input > 0:
-                output["input_tokens"] = str(token_usage.input)
-            if token_usage.output > 0:
-                output["output_tokens"] = str(token_usage.output)
-            if token_usage.cached > 0:
-                output["cached_tokens"] = str(token_usage.cached)
+
+        # Use TokenUsageService to convert token usage to metadata format
+        token_metadata = TokenUsageService.to_personjob_metadata(token_usage)
+        output.update(token_metadata)
+
         if model:
             output["model"] = model
         if execution_time is not None:
@@ -106,12 +113,5 @@ class OutputProcessor:
 
     @staticmethod
     def extract_token_usage(value: Any) -> Optional["TokenUsage"]:
-        if isinstance(value, dict) and value.get("_type") == "personjob_output":
-            from dipeo_domain import TokenUsage
-
-            return TokenUsage(
-                input=int(value.get("input_tokens", 0)),
-                output=int(value.get("output_tokens", 0)),
-                cached=int(value.get("cached_tokens", 0)),
-            )
-        return None
+        """Extract token usage from PersonJob output using TokenUsageService."""
+        return TokenUsageService.extract_from_personjob_output(value)

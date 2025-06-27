@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
+from dipeo_core import HandlerRegistry
 from dipeo_domain.models import (
     DomainArrow,
     DomainDiagram,
@@ -50,26 +51,47 @@ class NodeView:
 
     def get_active_inputs(self) -> Dict[str, Any]:
         """Get inputs from edges that are active based on condition routing.
-        
+
         This method filters inputs based on condition node routing decisions,
         returning only values from edges that match the condition result.
         """
         import logging
+
         log = logging.getLogger(__name__)
-        
+
         inputs = {}
-        
+
+        # Split first/default once so we can reason about them together
+        first_edges = []
+        default_edges = []
         for edge in self.incoming_edges:
-            # Skip edges from nodes that have no output
-            if not edge.source_view.output:
-                log.debug(f"Skipping edge from {edge.source_view.id} - no output")
+            if edge.source_view.output is None:
                 continue
-            
+            (first_edges if edge.target_handle == "first" else default_edges).append(edge)
+
+        selected_edges: list[EdgeView] = []
+        if self.node.type == "person_job":
+            has_first_payload = bool(first_edges)
+            if self.exec_count == 1:
+                # First execution
+                selected_edges = first_edges if has_first_payload else default_edges
+            else:
+                # Second+ execution
+                selected_edges = default_edges
+        else:
+            selected_edges = first_edges + default_edges
+
+        for edge in selected_edges:
+
             # Check if this is from a condition node
             if edge.source_view.node.type == "condition":
-                condition_result = edge.source_view.output.metadata.get("condition_result", False)
-                edge_branch = edge.arrow.data.get("branch", None) if edge.arrow.data else None
-                
+                condition_result = edge.source_view.output.metadata.get(
+                    "condition_result", False
+                )
+                edge_branch = (
+                    edge.arrow.data.get("branch", None) if edge.arrow.data else None
+                )
+
                 # If edge has a branch specification, it must match the condition result
                 if edge_branch is not None:
                     edge_branch_bool = edge_branch.lower() == "true"
@@ -79,11 +101,11 @@ class NodeView:
                             f"branch {edge_branch} doesn't match result {condition_result}"
                         )
                         continue
-            
+
             # Extract value based on label
             label = edge.label
             source_values = edge.source_view.output.value
-            
+
             if label in source_values:
                 inputs[label] = source_values[label]
             elif label == "default" and "conversation" in source_values:
@@ -94,7 +116,7 @@ class NodeView:
                     f"Edge label '{label}' not found in output from {edge.source_view.id} "
                     f"(available: {list(source_values.keys())})"
                 )
-        
+
         return inputs
 
 
@@ -131,11 +153,11 @@ class ExecutionView:
     def __init__(
         self,
         diagram: DomainDiagram,
-        handlers: Dict[str, Callable],
+        handler_registry: HandlerRegistry,
         api_keys: Dict[str, str],
     ) -> None:
         self.diagram = diagram
-        self.handlers = handlers
+        self.handler_registry = handler_registry
         self.api_keys = api_keys
 
         self.node_views: Dict[str, NodeView] = {}
@@ -180,8 +202,10 @@ class ExecutionView:
                 self.node_views[target_id].incoming_edges.append(edge_view)
 
     def _get_handler_for_type(self, node_type: str) -> Optional[Callable]:
-        # Handlers now use lowercase names matching the node types
-        return self.handlers.get(node_type)
+        # Get handler from registry - the handler is already wrapped in NodeDefinition
+        # We just need to return the handler function itself
+        node_def = self.handler_registry.get(node_type)
+        return node_def.handler if node_def else None
 
     def _compute_execution_order(self) -> List[List[NodeView]]:
         import logging
@@ -189,55 +213,10 @@ class ExecutionView:
         log = logging.getLogger(__name__)
 
         in_degree = {}
-        # Track person_job nodes that have :first connections
-        person_job_first_sources = {}  # node_id -> source_node_id
 
+        # Plain Kahn topological sort that counts all incoming edges
         for node_id, node_view in self.node_views.items():
-            # For person_job nodes with a "first" handle, we only count non-"first" edges
-            # This allows them to start when they receive their initial input
-            if node_view.node.type == "person_job":
-                # Count only edges that don't go to the "first" handle
-                non_first_edges = [
-                    e for e in node_view.incoming_edges if e.target_handle != "first"
-                ]
-                in_degree[node_id] = len(non_first_edges)
-
-                # Track the source of :first connections
-                first_edges = [
-                    e for e in node_view.incoming_edges if e.target_handle == "first"
-                ]
-                if first_edges:
-                    # Store the source node ID
-                    person_job_first_sources[node_id] = first_edges[0].source_view.id
-            else:
-                in_degree[node_id] = len(node_view.incoming_edges)
-
-        # Find person_job nodes that share the same :first source
-        source_to_nodes = {}
-        for node_id, source_id in person_job_first_sources.items():
-            if source_id not in source_to_nodes:
-                source_to_nodes[source_id] = []
-            source_to_nodes[source_id].append(node_id)
-
-        # For nodes sharing the same :first source, check if they have dependencies between them
-        # If they do, we need to respect that ordering by adjusting in_degree
-        for source_id, node_ids in source_to_nodes.items():
-            if len(node_ids) > 1:
-                log.info(f"Nodes {node_ids} share :first source {source_id}")
-                # Check for dependencies between these nodes
-                for i, node_id in enumerate(node_ids):
-                    node_view = self.node_views[node_id]
-                    # Check if this node has edges to other nodes in the same group
-                    for edge in node_view.outgoing_edges:
-                        if (
-                            edge.target_view.id in node_ids
-                            and edge.target_handle != "first"
-                        ):
-                            # This creates a dependency - increase target's in_degree
-                            log.info(
-                                f"Found dependency: {node_id} -> {edge.target_view.id}"
-                            )
-                            in_degree[edge.target_view.id] += 1
+            in_degree[node_id] = len(node_view.incoming_edges)
 
         queue = [nv for nid, nv in self.node_views.items() if in_degree[nid] == 0]
         levels = []
@@ -251,17 +230,7 @@ class ExecutionView:
             for node_view in current_level:
                 for edge in node_view.outgoing_edges:
                     target_id = edge.target_view.id
-                    # Only reduce in_degree if this edge was counted initially
-                    # (i.e., skip edges to "first" handles of person_job nodes)
-                    if (
-                        edge.target_view.node.type == "person_job"
-                        and edge.target_handle == "first"
-                    ):
-                        log.info(
-                            f"Skipping in_degree reduction for edge to first handle of person_job {target_id}"
-                        )
-                    else:
-                        in_degree[target_id] -= 1
+                    in_degree[target_id] -= 1
 
                     if in_degree[target_id] == 0:
                         log.info(f"Adding {target_id} to next queue")

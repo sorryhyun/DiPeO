@@ -1,14 +1,19 @@
-from typing import Any, AsyncGenerator, Dict, List, Optional
+import asyncio
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, TypeVar
 
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.exceptions import TransportQueryError, TransportServerError
 from gql.transport.websockets import (
     WebsocketsTransport,
 )  # For GraphQL subscriptions only
 
+T = TypeVar('T')
+
 
 class DiPeoAPIClient:
-    def __init__(self, host: str = "localhost:8000"):
+    def __init__(self, host: str = "localhost:8000", max_retries: int = 3, retry_delay: float = 1.0):
+        self.host = host
         self.http_url = f"http://{host}/graphql"
         self.ws_url = f"ws://{host}/graphql"
         self._client: Optional[Client] = None
@@ -18,6 +23,8 @@ class DiPeoAPIClient:
             "nodes": None,
             "prompts": None
         }
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
 
     async def __aenter__(self):
         # HTTP client for queries/mutations
@@ -31,7 +38,7 @@ class DiPeoAPIClient:
                 await self._client.transport.close()
         except Exception:
             pass  # Ignore errors during cleanup
-        
+
         # Close all subscription clients
         for client in self._subscription_clients.values():
             if client:
@@ -51,11 +58,30 @@ class DiPeoAPIClient:
             )
         return self._subscription_clients[subscription_type]
 
+    async def _retry_with_backoff(self, func: Callable[..., T], *args, **kwargs) -> T:
+        """Execute function with retry logic and exponential backoff."""
+        last_error = None
+        for attempt in range(self.max_retries):
+            try:
+                return await func(*args, **kwargs)
+            except (TransportQueryError, TransportServerError, ConnectionError, OSError) as e:
+                last_error = e
+                if attempt < self.max_retries - 1:
+                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"⚠️  Connection failed (attempt {attempt + 1}/{self.max_retries}): {e!s}")
+                    print(f"   Retrying in {delay:.1f}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    print(f"❌ Connection failed after {self.max_retries} attempts")
+        raise ConnectionError(f"Failed to connect to server at {self.host} after {self.max_retries} attempts: {last_error}")
+
     async def _execute_query(self, query: str, variables: Optional[Dict] = None) -> Dict:
         """Execute a GraphQL query and return the result."""
-        parsed_query = gql(query)
-        result = await self._client.execute_async(parsed_query, variable_values=variables or {})
-        return result
+        async def _do_execute():
+            parsed_query = gql(query)
+            return await self._client.execute_async(parsed_query, variable_values=variables or {})
+
+        return await self._retry_with_backoff(_do_execute)
 
     async def execute_diagram(
         self,
@@ -88,7 +114,7 @@ class DiPeoAPIClient:
             "timeoutSeconds": timeout,
             "maxIterations": 1000,
         }
-        
+
         if diagram_data:
             # Use diagram data directly
             input_data["diagramData"] = diagram_data
@@ -99,8 +125,9 @@ class DiPeoAPIClient:
             input_data["diagramId"] = diagram_id
         else:
             raise ValueError("Either diagram_id or diagram_data must be provided")
-            
-        result = await self._client.execute_async(
+
+        result = await self._retry_with_backoff(
+            self._client.execute_async,
             mutation,
             variable_values={"data": input_data},
         )
@@ -132,7 +159,8 @@ class DiPeoAPIClient:
             }
         """)
 
-        result = await self._client.execute_async(
+        result = await self._retry_with_backoff(
+            self._client.execute_async,
             mutation,
             variable_values={
                 "content": diagram_data,
@@ -255,8 +283,10 @@ class DiPeoAPIClient:
         if node_id and action == "skip_node":
             input_data["nodeId"] = node_id
 
-        result = await self._client.execute_async(
-            mutation, variable_values={"data": input_data}
+        result = await self._retry_with_backoff(
+            self._client.execute_async,
+            mutation,
+            variable_values={"data": input_data}
         )
 
         response = result["controlExecution"]
@@ -286,7 +316,8 @@ class DiPeoAPIClient:
             }
         """)
 
-        result = await self._client.execute_async(
+        result = await self._retry_with_backoff(
+            self._client.execute_async,
             mutation,
             variable_values={
                 "data": {

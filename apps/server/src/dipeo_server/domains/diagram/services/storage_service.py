@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from dipeo_core import BaseService
+from dipeo_core import BaseService, SupportsDiagram
 
 from config import BASE_DIR
 
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 # FileInfo is now imported from models.py
 
 
-class DiagramStorageService(BaseService):
-    """Handles file I/O operations for diagram files."""
+class DiagramStorageService(BaseService, SupportsDiagram):
+    """Handles file I/O operations for diagram files that implements the SupportsDiagram protocol."""
 
     def __init__(self, base_dir: Optional[Path] = None):
         super().__init__()

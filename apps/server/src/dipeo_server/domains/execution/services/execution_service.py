@@ -5,19 +5,18 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
-from dipeo_core import BaseService
+from dipeo_core import BaseService, SupportsExecution, get_global_registry
 from dipeo_domain import ExecutionStatus
 from dipeo_domain.models import DomainDiagram
 
 from dipeo_server.domains.execution.engine import ViewBasedEngine
-from dipeo_server.domains.execution.handlers import get_handlers
 from dipeo_server.domains.llm.token_usage_service import TokenUsageService
 from dipeo_server.infrastructure.persistence import state_store
 
 log = logging.getLogger(__name__)
 
 
-class ExecutionService(BaseService):
+class ExecutionService(BaseService, SupportsExecution):
     def __init__(
         self,
         llm_service,
@@ -74,7 +73,13 @@ class ExecutionService(BaseService):
 
             api_keys = self._inject_api_keys(diagram_dict)["api_keys"]
 
-        engine = ViewBasedEngine(get_handlers())
+        # Import node_handlers to ensure handlers are registered
+        from .. import node_handlers  # noqa: F401
+        
+        # Get the global registry which has all registered handlers
+        registry = get_global_registry()
+        log.info(f"Registry has {len(registry.list_types())} registered handlers: {registry.list_types()}")
+        engine = ViewBasedEngine(registry)
 
         diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None
         # Create execution in cache only for active executions
@@ -93,7 +98,7 @@ class ExecutionService(BaseService):
 
             async def stream_callback(update: dict[str, Any]) -> None:
                 await updates_queue.put(update)
-                
+
                 # Also publish to EventBus for WebSocket subscribers
                 if self.event_bus:
                     channel = f"execution:{execution_id}"
@@ -160,6 +165,7 @@ class ExecutionService(BaseService):
             file_service=self.file_service,
             conversation_service=self.conversation_service,
             notion_service=self.notion_service,
+            api_key_service=self.api_key_service,
             state_store=state_store,
             execution_id=execution_id,
             interactive_handler=interactive_handler,
@@ -178,9 +184,9 @@ class ExecutionService(BaseService):
         total_token_usage = TokenUsageService.aggregate_node_token_usage(
             ctx.node_outputs
         )
-        
+
         # Use accumulated token usage from context if available
-        if hasattr(ctx, 'get_total_token_usage'):
+        if hasattr(ctx, "get_total_token_usage"):
             ctx_token_usage = ctx.get_total_token_usage()
             if ctx_token_usage:
                 total_token_usage = ctx_token_usage
@@ -193,21 +199,23 @@ class ExecutionService(BaseService):
                 final_state.status = ExecutionStatus.COMPLETED
             elif final_status == "failed":
                 final_state.status = ExecutionStatus.FAILED
-            
+
             if total_token_usage:
                 final_state.token_usage = total_token_usage
-            
+
             # Persist final state to database
             await state_store.persist_final_state(final_state)
-            
+
             # Persist conversation history if conversation service has pending data
-            if hasattr(self.conversation_service, 'persist_execution_conversations'):
-                await self.conversation_service.persist_execution_conversations(execution_id)
+            if hasattr(self.conversation_service, "persist_execution_conversations"):
+                await self.conversation_service.persist_execution_conversations(
+                    execution_id
+                )
         else:
             # Fallback to old behavior if state not in cache
             if total_token_usage:
                 await state_store.update_token_usage(execution_id, total_token_usage)
-            
+
             if final_status == "completed":
                 await state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
             elif final_status == "failed":
@@ -215,6 +223,7 @@ class ExecutionService(BaseService):
 
         # Build final state snapshot
         from dipeo_domain import NodeExecutionStatus
+
         node_states = {}
         for node_id, output in ctx.node_outputs.items():
             status = NodeExecutionStatus.COMPLETED
@@ -223,16 +232,18 @@ class ExecutionService(BaseService):
             node_states[node_id] = {
                 "status": status.value,
                 "started_at": None,  # Would need to track
-                "ended_at": None,    # Would need to track
+                "ended_at": None,  # Would need to track
             }
-        
+
         final_state_snapshot = {
             "execution_id": execution_id,
             "status": final_status,
             "node_states": node_states,
-            "token_usage": total_token_usage.model_dump() if total_token_usage else None,
+            "token_usage": total_token_usage.model_dump()
+            if total_token_usage
+            else None,
         }
-        
+
         await stream_callback(
             {
                 "type": "execution_complete",

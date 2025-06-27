@@ -1,7 +1,7 @@
 import time
 from typing import Any, List, Optional, Tuple, Union
 
-from dipeo_core import APIKeyError, BaseService, LLMServiceError
+from dipeo_core import APIKeyError, BaseService, LLMServiceError, SupportsLLM
 from dipeo_domain import LLMService as LLMServiceEnum
 from dipeo_domain import TokenUsage
 from tenacity import (
@@ -18,8 +18,8 @@ from dipeo_server.shared.constants import VALID_LLM_SERVICES
 from dipeo_server.shared.utils.errors import normalize_service_name
 
 
-class LLMService(BaseService):
-    """Service for handling LLM interactions."""
+class LLMService(BaseService, SupportsLLM):
+    """Service for handling LLM interactions that implements the SupportsLLM protocol."""
 
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()

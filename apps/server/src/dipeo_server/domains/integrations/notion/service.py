@@ -1,13 +1,13 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from dipeo_core import BaseService, ExecutionError
+from dipeo_core import BaseService, ExecutionError, SupportsNotion
 from notion_client import Client
 
 logger = logging.getLogger(__name__)
 
 
-class NotionService(BaseService):
+class NotionService(BaseService, SupportsNotion):
     def __init__(self):
         super().__init__()
         self._clients: Dict[str, Client] = {}

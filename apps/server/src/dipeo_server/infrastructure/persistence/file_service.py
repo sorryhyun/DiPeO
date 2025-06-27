@@ -10,15 +10,15 @@ from typing import Any, Dict, List, Optional, Union
 
 import aiofiles
 import yaml
-from dipeo_core import BaseService
+from dipeo_core import BaseService, SupportsFile
 from docx import Document
 
 from config import CONVERSATION_LOG_DIR, RESULT_DIR, UPLOAD_DIR
 from dipeo_server.shared.exceptions import FileOperationError, ValidationError
 
 
-class FileService(BaseService):
-    """Unified file service for all file operations."""
+class FileService(BaseService, SupportsFile):
+    """Unified file service for all file operations that implements the SupportsFile protocol."""
 
     def __init__(self, base_dir: Optional[Path] = None):
         super().__init__()

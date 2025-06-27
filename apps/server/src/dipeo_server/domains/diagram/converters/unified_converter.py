@@ -172,8 +172,14 @@ class UnifiedDiagramConverter(DiagramConverter):
             metadata=data.get("metadata"),
         )
 
-        if not handles_dict:
-            for node_id, node in nodes_dict.items():
+        # Generate default handles for nodes that don't have any handles
+        for node_id, node in nodes_dict.items():
+            # Check if this node has any handles already
+            node_has_handles = any(
+                handle.nodeId == node_id
+                for handle in handles_dict.values()
+            )
+            if not node_has_handles:
                 self.handle_generator.generate_for_node(
                     diagram_dict, node_id, node.type
                 )

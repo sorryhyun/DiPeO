@@ -1,78 +1,46 @@
+"""Server exception module.
+
+This module re-exports exceptions from dipeo_core.errors for backward compatibility
+and defines server-specific exceptions that extend the core taxonomy.
+"""
+
 from typing import Any, Optional
 
+# Re-export base exceptions
+from dipeo_core.base.exceptions import (
+    DiPeOError,
+    ValidationError,
+    ConfigurationError,
+    ServiceError,
+    ExecutionError,
+)
 
-class AgentDiagramException(Exception):
-    """Base exception class for AgentDiagram application."""
+# Re-export core exceptions for backward compatibility
+from dipeo_core.errors import (
+    NodeExecutionError,
+    DependencyError,
+    MaxIterationsError,
+    TimeoutError,
+    APIKeyError,
+    APIKeyNotFoundError,
+    LLMServiceError,
+    FileOperationError,
+    DiagramError,
+    DiagramNotFoundError,
+    InvalidDiagramError,
+)
 
-    def __init__(self, message: str, details: Optional[dict[str, Any]] = None):
-        super().__init__(message)
-        self.message = message
-        self.details = details or {}
+# Legacy alias
+AgentDiagramException = DiPeOError
 
-
-class ValidationError(AgentDiagramException):
-    pass
-
-
-class APIKeyError(AgentDiagramException):
-    pass
-
-
-class APIKeyNotFoundError(APIKeyError):
-    pass
-
-
-class LLMServiceError(AgentDiagramException):
-    pass
-
-
-class DiagramExecutionError(AgentDiagramException):
-    pass
-
-
-class NodeExecutionError(DiagramExecutionError):
-    def __init__(
-        self,
-        node_id: str,
-        node_type: str,
-        message: str,
-        details: Optional[dict[str, Any]] = None,
-    ):
-        self.node_id = node_id
-        self.node_type = node_type
-        super().__init__(f"Node {node_id} ({node_type}) failed: {message}", details)
+# Legacy alias for DiagramExecutionError -> ExecutionError
+DiagramExecutionError = ExecutionError
 
 
-class DependencyError(DiagramExecutionError):
-    def __init__(
-        self,
-        node_id: str,
-        missing_dependencies: list[str],
-        details: Optional[dict[str, Any]] = None,
-    ):
-        self.node_id = node_id
-        self.missing_dependencies = missing_dependencies
-        super().__init__(
-            f"Node {node_id} dependencies not met: {', '.join(missing_dependencies)}",
-            details,
-        )
-
-
-class MaxIterationsError(DiagramExecutionError):
-    def __init__(
-        self,
-        node_id: str,
-        max_iterations: int,
-        details: Optional[dict[str, Any]] = None,
-    ):
-        self.node_id = node_id
-        self.max_iterations = max_iterations
-        super().__init__(
-            f"Node {node_id} exceeded maximum iterations ({max_iterations})", details
-        )
-
-
+# Server-specific exceptions that extend the core taxonomy
 class ConditionEvaluationError(NodeExecutionError):
+    """Error when evaluating a condition node."""
+    
     def __init__(
         self,
         node_id: str,
@@ -82,11 +50,16 @@ class ConditionEvaluationError(NodeExecutionError):
     ):
         self.condition = condition
         super().__init__(
-            node_id, "condition", f"Condition evaluation failed: {message}", details
+            node_id=node_id,
+            node_type="condition",
+            message=f"Condition evaluation failed: {message}",
+            details=details,
         )
 
 
 class PersonJobExecutionError(NodeExecutionError):
+    """Error when executing a person job node."""
+    
     def __init__(
         self,
         node_id: str,
@@ -96,17 +69,13 @@ class PersonJobExecutionError(NodeExecutionError):
     ):
         self.person_id = person_id
         super().__init__(
-            node_id, "personJob", f"PersonJob execution failed: {message}", details
+            node_id=node_id,
+            node_type="personJob",
+            message=f"PersonJob execution failed: {message}",
+            details=details,
         )
 
 
-class FileOperationError(AgentDiagramException):
-    pass
-
-
-class DatabaseError(AgentDiagramException):
-    pass
-
-
-class ConfigurationError(AgentDiagramException):
+class DatabaseError(ServiceError):
+    """Error when performing database operations."""
     pass

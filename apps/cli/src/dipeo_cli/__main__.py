@@ -24,6 +24,7 @@ def print_usage():
     print("    --no-browser            - Disable browser visualization")
     print("    --no-stream             - Disable streaming output")
     print("    --debug                 - Enable debug mode")
+    print("    --keep-server           - Keep server running after debug execution")
     print("    --timeout=<seconds>     - Set inactivity timeout (default: 300)")
     print("  monitor                    - Open browser monitoring page")
     print("  convert <input> <output>   - Convert between JSON/YAML formats")
