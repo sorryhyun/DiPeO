@@ -83,7 +83,7 @@ class ExecutionMutations:
             # Execution starts asynchronously; client monitors via subscriptions
             execution = ExecutionState(
                 id=ExecutionID(execution_id),
-                status=ExecutionStatus.STARTED,
+                status=ExecutionStatus.PENDING,
                 diagramId=DiagramID(diagram_id) if diagram_id else None,
                 startedAt=datetime.now(UTC).isoformat(),
                 endedAt=None,
@@ -198,7 +198,7 @@ class ExecutionMutations:
                 )
 
             if execution_state.status not in [
-                ExecutionStatus.STARTED,
+                ExecutionStatus.PENDING,
                 ExecutionStatus.RUNNING,
             ]:
                 return ExecutionResult(
@@ -259,14 +259,14 @@ class ExecutionMutations:
 def _map_status(status: str) -> ExecutionStatus:
     """Maps status string to ExecutionStatus enum."""
     status_map = {
-        "started": ExecutionStatus.STARTED,
+        "pending": ExecutionStatus.PENDING,
         "running": ExecutionStatus.RUNNING,
         "paused": ExecutionStatus.PAUSED,
         "completed": ExecutionStatus.COMPLETED,
         "failed": ExecutionStatus.FAILED,
         "cancelled": ExecutionStatus.ABORTED,
     }
-    return status_map.get(status.lower(), ExecutionStatus.STARTED)
+    return status_map.get(status.lower(), ExecutionStatus.PENDING)
 
 
 def _map_action_to_status(action: str, current_status: str) -> ExecutionStatus:

@@ -1,4 +1,4 @@
-import { PersonID } from "./diagram.js";
+import { PersonID, MemoryConfig } from "./diagram.js";
 
 /**
  * Base message interface for conversations
@@ -27,11 +27,6 @@ export interface Conversation {
   metadata?: ConversationMetadata;
 }
 
-export interface MemoryConfig {
-  forgetMode?: 'no_forget' | 'on_every_turn' | 'upon_request';
-  maxMessages?: number;
-  temperature?: number;
-}
 
 export interface MemoryState extends Conversation {
   visibleMessages: number;

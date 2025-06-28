@@ -2,12 +2,17 @@
 
 __version__ = "0.1.0"
 
-from .conversation import SimpleConversationService
+# Import only the working services for now
 from .file import SimpleFileService
 from .memory import SimpleMemoryService
+from .text import SimpleTextService
+from .file_ops import SimpleFileOperationsService
 
 __all__ = [
-    "SimpleConversationService",
     "SimpleFileService", 
     "SimpleMemoryService",
+    "SimpleTextService",
+    "SimpleFileOperationsService",
 ]
+
+# TODO: Add SimpleConversationService when it's updated to use correct domain models

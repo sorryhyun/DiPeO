@@ -1,6 +1,8 @@
 """Local application context for CLI execution."""
 
-from typing import Optional
+import os
+from typing import Any, Dict, List, Optional
+import logging
 
 from dipeo_core import (
     SupportsAPIKey,
@@ -10,6 +12,8 @@ from dipeo_core import (
     SupportsLLM,
     SupportsMemory,
     SupportsNotion,
+    BaseService,
+    LLMServiceError,
 )
 
 
@@ -33,6 +37,189 @@ class MinimalMessageRouter:
         pass
 
 
+logger = logging.getLogger(__name__)
+
+
+class LLMServiceAdapter:
+    """Adapter to make SimpleLLMService work with SimpleConversationService."""
+    
+    def __init__(self, simple_llm_service):
+        self.simple_llm_service = simple_llm_service
+    
+    async def call_llm(
+        self,
+        model: str,
+        messages: List[Dict[str, Any]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Adapt the call to match SimpleConversationService expectations."""
+        return await self.simple_llm_service.call_llm(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+
+
+class SimpleLLMService(BaseService):
+    """Simple LLM service for local execution that uses environment variables for API keys."""
+    
+    def __init__(self):
+        super().__init__()
+        self._api_keys = {
+            "openai": os.getenv("OPENAI_API_KEY"),
+            "anthropic": os.getenv("ANTHROPIC_API_KEY"),
+            "google": os.getenv("GOOGLE_API_KEY"),
+            "groq": os.getenv("GROQ_API_KEY"),
+            "xai": os.getenv("XAI_API_KEY"),
+        }
+    
+    async def initialize(self) -> None:
+        """Initialize the service."""
+        pass
+    
+    async def call_llm(
+        self,
+        service: Optional[str] = None,
+        api_key_id: str = "",
+        model: str = "gpt-4.1-nano",
+        messages: Any = None,
+        system_prompt: str = "",
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Call an LLM with the given messages."""
+        # Handle both protocol signature and simplified signature
+        if isinstance(messages, list) and messages:
+            # Already in correct format
+            pass
+        else:
+            # Convert from protocol format if needed
+            messages = messages or []
+            
+        # Extract additional parameters
+        temperature = kwargs.get('temperature')
+        max_tokens = kwargs.get('max_tokens')
+            
+        try:
+            # Determine provider from model name or service parameter
+            if service:
+                provider = service.lower()
+            else:
+                provider = self._get_provider_from_model(model)
+            api_key = self._api_keys.get(provider)
+            
+            if not api_key:
+                raise LLMServiceError(
+                    service=provider,
+                    message=f"API key not found for {provider}. Please set {provider.upper()}_API_KEY environment variable."
+                )
+            
+            # Import the appropriate client based on provider
+            if provider == "openai":
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+                
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature or 0.7,
+                    max_tokens=max_tokens,
+                )
+                
+                return {
+                    "content": response.choices[0].message.content,
+                    "role": "assistant",
+                    "model": model,
+                    "usage": {
+                        "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                        "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                        "total_tokens": response.usage.total_tokens if response.usage else 0,
+                    } if response.usage else None
+                }
+            
+            elif provider == "anthropic":
+                from anthropic import Anthropic
+                client = Anthropic(api_key=api_key)
+                
+                # Convert messages to Anthropic format
+                system_message = None
+                anthropic_messages = []
+                for msg in messages:
+                    if msg["role"] == "system":
+                        system_message = msg["content"]
+                    else:
+                        anthropic_messages.append(msg)
+                
+                response = client.messages.create(
+                    model=model,
+                    messages=anthropic_messages,
+                    system=system_message,
+                    temperature=temperature or 0.7,
+                    max_tokens=max_tokens or 1024,
+                )
+                
+                return {
+                    "content": response.content[0].text if response.content else "",
+                    "role": "assistant",
+                    "model": model,
+                    "usage": {
+                        "prompt_tokens": response.usage.input_tokens if response.usage else 0,
+                        "completion_tokens": response.usage.output_tokens if response.usage else 0,
+                        "total_tokens": (response.usage.input_tokens + response.usage.output_tokens) if response.usage else 0,
+                    } if response.usage else None
+                }
+            
+            else:
+                raise LLMServiceError(
+                    service=provider,
+                    message=f"Provider {provider} not yet implemented in local mode"
+                )
+                
+        except Exception as e:
+            logger.error(f"Error calling LLM: {str(e)}")
+            raise LLMServiceError(service="llm", message=str(e))
+    
+    def _get_provider_from_model(self, model: str) -> str:
+        """Determine provider from model name."""
+        model_lower = model.lower()
+        
+        if "gpt" in model_lower or "o1" in model_lower or "o3" in model_lower:
+            return "openai"
+        elif "claude" in model_lower:
+            return "anthropic"
+        elif "gemini" in model_lower:
+            return "google"
+        elif "groq" in model_lower or "llama" in model_lower or "mixtral" in model_lower:
+            return "groq"
+        elif "grok" in model_lower:
+            return "xai"
+        else:
+            # Default to OpenAI for unknown models
+            return "openai"
+    
+    def get_token_counts(self, client_name: str, usage: Any) -> Any:
+        """Get token counts from usage data."""
+        # This is a simplified implementation
+        return usage
+    
+    def pre_initialize_model(self, service: str, model: str, api_key_id: str) -> bool:
+        """Pre-initialize a model (no-op for local execution)."""
+        return True
+    
+    async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
+        """Get available models for a service."""
+        # Return a basic list of known models
+        if service == "openai":
+            return ["gpt-4.1-nano", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"]
+        elif service == "anthropic":
+            return ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
+        else:
+            return []
+
+
 class LocalAppContext:
     """Minimal application context for CLI local execution."""
 
@@ -41,7 +228,8 @@ class LocalAppContext:
         self.api_key_service: SupportsAPIKey | None = None
         self.llm_service: SupportsLLM | None = None
         self.file_service: SupportsFile | None = None
-        self.conversation_service: SupportsMemory | None = None
+        self.memory_service: SupportsMemory | None = None  # Changed from conversation_service
+        self.conversation_service: Any | None = None  # Will be SimpleConversationService
         self.execution_service: SupportsExecution | None = None
         self.notion_service: SupportsNotion | None = None
         self.diagram_storage_service: SupportsDiagram | None = None
@@ -54,10 +242,22 @@ class LocalAppContext:
         """Initialize minimal services for local execution."""
         # Import necessary services
         from dipeo_usecases import LocalExecutionService
+        from dipeo_services import SimpleMemoryService, SimpleFileService
+
+        # Initialize basic services
+        simple_llm = SimpleLLMService()
+        await simple_llm.initialize()
+        self.llm_service = simple_llm
+        
+        self.memory_service = SimpleMemoryService()
+        self.file_service = SimpleFileService()
+        
+        # TODO: Initialize conversation service when it's updated to use correct domain models
+        # For now, we'll use None which means person_job nodes won't work in local mode
+        self.conversation_service = None
 
         # Initialize execution service
         self.execution_service = LocalExecutionService(self)
         await self.execution_service.initialize()
-
-        # TODO: Initialize other services as needed for specific node types
-        # For now, we'll start with just the execution service
+        
+        logger.info("Local context initialized with simple services (without conversation service)")

@@ -43,7 +43,6 @@ class ConversationDomainService:
         person_id: str | None = data.get("personId") or data.get("person")
         first_only_prompt: str = data.get("firstOnlyPrompt", "")
         default_prompt: str = data.get("defaultPrompt", "")
-        forgetting_mode: str | None = data.get("forgettingMode")
         is_judge: bool = "judge" in data.get("label", "").lower()
 
         if not person_id:
@@ -55,9 +54,12 @@ class ConversationDomainService:
         person_obj = self.find_person_by_id(diagram.persons, person_id)
         person_config = self.get_person_config(person_obj)
 
-        # Handle forgetting mode
-        if forgetting_mode == "on_every_turn" and exec_count > 1:
-            self._conversations.forget_own_messages_for_person(person_id, execution_id)
+        # Handle forgetting mode from person's memory config
+        memory_config = getattr(person_obj, "memory_config", None) if person_obj else None
+        if memory_config:
+            forget_mode = getattr(memory_config, "forget_mode", None)
+            if forget_mode == "on_every_turn" and exec_count > 1:
+                self._conversations.forget_own_messages_for_person(person_id, execution_id)
 
         # Handle conversation inputs
         self.handle_conversation_inputs(
@@ -99,12 +101,18 @@ class ConversationDomainService:
         conversation = self._conversations.get_conversation_for_person(person_id)
 
         # Call LLM with conversation
-        llm_result = await self._llm.call_llm(
-            service=person_config["service"],
-            api_key_id=person_config["api_key_id"],
-            model=person_config["model"],
-            messages=conversation,
-        )
+        llm_params = {
+            "service": person_config["service"],
+            "api_key_id": person_config["api_key_id"],
+            "model": person_config["model"],
+            "messages": conversation,
+        }
+
+        # Add temperature if specified in person's memory config
+        if person_config.get("temperature") is not None:
+            llm_params["temperature"] = person_config["temperature"]
+
+        llm_result = await self._llm.call_llm(**llm_params)
 
         response_text: str = llm_result.get("response", "")
         token_usage_obj = llm_result.get("token_usage")
@@ -178,7 +186,14 @@ class ConversationDomainService:
                 "api_key_id": None,
                 "model": "gpt-4.1-nano",
                 "system_prompt": "",
+                "temperature": None,
             }
+
+        # Extract memory config temperature if available
+        memory_config = getattr(person, "memory_config", None)
+        temperature = None
+        if memory_config:
+            temperature = getattr(memory_config, "temperature", None)
 
         return {
             "service": getattr(person, "service", "openai"),
@@ -187,6 +202,7 @@ class ConversationDomainService:
             "model": getattr(person, "model", "gpt-4.1-nano"),
             "system_prompt": getattr(person, "system_prompt", None)
             or getattr(person, "systemPrompt", ""),
+            "temperature": temperature,
         }
 
     def find_person_by_id(

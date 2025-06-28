@@ -117,7 +117,7 @@ class StateRegistry:
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(execution_id),
-            status=ExecutionStatus.STARTED,
+            status=ExecutionStatus.PENDING,
             diagramId=DiagramID(diagram_id) if diagram_id else None,
             startedAt=now,
             endedAt=None,
@@ -138,7 +138,7 @@ class StateRegistry:
         if (
             state.is_active
             if hasattr(state, "is_active")
-            else (state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING])
+            else (state.status in [ExecutionStatus.PENDING, ExecutionStatus.RUNNING])
         ):
             await self._execution_cache.set(state.id, state)
         else:
@@ -314,7 +314,6 @@ class StateRegistry:
         status: NodeExecutionStatus,
         output: NodeOutput | None = None,
         error: str | None = None,
-        skip_reason: str | None = None,
     ):
         """Update node execution status."""
         state = await self.get_state(execution_id)
@@ -329,7 +328,6 @@ class StateRegistry:
                 startedAt=now if status == NodeExecutionStatus.RUNNING else None,
                 endedAt=None,
                 error=None,
-                skipReason=None,
                 tokenUsage=None,
             )
         else:
@@ -343,11 +341,9 @@ class StateRegistry:
             ]:
                 state.node_states[node_id].ended_at = now
 
-        # Update error or skip reason
+        # Update error
         if error:
             state.node_states[node_id].error = error
-        if skip_reason:
-            state.node_states[node_id].skip_reason = skip_reason
 
         # Store output if completed
         if status == NodeExecutionStatus.COMPLETED and output is not None:
@@ -471,7 +467,7 @@ class StateRegistry:
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(execution_id),
-            status=ExecutionStatus.STARTED,
+            status=ExecutionStatus.PENDING,
             diagramId=DiagramID(diagram_id) if diagram_id else None,
             startedAt=now,
             endedAt=None,

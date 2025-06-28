@@ -4,46 +4,47 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import type { NodeID, DiagramID } from './diagram.js';
-import type { Message, MemoryState, MemoryConfig } from './conversation.js';
+import type { NodeID, DiagramID, MemoryConfig } from './diagram.js';
+import type { Message, MemoryState } from './conversation.js';
 
 // Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
-// Enums
+// Enums - unified status values for consistency
 export enum ExecutionStatus {
-  STARTED = 'STARTED',
+  PENDING = 'PENDING',      // Unified with NodeExecutionStatus
   RUNNING = 'RUNNING',
   PAUSED = 'PAUSED',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  ABORTED = 'ABORTED'
+  ABORTED = 'ABORTED',
+  SKIPPED = 'SKIPPED'       // Added for consistency
 }
 
 export enum NodeExecutionStatus {
   PENDING = 'PENDING',
   RUNNING = 'RUNNING',
+  PAUSED = 'PAUSED',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  SKIPPED = 'SKIPPED',
-  PAUSED = 'PAUSED'
+  ABORTED = 'ABORTED',      // Added for consistency
+  SKIPPED = 'SKIPPED'
 }
 
 export enum EventType {
-  EXECUTION_STARTED = 'EXECUTION_STARTED',
-  NODE_STARTED = 'NODE_STARTED',
-  NODE_RUNNING = 'NODE_RUNNING',
-  NODE_COMPLETED = 'NODE_COMPLETED',
-  NODE_FAILED = 'NODE_FAILED',
-  NODE_SKIPPED = 'NODE_SKIPPED',
-  NODE_PAUSED = 'NODE_PAUSED',
+  // Core execution lifecycle events
+  EXECUTION_STATUS_CHANGED = 'EXECUTION_STATUS_CHANGED',
+  NODE_STATUS_CHANGED = 'NODE_STATUS_CHANGED',
+  
+  // Progress and interaction events
   NODE_PROGRESS = 'NODE_PROGRESS',
-  EXECUTION_COMPLETED = 'EXECUTION_COMPLETED',
-  EXECUTION_FAILED = 'EXECUTION_FAILED',
-  EXECUTION_ABORTED = 'EXECUTION_ABORTED',
   INTERACTIVE_PROMPT = 'INTERACTIVE_PROMPT',
   INTERACTIVE_RESPONSE = 'INTERACTIVE_RESPONSE',
+  
+  // Error handling
   EXECUTION_ERROR = 'EXECUTION_ERROR',
+  
+  // Generic update event
   EXECUTION_UPDATE = 'EXECUTION_UPDATE'
 }
 
@@ -61,7 +62,6 @@ export interface NodeState {
   startedAt?: string | null;
   endedAt?: string | null;
   error?: string | null;
-  skipReason?: string | null;
   tokenUsage?: TokenUsage | null;
 }
 
@@ -89,15 +89,6 @@ export interface ExecutionState {
 }
 
 
-export interface ExecutionEvent {
-  executionId: ExecutionID;
-  sequence: number;
-  eventType: EventType;
-  nodeId?: NodeID | null;
-  timestamp: string; // ISO datetime string
-  data: Record<string, any>;
-  formattedMessage?: string; // Computed field
-}
 
 export interface ExecutionOptions {
   mode?: 'normal' | 'debug' | 'monitor';
@@ -139,14 +130,6 @@ export interface ExecutionUpdate {
   data?: Record<string, any>;
 }
 
-// Simplified execution context (data only, no services)
-export interface ExecutionContext {
-  executionId: ExecutionID;
-  diagramId: DiagramID;
-  nodeStates: Record<string, NodeState>;
-  nodeOutputs: Record<string, any>;
-  variables: Record<string, any>;
-}
 
 // Node handler definition
 export interface NodeDefinition {
@@ -172,7 +155,7 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
   const now = new Date().toISOString();
   return {
     id: executionId,
-    status: ExecutionStatus.STARTED,
+    status: ExecutionStatus.PENDING,
     diagramId: diagramId ?? null,
     startedAt: now,
     endedAt: null,
@@ -187,7 +170,7 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
 
 export function isExecutionActive(status: ExecutionStatus): boolean {
   return [
-    ExecutionStatus.STARTED,
+    ExecutionStatus.PENDING,
     ExecutionStatus.RUNNING,
     ExecutionStatus.PAUSED
   ].includes(status);

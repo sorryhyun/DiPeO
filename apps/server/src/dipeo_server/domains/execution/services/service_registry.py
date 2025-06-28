@@ -125,12 +125,12 @@ class ServiceRegistry:
             "api": {"api": self.api_integration, "file": self._app.file_service},
             # Text nodes use new text processing service if available
             "text": {"text": self.text_processing},
-            "endpoint": {"file_service": self._app.file_service},
+            "endpoint": {"file": self._app.file_service},
             "start": {},
             # Condition nodes might need file service for evaluations
             "condition": {"file": self._app.file_service},
             # Database nodes need file service
-            "db": {"file_service": self._app.file_service},
+            "db": {"file": self._app.file_service},
         }
 
         return service_map.get(node_type, {})

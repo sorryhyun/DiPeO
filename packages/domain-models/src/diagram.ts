@@ -4,6 +4,11 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
+import { LLMService, NotionOperation } from './integration.js';
+
+// Re-export integration types for backward compatibility
+export { LLMService, NotionOperation };
+
 
 // Enums
 export enum NodeType {
@@ -32,16 +37,6 @@ export enum DataType {
   ARRAY = 'array'
 }
 
-export enum LLMService {
-  OPENAI = 'openai',
-  ANTHROPIC = 'anthropic',
-  GOOGLE = 'google',
-  GROK = 'grok',
-  BEDROCK = 'bedrock',
-  VERTEX = 'vertex',
-  DEEPSEEK = 'deepseek'
-}
-
 export enum ForgettingMode {
   NO_FORGET = 'no_forget',
   ON_EVERY_TURN = 'on_every_turn',
@@ -65,16 +60,6 @@ export enum ContentType {
   VARIABLE = 'variable',
   RAW_TEXT = 'raw_text',
   CONVERSATION_STATE = 'conversation_state'
-}
-
-export enum NotionOperation {
-  CREATE_PAGE = 'create_page',
-  UPDATE_PAGE = 'update_page',
-  READ_PAGE = 'read_page',
-  DELETE_PAGE = 'delete_page',
-  CREATE_DATABASE = 'create_database',
-  QUERY_DATABASE = 'query_database',
-  UPDATE_DATABASE = 'update_database'
 }
 
 export enum SupportedLanguage {
@@ -121,6 +106,12 @@ export interface DomainArrow {
   source: HandleID; // "nodeId:handleName" format
   target: HandleID; // "nodeId:handleName" format
   data?: Record<string, any> | null;
+}
+
+export interface MemoryConfig {
+  forgetMode?: ForgettingMode;
+  maxMessages?: number;
+  temperature?: number;
 }
 
 export interface DomainPerson {
@@ -187,7 +178,7 @@ export interface PersonJobNodeData extends BaseNodeData {
   firstOnlyPrompt: string;
   defaultPrompt?: string;
   maxIteration: number;
-  forgettingMode?: ForgettingMode;
+  memoryConfig?: MemoryConfig | null;
 }
 
 export interface EndpointNodeData extends BaseNodeData {
@@ -222,76 +213,4 @@ export interface NotionNodeData extends BaseNodeData {
 
 export type PersonBatchJobNodeData = PersonJobNodeData;
 
-// Node data mapping
-export type NodeDataMap = {
-  [NodeType.START]: StartNodeData;
-  [NodeType.CONDITION]: ConditionNodeData;
-  [NodeType.PERSON_JOB]: PersonJobNodeData;
-  [NodeType.ENDPOINT]: EndpointNodeData;
-  [NodeType.DB]: DBNodeData;
-  [NodeType.JOB]: JobNodeData;
-  [NodeType.USER_RESPONSE]: UserResponseNodeData;
-  [NodeType.NOTION]: NotionNodeData;
-  [NodeType.PERSON_BATCH_JOB]: PersonBatchJobNodeData;
-};
 
-
-// Utility functions
-export function createEmptyDiagram(): DomainDiagram {
-  return {
-    nodes: [],
-    handles: [],
-    arrows: [],
-    persons: [],
-    apiKeys: [],
-    metadata: {
-      version: '2.0.0',
-      created: new Date().toISOString(),
-      modified: new Date().toISOString()
-    }
-  };
-}
-
-
-// Type guards
-export function isDomainNode(obj: unknown): obj is DomainNode {
-  // Simple type guard without Zod
-  if (!obj || typeof obj !== 'object') return false;
-  const node = obj as any;
-  return (
-    typeof node.id === 'string' &&
-    typeof node.type === 'string' &&
-    node.position &&
-    typeof node.position.x === 'number' &&
-    typeof node.position.y === 'number' &&
-    node.data &&
-    typeof node.data === 'object'
-  );
-}
-
-// Handle utilities
-export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
-  const [nodeId, ...handleNameParts] = handleId.split(':');
-  return {
-    nodeId: nodeId as NodeID,
-    handleName: handleNameParts.join(':')
-  };
-}
-
-export function createHandleId(nodeId: NodeID, handleName: string): HandleID {
-  return `${nodeId}:${handleName}` as HandleID;
-}
-
-export function areHandlesCompatible(source: DomainHandle, target: DomainHandle): boolean {
-  // Basic compatibility: output can connect to input
-  if (source.direction !== HandleDirection.OUTPUT || target.direction !== HandleDirection.INPUT) {
-    return false;
-  }
-  
-  // Type compatibility
-  if (source.dataType === DataType.ANY || target.dataType === DataType.ANY) {
-    return true;
-  }
-  
-  return source.dataType === target.dataType;
-}

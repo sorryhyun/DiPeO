@@ -15,7 +15,6 @@ from dipeo_domain import (
     DomainNode,
     DomainPerson,
     EventType,
-    ExecutionEvent,
     ExecutionState,
     ExecutionStatus,
     ForgettingMode,
@@ -256,24 +255,6 @@ class ExecutionStateType:
         return {}
 
 
-@strawberry.experimental.pydantic.type(
-    ExecutionEvent,
-    fields=[
-        "execution_id",
-        "sequence",
-        "event_type",
-        "node_id",
-        "timestamp",
-        "formatted_message",
-    ],
-)
-class ExecutionEventType:
-    @strawberry.field
-    def data(self) -> JSONScalar | None:
-        if hasattr(self, "_pydantic_object"):
-            return self._pydantic_object.data
-        return None
-
 
 # INPUT TYPES - Create input types that match the domain model structure
 @strawberry.input
@@ -505,7 +486,6 @@ __all__ = [
     "EventTypeEnum",
     "ExecuteDiagramInput",
     "ExecutionControlInput",
-    "ExecutionEventType",
     "ExecutionFilterInput",
     "ExecutionID",
     "ExecutionResult",

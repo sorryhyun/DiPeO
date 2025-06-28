@@ -23,7 +23,7 @@ class DBNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["file_service"]
+        return ["file"]
 
     @property
     def description(self) -> str:
@@ -37,7 +37,7 @@ class DBNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute db node."""
-        file_service = services["file_service"]
+        file_service = services["file"]
 
         # Get single input value
         input_val = None

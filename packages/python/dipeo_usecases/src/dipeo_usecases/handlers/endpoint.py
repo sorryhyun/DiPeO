@@ -22,7 +22,7 @@ class EndpointNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["file_service"]
+        return ["file"]
 
     @property
     def description(self) -> str:
@@ -36,7 +36,7 @@ class EndpointNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute endpoint node."""
-        file_service = services["file_service"]
+        file_service = services["file"]
 
         if props.data is not None:
             result_data = props.data

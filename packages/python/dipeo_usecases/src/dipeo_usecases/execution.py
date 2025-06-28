@@ -13,6 +13,7 @@ from dipeo_domain import ExecutionStatus, NodeExecutionStatus
 from dipeo_domain.models import DomainDiagram, DomainNode, NodeOutput
 
 from .execution_view import LocalExecutionView, NodeView
+from .service_registry import LocalServiceRegistry
 
 if TYPE_CHECKING:
     from .context import ApplicationContext
@@ -27,6 +28,7 @@ class LocalExecutionService(BaseService, SupportsExecution):
         """Initialize with application context."""
         super().__init__()
         self.app_context = app_context
+        self.service_registry = LocalServiceRegistry(app_context)
         self._pending_updates: list[dict[str, Any]] = []
 
     async def initialize(self) -> None:
@@ -69,10 +71,14 @@ class LocalExecutionService(BaseService, SupportsExecution):
             
             # Assign handlers to node views
             for node_id, node_view in execution_view.node_views.items():
-                handler_class = registry.get_handler(node_view.node.type)
-                if not handler_class:
+                # Get the handler definition which contains the handler function
+                node_def = registry.get(node_view.node.type)
+                if not node_def:
                     raise ValueError(f"No handler registered for node type: {node_view.node.type}")
-                node_view.handler = handler_class()
+                # Set the handler function (not instance) and store the definition for later use
+                node_view.handler = node_def.handler
+                # Store the handler definition on the node view for access to metadata
+                node_view._handler_def = node_def
             
             # Execute nodes in topological order
             for level_num, level_nodes in enumerate(execution_view.execution_order):
@@ -155,10 +161,33 @@ class LocalExecutionService(BaseService, SupportsExecution):
             # Create runtime context
             from dipeo_core import RuntimeContext
             
+            # Convert edges to the format expected by RuntimeContext
+            edges = []
+            for edge_view in execution_view.edge_views:
+                edges.append({
+                    "id": edge_view.arrow.id,
+                    "source": edge_view.arrow.source,
+                    "target": edge_view.arrow.target,
+                    "sourceHandle": getattr(edge_view.arrow, "source_handle_id", edge_view.arrow.source),
+                    "targetHandle": getattr(edge_view.arrow, "target_handle_id", edge_view.arrow.target),
+                })
+            
+            # Convert nodes to the format expected by RuntimeContext
+            nodes = []
+            for nv in execution_view.node_views.values():
+                nodes.append({
+                    "id": nv.id,
+                    "type": nv.type,
+                    "data": nv.data,
+                })
+            
             context = RuntimeContext(
                 execution_id=execution_id,
                 current_node_id=node_view.id,
+                edges=edges,
+                nodes=nodes,
                 variables=options.get("variables", {}),
+                exec_cnt={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
             )
             
             # Get inputs from connected nodes
@@ -166,15 +195,15 @@ class LocalExecutionService(BaseService, SupportsExecution):
             
             # Get required services
             required_services = {}
-            if node_view.handler:
-                for service_name in node_view.handler.requires_services:
-                    service = getattr(self.app_context, f"{service_name}_service", None)
-                    if service:
-                        required_services[service_name] = service
+            if node_view.handler and hasattr(node_view, '_handler_def'):
+                handler_def = node_view._handler_def
+                required_services = self.service_registry.get_handler_services(
+                    handler_def.requires_services
+                )
                 
                 # Execute handler
-                output = await node_view.handler.execute(
-                    props=node_view.handler.schema.model_validate(node_view.data),
+                output = await node_view.handler(
+                    props=handler_def.node_schema.model_validate(node_view.data),
                     context=context,
                     inputs=inputs,
                     services=required_services,

@@ -204,7 +204,7 @@ class DiagramRunner:
                 node_id = update.get("nodeId", "unknown")
                 status = update.get("status", "")
 
-                if status == "started" and self.options.stream:
+                if status == "pending" and self.options.stream:
                     print(f"\n🔄 Executing node: {node_id}")
                     if self.options.debug:
                         self.node_timings[node_id] = {"start": time.time()}

@@ -47,7 +47,6 @@ export type JobNodeData = WithUI<DomainJobNodeData>;
 export type UserResponseNodeData = WithUI<DomainUserResponseNodeData>;
 export type NotionNodeData = WithUI<DomainNotionNodeData>;
 export interface PersonBatchJobNodeData extends WithUI<DomainPersonBatchJobNodeData> {
-  ForgettingMode?: string; // Keep this for backward compatibility
 }
 
 // Type guards are now imported from graphql-mappings

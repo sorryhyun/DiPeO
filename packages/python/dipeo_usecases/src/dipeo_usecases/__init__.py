@@ -27,6 +27,9 @@ from .execution import LocalExecutionService
 # Export execution view classes
 from .execution_view import LocalExecutionView, NodeView, EdgeView
 
+# Export service registry
+from .service_registry import LocalServiceRegistry
+
 __all__ = [
     # Context
     "ApplicationContext",
@@ -35,6 +38,8 @@ __all__ = [
     "LocalExecutionView",
     "NodeView",
     "EdgeView",
+    # Service Registry
+    "LocalServiceRegistry",
     # Handlers
     "ConditionNodeHandler",
     "DBNodeHandler",

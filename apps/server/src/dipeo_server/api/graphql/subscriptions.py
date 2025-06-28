@@ -6,15 +6,15 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 
 import strawberry
-from dipeo_domain import EventType, ExecutionStatus, NodeExecutionStatus, NodeType
+from dipeo_domain import ExecutionStatus, NodeExecutionStatus, NodeType
 
 from .context import GraphQLContext
 from .types import (
     DiagramID,
     DomainDiagramType,
-    ExecutionEventType,
     ExecutionID,
     ExecutionStateType,
+    ExecutionStatusEnum,
     JSONScalar,
     NodeID,
 )
@@ -180,12 +180,10 @@ class Subscription:
         self,
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
-        event_types: list[EventType] | None = None,
-    ) -> AsyncGenerator[ExecutionEventType]:
-        """Streams specific execution event types using direct streaming."""
+    ) -> AsyncGenerator[ExecutionStatusEnum]:
+        """Streams execution status updates using direct streaming."""
         logger.info(f"Starting direct event stream subscription for {execution_id}")
 
-        sequence = 0
         queue = await streaming_manager.subscribe(execution_id)
 
         try:
@@ -194,74 +192,23 @@ class Subscription:
                     # Wait for updates
                     update = await asyncio.wait_for(queue.get(), timeout=30.0)
 
-                    # Map update types to events
-                    if update.get("type") == "node_update":
-                        data = update.get("data", {})
-                        node_id = data.get("node_id")
-                        state = data.get("state", "")
-
-                        # Map state to event type
-                        if state == NodeExecutionStatus.RUNNING.value:
-                            event_type = EventType.NODE_STARTED
-                        elif state == NodeExecutionStatus.COMPLETED.value:
-                            event_type = EventType.NODE_COMPLETED
-                        elif state == NodeExecutionStatus.FAILED.value:
-                            event_type = EventType.NODE_FAILED
-                        elif state == NodeExecutionStatus.SKIPPED.value:
-                            event_type = EventType.NODE_SKIPPED
-                        else:
-                            continue
-
-                        if not event_types or event_type in event_types:
-                            sequence += 1
-
-                            event_data = {
-                                "status": state,
-                            }
-
-                            if state == NodeExecutionStatus.FAILED.value:
-                                event_data["error"] = data.get("error")
-                            elif state == NodeExecutionStatus.COMPLETED.value:
-                                output = data.get("output", {})
-                                if isinstance(output, dict):
-                                    event_data["output"] = output.get("data")
-
-                            yield ExecutionEventType(
-                                execution_id=execution_id,
-                                sequence=sequence,
-                                event_type=event_type,
-                                node_id=NodeID(node_id) if node_id else None,
-                                timestamp=data.get(
-                                    "timestamp", datetime.utcnow().isoformat()
-                                ),
-                                data=event_data,
-                            )
-
-                    elif update.get("type") == "execution_complete":
-                        sequence += 1
+                    # Return execution status from execution_complete events
+                    if update.get("type") == "execution_complete":
                         status = update.get("status", "completed")
 
+                        # Map status string to ExecutionStatus enum
                         if status == "completed":
-                            event_type = EventType.EXECUTION_COMPLETED
+                            yield ExecutionStatusEnum(ExecutionStatus.COMPLETED)
                         elif status == "failed":
-                            event_type = EventType.EXECUTION_FAILED
+                            yield ExecutionStatusEnum(ExecutionStatus.FAILED)
                         elif status == "aborted":
-                            event_type = EventType.EXECUTION_ABORTED
+                            yield ExecutionStatusEnum(ExecutionStatus.ABORTED)
+                        elif status == "running":
+                            yield ExecutionStatusEnum(ExecutionStatus.RUNNING)
+                        elif status == "paused":
+                            yield ExecutionStatusEnum(ExecutionStatus.PAUSED)
                         else:
-                            event_type = EventType.EXECUTION_UPDATE
-
-                        if not event_types or event_type in event_types:
-                            yield ExecutionEventType(
-                                execution_id=execution_id,
-                                sequence=sequence,
-                                event_type=event_type,
-                                node_id=None,
-                                timestamp=datetime.utcnow().isoformat(),
-                                data={
-                                    "status": status,
-                                    "error": update.get("error"),
-                                },
-                            )
+                            yield ExecutionStatusEnum(ExecutionStatus.PENDING)
 
                         logger.info(
                             f"Direct event stream completed for execution {execution_id}"
