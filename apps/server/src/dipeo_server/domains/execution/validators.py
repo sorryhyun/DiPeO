@@ -1,6 +1,6 @@
 """Diagram validation logic"""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from dipeo_core import ValidationError
 from dipeo_domain import DomainDiagram
@@ -9,12 +9,12 @@ from dipeo_server.domains.apikey import APIKeyService
 
 
 class DiagramValidator:
-    def __init__(self, api_key_service: Optional[APIKeyService] = None):
+    def __init__(self, api_key_service: APIKeyService | None = None):
         self.api_key_service = api_key_service
 
     def validate(
-        self, diagram: Union[DomainDiagram, Dict[str, Any]], context: str = "general"
-    ) -> List[str]:
+        self, diagram: DomainDiagram | dict[str, Any], context: str = "general"
+    ) -> list[str]:
         errors = []
 
         if isinstance(diagram, dict):
@@ -86,8 +86,8 @@ class DiagramValidator:
         return errors
 
     def _validate_backend_format(
-        self, diagram: Dict[str, Any], context: str = "backend"
-    ) -> List[str]:
+        self, diagram: dict[str, Any], context: str = "backend"
+    ) -> list[str]:
         errors = []
 
         nodes = diagram.get("nodes", {})
@@ -165,14 +165,14 @@ class DiagramValidator:
         return errors
 
     def validate_or_raise(
-        self, diagram: Union[DomainDiagram, Dict[str, Any]], context: str = "general"
+        self, diagram: DomainDiagram | dict[str, Any], context: str = "general"
     ) -> None:
         errors = self.validate(diagram, context)
         if errors:
             raise ValidationError("; ".join(errors))
 
     def is_valid(
-        self, diagram: Union[DomainDiagram, Dict[str, Any]], context: str = "general"
+        self, diagram: DomainDiagram | dict[str, Any], context: str = "general"
     ) -> bool:
         return len(self.validate(diagram, context)) == 0
 

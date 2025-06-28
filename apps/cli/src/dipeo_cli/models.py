@@ -1,5 +1,4 @@
-from dataclasses import asdict
-from typing import Any, Dict
+from typing import Any
 
 # Re-export all models directly from generated code
 from dipeo_domain import (
@@ -12,7 +11,7 @@ from dipeo_domain import (
 # Utility functions for working with generated models
 
 
-def diagram_to_dict(diagram: DomainDiagram) -> Dict[str, Any]:
+def diagram_to_dict(diagram: DomainDiagram) -> dict[str, Any]:
     """Convert a diagram to dictionary for JSON serialization.
 
     Uses Pydantic's model_dump() method.
@@ -21,7 +20,7 @@ def diagram_to_dict(diagram: DomainDiagram) -> Dict[str, Any]:
     return diagram.model_dump(by_alias=True)
 
 
-def diagram_dict_to_backend(diagram_dict: Dict[str, Any]) -> Dict[str, Any]:
+def diagram_dict_to_backend(diagram_dict: dict[str, Any]) -> dict[str, Any]:
     """Convert diagram dict from array format to backend format (dict of dicts)."""
     backend_dict = {
         "nodes": {},
@@ -31,37 +30,37 @@ def diagram_dict_to_backend(diagram_dict: Dict[str, Any]) -> Dict[str, Any]:
         "api_keys": {},
         "metadata": None,
     }
-    
+
     if "nodes" in diagram_dict:
         for node in diagram_dict["nodes"]:
             backend_dict["nodes"][node["id"]] = node
-    
+
     if "arrows" in diagram_dict:
         for arrow in diagram_dict["arrows"]:
             backend_dict["arrows"][arrow["id"]] = arrow
-    
+
     if "handles" in diagram_dict:
         for handle in diagram_dict["handles"]:
             backend_dict["handles"][handle["id"]] = handle
-    
+
     if "persons" in diagram_dict:
         for person in diagram_dict["persons"]:
             backend_dict["persons"][person["id"]] = person
-    
+
     if "apiKeys" in diagram_dict:
         for api_key in diagram_dict["apiKeys"]:
             backend_dict["api_keys"][api_key["id"]] = api_key
     elif "api_keys" in diagram_dict:
         for api_key in diagram_dict["api_keys"]:
             backend_dict["api_keys"][api_key["id"]] = api_key
-    
+
     if "metadata" in diagram_dict:
         backend_dict["metadata"] = diagram_dict["metadata"]
-    
+
     return backend_dict
 
 
-def backend_to_diagram_dict(backend_dict: Dict[str, Any]) -> Dict[str, Any]:
+def backend_to_diagram_dict(backend_dict: dict[str, Any]) -> dict[str, Any]:
     return {
         "nodes": list(backend_dict.get("nodes", {}).values()),
         "arrows": list(backend_dict.get("arrows", {}).values()),

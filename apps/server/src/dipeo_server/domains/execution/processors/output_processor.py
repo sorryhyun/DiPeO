@@ -1,4 +1,8 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+from dipeo_server.infrastructure.external.llm.token_usage_service import (
+    TokenUsageService,
+)
 
 if TYPE_CHECKING:
     from dipeo_domain import TokenUsage
@@ -15,14 +19,14 @@ class OutputProcessor:
         return value
 
     @staticmethod
-    def extract_conversation_history(value: Any) -> List[Dict[str, str]]:
+    def extract_conversation_history(value: Any) -> list[dict[str, str]]:
         """Extract conversation history from PersonJob output."""
         if isinstance(value, dict) and value.get("_type") == "personjob_output":
             return value.get("conversation_history", [])
         return []
 
     @staticmethod
-    def extract_metadata(value: Any) -> Dict[str, Any]:
+    def extract_metadata(value: Any) -> dict[str, Any]:
         """Extract metadata from PersonJob output."""
         if isinstance(value, dict) and value.get("_type") == "personjob_output":
             metadata = {}
@@ -46,31 +50,40 @@ class OutputProcessor:
         return isinstance(value, dict) and value.get("_type") == "personjob_output"
 
     @staticmethod
-    def process_list(values: List[Any]) -> List[Any]:
+    def process_list(values: list[Any]) -> list[Any]:
         return [OutputProcessor.extract_value(v) for v in values]
 
     @staticmethod
     def create_personjob_output(
         text: str,
-        conversation_history: List[Dict[str, str]] = None,
+        conversation_history: list[dict[str, str]] | None = None,
         token_count: int = 0,
         input_tokens: int = 0,
         output_tokens: int = 0,
         cached_tokens: int = 0,
-        model: str = None,
-    ) -> Dict[str, Any]:
+        model: str | None = None,
+    ) -> dict[str, Any]:
         output = {"_type": "personjob_output", "text": text}
 
         if conversation_history is not None:
             output["conversation_history"] = conversation_history
-        if token_count > 0:
-            output["token_count"] = str(token_count)
-        if input_tokens > 0:
-            output["input_tokens"] = str(input_tokens)
-        if output_tokens > 0:
-            output["output_tokens"] = str(output_tokens)
-        if cached_tokens > 0:
-            output["cached_tokens"] = str(cached_tokens)
+
+        # Create TokenUsage object and use TokenUsageService for conversion
+        if any([token_count, input_tokens, output_tokens, cached_tokens]):
+            from dipeo_domain import TokenUsage
+
+            # Use token_count as total, or calculate from input+output
+            total = token_count if token_count > 0 else (input_tokens + output_tokens)
+
+            token_usage = TokenUsage(
+                input=input_tokens,
+                output=output_tokens,
+                cached=cached_tokens,
+                total=total,
+            )
+            token_metadata = TokenUsageService.to_personjob_metadata(token_usage)
+            output.update(token_metadata)
+
         if model:
             output["model"] = model
 
@@ -80,23 +93,19 @@ class OutputProcessor:
     def create_personjob_output_from_tokens(
         text: str,
         token_usage: "TokenUsage",
-        conversation_history: List[Dict[str, str]] = None,
-        model: str = None,
-        execution_time: float = None,
-    ) -> Dict[str, Any]:
+        conversation_history: list[dict[str, str]] | None = None,
+        model: str | None = None,
+        execution_time: float | None = None,
+    ) -> dict[str, Any]:
         output = {"_type": "personjob_output", "text": text}
 
         if conversation_history is not None:
             output["conversation_history"] = conversation_history
-        if token_usage:
-            if token_usage.total > 0:
-                output["token_count"] = str(token_usage.total)
-            if token_usage.input > 0:
-                output["input_tokens"] = str(token_usage.input)
-            if token_usage.output > 0:
-                output["output_tokens"] = str(token_usage.output)
-            if token_usage.cached > 0:
-                output["cached_tokens"] = str(token_usage.cached)
+
+        # Use TokenUsageService to convert token usage to metadata format
+        token_metadata = TokenUsageService.to_personjob_metadata(token_usage)
+        output.update(token_metadata)
+
         if model:
             output["model"] = model
         if execution_time is not None:
@@ -106,12 +115,5 @@ class OutputProcessor:
 
     @staticmethod
     def extract_token_usage(value: Any) -> Optional["TokenUsage"]:
-        if isinstance(value, dict) and value.get("_type") == "personjob_output":
-            from dipeo_domain import TokenUsage
-
-            return TokenUsage(
-                input=int(value.get("input_tokens", 0)),
-                output=int(value.get("output_tokens", 0)),
-                cached=int(value.get("cached_tokens", 0)),
-            )
-        return None
+        """Extract token usage from PersonJob output using TokenUsageService."""
+        return TokenUsageService.extract_from_personjob_output(value)

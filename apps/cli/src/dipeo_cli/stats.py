@@ -2,12 +2,10 @@
 Stats command implementation for DiPeO CLI.
 """
 
-from typing import List
-
 from .utils import DiagramLoader
 
 
-def stats_command(args: List[str]) -> None:
+def stats_command(args: list[str]) -> None:
     """Execute stats command - shows diagram statistics"""
     if not args:
         print("Error: Missing input file")

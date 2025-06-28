@@ -2,7 +2,7 @@
 Shared domain constants used across the system.
 """
 
-from typing import Dict, Final, Set
+from typing import Final
 
 # API Configuration
 API_BASE_PATH: Final[str] = "/api"
@@ -12,8 +12,8 @@ DEFAULT_MAX_TOKENS: Final[int] = 4096
 DEFAULT_TEMPERATURE: Final[float] = 0.7
 
 # File Extensions
-SUPPORTED_DOC_EXTENSIONS: Final[Set[str]] = {".txt", ".md", ".docx", ".pdf"}
-SUPPORTED_CODE_EXTENSIONS: Final[Set[str]] = {
+SUPPORTED_DOC_EXTENSIONS: Final[set[str]] = {".txt", ".md", ".docx", ".pdf"}
+SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {
     ".py",
     ".js",
     ".ts",
@@ -21,10 +21,10 @@ SUPPORTED_CODE_EXTENSIONS: Final[Set[str]] = {
     ".yaml",
     ".yml",
 }
-SUPPORTED_DIAGRAM_EXTENSIONS: Final[Set[str]] = {".json", ".yaml", ".yml"}
+SUPPORTED_DIAGRAM_EXTENSIONS: Final[set[str]] = {".json", ".yaml", ".yml"}
 
 # Service aliases (only non-identity mappings)
-SERVICE_ALIASES: Final[Dict[str, str]] = {
+SERVICE_ALIASES: Final[dict[str, str]] = {
     "chatgpt": "openai",
     "claude": "anthropic",
     "gemini": "google",
@@ -32,7 +32,7 @@ SERVICE_ALIASES: Final[Dict[str, str]] = {
 }
 
 # Valid LLM services
-VALID_LLM_SERVICES: Final[Set[str]] = {
+VALID_LLM_SERVICES: Final[set[str]] = {
     "openai",
     "anthropic",
     "google",
@@ -54,3 +54,16 @@ DEFAULT_MEMORY_LIMIT: Final[int] = 100  # Maximum number of memories to retain
 DEFAULT_CONTEXT_WINDOW: Final[int] = (
     10  # Number of recent messages to include in context
 )
+
+
+def normalize_service_name(service: str) -> str:
+    """Normalize service name to provider name using centralized mapping.
+
+    Args:
+        service: The service name to normalize
+
+    Returns:
+        The normalized service name
+    """
+    normalized = (service or DEFAULT_SERVICE).lower()
+    return SERVICE_ALIASES.get(normalized, normalized)

@@ -1,0 +1,96 @@
+# Execution Operations
+
+mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
+    executeDiagram(data: $data) {
+        success
+        execution {
+            id
+            status
+            diagramId
+            startedAt
+        }
+        message
+        error
+    }
+}
+
+mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
+    convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
+        success
+        message
+        error
+        content
+        format
+        filename
+    }
+}
+
+mutation ControlExecution($data: ExecutionControlInput!) {
+    controlExecution(data: $data) {
+        success
+        execution {
+            id
+            status
+        }
+        message
+        error
+    }
+}
+
+mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
+    submitInteractiveResponse(data: $data) {
+        success
+        execution {
+            id
+            status
+            runningNodes
+        }
+        message
+        error
+    }
+}
+
+subscription ExecutionUpdates($executionId: ExecutionID!) {
+    executionUpdates(executionId: $executionId) {
+        id
+        status
+        diagramId
+        startedAt
+        endedAt
+        nodeStates
+        nodeOutputs
+        variables
+        tokenUsage {
+            input
+            output
+            total
+        }
+        error
+        isActive
+        durationSeconds
+    }
+}
+
+subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
+    nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
+        executionId
+        nodeId
+        nodeType
+        status
+        progress
+        output
+        error
+        tokensUsed
+        timestamp
+    }
+}
+
+subscription InteractivePrompts($executionId: ExecutionID!) {
+    interactivePrompts(executionId: $executionId) {
+        executionId
+        nodeId
+        prompt
+        timeoutSeconds
+        timestamp
+    }
+}

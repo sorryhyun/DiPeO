@@ -8,16 +8,13 @@ version = "2.0.0"
 authors = [{name = "DiPeO Team"}]
 description = "Command-line interface for DiPeO diagram operations"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.13"
 license = {text = "MIT"}
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
@@ -28,6 +25,7 @@ dependencies = [
     "websockets>=13.0",
     "dipeo-core",
     "dipeo-domain",
+    "dipeo-diagram",
 ]
 keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
 
@@ -54,7 +52,7 @@ where = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py313']
 include = '\.pyi?$'
 
 [tool.isort]
@@ -68,10 +66,13 @@ use_parentheses = true
 line_length = 88
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
-
+no_implicit_optional = true
+# Allow using lowercase generics from Python 3.9+
+disable_error_code = ["misc"]
+plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = [
     "gql.*",
@@ -82,7 +83,7 @@ ignore_missing_imports = true
 [tool.ruff]
 # Same as Black.
 line-length = 88
-target-version = "py38"
+target-version = "py313"
 
 # Exclude generated files
 exclude = [
@@ -126,6 +127,28 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "N818",  # exception names should end with Error (we have custom exceptions)
     "SIM108", # Use ternary operator (sometimes less readable)
+    "SIM102", # Nested if statements can be more readable
+    "SIM105", # try-except-pass can be clearer than contextlib.suppress
+    "TID252", # Relative imports are used throughout the codebase
+    "DTZ005", # datetime.now() without timezone is common in codebase
+    "DTZ003", # datetime.utcnow() is used in several places
+    "PLC0415", # imports not at top level - used for lazy loading
+    "RUF012", # mutable class attributes - common pattern
+    "B904",  # raise from - stylistic choice
+    "RUF006", # asyncio.create_task without storing reference
+    "N815",  # mixedCase variables - used in API schema
+    "N802",  # function names should be lowercase - GraphQL API
+    "E722",  # bare except - used for system capability checks
+    "PTH110", # os.path.exists - os.path is used throughout
+    "PTH123", # open() should use Path.open()
+    "PTH118", # os.path.join - os.path is used throughout
+    "ERA001", # commented out code - development artifacts
+    "PLW2901", # loop variable overwritten - intentional pattern
+    "RUF001", # ambiguous unicode characters in strings
+    "RUF002", # ambiguous unicode characters in docstrings
+    "F841",  # unused variables - sometimes intentional
+    "B007",  # unused loop variables - sometimes clearer to include
+    "W293",  # blank line with whitespace
 ]
 
 [tool.ruff.lint.isort]

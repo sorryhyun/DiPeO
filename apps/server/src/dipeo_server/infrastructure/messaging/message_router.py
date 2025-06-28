@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Callable, Dict, Set
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 class MessageRouter:
     def __init__(self):
         self.worker_id = "single-worker"
-        self.local_handlers: Dict[str, Callable] = {}
-        self.execution_subscriptions: Dict[str, Set[str]] = {}
+        self.local_handlers: dict[str, Callable] = {}
+        self.execution_subscriptions: dict[str, set[str]] = {}
         self._initialized = False
 
     async def initialize(self):

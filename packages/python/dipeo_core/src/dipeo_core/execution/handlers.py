@@ -144,7 +144,20 @@ class HandlerRegistry:
 _global_registry = HandlerRegistry()
 
 
-def register_handler(handler: BaseNodeHandler) -> BaseNodeHandler:
+def create_node_output(
+    value: Dict[str, Any] | None = None,
+    metadata: Dict[str, Any] | None = None,
+) -> Any:
+    """Utility to save a few keystrokes when constructing outputs.
+    
+    This is a temporary implementation that returns a dict-like structure.
+    The actual NodeOutput type should be imported from dipeo_domain when available.
+    """
+    from dipeo_domain import NodeOutput
+    return NodeOutput(value=value or {}, metadata=metadata)
+
+
+def register_handler(handler_class: type[BaseNodeHandler]) -> type[BaseNodeHandler]:
     """Decorator to register a handler class.
 
     Example:
@@ -152,8 +165,10 @@ def register_handler(handler: BaseNodeHandler) -> BaseNodeHandler:
         class MyHandler(BaseNodeHandler):
             ...
     """
-    _global_registry.register(handler())
-    return handler
+    # Instantiate the handler and register it
+    handler_instance = handler_class()
+    _global_registry.register(handler_instance)
+    return handler_class
 
 
 def get_global_registry() -> HandlerRegistry:

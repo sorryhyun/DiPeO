@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 
 from .graphql.context import get_graphql_context
-from .graphql.schema import create_graphql_router
+from .graphql.schema import create_unified_graphql_router as create_graphql_router
 
 
 def setup_routes(app: FastAPI):

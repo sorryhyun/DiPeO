@@ -1,25 +1,69 @@
-"""GraphQL subscriptions for real-time execution updates."""
+"""GraphQL subscriptions with direct streaming (no EventBus)."""
 
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import AsyncGenerator, List, Optional
 
 import strawberry
-from dipeo_domain import EventType, ExecutionStatus, NodeExecutionStatus, NodeType
+from dipeo_domain import ExecutionStatus, NodeExecutionStatus, NodeType
 
 from .context import GraphQLContext
 from .types import (
     DiagramID,
     DomainDiagramType,
-    ExecutionEventType,
     ExecutionID,
     ExecutionStateType,
+    ExecutionStatusEnum,
     JSONScalar,
     NodeID,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class StreamingManager:
+    """Manages direct streaming connections without EventBus."""
+
+    def __init__(self):
+        # Map of execution_id to set of subscriber queues
+        self._subscribers: dict[str, set[asyncio.Queue]] = {}
+        self._lock = asyncio.Lock()
+
+    async def subscribe(self, execution_id: str) -> asyncio.Queue:
+        """Subscribe to execution updates."""
+        async with self._lock:
+            if execution_id not in self._subscribers:
+                self._subscribers[execution_id] = set()
+
+            queue = asyncio.Queue()
+            self._subscribers[execution_id].add(queue)
+            return queue
+
+    async def unsubscribe(self, execution_id: str, queue: asyncio.Queue):
+        """Unsubscribe from execution updates."""
+        async with self._lock:
+            if execution_id in self._subscribers:
+                self._subscribers[execution_id].discard(queue)
+                if not self._subscribers[execution_id]:
+                    del self._subscribers[execution_id]
+
+    async def publish(self, execution_id: str, update: dict):
+        """Publish update to all subscribers."""
+        async with self._lock:
+            if execution_id in self._subscribers:
+                # Create tasks for all queue puts to avoid blocking
+                tasks = []
+                for queue in self._subscribers[execution_id]:
+                    tasks.append(asyncio.create_task(queue.put(update)))
+
+                # Wait for all puts to complete
+                if tasks:
+                    await asyncio.gather(*tasks, return_exceptions=True)
+
+
+# Global streaming manager instance
+streaming_manager = StreamingManager()
 
 
 @strawberry.type
@@ -30,10 +74,10 @@ class NodeExecution:
     node_id: NodeID
     node_type: NodeType
     status: str
-    progress: Optional[str] = None
-    output: Optional[JSONScalar] = None
-    error: Optional[str] = None
-    tokens_used: Optional[int] = None
+    progress: str | None = None
+    output: JSONScalar | None = None
+    error: str | None = None
+    tokens_used: int | None = None
     timestamp: datetime
 
 
@@ -44,34 +88,34 @@ class InteractivePrompt:
     execution_id: ExecutionID
     node_id: NodeID
     prompt: str
-    timeout_seconds: Optional[int] = None
+    timeout_seconds: int | None = None
     timestamp: datetime
 
 
 @strawberry.type
 class Subscription:
-    """GraphQL subscriptions for DiPeO real-time updates."""
+    """GraphQL subscriptions with direct streaming (no EventBus)."""
 
     @strawberry.subscription
     async def execution_updates(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[ExecutionStateType, None]:
-        """Streams execution state changes using push-based updates."""
+    ) -> AsyncGenerator[ExecutionStateType]:
+        """Streams execution state changes using direct streaming."""
         context: GraphQLContext = info.context
         state_store = context.state_store
-        event_bus = context.event_bus
 
-        logger.info(f"Starting execution updates subscription for {execution_id}")
+        logger.info(
+            f"Starting direct execution updates subscription for {execution_id}"
+        )
 
-        # First, try to get from cache, then fall back to DB for initial state
+        # Get initial state
         state = await state_store.get_state_from_cache(execution_id)
         if not state:
-            # Fall back to database for historical executions
             state = await state_store.get_state(execution_id)
-        
+
         if state:
             yield state
-            
+
             # If already completed, return immediately
             if state.status in [
                 ExecutionStatus.COMPLETED,
@@ -83,249 +127,166 @@ class Subscription:
                 )
                 return
 
-        # Subscribe to real-time updates via EventBus
-        updates_queue = asyncio.Queue()
-        
-        async def handle_update(event: dict) -> None:
-            await updates_queue.put(event)
-        
-        channel = f"execution:{execution_id}"
-        subscription_id = await event_bus.subscribe(channel, handle_update)
-        
+        # Subscribe to direct updates
+        queue = await streaming_manager.subscribe(execution_id)
+
         try:
             while True:
                 try:
-                    # Wait for updates with a timeout for connection health
-                    update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
-                    
-                    # Check if update contains state snapshot
-                    if "state_snapshot" in update and update["state_snapshot"]:
-                        # Use state snapshot from event to avoid DB/cache query
-                        snapshot = update["state_snapshot"]
-                        # We need to get the full state, but we can optimize by checking cache first
-                        state = await state_store.get_state_from_cache(execution_id)
+                    # Wait for updates with timeout for connection health
+                    update = await asyncio.wait_for(queue.get(), timeout=30.0)
+
+                    # Process different update types
+                    if update.get("type") == "state_update":
+                        # Direct state update
+                        state = update.get("state")
                         if state:
                             yield state
                     else:
-                        # Fetch the latest state from cache after receiving an update
+                        # For other updates, fetch current state
                         state = await state_store.get_state_from_cache(execution_id)
                         if state:
                             yield state
-                        
-                        # Check if execution is complete
-                        if state.status in [
-                            ExecutionStatus.COMPLETED,
-                            ExecutionStatus.FAILED,
-                            ExecutionStatus.ABORTED,
-                        ]:
-                            logger.info(
-                                f"Execution {execution_id} completed with status: {state.status}"
-                            )
-                            break
-                            
-                except asyncio.TimeoutError:
-                    # Send periodic heartbeat by re-fetching state from cache
+
+                    # Check if execution is complete
+                    if state and state.status in [
+                        ExecutionStatus.COMPLETED,
+                        ExecutionStatus.FAILED,
+                        ExecutionStatus.ABORTED,
+                    ]:
+                        logger.info(
+                            f"Execution {execution_id} completed with status: {state.status}"
+                        )
+                        break
+
+                except TimeoutError:
+                    # Send heartbeat by re-fetching state
                     state = await state_store.get_state_from_cache(execution_id)
                     if state:
                         yield state
-                        
+
         except asyncio.CancelledError:
-            logger.info(f"Subscription cancelled for execution {execution_id}")
+            logger.info(f"Direct subscription cancelled for execution {execution_id}")
             raise
         except Exception as e:
-            logger.error(f"Error in execution stream for {execution_id}: {e}")
+            logger.error(f"Error in direct execution stream for {execution_id}: {e}")
             raise
         finally:
             # Cleanup subscription
-            await event_bus.unsubscribe(subscription_id)
+            await streaming_manager.unsubscribe(execution_id, queue)
 
     @strawberry.subscription
     async def execution_events(
         self,
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
-        event_types: Optional[List[EventType]] = None,
-    ) -> AsyncGenerator[ExecutionEventType, None]:
-        """Streams specific execution event types using push-based updates."""
-        context: GraphQLContext = info.context
-        state_store = context.state_store
-        event_bus = context.event_bus
+    ) -> AsyncGenerator[ExecutionStatusEnum]:
+        """Streams execution status updates using direct streaming."""
+        logger.info(f"Starting direct event stream subscription for {execution_id}")
 
-        logger.info(f"Starting event stream subscription for {execution_id}")
-
-        sequence = 0
-        last_node_states = {}
-        
-        # Process initial state from cache first
-        state = await state_store.get_state_from_cache(execution_id)
-        if not state:
-            # Fall back to database for historical executions
-            state = await state_store.get_state(execution_id)
-            
-        if state:
-            current_node_states = state.node_states or {}
-            last_node_states = {
-                nid: ns for nid, ns in current_node_states.items()
-            }
-
-        # Subscribe to real-time updates
-        updates_queue = asyncio.Queue()
-        
-        async def handle_update(event: dict) -> None:
-            await updates_queue.put(event)
-        
-        channel = f"execution:{execution_id}"
-        subscription_id = await event_bus.subscribe(channel, handle_update)
+        queue = await streaming_manager.subscribe(execution_id)
 
         try:
             while True:
                 try:
                     # Wait for updates
-                    update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
-                    
-                    # Process update based on type
-                    if update.get("type") == "node_start":
-                        sequence += 1
-                        event_type = EventType.NODE_STARTED
-                        
-                        if not event_types or event_type in event_types:
-                            yield ExecutionEventType(
-                                execution_id=execution_id,
-                                sequence=sequence,
-                                event_type=event_type,
-                                node_id=NodeID(update["node_id"]),
-                                timestamp=datetime.now().isoformat(),
-                                data={"status": "running"},
-                            )
-                    
-                    elif update.get("type") == "node_complete":
-                        sequence += 1
+                    update = await asyncio.wait_for(queue.get(), timeout=30.0)
+
+                    # Return execution status from execution_complete events
+                    if update.get("type") == "execution_complete":
                         status = update.get("status", "completed")
-                        event_type = {
-                            "completed": EventType.NODE_COMPLETED,
-                            "failed": EventType.NODE_FAILED,
-                            "skipped": EventType.NODE_SKIPPED,
-                        }.get(status, EventType.NODE_COMPLETED)
-                        
-                        if not event_types or event_type in event_types:
-                            output_data = update.get("output", {})
-                            yield ExecutionEventType(
-                                execution_id=execution_id,
-                                sequence=sequence,
-                                event_type=event_type,
-                                node_id=NodeID(update["node_id"]),
-                                timestamp=datetime.now().isoformat(),
-                                data={
-                                    "status": status,
-                                    "output": output_data.get("value") if isinstance(output_data, dict) else None,
-                                    "error": update.get("error"),
-                                },
-                            )
-                    
-                    elif update.get("type") == "execution_complete":
-                        sequence += 1
-                        status = update.get("status", "completed")
-                        final_event_type = {
-                            "completed": EventType.EXECUTION_COMPLETED,
-                            "failed": EventType.EXECUTION_FAILED,
-                            "aborted": EventType.EXECUTION_ABORTED,
-                        }.get(status, EventType.EXECUTION_UPDATE)
-                        
-                        if not event_types or final_event_type in event_types:
-                            yield ExecutionEventType(
-                                execution_id=execution_id,
-                                sequence=sequence,
-                                event_type=final_event_type,
-                                node_id=None,
-                                timestamp=datetime.now().isoformat(),
-                                data={
-                                    "status": status,
-                                    "error": update.get("error"),
-                                },
-                            )
-                        
+
+                        # Map status string to ExecutionStatus enum
+                        if status == "completed":
+                            yield ExecutionStatusEnum(ExecutionStatus.COMPLETED)
+                        elif status == "failed":
+                            yield ExecutionStatusEnum(ExecutionStatus.FAILED)
+                        elif status == "aborted":
+                            yield ExecutionStatusEnum(ExecutionStatus.ABORTED)
+                        elif status == "running":
+                            yield ExecutionStatusEnum(ExecutionStatus.RUNNING)
+                        elif status == "paused":
+                            yield ExecutionStatusEnum(ExecutionStatus.PAUSED)
+                        else:
+                            yield ExecutionStatusEnum(ExecutionStatus.PENDING)
+
                         logger.info(
-                            f"Event stream completed for execution {execution_id}"
+                            f"Direct event stream completed for execution {execution_id}"
                         )
                         break
-                        
-                except asyncio.TimeoutError:
+
+                except TimeoutError:
                     # Heartbeat - no action needed
                     pass
 
         except asyncio.CancelledError:
-            logger.info(f"Event subscription cancelled for execution {execution_id}")
+            logger.info(
+                f"Direct event subscription cancelled for execution {execution_id}"
+            )
             raise
         except Exception as e:
-            logger.error(f"Error in event stream for {execution_id}: {e}")
+            logger.error(f"Error in direct event stream for {execution_id}: {e}")
             raise
         finally:
             # Cleanup subscription
-            await event_bus.unsubscribe(subscription_id)
+            await streaming_manager.unsubscribe(execution_id, queue)
 
     @strawberry.subscription
     async def node_updates(
         self,
         info: strawberry.Info[GraphQLContext],
         execution_id: ExecutionID,
-        node_types: Optional[List[NodeType]] = None,
-    ) -> AsyncGenerator[NodeExecution, None]:
-        """Streams node execution updates with optional filtering using push-based updates."""
-        context: GraphQLContext = info.context
-        state_store = context.state_store
-        event_bus = context.event_bus
+        node_types: list[NodeType] | None = None,
+    ) -> AsyncGenerator[NodeExecution]:
+        """Streams node execution updates with direct streaming."""
+        logger.info(f"Starting direct node updates subscription for {execution_id}")
 
-        logger.info(f"Starting node updates subscription for {execution_id}")
-
-        # Subscribe to real-time updates
-        updates_queue = asyncio.Queue()
-        
-        async def handle_update(event: dict) -> None:
-            await updates_queue.put(event)
-        
-        channel = f"execution:{execution_id}"
-        subscription_id = await event_bus.subscribe(channel, handle_update)
+        # Subscribe to direct updates
+        queue = await streaming_manager.subscribe(execution_id)
 
         try:
             while True:
                 try:
                     # Wait for updates
-                    update = await asyncio.wait_for(updates_queue.get(), timeout=30.0)
-                    
-                    # Process node updates
-                    if update.get("type") in ["node_start", "node_complete"]:
-                        node_id = update.get("node_id")
+                    update = await asyncio.wait_for(queue.get(), timeout=30.0)
+
+                    # Process node update events
+                    if update.get("type") == "node_update":
+                        data = update.get("data", {})
+                        node_id = data.get("node_id")
                         if not node_id:
                             continue
-                            
-                        # Get node type from update or default to job
-                        node_type = NodeType(update.get("node_type", "job"))
-                        
+
+                        # Extract node type
+                        node_type = NodeType(data.get("node_type", "job"))
+
                         if node_types and node_type not in node_types:
                             continue
-                        
-                        # Extract status from update
-                        if update.get("type") == "node_start":
-                            status = NodeExecutionStatus.RUNNING
-                        else:
-                            status_str = update.get("status", "completed")
-                            status = {
-                                "completed": NodeExecutionStatus.COMPLETED,
-                                "failed": NodeExecutionStatus.FAILED,
-                                "skipped": NodeExecutionStatus.SKIPPED,
-                            }.get(status_str, NodeExecutionStatus.COMPLETED)
-                        
-                        # Extract output and metadata
-                        output_data = update.get("output", {})
+
+                        # Map state to status string
+                        state = data.get("state", "")
+                        status_map = {
+                            NodeExecutionStatus.PENDING.value: "pending",
+                            NodeExecutionStatus.RUNNING.value: "running",
+                            NodeExecutionStatus.COMPLETED.value: "completed",
+                            NodeExecutionStatus.FAILED.value: "failed",
+                            NodeExecutionStatus.SKIPPED.value: "skipped",
+                            NodeExecutionStatus.PAUSED.value: "paused",
+                        }
+                        status = status_map.get(state, state)
+
+                        # Extract output and tokens
+                        output_data = data.get("output")
                         output_value = None
                         tokens_used = None
-                        
-                        if isinstance(output_data, dict):
-                            output_value = output_data.get("value")
+
+                        if output_data and isinstance(output_data, dict):
+                            output_value = output_data.get("data")
                             metadata = output_data.get("metadata", {})
-                            if "tokens_used" in metadata:
-                                tokens_used = metadata["tokens_used"]
-                        
+                            usage = metadata.get("usage", {})
+                            if usage:
+                                tokens_used = usage.get("total_tokens", 0)
+
                         yield NodeExecution(
                             execution_id=execution_id,
                             node_id=NodeID(node_id),
@@ -333,37 +294,39 @@ class Subscription:
                             status=status,
                             progress=None,
                             output=output_value,
-                            error=update.get("error"),
+                            error=data.get("error"),
                             tokens_used=tokens_used,
-                            timestamp=datetime.now(),
+                            timestamp=datetime.fromisoformat(
+                                data.get("timestamp", datetime.utcnow().isoformat())
+                            ),
                         )
-                    
+
                     elif update.get("type") == "execution_complete":
                         logger.info(
                             f"Node updates completed for execution {execution_id}"
                         )
                         break
-                        
-                except asyncio.TimeoutError:
+
+                except TimeoutError:
                     # Heartbeat - no action needed
                     pass
 
         except asyncio.CancelledError:
             logger.info(
-                f"Node update subscription cancelled for execution {execution_id}"
+                f"Direct node update subscription cancelled for execution {execution_id}"
             )
             raise
         except Exception as e:
-            logger.error(f"Error in node update stream for {execution_id}: {e}")
+            logger.error(f"Error in direct node update stream for {execution_id}: {e}")
             raise
         finally:
             # Cleanup subscription
-            await event_bus.unsubscribe(subscription_id)
+            await streaming_manager.unsubscribe(execution_id, queue)
 
     @strawberry.subscription
     async def diagram_changes(
         self, info: strawberry.Info[GraphQLContext], diagram_id: DiagramID
-    ) -> AsyncGenerator[DomainDiagramType, None]:
+    ) -> AsyncGenerator[DomainDiagramType]:
         """Streams diagram modifications (not implemented)."""
         logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
         while False:
@@ -372,14 +335,13 @@ class Subscription:
     @strawberry.subscription
     async def interactive_prompts(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[Optional[InteractivePrompt], None]:
+    ) -> AsyncGenerator[InteractivePrompt | None]:
         """Streams interactive prompts requiring user response."""
         context: GraphQLContext = info.context
         state_store = context.state_store
 
         logger.info(f"Starting interactive prompts subscription for {execution_id}")
 
-        processed_prompts = set()
         has_yielded = False
 
         try:
@@ -420,55 +382,11 @@ class Subscription:
             raise
 
 
-def _map_status(status: str) -> ExecutionStatus:
-    """Maps status string to ExecutionStatus enum."""
-    status_map = {
-        "started": ExecutionStatus.STARTED,
-        "running": ExecutionStatus.RUNNING,
-        "paused": ExecutionStatus.PAUSED,
-        "completed": ExecutionStatus.COMPLETED,
-        "failed": ExecutionStatus.FAILED,
-        "cancelled": ExecutionStatus.ABORTED,
-        "aborted": ExecutionStatus.ABORTED,
-    }
-    return status_map.get(status.lower(), ExecutionStatus.STARTED)
+# Rename the old subscription class for backward compatibility
+DirectStreamingSubscription = Subscription
 
 
-def _get_event_type_for_status(status: str) -> EventType:
-    """Maps node status to event type."""
-    status_event_map = {
-        "started": EventType.NODE_STARTED,
-        "running": EventType.NODE_RUNNING,
-        "completed": EventType.NODE_COMPLETED,
-        "failed": EventType.NODE_FAILED,
-        "skipped": EventType.NODE_SKIPPED,
-        "paused": EventType.NODE_PAUSED,
-    }
-    return status_event_map.get(status, EventType.EXECUTION_UPDATE)
-
-
-def _get_event_type_for_node_status(status: NodeExecutionStatus) -> EventType:
-    """Maps NodeExecutionStatus to EventType."""
-    status_event_map = {
-        NodeExecutionStatus.PENDING: EventType.NODE_STARTED,
-        NodeExecutionStatus.RUNNING: EventType.NODE_RUNNING,
-        NodeExecutionStatus.COMPLETED: EventType.NODE_COMPLETED,
-        NodeExecutionStatus.FAILED: EventType.NODE_FAILED,
-        NodeExecutionStatus.SKIPPED: EventType.NODE_SKIPPED,
-        NodeExecutionStatus.PAUSED: EventType.NODE_PAUSED,
-    }
-    return status_event_map.get(status, EventType.EXECUTION_UPDATE)
-
-
-def _get_node_type(diagram: dict, node_id: str) -> NodeType:
-    """Extracts node type from diagram data."""
-    if not diagram or "nodes" not in diagram:
-        return NodeType.job
-
-    node = diagram["nodes"].get(node_id, {})
-    node_type_str = node.get("type", "job")
-
-    try:
-        return NodeType(node_type_str)
-    except ValueError:
-        return NodeType.job
+# Function to be called by execution service to publish updates
+async def publish_execution_update(execution_id: str, update: dict):
+    """Publish an execution update to all subscribers."""
+    await streaming_manager.publish(execution_id, update)

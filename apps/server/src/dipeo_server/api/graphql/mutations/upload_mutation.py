@@ -3,11 +3,16 @@
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import strawberry
+from dipeo_diagram import (
+    BackendDiagram,
+    backend_to_graphql,
+    converter_registry,
+)
 from dipeo_domain import (
     DiagramMetadata,
     DomainDiagram,
@@ -16,11 +21,6 @@ from strawberry.file_uploads import Upload
 
 from config import BASE_DIR
 from dipeo_server.domains.apikey import APIKeyService
-from dipeo_server.domains.diagram.converters import (
-    backend_to_graphql,
-    converter_registry,
-)
-from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 from ..context import GraphQLContext
 from ..types import (
@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 def validate_diagram(
-    diagram: DomainDiagram, api_key_service: Optional[APIKeyService] = None
-) -> List[str]:
+    diagram: DomainDiagram, api_key_service: APIKeyService | None = None
+) -> list[str]:
     """Validates diagram structure, returns error list."""
     errors = []
 
@@ -91,7 +91,7 @@ def validate_diagram(
     return errors
 
 
-def domain_to_backend_format(diagram: DomainDiagram) -> Dict[str, Any]:
+def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
     """Converts domain diagram to backend dict format."""
     converter = converter_registry.get(DiagramFormat.native.value)
     json_str = converter.serialize(diagram)
@@ -111,7 +111,7 @@ def domain_to_backend_format(diagram: DomainDiagram) -> Dict[str, Any]:
     return data
 
 
-def backend_to_domain_format(data: Dict[str, Any]) -> DomainDiagram:
+def backend_to_domain_format(data: dict[str, Any]) -> DomainDiagram:
     """Converts backend dict to domain diagram."""
     converter = converter_registry.get(DiagramFormat.native.value)
     json_str = json.dumps(data, indent=2)
@@ -123,10 +123,10 @@ class DiagramValidationResult:
     """Result of diagram validation."""
 
     is_valid: bool
-    errors: List[str] = strawberry.field(default_factory=list)
-    node_count: Optional[int] = None
-    arrow_count: Optional[int] = None
-    person_count: Optional[int] = None
+    errors: list[str] = strawberry.field(default_factory=list)
+    node_count: int | None = None
+    arrow_count: int | None = None
+    person_count: int | None = None
 
 
 @strawberry.type
@@ -135,10 +135,10 @@ class DiagramConvertResult:
 
     success: bool
     message: str = ""
-    error: Optional[str] = None
-    content: Optional[str] = None
-    format: Optional[str] = None
-    filename: Optional[str] = None
+    error: str | None = None
+    content: str | None = None
+    format: str | None = None
+    filename: str | None = None
 
 
 @strawberry.type
@@ -302,7 +302,7 @@ class UploadMutations:
                 )
 
             if not include_metadata:
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 domain_diagram.metadata = DiagramMetadata(
                     version="2.0.0", created=now, modified=now
                 )

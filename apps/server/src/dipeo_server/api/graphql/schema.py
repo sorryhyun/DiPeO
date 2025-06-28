@@ -1,4 +1,4 @@
-"""Main GraphQL schema definition for DiPeO."""
+"""Unified GraphQL schema with direct streaming support."""
 
 import strawberry
 from strawberry.fastapi import GraphQLRouter
@@ -8,17 +8,16 @@ from .mutations import Mutation
 from .queries import Query
 from .subscriptions import Subscription
 
-# Create the schema
-schema = strawberry.Schema(
+# Create unified schema with direct streaming subscriptions
+unified_schema = strawberry.Schema(
     query=Query, mutation=Mutation, subscription=Subscription, extensions=[]
 )
 
 
-# Create GraphQL router for FastAPI integration
-def create_graphql_router(context_getter=None):
-    """Create a GraphQL router with optional context."""
+def create_unified_graphql_router(context_getter=None):
+    """Create a GraphQL router with direct streaming support."""
     return GraphQLRouter(
-        schema,
+        unified_schema,
         context_getter=context_getter,
         # Enable GraphQL playground UI
         graphiql=True,
@@ -37,11 +36,11 @@ def create_graphql_router(context_getter=None):
 if __name__ == "__main__":
     import sys
 
-    output_path = sys.argv[1] if len(sys.argv) > 1 else "schema.graphql"
-    schema_str = schema.as_str()
+    output_path = sys.argv[1] if len(sys.argv) > 1 else "unified_schema.graphql"
+    schema_str = unified_schema.as_str()
 
     with open(output_path, "w") as f:
         f.write(schema_str)
 
-    print(f"GraphQL schema exported to {output_path}")
+    print(f"Unified GraphQL schema exported to {output_path}")
     print(f"Schema length: {len(schema_str)} characters")

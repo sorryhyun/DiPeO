@@ -6,13 +6,15 @@ authors = [
     {name = "DiPeO Team", email = "team@dipeo.org"},
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.13"
 dependencies = [
     "aiofiles>=24.1.0",
     "aiohttp>=3.12.13",
     "anthropic>=0.54.0",
-    "dipeo-core @ file://../../packages/python/dipeo_core",
-    "dipeo-domain @ file://../../packages/python/dipeo_domain",
+    "dipeo-core @ file:///home/soryhyun/DiPeO/packages/python/dipeo_core",
+    "dipeo-diagram @ file:///home/soryhyun/DiPeO/packages/python/dipeo_diagram",
+    "dipeo-domain @ file:///home/soryhyun/DiPeO/packages/python/dipeo_domain",
+    "dipeo-usecases @ file:///home/soryhyun/DiPeO/packages/python/dipeo_usecases",
     "fastapi>=0.115.13",
     "google-genai>=1.21.0",
     "gql>=3.5.3",
@@ -24,7 +26,7 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "python-multipart>=0.0.20",
     "pyyaml>=6.0.2",
-    "strawberry-graphql>=0.274.2",
+    "strawberry-graphql>=0.275.5",
     "structlog>=24.4.0",
     "tenacity>=8.5.0",
 ]
@@ -63,7 +65,7 @@ asyncio_mode = "auto"
 
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py313']
+target-version = ['py313']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -94,26 +96,42 @@ use_parentheses = true
 line_length = 88
 
 [tool.mypy]
-python_version = "3.8"
+plugins = ["pydantic.mypy"]
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
+no_implicit_optional = true
 exclude = [
     "__generated__",
     "generated",
 ]
+# Allow using lowercase generics from Python 3.9+
+disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = [
     "strawberry.*",
     "hypercorn.*",
     "uvloop.*",
+    "aiofiles.*",
+    "prometheus_client.*",
+    "structlog.*",
+    "tenacity.*",
+    "notion_client.*",
+    "yaml.*",
+    "dotenv.*",
+    "multipart.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "dipeo_server.api.graphql.*"
+disable_error_code = ["call-arg", "arg-type"]
 
 [tool.ruff]
 # Same as Black.
 line-length = 88
-target-version = "py38"
+target-version = "py313"
 
 # Exclude generated files
 exclude = [
@@ -157,6 +175,24 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "N818",  # exception names should end with Error (we have custom exceptions)
     "SIM108", # Use ternary operator (sometimes less readable)
+    "SIM102", # Nested if statements can be more readable
+    "TID252", # Relative imports are used throughout the codebase
+    "DTZ005", # datetime.now() without timezone is common in codebase
+    "DTZ003", # datetime.utcnow() is used in several places
+    "PLC0415", # imports not at top level - used for lazy loading
+    "RUF012", # mutable class attributes - common pattern
+    "B904",  # raise from - stylistic choice
+    "RUF006", # asyncio.create_task without storing reference
+    "N815",  # mixedCase variables - used in API schema
+    "N802",  # function names should be lowercase - GraphQL API
+    "E722",  # bare except - used for system capability checks
+    "PTH110", # os.path.exists - os.path is used throughout
+    "PTH123", # open() should use Path.open()
+    "PTH118", # os.path.join - os.path is used throughout
+    "ERA001", # commented out code - development artifacts
+    "PLW2901", # loop variable overwritten - intentional pattern
+    "RUF001", # ambiguous unicode characters in strings
+    "RUF002", # ambiguous unicode characters in docstrings
 ]
 
 [tool.ruff.lint.isort]

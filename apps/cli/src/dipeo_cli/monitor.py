@@ -1,8 +1,7 @@
 import webbrowser
-from typing import List
 
 
-def monitor_command(args: List[str]) -> None:
+def monitor_command(args: list[str]) -> None:
     """Open browser monitoring page"""
     # If a diagram ID is provided, include it in the URL
     if args:

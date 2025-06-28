@@ -1,0 +1,34 @@
+# GraphQL Code Generation Configuration for CLI (Python)
+
+overwrite: true
+schema: "../server/schema.graphql"
+documents: 
+  - "src/**/*.graphql"
+generates:
+  src/dipeo_cli/__generated__/graphql_operations.py:
+    plugins:
+      - python
+    config:
+      # Package to use for generated code
+      package_name: "dipeo_cli.__generated__"
+      # Use pydantic for models
+      use_pydantic: true
+      # Import scalars from dipeo_domain
+      scalars:
+        NodeID: "dipeo_domain.models.NodeID"
+        HandleID: "dipeo_domain.models.HandleID"
+        ArrowID: "dipeo_domain.models.ArrowID"
+        PersonID: "dipeo_domain.models.PersonID"
+        ApiKeyID: "dipeo_domain.models.ApiKeyID"
+        ExecutionID: "dipeo_domain.models.ExecutionID"
+        DiagramID: "dipeo_domain.models.DiagramID"
+        JSONScalar: "typing.Any"
+      # Import enums from dipeo_domain
+      custom_enum_imports:
+        NodeType: "dipeo_domain.models"
+        HandleDirection: "dipeo_domain.models"
+        DataType: "dipeo_domain.models"
+        LLMService: "dipeo_domain.models"
+        DiagramFormat: "dipeo_domain.models"
+        ExecutionStatus: "dipeo_domain.models"
+        EventType: "dipeo_domain.models"

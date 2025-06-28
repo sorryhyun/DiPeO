@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import strawberry
 from dipeo_domain import (
@@ -83,9 +83,9 @@ class ExecutionMutations:
             # Execution starts asynchronously; client monitors via subscriptions
             execution = ExecutionState(
                 id=ExecutionID(execution_id),
-                status=ExecutionStatus.STARTED,
+                status=ExecutionStatus.PENDING,
                 diagramId=DiagramID(diagram_id) if diagram_id else None,
-                startedAt=datetime.now(timezone.utc).isoformat(),
+                startedAt=datetime.now(UTC).isoformat(),
                 endedAt=None,
                 nodeStates={},
                 nodeOutputs={},
@@ -128,13 +128,15 @@ class ExecutionMutations:
                 )
 
             if data.action == "pause":
-                if data.node_id: pass
+                if data.node_id:
+                    pass
                 else:
                     await state_store.update_status(
                         data.execution_id, ExecutionStatus.PAUSED
                     )
             elif data.action == "resume":
-                if data.node_id: pass
+                if data.node_id:
+                    pass
                 else:
                     await state_store.update_status(
                         data.execution_id, ExecutionStatus.RUNNING
@@ -143,13 +145,14 @@ class ExecutionMutations:
                 await state_store.update_status(
                     data.execution_id, ExecutionStatus.ABORTED
                 )
-            elif data.action == "skip" and data.node_id: pass
+            elif data.action == "skip" and data.node_id:
+                pass
 
             control_message = {
                 "type": f"{data.action}_{'node' if data.node_id else 'execution'}",
                 "execution_id": data.execution_id,
                 "node_id": data.node_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
@@ -195,7 +198,7 @@ class ExecutionMutations:
                 )
 
             if execution_state.status not in [
-                ExecutionStatus.STARTED,
+                ExecutionStatus.PENDING,
                 ExecutionStatus.RUNNING,
             ]:
                 return ExecutionResult(
@@ -208,7 +211,7 @@ class ExecutionMutations:
                 "executionId": data.execution_id,
                 "nodeId": data.node_id,
                 "response": data.response,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             await message_router.broadcast_to_execution(
@@ -256,14 +259,14 @@ class ExecutionMutations:
 def _map_status(status: str) -> ExecutionStatus:
     """Maps status string to ExecutionStatus enum."""
     status_map = {
-        "started": ExecutionStatus.STARTED,
+        "pending": ExecutionStatus.PENDING,
         "running": ExecutionStatus.RUNNING,
         "paused": ExecutionStatus.PAUSED,
         "completed": ExecutionStatus.COMPLETED,
         "failed": ExecutionStatus.FAILED,
         "cancelled": ExecutionStatus.ABORTED,
     }
-    return status_map.get(status.lower(), ExecutionStatus.STARTED)
+    return status_map.get(status.lower(), ExecutionStatus.PENDING)
 
 
 def _map_action_to_status(action: str, current_status: str) -> ExecutionStatus:

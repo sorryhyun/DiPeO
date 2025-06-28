@@ -57,9 +57,12 @@ export interface PersonFormData extends Record<string, unknown> {
   label?: string;
   service?: 'openai' | 'claude' | 'gemini' | 'grok';
   model?: string;
-  temperature?: number;
-  maxTokens?: number;
   apiKeyId?: string;
+  memoryConfig?: {
+    forgetMode?: 'no_forget' | 'on_every_turn' | 'upon_request';
+    maxMessages?: number;
+    temperature?: number;
+  };
 }
 
 // Re-export typed versions from shared types

@@ -31,7 +31,7 @@ from .errors.taxonomy import (
     TimeoutError,
 )
 from .execution.executor import BaseExecutor
-from .execution.handlers import BaseNodeHandler, HandlerRegistry, register_handler
+from .execution.handlers import BaseNodeHandler, HandlerRegistry, register_handler, get_global_registry
 from .execution.types import (
     ExecutionContext,
     ExecutionOptions,
@@ -82,4 +82,5 @@ __all__ = [
     # Utilities
     "HandlerRegistry",
     "register_handler",
+    "get_global_registry",
 ]

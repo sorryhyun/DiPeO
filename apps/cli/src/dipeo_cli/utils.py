@@ -1,10 +1,10 @@
-
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
+from dipeo_diagram import UnifiedDiagramConverter, backend_to_graphql, graphql_to_backend
 
 DEFAULT_API_KEY = "APIKEY_387B73"
 
@@ -13,35 +13,44 @@ class DiagramConverter:
     """Converts diagram between different formats for API compatibility"""
 
     @staticmethod
-    def dict_to_list(mapping: Dict[str, Any]) -> List[Any]:
+    def dict_to_list(mapping: dict[str, Any]) -> list[Any]:
         return [
-            ({**value, "id": key} if isinstance(value, dict) and "id" not in value else value)
+            (
+                {**value, "id": key}
+                if isinstance(value, dict) and "id" not in value
+                else value
+            )
             for key, value in mapping.items()
         ]
 
     @staticmethod
-    def list_to_dict(items: List[Any]) -> Dict[str, Any]:
+    def list_to_dict(items: list[Any]) -> dict[str, Any]:
         if isinstance(items, dict):
             return items
-        return {item["id"]: item for item in items if isinstance(item, dict) and "id" in item}
+        return {
+            item["id"]: item
+            for item in items
+            if isinstance(item, dict) and "id" in item
+        }
 
     @classmethod
-    def to_graphql_format(cls, diagram: Dict[str, Any]) -> Dict[str, Any]:
+    def to_graphql_format(cls, diagram: dict[str, Any]) -> dict[str, Any]:
         """Convert diagram from file format to GraphQL format (lists)."""
+        # If it's already in the right format, just ensure proper key naming
         result = diagram.copy()
-        
+
         # Convert dict fields to lists
         for field in ["nodes", "arrows", "handles", "persons"]:
             if field in result and isinstance(result[field], dict):
                 result[field] = cls.dict_to_list(result[field])
-        
+
         # Handle API keys with both camelCase and snake_case
         if "apiKeys" in result and isinstance(result["apiKeys"], dict):
             result["apiKeys"] = cls.dict_to_list(result["apiKeys"])
         elif "api_keys" in result and isinstance(result["api_keys"], dict):
             result["apiKeys"] = cls.dict_to_list(result["api_keys"])
             del result["api_keys"]
-        
+
         return result
 
 
@@ -49,17 +58,29 @@ class DiagramValidator:
     """Validates diagram structure using local models"""
 
     @staticmethod
-    def validate_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_diagram(diagram: dict[str, Any]) -> dict[str, Any]:
         """Validate diagram structure and apply defaults"""
         # Ensure all required fields exist with proper defaults
         if "nodes" not in diagram:
-            diagram["nodes"] = {} if not isinstance(diagram.get("nodes"), list) else diagram["nodes"]
+            diagram["nodes"] = (
+                {} if not isinstance(diagram.get("nodes"), list) else diagram["nodes"]
+            )
         if "arrows" not in diagram:
-            diagram["arrows"] = {} if not isinstance(diagram.get("arrows"), list) else diagram["arrows"]
+            diagram["arrows"] = (
+                {} if not isinstance(diagram.get("arrows"), list) else diagram["arrows"]
+            )
         if "handles" not in diagram:
-            diagram["handles"] = {} if not isinstance(diagram.get("handles"), list) else diagram["handles"]
+            diagram["handles"] = (
+                {}
+                if not isinstance(diagram.get("handles"), list)
+                else diagram["handles"]
+            )
         if "persons" not in diagram:
-            diagram["persons"] = {} if not isinstance(diagram.get("persons"), list) else diagram["persons"]
+            diagram["persons"] = (
+                {}
+                if not isinstance(diagram.get("persons"), list)
+                else diagram["persons"]
+            )
         # Handle both camelCase and snake_case for API keys
         if "apiKeys" not in diagram and "api_keys" not in diagram:
             diagram["apiKeys"] = {}
@@ -72,7 +93,7 @@ class DiagramValidator:
         if isinstance(api_keys, list):
             api_keys = {k["id"]: k for k in api_keys}
             diagram["apiKeys"] = api_keys
-        
+
         if not api_keys and diagram["persons"]:
             diagram["apiKeys"][DEFAULT_API_KEY] = {
                 "id": DEFAULT_API_KEY,
@@ -98,7 +119,7 @@ class DiagramLoader:
     """Handles loading and saving diagrams"""
 
     @staticmethod
-    def load(file_path: str) -> Dict[str, Any]:
+    def load(file_path: str) -> dict[str, Any]:
         """Load diagram from JSON or YAML file"""
         path = Path(file_path)
 
@@ -114,7 +135,7 @@ class DiagramLoader:
         return DiagramValidator.validate_diagram(diagram)
 
     @staticmethod
-    def save(diagram: Dict[str, Any], file_path: str) -> None:
+    def save(diagram: dict[str, Any], file_path: str) -> None:
         """Save diagram to JSON or YAML file"""
         path = Path(file_path)
 

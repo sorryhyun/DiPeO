@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dipeo_diagram"
+version = "0.1.0"
+description = "Diagram converters and utilities for DiPeO"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.0.0",
+    "dipeo_domain",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "mypy",
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.git
+  | \.mypy_cache
+  | \.venv
+  | __generated__
+  | generated
+  | dist
+  | build
+)/
+'''
+
+[tool.isort]
+profile = "black"
+skip_glob = ["*/__generated__/*", "*/generated/*"]
+known_first_party = ["dipeo_diagram"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_optional = true
+exclude = [
+    "__generated__",
+    "generated",
+]
+plugins = ["pydantic.mypy"]
+# Allow using lowercase generics from Python 3.9+
+disable_error_code = ["misc"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"

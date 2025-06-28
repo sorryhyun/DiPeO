@@ -1,7 +1,6 @@
 """GraphQL queries for DiPeO API."""
 
 from datetime import datetime
-from typing import List, Optional
 
 import strawberry
 from dipeo_domain import LLMService, NodeType
@@ -25,7 +24,7 @@ from .types import (
 @strawberry.type
 class Query:
     @strawberry.field
-    async def diagram(self, id: DiagramID, info) -> Optional[DomainDiagramType]:
+    async def diagram(self, id: DiagramID, info) -> DomainDiagramType | None:
         from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.get_diagram(id, info)
@@ -34,16 +33,16 @@ class Query:
     async def diagrams(
         self,
         info,
-        filter: Optional[DiagramFilterInput] = None,
+        filter: DiagramFilterInput | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[DomainDiagramType]:
+    ) -> list[DomainDiagramType]:
         from .resolvers.diagram import diagram_resolver
 
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
 
     @strawberry.field
-    async def execution(self, id: ExecutionID, info) -> Optional[ExecutionStateType]:
+    async def execution(self, id: ExecutionID, info) -> ExecutionStateType | None:
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.get_execution(id, info)
@@ -52,36 +51,36 @@ class Query:
     async def executions(
         self,
         info,
-        filter: Optional[ExecutionFilterInput] = None,
+        filter: ExecutionFilterInput | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[ExecutionStateType]:
+    ) -> list[ExecutionStateType]:
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.list_executions(filter, limit, offset, info)
 
     @strawberry.field
-    async def person(self, id: PersonID, info) -> Optional[DomainPersonType]:
+    async def person(self, id: PersonID, info) -> DomainPersonType | None:
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_person(id, info)
 
     @strawberry.field
-    async def persons(self, info, limit: int = 100) -> List[DomainPersonType]:
+    async def persons(self, info, limit: int = 100) -> list[DomainPersonType]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_persons(limit, info)
 
     @strawberry.field
-    async def api_key(self, id: ApiKeyID, info) -> Optional[DomainApiKeyType]:
+    async def api_key(self, id: ApiKeyID, info) -> DomainApiKeyType | None:
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_api_key(id, info)
 
     @strawberry.field
     async def api_keys(
-        self, info, service: Optional[str] = None
-    ) -> List[DomainApiKeyType]:
+        self, info, service: str | None = None
+    ) -> list[DomainApiKeyType]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.list_api_keys(service, info)
@@ -89,7 +88,7 @@ class Query:
     @strawberry.field
     async def available_models(
         self, service: str, api_key_id: ApiKeyID, info
-    ) -> List[str]:
+    ) -> list[str]:
         from .resolvers.person import person_resolver
 
         return await person_resolver.get_available_models(service, api_key_id, info)
@@ -172,22 +171,22 @@ class Query:
     async def conversations(
         self,
         info,
-        person_id: Optional[PersonID] = None,
-        execution_id: Optional[ExecutionID] = None,
-        search: Optional[str] = None,
+        person_id: PersonID | None = None,
+        execution_id: ExecutionID | None = None,
+        search: str | None = None,
         show_forgotten: bool = False,
         limit: int = 100,
         offset: int = 0,
-        since: Optional[datetime] = None,
+        since: datetime | None = None,
     ) -> JSONScalar:
         context = info.context
-        memory_service = context.memory_service
+        conversation_service = context.conversation_service
 
         all_conversations = []
 
         if (
-            not hasattr(memory_service, "person_memories")
-            or not memory_service.person_memories
+            not hasattr(conversation_service, "person_conversations")
+            or not conversation_service.person_conversations
         ):
             return {
                 "conversations": [],
@@ -197,12 +196,15 @@ class Query:
                 "has_more": False,
             }
 
-        for person_id_key, person_memory in memory_service.person_memories.items():
+        for (
+            person_id_key,
+            person_conversation,
+        ) in conversation_service.person_conversations.items():
             if person_id and person_id_key != person_id:
                 continue
 
-            for message in person_memory.messages:
-                is_forgotten = message.id in person_memory.forgotten_message_ids
+            for message in person_conversation.messages:
+                is_forgotten = message.id in person_conversation.forgotten_message_ids
                 if not show_forgotten and is_forgotten:
                     continue
 
@@ -258,8 +260,8 @@ class Query:
         }
 
     @strawberry.field
-    async def supported_formats(self, info) -> List[DiagramFormatInfo]:
-        from dipeo_server.domains.diagram.converters import converter_registry
+    async def supported_formats(self, info) -> list[DiagramFormatInfo]:
+        from dipeo_diagram import converter_registry
 
         formats = converter_registry.list_formats()
         return [
@@ -282,30 +284,49 @@ class Query:
 
         execution = await execution_resolver.get_execution(execution_id, info)
         if not execution:
-            return {"executionId": execution_id, "nodes": [], "error": "Execution not found"}
+            return {
+                "executionId": execution_id,
+                "nodes": [],
+                "error": "Execution not found",
+            }
 
         # Create a mapping of node_id to node_name from the diagram
         node_names = {}
-        diagram_id = getattr(execution._pydantic_object, 'diagram_id', None) if hasattr(execution, '_pydantic_object') else None
+        diagram_id = (
+            getattr(execution._pydantic_object, "diagram_id", None)
+            if hasattr(execution, "_pydantic_object")
+            else None
+        )
         if diagram_id:
             diagram = await diagram_resolver.get_diagram(diagram_id, info)
-            if diagram and hasattr(diagram, '_pydantic_object') and diagram._pydantic_object.nodes:
+            if (
+                diagram
+                and hasattr(diagram, "_pydantic_object")
+                and diagram._pydantic_object.nodes
+            ):
                 for node in diagram._pydantic_object.nodes:
                     # Use display_name if available, otherwise try data.label, fallback to node.id
                     if node.display_name:
                         node_names[node.id] = node.display_name
-                    elif hasattr(node, 'data') and isinstance(node.data, dict) and 'label' in node.data:
-                        node_names[node.id] = node.data['label']
+                    elif (
+                        hasattr(node, "data")
+                        and isinstance(node.data, dict)
+                        and "label" in node.data
+                    ):
+                        node_names[node.id] = node.data["label"]
                     else:
                         node_names[node.id] = node.id
 
         # Extract node execution order from node_states
         node_order = []
-        if hasattr(execution, '_pydantic_object') and execution._pydantic_object.node_states:
+        if (
+            hasattr(execution, "_pydantic_object")
+            and execution._pydantic_object.node_states
+        ):
             node_states_dict = execution._pydantic_object.node_states
             for node_id, node_state in node_states_dict.items():
                 # Handle if node_state is a pydantic model
-                if hasattr(node_state, 'model_dump'):
+                if hasattr(node_state, "model_dump"):
                     node_state = node_state.model_dump()
                 elif not isinstance(node_state, dict):
                     continue
@@ -313,7 +334,9 @@ class Query:
                 if node_state.get("startedAt"):
                     node_info = {
                         "nodeId": node_id,
-                        "nodeName": node_names.get(node_id, node_id),  # Use actual node name from diagram
+                        "nodeName": node_names.get(
+                            node_id, node_id
+                        ),  # Use actual node name from diagram
                         "status": node_state.get("status", "PENDING"),
                         "startedAt": node_state.get("startedAt"),
                         "endedAt": node_state.get("endedAt"),
@@ -323,9 +346,15 @@ class Query:
 
                     # Calculate duration if both timestamps exist
                     if node_info["startedAt"] and node_info["endedAt"]:
-                        start = datetime.fromisoformat(node_info["startedAt"].replace("Z", "+00:00"))
-                        end = datetime.fromisoformat(node_info["endedAt"].replace("Z", "+00:00"))
-                        duration = (end - start).total_seconds() * 1000  # Convert to milliseconds
+                        start = datetime.fromisoformat(
+                            node_info["startedAt"].replace("Z", "+00:00")
+                        )
+                        end = datetime.fromisoformat(
+                            node_info["endedAt"].replace("Z", "+00:00")
+                        )
+                        duration = (
+                            end - start
+                        ).total_seconds() * 1000  # Convert to milliseconds
                         node_info["duration"] = int(duration)
 
                     node_order.append(node_info)
@@ -335,9 +364,15 @@ class Query:
 
         return {
             "executionId": execution_id,
-            "status": execution._pydantic_object.status if hasattr(execution, '_pydantic_object') else None,
-            "startedAt": execution._pydantic_object.started_at if hasattr(execution, '_pydantic_object') else None,
-            "endedAt": execution._pydantic_object.ended_at if hasattr(execution, '_pydantic_object') else None,
+            "status": execution._pydantic_object.status
+            if hasattr(execution, "_pydantic_object")
+            else None,
+            "startedAt": execution._pydantic_object.started_at
+            if hasattr(execution, "_pydantic_object")
+            else None,
+            "endedAt": execution._pydantic_object.ended_at
+            if hasattr(execution, "_pydantic_object")
+            else None,
             "nodes": node_order,
             "totalNodes": len(node_order),
         }

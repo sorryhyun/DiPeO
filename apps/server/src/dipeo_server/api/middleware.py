@@ -1,10 +1,15 @@
 import os
 
+from dipeo_core.base.exceptions import (  # noqa: F401
+    ConfigurationError,
+    DiPeOError,
+    ExecutionError,
+    ServiceError,
+    ValidationError,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-from dipeo_server.shared.exceptions import AgentDiagramException
 
 
 def setup_middleware(app: FastAPI):
@@ -34,8 +39,8 @@ def setup_middleware(app: FastAPI):
     )
 
     # Exception handlers
-    @app.exception_handler(AgentDiagramException)
-    async def handle_agent_diagram_exception(request, exc: AgentDiagramException):
+    @app.exception_handler(DiPeOError)
+    async def handle_agent_diagram_exception(request, exc: DiPeOError):
         """Global exception handler for application exceptions."""
         return JSONResponse(
             status_code=400,

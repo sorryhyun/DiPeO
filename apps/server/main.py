@@ -1,17 +1,15 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 
-from dipeo_server.api.graphql.context import get_graphql_context
-from dipeo_server.api.graphql.schema import create_graphql_router
-from dipeo_server.api.middleware import setup_middleware
-from dipeo_server.application.app_context import lifespan
-
+# Load environment variables first
 load_dotenv()
 
+# Set up logging
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -27,6 +25,22 @@ logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+# Use consolidated app context
+from dipeo_server.application.app_context import app_context
+from dipeo_server.api.graphql.schema import create_unified_graphql_router as create_graphql_router
+logger.info("🚀 Using UNIFIED architecture with direct streaming")
+
+from dipeo_server.api.graphql.context import get_graphql_context
+from dipeo_server.api.middleware import setup_middleware
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await app_context.startup()
+    yield
+    await app_context.shutdown()
+
+
 app = FastAPI(
     title="DiPeO Backend API",
     description="API server for DiPeO visual programming environment",
@@ -37,11 +51,6 @@ setup_middleware(app)
 
 graphql_router = create_graphql_router(context_getter=get_graphql_context)
 app.include_router(graphql_router, prefix="")
-logger.info("GraphQL endpoint enabled at /graphql")
-
-logger.info("All API operations are available via GraphQL at /graphql")
-
-
 
 
 @app.get("/metrics")
