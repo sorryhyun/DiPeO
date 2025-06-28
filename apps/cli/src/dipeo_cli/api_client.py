@@ -9,6 +9,23 @@ from gql.transport.websockets import (
     WebsocketsTransport,
 )  # For GraphQL subscriptions only
 
+from dipeo_cli.__generated__.graphql_operations import (
+    EXECUTE_DIAGRAM_MUTATION,
+    CONVERT_DIAGRAM_MUTATION,
+    CONTROL_EXECUTION_MUTATION,
+    SUBMIT_INTERACTIVE_RESPONSE_MUTATION,
+    EXECUTION_UPDATES_SUBSCRIPTION,
+    NODE_UPDATES_SUBSCRIPTION,
+    INTERACTIVE_PROMPTS_SUBSCRIPTION,
+    get_execute_diagram_variables,
+    get_convert_diagram_variables,
+    get_control_execution_variables,
+    get_submit_interactive_response_variables,
+    get_execution_updates_variables,
+    get_node_updates_variables,
+    get_interactive_prompts_variables,
+)
+
 T = TypeVar("T")
 
 
@@ -110,21 +127,7 @@ class DiPeoAPIClient:
         timeout: int = 300,
     ) -> str:
         """Start diagram execution and return execution ID."""
-        mutation = gql("""
-            mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
-                executeDiagram(data: $data) {
-                    success
-                    execution {
-                        id
-                        status
-                        diagramId
-                        startedAt
-                    }
-                    message
-                    error
-                }
-            }
-        """)
+        mutation = gql(EXECUTE_DIAGRAM_MUTATION)
 
         # Prepare input data
         input_data = {
@@ -164,18 +167,7 @@ class DiPeoAPIClient:
         include_metadata: bool = True,
     ) -> dict[str, Any]:
         """Convert diagram to specified format using backend API."""
-        mutation = gql("""
-            mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
-                convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
-                    success
-                    message
-                    error
-                    content
-                    format
-                    filename
-                }
-            }
-        """)
+        mutation = gql(CONVERT_DIAGRAM_MUTATION)
 
         result = await self._retry_with_backoff(
             self._client.execute_async,
@@ -200,28 +192,7 @@ class DiPeoAPIClient:
         self, execution_id: str
     ) -> AsyncGenerator[dict[str, Any]]:
         """Subscribe to execution updates."""
-        subscription = gql("""
-            subscription ExecutionUpdates($executionId: ExecutionID!) {
-                executionUpdates(executionId: $executionId) {
-                    id
-                    status
-                    diagramId
-                    startedAt
-                    endedAt
-                    nodeStates
-                    nodeOutputs
-                    variables
-                    tokenUsage {
-                        input
-                        output
-                        total
-                    }
-                    error
-                    isActive
-                    durationSeconds
-                }
-            }
-        """)
+        subscription = gql(EXECUTION_UPDATES_SUBSCRIPTION)
 
         client = self._get_subscription_client("execution")
         async for result in client.subscribe_async(
@@ -233,21 +204,7 @@ class DiPeoAPIClient:
         self, execution_id: str, node_types: list[str] | None = None
     ) -> AsyncGenerator[dict[str, Any]]:
         """Subscribe to node execution updates."""
-        subscription = gql("""
-            subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
-                nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
-                    executionId
-                    nodeId
-                    nodeType
-                    status
-                    progress
-                    output
-                    error
-                    tokensUsed
-                    timestamp
-                }
-            }
-        """)
+        subscription = gql(NODE_UPDATES_SUBSCRIPTION)
 
         variables = {"executionId": execution_id}
         if node_types:
@@ -263,17 +220,7 @@ class DiPeoAPIClient:
         self, execution_id: str
     ) -> AsyncGenerator[dict[str, Any]]:
         """Subscribe to interactive prompt notifications."""
-        subscription = gql("""
-            subscription InteractivePrompts($executionId: ExecutionID!) {
-                interactivePrompts(executionId: $executionId) {
-                    executionId
-                    nodeId
-                    prompt
-                    timeoutSeconds
-                    timestamp
-                }
-            }
-        """)
+        subscription = gql(INTERACTIVE_PROMPTS_SUBSCRIPTION)
 
         client = self._get_subscription_client("prompts")
         async for result in client.subscribe_async(
@@ -285,19 +232,7 @@ class DiPeoAPIClient:
         self, execution_id: str, action: str, node_id: str | None = None
     ) -> bool:
         """Control a running execution (pause, resume, abort, skip_node)."""
-        mutation = gql("""
-            mutation ControlExecution($data: ExecutionControlInput!) {
-                controlExecution(data: $data) {
-                    success
-                    execution {
-                        id
-                        status
-                    }
-                    message
-                    error
-                }
-            }
-        """)
+        mutation = gql(CONTROL_EXECUTION_MUTATION)
 
         input_data = {"executionId": execution_id, "action": action}
         if node_id and action == "skip_node":
@@ -319,20 +254,7 @@ class DiPeoAPIClient:
         self, execution_id: str, node_id: str, response: str
     ) -> bool:
         """Submit response to an interactive prompt."""
-        mutation = gql("""
-            mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
-                submitInteractiveResponse(data: $data) {
-                    success
-                    execution {
-                        id
-                        status
-                        runningNodes
-                    }
-                    message
-                    error
-                }
-            }
-        """)
+        mutation = gql(SUBMIT_INTERACTIVE_RESPONSE_MUTATION)
 
         result = await self._retry_with_backoff(
             self._client.execute_async,

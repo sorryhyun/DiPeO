@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .api_client import DiPeoAPIClient
+from .local_context import LocalAppContext
 from .utils import DiagramConverter, DiagramLoader
 
 
@@ -31,6 +32,71 @@ class ExecutionOptions:
     timeout: int = 300  # 5 minutes
     output_file: str | None = None
     diagram_file: str | None = None
+    local: bool = False  # Use local execution without server
+
+
+class LocalDiagramRunner:
+    """Handles diagram execution locally without server"""
+
+    def __init__(self, options: ExecutionOptions):
+        self.options = options
+
+    async def execute(
+        self, diagram: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Execute diagram locally"""
+        result = {
+            "context": {},
+            "total_token_count": 0,
+            "messages": [],
+            "execution_id": None,
+        }
+
+        try:
+            # Initialize local context
+            context = LocalAppContext()
+            await context.initialize_for_local()
+
+            # Generate execution ID
+            import uuid
+            execution_id = str(uuid.uuid4())
+            result["execution_id"] = execution_id
+
+            if self.options.stream:
+                print(f"🚀 Starting local execution with ID: {execution_id}")
+
+            # Execute diagram using local execution service
+            async for update in context.execution_service.execute_diagram(
+                diagram=diagram,
+                options={"variables": {}},
+                execution_id=execution_id,
+            ):
+                # Handle updates
+                if update.get("type") == "node_update":
+                    node_id = update.get("node_id")
+                    status = update.get("status")
+                    
+                    if status == "running" and self.options.stream:
+                        print(f"\n🔄 Executing node: {node_id}")
+                    elif status == "completed" and self.options.stream:
+                        print(f"✅ Node {node_id} completed")
+                        if output := update.get("output"):
+                            if isinstance(output, dict) and "tokens_used" in output:
+                                result["total_token_count"] += output.get("tokens_used", 0)
+                elif update.get("type") == "execution_complete":
+                    if self.options.stream:
+                        print("\n✨ Execution completed successfully!")
+                elif update.get("type") == "execution_error":
+                    result["error"] = update.get("error")
+                    if self.options.stream:
+                        print(f"\n❌ Execution failed: {update.get('error')}")
+
+        except Exception as e:
+            result["error"] = str(e)
+            if self.options.stream:
+                print(f"\n❌ Error during local execution: {e!s}")
+
+        return result
 
 
 class DiagramRunner:
@@ -257,24 +323,32 @@ async def run_command(args: list[str]) -> None:
     options = _parse_run_options(args[1:])
     options.diagram_file = file_path  # Store the file path for later use
 
-    # Restart backend server if debug mode
-    if options.debug:
-        await _restart_backend_server()
-
     # Load diagram
     diagram = DiagramLoader.load(file_path)
 
     # Convert to GraphQL format if needed
     diagram = DiagramConverter.to_graphql_format(diagram)
 
-    # Handle special modes
-    if options.mode == ExecutionMode.MONITOR:
-        await _run_monitor_mode(diagram, options)
-        # Don't return here - continue to execute the diagram
+    # Execute based on mode
+    if options.local:
+        # Local execution without server
+        print("🏠 Running in local mode (no server required)...")
+        executor = LocalDiagramRunner(options)
+        result = await executor.execute(diagram)
+    else:
+        # Server-based execution
+        # Restart backend server if debug mode
+        if options.debug:
+            await _restart_backend_server()
 
-    # Execute diagram (both for normal and monitor mode)
-    executor = DiagramRunner(options)
-    result = await executor.execute(diagram)
+        # Handle special modes
+        if options.mode == ExecutionMode.MONITOR:
+            await _run_monitor_mode(diagram, options)
+            # Don't return here - continue to execute the diagram
+
+        # Execute diagram (both for normal and monitor mode)
+        executor = DiagramRunner(options)
+        result = await executor.execute(diagram)
 
     print(
         f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}"
@@ -337,6 +411,8 @@ def _parse_run_options(args: list[str]) -> ExecutionOptions:
             options.debug = True
         elif arg == "--keep-server":
             options.keep_server = True
+        elif arg == "--local":
+            options.local = True
         elif arg.startswith("--timeout="):
             try:
                 options.timeout = int(arg.split("=")[1])

@@ -53,7 +53,7 @@ class DiagramMutations:
             )
 
             # Use new services - convert to storage format
-            from dipeo_server.domains.diagram.converters import graphql_to_backend
+            from dipeo_diagram import graphql_to_backend
 
             backend_model = graphql_to_backend(diagram_model)
             storage_dict = backend_model.model_dump(by_alias=True)

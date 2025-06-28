@@ -25,6 +25,7 @@ dependencies = [
     "websockets>=13.0",
     "dipeo-core",
     "dipeo-domain",
+    "dipeo-diagram",
 ]
 keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
 

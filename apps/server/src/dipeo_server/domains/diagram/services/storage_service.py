@@ -8,10 +8,9 @@ from typing import Any
 
 import yaml
 from dipeo_core import BaseService, SupportsDiagram
+from dipeo_diagram import FileInfo
 
 from config import BASE_DIR
-
-from .models import FileInfo
 
 logger = logging.getLogger(__name__)
 

@@ -74,8 +74,8 @@ class UnifiedExecutionService(BaseService, SupportsExecution):
                 diagram_obj = diagram
             api_keys = {}
 
-        # Import handlers to ensure they are registered
-        from dipeo_server.application import handlers  # noqa: F401
+        # Import use_cases to ensure they are registered
+        from dipeo_usecases import handlers  # noqa: F401
 
         # Create execution in cache
         diagram_id = diagram_obj.metadata.id if diagram_obj.metadata else None

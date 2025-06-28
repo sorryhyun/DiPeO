@@ -2,11 +2,20 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
 
+from dipeo_core import (
+    SupportsAPIKey,
+    SupportsDiagram,
+    SupportsExecution,
+    SupportsFile,
+    SupportsLLM,
+    SupportsMemory,
+    SupportsNotion,
+)
 from fastapi import FastAPI
 
 from config import BASE_DIR
+from dipeo_server.domains.api import APIIntegrationDomainService
 from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.conversation import ConversationService
 from dipeo_server.domains.diagram.services import (
@@ -14,33 +23,14 @@ from dipeo_server.domains.diagram.services import (
     DiagramStorageService,
 )
 from dipeo_server.domains.execution import ExecutionPreparationService
+from dipeo_server.domains.execution.services import UnifiedExecutionService
 from dipeo_server.domains.execution.validators import DiagramValidator
-from dipeo_server.domains.integrations import NotionService
-from dipeo_server.domains.llm import LLMServiceClass as LLMService
+from dipeo_server.domains.file import FileOperationsDomainService
+from dipeo_server.domains.text import TextProcessingDomainService
+from dipeo_server.infrastructure.external.integrations import NotionService
+from dipeo_server.infrastructure.external.llm import LLMServiceClass as LLMService
 from dipeo_server.infrastructure.messaging import message_router
 from dipeo_server.infrastructure.persistence import FileService, state_store
-
-if TYPE_CHECKING:
-    from dipeo_core import (
-        SupportsAPIKey,
-        SupportsDiagram,
-        SupportsExecution,
-        SupportsFile,
-        SupportsLLM,
-        SupportsMemory,
-        SupportsNotion,
-    )
-else:
-    # Import protocols for runtime validation
-    from dipeo_core import (
-        SupportsAPIKey,
-        SupportsDiagram,
-        SupportsExecution,
-        SupportsFile,
-        SupportsLLM,
-        SupportsMemory,
-        SupportsNotion,
-    )
 
 
 class AppContext:
@@ -54,6 +44,15 @@ class AppContext:
         self.diagram_storage_service: SupportsDiagram | None = None
         self.diagram_storage_adapter: DiagramStorageAdapter | None = None
         self.execution_preparation_service: ExecutionPreparationService | None = None
+
+        # New domain services
+        self.api_integration_service: APIIntegrationDomainService | None = None
+        self.text_processing_service: TextProcessingDomainService | None = None
+        self.file_operations_service: FileOperationsDomainService | None = None
+
+        # Infrastructure services that GraphQL layer expects
+        self.state_store = state_store
+        self.message_router = message_router
 
     async def startup(self):
         await state_store.initialize()
@@ -80,8 +79,15 @@ class AppContext:
             api_key_service=self.api_key_service,
         )
 
-        # Execution service will be initialized in UnifiedAppContext
-        self.execution_service = None  # type: ignore[assignment]
+        # Initialize new domain services
+        self.api_integration_service = APIIntegrationDomainService(self.file_service)
+        self.text_processing_service = TextProcessingDomainService()
+        self.file_operations_service = FileOperationsDomainService(self.file_service)
+
+        # Initialize unified execution service
+        unified_execution_service = UnifiedExecutionService(self)
+        await unified_execution_service.initialize()
+        self.execution_service = unified_execution_service
 
         await self.llm_service.initialize()
         await self.diagram_storage_service.initialize()
@@ -180,5 +186,3 @@ def get_execution_preparation_service() -> ExecutionPreparationService:
     if app_context.execution_preparation_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.execution_preparation_service
-
-

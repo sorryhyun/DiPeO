@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from dipeo_core import SupportsAPIKey, SupportsLLM, SupportsMemory
 
 
-
 class ConversationDomainService:
     """High-level domain service that manages conversations with LLMs."""
 

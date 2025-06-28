@@ -4,6 +4,7 @@ import logging
 import uuid
 
 import strawberry
+from dipeo_diagram import BackendDiagram, backend_to_graphql
 from dipeo_domain import (
     ArrowID as DomainArrowID,
 )
@@ -15,9 +16,6 @@ from dipeo_domain import (
 from dipeo_domain import (
     HandleID as DomainHandleID,
 )
-
-from dipeo_server.domains.diagram.converters import backend_to_graphql
-from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 from ..context import GraphQLContext
 from ..types import (

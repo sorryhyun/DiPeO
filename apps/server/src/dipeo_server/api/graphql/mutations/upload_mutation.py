@@ -8,6 +8,11 @@ from pathlib import Path
 from typing import Any
 
 import strawberry
+from dipeo_diagram import (
+    BackendDiagram,
+    backend_to_graphql,
+    converter_registry,
+)
 from dipeo_domain import (
     DiagramMetadata,
     DomainDiagram,
@@ -16,11 +21,6 @@ from strawberry.file_uploads import Upload
 
 from config import BASE_DIR
 from dipeo_server.domains.apikey import APIKeyService
-from dipeo_server.domains.diagram.converters import (
-    backend_to_graphql,
-    converter_registry,
-)
-from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 from ..context import GraphQLContext
 from ..types import (

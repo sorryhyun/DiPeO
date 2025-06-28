@@ -6,17 +6,17 @@ from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 if TYPE_CHECKING:
-    from dipeo_server.application.unified_app_context import UnifiedAppContext
+    from dipeo_server.application.app_context import AppContext
 
 
 class GraphQLContext(BaseContext):
     """Thin context object that delegates to AppContext."""
 
     request: Request
-    app_context: "UnifiedAppContext"
+    app_context: "AppContext"
     user_data: dict[str, Any]
 
-    def __init__(self, request: Request, app_context: "UnifiedAppContext"):
+    def __init__(self, request: Request, app_context: "AppContext"):
         super().__init__()
         self.request = request
         self.app_context = app_context
@@ -44,7 +44,7 @@ async def get_graphql_context(request: Request = None) -> GraphQLContext:
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    from dipeo_server.application.unified_app_context import get_unified_app_context
+    from dipeo_server.application.app_context import get_app_context
 
-    app_context = get_unified_app_context()
+    app_context = get_app_context()
     return GraphQLContext(request=request, app_context=app_context)

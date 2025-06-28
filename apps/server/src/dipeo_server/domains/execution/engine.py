@@ -9,11 +9,11 @@ from dipeo_core import HandlerRegistry
 from dipeo_domain.models import DomainDiagram, NodeOutput
 
 from dipeo_server.application.execution_context import ExecutionContext
-from dipeo_server.domains.llm.services import LLMService
+from dipeo_server.infrastructure.external.integrations.notion import NotionService
+from dipeo_server.infrastructure.external.llm.services import LLMService
 from dipeo_server.infrastructure.persistence import FileService
 
 from ..conversation import ConversationService
-from ..integrations.notion import NotionService
 from .execution_view import EdgeView, ExecutionView, NodeView
 
 

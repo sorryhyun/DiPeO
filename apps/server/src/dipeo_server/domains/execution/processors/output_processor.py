@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo_server.domains.llm.token_usage_service import TokenUsageService
+from dipeo_server.infrastructure.external.llm.token_usage_service import (
+    TokenUsageService,
+)
 
 if TYPE_CHECKING:
     from dipeo_domain import TokenUsage

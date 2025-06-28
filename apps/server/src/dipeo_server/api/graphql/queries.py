@@ -261,7 +261,7 @@ class Query:
 
     @strawberry.field
     async def supported_formats(self, info) -> list[DiagramFormatInfo]:
-        from dipeo_server.domains.diagram.converters import converter_registry
+        from dipeo_diagram import converter_registry
 
         formats = converter_registry.list_formats()
         return [

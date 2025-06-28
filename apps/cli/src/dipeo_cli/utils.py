@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dipeo_diagram import UnifiedDiagramConverter, backend_to_graphql, graphql_to_backend
 
 DEFAULT_API_KEY = "APIKEY_387B73"
 
@@ -35,6 +36,7 @@ class DiagramConverter:
     @classmethod
     def to_graphql_format(cls, diagram: dict[str, Any]) -> dict[str, Any]:
         """Convert diagram from file format to GraphQL format (lists)."""
+        # If it's already in the right format, just ensure proper key naming
         result = diagram.copy()
 
         # Convert dict fields to lists

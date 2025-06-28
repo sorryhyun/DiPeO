@@ -5,15 +5,15 @@ from collections import defaultdict
 from datetime import UTC, datetime
 
 import yaml
-from dipeo_domain import DiagramMetadata, DomainDiagram
-
-from dipeo_server.domains.diagram.converters import (
+from dipeo_diagram import (
+    BackendDiagram,
     backend_to_graphql,
     converter_registry,
     graphql_to_backend,
 )
+from dipeo_domain import DiagramMetadata, DomainDiagram
+
 from dipeo_server.domains.diagram.services import DiagramStorageService
-from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 from ..types import (
     DiagramFilterInput,

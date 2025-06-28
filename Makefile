@@ -45,6 +45,8 @@ codegen:
 	cd packages/domain-models && pnpm build
 	@echo "🔄 Generating GraphQL types for web app..."
 	pnpm --filter web codegen
+	@echo "🔄 Generating typed GraphQL operations for CLI..."
+	cd apps/cli && python scripts/generate_graphql_operations.py
 
 # Build everything with proper dependency order
 build-all:

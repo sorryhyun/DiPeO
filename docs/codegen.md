@@ -24,9 +24,18 @@ DiPeO uses a sophisticated code generation pipeline with TypeScript domain model
 │ Python   │ │ GraphQL  │ │   CLI    │ │TypeScript│
 │ Models   │ │  Schema  │ │  Models  │ │  Types   │
 └──────────┘ └──────────┘ └──────────┘ └──────────┘
-     │            │             │
-     ▼            ▼             ▼
-  Backend     Server API    CLI Tool    (direct import)
+     │            │             │            │
+     ▼            ▼             ▼            ▼
+dipeo-domain   Server API    CLI Tool    Web App
+     │
+     ▼
+┌─────────────────────────────────────────────┐
+│         Python Package Ecosystem            │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐   │
+│  │dipeo-core│ │ dipeo-   │ │  dipeo-  │   │
+│  │          │ │ diagram  │ │ usecases │   │
+│  └──────────┘ └──────────┘ └──────────┘   │
+└─────────────────────────────────────────────┘
 ```
 
 ## Generation Pipeline
@@ -47,6 +56,13 @@ DiPeO uses a sophisticated code generation pipeline with TypeScript domain model
   - Branded types as NewType
 
 **Output**: `packages/python/dipeo_domain/src/dipeo_domain/models.py`
+
+#### Python Package Architecture
+The generated models form the foundation for multiple Python packages:
+- **dipeo-domain**: Generated models (direct output)
+- **dipeo-core**: Base abstractions and protocols
+- **dipeo-diagram**: Diagram conversion utilities
+- **dipeo-usecases**: Application layer handlers (shared between server and CLI)
 
 ### 3. TypeScript → GraphQL Schema
 **Script**: `generate-graphql.ts`
@@ -71,6 +87,15 @@ The FastAPI server uses Strawberry GraphQL to:
 - Maps custom scalars to branded types from domain-models
 
 **Output**: `apps/web/src/__generated__/graphql.tsx`
+
+### 6. GraphQL Schema → Python Types (Planned)
+**Tool**: GraphQL Code Generator with Python plugin
+- Will read server's GraphQL schema
+- Generate typed Python operations for CLI
+- Replace hardcoded GraphQL strings in `api_client.py`
+
+**Config**: `apps/cli/codegen.yml` (created, awaiting plugin implementation)
+**Output**: `apps/cli/src/dipeo_cli/__generated__/graphql_operations.py`
 
 ## Key Components
 
@@ -122,6 +147,19 @@ NodeID = NewType('NodeID', str)
    # Update frontend types:
    cd apps/web
    pnpm codegen
+   
+   # Update CLI types (when Python plugin available):
+   cd apps/cli
+   pnpm codegen  # Will generate Python GraphQL operations
+   ```
+
+3. **Installing Python Packages**:
+   ```bash
+   # Install all Python packages in development mode
+   pip install -e packages/python/dipeo_domain
+   pip install -e packages/python/dipeo_core
+   pip install -e packages/python/dipeo_diagram
+   pip install -e packages/python/dipeo_usecases
    ```
 
 ## GraphQL Architecture
@@ -152,6 +190,8 @@ Defined in both schema and codegen config:
 3. **Consistency**: Field names, enums, and types stay synchronized
 4. **Developer Experience**: Auto-completion and type checking everywhere
 5. **Maintainability**: Change types in one place, regenerate everywhere
+6. **Code Reuse**: Shared packages enable both server and CLI to use same logic
+7. **Local Execution**: CLI can run diagrams without server dependency
 
 ## Common Tasks
 

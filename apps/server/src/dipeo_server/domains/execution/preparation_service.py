@@ -5,15 +5,15 @@ from datetime import UTC, datetime
 from typing import Any
 
 from dipeo_core import BaseService, ValidationError
-from dipeo_domain import DiagramMetadata, DomainDiagram
-
-from dipeo_server.domains.apikey import APIKeyService
-from dipeo_server.domains.diagram.converters import (
+from dipeo_diagram import (
+    BackendDiagram,
     backend_to_graphql,
     graphql_to_backend,
 )
+from dipeo_domain import DiagramMetadata, DomainDiagram
+
+from dipeo_server.domains.apikey import APIKeyService
 from dipeo_server.domains.diagram.services import DiagramStorageService
-from dipeo_server.domains.diagram.services.models import BackendDiagram
 
 from .models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
 from .validators import DiagramValidator

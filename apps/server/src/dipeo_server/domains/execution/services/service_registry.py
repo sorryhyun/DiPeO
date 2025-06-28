@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from dipeo_server.domains.diagram.services.domain_service import (
         DiagramStorageDomainService,
     )
-    from dipeo_server.domains.integrations.notion.domain_service import (
+    from dipeo_server.infrastructure.external.integrations.notion.domain_service import (
         NotionIntegrationDomainService,
     )
 
@@ -49,7 +49,7 @@ class ServiceRegistry:
     def notion_integration(self) -> "NotionIntegrationDomainService":
         """Get or create notion integration domain service."""
         if self._notion_integration_service is None:
-            from dipeo_server.domains.integrations.notion.domain_service import (
+            from dipeo_server.infrastructure.external.integrations.notion.domain_service import (
                 NotionIntegrationDomainService,
             )
 
