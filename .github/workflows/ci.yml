@@ -43,6 +43,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install -e ./packages/python/dipeo_core
+        pip install -e ./packages/python/dipeo_domain
+        pip install -e ./packages/python/dipeo_diagram
+        pip install -e ./packages/python/dipeo_services
+        pip install -e ./packages/python/dipeo_usecases
+        pip install -e ./packages/python/dipeo_container
         pip install -e ./apps/cli
         pip install -e ./apps/server
 

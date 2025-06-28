@@ -3,15 +3,14 @@
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from dipeo_services import NotionIntegrationDomainService
+
     from dipeo_server.application.app_context import AppContext
     from dipeo_server.domains.conversation.domain_service import (
         ConversationDomainService,
     )
     from dipeo_server.domains.diagram.services.domain_service import (
         DiagramStorageDomainService,
-    )
-    from dipeo_server.infrastructure.external.integrations.notion.domain_service import (
-        NotionIntegrationDomainService,
     )
 
 
@@ -49,9 +48,7 @@ class ServiceRegistry:
     def notion_integration(self) -> "NotionIntegrationDomainService":
         """Get or create notion integration domain service."""
         if self._notion_integration_service is None:
-            from dipeo_server.infrastructure.external.integrations.notion.domain_service import (
-                NotionIntegrationDomainService,
-            )
+            from dipeo_services import NotionIntegrationDomainService
 
             self._notion_integration_service = NotionIntegrationDomainService(
                 notion_service=self._app.notion_service,

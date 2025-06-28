@@ -10,11 +10,20 @@ from dipeo_domain import (
     PersonJobNodeData,
     LLMService,
     Message,
-    Conversation
+    Conversation,
+    MemoryConfig
 )
-0
+
 
 logger = logging.getLogger(__name__)
+
+
+# Define local types that aren't in dipeo_domain
+class ConversationContext:
+    """Context for a conversation."""
+    def __init__(self, system_prompt: Optional[str], user_message: str):
+        self.system_prompt = system_prompt
+        self.user_message = user_message
 
 
 class SimpleConversationService:
@@ -33,8 +42,8 @@ class SimpleConversationService:
     
     async def execute_person_job(
         self,
-        person: Person,
-        job: PersonJob,
+        person: DomainPerson,
+        job: PersonJobNodeData,
         execution_id: str,
         node_id: Optional[str] = None,
         variables: Optional[Dict[str, Any]] = None
@@ -75,13 +84,12 @@ class SimpleConversationService:
                 node_id=node_id
             )
             
-            # Call LLM
-            llm_config = job.llm_config or person.llm_config or LLMConfig()
+            # Call LLM - use person's model and service
             response = await self.llm_service.call_llm(
-                model=llm_config.model,
+                model=person.model,
                 messages=messages,
-                temperature=llm_config.temperature,
-                max_tokens=llm_config.max_tokens
+                temperature=job.memory_config.temperature if job.memory_config and job.memory_config.temperature else 0.7,
+                max_tokens=None  # Let the service use defaults
             )
             
             # Extract response content
@@ -101,7 +109,6 @@ class SimpleConversationService:
                 "success": True,
                 "response": response_content,
                 "person_id": person.id,
-                "job_id": job.id,
                 "execution_id": execution_id,
                 "node_id": node_id,
                 "timestamp": datetime.now().isoformat()
@@ -113,41 +120,27 @@ class SimpleConversationService:
                 "success": False,
                 "error": str(e),
                 "person_id": person.id,
-                "job_id": job.id,
                 "execution_id": execution_id
             }
     
     def _build_conversation_context(
         self,
-        person: Person,
-        job: PersonJob,
+        person: DomainPerson,
+        job: PersonJobNodeData,
         variables: Optional[Dict[str, Any]] = None
     ) -> ConversationContext:
         """Build the conversation context from person and job."""
-        # Start with job instructions
-        user_message = job.job or ""
+        # Use the appropriate prompt based on execution count
+        # For first execution, use firstOnlyPrompt, otherwise use defaultPrompt
+        user_message = job.first_only_prompt or job.default_prompt or ""
         
         # Apply variable substitution if needed
         if variables:
             for key, value in variables.items():
                 user_message = user_message.replace(f"{{{key}}}", str(value))
         
-        # Build system prompt
-        system_parts = []
-        
-        # Add person instructions
-        if person.instructions:
-            system_parts.append(f"Instructions: {person.instructions}")
-        
-        # Add role if specified
-        if person.role:
-            system_parts.append(f"Role: {person.role}")
-        
-        # Add job-specific system prompt if any
-        if hasattr(job, "system_prompt") and job.system_prompt:
-            system_parts.append(job.system_prompt)
-        
-        system_prompt = "\n\n".join(system_parts) if system_parts else None
+        # Use person's system prompt
+        system_prompt = person.system_prompt
         
         return ConversationContext(
             system_prompt=system_prompt,
@@ -156,12 +149,12 @@ class SimpleConversationService:
     
     def _prepare_messages(
         self,
-        person: Person,
+        person: DomainPerson,
         context: ConversationContext,
         history: List[Dict[str, Any]]
-    ) -> List[MessageDict]:
+    ) -> List[Dict[str, str]]:
         """Prepare messages for LLM call."""
-        messages: List[MessageDict] = []
+        messages: List[Dict[str, str]] = []
         
         # Add system message if present
         if context.system_prompt:
@@ -189,7 +182,7 @@ class SimpleConversationService:
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
-        llm_config: Optional[LLMConfig] = None
+        model: str = "gpt-4.1-nano"
     ) -> Dict[str, Any]:
         """
         Execute a simple prompt without person context.
@@ -199,13 +192,13 @@ class SimpleConversationService:
         Args:
             prompt: The user prompt
             system_prompt: Optional system prompt
-            llm_config: Optional LLM configuration
+            model: LLM model to use (default: gpt-4.1-nano)
             
         Returns:
             Dict containing the response
         """
         try:
-            messages: List[MessageDict] = []
+            messages: List[Dict[str, str]] = []
             
             if system_prompt:
                 messages.append({
@@ -218,12 +211,11 @@ class SimpleConversationService:
                 "content": prompt
             })
             
-            config = llm_config or LLMConfig()
             response = await self.llm_service.call_llm(
-                model=config.model,
+                model=model,
                 messages=messages,
-                temperature=config.temperature,
-                max_tokens=config.max_tokens
+                temperature=0.7,
+                max_tokens=None
             )
             
             return {
