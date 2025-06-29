@@ -189,7 +189,16 @@ class DomainApiKeyType:
         return "unknown-****"
 
 
-@strawberry.experimental.pydantic.type(DomainDiagram, all_fields=True)
+@strawberry.experimental.pydantic.type(
+    DomainDiagram,
+    fields=[
+        "nodes",
+        "handles",
+        "arrows",
+        "persons",
+        "metadata"
+    ]
+)
 class DomainDiagramType:
     @strawberry.field
     def nodeCount(self) -> int:

@@ -144,6 +144,9 @@ function useCommonFlowProps({
         if (n.type === 'person') {
           selectNode(n.id);
         }
+        // Clear highlight on any left-click
+        const { highlightPerson } = useUnifiedStore.getState();
+        highlightPerson(null);
         // For other nodes, left-click is disabled - properties can be opened via right-click
       },
       onEdgeClick: (event: React.MouseEvent, e: Edge) => {
@@ -158,21 +161,15 @@ function useCommonFlowProps({
         // Select node and show properties on right-click
         selectNode(node.id);
         // Ensure properties tab is shown
-        const { setDashboardTab } = useUnifiedStore.getState();
+        const { setDashboardTab, highlightPerson } = useUnifiedStore.getState();
         setDashboardTab('properties');
         
-        // If it's a person_job node, also show which person it's assigned to
+        // If it's a person_job node, highlight which person it's assigned to
         if (node.type === 'person_job' && node.data.person) {
-          // This will trigger highlighting of the person in the sidebar via the store
-          const { select } = useUnifiedStore.getState();
-          setTimeout(() => {
-            // Brief highlight of the person
-            select(node.data.person as PersonID, 'person');
-            setTimeout(() => {
-              // Return to node selection
-              select(node.id as NodeID, 'node');
-            }, 1000);
-          }, 100);
+          highlightPerson(node.data.person as PersonID);
+        } else {
+          // Clear highlight for other node types
+          highlightPerson(null);
         }
       },
       onEdgeContextMenu: (
@@ -191,6 +188,9 @@ function useCommonFlowProps({
           evt.preventDefault();
         }
         clearSelection();
+        // Clear person highlight when clicking on empty canvas
+        const { highlightPerson } = useUnifiedStore.getState();
+        highlightPerson(null);
       },
       className: executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100",
     } satisfies Parameters<typeof ReactFlow>[0];

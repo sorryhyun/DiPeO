@@ -62,8 +62,8 @@ class DiagramResolver:
                 logger.info(f"Detected light format for diagram {diagram_id}")
 
                 # Ensure api_keys is present as an empty list if not provided
-                if "api_keys" not in diagram_data:
-                    diagram_data["api_keys"] = []
+                if "apiKeys" not in diagram_data:
+                    diagram_data["apiKeys"] = []
 
                 # Convert the data to YAML string for converter processing
                 yaml_content = yaml.dump(diagram_data, default_flow_style=False)
@@ -202,7 +202,7 @@ class DiagramResolver:
                     handles=[],
                     arrows=[],
                     persons=[],
-                    apiKeys=[],
+                    api_keys=[],
                     metadata=metadata,
                 )
                 result.append(diagram)

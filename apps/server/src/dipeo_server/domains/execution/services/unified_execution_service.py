@@ -64,6 +64,10 @@ class UnifiedExecutionService(BaseService, SupportsExecution):
         else:
             # Fallback for compatibility
             if isinstance(diagram, dict):
+                log.info(f"Diagram dict keys: {list(diagram.keys())}")
+                if 'apiKeys' in diagram:
+                    log.warning("Found apiKeys in diagram dict, converting to api_keys")
+                    diagram['api_keys'] = diagram.pop('apiKeys')
                 diagram_obj = DomainDiagram.model_validate(diagram)
             elif isinstance(diagram, str):
                 # Load from storage if string ID provided

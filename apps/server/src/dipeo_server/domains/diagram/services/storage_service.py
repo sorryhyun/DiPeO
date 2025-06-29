@@ -163,11 +163,17 @@ class DiagramStorageService(BaseService, SupportsDiagram):
 
     async def find_by_id(self, diagram_id: str) -> str | None:
         """Find a diagram file by its ID (filename without extension)."""
+        logger.debug(f"find_by_id called with diagram_id: {diagram_id}")
+        logger.debug(f"Diagrams directory: {self.diagrams_dir}")
+        
         # First check if diagram_id already contains a path separator
         # This handles cases like "light/quicksave" directly
         for ext in [".yaml", ".yml", ".json"]:
             path = f"{diagram_id}{ext}"
+            full_path = self.diagrams_dir / path
+            logger.debug(f"Checking path: {path} (full: {full_path})")
             if await self.exists(path):
+                logger.info(f"Found diagram at: {path}")
                 return path
 
         # Only check subdirectories if diagram_id doesn't contain a path separator
@@ -178,13 +184,20 @@ class DiagramStorageService(BaseService, SupportsDiagram):
                 for ext in [".yaml", ".yml", ".json"]:
                     path = f"{subdir}/{diagram_id}{ext}"
                     if await self.exists(path):
+                        logger.info(f"Found diagram at: {path}")
                         return path
 
         # Finally, check all files using list_files (for any other subdirectories)
-        for file_info in await self.list_files():
+        logger.debug("Checking all files via list_files()")
+        all_files = await self.list_files()
+        logger.debug(f"Found {len(all_files)} total files")
+        for file_info in all_files:
+            logger.debug(f"Checking file: id={file_info.id}, path={file_info.path}")
             if file_info.id == diagram_id:
+                logger.info(f"Found diagram via list_files: {file_info.path}")
                 return file_info.path
 
+        logger.warning(f"Diagram not found: {diagram_id}")
         return None
 
     def _determine_format_type(self, relative_path: Path) -> str:

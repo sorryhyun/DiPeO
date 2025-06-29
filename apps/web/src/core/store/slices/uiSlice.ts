@@ -15,6 +15,9 @@ export interface UISlice {
   selectedType: SelectableType | null;
   multiSelectedIds: Set<SelectableID>;
   
+  // Highlight state (separate from selection)
+  highlightedPersonId: PersonID | null;
+  
   // View state
   activeView: ActiveView;
   activeCanvas: ActiveCanvas;
@@ -42,6 +45,9 @@ export interface UISlice {
   toggleSelection: (id: SelectableID, type: SelectableType) => void;
   clearSelection: () => void;
   selectAll: () => void;
+  
+  // Highlight operations
+  highlightPerson: (personId: PersonID | null) => void;
   
   // View operations
   setActiveView: (view: ActiveView) => void;
@@ -78,6 +84,7 @@ export const createUISlice: StateCreator<
   selectedId: null,
   selectedType: null,
   multiSelectedIds: new Set(),
+  highlightedPersonId: null,
   
   activeView: 'diagram',
   activeCanvas: 'main',
@@ -145,6 +152,11 @@ export const createUISlice: StateCreator<
     state.multiSelectedIds = new Set(allNodeIds);
     state.selectedId = allNodeIds[0] || null;
     state.selectedType = allNodeIds.length > 0 ? 'node' : null;
+  }),
+  
+  // Highlight operations
+  highlightPerson: (personId) => set(state => {
+    state.highlightedPersonId = personId;
   }),
   
   // View operations

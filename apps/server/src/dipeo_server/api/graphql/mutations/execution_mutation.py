@@ -72,7 +72,9 @@ class ExecutionMutations:
                         # Updates are handled by the execution service
                         pass
                 except Exception as ex:
+                    import traceback
                     logger.error(f"Execution failed for {execution_id}: {ex}")
+                    logger.error(f"Traceback: {traceback.format_exc()}")
                     await state_store.update_status(
                         execution_id, ExecutionStatus.FAILED, error=str(ex)
                     )

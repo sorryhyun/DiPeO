@@ -76,8 +76,7 @@ class ExecutionPreparationService(BaseService):
             else:
                 # Domain format dict
                 domain_diagram = DomainDiagram.model_validate(diagram)
-                backend_model = graphql_to_backend(domain_diagram)
-                backend_data = backend_model.model_dump(by_alias=True)
+                backend_data = graphql_to_backend(domain_diagram)
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram)}")
 
@@ -222,7 +221,10 @@ class ExecutionPreparationService(BaseService):
     ) -> dict[str, Any]:
         """Build execution format with hints."""
         try:
-            backend_model = graphql_to_backend(diagram)
+            backend_dict = graphql_to_backend(diagram)
+            
+            # Create BackendDiagram from dict
+            backend_model = BackendDiagram.model_validate(backend_dict)
 
             # Update API keys in the model
             for key_id, key_value in api_keys.items():

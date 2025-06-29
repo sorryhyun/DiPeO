@@ -128,7 +128,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         arrows: diagram.arrows.reduce((acc: Record<string, unknown>, arrow) => ({ ...acc, [arrow.id]: arrow }), {}),
         persons: diagram.persons.reduce((acc: Record<string, unknown>, person) => ({ ...acc, [person.id]: person }), {}),
         handles: diagram.handles?.reduce((acc: Record<string, unknown>, handle) => ({ ...acc, [handle.id]: handle }), {}) || {},
-        apiKeys: diagram.apiKeys?.reduce((acc: Record<string, unknown>, key) => ({ ...acc, [key.id]: key }), {}) || {},
         metadata: diagram.metadata
       } : null;
 

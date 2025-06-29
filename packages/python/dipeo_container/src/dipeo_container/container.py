@@ -17,6 +17,19 @@ from dipeo_core import (
 from .app_context_adapter import AppContextAdapter
 
 
+def _get_project_base_dir():
+    """Get the project base directory."""
+    # Try to import from config if available
+    try:
+        from config import BASE_DIR
+        return BASE_DIR
+    except ImportError:
+        # Fall back to finding the project root
+        # This file is in packages/python/dipeo_container/src/dipeo_container/
+        # Project root is 5 levels up
+        return Path(__file__).resolve().parents[5]
+
+
 def _import_state_store():
     """Lazy import to avoid circular dependencies."""
     from dipeo_server.infrastructure.persistence import state_store
@@ -175,7 +188,7 @@ class Container(containers.DeclarativeContainer):
 
     # Base directory configuration
     base_dir = providers.Factory(
-        lambda: Path(os.environ.get("DIPEO_BASE_DIR", os.getcwd()))
+        lambda: Path(os.environ.get("DIPEO_BASE_DIR", _get_project_base_dir()))
     )
 
     # Infrastructure Services (Singletons)

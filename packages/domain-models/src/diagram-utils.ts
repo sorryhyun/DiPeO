@@ -20,7 +20,6 @@ export function createEmptyDiagram(): DomainDiagram {
     handles: [],
     arrows: [],
     persons: [],
-    apiKeys: [],
     metadata: {
       version: '2.0.0',
       created: new Date().toISOString(),

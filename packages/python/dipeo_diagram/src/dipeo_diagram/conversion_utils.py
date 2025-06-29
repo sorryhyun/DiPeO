@@ -46,7 +46,7 @@ def backend_to_graphql(backend_dict: "BackendDiagram") -> DomainDiagram:
         "arrows": ensure_list(backend_dict.arrows),
         "handles": ensure_handles_list(backend_dict.handles),
         "persons": ensure_list(backend_dict.persons),
-        "apiKeys": ensure_list(backend_dict.api_keys),
+        "api_keys": ensure_list(backend_dict.api_keys),
         "metadata": backend_dict.metadata,
     }
 
@@ -91,6 +91,6 @@ def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, An
         "arrows": list_to_dict(graphql_diagram.arrows),
         "handles": list_to_dict(graphql_diagram.handles),
         "persons": list_to_dict(graphql_diagram.persons),
-        "api_keys": list_to_dict(graphql_diagram.apiKeys),
-        "metadata": graphql_diagram.metadata or {},
+        "api_keys": list_to_dict(graphql_diagram.api_keys),
+        "metadata": graphql_diagram.metadata.model_dump() if graphql_diagram.metadata else {},
     }

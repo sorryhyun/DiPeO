@@ -32,7 +32,6 @@ export interface StoreDiagram {
   handles: Map<HandleID, DomainHandle>;
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
   metadata?: {
     id?: DiagramID;
     name?: string;
@@ -51,13 +50,11 @@ export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
   handles: Map<HandleID, DomainHandle>;
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
 } {
   const nodes = new Map<NodeID, DomainNode>();
   const handles = new Map<HandleID, DomainHandle>();
   const arrows = new Map<ArrowID, DomainArrow>();
   const persons = new Map<PersonID, DomainPerson>();
-  const apiKeys = new Map<ApiKeyID, DomainApiKey>();
 
   // Convert arrays to maps with branded IDs as keys
   diagram.nodes?.forEach((node: DomainNode) => {
@@ -76,11 +73,7 @@ export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
     persons.set(person.id as PersonID, person);
   });
 
-  diagram.apiKeys?.forEach((apiKey: DomainApiKey) => {
-    apiKeys.set(apiKey.id as ApiKeyID, apiKey);
-  });
-
-  return { nodes, handles, arrows, persons, apiKeys };
+  return { nodes, handles, arrows, persons };
 }
 
 // Convert from Store format (Maps) back to Domain/React format (arrays)
@@ -89,14 +82,12 @@ export function storeMapsToArrays(store: {
   handles: Map<HandleID, DomainHandle>;
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
 }): Partial<DomainDiagramType> {
   return {
     nodes: Array.from(store.nodes.values()),
     handles: Array.from(store.handles.values()),
     arrows: Array.from(store.arrows.values()),
-    persons: Array.from(store.persons.values()),
-    apiKeys: Array.from(store.apiKeys.values())
+    persons: Array.from(store.persons.values())
   };
 }
 
@@ -107,7 +98,6 @@ export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagr
     handles: diagram.handles || [],
     arrows: diagram.arrows || [],
     persons: diagram.persons || [],
-    apiKeys: diagram.apiKeys || [],
     metadata: diagram.metadata ? {
       __typename: 'DiagramMetadataType' as const,
       id: diagram.metadata.id || null,
@@ -186,8 +176,7 @@ export function isReactDiagram(obj: unknown): obj is ReactDiagram {
     'nodes' in obj &&
     'handles' in obj &&
     'arrows' in obj &&
-    'persons' in obj &&
-    'apiKeys' in obj
+    'persons' in obj
   );
 }
 
@@ -198,7 +187,6 @@ export function createEmptyDiagram(): ReactDiagram {
     handles: [],
     arrows: [],
     persons: [],
-    apiKeys: [],
     nodeCount: 0,
     arrowCount: 0,
     personCount: 0,

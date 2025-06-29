@@ -46,10 +46,11 @@ class DiagramConverter:
 
         # Handle API keys with both camelCase and snake_case
         if "apiKeys" in result and isinstance(result["apiKeys"], dict):
-            result["apiKeys"] = cls.dict_to_list(result["apiKeys"])
+            result["api_keys"] = cls.dict_to_list(result["apiKeys"])
+            if "apiKeys" in result:
+                del result["apiKeys"]
         elif "api_keys" in result and isinstance(result["api_keys"], dict):
-            result["apiKeys"] = cls.dict_to_list(result["api_keys"])
-            del result["api_keys"]
+            result["api_keys"] = cls.dict_to_list(result["api_keys"])
 
         return result
 
@@ -83,19 +84,19 @@ class DiagramValidator:
             )
         # Handle both camelCase and snake_case for API keys
         if "apiKeys" not in diagram and "api_keys" not in diagram:
-            diagram["apiKeys"] = {}
-        elif "api_keys" in diagram and "apiKeys" not in diagram:
-            # Convert snake_case to camelCase for consistency
-            diagram["apiKeys"] = diagram.pop("api_keys", {})
+            diagram["api_keys"] = {}
+        elif "apiKeys" in diagram and "api_keys" not in diagram:
+            # Convert camelCase to snake_case for consistency
+            diagram["api_keys"] = diagram.pop("apiKeys", {})
 
         # Add default API key if needed
-        api_keys = diagram.get("apiKeys", {})
+        api_keys = diagram.get("api_keys", {})
         if isinstance(api_keys, list):
             api_keys = {k["id"]: k for k in api_keys}
-            diagram["apiKeys"] = api_keys
+            diagram["api_keys"] = api_keys
 
         if not api_keys and diagram["persons"]:
-            diagram["apiKeys"][DEFAULT_API_KEY] = {
+            diagram["api_keys"][DEFAULT_API_KEY] = {
                 "id": DEFAULT_API_KEY,
                 "label": "Default API Key",
                 "service": "openai",

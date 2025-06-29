@@ -1,10 +1,10 @@
-import type { DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
+import type { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
 import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
 import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice } from '@/features/execution-monitor/store/executionSlice';
 import type { PersonSlice } from '@/features/person-management/store/personSlice';
 import type { UISlice } from './slices/uiSlice';
-import type { NodeID, ArrowID, PersonID, HandleID, ApiKeyID } from '@dipeo/domain-models';
+import type { NodeID, ArrowID, PersonID, HandleID } from '@dipeo/domain-models';
 
 // Re-export NodeState from executionSlice for backward compatibility
 export type { NodeState } from '@/features/execution-monitor/store/executionSlice';
@@ -17,7 +17,6 @@ export interface Snapshot {
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
   handles: Map<HandleID, DomainHandle>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
   timestamp: number;
 }
 
@@ -36,7 +35,6 @@ export interface UnifiedStore extends
   UISlice {
   // === Additional Core Data not in slices ===
   handles: Map<HandleID, DomainHandle>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
   
   // === History ===
   history: {
@@ -46,11 +44,6 @@ export interface UnifiedStore extends
   };
   
   // === Additional Actions not in slices ===
-  
-  // API Key operations
-  addApiKey: (name: string, service: string) => ApiKeyID;
-  updateApiKey: (id: ApiKeyID, updates: Partial<DomainApiKey>) => void;
-  deleteApiKey: (id: ApiKeyID) => void;
   
   
   // History

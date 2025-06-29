@@ -52,9 +52,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         self.register_strategy(ReadableYamlStrategy())
 
     def register_strategy(self, strategy: FormatStrategy):
-        """Register a format strategy."""
         self.strategies[strategy.format_id] = strategy
-        logger.info(f"Registered format strategy: {strategy.format_id}")
 
     def set_format(self, format_id: str):
         """Set the active format for conversion."""
@@ -285,21 +283,17 @@ class UnifiedDiagramConverter(DiagramConverter):
         return None
 
     def detect_format_confidence(self, content: str) -> float:
-        """Return confidence score for current format."""
         format_id = self.detect_format(content)
-        if format_id:
-            return 1.0
+        if format_id: return 1.0
         return 0.0
 
     def get_supported_formats(self) -> list[dict[str, str]]:
-        """Get information about all supported formats."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()
         ]
 
     def get_export_formats(self) -> list[dict[str, str]]:
-        """Get formats that support export."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()
@@ -307,7 +301,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         ]
 
     def get_import_formats(self) -> list[dict[str, str]]:
-        """Get formats that support import."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()
