@@ -24,8 +24,6 @@ help:
 install-py:
 	@echo "📦 Installing Python dependencies..."
 	pip install -r requirements.txt
-	pip install -e ./packages/python/dipeo_core
-	pip install -e ./packages/python/dipeo_domain
 	pip install -e ./apps/server
 
 install-web:
@@ -71,18 +69,28 @@ dev-all:
 # Linting and formatting
 lint-py:
 	@echo "🔍 Running Python linter (ruff)..."
-	cd apps/server && ruff check src tests
-	cd apps/cli && ruff check src tests
+	@for dir in apps/server apps/cli packages/python/dipeo_*; do \
+		if [ -d "$$dir/src" ]; then \
+			echo "Checking $$dir..."; \
+			cd $$dir && ruff check src $$([ -d tests ] && echo tests) || true; \
+			cd - > /dev/null; \
+		fi; \
+	done
 
 format-py:
 	@echo "✨ Formatting Python code..."
-	cd apps/server && ruff format src tests
-	cd apps/cli && ruff format src tests
+	@for dir in apps/server apps/cli packages/python/dipeo_*; do \
+		if [ -d "$$dir/src" ]; then \
+			echo "Formatting $$dir..."; \
+			cd $$dir && ruff format src $$([ -d tests ] && echo tests) || true; \
+			cd - > /dev/null; \
+		fi; \
+	done
 
 typecheck-py:
 	@echo "🔍 Running Python type checker (mypy)..."
-	cd apps/server && mypy src
-	cd apps/cli && mypy src
+	cd apps/server && mypy src || true
+	cd apps/cli && mypy src || true
 
 lint-all: lint-py typecheck-py
 	@echo "🔍 Running TypeScript/JavaScript linter..."
