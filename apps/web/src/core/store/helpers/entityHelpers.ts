@@ -10,7 +10,6 @@ export function createFullSnapshot(state: Partial<UnifiedStore>): Snapshot {
     arrows: new Map(state.arrows || new Map()),
     persons: new Map(state.persons || new Map()),
     handles: new Map(state.handles || new Map()),
-    apiKeys: new Map(state.apiKeys || new Map()),
     timestamp: Date.now(),
   };
 }

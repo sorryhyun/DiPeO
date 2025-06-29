@@ -66,7 +66,7 @@ def backend_to_diagram_dict(backend_dict: dict[str, Any]) -> dict[str, Any]:
         "arrows": list(backend_dict.get("arrows", {}).values()),
         "handles": list(backend_dict.get("handles", {}).values()),
         "persons": list(backend_dict.get("persons", {}).values()),
-        "apiKeys": list(backend_dict.get("api_keys", {}).values()),
+        "api_keys": list(backend_dict.get("api_keys", {}).values()),
         "metadata": backend_dict.get("metadata"),
     }
 

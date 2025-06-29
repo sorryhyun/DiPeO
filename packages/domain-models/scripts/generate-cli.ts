@@ -25,7 +25,7 @@ const CLI_TYPES = new Set([
   'DomainNode', 'DomainArrow', 'DomainHandle', 'DomainPerson', 'DomainApiKey',
   'DomainDiagram', 'DiagramMetadata', 'Vec2',
   'StartNodeData', 'PersonJobNodeData', 'ConditionNodeData', 'EndpointNodeData',
-  'JobNodeData', 'DBNodeData', 'UserResponseNodeData'
+  'JobNodeData', 'DBNodeData', 'UserResponseNodeData', 'MemoryConfig'
 ]);
 
 const RE_IMPORT = /import\([^)]+\)\.(\w+)/;

@@ -20,12 +20,29 @@ export const FileOperations: React.FC = () => {
   const [uploadFileMutation] = useUploadFileMutation();
   const { saveDiagram } = useFileOperations();
 
-  // Initialize diagram name from URL
+  // Initialize diagram name and format from URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const currentDiagramId = urlParams.get('diagram');
     if (currentDiagramId) {
-      setDiagramName(currentDiagramId);
+      // Parse the format prefix and filename
+      const parts = currentDiagramId.split('/');
+      if (parts.length === 2) {
+        const [format, filename] = parts;
+        // Set the format based on the prefix
+        if (format === 'native') {
+          setSelectedFormat(DiagramFormat.NATIVE);
+        } else if (format === 'readable') {
+          setSelectedFormat(DiagramFormat.READABLE);
+        } else if (format === 'light') {
+          setSelectedFormat(DiagramFormat.LIGHT);
+        }
+        // Set only the filename without the format prefix
+        setDiagramName(filename || 'diagram');
+      } else {
+        // If no format prefix, just use the whole name
+        setDiagramName(currentDiagramId);
+      }
     }
   }, []);
 

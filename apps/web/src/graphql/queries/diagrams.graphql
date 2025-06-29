@@ -42,12 +42,6 @@ query GetDiagram($id: DiagramID!) {
       maskedApiKey
       type
     }
-    apiKeys {
-      id
-      label
-      service
-      maskedKey
-    }
     metadata {
       id
       name

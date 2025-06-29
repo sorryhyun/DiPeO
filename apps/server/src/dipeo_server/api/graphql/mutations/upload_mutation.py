@@ -20,7 +20,7 @@ from dipeo_domain import (
 from strawberry.file_uploads import Upload
 
 from config import BASE_DIR
-from dipeo_server.domains.apikey import APIKeyService
+from dipeo_domain.domains.apikey import APIKeyDomainService
 
 from ..context import GraphQLContext
 from ..types import (
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_diagram(
-    diagram: DomainDiagram, api_key_service: APIKeyService | None = None
+    diagram: DomainDiagram, api_key_service: APIKeyDomainService | None = None
 ) -> list[str]:
     """Validates diagram structure, returns error list."""
     errors = []
@@ -80,13 +80,6 @@ def validate_diagram(
                 errors.append(
                     f"Person {person.id} references unknown API key: {person.api_key_id}"
                 )
-    else:
-        api_key_ids = {api_key.id for api_key in diagram.api_keys}
-        for person in diagram.persons:
-            if person.api_key_id and person.api_key_id not in api_key_ids:
-                errors.append(
-                    f"Person {person.id} references unknown API key: {person.api_key_id}"
-                )
 
     return errors
 
@@ -105,8 +98,6 @@ def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
         data["handles"] = {handle["id"]: handle for handle in data["handles"]}
     if isinstance(data.get("persons"), list):
         data["persons"] = {person["id"]: person for person in data["persons"]}
-    if isinstance(data.get("api_keys"), list):
-        data["api_keys"] = {api_key["id"]: api_key for api_key in data["api_keys"]}
 
     return data
 
@@ -233,7 +224,7 @@ class UploadMutations:
             validation_errors = validate_diagram(
                 domain_diagram,
                 context.api_key_service
-                if isinstance(context.api_key_service, APIKeyService)
+                if isinstance(context.api_key_service, APIKeyDomainService)
                 else None,
             )
 

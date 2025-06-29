@@ -7,6 +7,7 @@ from .base.exceptions import (
     ServiceError,
     ValidationError,
 )
+from .constants import VALID_LLM_SERVICES, normalize_service_name
 from .base.protocols import (
     SupportsAPIKey,
     SupportsDiagram,
@@ -32,8 +33,8 @@ from .errors.taxonomy import (
 )
 from .execution.executor import BaseExecutor
 from .execution.handlers import BaseNodeHandler, HandlerRegistry, register_handler, get_global_registry
+from .context import ExecutionContext
 from .execution.types import (
-    ExecutionContext,
     ExecutionOptions,
     NodeDefinition,
     NodeHandler,
@@ -83,4 +84,7 @@ __all__ = [
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
+    # Constants
+    "VALID_LLM_SERVICES",
+    "normalize_service_name",
 ]

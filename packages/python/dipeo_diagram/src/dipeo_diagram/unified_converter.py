@@ -52,9 +52,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         self.register_strategy(ReadableYamlStrategy())
 
     def register_strategy(self, strategy: FormatStrategy):
-        """Register a format strategy."""
         self.strategies[strategy.format_id] = strategy
-        logger.info(f"Registered format strategy: {strategy.format_id}")
 
     def set_format(self, format_id: str):
         """Set the active format for conversion."""
@@ -137,16 +135,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             persons_dict = {}
 
-        api_keys_data = data.get("api_keys", {})
-        if isinstance(api_keys_data, dict):
-            api_keys_dict = api_keys_data
-        elif isinstance(api_keys_data, list):
-            api_keys_dict = {
-                key.get("id", f"key_{i}"): key for i, key in enumerate(api_keys_data)
-            }
-        else:
-            api_keys_dict = {}
-
         node_data_list = strategy.extract_nodes(data)
         for index, node_data in enumerate(node_data_list):
             node = self._create_node(node_data, index)
@@ -166,7 +154,6 @@ class UnifiedDiagramConverter(DiagramConverter):
             handles=handles_dict,
             arrows=arrows_dict,
             persons=persons_dict,
-            api_keys=api_keys_dict,
             metadata=data.get("metadata"),
         )
 
@@ -285,21 +272,17 @@ class UnifiedDiagramConverter(DiagramConverter):
         return None
 
     def detect_format_confidence(self, content: str) -> float:
-        """Return confidence score for current format."""
         format_id = self.detect_format(content)
-        if format_id:
-            return 1.0
+        if format_id: return 1.0
         return 0.0
 
     def get_supported_formats(self) -> list[dict[str, str]]:
-        """Get information about all supported formats."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()
         ]
 
     def get_export_formats(self) -> list[dict[str, str]]:
-        """Get formats that support export."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()
@@ -307,7 +290,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         ]
 
     def get_import_formats(self) -> list[dict[str, str]]:
-        """Get formats that support import."""
         return [
             {"id": format_id, **strategy.format_info}
             for format_id, strategy in self.strategies.items()

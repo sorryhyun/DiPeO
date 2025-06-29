@@ -45,13 +45,16 @@ interface SidebarProps {
 const PersonItem = React.memo<{
   person: { id: string; label: string };
   isSelected: boolean;
+  isHighlighted: boolean;
   onClick: (id: string) => void;
-}>(({ person, isSelected, onClick }) => {
+}>(({ person, isSelected, isHighlighted, onClick }) => {
   return (
     <div
       className={`p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
         isSelected
           ? 'bg-blue-100 border border-blue-300 shadow-sm'
+          : isHighlighted
+          ? 'bg-yellow-100 border border-yellow-300 shadow-sm'
           : 'bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-gray-300'
       }`}
       onClick={() => onClick(person.id)}
@@ -71,7 +74,7 @@ PersonItem.displayName = 'PersonItem';
 const Sidebar = React.memo<SidebarProps>(({ position }) => {
   const { nodes, arrows, personsArray } = useCanvas();
   const { addPerson } = usePersonOperations();
-  const { selectedId, selectedType, select, clearSelection, persons: personsMap } = useUnifiedStore();
+  const { selectedId, selectedType, select, clearSelection, persons: personsMap, highlightedPersonId } = useUnifiedStore();
   
   // Helper to get person by ID
   const getPersonById = (id: PersonID) => personsMap.get(id) || null;
@@ -219,6 +222,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
                     key={person.id}
                     person={person}
                     isSelected={selectedPersonId === person.id}
+                    isHighlighted={highlightedPersonId === person.id}
                     onClick={handlePersonClick}
                   />
                 );

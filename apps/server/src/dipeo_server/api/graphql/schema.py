@@ -36,11 +36,15 @@ def create_unified_graphql_router(context_getter=None):
 if __name__ == "__main__":
     import sys
 
-    output_path = sys.argv[1] if len(sys.argv) > 1 else "unified_schema.graphql"
     schema_str = unified_schema.as_str()
-
-    with open(output_path, "w") as f:
-        f.write(schema_str)
-
-    print(f"Unified GraphQL schema exported to {output_path}")
-    print(f"Schema length: {len(schema_str)} characters")
+    
+    # If output path is provided as argument, write to file
+    if len(sys.argv) > 1:
+        output_path = sys.argv[1]
+        with open(output_path, "w") as f:
+            f.write(schema_str)
+        print(f"Unified GraphQL schema exported to {output_path}", file=sys.stderr)
+        print(f"Schema length: {len(schema_str)} characters", file=sys.stderr)
+    else:
+        # Otherwise, print to stdout for piping
+        print(schema_str)

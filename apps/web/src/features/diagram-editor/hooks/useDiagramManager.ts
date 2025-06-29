@@ -92,7 +92,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       arrows: state.arrows,
       handles: state.handles,
       persons: state.persons,
-      apiKeys: state.apiKeys,
       
       clearDiagram: state.clearDiagram,
       validateDiagram: state.validateDiagram,
@@ -265,7 +264,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         arrows: Array.from(storeOps.arrows.values()),
         persons: Array.from(storeOps.persons.values()),
         handles: Array.from(storeOps.handles.values()),
-        apiKeys: Array.from(storeOps.apiKeys.values()),
         nodeCount: storeOps.nodes.size,
         arrowCount: storeOps.arrows.size,
         personCount: storeOps.persons.size

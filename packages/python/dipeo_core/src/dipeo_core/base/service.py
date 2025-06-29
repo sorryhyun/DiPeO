@@ -11,11 +11,7 @@ class BaseService(ABC):
     """Base service class with common functionality for DiPeO services."""
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """Initialize the service with optional configuration.
-
-        Args:
-            config: Optional configuration dictionary for the service
-        """
+        """Initialize the service with optional configuration."""
         self.config = config or {}
 
     @abstractmethod
@@ -26,15 +22,7 @@ class BaseService(ABC):
     def validate_required_fields(
         self, data: Dict[str, Any], required_fields: list[str]
     ) -> None:
-        """Validate that all required fields are present in the data.
-
-        Args:
-            data: Dictionary to validate
-            required_fields: List of required field names
-
-        Raises:
-            ValidationError: If any required fields are missing
-        """
+        """Validate that all required fields are present in the data."""
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             raise ValidationError(
@@ -44,27 +32,13 @@ class BaseService(ABC):
     def validate_file_path(
         self, file_path: str, allowed_base: Optional[Path] = None
     ) -> Path:
-        """Validate file path for security.
-
-        Args:
-            file_path: Path to validate
-            allowed_base: Optional base path for security restrictions
-
-        Returns:
-            Resolved Path object
-
-        Raises:
-            ValidationError: If the path is outside allowed base
-        """
+        """Validate file path for security."""
         rel_path = Path(file_path)
         
-        # If no base path restriction, just resolve the path
         if allowed_base is None:
             return rel_path.resolve()
             
         full_path = (allowed_base / rel_path).resolve()
-
-        # Check if the resolved path is within the allowed base
         try:
             full_path.relative_to(allowed_base)
         except ValueError:
@@ -73,16 +47,7 @@ class BaseService(ABC):
         return full_path
 
     def safe_get_nested(self, obj: Any, path: str, default: Any = None) -> Any:
-        """Safely get nested value from object using dot notation.
-
-        Args:
-            obj: Object to traverse
-            path: Dot-separated path (e.g., "user.profile.name")
-            default: Default value if path not found
-
-        Returns:
-            Value at path or default
-        """
+        """Safely get nested value from object using dot notation."""
         if obj is None:
             return default
 
@@ -104,13 +69,5 @@ class BaseService(ABC):
             return default
 
     def get_config_value(self, key: str, default: Any = None) -> Any:
-        """Get configuration value with optional default.
-
-        Args:
-            key: Configuration key (supports dot notation)
-            default: Default value if key not found
-
-        Returns:
-            Configuration value or default
-        """
+        """Get configuration value with optional default."""
         return self.safe_get_nested(self.config, key, default)

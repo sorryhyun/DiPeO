@@ -13,22 +13,17 @@ cd packages/domain-models
 pnpm install
 pnpm build  # This runs TypeScript compilation and all generators
 
-# 2. Install Python domain package in development mode
-echo "🐍 Installing Python domain models..."
-cd ../python/dipeo_domain
-pip install -e .
+# 2. Install all Python packages from requirements.txt
+echo "🐍 Installing Python packages..."
+cd ../../..
+pip install -r requirements.txt
 
-# 3. Install Python core package
-echo "🐍 Installing Python core package..."
-cd ../dipeo_core
-pip install -e .
-
-# 4. Now install the server (which depends on dipeo_domain)
+# 3. Now install the server (which depends on dipeo_domain)
 echo "🚀 Installing server..."
-cd ../../../apps/server
+cd apps/server
 pip install -e .
 
-# 5. Generate GraphQL schema from the server
+# 4. Generate GraphQL schema from the server
 echo "📝 Exporting GraphQL schema..."
 python -c "
 from dipeo_server.api.graphql.schema import schema
@@ -38,7 +33,7 @@ with open('schema.graphql', 'w') as f:
 print(f'✅ GraphQL schema exported ({len(schema_str)} characters)')
 "
 
-# 6. Run GraphQL codegen for frontend
+# 5. Run GraphQL codegen for frontend
 echo "🎨 Running GraphQL codegen..."
 cd ../web
 pnpm install

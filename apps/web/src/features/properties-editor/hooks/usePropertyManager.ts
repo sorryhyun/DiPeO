@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { useNodeOperations, useArrowOperations, usePersonOperations, useCanvas } from '@/features/diagram-editor/hooks';
-import { DomainApiKey, arrowId, nodeId, personId } from '@/core/types';
+import { arrowId, nodeId, personId } from '@/core/types';
 import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 
 /**
  * Returns a stable callback that always calls the latest version of the provided function.
@@ -60,7 +59,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const { updateArrow } = useArrowOperations();
   const { updatePerson } = usePersonOperations();
   const { isMonitorMode } = useCanvas();
-  const { apiKeys } = useUnifiedStore();
 
   // Form state
   const [formData, setFormData] = useState<T>(initialData);
@@ -261,14 +259,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     }
   }, []);
 
-  // API key options for dropdowns - memoize instead of useCallback
-  const apiKeyOptions = useMemo(() => {
-    return Array.from(apiKeys.values()).map((key: DomainApiKey) => ({
-      value: key.id,
-      label: `${key.service}: ${key.label}`,
-      service: key.service
-    }));
-  }, [apiKeys]);
+  // API key options removed - now handled via GraphQL in components
 
   // Panel schema functionality
   const fields = useMemo(() => {
@@ -402,9 +393,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     save: () => handleSave(formData),
     reset,
     validateForm: () => validateForm(formData),
-    
-    // Utility
-    apiKeyOptions,
     
     // Panel schema
     processedFields,

@@ -1,0 +1,58 @@
+[project]
+name = "dipeo-container"
+version = "0.1.0"
+description = "Dependency injection container for DiPeO applications"
+authors = [
+    {name = "DiPeO Team", email = "team@dipeo.org"},
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dependency-injector>=4.41.0",
+    "dipeo-core @ file:///home/soryhyun/DiPeO/packages/python/dipeo_core",
+    "dipeo-domain @ file:///home/soryhyun/DiPeO/packages/python/dipeo_domain",
+    "dipeo-infra @ file:///home/soryhyun/DiPeO/packages/python/dipeo_infra",
+    "dipeo-application @ file:///home/soryhyun/DiPeO/packages/python/dipeo_application",
+    "dipeo-diagram @ file:///home/soryhyun/DiPeO/packages/python/dipeo_diagram",
+    "structlog>=24.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "mypy",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["dipeo_container*"]
+exclude = ["tests*"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = [
+    "dependency_injector.*",
+]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "ISC", "RET", "SIM", "PTH", "ERA", "PLC", "PLE", "PLW", "RUF"]
+ignore = ["E501", "B008", "N818", "SIM108", "SIM102"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dipeo_container"]

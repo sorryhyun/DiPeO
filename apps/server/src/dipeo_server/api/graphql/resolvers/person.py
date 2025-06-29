@@ -24,7 +24,6 @@ class PersonResolver:
 
     async def get_person(self, person_id: PersonID, info) -> DomainPerson | None:
         """Returns person by ID."""
-        # Persons are diagram-scoped
         logger.warning(
             f"get_person called for {person_id} - persons are diagram-scoped"
         )
@@ -32,7 +31,6 @@ class PersonResolver:
 
     async def list_persons(self, limit: int, info) -> list[DomainPerson]:
         """Returns person list."""
-        # Persons are diagram-scoped
         logger.warning("list_persons called - persons are diagram-scoped")
         return []
 
@@ -47,7 +45,6 @@ class PersonResolver:
             if not api_key_data:
                 return None
 
-            # Only LLM service keys
             if not self._is_llm_service(api_key_data["service"]):
                 logger.debug(
                     f"API key {api_key_id} is for non-LLM service: {api_key_data['service']}"
@@ -58,6 +55,7 @@ class PersonResolver:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=self._map_service(api_key_data["service"]),
+                masked_key=f"{api_key_data['service']}-****",
             )
 
         except Exception as e:
@@ -71,13 +69,14 @@ class PersonResolver:
             api_key_service = context.api_key_service
 
             all_keys = api_key_service.list_api_keys()
+            logger.info(f"Found {len(all_keys)} total API keys")
 
             if service:
                 all_keys = [k for k in all_keys if k["service"] == service]
 
             result = []
             for key_data in all_keys:
-                # Only LLM service keys
+                logger.info(f"Processing key: {key_data['id']} with service: {key_data['service']}")
                 if self._is_llm_service(key_data["service"]):
                     pydantic_api_key = DomainApiKey(
                         id=key_data["id"],
@@ -86,14 +85,14 @@ class PersonResolver:
                     )
                     result.append(pydantic_api_key)
                 else:
-                    logger.debug(
+                    logger.info(
                         f"Skipping non-LLM service API key: {key_data['service']}"
                     )
 
             return result
 
         except Exception as e:
-            logger.error(f"Failed to list API keys: {e}")
+            logger.error(f"Failed to list API keys: {e}", exc_info=True)
             return []
 
     async def get_available_models(
@@ -125,7 +124,6 @@ class PersonResolver:
     def _map_service(self, service: str) -> str:
         """Maps service string to enum value."""
         try:
-            # Validate that it's a valid LLMService, then return the string value
             enum_value = LLMService(service.lower())
             return enum_value.value
         except ValueError:

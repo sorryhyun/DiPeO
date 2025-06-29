@@ -131,7 +131,6 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
                 for a in diagram.arrows
             },
             "persons": {p.id: p.model_dump(by_alias=True) for p in diagram.persons},
-            "api_keys": {k.id: k.model_dump(by_alias=True) for k in diagram.api_keys},
             "metadata": diagram.metadata.model_dump(by_alias=True)
             if diagram.metadata
             else None,
@@ -523,17 +522,6 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
                 person_dict.pop("masked_api_key", None)
                 persons_list.append(person_dict)
             cfg["persons"] = persons_list
-        if diagram.api_keys:
-            api_keys_list = []
-            for k in diagram.api_keys:
-                key_dict = k.model_dump()
-                # Convert service enum to string
-                if "service" in key_dict:
-                    key_dict["service"] = str(key_dict["service"]).split(".")[-1]
-                # Remove masked_key from readable format
-                key_dict.pop("masked_key", None)
-                api_keys_list.append(key_dict)
-            cfg["api_keys"] = api_keys_list
         if cfg:
             result["config"] = cfg
         return result

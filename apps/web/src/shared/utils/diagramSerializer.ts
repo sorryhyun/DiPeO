@@ -3,8 +3,8 @@
  * into a format that can be saved to the backend
  */
 
-import { HandleDirection, DataType, NodeID, ArrowID, PersonID, ApiKeyID, HandleID } from '@dipeo/domain-models';
-import { DomainNode, DomainArrow, DomainPerson, DomainHandle, DomainApiKey } from '@/core/types';
+import { HandleDirection, DataType, NodeID, ArrowID, PersonID, HandleID } from '@dipeo/domain-models';
+import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
 import { storeMapsToArrays } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
@@ -15,7 +15,6 @@ export interface SerializedDiagram {
   arrows: DomainArrow[];
   persons: DomainPerson[];
   handles: DomainHandle[];
-  apiKeys: DomainApiKey[];
   metadata: {
     name?: string | null;
     description?: string | null;
@@ -169,8 +168,7 @@ function getStoreStateWithMaps() {
     nodes: ensureMap<NodeID, DomainNode>(state.nodes),
     handles: ensureMap<HandleID, DomainHandle>(state.handles),
     arrows: ensureMap<ArrowID, DomainArrow>(state.arrows),
-    persons: ensureMap<PersonID, DomainPerson>(state.persons),
-    apiKeys: ensureMap<ApiKeyID, DomainApiKey>(state.apiKeys)
+    persons: ensureMap<PersonID, DomainPerson>(state.persons)
   };
 }
 
@@ -219,7 +217,6 @@ export function serializeDiagram(): SerializedDiagram {
     arrows: diagramArrays.arrows || [],
     persons: diagramArrays.persons || [],
     handles,
-    apiKeys: diagramArrays.apiKeys || [],
     metadata
   };
 }

@@ -16,7 +16,6 @@ class BackendDiagram(BaseModel):
     arrows: dict[str, Any] = Field(default_factory=dict)
     persons: dict[str, Any] = Field(default_factory=dict)
     handles: dict[str, Any] = Field(default_factory=dict)
-    api_keys: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] | None = None
 
     class Config:

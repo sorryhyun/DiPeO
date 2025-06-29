@@ -13,7 +13,7 @@ from dipeo_diagram import (
 )
 from dipeo_domain import DiagramMetadata, DomainDiagram
 
-from dipeo_server.domains.diagram.services import DiagramStorageService
+from dipeo_domain.domains.diagram.services import DiagramFileRepository
 
 from ..types import (
     DiagramFilterInput,
@@ -35,7 +35,7 @@ class DiagramResolver:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
 
             # Try new services first
-            storage_service: DiagramStorageService = (
+            storage_service: DiagramFileRepository = (
                 info.context.diagram_storage_service
             )
 
@@ -61,9 +61,8 @@ class DiagramResolver:
             if format_from_path == "light" or diagram_data.get("version") == "light":
                 logger.info(f"Detected light format for diagram {diagram_id}")
 
-                # Ensure api_keys is present as an empty list if not provided
-                if "api_keys" not in diagram_data:
-                    diagram_data["api_keys"] = []
+                # Light format diagrams don't need api_keys anymore
+                # API keys are now stored in Person objects
 
                 # Convert the data to YAML string for converter processing
                 yaml_content = yaml.dump(diagram_data, default_flow_style=False)
@@ -136,7 +135,7 @@ class DiagramResolver:
         """Returns filtered diagram list."""
         try:
             # Use new storage service
-            storage_service: DiagramStorageService = (
+            storage_service: DiagramFileRepository = (
                 info.context.diagram_storage_service
             )
 
@@ -202,7 +201,6 @@ class DiagramResolver:
                     handles=[],
                     arrows=[],
                     persons=[],
-                    apiKeys=[],
                     metadata=metadata,
                 )
                 result.append(diagram)

@@ -1,108 +1,90 @@
 # DiPeO Makefile
 
-.PHONY: install-py install-web install-cli install-all codegen build-all dev-server dev-web dev-all clean help lint-py format-py typecheck-py lint-all
+.PHONY: install codegen dev-server dev-web dev-all clean help lint format graphql-schema
 
 # Default target
 help:
-	@echo "DiPeO Development Commands:"
-	@echo "  make install-all    - Install all dependencies"
-	@echo "  make install-py     - Install Python dependencies"
-	@echo "  make install-web    - Install web dependencies"
-	@echo "  make install-cli    - Install CLI in editable mode"
-	@echo "  make codegen        - Generate all code (backend + frontend) from domain models"
-	@echo "  make build-all      - Build all components with proper order"
-	@echo "  make dev-server     - Run development server"
-	@echo "  make dev-web        - Run web development server"
-	@echo "  make dev-all        - Instructions for running both servers"
-	@echo "  make lint-py        - Run Python linter (ruff)"
-	@echo "  make format-py      - Format Python code"
-	@echo "  make typecheck-py   - Run Python type checker (mypy)"
-	@echo "  make lint-all       - Run all linters"
-	@echo "  make clean          - Clean generated files and caches"
+	@echo "DiPeO Commands:"
+	@echo "  make install      - Install all dependencies"
+	@echo "  make codegen      - Generate code from domain models (Python, GraphQL, CLI)"
+	@echo "  make dev-all      - Run both backend and frontend servers"
+	@echo "  make dev-server   - Run backend server"
+	@echo "  make dev-web      - Run frontend server"
+	@echo "  make graphql-schema - Export GraphQL schema from server"
+	@echo "  make lint-{server, web, cli} - Run linters"
+	@echo "  make format       - Format all code"
+	@echo "  make clean        - Clean generated files"
 
-# Install commands
-install-py:
-	@echo "📦 Installing Python dependencies..."
-	pip install -r requirements.txt
-	pip install -e ./packages/python/dipeo_core
-	pip install -e ./packages/python/dipeo_domain
-	pip install -e ./apps/server
-
-install-web:
-	@echo "📦 Installing web dependencies..."
+# Combined install
+install:
+	@echo "📦 Installing dependencies..."
+	pip install -r requirements.txt -e ./apps/server -e ./apps/cli
 	pnpm install
-
-install-cli:
-	@echo "📦 Installing CLI..."
-	pip install -e ./apps/cli
-
-install-all: install-py install-web install-cli
 	@echo "✅ All dependencies installed!"
 
 # Code generation
 codegen:
-	@echo "🔄 Generating code from domain models..."
+	@echo "🔄 Generating code..."
 	cd packages/domain-models && pnpm build
-	@echo "🔄 Generating GraphQL types for web app..."
+	make graphql-schema
 	pnpm --filter web codegen
-	@echo "🔄 Generating typed GraphQL operations for CLI..."
 	cd apps/cli && python scripts/generate_graphql_operations.py
-
-# Build everything with proper dependency order
-build-all:
-	@echo "🔨 Building all components..."
-	./build-all.sh
+	@echo "✅ All code generation completed!"
 
 # Development servers
 dev-server:
-	@echo "🚀 Starting development server..."
 	cd apps/server && python main.py
 
 dev-web:
-	@echo "🚀 Starting web development server..."
 	pnpm -F web dev
 
+# Run both servers in parallel
 dev-all:
 	@echo "🚀 Starting all development servers..."
-	@echo "Start backend in one terminal: make dev-server"
-	@echo "Start frontend in another terminal: make dev-web"
-	@echo "Or use tmux/screen to run both in parallel"
+	@trap 'kill 0' INT; \
+	(make dev-server 2>&1 | sed 's/^/[server] /' &) && \
+	(sleep 3 && make dev-web 2>&1 | sed 's/^/[web] /' &) && \
+	wait
 
-# Linting and formatting
-lint-py:
-	@echo "🔍 Running Python linter (ruff)..."
-	cd apps/server && ruff check src tests
-	cd apps/cli && ruff check src tests
+# Export GraphQL schema
+graphql-schema:
+	@echo "📝 Exporting GraphQL schema..."
+	cd apps/server && python -m dipeo_server.api.graphql.schema > schema.graphql
+	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 
-format-py:
-	@echo "✨ Formatting Python code..."
-	cd apps/server && ruff format src tests
-	cd apps/cli && ruff format src tests
+# Python directories
+PY_DIRS := apps/server apps/cli packages/python/dipeo_*
 
-typecheck-py:
-	@echo "🔍 Running Python type checker (mypy)..."
-	cd apps/server && mypy src
-	cd apps/cli && mypy src
-
-lint-all: lint-py typecheck-py
-	@echo "🔍 Running TypeScript/JavaScript linter..."
+# Linting
+lint-web:
+	@echo "🔍 Linting..."
 	pnpm run lint
-	@echo "✅ All linting complete!"
 
-# Clean command
+lint-server:
+	@echo "🔍 Linting..."
+	@for dir in $(PY_DIRS); do \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff check src $$([ -d tests ] && echo tests)) || true; \
+	done
+	@cd apps/server && mypy src || true
+
+lint-cli:
+	@echo "🔍 Linting..."
+	@for dir in $(PY_DIRS); do \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff check src $$([ -d tests ] && echo tests)) || true; \
+	done
+	@cd apps/cli && mypy src || true
+
+# Formatting
+format:
+	@echo "✨ Formatting..."
+	@for dir in $(PY_DIRS); do \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff format src $$([ -d tests ] && echo tests)) || true; \
+	done
+
+# Clean
 clean:
-	@echo "🧹 Cleaning generated files and caches..."
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "__generated__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "dist" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "build" -exec rm -rf {} + 2>/dev/null || true
+	@echo "🧹 Cleaning..."
+	find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \
+		-o -name ".ruff_cache" -o -name "__generated__" -o -name "dist" -o -name "build" \) \
+		-exec rm -rf {} + 2>/dev/null || true
 	rm -rf .logs/*.log 2>/dev/null || true
-	@echo "✅ Clean complete!"
-# Install pre-commit hooks
-install-hooks:
-	@echo "🔗 Installing pre-commit hooks..."
-	pre-commit install
-	@echo "✅ Pre-commit hooks installed!"

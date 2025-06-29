@@ -11,9 +11,14 @@ botocore==1.38.39
 cachetools==5.5.2
 certifi==2025.6.15
 charset-normalizer==3.4.2
+dependency-injector==4.48.1
 dill==0.3.8
+-e ./packages/python/dipeo_container
 -e ./packages/python/dipeo_core
+-e ./packages/python/dipeo_diagram
 -e ./packages/python/dipeo_domain
+-e ./packages/python/dipeo_infra
+-e ./packages/python/dipeo_application
 distro==1.9.0
 fastapi==0.115.13
 filelock==3.18.0
@@ -46,6 +51,7 @@ numpy==2.3.0
 openai==1.88.0
 packaging==25.0
 pandas==2.3.0
+pre-commit==4.2.0
 priority==2.0.0
 prometheus_client==0.22.1
 propcache==0.3.2

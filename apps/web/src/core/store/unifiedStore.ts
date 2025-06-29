@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { ArrowID, DomainApiKey, NodeID, PersonID, apiKeyId } from '@/core/types';
+import { ArrowID, NodeID, PersonID } from '@/core/types';
 import { entityIdGenerators } from '@/core/types/utilities';
 import { UnifiedStore } from "./unifiedStore.types";
 // Removed deprecated imports - auto-save is now handled by the backend
@@ -20,9 +20,6 @@ import {
   createFullSnapshot, 
   recordHistory 
 } from "./helpers/entityHelpers";
-import { 
-  apiKeyCrud 
-} from "./helpers/crudFactory";
 
 // Custom serializer for Redux DevTools to handle Maps
 const devtoolsOptions = {
@@ -60,7 +57,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
         
         // Additional data not in slices
         handles: new Map(),
-        apiKeys: new Map(),
         
         // Initial history state
         history: {
@@ -69,28 +65,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
           currentTransaction: null,
         },
 
-        // === API Key Operations ===
-        addApiKey: (name, service) => {
-          const id = apiKeyId(entityIdGenerators.apiKey());
-          const apiKey: DomainApiKey = {
-            id,
-            label: name,
-            service: service as DomainApiKey['service'],
-            maskedKey: '••••••••'
-          };
-          set(state => {
-            apiKeyCrud.add(state, apiKey);
-          });
-          return id;
-        },
-
-        updateApiKey: (id, updates) => set(state => {
-          apiKeyCrud.update(state, id, updates);
-        }),
-
-        deleteApiKey: (id) => set(state => {
-          apiKeyCrud.delete(state, id);
-        }),
 
         // === History Operations ===
         get canUndo() {
@@ -112,8 +86,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
               nodes: new Map(snapshot.nodes),
               arrows: new Map(snapshot.arrows),
               persons: new Map(snapshot.persons),
-              handles: new Map(snapshot.handles),
-              apiKeys: new Map(snapshot.apiKeys),
+              handles: new Map(snapshot.handles)
             });
             
             // Update arrays after restoring maps
@@ -134,8 +107,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
               nodes: new Map(snapshot.nodes),
               arrows: new Map(snapshot.arrows),
               persons: new Map(snapshot.persons),
-              handles: new Map(snapshot.handles),
-              apiKeys: new Map(snapshot.apiKeys),
+              handles: new Map(snapshot.handles)
             });
             
             // Update arrays after restoring maps
@@ -178,7 +150,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
             arrows: new Map(snapshot.arrows),
             persons: new Map(snapshot.persons),
             handles: new Map(snapshot.handles),
-            apiKeys: new Map(snapshot.apiKeys),
             dataVersion: state.dataVersion + 1,
           });
           
@@ -193,7 +164,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
           state.arrows = new Map();
           state.persons = new Map();
           state.handles = new Map();
-          state.apiKeys = new Map();
           state.nodesArray = [];
           state.arrowsArray = [];
           state.personsArray = [];

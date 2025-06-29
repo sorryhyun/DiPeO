@@ -23,6 +23,15 @@ repos:
         language: system
         files: \.(ts|tsx|js|jsx)$
         pass_filenames: false
+      
+      # Code generation for domain models
+      - id: domain-model-codegen
+        name: Generate code from domain models
+        entry: bash -c 'cd packages/domain-models && pnpm build'
+        language: system
+        files: ^packages/domain-models/src/.*\.ts$
+        pass_filenames: false
+        stages: [commit]
 
   # General hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks

@@ -308,6 +308,8 @@ class DiagramRunner:
         except Exception as e:
             if self.options.debug:
                 print(f"Error in execution stream: {e}")
+            import traceback
+            traceback.print_exc()
             return {"error": str(e)}
 
         return {}

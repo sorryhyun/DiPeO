@@ -150,7 +150,6 @@ export interface DomainDiagram {
   handles: DomainHandle[];
   arrows: DomainArrow[];
   persons: DomainPerson[];
-  apiKeys: DomainApiKey[];
   metadata?: DiagramMetadata | null;
 }
 
