@@ -12,7 +12,7 @@ from dipeo_diagram import (
 )
 from dipeo_domain import DiagramMetadata, DomainDiagram
 
-from dipeo_server.domains.apikey import APIKeyService
+from dipeo_server.domains.apikey import APIKeyDomainService
 from dipeo_server.domains.diagram.services import DiagramStorageService
 
 from .models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
@@ -28,7 +28,7 @@ class ExecutionPreparationService(BaseService):
         self,
         storage_service: DiagramStorageService,
         validator: DiagramValidator,
-        api_key_service: APIKeyService,
+        api_key_service: APIKeyDomainService,
     ):
         super().__init__()
         self.storage = storage_service

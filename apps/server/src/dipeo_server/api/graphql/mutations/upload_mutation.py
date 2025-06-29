@@ -20,7 +20,7 @@ from dipeo_domain import (
 from strawberry.file_uploads import Upload
 
 from config import BASE_DIR
-from dipeo_server.domains.apikey import APIKeyService
+from dipeo_server.domains.apikey import APIKeyDomainService
 
 from ..context import GraphQLContext
 from ..types import (
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_diagram(
-    diagram: DomainDiagram, api_key_service: APIKeyService | None = None
+    diagram: DomainDiagram, api_key_service: APIKeyDomainService | None = None
 ) -> list[str]:
     """Validates diagram structure, returns error list."""
     errors = []

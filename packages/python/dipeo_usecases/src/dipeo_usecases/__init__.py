@@ -24,6 +24,9 @@ from .context import ApplicationContext
 # Export execution service
 from .execution import LocalExecutionService
 
+# Export execution engine and observer
+from .execution_engine import ExecutionEngine, ExecutionObserver
+
 # Export execution view classes
 from .execution_view import LocalExecutionView, NodeView, EdgeView
 
@@ -35,6 +38,8 @@ __all__ = [
     "ApplicationContext",
     # Execution
     "LocalExecutionService",
+    "ExecutionEngine",
+    "ExecutionObserver",
     "LocalExecutionView",
     "NodeView",
     "EdgeView",

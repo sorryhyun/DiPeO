@@ -43,9 +43,9 @@ def _import_message_router():
 
 
 def _create_api_key_service():
-    """Factory for APIKeyService."""
-    from dipeo_server.domains.apikey import APIKeyService
-    return APIKeyService()
+    """Factory for APIKeyDomainService."""
+    from dipeo_server.domains.apikey import APIKeyDomainService
+    return APIKeyDomainService()
 
 
 def _create_file_service(base_dir):
@@ -124,10 +124,52 @@ def _create_notion_integration_service(notion_service, file_service):
     return NotionIntegrationDomainService(notion_service, file_service)
 
 
-def _create_unified_execution_service(app_context):
-    """Factory for UnifiedExecutionService."""
-    from dipeo_server.domains.execution.services import UnifiedExecutionService
-    return UnifiedExecutionService(app_context)
+def _create_conversation_domain_service(llm_service, api_key_service, conversation_service):
+    """Factory for ConversationDomainService."""
+    from dipeo_server.domains.conversation.domain_service import ConversationDomainService
+    return ConversationDomainService(
+        llm_service=llm_service,
+        api_key_service=api_key_service,
+        conversation_service=conversation_service,
+    )
+
+
+def _create_diagram_storage_domain_service(storage_service):
+    """Factory for DiagramStorageDomainService."""
+    from dipeo_server.domains.diagram.services.domain_service import DiagramStorageDomainService
+    return DiagramStorageDomainService(storage_service=storage_service)
+
+
+def _create_service_registry(
+    llm_service, api_key_service, file_service, conversation_memory_service,
+    conversation_domain_service, notion_integration_service, diagram_storage_domain_service,
+    api_integration_service, text_processing_service, file_operations_service
+):
+    """Factory for ServiceRegistry with explicit dependencies."""
+    from dipeo_server.domains.execution.services.service_registry import ServiceRegistry
+    return ServiceRegistry(
+        llm_service=llm_service,
+        api_key_service=api_key_service,
+        file_service=file_service,
+        conversation_memory_service=conversation_memory_service,
+        conversation_service=conversation_domain_service,
+        notion_integration_service=notion_integration_service,
+        diagram_storage_service=diagram_storage_domain_service,
+        api_integration_service=api_integration_service,
+        text_processing_service=text_processing_service,
+        file_operations_service=file_operations_service,
+    )
+
+
+def _create_server_execution_service(service_registry, state_store, message_router, diagram_storage_service):
+    """Factory for ServerExecutionService with explicit dependencies."""
+    from dipeo_server.domains.execution.services import ServerExecutionService
+    return ServerExecutionService(
+        service_registry=service_registry,
+        state_store=state_store,
+        message_router=message_router,
+        diagram_storage_service=diagram_storage_service,
+    )
 
 
 async def init_resources(container: "Container") -> None:
@@ -141,11 +183,8 @@ async def init_resources(container: "Container") -> None:
     await container.diagram_storage_service().initialize()
     await container.notion_service().initialize()
 
-    # Initialize execution service with context
+    # Initialize execution service
     execution_service = container.execution_service()
-    if hasattr(execution_service, "set_context"):
-        # Provide app context adapter for backward compatibility
-        execution_service.set_context(container.app_context())
     await execution_service.initialize()
 
     # Validate protocol compliance
@@ -165,7 +204,7 @@ def _validate_protocol_compliance(container: "Container") -> None:
         (container.llm_service(), SupportsLLM, "LLMService"),
         (container.file_service(), SupportsFile, "FileService"),
         (container.conversation_service(), SupportsMemory, "ConversationService"),
-        (container.execution_service(), SupportsExecution, "UnifiedExecutionService"),
+        (container.execution_service(), SupportsExecution, "ServerExecutionService"),
         (container.notion_service(), SupportsNotion, "NotionService"),
         (container.diagram_storage_service(), SupportsDiagram, "DiagramStorageService"),
     ]
@@ -255,15 +294,46 @@ class Container(containers.DeclarativeContainer):
         file_service=file_service,
     )
 
+    # Additional Domain Services
+    conversation_domain_service = providers.Singleton(
+        _create_conversation_domain_service,
+        llm_service=llm_service,
+        api_key_service=api_key_service,
+        conversation_service=conversation_service,
+    )
+
+    diagram_storage_domain_service = providers.Singleton(
+        _create_diagram_storage_domain_service,
+        storage_service=diagram_storage_service,
+    )
+
+    # Service Registry with explicit dependencies
+    service_registry = providers.Singleton(
+        _create_service_registry,
+        llm_service=llm_service,
+        api_key_service=api_key_service,
+        file_service=file_service,
+        conversation_memory_service=conversation_service,
+        conversation_domain_service=conversation_domain_service,
+        notion_integration_service=notion_integration_service,
+        diagram_storage_domain_service=diagram_storage_domain_service,
+        api_integration_service=api_integration_service,
+        text_processing_service=text_processing_service,
+        file_operations_service=file_operations_service,
+    )
+
     # Application Context for backward compatibility
     app_context = providers.Singleton(
         AppContextAdapter,
         container=__self__,
     )
 
-    # Unified Execution Service - uses app_context
+    # Server Execution Service with explicit dependencies
     execution_service = providers.Singleton(
-        _create_unified_execution_service,
-        app_context=app_context,
+        _create_server_execution_service,
+        service_registry=service_registry,
+        state_store=state_store,
+        message_router=message_router,
+        diagram_storage_service=diagram_storage_service,
     )
 

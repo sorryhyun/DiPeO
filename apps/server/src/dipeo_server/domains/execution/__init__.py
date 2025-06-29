@@ -5,6 +5,7 @@ from .engine import ViewBasedEngine
 from .models import ExecutionReadyDiagram
 from .preparation_service import ExecutionPreparationService
 from .validators import DiagramValidator
+from .observers import StateStoreObserver, StreamingObserver
 
 __all__ = [
     "DiagramValidator",
@@ -16,4 +17,7 @@ __all__ = [
     "NodeExecutionStatus",
     # Services and utilities
     "ViewBasedEngine",
+    # Observers
+    "StateStoreObserver",
+    "StreamingObserver",
 ]

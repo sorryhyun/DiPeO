@@ -11,7 +11,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from dipeo_server.domains.apikey import APIKeyService
+from dipeo_server.domains.apikey import APIKeyDomainService
 from dipeo_server.shared.constants import VALID_LLM_SERVICES, normalize_service_name
 
 from . import ChatResult, create_adapter
@@ -21,7 +21,7 @@ from .token_usage_service import TokenUsageService
 class LLMService(BaseService, SupportsLLM):
     """Service for handling LLM interactions that implements the SupportsLLM protocol."""
 
-    def __init__(self, api_key_service: APIKeyService):
+    def __init__(self, api_key_service: APIKeyDomainService):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool = {}

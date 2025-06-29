@@ -11,8 +11,8 @@ from dipeo_server.shared.constants import VALID_LLM_SERVICES, normalize_service_
 from dipeo_server.shared.exceptions import APIKeyError, ValidationError
 
 
-class APIKeyService(BaseService, SupportsAPIKey):
-    """Service for managing API keys that implements the SupportsAPIKey protocol."""
+class APIKeyDomainService(BaseService, SupportsAPIKey):
+    """Domain service for managing API keys that implements the SupportsAPIKey protocol."""
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 

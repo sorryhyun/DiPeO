@@ -1,5 +1,5 @@
 """API Key domain module."""
 
-from .service import APIKeyService
+from .service import APIKeyDomainService
 
-__all__ = ["APIKeyService"]
+__all__ = ["APIKeyDomainService"]

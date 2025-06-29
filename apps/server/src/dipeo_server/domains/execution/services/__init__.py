@@ -1,6 +1,6 @@
 """Execution domain services."""
 
 from .service_registry import ServiceRegistry
-from .unified_execution_service import UnifiedExecutionService
+from .server_execution_service import ServerExecutionService
 
-__all__ = ["ServiceRegistry", "UnifiedExecutionService"]
+__all__ = ["ServiceRegistry", "ServerExecutionService"]
