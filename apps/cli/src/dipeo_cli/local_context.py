@@ -241,8 +241,8 @@ class LocalAppContext:
     async def initialize_for_local(self):
         """Initialize minimal services for local execution."""
         # Import necessary services
-        from dipeo_usecases import LocalExecutionService
-        from dipeo_services import SimpleMemoryService, SimpleFileService
+        from dipeo_application import LocalExecutionService
+        from dipeo_infra import SimpleMemoryService, SimpleFileService
 
         # Initialize basic services
         simple_llm = SimpleLLMService()

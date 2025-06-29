@@ -9,7 +9,6 @@ export const createCommonStoreSelector = () => (state: UnifiedStore) => ({
   handlesMap: state.handles,
   arrows: state.arrows,
   persons: state.persons,
-  apiKeys: state.apiKeys,
   
   nodesArray: state.nodesArray,
   arrowsArray: state.arrowsArray,
@@ -44,10 +43,6 @@ export const createCommonStoreSelector = () => (state: UnifiedStore) => ({
   addPerson: state.addPerson,
   updatePerson: state.updatePerson,
   deletePerson: state.deletePerson,
-  
-  addApiKey: state.addApiKey,
-  updateApiKey: state.updateApiKey,
-  deleteApiKey: state.deleteApiKey,
   
   select: state.select,
   clearSelection: state.clearSelection,

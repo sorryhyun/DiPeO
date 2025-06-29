@@ -2,23 +2,24 @@
 
 ## Executive Summary
 
-DiPeO is a visual programming platform for building, executing, and monitoring AI-powered agent workflows. This document outlines an ideal architecture that addresses current structural issues while maintaining the system's flexibility and extensibility.
+DiPeO is a visual programming platform for building, executing, and monitoring AI-powered agent workflows. This document outlines the target ideal architecture that will guide the ongoing refactoring efforts to achieve a clean, maintainable, and scalable system.
 
 ## Architecture Principles
 
 ### Core Principles
 1. **Clean Architecture**: Strict separation between business logic and technical details
 2. **Domain-Driven Design**: Business concepts drive the structure
-3. **Dependency Rule**: Dependencies point inward (Infrastructure → Application → Domain)
+3. **Dependency Rule**: Dependencies point inward (Infrastructure → Application → Domain). Enforced via DI container and protocol-based interfaces
 4. **Single Source of Truth**: TypeScript domain models generate all downstream code
 5. **Explicit Dependencies**: No service locators or hidden dependencies
 6. **Testability First**: All components easily testable in isolation
+7. **Clean Repository**: No build artifacts in version control
 
 ### Technical Principles
 1. **Protocol-Oriented Design**: Use Python protocols for all boundaries
 2. **Immutable Domain Models**: Domain entities are immutable data structures
 3. **Functional Core, Imperative Shell**: Pure business logic with side effects at boundaries
-4. **Event-Driven Communication**: Loose coupling between components
+4. **Direct WebSocket Communication**: Real-time execution updates via WebSocket
 5. **Type Safety**: Leverage TypeScript and Python type systems fully
 
 ## System Architecture Overview
@@ -52,17 +53,18 @@ DiPeO is a visual programming platform for building, executing, and monitoring A
 **Location**: `packages/python/dipeo_domain/`
 
 **Contents**:
-- **Entities**: Immutable domain objects (Diagram, Node, Person, Execution)
-- **Value Objects**: DiagramId, NodeId, ExecutionStatus
-- **Domain Services**: Pure business logic services
-- **Ports**: Interfaces for external dependencies (protocols)
+- **Generated Models**: Auto-generated from TypeScript (entities, value objects, enums)
+- **Domain Services**: Pure business logic services (moved from `apps/server/domains/`)
+- **Ports**: Protocol interfaces for external dependencies
 - **Domain Events**: BusinessEvent protocol and implementations
+- **Validators**: Business rule validation
 
 **Key Characteristics**:
-- No external dependencies
+- No external dependencies (only imports from protocols)
 - Pure Python with type hints
 - All I/O through ports (protocols)
 - Immutable data structures
+- Domain services depend ONLY on ports, never on infrastructure
 
 ### 2. Application Layer (Use Case Orchestration)
 **Location**: `packages/python/dipeo_application/`
@@ -80,12 +82,12 @@ DiPeO is a visual programming platform for building, executing, and monitoring A
 - Depends only on domain layer interfaces
 
 ### 3. Infrastructure Layer (Technical Implementation)
-**Location**: `packages/python/dipeo_infrastructure/`
+**Location**: `packages/python/dipeo_infra/`
 
 **Contents**:
 - **External Adapters**: LLM providers, Notion, HTTP clients
 - **Persistence**: File storage, database repositories
-- **Messaging**: Event bus, WebSocket handlers
+- **Messaging**: WebSocket handlers for real-time updates
 - **Configuration**: Environment and config management
 
 **Key Characteristics**:
@@ -122,8 +124,8 @@ DiPeO/
 │   ├── domain-models/   # TypeScript source models
 │   └── python/
 │       ├── dipeo_domain/        # Domain layer
-│       ├── dipeo_application/   # Application layer
-│       ├── dipeo_infrastructure/# Infrastructure layer
+│       ├── dipeo_application/   # Application layer  
+│       ├── dipeo_infra/         # Infrastructure layer
 │       ├── dipeo_shared/        # Shared utilities
 │       └── dipeo_testing/       # Test utilities
 └── tools/
@@ -135,23 +137,19 @@ DiPeO/
 #### dipeo_domain
 ```
 dipeo_domain/
-├── entities/
-│   ├── diagram.py       # Diagram entity
-│   ├── node.py          # Node entities
-│   ├── person.py        # Person entity
-│   └── execution.py     # Execution entity
-├── value_objects/
-│   ├── ids.py           # DiagramId, NodeId, etc.
-│   ├── config.py        # Configuration value objects
-│   └── status.py        # Status enums
-├── services/
-│   ├── diagram_service.py
-│   ├── execution_service.py
-│   └── validation_service.py
-├── ports/
+├── models.py            # Auto-generated from TypeScript (DO NOT EDIT)
+├── __generated__/       # Additional generated files
+├── services/            # Domain services (moved from apps/server/domains/)
+│   ├── diagram/
+│   ├── execution/
+│   ├── conversation/
+│   ├── person/
+│   └── validation/
+├── ports/               # Protocol interfaces
 │   ├── storage.py       # Storage port (protocol)
-│   ├── llm.py           # LLM port
-│   ├── notification.py  # Notification port
+│   ├── llm.py           # LLM port  
+│   ├── messaging.py     # WebSocket messaging port
+│   ├── state.py         # State store port
 │   └── integration.py   # External integration port
 └── events/
     ├── base.py          # Event protocol
@@ -179,9 +177,9 @@ dipeo_application/
     └── query_handlers.py
 ```
 
-#### dipeo_infrastructure
+#### dipeo_infra
 ```
-dipeo_infrastructure/
+dipeo_infra/
 ├── external/
 │   ├── llm/
 │   │   ├── openai_adapter.py
@@ -198,7 +196,6 @@ dipeo_infrastructure/
 │   └── memory/
 │       └── in_memory_store.py
 ├── messaging/
-│   ├── event_bus.py
 │   └── websocket_publisher.py
 └── config/
     ├── settings.py
@@ -209,7 +206,7 @@ dipeo_infrastructure/
 
 ### Container-Based DI
 ```python
-# dipeo_infrastructure/config/dependency_injection.py
+# dipeo_infra/config/dependency_injection.py
 from dependency_injector import containers, providers
 
 class Container(containers.DeclarativeContainer):
@@ -235,17 +232,17 @@ class Container(containers.DeclarativeContainer):
         }
     )
     
-    # Domain Services
+    # Domain Services (injected with port implementations)
     diagram_service = providers.Factory(
         DiagramService,
-        storage=file_storage
+        storage=file_storage  # file_storage implements StoragePort
     )
     
     # Application Services
     create_diagram_use_case = providers.Factory(
         CreateDiagramUseCase,
         diagram_service=diagram_service,
-        event_bus=providers.Singleton(EventBus)
+        websocket_publisher=providers.Singleton(WebSocketPublisher)
     )
 ```
 
@@ -272,23 +269,28 @@ class Mutation:
 ### Handler Registry Pattern
 ```python
 # dipeo_application/handlers/registry.py
-from typing import Protocol, Dict, Type
+from typing import Protocol, Dict, Type, List
 
 class NodeHandler(Protocol):
     node_type: str
+    required_services: List[str]  # Services this handler needs
     
     async def execute(self, context: ExecutionContext, config: Dict) -> NodeResult:
         ...
 
 class HandlerRegistry:
-    def __init__(self):
+    def __init__(self, container):
         self._handlers: Dict[str, Type[NodeHandler]] = {}
+        self._container = container
     
     def register(self, handler_class: Type[NodeHandler]):
         self._handlers[handler_class.node_type] = handler_class
     
     def get_handler(self, node_type: str) -> NodeHandler:
-        return self._handlers[node_type]()
+        handler_class = self._handlers[node_type]
+        # Inject required services based on handler metadata
+        services = self._get_services_for_handler(handler_class)
+        return handler_class(**services)
 
 # Auto-registration through decorators
 def node_handler(node_type: str):
@@ -299,21 +301,29 @@ def node_handler(node_type: str):
     return decorator
 
 # Usage
-@node_handler("llm")
-class LLMNodeHandler:
+@node_handler("person_job")  
+class PersonJobHandler:
+    required_services = ['llm_service', 'conversation_service']
+    
+    def __init__(self, llm_service: SupportsLLM, conversation_service: SupportsConversation):
+        self.llm_service = llm_service
+        self.conversation_service = conversation_service
+    
     async def execute(self, context: ExecutionContext, config: Dict) -> NodeResult:
-        # Implementation
+        # Implementation using injected services
 ```
 
 ## Code Generation Strategy
 
 ### Single Source of Truth
 TypeScript models in `packages/domain-models/` generate:
-1. Python domain models (Pydantic)
-2. GraphQL schema (SDL)
-3. TypeScript types for frontend
-4. Python DTOs for application layer
-5. CLI operation types
+1. Python domain models (Pydantic) - ✅ Currently implemented
+2. GraphQL schema (SDL) - ⚠️  Currently manual, to be automated
+3. TypeScript types for frontend - ✅ Via GraphQL codegen
+4. Python DTOs for application layer - ❌ To be implemented
+5. CLI operation types - ✅ Currently implemented
+
+Note: Currently, some Python models are still manually maintained. The goal is to generate ALL models from TypeScript to ensure consistency.
 
 ### Generation Pipeline
 ```yaml
@@ -372,7 +382,7 @@ tests/
 ├── unit/
 │   ├── domain/
 │   ├── application/
-│   └── infrastructure/
+│   └── infra/
 ├── integration/
 │   ├── api/
 │   └── adapters/
@@ -400,44 +410,6 @@ class TestContainer(Container):
     # Override with test doubles
     llm_service = providers.Singleton(MockLLMService)
 ```
-
-## Migration Strategy
-
-### Phase 1: Foundation (Week 1-2)
-1. Set up new package structure
-2. Implement DI container
-3. Create protocol definitions
-4. Set up code generation pipeline
-
-### Phase 2: Domain Extraction (Week 3-4)
-1. Extract pure domain models
-2. Move domain services
-3. Define all ports
-4. Create domain events
-
-### Phase 3: Infrastructure Adapters (Week 5-6)
-1. Move LLM integrations
-2. Move Notion adapter
-3. Implement storage adapters
-4. Create event bus
-
-### Phase 4: Application Layer (Week 7-8)
-1. Extract use cases from handlers
-2. Implement orchestration services
-3. Create DTOs
-4. Wire up DI container
-
-### Phase 5: API Layer Cleanup (Week 9-10)
-1. Thin out GraphQL resolvers
-2. Remove business logic from API
-3. Implement proper error handling
-4. Add comprehensive logging
-
-### Phase 6: Testing & Documentation (Week 11-12)
-1. Achieve 80% test coverage
-2. Document all public APIs
-3. Create architecture decision records
-4. Update developer guides
 
 ## Performance Considerations
 
@@ -469,12 +441,30 @@ class TestContainer(Container):
 - SQL injection prevention
 - XSS protection in GraphQL
 
+## Version Control Guidelines
+
+### Clean Repository
+- **No build artifacts**: `build/`, `dist/`, `*.egg-info/` must be in `.gitignore`
+- **No generated files**: Unless explicitly marked as checked-in generated files
+- **No compiled code**: Python bytecode, TypeScript output
+- **No dependencies**: `node_modules/`, `.venv/`, etc.
+
+### Generated Files Policy
+Files that ARE checked in:
+- `packages/python/dipeo_domain/models.py` (marked with DO NOT EDIT)
+- `apps/cli/src/dipeo_cli/__generated__/` (marked with DO NOT EDIT)
+
+Files that are NOT checked in:
+- Any `build/`, `dist/`, `*.egg-info/` directories
+- Compiled Python files (`__pycache__/`, `*.pyc`)
+- Node.js build outputs
+
 ## Deployment Architecture
 
 ### Container Strategy
 ```dockerfile
 # Base image for all Python packages
-FROM python:3.11-slim as base
+FROM python:3.13-slim as base
 
 # Domain layer (no external deps)
 FROM base as domain
@@ -506,3 +496,17 @@ This architecture provides:
 - Excellent developer experience
 
 The migration path allows incremental adoption while maintaining system stability. Each phase delivers value independently, reducing risk and allowing for course corrections.
+
+## Important Notes
+
+This document describes the **target ideal architecture** for DiPeO. The current codebase is in transition and may not fully conform to all aspects described here. See `TODO.md` for the specific migration tasks needed to achieve this architecture.
+
+Key differences between current state and this ideal:
+- ✅ Domain services have been moved to `packages/python/dipeo_domain/domains/`
+- ✅ Package names have been updated: `dipeo_usecases` → `dipeo_application`, `dipeo_services` → `dipeo_infra`
+- ✅ Domain services no longer directly import infrastructure components (now use ports)
+- ✅ Build artifacts are properly excluded from the repository
+- ✅ Model duplication has been addressed with proper extension patterns
+- Not all models are generated from TypeScript yet (some manual models remain)
+
+The migration will be done incrementally to minimize disruption while working towards this cleaner architecture.

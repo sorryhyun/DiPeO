@@ -1,12 +1,17 @@
 # Python
-__pycache__
+__pycache__/
+**/__pycache__/
 *.pyc
 *$py.class
 *.so
 .Python
 .venv/
 *.egg-info/
+**/*.egg-info/
 .pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
 apikeys.json
 output.txt
 AGENTS.md
@@ -20,7 +25,8 @@ server/diagrams
 docs/deprecated
 TODO.md
 *.tsbuildinfo
-.ruff_cache
+.ruff_cache/
+**/.ruff_cache/
 .logs
 apps/server/.import_linter_cache
 
@@ -105,6 +111,9 @@ Thumbs.db
 # Logs
 logs/
 .logs/
+*.log
+execution.log
+server.log
 
 # Testing
 coverage/

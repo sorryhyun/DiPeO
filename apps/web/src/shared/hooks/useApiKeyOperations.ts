@@ -8,11 +8,8 @@ import {
   GetAvailableModelsDocument
 } from '@/__generated__/graphql';
 import { ApiKeyID, DomainApiKey, apiKeyId } from '@/core/types';
-import { useUnifiedStore } from './useUnifiedStore';
 
 export const useApiKeyOperations = () => {
-  const { apiKeys, deleteApiKey: deleteApiKeyFromStore } = useUnifiedStore();
-
   // Query to get all API keys
   const { data: apiKeysData, loading: loadingApiKeys, refetch: refetchApiKeys } = useQuery(GetApiKeysDocument);
 
@@ -20,19 +17,7 @@ export const useApiKeyOperations = () => {
   const [createApiKeyMutation, { loading: creatingApiKey }] = useMutation(CreateApiKeyDocument, {
     onCompleted: (data) => {
       if (data.createApiKey.success && data.createApiKey.apiKey) {
-        const newKey: DomainApiKey = {
-          id: apiKeyId(data.createApiKey.apiKey.id),
-          label: data.createApiKey.apiKey.label,
-          service: data.createApiKey.apiKey.service.toLowerCase() as DomainApiKey['service'],
-          maskedKey: data.createApiKey.apiKey.maskedKey,
-        };
-
-        // Add to local store
-        const newApiKeys = new Map<ApiKeyID, DomainApiKey>(apiKeys);
-        newApiKeys.set(newKey.id as ApiKeyID, newKey);
-        useUnifiedStore.setState({ apiKeys: newApiKeys });
-
-        toast.success(`API key "${newKey.label}" added successfully`);
+        toast.success(`API key "${data.createApiKey.apiKey.label}" added successfully`);
       } else {
         toast.error(data.createApiKey.error || 'Failed to create API key');
       }
@@ -47,7 +32,6 @@ export const useApiKeyOperations = () => {
   const [deleteApiKeyMutation, { loading: deletingApiKey }] = useMutation(DeleteApiKeyDocument, {
     onCompleted: (data) => {
       if (data.deleteApiKey.success && data.deleteApiKey.deletedId) {
-        deleteApiKeyFromStore(apiKeyId(data.deleteApiKey.deletedId));
         toast.success('API key deleted successfully');
       } else {
         toast.error(data.deleteApiKey.error || 'Failed to delete API key');

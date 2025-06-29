@@ -135,16 +135,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             persons_dict = {}
 
-        api_keys_data = data.get("api_keys", {})
-        if isinstance(api_keys_data, dict):
-            api_keys_dict = api_keys_data
-        elif isinstance(api_keys_data, list):
-            api_keys_dict = {
-                key.get("id", f"key_{i}"): key for i, key in enumerate(api_keys_data)
-            }
-        else:
-            api_keys_dict = {}
-
         node_data_list = strategy.extract_nodes(data)
         for index, node_data in enumerate(node_data_list):
             node = self._create_node(node_data, index)
@@ -164,7 +154,6 @@ class UnifiedDiagramConverter(DiagramConverter):
             handles=handles_dict,
             arrows=arrows_dict,
             persons=persons_dict,
-            api_keys=api_keys_dict,
             metadata=data.get("metadata"),
         )
 

@@ -4,8 +4,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from dipeo_container import Container
 from dipeo_container.app_context_adapter import AppContextAdapter
+
+from .container import ServerContainer, init_server_resources, shutdown_server_resources
 from fastapi import FastAPI
 
 if TYPE_CHECKING:
@@ -18,38 +19,38 @@ if TYPE_CHECKING:
         SupportsMemory,
         SupportsNotion,
     )
-    from dipeo_services import APIIntegrationDomainService
+    from dipeo_infra import APIIntegrationDomainService
 
-    from dipeo_server.domains.diagram.services import (
+    from dipeo_domain.domains.diagram.services import (
         DiagramStorageAdapter,
     )
-    from dipeo_server.domains.execution import ExecutionPreparationService
-    from dipeo_server.domains.file import FileOperationsDomainService
-    from dipeo_server.domains.text import TextProcessingDomainService
-    from dipeo_server.infrastructure.messaging import MessageRouter
-    from dipeo_server.infrastructure.persistence import StateStore
+    from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
+    from dipeo_domain.domains.file import FileOperationsDomainService
+    from dipeo_domain.domains.text import TextProcessingDomainService
+    from dipeo_server.infra.messaging import MessageRouter
+    from dipeo_server.infra.persistence import StateStore
 
 
 # Global container instance
-_container: Container | None = None
+_container: ServerContainer | None = None
 
 # Global app context adapter for backward compatibility
 _app_context: AppContextAdapter | None = None
 
 
-def get_container() -> Container:
+def get_container() -> ServerContainer:
     """Get the global DI container instance."""
     if _container is None:
         raise RuntimeError("Container not initialized. Call initialize_container() first.")
     return _container
 
 
-def initialize_container() -> Container:
+def initialize_container() -> ServerContainer:
     """Initialize the global DI container."""
     global _container, _app_context
 
     if _container is None:
-        _container = Container()
+        _container = ServerContainer()
         # Configure from environment - no need to call from_env() for now
         # as we're using factory functions that handle env vars directly
 
@@ -59,11 +60,11 @@ def initialize_container() -> Container:
             "dipeo_server.api.graphql.mutations",
             "dipeo_server.api.graphql.subscriptions",
             "dipeo_server.api.graphql.resolvers",
-            "dipeo_server.domains.execution.services",
+            "dipeo_domain.domains.execution.services",
         ])
 
         # Create app context adapter
-        _app_context = _container.app_context()
+        _app_context = AppContextAdapter(_container)
 
     return _container
 
@@ -77,8 +78,8 @@ class AppContext:
     def __init__(self):
         # Initialize container if not already done
         self._container = initialize_container()
-        # Get the adapter from the container
-        self._adapter = self._container.app_context()
+        # Get the adapter from the global variable
+        self._adapter = _app_context
 
     def __getattr__(self, name: str):
         """Delegate all attribute access to the adapter."""
@@ -86,11 +87,11 @@ class AppContext:
 
     async def startup(self):
         """Initialize all resources."""
-        await self._adapter.startup()
+        await init_server_resources(self._container)
 
     async def shutdown(self):
         """Cleanup all resources."""
-        await self._adapter.shutdown()
+        await shutdown_server_resources(self._container)
 
     # Properties to maintain type hints for IDE support
     @property
@@ -126,7 +127,7 @@ class AppContext:
         return self._adapter.diagram_storage_adapter
 
     @property
-    def execution_preparation_service(self) -> "ExecutionPreparationService":
+    def execution_preparation_service(self) -> "PrepareDiagramForExecutionUseCase":
         return self._adapter.execution_preparation_service
 
     @property
@@ -212,7 +213,7 @@ def get_diagram_storage_adapter() -> "DiagramStorageAdapter":
     return app_context.diagram_storage_adapter
 
 
-def get_execution_preparation_service() -> "ExecutionPreparationService":
+def get_execution_preparation_service() -> "PrepareDiagramForExecutionUseCase":
     if app_context.execution_preparation_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.execution_preparation_service

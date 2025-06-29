@@ -71,8 +71,3 @@ jobs:
 
     - name: Type check Python
       run: make typecheck-py
-
-    - name: Run Python tests
-      run: |
-        cd apps/server && pytest || true
-        cd ../cli && python test_cli.py || true

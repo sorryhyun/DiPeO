@@ -2,7 +2,14 @@
 Shared domain constants used across the system.
 """
 
+import os
+from pathlib import Path
 from typing import Final
+
+# Project Base Directory
+BASE_DIR: Final[Path] = Path(
+    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[5].as_posix())
+).resolve()
 
 # API Configuration
 API_BASE_PATH: Final[str] = "/api"

@@ -1,6 +1,6 @@
 # DiPeO Container
 
-Dependency injection container for DiPeO applications.
+Dependency injection container for DiPeO - a platform for building, executing, and monitoring AI-powered agent workflows.
 
 ## Overview
 
@@ -19,40 +19,39 @@ This package provides a dependency injection container using the `dependency-inj
 ### Server Application
 
 ```python
-from dipeo_container import Container
+from dipeo_container import Container, init_resources, shutdown_resources
 
 # Create container
 container = Container()
 
-# Configure from environment
-container.config.from_env()
-
 # Initialize resources
-await container.init_resources()
+await init_resources(container)
 
 # Access services
 execution_service = container.execution_service()
 diagram_service = container.diagram_storage_service()
 
 # Cleanup
-await container.shutdown_resources()
+await shutdown_resources(container)
 ```
 
 ### CLI Application
 
 ```python
-from dipeo_container import Container
+from dipeo_container import Container, init_resources
+from dipeo_application import LocalExecutionService
 
-# Create container with local services
+# Create container
 container = Container()
-container.config.set("use_local_services", True)
 
 # Initialize
-await container.init_resources()
+await init_resources(container)
 
-# Use services
-use_case = container.execute_diagram_use_case()
-result = await use_case.execute(diagram)
+# Access execution service for CLI
+execution_service = container.execution_service()
+# Or use LocalExecutionService directly for diagram execution
+local_executor = LocalExecutionService(container)
+result = await local_executor.execute_diagram(diagram)
 ```
 
 ### Testing
@@ -97,11 +96,11 @@ The container provides all core services:
 
 ## Configuration
 
-The container can be configured via:
+The container automatically loads configuration from environment variables:
 
-1. **Environment Variables**: Loaded via `config.from_env()`
-2. **Direct Configuration**: `config.set("key", "value")`
-3. **Configuration Files**: `config.from_yaml("config.yml")`
+1. **Environment Variables**: Automatically loaded when services are created
+2. **Service-specific configs**: Each service checks for its required env vars (e.g., API keys)
+3. **Override providers**: Use `container.service_name.override()` for testing
 
 ## Development
 

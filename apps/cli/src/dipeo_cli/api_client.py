@@ -30,6 +30,7 @@ T = TypeVar("T")
 
 
 class DiPeoAPIClient:
+    """GraphQL API client for DiPeO server communication."""
     def __init__(
         self,
         host: str = "localhost:8000",
@@ -40,7 +41,6 @@ class DiPeoAPIClient:
         self.http_url = f"http://{host}/graphql"
         self.ws_url = f"ws://{host}/graphql"
         self._client: Client | None = None
-        # Store multiple subscription clients to avoid concurrent connection issues
         self._subscription_clients: dict[str, Client | None] = {
             "execution": None,
             "nodes": None,
@@ -50,7 +50,6 @@ class DiPeoAPIClient:
         self.retry_delay = retry_delay
 
     async def __aenter__(self):
-        # HTTP client for queries/mutations
         transport = AIOHTTPTransport(url=self.http_url)
         self._client = Client(transport=transport, fetch_schema_from_transport=False)
         return self
@@ -60,15 +59,13 @@ class DiPeoAPIClient:
             if self._client:
                 await self._client.transport.close()
         except Exception:
-            pass  # Ignore errors during cleanup
-
-        # Close all subscription clients
+            pass
         for client in self._subscription_clients.values():
             if client:
                 try:
                     await client.transport.close()
                 except Exception:
-                    pass  # Ignore errors during cleanup
+                    pass
 
     def _get_subscription_client(self, subscription_type: str) -> Client:
         """Get or create a subscription client for the given type."""
@@ -77,7 +74,7 @@ class DiPeoAPIClient:
             self._subscription_clients[subscription_type] = Client(
                 transport=ws_transport,
                 fetch_schema_from_transport=False,
-                execute_timeout=None,  # Disable timeout for subscriptions
+                execute_timeout=None,
             )
         return self._subscription_clients[subscription_type]
 
@@ -95,7 +92,7 @@ class DiPeoAPIClient:
             ) as e:
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2**attempt)  # Exponential backoff
+                    delay = self.retry_delay * (2**attempt)
                     print(
                         f"⚠️  Connection failed (attempt {attempt + 1}/{self.max_retries}): {e!s}"
                     )
@@ -129,7 +126,6 @@ class DiPeoAPIClient:
         """Start diagram execution and return execution ID."""
         mutation = gql(EXECUTE_DIAGRAM_MUTATION)
 
-        # Prepare input data
         input_data = {
             "debugMode": debug_mode,
             "timeoutSeconds": timeout,
@@ -137,12 +133,10 @@ class DiPeoAPIClient:
         }
 
         if diagram_data:
-            # Use diagram data directly
             input_data["diagramData"] = diagram_data
             if variables:
                 input_data["variables"] = variables
         elif diagram_id:
-            # Use existing diagram ID
             input_data["diagramId"] = diagram_id
         else:
             raise ValueError("Either diagram_id or diagram_data must be provided")
@@ -279,12 +273,7 @@ class DiPeoAPIClient:
     async def save_diagram(
         self, diagram_data: dict[str, Any], filename: str | None = None
     ) -> str:
-        """Save a diagram and return its ID.
-
-        This method is deprecated for CLI usage since we can execute diagrams
-        directly with diagram_data.
-        """
-        # This method is no longer needed for CLI usage
+        """Save a diagram and return its ID."""
         raise NotImplementedError(
             "save_diagram is deprecated. Use execute_diagram with diagram_data instead."
         )

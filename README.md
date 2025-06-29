@@ -44,7 +44,7 @@ Note [docs](docs)
 
 ## Requirements
 - Node.js 22+ with pnpm 10+
-- Python 3.12+
+- Python 3.13+
 - tmux (optional, for better parallel execution)
 
 
