@@ -116,7 +116,6 @@ class ServiceRegistry:
             "file_service": self._file_service,
             "conversation_memory": self._conversation_memory_service,
             "conversation_memory_service": self._conversation_memory_service,
-            
             # Domain services
             "conversation": self.conversation,
             "conversation_service": self.conversation,
@@ -132,7 +131,7 @@ class ServiceRegistry:
             "validation": self.validation,
             "db_operations": self.db_operations,
         }
-        
+
         # Build the services dict based on requirements
         services = {}
         for service_name in requires_services:
@@ -141,5 +140,5 @@ class ServiceRegistry:
             else:
                 # Log warning or raise error for unknown service
                 raise ValueError(f"Unknown service requested: {service_name}")
-                
+
         return services

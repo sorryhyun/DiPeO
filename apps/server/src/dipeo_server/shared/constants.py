@@ -32,7 +32,11 @@ SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {
 SUPPORTED_DIAGRAM_EXTENSIONS: Final[set[str]] = {".json", ".yaml", ".yml"}
 
 # Additional server-specific valid services
-VALID_LLM_SERVICES: Final[set[str]] = CORE_VALID_SERVICES | {"bedrock", "vertex", "deepseek"}
+VALID_LLM_SERVICES: Final[set[str]] = CORE_VALID_SERVICES | {
+    "bedrock",
+    "vertex",
+    "deepseek",
+}
 
 # Default service when none specified
 DEFAULT_SERVICE: Final[str] = "openai"

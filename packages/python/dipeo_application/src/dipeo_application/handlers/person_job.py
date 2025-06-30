@@ -3,7 +3,13 @@
 from typing import Any
 
 from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
-from dipeo_domain.models import DomainDiagram, DomainNode, NodeOutput, PersonJobNodeData
+from dipeo_domain.models import (
+    DomainDiagram,
+    DomainNode,
+    NodeOutput,
+    PersonJobNodeData,
+    Vec2,
+)
 from pydantic import BaseModel
 
 
@@ -38,9 +44,17 @@ class PersonJobNodeHandler(BaseNodeHandler):
         # Only use domain service
         conversation = services["conversation"]
 
+        # Get the actual node from context
+        actual_node = next(
+            (n for n in context.nodes if n["id"] == context.current_node_id), None
+        )
+        if not actual_node:
+            raise ValueError(f"Node {context.current_node_id} not found in context")
+
         node = DomainNode(
             id=context.current_node_id,
             type="person_job",
+            position=Vec2(x=0, y=0),  # Position not needed for execution
             data=props.model_dump(exclude_unset=True),
         )
 

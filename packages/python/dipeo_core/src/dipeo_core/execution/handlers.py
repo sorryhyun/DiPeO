@@ -149,11 +149,12 @@ def create_node_output(
     metadata: Dict[str, Any] | None = None,
 ) -> Any:
     """Utility to save a few keystrokes when constructing outputs.
-    
+
     This is a temporary implementation that returns a dict-like structure.
     The actual NodeOutput type should be imported from dipeo_domain when available.
     """
     from dipeo_domain import NodeOutput
+
     return NodeOutput(value=value or {}, metadata=metadata)
 
 

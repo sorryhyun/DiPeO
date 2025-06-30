@@ -44,13 +44,9 @@ class ServerContainer(BaseContainer):
     """Server-specific dependency injection container."""
 
     # Infrastructure providers
-    state_store = providers.Singleton(
-        lambda: state_store
-    )
+    state_store = providers.Singleton(lambda: state_store)
 
-    message_router = providers.Singleton(
-        MessageRouter
-    )
+    message_router = providers.Singleton(MessageRouter)
 
     # Domain service providers
     api_key_service = providers.Singleton(
@@ -93,9 +89,7 @@ class ServerContainer(BaseContainer):
 
     diagram_storage_service = diagram_file_repository
 
-    validation_service = providers.Singleton(
-        ValidationDomainService
-    )
+    validation_service = providers.Singleton(ValidationDomainService)
 
     prepare_diagram_use_case = providers.Singleton(
         PrepareDiagramForExecutionUseCase,
@@ -104,9 +98,7 @@ class ServerContainer(BaseContainer):
         api_key_service=api_key_service,
     )
 
-    text_processing_service = providers.Singleton(
-        TextProcessingDomainService
-    )
+    text_processing_service = providers.Singleton(TextProcessingDomainService)
 
     file_operations_service = providers.Singleton(
         FileOperationsDomainService,
@@ -124,9 +116,7 @@ class ServerContainer(BaseContainer):
         file_service=file_service,
     )
 
-    notion_api_service = providers.Singleton(
-        NotionAPIService
-    )
+    notion_api_service = providers.Singleton(NotionAPIService)
 
     notion_integration_service = providers.Factory(
         NotionIntegrationDomainService,
@@ -193,7 +183,11 @@ def _validate_protocol_compliance(container: ServerContainer) -> None:
         (container.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.llm_service(), SupportsLLM, "LLMInfrastructureService"),
         (container.file_service(), SupportsFile, "FileSystemRepository"),
-        (container.conversation_memory_service(), SupportsMemory, "ConversationMemoryService"),
+        (
+            container.conversation_memory_service(),
+            SupportsMemory,
+            "ConversationMemoryService",
+        ),
         (container.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
         (container.notion_api_service(), SupportsNotion, "NotionAPIService"),
     ]

@@ -53,10 +53,23 @@ class MessageRouter:
             return False
 
     async def broadcast_to_execution(self, execution_id: str, message: dict):
+        # First, check if we need to publish to streaming_manager (for GraphQL subscriptions)
+        # This is imported at runtime to avoid circular imports
+        try:
+            from dipeo_server.api.graphql.subscriptions import publish_execution_update
+
+            await publish_execution_update(execution_id, message)
+        except ImportError:
+            # We're not in server context, just continue with WebSocket broadcasting
+            pass
+        except Exception as e:
+            logger.error(f"Failed to publish to streaming manager: {e}")
+
+        # Then broadcast to WebSocket connections
         connection_ids = self.execution_subscriptions.get(execution_id, set())
 
         if not connection_ids:
-            logger.debug(f"No subscribers for execution {execution_id}")
+            # Silently return - no need to log this every time
             return
 
         tasks = []

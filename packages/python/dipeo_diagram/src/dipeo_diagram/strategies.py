@@ -46,6 +46,7 @@ class _BaseStrategy(FormatStrategy):
     def quick_match(self, _content: str) -> bool:  # noqa: D401 (one‑line doc)
         return False
 
+
 # strategies
 
 
@@ -127,7 +128,11 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 continue
             props = {
                 **n.get("props", {}),
-                **{k: v for k, v in n.items() if k not in {"label", "type", "position", "props"}},
+                **{
+                    k: v
+                    for k, v in n.items()
+                    if k not in {"label", "type", "position", "props"}
+                },
             }
             node = build_node(
                 id=f"node_{idx}",
@@ -153,25 +158,33 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             dst_label, *_ = dst_raw.split(":", 1)
             sid, tid = label2id.get(src_label), label2id.get(dst_label)
             if not (sid and tid):
-                log.warning(f"Skipping connection: could not find nodes for '{src_label}' -> '{dst_label}'")
+                log.warning(
+                    f"Skipping connection: could not find nodes for '{src_label}' -> '{dst_label}'"
+                )
                 continue
-            
+
             # Handle source handle
             if ":" in src_raw:
                 src_handle = src_raw.split(":", 1)[1]
             elif "branch" in c.get("data", {}):
                 # For condition nodes, use branch data
                 branch_value = c.get("data", {}).get("branch")
-                src_handle = "True" if branch_value == "true" else "False" if branch_value == "false" else "default"
+                src_handle = (
+                    "True"
+                    if branch_value == "true"
+                    else "False"
+                    if branch_value == "false"
+                    else "default"
+                )
             else:
                 src_handle = "default"
-            
+
             # Handle target handle
             dst_handle = dst_raw.split(":", 1)[1] if ":" in dst_raw else "default"
-            
+
             # Create arrow with data (light format doesn't include controlPointOffset)
             arrow_data = c.get("data", {})
-            
+
             arrows.append(
                 {
                     "id": c.get("data", {}).get("id", f"arrow_{idx}"),
@@ -216,16 +229,22 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             s_id, s_handle = (a.source.split(":") + ["default"])[:2]
             t_id, t_handle = (a.target.split(":") + ["default"])[:2]
             conn = {
-                "from": f"{id_to_label[s_id]}{":" + s_handle if s_handle != "default" else ''}",
-                "to": f"{id_to_label[t_id]}{":" + t_handle if t_handle != "default" else ''}",
+                "from": f"{id_to_label[s_id]}{':' + s_handle if s_handle != 'default' else ''}",
+                "to": f"{id_to_label[t_id]}{':' + t_handle if t_handle != 'default' else ''}",
             }
             if a.data:
                 # Only include essential arrow data for light format
                 filtered_data = {}
                 # Include arrow metadata but exclude UI-specific fields and ID
                 # ID will be auto-generated during loading, just like node IDs
-                for key in ["type", "_sourceNodeType", "_isFromConditionBranch", 
-                           "contentType", "label", "branch"]:
+                for key in [
+                    "type",
+                    "_sourceNodeType",
+                    "_isFromConditionBranch",
+                    "contentType",
+                    "label",
+                    "branch",
+                ]:
                     if key in a.data:
                         filtered_data[key] = a.data[key]
                 # Explicitly exclude controlPointOffset fields from light format
@@ -239,7 +258,9 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
         for p in diagram.persons:
             person_data = {
                 "label": p.label,
-                "service": p.service.value if hasattr(p.service, 'value') else str(p.service),
+                "service": p.service.value
+                if hasattr(p.service, "value")
+                else str(p.service),
                 "model": p.model,
             }
             # Only include optional fields if they have values
@@ -282,7 +303,7 @@ class ReadableYamlStrategy(_YamlMixin, _BaseStrategy):
         for idx, step in enumerate(data.get("workflow", [])):
             if not isinstance(step, dict):
                 continue
-            (name, cfg), = step.items()
+            ((name, cfg),) = step.items()
             node_type = cfg.get("type") or ("start" if idx == 0 else "job")
             node = build_node(
                 id=f"node_{idx}",
@@ -325,7 +346,8 @@ class ReadableYamlStrategy(_YamlMixin, _BaseStrategy):
             for n in diagram.nodes
         ]
         flow = [
-            f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}" for a in diagram.arrows
+            f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}"
+            for a in diagram.arrows
         ]
         out: dict[str, Any] = {"workflow": workflow}
         if flow:

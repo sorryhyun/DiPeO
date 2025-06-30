@@ -1,9 +1,8 @@
 # openai_adapter.py
-from typing import Any
 
 from openai import OpenAI
 
-from ..base import BaseAdapter
+from ..base import BaseAdapter, ChatResult
 
 
 class ChatGPTAdapter(BaseAdapter):
@@ -12,52 +11,45 @@ class ChatGPTAdapter(BaseAdapter):
     def _initialize_client(self) -> OpenAI:
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
 
-    def _build_messages(
-        self,
-        system_prompt: str,
-        cacheable_prompt: str = "",
-        user_prompt: str = "",
-        citation_target: str = "",
-        **kwargs,
-    ) -> list[dict[str, str]]:
-        msgs: list[dict[str, str]] = []
-        if system_prompt:
-            msgs.append({"role": "system", "content": system_prompt})
+    def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+        # Map roles for OpenAI compatibility
+        mapped_messages = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            # OpenAI uses "developer" role instead of "system" in newer models
+            if role == "system" and "o1" in self.model_name:
+                role = "developer"
+            mapped_messages.append({"role": role, "content": msg.get("content", "")})
 
-        # Use base class helper to build user message content
-        user_content = self._build_user_message_content(
-            cacheable_prompt, user_prompt, citation_target
-        )
-        if user_content:
-            msgs.append({"role": "user", "content": user_content})
-
-        # Handle prefill if provided
-        if kwargs.get("prefill"):
-            self._handle_prefill(msgs, kwargs["prefill"])
-
-        return msgs
-
-    def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> Any:
-        # Use base class helper to extract allowed parameters
+        # Extract allowed parameters
         allowed_params = ["temperature", "max_tokens", "n", "top_p"]
-        api_params = self._extract_api_params(kwargs, allowed_params)
+        api_params = {k: v for k, v in kwargs.items() if k in allowed_params and v is not None}
 
-        params = {"model": self.model_name, "messages": messages, **api_params}
-        return self.client.chat.completions.create(**params)
+        # Make API call
+        params = {"model": self.model_name, "messages": mapped_messages, **api_params}
+        response = self.client.chat.completions.create(**params)
 
-    def _extract_text_from_response(self, response: Any, **kwargs) -> str:
-        choice = response.choices[0] if response.choices else None
-        return getattr(choice.message, "content", "") if choice else ""
+        # Extract response data
+        text = ""
+        if response.choices:
+            text = response.choices[0].message.content or ""
 
-    def _extract_usage_from_response(self, response: Any) -> dict[str, int]:
-        # Use base class helper with OpenAI's field names
-        usage_obj = getattr(response, "usage", None)
-        return self._extract_usage_safely(
-            usage_obj,
-            input_field="prompt_tokens",
-            output_field="completion_tokens"
+        # Extract usage
+        prompt_tokens = None
+        completion_tokens = None
+        total_tokens = None
+
+        if hasattr(response, "usage") and response.usage:
+            prompt_tokens = getattr(response.usage, "prompt_tokens", None)
+            completion_tokens = getattr(response.usage, "completion_tokens", None)
+            if prompt_tokens is not None and completion_tokens is not None:
+                total_tokens = prompt_tokens + completion_tokens
+
+        return ChatResult(
+            text=text,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            raw_response=response,
         )
 
-    def list_models(self) -> list[str]:
-        models = self.client.models.list().data
-        return [m.id for m in models if "gpt" in m.id]

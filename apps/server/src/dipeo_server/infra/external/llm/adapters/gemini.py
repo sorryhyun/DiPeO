@@ -3,7 +3,7 @@ from typing import Any
 
 import google.genai as genai
 
-from ..base import BaseAdapter
+from ..base import BaseAdapter, ChatResult
 
 logger = logging.getLogger(__name__)
 
@@ -22,82 +22,65 @@ class GeminiAdapter(BaseAdapter):
         # Return None as genai uses state configuration
         return None
 
-    def _build_messages(
-        self,
-        system_prompt: str,
-        cacheable_prompt: str = "",
-        user_prompt: str = "",
-        citation_target: str = "",
-        **kwargs,
-    ) -> dict[str, Any]:
-        """Build provider-specific message format."""
-        # Use base class helper to build user message content
-        user_content = self._build_user_message_content(
-            cacheable_prompt, user_prompt, citation_target
-        )
+    def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+        """Make API call to Gemini and return ChatResult."""
+        # Extract system prompt from messages
+        system_prompt = ""
+        gemini_messages = []
 
-        message_content = [{"role": "user", "parts": [{"text": user_content}]}]
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
 
-        # Handle prefill
-        if kwargs.get("prefill"):
-            prefill_text = self._safe_strip_prefill(kwargs["prefill"])
-            message_content.append({"role": "model", "parts": [{"text": prefill_text}]})
+            if role == "system":
+                system_prompt = content
+            elif role == "user":
+                gemini_messages.append({"role": "user", "parts": [{"text": content}]})
+            elif role == "assistant":
+                gemini_messages.append({"role": "model", "parts": [{"text": content}]})
 
-        # Return both system prompt and messages for Gemini API
-        return {"system_instruction": system_prompt, "contents": message_content}
-
-    def _extract_text_from_response(self, response: Any, **kwargs) -> str:
-        """Extract text content from provider-specific response."""
-        return response.text if hasattr(response, "text") else ""
-
-    def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
-        """Extract token usage from provider-specific response."""
-        usage_obj = getattr(response, "usage_metadata", None)
-        return self._extract_usage_safely(
-            usage_obj,
-            input_field="prompt_token_count",
-            output_field="candidates_token_count"
-        )
-
-    def _make_api_call(self, messages: Any, **kwargs) -> Any:
-        """Make the actual API call to the provider."""
         # Get the model with system instruction
         model = genai.GenerativeModel(
             model_name=self.model_name,
-            system_instruction=messages["system_instruction"],
+            system_instruction=system_prompt,
         )
 
-        # Use base class helper to extract allowed parameters
+        # Extract allowed parameters
         allowed_params = ["max_tokens", "temperature"]
-        api_params = self._extract_api_params(kwargs, allowed_params)
+        api_params = {k: v for k, v in kwargs.items() if k in allowed_params and v is not None}
 
         generation_config = genai.GenerationConfig(
             max_output_tokens=api_params.get("max_tokens"),
             temperature=api_params.get("temperature"),
         )
 
-        return model.generate_content(
-            contents=messages["contents"],
+        # Make the API call
+        response = model.generate_content(
+            contents=gemini_messages,
             generation_config=generation_config,
             safety_settings=kwargs.get("gemini_safety_settings"),
         )
 
-    def list_models(self) -> list[str]:
-        """List available Gemini models."""
-        logger.info("[Gemini] Fetching available models from Gemini API")
-        try:
-            # List models using the state genai module
-            models = genai.list_models()
-            # Filter for generateContent models
-            gemini_models = [
-                model.name.replace("models/", "")
-                for model in models
-                if "gemini" in model.name.lower()
-                and "generateContent" in model.supported_generation_methods
-            ]
-            logger.info(f"[Gemini] Found {len(gemini_models)} models")
-            return sorted(gemini_models)
-        except Exception as e:
-            logger.error(f"[Gemini] Failed to fetch models from API: {e!s}")
-            # Use base class fallback models
-            return super().list_models()
+        # Extract text
+        text = response.text if hasattr(response, "text") else ""
+
+        # Extract usage
+        prompt_tokens = None
+        completion_tokens = None
+        total_tokens = None
+
+        usage_obj = getattr(response, "usage_metadata", None)
+        if usage_obj:
+            prompt_tokens = getattr(usage_obj, "prompt_token_count", None)
+            completion_tokens = getattr(usage_obj, "candidates_token_count", None)
+            if prompt_tokens is not None and completion_tokens is not None:
+                total_tokens = prompt_tokens + completion_tokens
+
+        return ChatResult(
+            text=text,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            raw_response=response,
+        )
+

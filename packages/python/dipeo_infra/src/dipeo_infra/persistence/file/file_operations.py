@@ -74,7 +74,7 @@ class FileOperationsService:
         result = self._file.read(path)
         if not result["success"]:
             raise IOError(f"Failed to read file: {result.get('error')}")
-        
+
         return result.get("raw_content", "")
 
     async def write_with_backup(
@@ -98,7 +98,9 @@ class FileOperationsService:
                 existing_result = self._file.read(path)
                 if existing_result["success"]:
                     backup_path = f"{path}{backup_suffix}"
-                    await self._file.write(backup_path, content=existing_result["raw_content"])
+                    await self._file.write(
+                        backup_path, content=existing_result["raw_content"]
+                    )
                     logger.info(f"Created backup at {backup_path}")
             except Exception as e:
                 logger.warning(f"Failed to create backup: {e}")
@@ -197,7 +199,9 @@ class FileOperationsService:
             sort_keys: Whether to sort dictionary keys
         """
         try:
-            content = json.dumps(data, indent=indent, sort_keys=sort_keys, ensure_ascii=False)
+            content = json.dumps(
+                data, indent=indent, sort_keys=sort_keys, ensure_ascii=False
+            )
             await self.write_with_backup(path, content, create_backup=True)
         except Exception as e:
             raise IOError(f"Failed to write JSON file: {e}")
@@ -222,11 +226,15 @@ class FileOperationsService:
         """
         try:
             # Resolve full directory path
-            full_dir = self.base_dir / directory if not os.path.isabs(directory) else Path(directory)
-            
+            full_dir = (
+                self.base_dir / directory
+                if not os.path.isabs(directory)
+                else Path(directory)
+            )
+
             if not full_dir.exists():
                 return []
-            
+
             # Get all files
             if recursive:
                 all_files = [str(p) for p in full_dir.rglob("*") if p.is_file()]
@@ -285,22 +293,22 @@ class FileOperationsService:
             result = self._file.read(source)
             if not result["success"]:
                 raise IOError(f"Failed to read source: {result.get('error')}")
-            
+
             content = result.get("raw_content", "")
 
             # Write to destination
             write_result = await self._file.write(destination, content=content)
             if not write_result["success"]:
-                raise IOError(f"Failed to write destination: {write_result.get('error')}")
+                raise IOError(
+                    f"Failed to write destination: {write_result.get('error')}"
+                )
 
             # Validate if requested
             if validate_checksum:
                 source_checksum = await self._calculate_checksum(source)
                 dest_checksum = await self._calculate_checksum(destination)
                 if source_checksum != dest_checksum:
-                    raise IOError(
-                        "Copy validation failed: checksums don't match"
-                    )
+                    raise IOError("Copy validation failed: checksums don't match")
 
         except Exception as e:
             if isinstance(e, IOError):
@@ -325,7 +333,7 @@ class FileOperationsService:
             result = self._file.read(path)
             if not result["success"]:
                 raise IOError(f"Failed to read file: {result.get('error')}")
-            
+
             content = result.get("raw_content", "")
             return hashlib.md5(content.encode("utf-8")).hexdigest()
         except Exception as e:

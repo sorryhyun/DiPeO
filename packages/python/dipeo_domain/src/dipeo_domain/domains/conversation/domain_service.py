@@ -104,22 +104,30 @@ class ConversationDomainService:
         # Get updated conversation from memory service
         conversation = self._conversations.get_conversation_for_person(person_id)
 
+        # Build messages list with system prompt
+        messages = []
+        if person_config.get("system_prompt"):
+            messages.append(
+                {"role": "system", "content": person_config["system_prompt"]}
+            )
+        messages.extend(conversation)
+
         # Call LLM with conversation
         llm_params = {
             "service": person_config["service"],
             "api_key_id": person_config["api_key_id"],
             "model": person_config["model"],
-            "messages": conversation,
+            "messages": messages,
         }
 
         # Add temperature if specified in person's memory config
         if person_config.get("temperature") is not None:
             llm_params["temperature"] = person_config["temperature"]
 
-        llm_result = await self._llm.call_llm(**llm_params)
+        chat_result = await self._llm.call_llm(**llm_params)
 
-        response_text: str = llm_result.get("response", "")
-        token_usage_obj = llm_result.get("token_usage")
+        response_text: str = chat_result.text
+        token_usage_obj: TokenUsage | None = chat_result.token_usage
 
         # Add response to memory
         self._conversations.add_message_to_conversation_with_tokens(
@@ -129,13 +137,9 @@ class ConversationDomainService:
             execution_id=execution_id,
             node_id=node.id,
             node_label=data.get("label", node.id),
-            input_tokens=getattr(token_usage_obj, "input", 0) if token_usage_obj else 0,
-            output_tokens=getattr(token_usage_obj, "output", 0)
-            if token_usage_obj
-            else 0,
-            cached_tokens=getattr(token_usage_obj, "cached", 0)
-            if token_usage_obj and hasattr(token_usage_obj, "cached")
-            else 0,
+            input_tokens=token_usage_obj.input if token_usage_obj else 0,
+            output_tokens=token_usage_obj.output if token_usage_obj else 0,
+            cached_tokens=token_usage_obj.cached if token_usage_obj else 0,
         )
 
         # Prepare output values
@@ -155,30 +159,19 @@ class ConversationDomainService:
                     output_values["conversation"] = conv_history
                     break
 
-        # Prepare token usage metadata
-        token_usage_metadata = {}
-        token_usage_domain = None
-
-        if token_usage_obj and hasattr(token_usage_obj, "__dict__"):
-            token_usage_metadata = {
-                "input": getattr(token_usage_obj, "input", 0),
-                "output": getattr(token_usage_obj, "output", 0),
-                "total": getattr(token_usage_obj, "total", 0),
-            }
-            if hasattr(token_usage_obj, "cached"):
-                token_usage_metadata["cached"] = token_usage_obj.cached
-
-            # Create domain token usage object
-            token_usage_domain = TokenUsage(**token_usage_metadata)
-
         # Return node output with all metadata
         return NodeOutput(
             value=output_values,
             metadata={
                 "model": person_config["model"],
-                "tokens_used": token_usage_metadata.get("total", 0),
-                "tokenUsage": token_usage_metadata,
-                "token_usage": token_usage_domain,
+                "tokens_used": token_usage_obj.total if token_usage_obj else 0,
+                "tokenUsage": {
+                    "input": token_usage_obj.input if token_usage_obj else 0,
+                    "output": token_usage_obj.output if token_usage_obj else 0,
+                    "total": token_usage_obj.total if token_usage_obj else 0,
+                    "cached": token_usage_obj.cached if token_usage_obj else 0,
+                },
+                "token_usage": token_usage_obj,
             },
         )
 

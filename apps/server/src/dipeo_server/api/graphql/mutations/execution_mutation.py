@@ -6,10 +6,7 @@ import uuid
 from datetime import UTC, datetime
 
 import strawberry
-from dipeo_application.dto.__generated__ import ExecutionState, TokenUsage
 from dipeo_domain import (
-    DiagramID,
-    ExecutionID,
     ExecutionStatus,
 )
 
@@ -37,8 +34,10 @@ class ExecutionMutations:
             state_store = context.state_store
 
             if data.diagram_data:
+                # The execution service will validate as DomainDiagram which expects lists
+                # If the data is in backend format (dict of dicts), it needs to stay as dict
+                # because the execution service handles the conversion internally
                 diagram_data = data.diagram_data
-                # The execution service expects dict format, so we don't need to convert
             elif data.diagram_id:
                 # Use new services
                 storage_service = context.diagram_storage_service
@@ -59,7 +58,9 @@ class ExecutionMutations:
             }
 
             diagram_id = data.diagram_id if data.diagram_id else None
-            await state_store.create_execution(execution_id, diagram_id, options)
+            execution = await state_store.create_execution(
+                execution_id, diagram_id, options
+            )
 
             # Start the actual execution asynchronously
             async def run_execution():
@@ -72,6 +73,7 @@ class ExecutionMutations:
                         pass
                 except Exception as ex:
                     import traceback
+
                     logger.error(f"Execution failed for {execution_id}: {ex}")
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     await state_store.update_status(
@@ -81,46 +83,9 @@ class ExecutionMutations:
             # Launch execution in background
             asyncio.create_task(run_execution())
 
-            # Execution starts asynchronously; client monitors via subscriptions
-            execution = ExecutionState(
-                id=ExecutionID(execution_id),
-                status=ExecutionStatus.PENDING,
-                diagramId=DiagramID(diagram_id) if diagram_id else None,
-                startedAt=datetime.now(UTC).isoformat(),
-                endedAt=None,
-                nodeStates={},
-                nodeOutputs={},
-                tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
-                error=None,
-                variables={},
-            )
-
-            # Convert domain model to DTO
-            # First convert the TokenUsage to a dict to avoid serialization issues
-            token_usage_dict = {
-                'input': float(execution.token_usage.input),
-                'output': float(execution.token_usage.output),
-                'cached': float(execution.token_usage.cached) if execution.token_usage.cached is not None else None,
-                'total': float(execution.token_usage.input + execution.token_usage.output)
-            }
-
-            # Create DTO manually to avoid TokenUsage conversion issues
-            execution_dto = ExecutionState(
-                id=execution.id,
-                status=execution.status,
-                diagram_id=execution.diagramId,
-                started_at=execution.startedAt,
-                ended_at=execution.endedAt,
-                node_states=execution.nodeStates,
-                node_outputs=execution.nodeOutputs,
-                token_usage=TokenUsage(**token_usage_dict),
-                error=execution.error,
-                variables=execution.variables
-            )
-
             return ExecutionResult(
                 success=True,
-                execution=execution_dto,
+                execution=execution,  # Use the domain model directly, Strawberry will convert it
                 execution_id=execution_id,
                 message=f"Started execution {execution_id}",
             )
@@ -185,13 +150,9 @@ class ExecutionMutations:
 
             updated_state = await state_store.get_state(data.execution_id)
 
-            execution_state = ExecutionMutations._create_execution_state(
-                data.execution_id, updated_state
-            )
-
             return ExecutionResult(
                 success=True,
-                execution=execution_state,
+                execution=updated_state,
                 message=f"Execution control '{data.action}' sent successfully",
             )
 
@@ -244,13 +205,9 @@ class ExecutionMutations:
 
             updated_state = await state_store.get_state(data.execution_id)
 
-            execution = ExecutionMutations._create_execution_state(
-                data.execution_id, updated_state
-            )
-
             return ExecutionResult(
                 success=True,
-                execution=execution,
+                execution=updated_state,
                 message=f"Interactive response submitted for node {data.node_id}",
             )
 
@@ -262,31 +219,6 @@ class ExecutionMutations:
             return ExecutionResult(
                 success=False, error=f"Failed to submit interactive response: {e!s}"
             )
-
-    @staticmethod
-    def _create_execution_state(execution_id: str, state) -> ExecutionState:
-        # Handle token usage conversion
-        token_usage = state.token_usage or TokenUsage(input=0, output=0, cached=None, total=0)
-        token_usage_dict = {
-            'input': float(token_usage.input),
-            'output': float(token_usage.output),
-            'cached': float(token_usage.cached) if token_usage.cached is not None else None,
-            'total': float(token_usage.input + token_usage.output)
-        }
-
-        # Create DTO directly to avoid nested conversion issues
-        return ExecutionState(
-            id=ExecutionID(execution_id),
-            status=state.status,
-            diagram_id=state.diagram_id,
-            started_at=state.started_at,
-            ended_at=state.ended_at,
-            node_states=state.node_states,
-            node_outputs=state.node_outputs,
-            token_usage=TokenUsage(**token_usage_dict),
-            error=state.error,
-            variables=state.variables
-        )
 
 
 def _map_status(status: str) -> ExecutionStatus:

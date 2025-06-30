@@ -41,9 +41,7 @@ class LocalDiagramRunner:
     def __init__(self, options: ExecutionOptions):
         self.options = options
 
-    async def execute(
-        self, diagram: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def execute(self, diagram: dict[str, Any]) -> dict[str, Any]:
         """Execute diagram locally"""
         result = {
             "context": {},
@@ -59,6 +57,7 @@ class LocalDiagramRunner:
 
             # Generate execution ID
             import uuid
+
             execution_id = str(uuid.uuid4())
             result["execution_id"] = execution_id
 
@@ -75,14 +74,16 @@ class LocalDiagramRunner:
                 if update.get("type") == "node_update":
                     node_id = update.get("node_id")
                     status = update.get("status")
-                    
+
                     if status == "running" and self.options.stream:
                         print(f"\n🔄 Executing node: {node_id}")
                     elif status == "completed" and self.options.stream:
                         print(f"✅ Node {node_id} completed")
                         if output := update.get("output"):
                             if isinstance(output, dict) and "tokens_used" in output:
-                                result["total_token_count"] += output.get("tokens_used", 0)
+                                result["total_token_count"] += output.get(
+                                    "tokens_used", 0
+                                )
                 elif update.get("type") == "execution_complete":
                     if self.options.stream:
                         print("\n✨ Execution completed successfully!")
@@ -277,6 +278,8 @@ class DiagramRunner:
             async for update in client.subscribe_to_execution(execution_id):
                 self.last_activity_time = time.time()
 
+                # Debug: execution update received
+
                 status = update.get("status", "").upper()
 
                 if status == "COMPLETED":
@@ -309,6 +312,7 @@ class DiagramRunner:
             if self.options.debug:
                 print(f"Error in execution stream: {e}")
             import traceback
+
             traceback.print_exc()
             return {"error": str(e)}
 

@@ -39,13 +39,13 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         """Initialize the service and register handlers."""
         # Import handlers to register them
         from .. import handlers  # noqa: F401
-        
+
         # Import and setup observers
         from dipeo_domain.domains.execution.observers import (
             StateStoreObserver,
             StreamingObserver,
         )
-        
+
         self._streaming_observer = StreamingObserver(self.message_router)
         self._observers = [
             StateStoreObserver(self.state_store),
@@ -60,20 +60,20 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         interactive_handler: Optional[Any] = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Execute a diagram with streaming updates.
-        
+
         Args:
             diagram: Diagram data or ID
             options: Execution options
             execution_id: Unique execution ID
             interactive_handler: Optional handler for interactive nodes
-            
+
         Yields:
             Execution updates
         """
         # Ensure initialized
         if not self._observers:
             await self.initialize()
-        
+
         # Load diagram if ID provided
         if isinstance(diagram, str):
             diagram_data = await self.diagram_storage.read_file(f"{diagram}.json")

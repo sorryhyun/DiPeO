@@ -59,9 +59,11 @@ class AppContextAdapter:
     async def startup(self) -> None:
         """Initialize all resources (for backward compatibility)."""
         from dipeo_container.container import init_resources
+
         await init_resources(self._container)
 
     async def shutdown(self) -> None:
         """Cleanup all resources (for backward compatibility)."""
         from dipeo_container.container import shutdown_resources
+
         await shutdown_resources(self._container)

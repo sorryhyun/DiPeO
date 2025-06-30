@@ -23,62 +23,78 @@ log = logging.getLogger(__name__)
 
 class LocalUpdateCollector(ExecutionObserver):
     """Observer that collects updates for local execution."""
-    
+
     def __init__(self):
         self.updates: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-    
-    async def on_execution_start(self, execution_id: str, diagram_id: str | None) -> None:
-        await self.updates.put({
-            "type": "execution_start",
-            "execution_id": execution_id,
-            "diagram_id": diagram_id,
-            "timestamp": datetime.utcnow().isoformat(),
-        })
-    
+
+    async def on_execution_start(
+        self, execution_id: str, diagram_id: str | None
+    ) -> None:
+        await self.updates.put(
+            {
+                "type": "execution_start",
+                "execution_id": execution_id,
+                "diagram_id": diagram_id,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
+
     async def on_node_start(self, execution_id: str, node_id: str) -> None:
-        await self.updates.put({
-            "type": "node_update",
-            "execution_id": execution_id,
-            "node_id": node_id,
-            "status": "running",
-            "timestamp": datetime.utcnow().isoformat(),
-        })
-    
+        await self.updates.put(
+            {
+                "type": "node_update",
+                "execution_id": execution_id,
+                "node_id": node_id,
+                "status": "running",
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
+
     async def on_node_complete(self, execution_id: str, node_id: str, output) -> None:
-        await self.updates.put({
-            "type": "node_update",
-            "execution_id": execution_id,
-            "node_id": node_id,
-            "status": "completed",
-            "output": output.model_dump() if hasattr(output, 'model_dump') else output,
-            "timestamp": datetime.utcnow().isoformat(),
-        })
-    
+        await self.updates.put(
+            {
+                "type": "node_update",
+                "execution_id": execution_id,
+                "node_id": node_id,
+                "status": "completed",
+                "output": output.model_dump()
+                if hasattr(output, "model_dump")
+                else output,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
+
     async def on_node_error(self, execution_id: str, node_id: str, error: str) -> None:
-        await self.updates.put({
-            "type": "node_update",
-            "execution_id": execution_id,
-            "node_id": node_id,
-            "status": "failed",
-            "error": error,
-            "timestamp": datetime.utcnow().isoformat(),
-        })
-    
+        await self.updates.put(
+            {
+                "type": "node_update",
+                "execution_id": execution_id,
+                "node_id": node_id,
+                "status": "failed",
+                "error": error,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
+
     async def on_execution_complete(self, execution_id: str) -> None:
-        await self.updates.put({
-            "type": "execution_complete",
-            "execution_id": execution_id,
-            "status": "completed",
-            "timestamp": datetime.utcnow().isoformat(),
-        })
-    
+        await self.updates.put(
+            {
+                "type": "execution_complete",
+                "execution_id": execution_id,
+                "status": "completed",
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
+
     async def on_execution_error(self, execution_id: str, error: str) -> None:
-        await self.updates.put({
-            "type": "execution_error",
-            "execution_id": execution_id,
-            "error": error,
-            "timestamp": datetime.utcnow().isoformat(),
-        })
+        await self.updates.put(
+            {
+                "type": "execution_error",
+                "execution_id": execution_id,
+                "error": error,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
 
 class LocalExecutionService(BaseService, SupportsExecution):
@@ -103,7 +119,9 @@ class LocalExecutionService(BaseService, SupportsExecution):
         interactive_handler=None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Execute diagram locally with streaming updates."""
-        log.info(f"LocalExecutionService.execute_diagram called with execution_id: {execution_id}")
+        log.info(
+            f"LocalExecutionService.execute_diagram called with execution_id: {execution_id}"
+        )
 
         # Prepare diagram
         if isinstance(diagram, dict):
@@ -116,7 +134,7 @@ class LocalExecutionService(BaseService, SupportsExecution):
 
         # Create update collector
         update_collector = LocalUpdateCollector()
-        
+
         # Create engine with factory
         engine = EngineFactory.create_engine(
             service_registry=self.service_registry,
@@ -126,7 +144,7 @@ class LocalExecutionService(BaseService, SupportsExecution):
             include_streaming_observer=False,
             custom_observers=[update_collector],
         )
-        
+
         # Start execution in background
         async def run_execution():
             try:
@@ -139,15 +157,15 @@ class LocalExecutionService(BaseService, SupportsExecution):
                     pass  # Engine uses observers for updates
             except Exception as e:
                 await update_collector.on_execution_error(execution_id, str(e))
-        
+
         # Launch execution
         asyncio.create_task(run_execution())
-        
+
         # Stream updates from collector
         while True:
             update = await update_collector.updates.get()
             yield update
-            
+
             # Check for terminal states
             if update.get("type") in ["execution_complete", "execution_error"]:
                 break

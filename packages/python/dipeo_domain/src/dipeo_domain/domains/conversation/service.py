@@ -172,7 +172,7 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
     def get_or_create_person_memory(self, person_id: str) -> PersonConversation:
         """Get or create person memory - alias for get_or_create_person_conversation."""
         return self.get_or_create_person_conversation(person_id)
-    
+
     # Protocol-compliant wrapper for add_message_to_conversation
     def add_message_to_conversation(
         self,
@@ -189,7 +189,7 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
         participant_person_ids = [person_id]
         if current_person_id != person_id:
             participant_person_ids.append(current_person_id)
-        
+
         # Call internal method with mapped parameters
         self._add_message_internal(
             content=content,
@@ -199,7 +199,7 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
             role=role,
             node_id=node_id,
         )
-    
+
     # Rename the original method to internal
     def _add_message_internal(
         self,
@@ -218,6 +218,7 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
         """Internal method for creating and adding messages to conversation."""
         message = Message(
             id=str(uuid.uuid4()),
+            person_id=sender_person_id,  # Required positional argument
             role=role,
             content=content,
             timestamp=datetime.now(),
@@ -278,30 +279,35 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
         """Save conversation log to file - protocol compliant method."""
         # Ensure log directory exists
         log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Collect all messages for this execution
         execution_messages = []
         for message in self.all_messages.values():
             if message.execution_id == execution_id:
                 execution_messages.append(message.to_dict())
-        
+
         # Sort by timestamp
         execution_messages.sort(key=lambda m: m.get("timestamp", ""))
-        
+
         # Create log file
         log_filename = f"conversation_{execution_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         log_path = log_dir / log_filename
-        
+
         # Write to file
         with open(log_path, "w") as f:
-            json.dump({
-                "execution_id": execution_id,
-                "messages": execution_messages,
-                "metadata": self.execution_metadata.get(execution_id, {}),
-            }, f, indent=2, default=str)
-        
+            json.dump(
+                {
+                    "execution_id": execution_id,
+                    "messages": execution_messages,
+                    "metadata": self.execution_metadata.get(execution_id, {}),
+                },
+                f,
+                indent=2,
+                default=str,
+            )
+
         return str(log_path)
-    
+
     async def save_conversation_log_internal(
         self,
         execution_id: str,

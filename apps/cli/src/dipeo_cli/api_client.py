@@ -24,6 +24,7 @@ T = TypeVar("T")
 
 class DiPeoAPIClient:
     """GraphQL API client for DiPeO server communication."""
+
     def __init__(
         self,
         host: str = "localhost:8000",

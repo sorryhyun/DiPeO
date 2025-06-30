@@ -137,9 +137,7 @@ class DiagramMetadataType:
 
 
 # Types with custom fields
-@strawberry.experimental.pydantic.type(
-    DomainNode, fields=["id", "type", "position"]
-)
+@strawberry.experimental.pydantic.type(DomainNode, fields=["id", "type", "position"])
 class DomainNodeType:
     @strawberry.field
     def data(self) -> JSONScalar | None:
@@ -189,14 +187,7 @@ class DomainApiKeyType:
 
 
 @strawberry.experimental.pydantic.type(
-    DomainDiagram,
-    fields=[
-        "nodes",
-        "handles",
-        "arrows",
-        "persons",
-        "metadata"
-    ]
+    DomainDiagram, fields=["nodes", "handles", "arrows", "persons", "metadata"]
 )
 class DomainDiagramType:
     @strawberry.field
@@ -259,7 +250,6 @@ class ExecutionStateType:
     def variables(self) -> JSONScalar:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return obj.variables if obj and hasattr(obj, "variables") else {}
-
 
 
 # INPUT TYPES - Create input types that match the domain model structure

@@ -12,4 +12,5 @@ from .models import *  # noqa: F401, F403
 
 # Rebuild models to resolve forward references
 from .models import DomainDiagram
+
 DomainDiagram.model_rebuild()

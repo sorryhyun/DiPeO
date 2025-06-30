@@ -1,6 +1,4 @@
-"""Lightweight shared utilities for diagram converters.
-
-"""
+"""Lightweight shared utilities for diagram converters."""
 
 from __future__ import annotations
 
@@ -31,7 +29,9 @@ __all__ = (
 # internal helpers
 
 
-def _push_handle(container: DomainDiagram | BackendDiagram, handle: DomainHandle) -> None:
+def _push_handle(
+    container: DomainDiagram | BackendDiagram, handle: DomainHandle
+) -> None:
     """Add *handle* to *container*, regardless of list / mapping storage."""
     if isinstance(container, BackendDiagram):
         container.handles[handle.id] = handle  # type: ignore[index]
@@ -92,7 +92,9 @@ class HandleGenerator:
                         suffix,
                         label,
                         direction,
-                        DataType.boolean if suffix in {"true", "false"} else DataType.any,
+                        DataType.boolean
+                        if suffix in {"true", "false"}
+                        else DataType.any,
                     ),
                 )
 
@@ -163,14 +165,18 @@ def coerce_to_dict(
     if isinstance(seq_or_map, (list, tuple)):
         return {
             (
-                item.get(id_key) if isinstance(item, dict) and id_key in item else f"{prefix}_{i}"
+                item.get(id_key)
+                if isinstance(item, dict) and id_key in item
+                else f"{prefix}_{i}"
             ): item
             for i, item in enumerate(seq_or_map)
         }
     return {}
 
 
-def build_node(id: str, type_: str, pos: dict[str, float] | None = None, **data) -> dict[str, Any]:
+def build_node(
+    id: str, type_: str, pos: dict[str, float] | None = None, **data
+) -> dict[str, Any]:
     return {"id": id, "type": type_, "position": pos or {}, **data}
 
 

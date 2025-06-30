@@ -45,7 +45,9 @@ class ApiKeyMutations:
             api_key_dto = DomainApiKey.from_domain(api_key)
 
             return ApiKeyResult(
-                success=True, api_key=api_key_dto, message=f"Created API key {api_key.id}"
+                success=True,
+                api_key=api_key_dto,
+                message=f"Created API key {api_key.id}",
             )
 
         except ValueError as e:

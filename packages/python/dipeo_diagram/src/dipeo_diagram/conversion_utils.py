@@ -35,6 +35,7 @@ def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
     The backend representation uses dicts of dicts for efficient lookup.
     The GraphQL representation uses lists for easier client handling.
     """
+
     # Convert dict-of-dicts to lists (if necessary)
     def ensure_list(obj):
         if obj is None:
@@ -50,10 +51,10 @@ def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
         if isinstance(handles_dict, dict):
             result = []
             for key, value in handles_dict.items():
-                if isinstance(value, dict) and 'id' not in value:
+                if isinstance(value, dict) and "id" not in value:
                     # Add the key as id if missing
                     handle = value.copy()
-                    handle['id'] = key
+                    handle["id"] = key
                     result.append(handle)
                 else:
                     result.append(value)
@@ -110,8 +111,11 @@ def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, An
         "arrows": list_to_dict(graphql_diagram.arrows),
         "handles": list_to_dict(graphql_diagram.handles),
         "persons": list_to_dict(graphql_diagram.persons),
-        "metadata": graphql_diagram.metadata.model_dump() if graphql_diagram.metadata else {},
+        "metadata": graphql_diagram.metadata.model_dump()
+        if graphql_diagram.metadata
+        else {},
     }
+
 
 #  generic helpers
 
@@ -136,21 +140,25 @@ class _YamlMixin:
         # Create a custom YAML dumper class
         class PositionDumper(yaml.SafeDumper):
             pass
-        
+
         # Custom representer for position dicts to use flow style
         def position_representer(dumper, data):
             if isinstance(data, dict) and set(data.keys()) == {"x", "y"}:
-                return dumper.represent_mapping('tag:yaml.org,2002:map', data, flow_style=True)
+                return dumper.represent_mapping(
+                    "tag:yaml.org,2002:map", data, flow_style=True
+                )
             return dumper.represent_dict(data)
-        
+
         PositionDumper.add_representer(dict, position_representer)
-        
-        return yaml.dump(data, Dumper=PositionDumper, sort_keys=False, allow_unicode=True)
+
+        return yaml.dump(
+            data, Dumper=PositionDumper, sort_keys=False, allow_unicode=True
+        )
 
 
 def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
     """Map `label` → `node.id` for already‑built nodes."""
-    
+
     label_map = {}
     for n in nodes:
         # Try to get label from the node structure

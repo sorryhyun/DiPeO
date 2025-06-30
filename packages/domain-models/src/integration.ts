@@ -26,5 +26,14 @@ export enum NotionOperation {
   UPDATE_DATABASE = 'update_database'
 }
 
+import { TokenUsage } from './execution.js';
+
+// LLM Chat Result
+export interface ChatResult {
+  text: string;
+  tokenUsage?: TokenUsage | null;
+  rawResponse?: any | null;
+}
+
 // Future: Add more integration-related types here
 // e.g., SlackOperation, GitHubOperation, etc.

@@ -32,7 +32,9 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
             try:
                 with open(self.store_file) as f:
                     self._store.update(json.load(f))
-                print(f"[APIKeyDomainService] Loaded {len(self._store)} keys from {self.store_file}")
+                print(
+                    f"[APIKeyDomainService] Loaded {len(self._store)} keys from {self.store_file}"
+                )
             except (OSError, json.JSONDecodeError) as e:
                 raise APIKeyError(f"Failed to load API key store: {e}")
         else:
@@ -77,7 +79,9 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
                 result.append(
                     {
                         "id": key_id,
-                        "label": info.get("label", key_id),  # Use key_id as default label
+                        "label": info.get(
+                            "label", key_id
+                        ),  # Use key_id as default label
                         "service": info["service"],
                     }
                 )

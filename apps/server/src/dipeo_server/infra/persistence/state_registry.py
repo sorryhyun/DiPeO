@@ -283,13 +283,16 @@ class StateRegistry:
         if not isinstance(output, NodeOutput):
             node_output = NodeOutput(
                 value={"default": str(output)} if is_exception else output,
-                metadata={"is_exception": is_exception} if is_exception else {}
+                metadata={"is_exception": is_exception} if is_exception else {},
             )
         else:
             node_output = output
 
         # For PersonJob outputs with conversation history
-        if node_output.metadata and node_output.metadata.get("_type") == "personjob_output":
+        if (
+            node_output.metadata
+            and node_output.metadata.get("_type") == "personjob_output"
+        ):
             # Check if execution is active - defer persistence for active executions
             is_active = (
                 state.is_active
@@ -416,7 +419,7 @@ class StateRegistry:
         diagram_id: DiagramID | None = None,
         status: ExecutionStatus | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> list[ExecutionState]:
         """List recent executions with metadata."""
         # Build query with optional filters
@@ -430,7 +433,7 @@ class StateRegistry:
 
         if status:
             conditions.append("status = ?")
-            params.append(status.value if hasattr(status, 'value') else status)
+            params.append(status.value if hasattr(status, "value") else status)
 
         if conditions:
             query += " WHERE " + " AND ".join(conditions)

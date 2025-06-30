@@ -4,7 +4,7 @@ from .settings import Settings, Environment, settings, get_settings, reload_sett
 
 __all__ = [
     "Settings",
-    "Environment", 
+    "Environment",
     "settings",
     "get_settings",
     "reload_settings",

@@ -141,9 +141,7 @@ class FileSystemRepository(BaseService, SupportsFile):
         if content is None:
             content = ""
 
-        relative_path = await self._write_internal(
-            path, content, "base", None, "utf-8"
-        )
+        relative_path = await self._write_internal(path, content, "base", None, "utf-8")
 
         return {
             "success": True,

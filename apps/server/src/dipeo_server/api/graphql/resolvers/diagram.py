@@ -77,7 +77,9 @@ class DiagramResolver:
                     description=f"{format_type.title()} format diagram",
                     version=diagram_data.get("version", "2.0.0"),
                     created=diagram_data.get("created", datetime.now(UTC).isoformat()),
-                    modified=diagram_data.get("modified", datetime.now(UTC).isoformat()),
+                    modified=diagram_data.get(
+                        "modified", datetime.now(UTC).isoformat()
+                    ),
                 )
 
             # Use domain model directly for GraphQL

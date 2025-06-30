@@ -16,7 +16,7 @@ from .execution.types import RuntimeContext
 @dataclass
 class ExecutionContext:
     """Pure data container for execution state.
-    
+
     This context is used by the execution engine and domain services to track
     the state of diagram execution without service dependencies.
     """
@@ -24,18 +24,18 @@ class ExecutionContext:
     # Core execution data
     execution_id: str
     diagram: DomainDiagram  # The diagram being executed
-    
+
     # Structure
     edges: list[DomainArrow] = field(default_factory=list)
-    
+
     # State tracking
     node_outputs: dict[str, NodeOutput] = field(default_factory=dict)
     variables: dict[str, Any] = field(default_factory=dict)
     exec_counts: dict[str, int] = field(default_factory=dict)
-    
+
     # API keys (needed for LLM operations)
     api_keys: dict[str, str] = field(default_factory=dict)
-    
+
     # Services (injected during execution)
     llm_service: Any | None = None
     file_service: Any | None = None
@@ -43,14 +43,14 @@ class ExecutionContext:
     conversation_service: Any | None = None
     api_key_service: Any | None = None
     state_store: Any | None = None
-    
+
     # Execution options
     interactive_handler: Callable | None = None
     stream_callback: Callable | None = None
-    
+
     # Token usage tracking
     _token_accumulator: dict[str, TokenUsage] = field(default_factory=dict, init=False)
-    
+
     # Execution view (for view-based engine)
     _execution_view: Any | None = field(default=None, init=False)
 
@@ -97,7 +97,7 @@ class ExecutionContext:
             }
             for edge in self.edges
         ]
-        
+
         # Convert nodes to dict format
         nodes = []
         for node in self.diagram.nodes:
@@ -105,10 +105,10 @@ class ExecutionContext:
                 nodes.append(node.model_dump())
             else:
                 nodes.append(node)
-        
+
         # Extract outputs
         outputs = {k: v.value for k, v in self.node_outputs.items() if v}
-        
+
         # Extract persons to dict format
         persons = {}
         if self.diagram.persons:

@@ -41,7 +41,9 @@ _app_context: AppContextAdapter | None = None
 def get_container() -> ServerContainer:
     """Get the global DI container instance."""
     if _container is None:
-        raise RuntimeError("Container not initialized. Call initialize_container() first.")
+        raise RuntimeError(
+            "Container not initialized. Call initialize_container() first."
+        )
     return _container
 
 
@@ -55,13 +57,15 @@ def initialize_container() -> ServerContainer:
         # as we're using factory functions that handle env vars directly
 
         # Wire the container to necessary modules
-        _container.wire(modules=[
-            "dipeo_server.api.graphql.queries",
-            "dipeo_server.api.graphql.mutations",
-            "dipeo_server.api.graphql.subscriptions",
-            "dipeo_server.api.graphql.resolvers",
-            "dipeo_domain.domains.execution.services",
-        ])
+        _container.wire(
+            modules=[
+                "dipeo_server.api.graphql.queries",
+                "dipeo_server.api.graphql.mutations",
+                "dipeo_server.api.graphql.subscriptions",
+                "dipeo_server.api.graphql.resolvers",
+                "dipeo_domain.domains.execution.services",
+            ]
+        )
 
         # Create app context adapter
         _app_context = AppContextAdapter(_container)

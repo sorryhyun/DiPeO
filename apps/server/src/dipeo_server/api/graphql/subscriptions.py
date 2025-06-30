@@ -104,9 +104,7 @@ class Subscription:
         context: GraphQLContext = info.context
         state_store = context.state_store
 
-        logger.info(
-            f"Starting direct execution updates subscription for {execution_id}"
-        )
+        # Subscription started for execution updates
 
         # Get initial state
         state = await state_store.get_state_from_cache(execution_id)
@@ -122,9 +120,7 @@ class Subscription:
                 ExecutionStatus.FAILED,
                 ExecutionStatus.ABORTED,
             ]:
-                logger.info(
-                    f"Execution {execution_id} already completed with status: {state.status}"
-                )
+                # Execution already completed
                 return
 
         # Subscribe to direct updates
@@ -154,9 +150,7 @@ class Subscription:
                         ExecutionStatus.FAILED,
                         ExecutionStatus.ABORTED,
                     ]:
-                        logger.info(
-                            f"Execution {execution_id} completed with status: {state.status}"
-                        )
+                        # Execution completed
                         break
 
                 except TimeoutError:
@@ -166,7 +160,7 @@ class Subscription:
                         yield state
 
         except asyncio.CancelledError:
-            logger.info(f"Direct subscription cancelled for execution {execution_id}")
+            # Subscription cancelled
             raise
         except Exception as e:
             logger.error(f"Error in direct execution stream for {execution_id}: {e}")
@@ -182,7 +176,7 @@ class Subscription:
         execution_id: ExecutionID,
     ) -> AsyncGenerator[ExecutionStatusEnum]:
         """Streams execution status updates using direct streaming."""
-        logger.info(f"Starting direct event stream subscription for {execution_id}")
+        # Event stream subscription started
 
         queue = await streaming_manager.subscribe(execution_id)
 
@@ -210,9 +204,7 @@ class Subscription:
                         else:
                             yield ExecutionStatusEnum(ExecutionStatus.PENDING)
 
-                        logger.info(
-                            f"Direct event stream completed for execution {execution_id}"
-                        )
+                        # Event stream completed
                         break
 
                 except TimeoutError:
@@ -220,9 +212,7 @@ class Subscription:
                     pass
 
         except asyncio.CancelledError:
-            logger.info(
-                f"Direct event subscription cancelled for execution {execution_id}"
-            )
+            # Event subscription cancelled
             raise
         except Exception as e:
             logger.error(f"Error in direct event stream for {execution_id}: {e}")
@@ -239,7 +229,7 @@ class Subscription:
         node_types: list[NodeType] | None = None,
     ) -> AsyncGenerator[NodeExecution]:
         """Streams node execution updates with direct streaming."""
-        logger.info(f"Starting direct node updates subscription for {execution_id}")
+        # Node updates subscription started
 
         # Subscribe to direct updates
         queue = await streaming_manager.subscribe(execution_id)
@@ -282,10 +272,11 @@ class Subscription:
 
                         if output_data and isinstance(output_data, dict):
                             output_value = output_data.get("data")
-                            metadata = output_data.get("metadata", {})
-                            usage = metadata.get("usage", {})
-                            if usage:
-                                tokens_used = usage.get("total_tokens", 0)
+                            metadata = output_data.get("metadata")
+                            if metadata and isinstance(metadata, dict):
+                                usage = metadata.get("usage", {})
+                                if usage:
+                                    tokens_used = usage.get("total_tokens", 0)
 
                         yield NodeExecution(
                             execution_id=execution_id,
@@ -302,9 +293,7 @@ class Subscription:
                         )
 
                     elif update.get("type") == "execution_complete":
-                        logger.info(
-                            f"Node updates completed for execution {execution_id}"
-                        )
+                        # Node updates completed
                         break
 
                 except TimeoutError:
@@ -312,9 +301,7 @@ class Subscription:
                     pass
 
         except asyncio.CancelledError:
-            logger.info(
-                f"Direct node update subscription cancelled for execution {execution_id}"
-            )
+            # Node update subscription cancelled
             raise
         except Exception as e:
             logger.error(f"Error in direct node update stream for {execution_id}: {e}")
@@ -340,7 +327,7 @@ class Subscription:
         context: GraphQLContext = info.context
         state_store = context.state_store
 
-        logger.info(f"Starting interactive prompts subscription for {execution_id}")
+        # Interactive prompts subscription started
 
         has_yielded = False
 
@@ -361,9 +348,7 @@ class Subscription:
                     ExecutionStatus.FAILED,
                     ExecutionStatus.ABORTED,
                 ]:
-                    logger.info(
-                        f"Interactive prompts completed for execution {execution_id}"
-                    )
+                    # Interactive prompts completed
                     # Ensure we yield at least once to make this a valid async generator
                     if not has_yielded:
                         yield None
@@ -373,9 +358,7 @@ class Subscription:
                 await asyncio.sleep(0.1)
 
         except asyncio.CancelledError:
-            logger.info(
-                f"Interactive prompt subscription cancelled for execution {execution_id}"
-            )
+            # Subscription cancelled
             raise
         except Exception as e:
             logger.error(f"Error in interactive prompt stream for {execution_id}: {e}")

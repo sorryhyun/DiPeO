@@ -23,11 +23,11 @@ SUPPORTED_MODELS = {
 }
 
 __all__ = [
+    "SUPPORTED_MODELS",
     "BaseAdapter",
     "ChatResult",
     "ForgettingMode",
     "LLMInfraService",
     "LLMService",
-    "SUPPORTED_MODELS",
     "create_adapter",
 ]

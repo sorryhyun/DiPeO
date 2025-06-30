@@ -22,6 +22,7 @@ def _get_project_base_dir():
     # Try to import from config if available
     try:
         from config import BASE_DIR
+
         return BASE_DIR
     except ImportError:
         # Fall back to finding the project root
@@ -32,56 +33,67 @@ def _get_project_base_dir():
 
 def _import_state_store():
     from dipeo_server.infra.persistence import state_store
+
     return state_store
 
 
 def _import_message_router():
     from dipeo_infra import message_router
+
     return message_router
 
 
 def _create_api_key_service():
     from dipeo_domain.domains.apikey import APIKeyDomainService
+
     return APIKeyDomainService()
 
 
 def _create_file_service(base_dir):
     from dipeo_server.infra.persistence import FileSystemRepository
+
     return FileSystemRepository(base_dir=base_dir)
 
 
 def _create_conversation_service():
     from dipeo_domain.domains.conversation import ConversationMemoryDomainService
+
     return ConversationMemoryDomainService()
 
 
 def _create_llm_service(api_key_service):
     from dipeo_server.infra.external.llm import LLMInfraService
+
     return LLMInfraService(api_key_service)
 
 
 def _create_notion_service():
     from dipeo_server.infra.external.integrations import NotionAPIService
+
     return NotionAPIService()
 
 
 def _create_diagram_storage_service(base_dir):
     from dipeo_domain.domains.diagram.services import DiagramFileRepository
+
     return DiagramFileRepository(base_dir=base_dir)
 
 
 def _create_diagram_storage_adapter(storage_service):
     from dipeo_domain.domains.diagram.services import DiagramStorageAdapter
+
     return DiagramStorageAdapter(storage_service=storage_service)
 
 
 def _create_diagram_validator(api_key_service):
     from dipeo_domain.domains.execution.validators import DiagramValidator
+
     return DiagramValidator(api_key_service)
 
 
 def _create_execution_preparation_service(storage_service, validator, api_key_service):
     from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
+
     return PrepareDiagramForExecutionUseCase(
         storage_service=storage_service,
         validator=validator,
@@ -91,28 +103,35 @@ def _create_execution_preparation_service(storage_service, validator, api_key_se
 
 def _create_api_integration_service(file_service):
     from dipeo_domain.domains.api import APIIntegrationDomainService
+
     return APIIntegrationDomainService(file_service)
 
 
 def _create_text_processing_service():
     from dipeo_domain.domains.text import TextProcessingDomainService
+
     return TextProcessingDomainService()
 
 
 def _create_file_operations_service(file_service):
     from dipeo_domain.domains.file import FileOperationsDomainService
+
     return FileOperationsDomainService(file_service)
 
 
 def _create_notion_integration_service(notion_service, file_service):
     from dipeo_infra import NotionIntegrationDomainService
+
     return NotionIntegrationDomainService(notion_service, file_service)
 
 
-def _create_conversation_domain_service(llm_service, api_key_service, conversation_service):
+def _create_conversation_domain_service(
+    llm_service, api_key_service, conversation_service
+):
     from dipeo_domain.domains.conversation.domain_service import (
         ConversationDomainService,
     )
+
     return ConversationDomainService(
         llm_service=llm_service,
         api_key_service=api_key_service,
@@ -124,27 +143,39 @@ def _create_diagram_storage_domain_service(storage_service):
     from dipeo_domain.domains.diagram.services.domain_service import (
         DiagramStorageDomainService,
     )
+
     return DiagramStorageDomainService(storage_service=storage_service)
 
 
 def _create_validation_service():
     from dipeo_domain.domains.validation import ValidationDomainService
+
     return ValidationDomainService()
 
 
 def _create_db_operations_service(file_service, validation_service):
     from dipeo_domain.domains.db import DBOperationsDomainService
+
     return DBOperationsDomainService(file_service, validation_service)
 
 
 def _create_service_registry(
-    llm_service, api_key_service, file_service, conversation_memory_service,
-    conversation_domain_service, notion_integration_service, diagram_storage_domain_service,
-    api_integration_service, text_processing_service, file_operations_service,
-    validation_service, db_operations_service
+    llm_service,
+    api_key_service,
+    file_service,
+    conversation_memory_service,
+    conversation_domain_service,
+    notion_integration_service,
+    diagram_storage_domain_service,
+    api_integration_service,
+    text_processing_service,
+    file_operations_service,
+    validation_service,
+    db_operations_service,
 ):
     """Factory for ServiceRegistry with explicit dependencies."""
     from dipeo_domain.domains.execution.services.service_registry import ServiceRegistry
+
     return ServiceRegistry(
         llm_service=llm_service,
         api_key_service=api_key_service,
@@ -161,9 +192,12 @@ def _create_service_registry(
     )
 
 
-def _create_execute_diagram_use_case(service_registry, state_store, message_router, diagram_storage_service):
+def _create_execute_diagram_use_case(
+    service_registry, state_store, message_router, diagram_storage_service
+):
     """Factory for ExecuteDiagramUseCase with explicit dependencies."""
     from dipeo_domain.domains.execution.services import ExecuteDiagramUseCase
+
     return ExecuteDiagramUseCase(
         service_registry=service_registry,
         state_store=state_store,
@@ -346,4 +380,3 @@ class Container(containers.DeclarativeContainer):
         message_router=message_router,
         diagram_storage_service=diagram_storage_service,
     )
-

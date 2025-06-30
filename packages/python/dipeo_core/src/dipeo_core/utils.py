@@ -50,7 +50,7 @@ def snake_to_camel(snake_str: str) -> str:
 
 def camel_to_snake(camel_str: str) -> str:
     import re
-    
+
     # Insert underscore before uppercase letters (except at start)
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", camel_str)
     # Insert underscore before uppercase letters followed by lowercase
@@ -60,13 +60,13 @@ def camel_to_snake(camel_str: str) -> str:
 def merge_dicts(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:
     """Deep merge two dictionaries."""
     result = base.copy()
-    
+
     for key, value in updates.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = merge_dicts(result[key], value)
         else:
             result[key] = value
-    
+
     return result
 
 

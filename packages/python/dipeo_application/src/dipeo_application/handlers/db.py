@@ -37,7 +37,7 @@ class DBNodeHandler(BaseNodeHandler):
     ) -> NodeOutput:
         """Execute db node - delegates to domain service for validation and execution."""
         db_service = services["db_operations"]
-        
+
         # Get single input value
         input_val = None
         if inputs:
@@ -46,15 +46,13 @@ class DBNodeHandler(BaseNodeHandler):
                 if val is not None:
                     input_val = val
                     break
-        
+
         try:
             # Delegate to domain service which handles validation and business logic
             result = await db_service.execute_operation(
-                db_name=props.sourceDetails,
-                operation=props.operation,
-                value=input_val
+                db_name=props.sourceDetails, operation=props.operation, value=input_val
             )
-            
+
             # Format output based on operation
             if props.operation == "read":
                 output_value = result["value"]
@@ -62,13 +60,13 @@ class DBNodeHandler(BaseNodeHandler):
                 # For write/append, return a success message with metadata
                 metadata = result["metadata"]
                 output_value = f"{props.operation.capitalize()}d to {metadata['file_path']} ({metadata.get('size', 0)} bytes)"
-            
+
             return create_node_output({"default": output_value, "topic": output_value})
-            
+
         except Exception as exc:
             # Domain service throws specific validation errors
             error_msg = f"DB operation failed: {str(exc)}"
             return create_node_output(
                 {"default": error_msg, "topic": error_msg},
-                metadata={"error": str(exc), "status": "failed"}
+                metadata={"error": str(exc), "status": "failed"},
             )

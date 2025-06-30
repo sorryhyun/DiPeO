@@ -57,16 +57,24 @@ MAX_PAGE_SIZE = 1000
 MAX_ITERATIONS = 100
 MAX_NODE_EXECUTIONS = 1000
 
+
 def ensure_directories_exist() -> None:
     """Ensure all required directories exist."""
-    for dir_path in [FILES_DIR, UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR, PROMPT_DIR, DATA_DIR]:
+    for dir_path in [
+        FILES_DIR,
+        UPLOAD_DIR,
+        RESULT_DIR,
+        CONVERSATION_LOG_DIR,
+        PROMPT_DIR,
+        DATA_DIR,
+    ]:
         dir_path.mkdir(parents=True, exist_ok=True)
 
 
 def normalize_service_name(service: str) -> str:
     """Normalize service name to canonical form."""
     normalized = service.lower().strip()
-    
+
     # Service aliases
     aliases = {
         "claude": "anthropic",
@@ -79,5 +87,5 @@ def normalize_service_name(service: str) -> str:
         "xai": "grok",
         "x-ai": "grok",
     }
-    
+
     return aliases.get(normalized, normalized)

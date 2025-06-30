@@ -54,12 +54,20 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
             diagram_obj = backend_to_graphql(diagram_data)
         else:
             from dipeo_domain.models import DomainDiagram
+            from dipeo_diagram import BackendDiagram, backend_to_graphql
 
-            diagram_obj = DomainDiagram.model_validate(diagram)
+            # Check if diagram is in backend format (dict of dicts) or domain format (lists)
+            if isinstance(diagram.get("nodes"), dict):
+                # Convert from backend format to domain format
+                backend_diagram = BackendDiagram(**diagram)
+                diagram_obj = backend_to_graphql(backend_diagram)
+            else:
+                # Already in domain format, validate directly
+                diagram_obj = DomainDiagram.model_validate(diagram)
 
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
-        
+
         # Create engine with factory
         engine = EngineFactory.create_engine(
             service_registry=self.service_registry,
@@ -74,6 +82,10 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         # Start execution in background
         async def run_execution():
             try:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                # Starting engine execution
                 async for _ in engine.execute(
                     diagram_obj,
                     execution_id,
@@ -81,7 +93,12 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
                     interactive_handler,
                 ):
                     pass  # Engine uses observers for updates
+                # Engine execution completed
             except Exception as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Engine execution failed: {e}", exc_info=True)
                 await update_queue.put(
                     {
                         "type": "execution_error",

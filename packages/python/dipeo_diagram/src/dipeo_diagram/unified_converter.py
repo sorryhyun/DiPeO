@@ -162,7 +162,11 @@ class UnifiedDiagramConverter(DiagramConverter):
         for node_id, node in nodes_dict.items():
             # Check if this node has any handles already
             node_has_handles = any(
-                (handle.get("nodeId") == node_id if isinstance(handle, dict) else handle.nodeId == node_id)
+                (
+                    handle.get("nodeId") == node_id
+                    if isinstance(handle, dict)
+                    else handle.nodeId == node_id
+                )
                 for handle in handles_dict.values()
             )
             if not node_has_handles:
@@ -208,7 +212,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         """Create a domain node from node data."""
         node_id = node_data.get("id", f"node_{index}")
         node_type_str = node_data.get("type", "job")
-        
+
         # Convert node type string to domain enum
         try:
             node_type = node_kind_to_domain_type(node_type_str)
@@ -281,7 +285,8 @@ class UnifiedDiagramConverter(DiagramConverter):
 
     def detect_format_confidence(self, content: str) -> float:
         format_id = self.detect_format(content)
-        if format_id: return 1.0
+        if format_id:
+            return 1.0
         return 0.0
 
     def get_supported_formats(self) -> list[dict[str, str]]:

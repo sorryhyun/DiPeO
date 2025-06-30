@@ -2,8 +2,7 @@ import time
 from typing import Any
 
 from dipeo_core import APIKeyError, BaseService, LLMServiceError, SupportsLLM
-from dipeo_domain import LLMService as LLMServiceEnum
-from dipeo_domain import TokenUsage
+from dipeo_domain import ChatResult, LLMService as LLMServiceEnum, TokenUsage
 from dipeo_domain.domains.apikey import APIKeyDomainService
 from dipeo_domain.domains.execution.services.token_usage_service import (
     TokenUsageService,
@@ -17,7 +16,7 @@ from tenacity import (
 
 from dipeo_server.shared.constants import VALID_LLM_SERVICES, normalize_service_name
 
-from . import ChatResult, create_adapter
+from . import create_adapter
 
 
 class LLMInfraService(BaseService, SupportsLLM):
@@ -69,23 +68,6 @@ class LLMInfraService(BaseService, SupportsLLM):
 
         return entry["adapter"]
 
-    def get_token_counts(self, client_name: str, usage: Any) -> TokenUsage:
-        """Get token counts from LLM usage."""
-        # Since adapters return ChatResult with standardized fields,
-        # we can directly use the values
-        if hasattr(usage, 'prompt_tokens'):
-            return TokenUsageService.from_chat_result(
-                prompt_tokens=usage.prompt_tokens,
-                completion_tokens=usage.completion_tokens,
-                total_tokens=usage.total_tokens
-            )
-        return TokenUsageService.zero()
-
-    def _extract_result_and_usage(self, result: Any) -> tuple[str, Any]:
-        """Extract text and usage from adapter result."""
-        if isinstance(result, ChatResult):
-            return result.text, result.usage
-        return result or "", None
 
     @retry(
         stop=stop_after_attempt(3),
@@ -93,21 +75,10 @@ class LLMInfraService(BaseService, SupportsLLM):
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
     )
     async def _call_llm_with_retry(
-        self, client: Any, system_prompt: str, user_prompt: str
-    ) -> Any:
-        """Internal method for LLM calls with retry logic."""
-        return client.chat(system_prompt=system_prompt, user_prompt=user_prompt)
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-    )
-    async def _call_llm_with_messages_retry(
         self, client: Any, messages: list[dict]
     ) -> Any:
-        """Internal method for LLM calls with messages array and retry logic."""
-        return client.chat_with_messages(messages=messages)
+        """Internal method for LLM calls with retry logic."""
+        return client.chat(messages=messages)
 
     async def call_llm(
         self,
@@ -116,21 +87,37 @@ class LLMInfraService(BaseService, SupportsLLM):
         model: str,
         messages: str | list[dict],
         system_prompt: str = "",
-    ) -> dict[str, str | float]:
+    ) -> ChatResult:
         """Make a call to the specified LLM service with retry logic."""
         try:
             adapter = self._get_client(service or "chatgpt", model, api_key_id)
 
+            # Convert to messages list format
             if isinstance(messages, list):
-                result = await self._call_llm_with_messages_retry(adapter, messages)
+                messages_list = messages
             else:
-                result = await self._call_llm_with_retry(
-                    adapter, system_prompt, messages
-                )
+                # Build messages list from system and user prompts
+                messages_list = []
+                if system_prompt:
+                    messages_list.append({"role": "system", "content": system_prompt})
+                if messages:
+                    messages_list.append({"role": "user", "content": messages})
 
-            text, usage = self._extract_result_and_usage(result)
-            token_usage = self.get_token_counts(service or "chatgpt", usage)
-            return {"response": text, "token_usage": token_usage}
+            result = await self._call_llm_with_retry(adapter, messages_list)
+
+            # Create TokenUsage from adapter's ChatResult
+            token_usage = TokenUsageService.from_chat_result(
+                prompt_tokens=result.prompt_tokens,
+                completion_tokens=result.completion_tokens,
+                total_tokens=result.total_tokens,
+            )
+            
+            # Return ChatResult with embedded TokenUsage
+            return ChatResult(
+                text=result.text,
+                token_usage=token_usage,
+                raw_response=result.raw_response
+            )
 
         except Exception as e:
             raise LLMServiceError(
