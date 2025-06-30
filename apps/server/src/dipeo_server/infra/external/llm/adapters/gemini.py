@@ -31,10 +31,12 @@ class GeminiAdapter(BaseAdapter):
         **kwargs,
     ) -> dict[str, Any]:
         """Build provider-specific message format."""
-        # Use base class helper to combine prompts
-        combined_prompt = self._combine_prompts(cacheable_prompt, user_prompt)
+        # Use base class helper to build user message content
+        user_content = self._build_user_message_content(
+            cacheable_prompt, user_prompt, citation_target
+        )
 
-        message_content = [{"role": "user", "parts": [{"text": combined_prompt}]}]
+        message_content = [{"role": "user", "parts": [{"text": user_content}]}]
 
         # Handle prefill
         if kwargs.get("prefill"):
@@ -50,19 +52,12 @@ class GeminiAdapter(BaseAdapter):
 
     def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         """Extract token usage from provider-specific response."""
-        if hasattr(response, "usage_metadata"):
-            usage = response.usage_metadata
-            prompt_tokens = getattr(usage, "prompt_token_count", None)
-            completion_tokens = getattr(usage, "candidates_token_count", None)
-
-            return {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": (prompt_tokens or 0) + (completion_tokens or 0)
-                if prompt_tokens and completion_tokens
-                else None,
-            }
-        return None
+        usage_obj = getattr(response, "usage_metadata", None)
+        return self._extract_usage_safely(
+            usage_obj,
+            input_field="prompt_token_count",
+            output_field="candidates_token_count"
+        )
 
     def _make_api_call(self, messages: Any, **kwargs) -> Any:
         """Make the actual API call to the provider."""
@@ -72,9 +67,13 @@ class GeminiAdapter(BaseAdapter):
             system_instruction=messages["system_instruction"],
         )
 
+        # Use base class helper to extract allowed parameters
+        allowed_params = ["max_tokens", "temperature"]
+        api_params = self._extract_api_params(kwargs, allowed_params)
+
         generation_config = genai.GenerationConfig(
-            max_output_tokens=kwargs.get("max_tokens"),
-            temperature=kwargs.get("temperature"),
+            max_output_tokens=api_params.get("max_tokens"),
+            temperature=api_params.get("temperature"),
         )
 
         return model.generate_content(

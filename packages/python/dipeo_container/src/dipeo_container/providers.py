@@ -8,7 +8,7 @@ from dependency_injector import providers
 def create_provider_overrides(**overrides: Any) -> dict[str, providers.Provider]:
     """
     Create provider overrides for testing.
-    
+
     Example:
         overrides = create_provider_overrides(
             llm_service=mock_llm_service,

@@ -4,6 +4,7 @@ from datetime import datetime
 
 import strawberry
 from dipeo_domain import LLMService, NodeType
+from dipeo_core.constants import FILES_DIR
 
 from .types import (
     ApiKeyID,
@@ -153,7 +154,7 @@ class Query:
         try:
             import os
 
-            os.path.exists("files/diagrams")
+            (FILES_DIR / "diagrams").exists()
             checks["file_system"] = True
         except:
             pass

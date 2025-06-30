@@ -41,7 +41,6 @@ export function toDomainNodeState(nodeState: NodeState): DomainNodeState {
     startedAt: new Date(nodeState.timestamp).toISOString(),
     endedAt: null,
     error: nodeState.error || null,
-    skipReason: nodeState.skipReason || null,
     tokenUsage: null,
   };
 }
@@ -74,7 +73,6 @@ export function toCanonicalExecutionState(
       startedAt: new Date(nodeState.timestamp).toISOString(),
       endedAt: nodeState.status !== NodeExecutionStatus.RUNNING ? new Date(nodeState.timestamp).toISOString() : null,
       error: nodeState.error || null,
-      skipReason: nodeState.skipReason || null,
       tokenUsage: null,
     };
   });

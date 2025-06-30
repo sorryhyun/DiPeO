@@ -2,6 +2,7 @@
 
 from typing import AsyncIterator, Optional, Protocol, Any
 from dataclasses import dataclass
+from collections import deque
 import asyncio
 import logging
 
@@ -38,6 +39,10 @@ class ExecutionEngine:
         interactive_handler: Optional[Any] = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Execute diagram with observer notifications."""
+        
+        # Create concurrency semaphore
+        max_concurrent_nodes = options.get('max_parallel_nodes', 10)
+        self._concurrency_semaphore = asyncio.Semaphore(max_concurrent_nodes)
         
         # Notify observers of start
         for observer in self.observers:
@@ -87,49 +92,73 @@ class ExecutionEngine:
                 tasks.append(self._execute_node(node_view, execution_id, options, execution_view, interactive_handler))
         
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            # Execute tasks and check for exceptions
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Check for any exceptions and raise the first one
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    # Log all exceptions before raising
+                    log.error(f"Node execution failed: {result}")
+                    raise result
     
     async def _execute_node(self, node_view, execution_id, options, execution_view, interactive_handler):
         """Execute a single node with observer notifications."""
-        # Notify start
-        for observer in self.observers:
-            await observer.on_node_start(execution_id, node_view.id)
-        
-        try:
-            # Create runtime context
-            context = self._create_runtime_context(node_view, execution_id, options, execution_view)
-            
-            # Get inputs and services
-            inputs = node_view.get_active_inputs()
-            services = self.service_registry.get_handler_services(
-                node_view._handler_def.requires_services
-            )
-            
-            # Add special services
-            services['diagram'] = execution_view.diagram
-            services['execution_context'] = {'interactive_handler': interactive_handler}
-            
-            # Execute handler
-            output = await node_view.handler(
-                props=node_view._handler_def.node_schema.model_validate(node_view.data),
-                context=context,
-                inputs=inputs,
-                services=services,
-            )
-            
-            # Store output
-            node_view.output = output
-            node_view.exec_count += 1
-            
-            # Notify completion
+        # Acquire semaphore to limit concurrency
+        async with self._concurrency_semaphore:
+            # Notify start
             for observer in self.observers:
-                await observer.on_node_complete(execution_id, node_view.id, output)
+                await observer.on_node_start(execution_id, node_view.id)
+            
+            try:
+                # Create runtime context
+                context = self._create_runtime_context(node_view, execution_id, options, execution_view)
                 
-        except Exception as e:
-            log.error(f"Node {node_view.id} failed: {e}")
-            for observer in self.observers:
-                await observer.on_node_error(execution_id, node_view.id, str(e))
-            raise
+                # Get inputs and services
+                inputs = node_view.get_active_inputs()
+                services = self.service_registry.get_handler_services(
+                    node_view._handler_def.requires_services
+                )
+                
+                # Add special services
+                services['diagram'] = execution_view.diagram
+                services['execution_context'] = {'interactive_handler': interactive_handler}
+                
+                # Execute handler
+                output = await node_view.handler(
+                    props=node_view._handler_def.node_schema.model_validate(node_view.data),
+                    context=context,
+                    inputs=inputs,
+                    services=services,
+                )
+                
+                # Store output
+                node_view.output = output
+                node_view.exec_count += 1
+                
+                # For iterative nodes, store output in history and clear current output
+                # to allow re-execution
+                if node_view.node.type in ["job", "person_job", "loop"]:
+                    # Store in output history (if not already present)
+                    if not hasattr(node_view, 'output_history'):
+                        node_view.output_history = []
+                    node_view.output_history.append(output)
+                    
+                    # Check if we can iterate again
+                    max_iter = node_view.data.get("maxIteration", 1)
+                    if node_view.exec_count < max_iter:
+                        # Clear output to allow re-execution
+                        node_view.output = None
+                
+                # Notify completion
+                for observer in self.observers:
+                    await observer.on_node_complete(execution_id, node_view.id, output)
+                    
+            except Exception as e:
+                log.error(f"Node {node_view.id} failed: {e}")
+                for observer in self.observers:
+                    await observer.on_node_error(execution_id, node_view.id, str(e))
+                raise
     
     def _can_execute(self, node_view):
         """Check if node can execute."""
@@ -140,25 +169,19 @@ class ExecutionEngine:
     
     def _create_runtime_context(self, node_view, execution_id, options, execution_view):
         """Create runtime context for node execution."""
-        edges = [
-            {
-                "id": ev.arrow.id,
-                "source": ev.arrow.source,
-                "target": ev.arrow.target,
-                "sourceHandle": getattr(ev.arrow, "source_handle_id", ev.arrow.source),
-                "targetHandle": getattr(ev.arrow, "target_handle_id", ev.arrow.target),
-            }
-            for ev in execution_view.edge_views
-        ]
+        # Use cached static lists instead of rebuilding them
+        edges = execution_view.static_edges_list
+        nodes = execution_view.static_nodes_list
         
-        nodes = [
-            {
-                "id": nv.id,
-                "type": nv.type,
-                "data": nv.data,
-            }
-            for nv in execution_view.node_views.values()
-        ]
+        # Collect all node outputs including current node's output history
+        outputs = {}
+        for nv in execution_view.node_views.values():
+            if nv.output is not None:
+                outputs[nv.id] = nv.output
+            # Include output history for the current node if it exists
+            elif nv.id == node_view.id and hasattr(nv, 'output_history') and nv.output_history:
+                # Provide the last output from history for handlers that need it
+                outputs[nv.id] = nv.output_history[-1]
         
         return RuntimeContext(
             execution_id=execution_id,
@@ -166,28 +189,67 @@ class ExecutionEngine:
             edges=edges,
             nodes=nodes,
             variables=options.get('variables', {}),
+            outputs=outputs,
             exec_cnt={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
             diagram_id=execution_view.diagram.metadata.id if execution_view.diagram.metadata else None,
         )
     
     async def _execute_iterations(self, execution_view, execution_id, options, interactive_handler):
-        """Execute iterative nodes (loops, conditions)."""
+        """Execute iterative nodes using breadth-first queue approach."""
         max_iterations = options.get('max_iterations', 100)
+        iteration_count = 0
         
-        for iteration in range(max_iterations):
-            ready_nodes = []
+        # Initialize queue with nodes that might be ready after initial execution
+        ready_queue = deque()
+        
+        # Find nodes that might iterate
+        for node_view in execution_view.node_views.values():
+            if node_view.node.type in ["job", "person_job", "loop"]:
+                max_iter = node_view.data.get("maxIteration", 1)
+                if node_view.exec_count < max_iter and node_view.output is None:
+                    # Check if dependencies are satisfied
+                    if all(edge.source_view.output is not None for edge in node_view.incoming_edges):
+                        ready_queue.append(node_view)
+        
+        # Process queue
+        while ready_queue and iteration_count < max_iterations:
+            # Get current batch of ready nodes
+            current_batch = []
+            batch_size = len(ready_queue)
             
-            for node_view in execution_view.node_views.values():
-                # Check max iteration for specific nodes
-                if node_view.node.type in ["job", "person_job"]:
+            for _ in range(batch_size):
+                node_view = ready_queue.popleft()
+                
+                # Double-check the node can still execute
+                if node_view.node.type in ["job", "person_job", "loop"]:
                     max_iter = node_view.data.get("maxIteration", 1)
                     if node_view.exec_count >= max_iter:
                         continue
                 
                 if self._can_execute(node_view):
-                    ready_nodes.append(node_view)
+                    current_batch.append(node_view)
             
-            if not ready_nodes:
+            if not current_batch:
                 break
             
-            await self._execute_level(ready_nodes, execution_id, options, execution_view, interactive_handler)
+            # Execute current batch
+            await self._execute_level(current_batch, execution_id, options, execution_view, interactive_handler)
+            
+            # Add newly unblocked nodes to queue
+            for executed_node in current_batch:
+                # Check downstream nodes that might now be ready
+                for edge in executed_node.outgoing_edges:
+                    target = edge.target_view
+                    
+                    # Check if target can iterate or is newly unblocked
+                    if target.node.type in ["job", "person_job", "loop"]:
+                        max_iter = target.data.get("maxIteration", 1)
+                        if target.exec_count < max_iter and target.output is None:
+                            if all(e.source_view.output is not None for e in target.incoming_edges):
+                                if target not in ready_queue:
+                                    ready_queue.append(target)
+                    elif target.output is None and all(e.source_view.output is not None for e in target.incoming_edges):
+                        if target not in ready_queue:
+                            ready_queue.append(target)
+            
+            iteration_count += 1

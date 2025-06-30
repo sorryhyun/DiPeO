@@ -23,7 +23,6 @@ export function createNode(type: NodeType, position: Vec2, initialData?: Record<
       ...initialData,
       label,
     },
-    displayName: label,
     handles: []
   };
 }

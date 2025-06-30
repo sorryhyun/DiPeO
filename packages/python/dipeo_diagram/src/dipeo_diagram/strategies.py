@@ -1,17 +1,23 @@
-"""Compact format strategies for the unified diagram converter."""
+"""Compact format strategies for the unified diagram converter.
+
+This rewritten version trims boiler‑plate by sharing helpers and leaving only
+format‑specific logic in each concrete strategy, reducing the file size and
+cognitive load while preserving the public API expected by the rest of the
+package (NativeJsonStrategy / LightYamlStrategy / ReadableYamlStrategy).
+"""
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, Callable
 
 import yaml
-from dipeo_domain import DomainDiagram, DomainNode
+from dipeo_domain import DomainDiagram
+from pydantic import BaseModel
 
 from .base import FormatStrategy
 from .shared_components import (
-    NodeTypeMapper,
     build_node,
     coerce_to_dict,
     ensure_position,
@@ -20,62 +26,32 @@ from .shared_components import (
 
 log = logging.getLogger(__name__)
 
-
-#                               helper mixins                                 #
-
-
-class _JsonMixin:
-    """Shared JSON helpers."""
-
-    # NOTE: overriding instance methods via mixin
-    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as err:
-            log.error("JSON parse error: %s", err)
-            raise ValueError(f"Invalid JSON: {err}") from err
-
-    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
-        return json.dumps(data, indent=2, ensure_ascii=False)
+from .conversion_utils import _JsonMixin, _YamlMixin, _node_id_map, _round_pos
 
 
-class _YamlMixin:
-    """Shared YAML helpers."""
+class _BaseStrategy(FormatStrategy):
+    """Common scaffolding – subclasses only override what they need."""
 
-    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
-        try:
-            return yaml.safe_load(content) or {}
-        except yaml.YAMLError as err:
-            log.error("YAML parse error: %s", err)
-            raise ValueError(f"Invalid YAML: {err}") from err
+    # Concrete classes must define `format_id` and `format_info`.
 
-    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
-        return yaml.dump(
-            data, default_flow_style=False, sort_keys=False, allow_unicode=True
-        )
+    # --- stubs that *may* be overridden ------------------------------------ #
+    def extract_arrows(
+        self, data: dict[str, Any], _nodes: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        return extract_common_arrows(data.get("arrows", []))
 
+    def detect_confidence(self, _data: dict[str, Any]) -> float:
+        return 0.5
 
-#                               common helpers                                #
-def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
-    """Return mapping label → node-id from already built nodes list."""
-    m: dict[str, str] = {}
-    for n in nodes:
-        label = n.get("data", {}).get("label", n["id"])
-        m[label] = n["id"]
-    return m
+    def quick_match(self, _content: str) -> bool:  # noqa: D401 (one‑line doc)
+        return False
+
+# strategies
 
 
-def _round_pos(position: dict[str, Any]) -> dict[str, int]:
-    return {"x": round(position.get("x", 0)), "y": round(position.get("y", 0))}
+class NativeJsonStrategy(_JsonMixin, _BaseStrategy):
+    """Canonical domain JSON."""
 
-
-#  #
-#                               JSON strategy                                 #
-#  #
-class NativeJsonStrategy(_JsonMixin, FormatStrategy):
-    """Native / domain JSON format."""
-
-    # ---- minimal metadata ----
     format_id = "native"
     format_info = {
         "name": "Domain JSON",
@@ -85,14 +61,15 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
         "supports_export": True,
     }
 
-    # ---- extraction helpers ----
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        nodes_data = coerce_to_dict(data.get("nodes", []), id_key="id", prefix="node")
+    # ---- extraction ------------------------------------------------------- #
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:  # noqa: D401
         built: list[dict[str, Any]] = []
-        for idx, (nid, ndata) in enumerate(nodes_data.items()):
+        for idx, (nid, ndata) in enumerate(
+            coerce_to_dict(data.get("nodes", {})).items()
+        ):
             node = build_node(
                 id=nid,
-                type_=ndata.get("type", "unknown"),
+                type_=ndata.get("type", "job"),
                 pos=ndata.get("position", {}),
                 **ndata.get("data", {}),
             )
@@ -100,32 +77,18 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
             built.append(node)
         return built
 
-    def extract_arrows(
-        self, data: dict[str, Any], _nodes: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
-        return extract_common_arrows(data.get("arrows", []))
-
-    # ---- export helpers ----
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
+    # ---- export ----------------------------------------------------------- #
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
         return {
             "nodes": {
                 n.id: {
                     "type": n.type,
-                    "position": n.position.model_dump() if hasattr(n.position, 'model_dump') else n.position,
+                    "position": n.position,
                     "data": n.data,
                 }
                 for n in diagram.nodes
             },
-            "handles": {
-                h.id: {
-                    "nodeId": h.node_id,
-                    "label": h.label,
-                    "direction": h.direction,
-                    "dataType": h.data_type,
-                    "position": h.position,
-                }
-                for h in diagram.handles
-            },
+            "handles": {h.id: h.model_dump(by_alias=True) for h in diagram.handles},
             "arrows": {
                 a.id: {"source": a.source, "target": a.target, "data": a.data}
                 for a in diagram.arrows
@@ -136,28 +99,16 @@ class NativeJsonStrategy(_JsonMixin, FormatStrategy):
             else None,
         }
 
-    # ---- heuristics ----
-    def detect_confidence(self, data: dict[str, Any]) -> float:
-        nodes = data.get("nodes")
-        if isinstance(nodes, dict) and all(k in data for k in ("handles", "arrows")):
-            return 0.95
-        if isinstance(nodes, list):
-            return 0.9
-        if nodes:
-            return 0.5
-        return 0.1
+    # ---- heuristics ------------------------------------------------------- #
+    def detect_confidence(self, data: dict[str, Any]) -> float:  # noqa: D401
+        return 0.95 if {"nodes", "arrows"}.issubset(data) else 0.1
 
-    def quick_match(self, content: str) -> bool:
-        return content.lstrip().startswith("{") and any(
-            key in content for key in ('"nodes"', '"handles"', '"arrows"')
-        )
+    def quick_match(self, content: str) -> bool:  # noqa: D401
+        return content.lstrip().startswith("{") and '"nodes"' in content
 
 
-#  #
-#                                Light YAML                                   #
-#  #
-class LightYamlStrategy(_YamlMixin, FormatStrategy):
-    """Light YAML format (labels instead of IDs)."""
+class LightYamlStrategy(_YamlMixin, _BaseStrategy):
+    """Simplified YAML that uses labels instead of IDs."""
 
     format_id = "light"
     format_info = {
@@ -168,43 +119,22 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
         "supports_export": True,
     }
 
-    # ---- extraction helpers ----
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+    # ---- extraction ------------------------------------------------------- #
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:  # noqa: D401
         nodes: list[dict[str, Any]] = []
-
-        # Build persons label to ID mapping if persons exist
-        persons_label_to_id: dict[str, str] = {}
-        if "persons" in data and isinstance(data["persons"], dict):
-            # In light format, persons are keyed by label
-            for label in data["persons"]:
-                persons_label_to_id[label] = label  # In light format, ID equals label
-
-        for idx, ndata in enumerate(data.get("nodes", [])):
-            if not isinstance(ndata, dict):
+        for idx, n in enumerate(data.get("nodes", [])):
+            if not isinstance(n, dict):
                 continue
-
-            # Extract base properties
-            node_props = {
-                k: v
-                for k, v in ndata.items()
-                if k
-                not in {"type", "label", "id", "position", "arrows", "props", "person"}
+            props = {
+                **n.get("props", {}),
+                **{k: v for k, v in n.items() if k not in {"label", "type", "position", "props"}},
             }
-
-            # Handle person field separately - convert label to personId
-            if "person" in ndata and ndata["person"] in persons_label_to_id:
-                node_props["personId"] = persons_label_to_id[ndata["person"]]
-
-            # Flatten props if they exist
-            if "props" in ndata and isinstance(ndata["props"], dict):
-                node_props.update(ndata["props"])
-
             node = build_node(
                 id=f"node_{idx}",
-                type_=ndata.get("type", "unknown"),
-                pos=ndata.get("position", {}),
-                label=ndata.get("label"),
-                **node_props,
+                type_=n.get("type", "job"),
+                pos=n.get("position", {}),
+                label=n.get("label"),
+                **props,
             )
             ensure_position(node, idx)
             nodes.append(node)
@@ -212,261 +142,154 @@ class LightYamlStrategy(_YamlMixin, FormatStrategy):
 
     def extract_arrows(
         self, data: dict[str, Any], nodes: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, Any]]:  # noqa: D401
         arrows: list[dict[str, Any]] = []
         label2id = _node_id_map(nodes)
-
-        for idx, conn in enumerate(data.get("connections", [])):
-            if not isinstance(conn, dict):
+        for idx, c in enumerate(data.get("connections", [])):
+            if not isinstance(c, dict):
                 continue
-
-            # Extract label and handle from "from" and "to" fields
-            from_str = conn.get("from", "")
-            to_str = conn.get("to", "")
-
-            # Parse label:handle format
-            from_parts = from_str.split(":", 1)
-            to_parts = to_str.split(":", 1)
-
-            from_label = from_parts[0]
-            to_label = to_parts[0]
-
-            # Get handle names (default if not specified)
-            from_handle = (
-                from_parts[1] if len(from_parts) > 1 else conn.get("branch", "default")
-            )
-            to_handle = to_parts[1] if len(to_parts) > 1 else "default"
-
-            sid = label2id.get(from_label)
-            tid = label2id.get(to_label)
+            src_raw, dst_raw = c.get("from", ""), c.get("to", "")
+            src_label, *_ = src_raw.split(":", 1)
+            dst_label, *_ = dst_raw.split(":", 1)
+            sid, tid = label2id.get(src_label), label2id.get(dst_label)
             if not (sid and tid):
+                log.warning(f"Skipping connection: could not find nodes for '{src_label}' -> '{dst_label}'")
                 continue
-
-            # Generate a unique arrow ID based on index
-            arrow_id = f"arrow_{idx}"
-
-            # Copy data but exclude the ID field since we're generating a new one
-            arrow_data = {}
-            if conn.get("data"):
-                arrow_data = {k: v for k, v in conn["data"].items() if k != "id"}
-
+            
+            # Handle source handle
+            if ":" in src_raw:
+                src_handle = src_raw.split(":", 1)[1]
+            elif "branch" in c.get("data", {}):
+                # For condition nodes, use branch data
+                branch_value = c.get("data", {}).get("branch")
+                src_handle = "True" if branch_value == "true" else "False" if branch_value == "false" else "default"
+            else:
+                src_handle = "default"
+            
+            # Handle target handle
+            dst_handle = dst_raw.split(":", 1)[1] if ":" in dst_raw else "default"
+            
+            # Create arrow with data (light format doesn't include controlPointOffset)
+            arrow_data = c.get("data", {})
+            
             arrows.append(
                 {
-                    "id": arrow_id,
-                    "source": f"{sid}:{from_handle}",
-                    "target": f"{tid}:{to_handle}",
+                    "id": c.get("data", {}).get("id", f"arrow_{idx}"),
+                    "source": f"{sid}:{src_handle}",
+                    "target": f"{tid}:{dst_handle}",
                     "data": arrow_data,
                 }
             )
         return arrows
 
-    # ---- export ----
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
-        # Create person ID to label mapping
-        person_id_to_label: dict[str, str] = {}
-        if diagram.persons:
-            for person in diagram.persons:
-                person_id_to_label[person.id] = person.label
-
-        nodes_out: list[dict[str, Any]] = []
+    # ---- export ----------------------------------------------------------- #
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
+        id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
-        id2label: dict[str, str] = {}
 
+        def _unique(base: str) -> str:
+            cnt = label_counts.get(base, 0)
+            label_counts[base] = cnt + 1
+            return f"{base}~{cnt}" if cnt else base
+
+        nodes_out = []
         for n in diagram.nodes:
-            # Fix label extraction - ensure we get the actual label from data
-            base = n.data.get("label") if n.data else None
-            if (
-                not base or base == n.type or base == str(n.type).split(".")[-1]
-            ):  # Also check if label is just the type name
-                # Use a better default based on node type
-                type_name = str(n.type).split(".")[-1]
-                if type_name == "start":
-                    base = "Start"
-                elif type_name == "endpoint":
-                    base = "End"
-                elif type_name == "db":
-                    base = "Database"
-                elif type_name == "condition":
-                    base = "Condition"
-                elif type_name == "person_job":
-                    base = "Task"
-                else:
-                    base = type_name.replace("_", " ").title()
-
-            suffix = label_counts.get(base, 0)
-            label_counts[base] = suffix + 1
-            label = f"{base}~{suffix}" if suffix else base
-            id2label[n.id] = label
-
-            # Build the node output
-            node_output: dict[str, Any] = {
+            base = n.data.get("label") or str(n.type).split(".")[-1].title()
+            label = _unique(base)
+            id_to_label[n.id] = label
+            node_dict = {
                 "label": label,
-                "type": str(n.type).split(".")[
-                    -1
-                ],  # Convert enum to string, just the value
-                "position": _round_pos(
-                    n.position.model_dump()
-                    if hasattr(n.position, "model_dump")
-                    else n.position
-                ),
+                "type": str(n.type).split(".")[-1],
+                "position": _round_pos(n.position),
             }
-
-            # Add person field for person_job nodes
-            if n.type == "person_job" and n.data:
-                person_id = n.data.get("personId")
-                if person_id and person_id in person_id_to_label:
-                    node_output["person"] = person_id_to_label[person_id]
-
-            # Filter props to exclude unnecessary fields
-            if n.data:
-                filtered_props = {}
-                exclude_fields = {
-                    "label",
-                    "type",
-                    "position",
-                    "personId",
-                    "_handles",
-                    "inputs",
-                    "outputs",
-                    "id",
-                    "nodeId",
-                    "__typename",
-                    "flipped",
-                }
-
-                for k, v in n.data.items():
-                    if k not in exclude_fields:
-                        # Only include meaningful values
-                        if v is not None and v != "" and v != {} and v != []:
-                            filtered_props[k] = v
-
-                if filtered_props:
-                    node_output["props"] = filtered_props
-
-            nodes_out.append(node_output)
+            props = {
+                k: v
+                for k, v in (n.data or {}).items()
+                if k not in {"label", "position"} and v not in (None, "", {}, [])
+            }
+            if props:
+                node_dict["props"] = props
+            nodes_out.append(node_dict)
 
         connections = []
         for a in diagram.arrows:
-            # Extract node IDs and handle names
-            source_parts = a.source.split(":")
-            target_parts = a.target.split(":")
-            sid = source_parts[0]
-            tid = target_parts[0]
-            from_handle = source_parts[1] if len(source_parts) > 1 else "default"
-            to_handle = target_parts[1] if len(target_parts) > 1 else "default"
-
-            # Build connection data with handle notation
-            from_label = id2label[sid]
-            to_label = id2label[tid]
-
-            # Append handle to label if not default
-            if from_handle != "default":
-                from_label = f"{from_label}:{from_handle}"
-            if to_handle != "default":
-                to_label = f"{to_label}:{to_handle}"
-
-            conn_data = {
-                "from": from_label,
-                "to": to_label,
+            s_id, s_handle = (a.source.split(":") + ["default"])[:2]
+            t_id, t_handle = (a.target.split(":") + ["default"])[:2]
+            conn = {
+                "from": f"{id_to_label[s_id]}{":" + s_handle if s_handle != "default" else ''}",
+                "to": f"{id_to_label[t_id]}{":" + t_handle if t_handle != "default" else ''}",
             }
-
-            # For condition branches, we still keep the branch field for clarity
-            if from_handle in ["True", "False"]:
-                conn_data["branch"] = from_handle
-
-            # Add data but exclude internal/UI fields
             if a.data:
-                # Fields to exclude from light yaml format
-                exclude_fields = {
-                    "id",
-                    "type",
-                    "_sourceNodeType",
-                    "_isFromConditionBranch",
-                    "controlPointOffsetX",
-                    "controlPointOffsetY",
-                }
-                # Only keep semantic fields like "label", "contentType", etc.
-                filtered_data = {
-                    k: v for k, v in a.data.items() if k not in exclude_fields
-                }
-                if (
-                    filtered_data
-                ):  # Only add data if there's something left after filtering
-                    conn_data["data"] = filtered_data
+                # Only include essential arrow data for light format
+                filtered_data = {}
+                # Include arrow metadata but exclude UI-specific fields and ID
+                # ID will be auto-generated during loading, just like node IDs
+                for key in ["type", "_sourceNodeType", "_isFromConditionBranch", 
+                           "contentType", "label", "branch"]:
+                    if key in a.data:
+                        filtered_data[key] = a.data[key]
+                # Explicitly exclude controlPointOffset fields from light format
+                # These are UI presentation details that don't belong in simplified format
+                if filtered_data:
+                    conn["data"] = filtered_data
+            connections.append(conn)
 
-            connections.append(conn_data)
+        # Add persons to the light format export
+        persons_out = {}
+        for p in diagram.persons:
+            person_data = {
+                "label": p.label,
+                "service": p.service.value if hasattr(p.service, 'value') else str(p.service),
+                "model": p.model,
+            }
+            # Only include optional fields if they have values
+            if p.system_prompt:
+                person_data["systemPrompt"] = p.system_prompt
+            if p.api_key_id:
+                person_data["apiKeyId"] = p.api_key_id
+            persons_out[p.id] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
         if connections:
             out["connections"] = connections
-        if diagram.persons:
-            # Convert persons to dict keyed by label
-            persons_dict = {}
-            for p in diagram.persons:
-                person_dict = p.model_dump()
-                # Convert enum values to strings (just the value, not the full enum name)
-                if "service" in person_dict:
-                    person_dict["service"] = str(person_dict["service"]).split(".")[-1]
-                if "forgetting_mode" in person_dict:
-                    person_dict["forgetting_mode"] = str(
-                        person_dict["forgetting_mode"]
-                    ).split(".")[-1]
-                # Remove unnecessary fields including 'id' and 'label' (since label is the key)
-                for field in ["id", "label", "type", "__typename", "masked_api_key"]:
-                    person_dict.pop(field, None)
-                # Use label as the key
-                persons_dict[p.label] = person_dict
-            out["persons"] = persons_dict
-        if getattr(diagram, "name", None):
-            out["name"] = diagram.name
+        if persons_out:
+            out["persons"] = persons_out
         return out
 
-    # ---- heuristics ----
-    def detect_confidence(self, data: dict[str, Any]) -> float:
-        if isinstance(data.get("nodes"), list):
-            return (
-                0.8
-                if any("label" in n for n in data["nodes"] if isinstance(n, dict))
-                else 0.5
-            )
-        return 0.1
+    # ---- heuristics ------------------------------------------------------- #
+    def detect_confidence(self, data: dict[str, Any]) -> float:  # noqa: D401
+        return 0.8 if isinstance(data.get("nodes"), list) else 0.1
 
-    def quick_match(self, content: str) -> bool:
-        stripped = content.lstrip()
-        return not stripped.startswith(("{", "[")) and "nodes:" in content
+    def quick_match(self, content: str) -> bool:  # noqa: D401
+        return "nodes:" in content and not content.lstrip().startswith(("{", "["))
 
 
-#  #
-#                              Readable YAML                                  #
-#  #
-class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
-    """Human-friendly "workflow" YAML."""
+class ReadableYamlStrategy(_YamlMixin, _BaseStrategy):
+    """Human‑friendly workflow YAML."""
 
     format_id = "readable"
     format_info = {
         "name": "Readable Workflow",
-        "description": "Human-friendly workflow format",
+        "description": "Human‑friendly workflow format",
         "extension": ".readable.yaml",
         "supports_import": True,
         "supports_export": True,
     }
 
-    def __init__(self) -> None:
-        self._mapper = NodeTypeMapper()
-
-    # ---- extraction ----
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+    # ---- extraction ------------------------------------------------------- #
+    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:  # noqa: D401
         nodes: list[dict[str, Any]] = []
         for idx, step in enumerate(data.get("workflow", [])):
             if not isinstance(step, dict):
                 continue
-            ((name, cfg),) = step.items()  # exactly one kv-pair
+            (name, cfg), = step.items()
+            node_type = cfg.get("type") or ("start" if idx == 0 else "job")
             node = build_node(
                 id=f"node_{idx}",
-                type_=self._mapper.determine_node_type(cfg).value,
+                type_=node_type,
                 pos=cfg.get("position", {}),
                 label=name,
-                **self._extract_props(cfg),
+                **{k: v for k, v in cfg.items() if k != "position"},
             )
             ensure_position(node, idx)
             nodes.append(node)
@@ -474,94 +297,44 @@ class ReadableYamlStrategy(_YamlMixin, FormatStrategy):
 
     def extract_arrows(
         self, data: dict[str, Any], nodes: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
-        label2id = _node_id_map(nodes)
+    ) -> list[dict[str, Any]]:  # noqa: D401
         arrows: list[dict[str, Any]] = []
+        label2id = _node_id_map(nodes)
         for idx, line in enumerate(data.get("flow", [])):
             if isinstance(line, str) and "->" in line:
-                src_label, dst_label = (x.strip() for x in line.split("->", 1))
-                src_id = label2id.get(src_label)
-                dst_id = label2id.get(dst_label)
-                if src_id and dst_id:
+                src, dst = (s.strip() for s in line.split("->", 1))
+                sid, tid = label2id.get(src), label2id.get(dst)
+                if sid and tid:
                     arrows.append(
                         {
                             "id": f"arrow_{idx}",
-                            "source": f"{src_id}:output",
-                            "target": f"{dst_id}:input",
+                            "source": f"{sid}:output",
+                            "target": f"{tid}:input",
                         }
                     )
         return arrows
 
-    # ---- export ----
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
+    # ---- export ----------------------------------------------------------- #
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
         workflow = [
-            {(n.data.get("label") or n.id): self._step_from_node(n)}
+            {
+                n.data.get("label") or n.id: {
+                    k: v for k, v in n.data.items() if k not in {"label", "position"}
+                }
+            }
             for n in diagram.nodes
         ]
         flow = [
-            f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}"
-            for a in diagram.arrows
+            f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}" for a in diagram.arrows
         ]
-        result: dict[str, Any] = {"workflow": workflow}
+        out: dict[str, Any] = {"workflow": workflow}
         if flow:
-            result["flow"] = flow
+            out["flow"] = flow
+        return out
 
-        cfg: dict[str, Any] = {}
-        if diagram.persons:
-            persons_list = []
-            for p in diagram.persons:
-                person_dict = p.model_dump()
-                # Convert enum values to strings
-                if "service" in person_dict:
-                    person_dict["service"] = str(person_dict["service"]).split(".")[-1]
-                if "forgetting_mode" in person_dict:
-                    person_dict["forgetting_mode"] = str(
-                        person_dict["forgetting_mode"]
-                    ).split(".")[-1]
-                # Remove masked_api_key from readable format
-                person_dict.pop("masked_api_key", None)
-                persons_list.append(person_dict)
-            cfg["persons"] = persons_list
-        if cfg:
-            result["config"] = cfg
-        return result
+    # ---- heuristics ------------------------------------------------------- #
+    def detect_confidence(self, data: dict[str, Any]) -> float:  # noqa: D401
+        return 0.9 if "workflow" in data else 0.1
 
-    # ---- heuristics ----
-    def detect_confidence(self, data: dict[str, Any]) -> float:
-        wk, fl = data.get("workflow"), data.get("flow")
-        if isinstance(wk, list):
-            return 0.9 if isinstance(fl, list) else 0.6
-        return 0.1
-
-    def quick_match(self, content: str) -> bool:
-        return "workflow:" in content and (" -> " in content or "flow:" in content)
-
-    # ---- internal helpers ----
-    @staticmethod
-    def _extract_props(cfg: dict[str, Any]) -> dict[str, Any]:
-        mapping = {
-            "prompt": "prompt",
-            "person": "personId",
-            "model": "model",
-            "code": "code",
-            "language": "language",
-            "condition": "expression",
-            "data": "data",
-        }
-        return {dst: cfg[src] for src, dst in mapping.items() if src in cfg}
-
-    @staticmethod
-    def _step_from_node(node: DomainNode) -> dict[str, Any]:
-        t = node.type
-        d = node.data
-        if t == "person_job":
-            return {k: d[k] for k in ("prompt", "personId") if k in d}
-        if t == "job":
-            return {k: d[k] for k in ("code", "language") if k in d}
-        if t == "condition":
-            return {"condition": d.get("expression")}
-        if t == "start":
-            return {"data": d.get("data")}
-        if t == "user_response":
-            return {"prompt": d.get("prompt")}
-        return {}
+    def quick_match(self, content: str) -> bool:  # noqa: D401
+        return "workflow:" in content and "->" in content

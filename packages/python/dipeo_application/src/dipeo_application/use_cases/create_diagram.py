@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 from dipeo_core import BaseService, Result, Error
-from dipeo_domain.models import DiagramMetadata, DomainDiagram
+from dipeo_domain.models import DomainDiagram
 from datetime import UTC, datetime
 import uuid
 

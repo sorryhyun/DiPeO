@@ -26,7 +26,7 @@ class ConversationContext:
         self.user_message = user_message
 
 
-class SimpleConversationService:
+class ConversationService:
     """Basic conversation management for person_job nodes in local execution."""
     
     def __init__(self, memory_service: SupportsMemory, llm_service: SupportsLLM):

@@ -6,12 +6,11 @@ import uuid
 from datetime import UTC, datetime
 
 import strawberry
+from dipeo_application.dto.__generated__ import ExecutionState, TokenUsage
 from dipeo_domain import (
     DiagramID,
     ExecutionID,
-    ExecutionState,
     ExecutionStatus,
-    TokenUsage,
 )
 
 from ..context import GraphQLContext
@@ -96,9 +95,32 @@ class ExecutionMutations:
                 variables={},
             )
 
+            # Convert domain model to DTO
+            # First convert the TokenUsage to a dict to avoid serialization issues
+            token_usage_dict = {
+                'input': float(execution.token_usage.input),
+                'output': float(execution.token_usage.output),
+                'cached': float(execution.token_usage.cached) if execution.token_usage.cached is not None else None,
+                'total': float(execution.token_usage.input + execution.token_usage.output)
+            }
+
+            # Create DTO manually to avoid TokenUsage conversion issues
+            execution_dto = ExecutionState(
+                id=execution.id,
+                status=execution.status,
+                diagram_id=execution.diagramId,
+                started_at=execution.startedAt,
+                ended_at=execution.endedAt,
+                node_states=execution.nodeStates,
+                node_outputs=execution.nodeOutputs,
+                token_usage=TokenUsage(**token_usage_dict),
+                error=execution.error,
+                variables=execution.variables
+            )
+
             return ExecutionResult(
                 success=True,
-                execution=execution,
+                execution=execution_dto,
                 execution_id=execution_id,
                 message=f"Started execution {execution_id}",
             )
@@ -243,18 +265,27 @@ class ExecutionMutations:
 
     @staticmethod
     def _create_execution_state(execution_id: str, state) -> ExecutionState:
+        # Handle token usage conversion
+        token_usage = state.token_usage or TokenUsage(input=0, output=0, cached=None, total=0)
+        token_usage_dict = {
+            'input': float(token_usage.input),
+            'output': float(token_usage.output),
+            'cached': float(token_usage.cached) if token_usage.cached is not None else None,
+            'total': float(token_usage.input + token_usage.output)
+        }
+
+        # Create DTO directly to avoid nested conversion issues
         return ExecutionState(
             id=ExecutionID(execution_id),
             status=state.status,
-            diagramId=state.diagram_id,
-            startedAt=state.started_at,
-            endedAt=state.ended_at,
-            nodeStates=state.node_states,
-            nodeOutputs=state.node_outputs,
-            tokenUsage=state.token_usage
-            or TokenUsage(input=0, output=0, cached=None, total=0),
+            diagram_id=state.diagram_id,
+            started_at=state.started_at,
+            ended_at=state.ended_at,
+            node_states=state.node_states,
+            node_outputs=state.node_outputs,
+            token_usage=TokenUsage(**token_usage_dict),
             error=state.error,
-            variables=state.variables,
+            variables=state.variables
         )
 
 

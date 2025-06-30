@@ -44,7 +44,7 @@ from .response_dto import (
 )
 
 # Re-export generated DTOs when available
-# from .__generated__ import *
+from .__generated__ import *  # noqa: F403, F401
 
 __all__ = [
     # Diagram DTOs

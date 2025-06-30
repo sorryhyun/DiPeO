@@ -24,40 +24,38 @@ class ChatGPTAdapter(BaseAdapter):
         if system_prompt:
             msgs.append({"role": "system", "content": system_prompt})
 
-        # Combine cacheable and user prompts using the helper method
-        combined_prompt = self._combine_prompts(cacheable_prompt, user_prompt)
-        if combined_prompt:
-            msgs.append({"role": "user", "content": combined_prompt})
+        # Use base class helper to build user message content
+        user_content = self._build_user_message_content(
+            cacheable_prompt, user_prompt, citation_target
+        )
+        if user_content:
+            msgs.append({"role": "user", "content": user_content})
 
-        # Handle citation_target if needed
-        if citation_target:
-            msgs.append(
-                {"role": "user", "content": f"Citation target: {citation_target}"}
-            )
+        # Handle prefill if provided
+        if kwargs.get("prefill"):
+            self._handle_prefill(msgs, kwargs["prefill"])
 
         return msgs
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> Any:
-        params = {"model": self.model_name, "input": messages}
-        for opt in ("temperature", "max_tokens", "n", "top_p"):
-            if opt in kwargs and kwargs[opt] is not None:
-                params[opt] = kwargs[opt]
-        return self.client.responses.create(**params)
+        # Use base class helper to extract allowed parameters
+        allowed_params = ["temperature", "max_tokens", "n", "top_p"]
+        api_params = self._extract_api_params(kwargs, allowed_params)
+
+        params = {"model": self.model_name, "messages": messages, **api_params}
+        return self.client.chat.completions.create(**params)
 
     def _extract_text_from_response(self, response: Any, **kwargs) -> str:
         choice = response.choices[0] if response.choices else None
         return getattr(choice.message, "content", "") if choice else ""
 
     def _extract_usage_from_response(self, response: Any) -> dict[str, int]:
-        u = getattr(response, "usage", None)
-        return (
-            {
-                "prompt_tokens": getattr(u, "prompt_tokens", 0),
-                "completion_tokens": getattr(u, "completion_tokens", 0),
-                "total_tokens": getattr(u, "total_tokens", 0),
-            }
-            if u
-            else {}
+        # Use base class helper with OpenAI's field names
+        usage_obj = getattr(response, "usage", None)
+        return self._extract_usage_safely(
+            usage_obj,
+            input_field="prompt_tokens",
+            output_field="completion_tokens"
         )
 
     def list_models(self) -> list[str]:

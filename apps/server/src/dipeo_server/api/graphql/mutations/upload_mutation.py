@@ -20,7 +20,7 @@ from dipeo_domain import (
 from dipeo_domain.domains.apikey import APIKeyDomainService
 from strawberry.file_uploads import Upload
 
-from config import BASE_DIR
+from config import BASE_DIR, FILES_DIR, UPLOAD_DIR
 
 from ..context import GraphQLContext
 from ..types import (
@@ -153,15 +153,13 @@ class UploadMutations:
             # Special handling for diagram files
             if category.startswith("diagrams/"):
                 # Save directly to files/diagrams/{format}/ instead of files/uploads/
-                upload_base = BASE_DIR / "files"
-                category_dir = upload_base / category
+                category_dir = FILES_DIR / category
                 category_dir.mkdir(parents=True, exist_ok=True)
                 # Use original filename for diagrams (no UUID prefix)
                 file_path = category_dir / filename
             else:
                 # Regular upload flow for other files
-                upload_base = BASE_DIR / "files" / "uploads"
-                category_dir = upload_base / category
+                category_dir = UPLOAD_DIR / category
                 category_dir.mkdir(parents=True, exist_ok=True)
                 file_id = f"{uuid.uuid4().hex[:8]}_{filename}"
                 file_path = category_dir / file_id

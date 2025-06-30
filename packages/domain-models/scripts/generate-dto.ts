@@ -28,10 +28,30 @@ const DTO_HEADER = `"""
 Generated DTOs for application layer.
 DO NOT EDIT DIRECTLY - Generated from TypeScript domain models.
 """
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Union, Any, NewType
+from typing import List, Dict, Optional, Union, Any, Type, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
+from pydantic import BaseModel, Field, validator
+
+from dipeo_application.dto.base import (
+    BaseDTO, ConvertibleDTO, RequestDTO, ResponseDTO,
+    PaginatedResponseDTO, ListRequestDTO, BatchRequestDTO, BatchResponseDTO
+)
+
+# Import domain types that are referenced in DTOs
+from dipeo_domain.models import (
+    # IDs
+    NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID, ExecutionID,
+    # Conversation types
+    Message, MemoryConfig, MemoryState, Vec2,
+    # Enums  
+    HandleDirection, NodeType, DataType, ForgettingMode, DiagramFormat,
+    DBBlockSubType, ContentType, SupportedLanguage, ExecutionStatus,
+    NodeExecutionStatus, EventType, LLMService, NotionOperation,
+)
+
+if TYPE_CHECKING:
+    from dipeo_domain import models as domain
 
 `;
 
@@ -82,8 +102,69 @@ function mapTypeToPython(tsType: string): string {
   return typeMap[tsType] || tsType;
 }
 
+// Determine if a type should have conversion methods
+function shouldHaveConversion(typeDef: TypeDef): boolean {
+  const conversionTypes = ['DomainNode', 'DomainDiagram', 'DomainPerson', 'ExecutionState', 'NodeState'];
+  return conversionTypes.includes(typeDef.name);
+}
+
+// Generate field with validation
+function generateFieldWithValidation(prop: Property, isOptional: boolean): string {
+  const pythonName = camelToSnake(prop.name);
+  const pythonType = mapTypeToPython(prop.type);
+  let fieldDef = '';
+  
+  // Add field constraints based on type
+  const constraints: string[] = [];
+  if (prop.description) {
+    constraints.push(`description="${prop.description}"`);
+  }
+  
+  // Add type-specific constraints
+  if (pythonType === 'str' && prop.name.includes('id')) {
+    constraints.push('min_length=1');
+  } else if (pythonType === 'float' || pythonType === 'int') {
+    if (prop.name.includes('count') || prop.name.includes('size')) {
+      constraints.push('ge=0');
+    }
+  } else if (pythonType.startsWith('List[')) {
+    constraints.push('min_items=0');
+  }
+  
+  const fieldConstraints = constraints.length > 0 ? `Field(${constraints.join(', ')})` : null;
+  
+  if (isOptional) {
+    if (fieldConstraints) {
+      fieldDef = `    ${pythonName}: Optional[${pythonType}] = ${fieldConstraints}`;
+    } else {
+      fieldDef = `    ${pythonName}: Optional[${pythonType}] = None`;
+    }
+  } else {
+    if (fieldConstraints) {
+      fieldDef = `    ${pythonName}: ${pythonType} = ${fieldConstraints}`;
+    } else {
+      fieldDef = `    ${pythonName}: ${pythonType}`;
+    }
+  }
+  
+  return fieldDef;
+}
+
+// Types that are imported from domain and shouldn't be regenerated
+const DOMAIN_TYPES = new Set([
+  'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 'DiagramID', 'ExecutionID',
+  'Message', 'MemoryConfig', 'MemoryState', 'Vec2', 'HandleDirection', 'NodeType', 'DataType', 
+  'ForgettingMode', 'DiagramFormat', 'DBBlockSubType', 'ContentType', 'SupportedLanguage',
+  'ExecutionStatus', 'NodeExecutionStatus', 'EventType', 'LLMService', 'NotionOperation'
+]);
+
 // Generate Python DTO from TypeDef
 function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
+  // Skip types that are imported from domain
+  if (DOMAIN_TYPES.has(typeDef.name)) {
+    return '';
+  }
+  
   if (typeDef.type === 'enum') {
     let result = `class ${typeDef.name}${suffix}(str, Enum):\n`;
     typeDef.values?.forEach(value => {
@@ -94,6 +175,10 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
   }
 
   if (typeDef.type === 'type' && typeDef.value) {
+    // Skip ID types that are imported from domain
+    if (DOMAIN_TYPES.has(typeDef.name)) {
+      return '';
+    }
     // For branded types, create simple aliases
     if (typeDef.value === 'string') {
       return `${typeDef.name}${suffix} = str\n`;
@@ -101,8 +186,21 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
     return `${typeDef.name}${suffix} = ${mapTypeToPython(typeDef.value)}\n`;
   }
 
-  // Generate dataclass for interfaces
-  let result = `@dataclass\nclass ${typeDef.name}${suffix}:\n`;
+  // Determine base class
+  let baseClass = 'BaseDTO';
+  if (suffix === 'Request') {
+    baseClass = 'RequestDTO';
+  } else if (suffix === 'Response') {
+    baseClass = 'BaseDTO';  // Use BaseDTO for specific response types
+  } else if (shouldHaveConversion(typeDef)) {
+    baseClass = `ConvertibleDTO["domain.${typeDef.name}"]`;
+  }
+  
+  // Generate class definition
+  let result = `class ${typeDef.name}${suffix}(${baseClass}):\n`;
+  if (typeDef.properties && typeDef.properties.length > 0) {
+    result += `    """${typeDef.name} data transfer object."""\n`;
+  }
   
   if (!typeDef.properties || typeDef.properties.length === 0) {
     result += '    pass\n';
@@ -113,29 +211,43 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
   const requiredFields = typeDef.properties.filter(p => !p.optional);
   const optionalFields = typeDef.properties.filter(p => p.optional);
 
-  if (requiredFields.length === 0 && optionalFields.length > 0) {
-    result += '    pass\n';
-  }
-
   requiredFields.forEach(prop => {
-    const pythonType = mapTypeToPython(prop.type);
-    const pythonName = camelToSnake(prop.name);
-    result += `    ${pythonName}: ${pythonType}\n`;
+    result += generateFieldWithValidation(prop, false) + '\n';
   });
 
   // Then add optional fields with defaults
   optionalFields.forEach(prop => {
-    const pythonType = mapTypeToPython(prop.type);
-    const pythonName = camelToSnake(prop.name);
-    
-    if (pythonType.startsWith('List[')) {
-      result += `    ${pythonName}: ${pythonType} = field(default_factory=list)\n`;
-    } else if (pythonType.startsWith('Dict[')) {
-      result += `    ${pythonName}: ${pythonType} = field(default_factory=dict)\n`;
-    } else {
-      result += `    ${pythonName}: Optional[${pythonType}] = None\n`;
-    }
+    result += generateFieldWithValidation(prop, true) + '\n';
   });
+  
+  // Add conversion methods if needed
+  if (shouldHaveConversion(typeDef) && suffix === '') {
+    result += `\n    @classmethod\n`;
+    result += `    def from_domain(cls, domain_model: "domain.${typeDef.name}") -> "${typeDef.name}${suffix}":\n`;
+    result += `        """Convert from domain model to DTO."""\n`;
+    result += `        return cls(\n`;
+    
+    typeDef.properties?.forEach((prop, idx) => {
+      const pythonName = camelToSnake(prop.name);
+      const isLast = idx === typeDef.properties!.length - 1;
+      result += `            ${pythonName}=domain_model.${pythonName}${isLast ? '' : ','}\n`;
+    });
+    
+    result += `        )\n\n`;
+    
+    result += `    def to_domain(self) -> "domain.${typeDef.name}":\n`;
+    result += `        """Convert from DTO to domain model."""\n`;
+    result += `        from dipeo_domain import models as domain\n`;
+    result += `        return domain.${typeDef.name}(\n`;
+    
+    typeDef.properties?.forEach((prop, idx) => {
+      const pythonName = camelToSnake(prop.name);
+      const isLast = idx === typeDef.properties!.length - 1;
+      result += `            ${pythonName}=self.${pythonName}${isLast ? '' : ','}\n`;
+    });
+    
+    result += `        )\n`;
+  }
 
   return `${result  }\n`;
 }
@@ -212,7 +324,7 @@ function generateDTOs(schemaPath: string): string {
     output += generateDTO(typeDef, 'Event');
   });
 
-  // Add utility functions for ID generation
+  // Add utility functions
   output += `
 # Utility functions
 def generate_id(prefix: str) -> str:

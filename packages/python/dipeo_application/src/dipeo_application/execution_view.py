@@ -1,6 +1,7 @@
 """Simplified execution view for local execution."""
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import Any, Callable, Dict, List, Optional
 
 from dipeo_domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutput
@@ -201,3 +202,29 @@ class LocalExecutionView:
                 if all_ready:
                     ready.append(node_view)
         return ready
+    
+    @cached_property
+    def static_edges_list(self) -> List[Dict[str, Any]]:
+        """Cached list of edge dictionaries for RuntimeContext."""
+        return [
+            {
+                "id": ev.arrow.id,
+                "source": ev.arrow.source,
+                "target": ev.arrow.target,
+                "sourceHandle": getattr(ev.arrow, "source_handle_id", ev.arrow.source),
+                "targetHandle": getattr(ev.arrow, "target_handle_id", ev.arrow.target),
+            }
+            for ev in self.edge_views
+        ]
+    
+    @cached_property
+    def static_nodes_list(self) -> List[Dict[str, Any]]:
+        """Cached list of node dictionaries for RuntimeContext."""
+        return [
+            {
+                "id": nv.id,
+                "type": nv.type,
+                "data": nv.data,
+            }
+            for nv in self.node_views.values()
+        ]

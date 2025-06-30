@@ -1,5 +1,5 @@
 """LLM adapters."""
 
-from .conversation_adapter import SimpleConversationService
+from .conversation_adapter import ConversationService
 
-__all__ = ["SimpleConversationService"]
+__all__ = ["ConversationService"]

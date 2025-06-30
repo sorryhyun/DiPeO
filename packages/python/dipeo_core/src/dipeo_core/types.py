@@ -16,12 +16,10 @@ class Result(Generic[T, E]):
     
     @property
     def is_ok(self) -> bool:
-        """Check if the result is successful."""
         return self.error is None
     
     @property
     def is_error(self) -> bool:
-        """Check if the result contains an error."""
         return self.error is not None
     
     def unwrap(self) -> T:

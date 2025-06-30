@@ -16,7 +16,8 @@
     "generate:graphql": "tsx scripts/generate-graphql.ts",
     "generate:cli": "tsx scripts/generate-cli.ts",
     "generate:dto": "tsx scripts/generate-dto.ts",
-    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:graphql && pnpm generate:cli && pnpm generate:dto",
+    "generate:conversions": "tsx scripts/generate-conversions.ts",
+    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:graphql && pnpm generate:cli && pnpm generate:dto && pnpm generate:conversions",
     "postbuild": "pnpm generate:all"
   },
   "dependencies": {

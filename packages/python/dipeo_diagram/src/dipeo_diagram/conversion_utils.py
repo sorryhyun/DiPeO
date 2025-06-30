@@ -1,15 +1,35 @@
 """Conversion utilities for diagram formats."""
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from pydantic import BaseModel, Field
 from dipeo_domain import DomainDiagram
+import json
+import yaml
 
-if TYPE_CHECKING:
-    from .models import BackendDiagram
+# Ensure models are rebuilt to resolve forward references
+DomainDiagram.model_rebuild()
 
 
-def backend_to_graphql(backend_dict: "BackendDiagram") -> DomainDiagram:
+class BackendDiagram(BaseModel):
+    """Backend representation of a diagram (dict of dicts).
+
+    This is a simple wrapper around the dict format used for storage and execution.
+    Fields are untyped dicts to avoid unnecessary conversions.
+    """
+
+    nodes: dict[str, Any] = Field(default_factory=dict)
+    arrows: dict[str, Any] = Field(default_factory=dict)
+    persons: dict[str, Any] = Field(default_factory=dict)
+    handles: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] | None = None
+
+    class Config:
+        extra = "allow"  # Allow additional fields like _execution_hints
+
+
+def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
     """Convert backend dict representation to GraphQL domain model.
 
     The backend representation uses dicts of dicts for efficient lookup.
@@ -92,3 +112,60 @@ def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, An
         "persons": list_to_dict(graphql_diagram.persons),
         "metadata": graphql_diagram.metadata.model_dump() if graphql_diagram.metadata else {},
     }
+
+#  generic helpers
+
+
+class _JsonMixin:
+    """Minimal JSON helpers."""
+
+    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
+        return json.loads(content or "{}")
+
+    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
+
+class _YamlMixin:
+    """Minimal YAML helpers."""
+
+    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
+        return yaml.safe_load(content) or {}
+
+    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
+        # Create a custom YAML dumper class
+        class PositionDumper(yaml.SafeDumper):
+            pass
+        
+        # Custom representer for position dicts to use flow style
+        def position_representer(dumper, data):
+            if isinstance(data, dict) and set(data.keys()) == {"x", "y"}:
+                return dumper.represent_mapping('tag:yaml.org,2002:map', data, flow_style=True)
+            return dumper.represent_dict(data)
+        
+        PositionDumper.add_representer(dict, position_representer)
+        
+        return yaml.dump(data, Dumper=PositionDumper, sort_keys=False, allow_unicode=True)
+
+
+def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
+    """Map `label` → `node.id` for already‑built nodes."""
+    
+    label_map = {}
+    for n in nodes:
+        # Try to get label from the node structure
+        label = n.get("label") or n.get("data", {}).get("label") or n["id"]
+        label_map[label] = n["id"]
+    return label_map
+
+
+def _round_pos(pos: Any) -> dict[str, int]:
+    """Return a rounded position dict from Domain Vec2 or mapping."""
+
+    if hasattr(pos, "model_dump"):
+        pos = pos.model_dump()
+    if hasattr(pos, "x") and hasattr(pos, "y"):
+        return {"x": round(pos.x), "y": round(pos.y)}  # type: ignore[attr-defined]
+    if isinstance(pos, dict):
+        return {"x": round(pos.get("x", 0)), "y": round(pos.get("y", 0))}
+    return {"x": 0, "y": 0}

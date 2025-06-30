@@ -1,6 +1,6 @@
 """File persistence adapters."""
 
-from .file_service import SimpleFileService
-from .file_operations import SimpleFileOperationsService
+from .file_service import FileService
+from .file_operations import FileOperationsService
 
-__all__ = ["SimpleFileService", "SimpleFileOperationsService"]
+__all__ = ["FileService", "FileOperationsService"]

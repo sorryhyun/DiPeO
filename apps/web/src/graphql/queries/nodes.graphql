@@ -5,7 +5,6 @@ mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
     node {
       id
       type
-      displayName
       position {
         x
         y
@@ -23,7 +22,6 @@ mutation UpdateNode($inputData: UpdateNodeInput!) {
     node {
       id
       type
-      displayName
       position {
         x
         y

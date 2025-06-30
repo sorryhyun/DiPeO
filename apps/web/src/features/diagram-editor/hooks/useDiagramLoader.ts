@@ -73,7 +73,7 @@ export function useDiagramLoader() {
           const reactDiagram = domainToReactDiagram(diagramWithCounts);
           
           // Convert arrays to Maps for the store
-          const { nodes, handles, arrows, persons, apiKeys } = diagramToStoreMaps(reactDiagram);
+          const { nodes, handles, arrows, persons } = diagramToStoreMaps(reactDiagram);
           
           // Migrate arrow data to ensure condition arrows have branch data
           const migratedArrows = migrateArrowBranchData(
@@ -98,7 +98,6 @@ export function useDiagramLoader() {
               handles,
               arrows,
               persons,
-              apiKeys,
               nodesArray: reactDiagram.nodes || [],
               arrowsArray: migratedArrows,
               personsArray: reactDiagram.persons || [],

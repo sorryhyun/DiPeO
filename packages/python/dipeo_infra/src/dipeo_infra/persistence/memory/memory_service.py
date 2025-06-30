@@ -9,7 +9,7 @@ from collections import defaultdict
 from dipeo_core import SupportsMemory
 
 
-class SimpleMemoryService(SupportsMemory):
+class MemoryService(SupportsMemory):
     """In-memory conversation storage for local execution."""
     
     def __init__(self):

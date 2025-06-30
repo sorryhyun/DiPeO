@@ -14,8 +14,8 @@ mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
     }
 }
 
-mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
-    convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
+mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat!, $includeMetadata: Boolean!) {
+    convertDiagram(content: $content, targetFormat: $targetFormat, includeMetadata: $includeMetadata) {
         success
         message
         error
@@ -43,7 +43,6 @@ mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
         execution {
             id
             status
-            runningNodes
         }
         message
         error
@@ -54,20 +53,20 @@ subscription ExecutionUpdates($executionId: ExecutionID!) {
     executionUpdates(executionId: $executionId) {
         id
         status
-        diagramId
-        startedAt
-        endedAt
-        nodeStates
-        nodeOutputs
+        diagram_id
+        started_at
+        ended_at
+        node_states
+        node_outputs
         variables
-        tokenUsage {
+        token_usage {
             input
             output
             total
         }
         error
-        isActive
-        durationSeconds
+        is_active
+        duration_seconds
     }
 }
 

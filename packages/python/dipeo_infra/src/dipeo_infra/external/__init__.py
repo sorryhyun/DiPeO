@@ -1,7 +1,6 @@
 """External service adapters."""
 
-from .llm import SimpleConversationService
-from .http import APIIntegrationDomainService
+from .llm import ConversationService
 from .notion import NotionIntegrationDomainService
 
-__all__ = ["SimpleConversationService", "APIIntegrationDomainService", "NotionIntegrationDomainService"]
+__all__ = ["ConversationService", "NotionIntegrationDomainService"]

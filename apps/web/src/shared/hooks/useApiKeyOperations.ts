@@ -7,7 +7,6 @@ import {
   TestApiKeyDocument,
   GetAvailableModelsDocument
 } from '@/__generated__/graphql';
-import { ApiKeyID, DomainApiKey, apiKeyId } from '@/core/types';
 
 export const useApiKeyOperations = () => {
   // Query to get all API keys

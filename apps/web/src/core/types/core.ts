@@ -46,8 +46,7 @@ export type DBNodeData = WithUI<DomainDBNodeData>;
 export type JobNodeData = WithUI<DomainJobNodeData>;
 export type UserResponseNodeData = WithUI<DomainUserResponseNodeData>;
 export type NotionNodeData = WithUI<DomainNotionNodeData>;
-export interface PersonBatchJobNodeData extends WithUI<DomainPersonBatchJobNodeData> {
-}
+export type PersonBatchJobNodeData = WithUI<DomainPersonBatchJobNodeData>;
 
 // Type guards are now imported from graphql-mappings
 export { isDomainNode, isReactDiagram } from '@/graphql/types/graphql-mappings';

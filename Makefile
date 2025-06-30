@@ -63,14 +63,14 @@ lint-web:
 lint-server:
 	@echo "🔍 Linting..."
 	@for dir in $(PY_DIRS); do \
-		[ -d "$$dir/src" ] && (cd $$dir && ruff check src $$([ -d tests ] && echo tests)) || true; \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/server && mypy src || true
 
 lint-cli:
 	@echo "🔍 Linting..."
 	@for dir in $(PY_DIRS); do \
-		[ -d "$$dir/src" ] && (cd $$dir && ruff check src $$([ -d tests ] && echo tests)) || true; \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/cli && mypy src || true
 

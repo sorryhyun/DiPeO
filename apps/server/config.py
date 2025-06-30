@@ -1,35 +1,26 @@
-import os
-from pathlib import Path
+"""Server configuration - imports path constants from dipeo_core."""
 
-from dotenv import load_dotenv
+from dipeo_core.constants import (
+    BASE_DIR,
+    CONVERSATION_LOG_DIR,
+    DATA_DIR,
+    EVENTS_DB_PATH,
+    FILES_DIR,
+    PROMPT_DIR,
+    RESULT_DIR,
+    STATE_DB_PATH,
+    UPLOAD_DIR,
+)
 
-load_dotenv()
-
-BASE_DIR = Path(
-    os.getenv("BASE_DIR",
-              Path(__file__).resolve().parents[2].as_posix())
-).resolve()
-
-# Unified file storage under files/ directory
-FILES_DIR = BASE_DIR / "files"
-FILES_DIR.mkdir(exist_ok=True)
-
-UPLOAD_DIR = FILES_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
-
-RESULT_DIR = FILES_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
-
-CONVERSATION_LOG_DIR = FILES_DIR / "conversation_logs"
-CONVERSATION_LOG_DIR.mkdir(exist_ok=True)
-
-PROMPT_DIR = FILES_DIR / "prompts"
-PROMPT_DIR.mkdir(exist_ok=True)
-
-# Database directory
-DATA_DIR = Path(__file__).parent / ".data"
-DATA_DIR.mkdir(exist_ok=True)
-
-# Database paths
-STATE_DB_PATH = DATA_DIR / "dipeo_state.db"
-EVENTS_DB_PATH = DATA_DIR / "dipeo_events.db"
+# Re-export for backward compatibility
+__all__ = [
+    "BASE_DIR",
+    "FILES_DIR",
+    "UPLOAD_DIR",
+    "RESULT_DIR",
+    "CONVERSATION_LOG_DIR",
+    "PROMPT_DIR",
+    "DATA_DIR",
+    "STATE_DB_PATH",
+    "EVENTS_DB_PATH",
+]

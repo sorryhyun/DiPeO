@@ -146,6 +146,8 @@ exclude = [
     "__pycache__",
     ".mypy_cache",
     ".ruff_cache",
+    "*/__generated__.py",
+    "**/__generated__.py",
 ]
 
 [tool.ruff.lint]

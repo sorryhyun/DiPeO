@@ -67,7 +67,7 @@ export function useExecutionUpdates({
     });
     
     onUpdate?.({ 
-      type: EventType.NODE_STARTED, 
+      type: EventType.NODE_STATUS_CHANGED, 
       executionId: executionId(executionIdRef.current!), 
       nodeId: nodeId(nodeIdStr), 
       nodeType, 
@@ -107,7 +107,7 @@ export function useExecutionUpdates({
     addToRunContext(output);
     
     onUpdate?.({ 
-      type: EventType.NODE_COMPLETED, 
+      type: EventType.NODE_STATUS_CHANGED, 
       executionId: executionId(executionIdRef.current!), 
       nodeId: nodeId(nodeIdStr), 
       tokens: tokenCount, 
@@ -135,7 +135,7 @@ export function useExecutionUpdates({
       }
       
       onUpdate?.({ 
-        type: EventType.EXECUTION_COMPLETED, 
+        type: EventType.EXECUTION_STATUS_CHANGED, 
         executionId: executionId(executionIdRef.current!), 
         totalTokens, 
         timestamp: new Date().toISOString() 
@@ -163,7 +163,7 @@ export function useExecutionUpdates({
       }
       
       onUpdate?.({ 
-        type: EventType.EXECUTION_ABORTED, 
+        type: EventType.EXECUTION_STATUS_CHANGED, 
         executionId: executionId(executionIdRef.current!), 
         timestamp: new Date().toISOString() 
       });
@@ -198,7 +198,7 @@ export function useExecutionUpdates({
       }
       
       onUpdate?.({ 
-        type: EventType.NODE_FAILED, 
+        type: EventType.EXECUTION_ERROR,
         executionId: executionId(executionIdRef.current!), 
         nodeId: nodeId(nodeUpdates.nodeId), 
         error: nodeUpdates.error || undefined, 
@@ -220,7 +220,7 @@ export function useExecutionUpdates({
       });
       
       onUpdate?.({ 
-        type: EventType.NODE_SKIPPED, 
+        type: EventType.EXECUTION_UPDATE,
         executionId: executionId(executionIdRef.current!), 
         nodeId: nodeId(nodeUpdates.nodeId), 
         status: NodeExecutionStatus.SKIPPED, 
@@ -232,7 +232,7 @@ export function useExecutionUpdates({
       });
       
       onUpdate?.({ 
-        type: EventType.NODE_PAUSED, 
+        type: EventType.NODE_STATUS_CHANGED, 
         executionId: executionId(executionIdRef.current!), 
         nodeId: nodeId(nodeUpdates.nodeId), 
         status: NodeExecutionStatus.PAUSED, 

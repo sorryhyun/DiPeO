@@ -11,11 +11,10 @@ const ExecutionControls = () => {
   const { isMonitorMode, diagramName } = useMonitorMode({ autoStart: true });
   const execution = useExecution({ showToasts: false });
   const { nodes, arrows } = useDiagramData();
-  const { persons, handles, apiKeys } = useUnifiedStore(
+  const { persons, handles } = useUnifiedStore(
     useShallow(state => ({
       persons: state.persons,
-      handles: state.handles,
-      apiKeys: state.apiKeys
+      handles: state.handles
     }))
   );
   
@@ -99,7 +98,6 @@ const ExecutionControls = () => {
                 arrows: Array.from(arrows.values()),
                 persons: Array.from(persons.values()),
                 handles: Array.from(handles.values()),
-                apiKeys: Array.from(apiKeys.values()),
                 nodeCount: nodes.size,
                 arrowCount: arrows.size,
                 personCount: persons.size

@@ -9,8 +9,11 @@ import type {
   Vec2Input
 } from '@/__generated__/graphql';
 import {
-  NodeType, HandleDirection, DataType, Vec2,
-  NodeID, ArrowID, HandleID, PersonID, ApiKeyID, DiagramID
+  NodeType, Vec2,
+  NodeID, ArrowID, HandleID, PersonID, DiagramID,
+  nodeKindToDomainType, domainTypeToNodeKind,
+  areHandlesCompatible as domainAreHandlesCompatible,
+  parseHandleId as domainParseHandleId
 } from '@dipeo/domain-models';
 
 // Type aliases for semantic clarity - these help distinguish between
@@ -51,6 +54,7 @@ export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
 } {
+  // Manually convert because of type differences between GraphQL and domain types
   const nodes = new Map<NodeID, DomainNode>();
   const handles = new Map<HandleID, DomainHandle>();
   const arrows = new Map<ArrowID, DomainArrow>();
@@ -117,35 +121,17 @@ export function domainToReactDiagram(diagram: Partial<DomainDiagramType>): React
   return diagram as ReactDiagram;
 }
 
-// Node type mappings
+// Node type mappings - delegate to centralized conversions
 export function nodeKindToGraphQLType(kind: string): NodeType {
-  const mapping: Record<string, NodeType> = {
-    'start': NodeType.START,
-    'condition': NodeType.CONDITION,
-    'person_job': NodeType.PERSON_JOB,
-    'person_batch_job': NodeType.PERSON_BATCH_JOB,
-    'endpoint': NodeType.ENDPOINT,
-    'db': NodeType.DB,
-    'job': NodeType.JOB,
-    'user_response': NodeType.USER_RESPONSE,
-    'notion': NodeType.NOTION
-  };
-  return mapping[kind] || NodeType.START;
+  // Convert snake_case to camelCase if needed
+  const camelCaseKind = kind.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  return nodeKindToDomainType(camelCaseKind);
 }
 
 export function graphQLTypeToNodeKind(type: NodeType): string {
-  const mapping: Record<NodeType, string> = {
-    [NodeType.START]: 'start',
-    [NodeType.CONDITION]: 'condition',
-    [NodeType.PERSON_JOB]: 'person_job',
-    [NodeType.PERSON_BATCH_JOB]: 'person_batch_job',
-    [NodeType.ENDPOINT]: 'endpoint',
-    [NodeType.DB]: 'db',
-    [NodeType.JOB]: 'job',
-    [NodeType.USER_RESPONSE]: 'user_response',
-    [NodeType.NOTION]: 'notion'
-  };
-  return mapping[type];
+  const camelCaseKind = domainTypeToNodeKind(type);
+  // Convert camelCase back to snake_case if needed
+  return camelCaseKind.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
 // Vec2 conversion helpers
@@ -212,26 +198,30 @@ export function getHandleById(diagram: ReactDiagram, handleId: HandleID): Domain
 }
 
 export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
-  const [nodeId, ...handleNameParts] = handleId.split(':');
+  // Use centralized implementation, but adapt return type names
+  const result = domainParseHandleId(handleId);
   return {
-    nodeId: nodeId as NodeID,
-    handleName: handleNameParts.join(':')
+    nodeId: result.nodeId,
+    handleName: result.handleLabel // Note: centralized version uses 'handleLabel'
   };
 }
 
 // Check if two handles are compatible for connection
 export function areHandlesCompatible(source: DomainHandle, target: DomainHandle): boolean {
-  // Basic compatibility: output can connect to input
-  if (source.direction !== HandleDirection.OUTPUT || target.direction !== HandleDirection.INPUT) {
-    return false;
-  }
+  // Convert GraphQL handles to domain format for compatibility check
+  const sourceHandle = {
+    ...source,
+    id: source.id as HandleID,
+    nodeId: source.nodeId as NodeID
+  };
+  const targetHandle = {
+    ...target,
+    id: target.id as HandleID,
+    nodeId: target.nodeId as NodeID
+  };
   
-  // Type compatibility
-  if (source.dataType === DataType.ANY || target.dataType === DataType.ANY) {
-    return true;
-  }
-  
-  return source.dataType === target.dataType;
+  // Use centralized compatibility check
+  return domainAreHandlesCompatible(sourceHandle, targetHandle);
 }
 
 // Arrow data interface

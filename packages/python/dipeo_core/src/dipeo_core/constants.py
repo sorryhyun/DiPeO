@@ -1,5 +1,26 @@
 """Core constants shared across DiPeO components."""
 
+import os
+from pathlib import Path
+
+# Project Base Directory
+# Go up from dipeo_core/src/dipeo_core to project root
+BASE_DIR: Path = Path(
+    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[5].as_posix())
+).resolve()
+
+# Unified file storage directories (no mkdir here - let apps create as needed)
+FILES_DIR: Path = BASE_DIR / "files"
+UPLOAD_DIR: Path = FILES_DIR / "uploads"
+RESULT_DIR: Path = FILES_DIR / "results"
+CONVERSATION_LOG_DIR: Path = FILES_DIR / "conversation_logs"
+PROMPT_DIR: Path = FILES_DIR / "prompts"
+
+# Database directory (no mkdir here - let apps create as needed)
+DATA_DIR: Path = BASE_DIR / ".data"
+STATE_DB_PATH: Path = DATA_DIR / "dipeo_state.db"
+EVENTS_DB_PATH: Path = DATA_DIR / "dipeo_events.db"
+
 # Valid LLM services
 VALID_LLM_SERVICES = {
     "openai",
@@ -35,6 +56,12 @@ MAX_PAGE_SIZE = 1000
 # Execution
 MAX_ITERATIONS = 100
 MAX_NODE_EXECUTIONS = 1000
+
+def ensure_directories_exist() -> None:
+    """Ensure all required directories exist."""
+    for dir_path in [FILES_DIR, UPLOAD_DIR, RESULT_DIR, CONVERSATION_LOG_DIR, PROMPT_DIR, DATA_DIR]:
+        dir_path.mkdir(parents=True, exist_ok=True)
+
 
 def normalize_service_name(service: str) -> str:
     """Normalize service name to canonical form."""

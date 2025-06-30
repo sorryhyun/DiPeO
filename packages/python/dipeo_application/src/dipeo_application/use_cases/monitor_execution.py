@@ -3,11 +3,10 @@
 from typing import TYPE_CHECKING, Any, Optional
 from collections.abc import AsyncIterator
 from dipeo_core import BaseService, Result, Error
-from dipeo_domain.models import ExecutionStatus, DiagramID, NodeExecutionStatus
+from dipeo_domain.models import ExecutionStatus, DiagramID
 
 if TYPE_CHECKING:
     from dipeo_domain.domains.ports import StateStorePort, MessageRouterPort
-    from dipeo_domain.domains.execution.models import ExecutionState
 
 
 class MonitorExecutionUseCase(BaseService):

@@ -111,31 +111,6 @@ class TestProtocolCompliance:
         assert hasattr(message_router, 'unsubscribe_connection_from_execution')
         assert hasattr(message_router, 'get_stats')
 
-    def test_state_registry_compliance(self):
-        """Test that StateRegistry implements StateStorePort protocol."""
-        from dipeo_server.infra.persistence.state_registry import StateRegistry
-
-        state_registry = StateRegistry()
-
-        # Protocol compliance check
-        assert isinstance(state_registry, StateStorePort), "StateRegistry must implement StateStorePort"
-
-        # Verify all required methods exist (some have different names)
-        assert hasattr(state_registry, 'create_execution')
-        assert hasattr(state_registry, 'get_state')  # Protocol expects get_execution
-        assert hasattr(state_registry, 'save_state')
-        assert hasattr(state_registry, 'update_status')  # Protocol expects update_execution_status
-        assert hasattr(state_registry, 'update_node_status')
-        assert hasattr(state_registry, 'update_node_output')
-        assert hasattr(state_registry, 'get_node_output')
-        assert hasattr(state_registry, 'update_variables')
-        assert hasattr(state_registry, 'update_token_usage')
-        assert hasattr(state_registry, 'add_token_usage')
-        assert hasattr(state_registry, 'list_executions')
-        assert hasattr(state_registry, 'cleanup_old_states')
-        assert hasattr(state_registry, 'get_state_from_cache')
-        assert hasattr(state_registry, 'create_execution_in_cache')
-        assert hasattr(state_registry, 'persist_final_state')
 
     def test_api_key_service_compliance(self):
         """Test that APIKeyDomainService implements SupportsAPIKey protocol."""

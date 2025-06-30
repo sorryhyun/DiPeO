@@ -7,7 +7,6 @@ query GetDiagram($id: DiagramID!) {
         x
         y
       }
-      displayName
       data
       handles {
         id

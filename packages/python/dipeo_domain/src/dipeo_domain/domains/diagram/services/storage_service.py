@@ -7,13 +7,27 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import BaseModel
+from dipeo_core.constants import BASE_DIR
 from dipeo_core import BaseService, SupportsDiagram
-from dipeo_diagram import FileInfo
 
 logger = logging.getLogger(__name__)
 
 
-# FileInfo is now imported from models.py
+class FileInfo(BaseModel):
+    """Information about a diagram file."""
+
+    id: str
+    name: str
+    path: str
+    format: str
+    extension: str
+    modified: str
+    size: int
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dict for backward compatibility."""
+        return self.model_dump()
 
 
 class DiagramFileRepository(BaseService, SupportsDiagram):
@@ -21,7 +35,7 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
 
     def __init__(self, base_dir: Path | None = None):
         super().__init__()
-        self.diagrams_dir = (base_dir or Path.cwd()) / "files" / "diagrams"
+        self.diagrams_dir = (base_dir or BASE_DIR) / "files" / "diagrams"
         logger.info(f"DiagramFileRepository initialized with dir: {self.diagrams_dir}")
 
     async def initialize(self) -> None:

@@ -92,6 +92,52 @@ class ExecutionContext:
     exec_cnt: Dict[str, int] = field(default_factory=dict)
     persons: Dict[str, Any] = field(default_factory=dict)
     api_keys: Dict[str, str] = field(default_factory=dict)
+    
+    # Optional current node for runtime context conversion
+    current_node_id: str = ""
+    
+    def get_node_output(self, node_id: str) -> Any:
+        """Get output from a specific node."""
+        return self.node_outputs.get(node_id)
+    
+    def set_node_output(self, node_id: str, output: Any) -> None:
+        """Set output for a specific node."""
+        self.node_outputs[node_id] = output
+    
+    def increment_exec_count(self, node_id: str) -> int:
+        """Increment and return execution count for a node."""
+        self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
+        return self.exec_cnt[node_id]
+    
+    def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
+        """Get conversation history for a person."""
+        return self.persons.get(person_id, [])
+    
+    def add_to_conversation(self, person_id: str, message: Dict[str, Any]) -> None:
+        """Add a message to a person's conversation history."""
+        if person_id not in self.persons:
+            self.persons[person_id] = []
+        self.persons[person_id].append(message)
+    
+    def get_api_key(self, service: str) -> Optional[str]:
+        """Get API key for a service."""
+        return self.api_keys.get(service)
+    
+    def to_runtime_context(self) -> "RuntimeContext":
+        """Convert to RuntimeContext for handler compatibility."""
+        return RuntimeContext(
+            execution_id=self.execution_id,
+            current_node_id=self.current_node_id,
+            edges=self.edges,
+            nodes=[],  # Nodes list is typically populated separately
+            results=self.results,
+            outputs=self.node_outputs,
+            exec_cnt=self.exec_cnt,
+            variables=self.variables,
+            persons=self.persons,
+            api_keys=self.api_keys,
+            diagram_id=self.diagram_id,
+        )
 
 
 @dataclass

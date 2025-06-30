@@ -23,9 +23,8 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
   selectDeleteAction: (state) => (id: string) => 
     state.deletePerson(personId(id)),
   
-  // Related data selector - we need to check if API keys exist
+  // Related data selector
   selectRelated: (state) => ({
-    apiKeys: state.apiKeys,
     nodes: state.nodes
   }),
   

@@ -1,12 +1,12 @@
 import { Draft } from 'immer';
 import { UnifiedStore } from '../unifiedStore.types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
-import { DomainApiKey, DomainArrow, DomainNode, DomainPerson } from '@/core/types';
-import {ApiKeyID, ArrowID, NodeID, PersonID} from '@dipeo/domain-models';
+import { DomainArrow, DomainNode, DomainPerson } from '@/core/types';
+import {ArrowID, NodeID, PersonID} from '@dipeo/domain-models';
 
-type EntityType = 'nodes' | 'arrows' | 'persons' | 'apiKeys';
-type EntityId = NodeID | ArrowID | PersonID | ApiKeyID;
-type Entity = DomainNode | DomainArrow | DomainPerson | DomainApiKey;
+type EntityType = 'nodes' | 'arrows' | 'persons';
+type EntityId = NodeID | ArrowID | PersonID;
+type Entity = DomainNode | DomainArrow | DomainPerson;
 
 interface CrudActions<T extends Entity, ID extends EntityId> {
   add: (state: Draft<UnifiedStore>, entity: T) => ID;
@@ -90,5 +90,3 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
   };
 }
 
-// Standard CRUD for API keys
-export const apiKeyCrud = createCrudActions<DomainApiKey, ApiKeyID>('apiKeys');

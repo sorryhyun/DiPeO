@@ -23,10 +23,7 @@ from dipeo_domain import (
 from .execution_cache import ExecutionCache
 from .message_store import MessageStore
 
-try:
-    from config import STATE_DB_PATH
-except ImportError:
-    STATE_DB_PATH = Path("/tmp/dipeo_state.db")
+from dipeo_core.constants import STATE_DB_PATH
 
 logger = logging.getLogger(__name__)
 

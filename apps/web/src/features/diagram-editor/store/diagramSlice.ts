@@ -232,7 +232,7 @@ export const createDiagramSlice: StateCreator<
     // Check for person nodes without assigned persons
     state.nodes.forEach(node => {
       if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && !node.data?.person) {
-        errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
+        errors.push(`Node ${(node.data as any)?.label || node.id} requires a person to be assigned`);
       }
     });
     

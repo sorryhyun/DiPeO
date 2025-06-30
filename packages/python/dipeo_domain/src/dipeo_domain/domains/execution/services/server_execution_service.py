@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from dipeo_core import BaseService, SupportsExecution
 from dipeo_diagram import backend_to_graphql
-from dipeo_application import ExecutionEngine
+from dipeo_application import EngineFactory
 
-from ..observers import StateStoreObserver, StreamingObserver
+from ..observers import StreamingObserver
 
 if TYPE_CHECKING:
     from dipeo_domain.domains.ports import MessageRouterPort, StateStorePort
@@ -31,7 +31,6 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         self.state_store = state_store
         self.message_router = message_router
         self.diagram_storage_service = diagram_storage_service
-        self._streaming_observer = StreamingObserver(message_router)
 
     async def initialize(self):
         """Initialize the service."""
@@ -58,20 +57,19 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
 
             diagram_obj = DomainDiagram.model_validate(diagram)
 
-        # Create observers
-        observers = [
-            StateStoreObserver(self.state_store),
-            self._streaming_observer,
-        ]
-
-        # Create engine
-        engine = ExecutionEngine(
+        # Create streaming observer for this execution
+        streaming_observer = StreamingObserver(self.message_router)
+        
+        # Create engine with factory
+        engine = EngineFactory.create_engine(
             service_registry=self.service_registry,
-            observers=observers,
+            state_store=self.state_store,
+            message_router=self.message_router,
+            custom_observers=[streaming_observer],
         )
 
         # Subscribe to streaming updates
-        update_queue = await self._streaming_observer.subscribe(execution_id)
+        update_queue = await streaming_observer.subscribe(execution_id)
 
         # Start execution in background
         async def run_execution():

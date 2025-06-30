@@ -1,5 +1,5 @@
 """Memory persistence adapters."""
 
-from .memory_service import SimpleMemoryService
+from .memory_service import MemoryService
 
-__all__ = ["SimpleMemoryService"]
+__all__ = ["MemoryService"]

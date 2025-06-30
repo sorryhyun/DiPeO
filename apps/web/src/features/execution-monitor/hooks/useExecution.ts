@@ -149,7 +149,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(execId, totalNodes, formatDuration);
         executionActions.startExecution(execId);
-        onUpdate?.({ type: EventType.EXECUTION_STARTED, executionId: executionId(execId), timestamp: new Date().toISOString() });
+        onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, executionId: executionId(execId), timestamp: new Date().toISOString() });
       } else {
         throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
       }

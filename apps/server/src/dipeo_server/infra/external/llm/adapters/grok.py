@@ -28,13 +28,15 @@ class GrokAdapter(BaseAdapter):
         if citation_target:
             raise NotImplementedError("Citation not supported in Grok adapter")
 
-        # Use base class helper to combine prompts
-        combined_prompt = self._combine_prompts(cacheable_prompt, user_prompt)
+        # Use base class helper to build user message content
+        user_content = self._build_user_message_content(
+            cacheable_prompt, user_prompt, ""  # No citation support
+        )
 
         messages = []
-        if combined_prompt:
+        if user_content:
             messages.append(
-                {"role": "user", "content": [{"type": "text", "text": combined_prompt}]}
+                {"role": "user", "content": [{"type": "text", "text": user_content}]}
             )
 
         # Handle prefill
@@ -57,28 +59,26 @@ class GrokAdapter(BaseAdapter):
 
     def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         """Extract token usage from provider-specific response."""
-        if hasattr(response, "usage"):
-            usage = response.usage
-            return {
-                "prompt_tokens": getattr(usage, "input_tokens", None),
-                "completion_tokens": getattr(usage, "output_tokens", None),
-                "total_tokens": (
-                    getattr(usage, "input_tokens", 0)
-                    + getattr(usage, "output_tokens", 0)
-                ),
-            }
-        return None
+        usage_obj = getattr(response, "usage", None)
+        return self._extract_usage_safely(
+            usage_obj,
+            input_field="input_tokens",
+            output_field="output_tokens"
+        )
 
     def _make_api_call(self, messages: Any, **kwargs) -> Any:
         """Make the actual API call to the provider."""
         # Extract system prompt from kwargs since it's passed from base class chat method
         system_prompt = kwargs.get("system_prompt", "")
 
+        # Use base class helper to extract allowed parameters
+        allowed_params = ["max_tokens", "temperature"]
+        api_params = self._extract_api_params(kwargs, allowed_params)
+
         return self.client.messages.create(
             model=self.model_name,
             system=system_prompt,
             messages=messages,
-            max_tokens=kwargs.get("max_tokens"),
-            temperature=kwargs.get("temperature"),
+            **api_params
             # tools not supported by Grok
         )

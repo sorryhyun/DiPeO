@@ -11,9 +11,14 @@ from typing import Any
 import aiofiles
 import yaml
 from dipeo_core import BaseService, SupportsFile
+from dipeo_core.constants import (
+    CONVERSATION_LOG_DIR,
+    RESULT_DIR,
+    UPLOAD_DIR,
+    ensure_directories_exist,
+)
 from docx import Document
 
-from config import CONVERSATION_LOG_DIR, RESULT_DIR, UPLOAD_DIR
 from dipeo_server.shared.exceptions import FileOperationError, ValidationError
 
 
@@ -30,8 +35,8 @@ class FileSystemRepository(BaseService, SupportsFile):
 
     async def initialize(self) -> None:
         """Initialize the file service."""
-        # Service is already initialized in __init__
-        pass
+        # Ensure directories exist when service is initialized
+        ensure_directories_exist()
 
     def read(
         self,

@@ -22,11 +22,11 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, ReactDiagram, arrowId, nodeId, createHandleId, parseHandleId } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, ReactDiagram, arrowId, nodeId } from '@/core/types';
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
-import { HandleDirection } from '@dipeo/domain-models';
+import { HandleDirection, createHandleId, parseHandleId } from '@dipeo/domain-models';
 
 /**
  * React Flow specific diagram representation
@@ -138,13 +138,20 @@ export class DiagramAdapter {
       .filter(h => h.direction === HandleDirection.OUTPUT)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
 
+    // Ensure position is always defined with valid numbers
+    const position = node.position && 
+                    typeof node.position.x === 'number' && 
+                    typeof node.position.y === 'number' 
+                    ? { x: node.position.x, y: node.position.y }
+                    : { x: 0, y: 0 };
+
     const reactNode: DiPeoNode = {
       id: node.id,
       type: graphQLTypeToNodeKind(node.type),
-      position: { ...node.position }, // Clone to prevent mutations
+      position,
       data: {
         ...(node.data || {}), // Spread all existing node data first
-        label: ((node.data as Record<string, unknown>)?.label as string) || node.displayName || '', // Use label from data or displayName as fallback
+        label: ((node.data as Record<string, unknown>)?.label as string) || '', // Use label from data
         inputs,
         outputs,
         _handles: handles // Store original handles for reference
@@ -172,8 +179,12 @@ export class DiagramAdapter {
       return cached;
     }
 
-    const { nodeId: sourceNode, handleName: sourceHandle } = parseHandleId(arrow.source as HandleID);
-    const { nodeId: targetNode, handleName: targetHandle } = parseHandleId(arrow.target as HandleID);
+    const sourceParsed = parseHandleId(arrow.source as HandleID);
+    const targetParsed = parseHandleId(arrow.target as HandleID);
+    const sourceNode = sourceParsed.nodeId;
+    const sourceHandle = sourceParsed.handleLabel;
+    const targetNode = targetParsed.nodeId;
+    const targetHandle = targetParsed.handleLabel;
     
     const reactEdge: DiPeoEdge = {
       id: arrow.id,
@@ -210,9 +221,11 @@ export class DiagramAdapter {
       id: rfNode.id as NodeID,
       type: nodeKindToGraphQLType(rfNode.type || 'start'),
       position: { ...rfNode.position },
-      data: nodeData as Record<string, unknown>,
-      displayName: (nodeData.label || rfNode.id) as string,
-      handles: Array.isArray(_handles) ? _handles : []
+      data: {
+        ...nodeData,
+        label: (nodeData.label || rfNode.id) as string
+      } as Record<string, unknown>,
+      handles: []
     };
 
     // Cache the result

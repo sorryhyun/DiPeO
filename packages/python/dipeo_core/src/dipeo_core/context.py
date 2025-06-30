@@ -55,11 +55,9 @@ class ExecutionContext:
     _execution_view: Any | None = field(default=None, init=False)
 
     def get_node_output(self, node_id: str) -> NodeOutput | None:
-        """Get the output of a node."""
         return self.node_outputs.get(node_id)
 
     def set_node_output(self, node_id: str, output: NodeOutput) -> None:
-        """Set the output of a node."""
         self.node_outputs[node_id] = output
 
     def increment_exec_count(self, node_id: str) -> int:
@@ -68,7 +66,6 @@ class ExecutionContext:
         return self.exec_counts[node_id]
 
     def get_api_key(self, service: str) -> str | None:
-        """Get an API key for a service."""
         return self.api_keys.get(service)
 
     def add_token_usage(self, node_id: str, tokens: TokenUsage) -> None:

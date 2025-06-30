@@ -33,7 +33,6 @@ def safe_json_dumps(data: Any, indent: int | None = None) -> str:
 
 
 def get_timestamp() -> str:
-    """Get current UTC timestamp in ISO format."""
     return datetime.now(UTC).isoformat()
 
 
@@ -45,13 +44,11 @@ def truncate_string(text: str, max_length: int = 100, suffix: str = "...") -> st
 
 
 def snake_to_camel(snake_str: str) -> str:
-    """Convert snake_case to camelCase."""
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
 
 
 def camel_to_snake(camel_str: str) -> str:
-    """Convert camelCase to snake_case."""
     import re
     
     # Insert underscore before uppercase letters (except at start)

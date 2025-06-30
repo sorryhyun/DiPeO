@@ -3,7 +3,7 @@
 import logging
 
 import strawberry
-from dipeo_domain import DomainApiKey
+from dipeo_application.dto.__generated__ import DomainApiKey
 
 from ..context import GraphQLContext
 from ..types import (
@@ -38,11 +38,14 @@ class ApiKeyMutations:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=input.service,
-                maskedKey=f"{input.service.value}-****",
+                masked_key=f"{input.service.value}-****",
             )
 
+            # Convert domain model to DTO
+            api_key_dto = DomainApiKey.from_domain(api_key)
+
             return ApiKeyResult(
-                success=True, api_key=api_key, message=f"Created API key {api_key.id}"
+                success=True, api_key=api_key_dto, message=f"Created API key {api_key.id}"
             )
 
         except ValueError as e:

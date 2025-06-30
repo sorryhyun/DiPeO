@@ -1,6 +1,6 @@
 """Persistence layer adapters."""
 
-from .file import SimpleFileService, SimpleFileOperationsService
-from .memory import SimpleMemoryService
+from .file import FileService, FileOperationsService
+from .memory import MemoryService
 
-__all__ = ["SimpleFileService", "SimpleFileOperationsService", "SimpleMemoryService"]
+__all__ = ["FileService", "FileOperationsService", "MemoryService"]

@@ -1,55 +1,36 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from dipeo_core import ExecutionContext as CoreExecutionContext
 from dipeo_core import RuntimeContext
 from dipeo_domain.models import DomainArrow, NodeOutput, TokenUsage
 
 
 @dataclass
-class ExecutionContext:
-    """Pure data container for execution state - no service dependencies."""
+class ExecutionContext(CoreExecutionContext):
+    """Server-specific execution context extending the core ExecutionContext.
 
-    # Core execution data
-    execution_id: str
-    diagram_id: str
+    This adds server-specific functionality while maintaining compatibility
+    with the core ExecutionContext used throughout the system.
+    """
 
-    # State
-    node_outputs: dict[str, NodeOutput] = field(default_factory=dict)
-    variables: dict[str, Any] = field(default_factory=dict)
-    exec_counts: dict[str, int] = field(default_factory=dict)
-    current_node_id: str = ""
-
-    # Structure (for handlers that need it)
+    # Additional server-specific fields
     nodes: list[Any] = field(default_factory=list)  # DomainNode list
     edges: list[DomainArrow] = field(default_factory=list)
-    persons: dict[str, Any] = field(default_factory=dict)  # Person configurations
-
-    # API keys (needed for some operations)
-    api_keys: dict[str, str] = field(default_factory=dict)
 
     # Token usage accumulation
     _token_accumulator: dict[str, TokenUsage] = field(default_factory=dict, init=False)
 
     def get_node_output(self, node_id: str) -> NodeOutput | None:
-        return self.node_outputs.get(node_id)
+        """Override to handle NodeOutput type specifically."""
+        output = super().get_node_output(node_id)
+        if isinstance(output, NodeOutput):
+            return output
+        return None
 
     def set_node_output(self, node_id: str, output: NodeOutput) -> None:
-        self.node_outputs[node_id] = output
-
-    def increment_exec_count(self, node_id: str) -> int:
-        self.exec_counts[node_id] = self.exec_counts.get(node_id, 0) + 1
-        return self.exec_counts[node_id]
-
-    def get_conversation_history(self, person_id: str) -> list[dict[str, Any]]:
-        return self.persons.get(person_id, [])
-
-    def add_to_conversation(self, person_id: str, message: dict[str, Any]) -> None:
-        if person_id not in self.persons:
-            self.persons[person_id] = []
-        self.persons[person_id].append(message)
-
-    def get_api_key(self, service: str) -> str | None:
-        return self.api_keys.get(service)
+        """Override to handle NodeOutput type specifically."""
+        super().set_node_output(node_id, output)
 
     def find_edges_from(self, node_id: str) -> list[DomainArrow]:
         return [edge for edge in self.edges if edge.source.split(":")[0] == node_id]
@@ -113,7 +94,7 @@ class ExecutionContext:
             nodes=nodes,
             results={},  # Not used in current handlers
             outputs=outputs,
-            exec_cnt=self.exec_counts,
+            exec_cnt=self.exec_cnt,
             variables=self.variables,
             persons=self.persons,
             api_keys=self.api_keys,

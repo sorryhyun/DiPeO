@@ -1,6 +1,5 @@
 """Server-specific dependency injection container."""
 
-import os
 from pathlib import Path
 
 from dependency_injector import providers
@@ -30,11 +29,10 @@ from dipeo_domain.domains.file import FileOperationsDomainService
 from dipeo_domain.domains.text import TextProcessingDomainService
 from dipeo_domain.domains.validation import ValidationDomainService
 from dipeo_infra import (
-    APIIntegrationDomainService,
     MessageRouter,
     NotionIntegrationDomainService,
 )
-
+from dipeo_domain.domains.api import APIIntegrationDomainService
 from dipeo_server.infra.external.integrations.notion import NotionAPIService
 from dipeo_server.infra.external.llm import LLMInfraService
 from dipeo_server.infra.persistence import FileSystemRepository
@@ -54,13 +52,6 @@ class ServerContainer(BaseContainer):
         MessageRouter
     )
 
-    file_repository = providers.Singleton(
-        FileSystemRepository,
-        base_dir=providers.Factory(
-            lambda: Path(os.getenv("DIPEO_BASE_DIR", Path.cwd()))
-        ),
-    )
-
     # Domain service providers
     api_key_service = providers.Singleton(
         APIKeyDomainService,
@@ -75,7 +66,8 @@ class ServerContainer(BaseContainer):
     )
 
     file_service = providers.Singleton(
-        lambda: FileSystemRepository()
+        FileSystemRepository,
+        base_dir=providers.Factory(lambda: BASE_DIR),
     )
 
     conversation_memory_service = providers.Singleton(

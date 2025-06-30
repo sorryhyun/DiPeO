@@ -23,13 +23,11 @@ SUPPORTED_MODELS = {
 }
 
 __all__ = [
-    "SUPPORTED_MODELS",
-    # Services and utilities
     "BaseAdapter",
     "ChatResult",
     "ForgettingMode",
-    # Enums from generated models
-    "LLMService",
     "LLMInfraService",
+    "LLMService",
+    "SUPPORTED_MODELS",
     "create_adapter",
 ]

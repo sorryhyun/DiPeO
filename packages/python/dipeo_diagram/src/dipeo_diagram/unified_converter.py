@@ -12,13 +12,15 @@ from dipeo_domain import (
     HandleDirection,
 )
 
+# Ensure models are rebuilt to resolve forward references
+DomainDiagram.model_rebuild()
+
 from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import backend_to_graphql
-from .models import BackendDiagram
+from .conversion_utils import backend_to_graphql, BackendDiagram
+from dipeo_domain.conversions import node_kind_to_domain_type
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
-    NodeTypeMapper,
     PositionCalculator,
 )
 from .strategies import (
@@ -41,7 +43,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         self.strategies: dict[str, FormatStrategy] = {}
         self.handle_generator = HandleGenerator()
         self.position_calculator = PositionCalculator()
-        self.node_mapper = NodeTypeMapper()
         self.arrow_builder = ArrowBuilder()
 
         self._register_default_strategies()
@@ -206,7 +207,14 @@ class UnifiedDiagramConverter(DiagramConverter):
     def _create_node(self, node_data: dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""
         node_id = node_data.get("id", f"node_{index}")
-        node_type = node_data.get("type", "unknown")
+        node_type_str = node_data.get("type", "job")
+        
+        # Convert node type string to domain enum
+        try:
+            node_type = node_kind_to_domain_type(node_type_str)
+        except ValueError:
+            logger.warning(f"Unknown node type '{node_type_str}', defaulting to 'job'")
+            node_type = node_kind_to_domain_type("job")
 
         position = node_data.get("position")
         if not position:
@@ -295,3 +303,29 @@ class UnifiedDiagramConverter(DiagramConverter):
             for format_id, strategy in self.strategies.items()
             if strategy.format_info.get("supports_import", True)
         ]
+
+    # Backward compatibility methods (from registry.py)
+    def list_formats(self) -> list[dict[str, str]]:
+        """Backward compatibility alias for get_supported_formats."""
+        return self.get_supported_formats()
+
+    def convert(self, content: str, from_format: str, to_format: str) -> str:
+        """Convert content from one format to another."""
+        diagram = self.deserialize(content, from_format)
+        return self.serialize(diagram, to_format)
+
+    def get(self, format_id: str) -> "UnifiedDiagramConverter | None":
+        """Get converter for format (backward compatibility)."""
+        if format_id in self.strategies:
+            self.set_format(format_id)
+            return self
+        return None
+
+    def get_info(self, format_id: str) -> dict[str, str] | None:
+        """Get format info (backward compatibility)."""
+        strategy = self.strategies.get(format_id)
+        return strategy.format_info if strategy else None
+
+
+# Create a singleton instance to act as the registry
+converter_registry = UnifiedDiagramConverter()

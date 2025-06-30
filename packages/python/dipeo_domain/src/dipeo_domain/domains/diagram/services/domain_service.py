@@ -80,7 +80,7 @@ class DiagramStorageDomainService:
                         {
                             "id": diagram.metadata.id,
                             "name": diagram.metadata.name,
-                            "format": file_info.get("format", DiagramFormat.NATIVE),
+                            "format": file_info.get("format", DiagramFormat.native),
                             "nodes": len(diagram.nodes),
                             "arrows": len(diagram.arrows),
                         }

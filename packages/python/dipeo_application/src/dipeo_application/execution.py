@@ -8,17 +8,77 @@ from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from dipeo_core import BaseService, SupportsExecution, get_global_registry
-from dipeo_domain import ExecutionStatus, NodeExecutionStatus
-from dipeo_domain.models import DomainDiagram, DomainNode, NodeOutput
+from dipeo_core import BaseService, SupportsExecution
+from dipeo_domain.models import DomainDiagram
 
-from .execution_view import LocalExecutionView, NodeView
+from .engine_factory import EngineFactory
+from .execution_engine import ExecutionObserver
 from .service_registry import LocalServiceRegistry
 
 if TYPE_CHECKING:
     from .context import ApplicationContext
 
 log = logging.getLogger(__name__)
+
+
+class LocalUpdateCollector(ExecutionObserver):
+    """Observer that collects updates for local execution."""
+    
+    def __init__(self):
+        self.updates: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+    
+    async def on_execution_start(self, execution_id: str, diagram_id: str | None) -> None:
+        await self.updates.put({
+            "type": "execution_start",
+            "execution_id": execution_id,
+            "diagram_id": diagram_id,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def on_node_start(self, execution_id: str, node_id: str) -> None:
+        await self.updates.put({
+            "type": "node_update",
+            "execution_id": execution_id,
+            "node_id": node_id,
+            "status": "running",
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def on_node_complete(self, execution_id: str, node_id: str, output) -> None:
+        await self.updates.put({
+            "type": "node_update",
+            "execution_id": execution_id,
+            "node_id": node_id,
+            "status": "completed",
+            "output": output.model_dump() if hasattr(output, 'model_dump') else output,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def on_node_error(self, execution_id: str, node_id: str, error: str) -> None:
+        await self.updates.put({
+            "type": "node_update",
+            "execution_id": execution_id,
+            "node_id": node_id,
+            "status": "failed",
+            "error": error,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def on_execution_complete(self, execution_id: str) -> None:
+        await self.updates.put({
+            "type": "execution_complete",
+            "execution_id": execution_id,
+            "status": "completed",
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def on_execution_error(self, execution_id: str, error: str) -> None:
+        await self.updates.put({
+            "type": "execution_error",
+            "execution_id": execution_id,
+            "error": error,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
 
 
 class LocalExecutionService(BaseService, SupportsExecution):
@@ -29,7 +89,6 @@ class LocalExecutionService(BaseService, SupportsExecution):
         super().__init__()
         self.app_context = app_context
         self.service_registry = LocalServiceRegistry(app_context)
-        self._pending_updates: list[dict[str, Any]] = []
 
     async def initialize(self) -> None:
         """Initialize the service."""
@@ -55,225 +114,40 @@ class LocalExecutionService(BaseService, SupportsExecution):
         else:
             diagram_obj = diagram
 
-        # Create start update
-        start_update = {
-            "type": "execution_start",
-            "execution_id": execution_id,
-        }
-        yield start_update
-
-        try:
-            # Get handlers from registry
-            registry = get_global_registry()
-            
-            # Build execution view
-            execution_view = LocalExecutionView(diagram_obj)
-            
-            # Assign handlers to node views
-            for node_id, node_view in execution_view.node_views.items():
-                # Get the handler definition which contains the handler function
-                node_def = registry.get(node_view.node.type)
-                if not node_def:
-                    raise ValueError(f"No handler registered for node type: {node_view.node.type}")
-                # Set the handler function (not instance) and store the definition for later use
-                node_view.handler = node_def.handler
-                # Store the handler definition on the node view for access to metadata
-                node_view._handler_def = node_def
-            
-            # Execute nodes in topological order
-            for level_num, level_nodes in enumerate(execution_view.execution_order):
-                log.info(f"Executing level {level_num} with nodes: {[n.id for n in level_nodes]}")
-                
-                # Execute all nodes in this level in parallel
-                tasks = []
-                for node_view in level_nodes:
-                    if self._can_execute_node(node_view):
-                        tasks.append(self._execute_node(
-                            node_view, execution_id, options, execution_view
-                        ))
-                    else:
-                        log.warning(f"Cannot execute node {node_view.id} - dependencies not met")
-                
-                if tasks:
-                    # Gather results and yield updates
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-                    for updates in results:
-                        if isinstance(updates, Exception):
-                            log.error(f"Node execution failed: {updates}")
-                            continue
-                        for update in updates:
-                            yield update
-            
-            # Handle iterative execution (for loops, conditions, etc.)
-            async for update in self._execute_iterative_nodes(execution_view, execution_id, options):
-                yield update
-
-            # Send execution complete
-            complete_update = {
-                "type": "execution_complete",
-                "execution_id": execution_id,
-                "status": "completed",
-            }
-            yield complete_update
-
-        except Exception as e:
-            log.error(f"Execution failed: {e}")
-            error_update = {
-                "type": "execution_error",
-                "execution_id": execution_id,
-                "error": str(e),
-            }
-            yield error_update
-            raise
-
-    def _can_execute_node(self, node_view: NodeView) -> bool:
-        """Check if a node can be executed based on its dependencies."""
-        # Node can execute if it hasn't been executed yet and all dependencies are satisfied
-        if node_view.output is not None:
-            return False
+        # Create update collector
+        update_collector = LocalUpdateCollector()
         
-        # Check if all incoming edges have outputs
-        for edge in node_view.incoming_edges:
-            if edge.source_view.output is None:
-                return False
+        # Create engine with factory
+        engine = EngineFactory.create_engine(
+            service_registry=self.service_registry,
+            state_store=None,  # No persistence in local mode
+            message_router=None,  # No streaming in local mode
+            include_state_observer=False,
+            include_streaming_observer=False,
+            custom_observers=[update_collector],
+        )
         
-        return True
-
-    async def _execute_node(
-        self,
-        node_view: NodeView,
-        execution_id: str,
-        options: dict[str, Any],
-        execution_view: LocalExecutionView,
-    ) -> list[dict[str, Any]]:
-        """Execute a single node and return updates."""
-        updates = []
+        # Start execution in background
+        async def run_execution():
+            try:
+                async for _ in engine.execute(
+                    diagram_obj,
+                    execution_id,
+                    options,
+                    interactive_handler,
+                ):
+                    pass  # Engine uses observers for updates
+            except Exception as e:
+                await update_collector.on_execution_error(execution_id, str(e))
         
-        # Send running update
-        updates.append({
-            "type": "node_update",
-            "execution_id": execution_id,
-            "node_id": node_view.id,
-            "status": "running",
-        })
+        # Launch execution
+        asyncio.create_task(run_execution())
         
-        try:
-            # Create runtime context
-            from dipeo_core import RuntimeContext
+        # Stream updates from collector
+        while True:
+            update = await update_collector.updates.get()
+            yield update
             
-            # Convert edges to the format expected by RuntimeContext
-            edges = []
-            for edge_view in execution_view.edge_views:
-                edges.append({
-                    "id": edge_view.arrow.id,
-                    "source": edge_view.arrow.source,
-                    "target": edge_view.arrow.target,
-                    "sourceHandle": getattr(edge_view.arrow, "source_handle_id", edge_view.arrow.source),
-                    "targetHandle": getattr(edge_view.arrow, "target_handle_id", edge_view.arrow.target),
-                })
-            
-            # Convert nodes to the format expected by RuntimeContext
-            nodes = []
-            for nv in execution_view.node_views.values():
-                nodes.append({
-                    "id": nv.id,
-                    "type": nv.type,
-                    "data": nv.data,
-                })
-            
-            context = RuntimeContext(
-                execution_id=execution_id,
-                current_node_id=node_view.id,
-                edges=edges,
-                nodes=nodes,
-                variables=options.get("variables", {}),
-                exec_cnt={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
-            )
-            
-            # Get inputs from connected nodes
-            inputs = node_view.get_active_inputs()
-            
-            # Get required services
-            required_services = {}
-            if node_view.handler and hasattr(node_view, '_handler_def'):
-                handler_def = node_view._handler_def
-                required_services = self.service_registry.get_handler_services(
-                    handler_def.requires_services
-                )
-                
-                # Execute handler
-                output = await node_view.handler(
-                    props=handler_def.node_schema.model_validate(node_view.data),
-                    context=context,
-                    inputs=inputs,
-                    services=required_services,
-                )
-                
-                # Store output in node view
-                node_view.output = output
-                node_view.exec_count += 1
-                
-                # Send completion update
-                updates.append({
-                    "type": "node_update",
-                    "execution_id": execution_id,
-                    "node_id": node_view.id,
-                    "status": "completed",
-                    "output": output.model_dump() if output else None,
-                })
-            
-        except Exception as e:
-            log.error(f"Node {node_view.id} execution failed: {e}")
-            updates.append({
-                "type": "node_update",
-                "execution_id": execution_id,
-                "node_id": node_view.id,
-                "status": "failed",
-                "error": str(e),
-            })
-        
-        return updates
-
-    async def _execute_iterative_nodes(
-        self,
-        execution_view: LocalExecutionView,
-        execution_id: str,
-        options: dict[str, Any],
-    ) -> AsyncIterator[dict[str, Any]]:
-        """Execute nodes that require iteration (loops, conditions)."""
-        max_iterations = 100
-        iteration = 0
-        
-        while iteration < max_iterations:
-            iteration += 1
-            
-            # Find nodes that are ready to execute
-            ready_nodes = []
-            for node_id, node_view in execution_view.node_views.items():
-                # Check max iteration for job/person_job nodes
-                if node_view.node.type in ["job", "person_job"]:
-                    max_iter = node_view.data.get("maxIteration", 1)
-                    if node_view.exec_count >= max_iter:
-                        continue
-                
-                # Check if node can execute
-                if self._can_execute_node(node_view):
-                    ready_nodes.append(node_view)
-            
-            if not ready_nodes:
+            # Check for terminal states
+            if update.get("type") in ["execution_complete", "execution_error"]:
                 break
-            
-            # Execute ready nodes in parallel
-            tasks = []
-            for node_view in ready_nodes:
-                tasks.append(self._execute_node(node_view, execution_id, options, execution_view))
-            
-            # Gather results and yield updates
-            if tasks:
-                results = await asyncio.gather(*tasks, return_exceptions=True)
-                for updates in results:
-                    if isinstance(updates, Exception):
-                        log.error(f"Iterative node execution failed: {updates}")
-                        continue
-                    for update in updates:
-                        yield update

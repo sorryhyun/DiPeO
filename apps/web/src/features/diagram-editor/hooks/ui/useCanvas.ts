@@ -11,10 +11,10 @@ import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react
 import { isWithinTolerance } from '@/shared/utils/math';
 import { createHandlerTable } from '@/shared/utils/dispatchTable';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { DomainArrow, DomainHandle, DomainNode, DomainPerson,  createHandleId, nodeId } from '@/core/types';
+import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
 import { nodeToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
-import { NodeType, type NodeID, type ArrowID, type HandleID  } from '@dipeo/domain-models';
+import { NodeType, type NodeID, type ArrowID, type HandleID, createHandleId } from '@dipeo/domain-models';
 
 
 // Helper hook for efficient Map to Array conversion
@@ -138,8 +138,13 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
           }
         }
       },
-      add: () => {
-        // React Flow is initializing the node
+      add: (change) => {
+        // React Flow is initializing the node - we need to handle this
+        // to avoid the "trying to drag a node that is not initialized" error
+        if ('item' in change && change.item) {
+          // The node is already in our store, but React Flow needs to track it internally
+          // We don't need to add it to our store again, just acknowledge the change
+        }
       },
     }), []
   );
@@ -152,13 +157,20 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
         const node = storeState.nodesMap.get(change.id as NodeID);
         if (node) {
           const tolerance = change.dragging ? 5 : 0.01;
+          const currentX = node.position?.x ?? 0;
+          const currentY = node.position?.y ?? 0;
           const positionChanged = 
-            !isWithinTolerance(node.position?.x || 0, change.position.x, tolerance) ||
-            !isWithinTolerance(node.position?.y || 0, change.position.y, tolerance);
+            !isWithinTolerance(currentX, change.position.x, tolerance) ||
+            !isWithinTolerance(currentY, change.position.y, tolerance);
           
           if (positionChanged) {
             // Update position immediately for natural movement
-            storeState.updateNode(change.id as NodeID, { position: change.position });
+            storeState.updateNode(change.id as NodeID, { 
+              position: {
+                x: change.position.x,
+                y: change.position.y
+              }
+            });
           }
         }
       } else {

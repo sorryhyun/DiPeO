@@ -4,6 +4,7 @@ import logging
 import uuid
 
 import strawberry
+from dipeo_application.dto.__generated__ import DomainHandle as DomainHandleDTO
 from dipeo_diagram import BackendDiagram, backend_to_graphql
 from dipeo_domain import (
     ArrowID as DomainArrowID,
@@ -189,8 +190,11 @@ class GraphElementMutations:
             # Save diagram using new service
             await storage_service.write_file(diagram_path, diagram_data)
 
+            # Convert domain model to DTO
+            handle_dto = DomainHandleDTO.from_domain(handle)
+
             return HandleResult(
-                success=True, handle=handle, message=f"Created handle {handle_id}"
+                success=True, handle=handle_dto, message=f"Created handle {handle_id}"
             )
 
         except ValueError as e:

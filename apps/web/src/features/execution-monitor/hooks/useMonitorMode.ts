@@ -32,7 +32,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   
   // Get diagram data from store
   const storeSelector = createCommonStoreSelector();
-  const { nodes, arrows, persons, handles, apiKeys } = useUnifiedStore(useShallow(storeSelector));
+  const { nodes, arrows, persons, handles } = useUnifiedStore(useShallow(storeSelector));
   
   // Check if we're in monitor mode
   const isMonitorMode = () => {
@@ -77,14 +77,12 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     const arrowsArray = Array.from(arrows.values());
     const personsArray = Array.from(persons.values());
     const handlesArray = Array.from(handles.values());
-    const apiKeysArray = Array.from(apiKeys.values());
     
     const diagram: DomainDiagramType = {
       nodes: nodesArray,
       arrows: arrowsArray,
       persons: personsArray,
       handles: handlesArray,
-      apiKeys: apiKeysArray,
       nodeCount: nodesArray.length,
       arrowCount: arrowsArray.length,
       personCount: personsArray.length,

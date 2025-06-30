@@ -4,6 +4,7 @@ import logging
 import uuid
 
 import strawberry
+from dipeo_application.dto.__generated__ import DomainNode as DomainNodeDTO
 from dipeo_domain import DomainNode, NodeType, Vec2
 from dipeo_domain import NodeID as DomainNodeID
 
@@ -63,8 +64,11 @@ class NodeMutations:
 
             await diagram_service.write_file(path, diagram_data)
 
+            # Convert domain model to DTO
+            node_dto = DomainNodeDTO.from_domain(node)
+
             return NodeResult(
-                success=True, node=node, message=f"Created node {node_id}"
+                success=True, node=node_dto, message=f"Created node {node_id}"
             )
 
         except ValueError as e:
@@ -127,9 +131,12 @@ class NodeMutations:
 
             await diagram_service.write_file(diagram_id, diagram_data)
 
+            # Convert domain model to DTO
+            node_dto = DomainNodeDTO.from_domain(updated_node)
+
             return NodeResult(
                 success=True,
-                node=updated_node,
+                node=node_dto,
                 message=f"Updated node {input_data.id}",
             )
 

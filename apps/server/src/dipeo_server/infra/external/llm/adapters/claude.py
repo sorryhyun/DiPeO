@@ -91,27 +91,24 @@ class ClaudeAdapter(BaseAdapter):
 
     def _extract_usage_from_response(self, response: Any) -> dict[str, int] | None:
         """Extract token usage from provider-specific response."""
-        if hasattr(response, "usage"):
-            usage = response.usage
-            return {
-                "prompt_tokens": getattr(usage, "input_tokens", None),
-                "completion_tokens": getattr(usage, "output_tokens", None),
-                "total_tokens": (
-                    getattr(usage, "input_tokens", 0)
-                    + getattr(usage, "output_tokens", 0)
-                ),
-            }
-        return None
+        usage_obj = getattr(response, "usage", None)
+        return self._extract_usage_safely(
+            usage_obj,
+            input_field="input_tokens",
+            output_field="output_tokens"
+        )
 
     def _make_api_call(self, messages: Any, **kwargs) -> Any:
         """Make the actual API call to the provider."""
+        # Use base class helper to extract allowed parameters
+        allowed_params = ["max_tokens", "temperature", "tools"]
+        api_params = self._extract_api_params(kwargs, allowed_params)
+
         return self.client.messages.create(
             model=self.model_name,
             system=messages["system"],
             messages=messages["messages"],
-            max_tokens=kwargs.get("max_tokens"),
-            temperature=kwargs.get("temperature"),
-            tools=kwargs.get("tools"),
+            **api_params
         )
 
     def supports_tools(self) -> bool:

@@ -1,16 +1,12 @@
 """GraphQL resolvers for diagram operations."""
 
+import json
 import logging
 from collections import defaultdict
 from datetime import UTC, datetime
 
 import yaml
-from dipeo_diagram import (
-    BackendDiagram,
-    backend_to_graphql,
-    converter_registry,
-    graphql_to_backend,
-)
+from dipeo_diagram import converter_registry
 from dipeo_domain import DiagramMetadata, DomainDiagram
 from dipeo_domain.domains.diagram.services import DiagramFileRepository
 
@@ -33,89 +29,61 @@ class DiagramResolver:
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
 
-            # Try new services first
+            # Use storage service to find and load diagram data
             storage_service: DiagramFileRepository = (
                 info.context.diagram_storage_service
             )
 
-            # Find and load the diagram
+            # Find the diagram file
             path = await storage_service.find_by_id(diagram_id)
             if not path:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
 
+            # Read diagram data
             diagram_data = await storage_service.read_file(path)
-
             if not diagram_data:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
 
-            # Determine format from path
-            from pathlib import Path
+            # Determine format from path and data
+            format_type = "native"  # default
+            if "light/" in path or diagram_data.get("version") == "light":
+                format_type = "light"
+            elif "readable/" in path:
+                format_type = "readable"
 
-            path_obj = Path(path)
-            format_from_path = storage_service._determine_format_type(path_obj)
-
-            # Check if this is a light format diagram (from path or has version: light)
-            if format_from_path == "light" or diagram_data.get("version") == "light":
+            # Use converter registry to handle all format conversions
+            if format_type == "light":
                 logger.info(f"Detected light format for diagram {diagram_id}")
-
-                # Light format diagrams don't need api_keys anymore
-                # API keys are now stored in Person objects
-
-                # Convert the data to YAML string for converter processing
+                # Convert to YAML string for light format processing
                 yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-
-                # Use the converter to deserialize from light format
-                graphql_diagram = converter_registry.deserialize(yaml_content, "light")
-
-                # Update metadata if needed
-                if not graphql_diagram.metadata or not graphql_diagram.metadata.id:
-                    graphql_diagram.metadata = DiagramMetadata(
-                        id=diagram_id,
-                        name=diagram_id.replace("/", " - ")
-                        .replace(".yaml", "")
-                        .replace(".yml", "")
-                        .replace(".json", "")
-                        .replace("_", " ")
-                        .title(),
-                        description="Light format diagram",
-                        version="light",
-                        created=datetime.now(UTC).isoformat(),
-                        modified=datetime.now(UTC).isoformat(),
-                    )
+                domain_diagram = converter_registry.deserialize(yaml_content, "light")
             else:
-                # Original handling for non-light formats
-                if "metadata" not in diagram_data or not diagram_data["metadata"]:
-                    diagram_data["metadata"] = {
-                        "id": diagram_id,
-                        "name": diagram_id.replace("/", " - ")
-                        .replace(".yaml", "")
-                        .replace(".yml", "")
-                        .replace(".json", "")
-                        .replace("_", " ")
-                        .title(),
-                        "description": diagram_data.get("description", ""),
-                        "version": diagram_data.get("version", "2.0.0"),
-                        "created": diagram_data.get(
-                            "created", datetime.now(UTC).isoformat()
-                        ),
-                        "modified": diagram_data.get(
-                            "modified", datetime.now(UTC).isoformat()
-                        ),
-                    }
+                # For native format, use converter registry
+                json_content = json.dumps(diagram_data)
+                domain_diagram = converter_registry.deserialize(json_content, "native")
 
-                # Check if the data is in native format (lists) or backend format (dicts)
-                if isinstance(diagram_data.get("nodes", {}), list):
-                    # Native format - parse as DomainDiagram first, then convert to BackendDiagram
-                    domain_diagram = DomainDiagram(**diagram_data)
-                    diagram_dict = graphql_to_backend(domain_diagram)
-                    graphql_diagram = domain_diagram
-                else:
-                    # Backend format - parse directly as BackendDiagram
-                    diagram_dict = BackendDiagram(**diagram_data)
-                    graphql_diagram = backend_to_graphql(diagram_dict)
+            # Ensure metadata is complete
+            if not domain_diagram.metadata or not domain_diagram.metadata.id:
+                domain_diagram.metadata = DiagramMetadata(
+                    id=diagram_id,
+                    name=diagram_id.replace("/", " - ")
+                    .replace(".yaml", "")
+                    .replace(".yml", "")
+                    .replace(".json", "")
+                    .replace("_", " ")
+                    .title(),
+                    description=f"{format_type.title()} format diagram",
+                    version=diagram_data.get("version", "2.0.0"),
+                    created=diagram_data.get("created", datetime.now(UTC).isoformat()),
+                    modified=diagram_data.get("modified", datetime.now(UTC).isoformat()),
+                )
 
+            # Use domain model directly for GraphQL
+            graphql_diagram = domain_diagram
+
+            # Build handle index for resolver context
             handle_index = defaultdict(list)
             for handle in graphql_diagram.handles:
                 handle_index[handle.node_id].append(handle)
@@ -202,6 +170,7 @@ class DiagramResolver:
                     persons=[],
                     metadata=metadata,
                 )
+                # Use domain model directly
                 result.append(diagram)
 
             return result

@@ -9,18 +9,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from .file_service import SimpleFileService
+from .file_service import FileService
 
 
 logger = logging.getLogger(__name__)
 
 
-class SimpleFileOperationsService:
+class FileOperationsService:
     """File operations with validation and error handling."""
 
     def __init__(self, base_dir: Optional[str] = None):
         """Initialize with a base file service."""
-        self._file = SimpleFileService(base_dir)
+        self._file = FileService(base_dir)
         self.base_dir = self._file.base_dir
 
     async def read_with_validation(

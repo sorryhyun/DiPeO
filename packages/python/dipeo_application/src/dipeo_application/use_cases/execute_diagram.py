@@ -8,7 +8,7 @@ from dipeo_core import BaseService, SupportsExecution
 from dipeo_diagram import backend_to_graphql
 from dipeo_domain.models import DomainDiagram
 
-from ..execution_engine import ExecutionEngine
+from ..engine_factory import EngineFactory
 
 if TYPE_CHECKING:
     from dipeo_domain.domains.ports import MessageRouterPort, StateStorePort
@@ -81,10 +81,11 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         else:
             diagram_obj = DomainDiagram.model_validate(diagram)
 
-        # Create engine with observers
-        engine = ExecutionEngine(
+        # Create engine with factory
+        engine = EngineFactory.create_server_engine(
             service_registry=self.service_registry,
-            observers=self._observers,
+            state_store=self.state_store,
+            message_router=self.message_router,
         )
 
         # Subscribe to streaming updates

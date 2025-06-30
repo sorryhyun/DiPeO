@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any, Optional
 from dipeo_core import BaseService, Result, Error
-from dipeo_domain.models import Person, PersonID, LLMService
+from dipeo_domain.models import DomainPerson, PersonID, LLMService
 import uuid
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ class ManagePersonUseCase(BaseService):
         model: str,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
-    ) -> Result[Person, Error]:
+    ) -> Result[DomainPerson, Error]:
         """Create a new person.
         
         Args:
@@ -55,7 +55,7 @@ class ManagePersonUseCase(BaseService):
         
         # Create person
         try:
-            person = Person(
+            person = DomainPerson(
                 id=PersonID(str(uuid.uuid4())),
                 name=name,
                 system_prompt=system_prompt,
@@ -83,7 +83,7 @@ class ManagePersonUseCase(BaseService):
         self,
         person_id: PersonID,
         updates: dict[str, Any],
-    ) -> Result[Person, Error]:
+    ) -> Result[DomainPerson, Error]:
         """Update an existing person.
         
         Args:

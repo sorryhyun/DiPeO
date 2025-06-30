@@ -239,15 +239,15 @@ class LocalAppContext:
         """Initialize minimal services for local execution."""
         # Import necessary services
         from dipeo_application import LocalExecutionService
-        from dipeo_infra import SimpleFileService, SimpleMemoryService
+        from dipeo_infra import FileService, MemoryService
 
         # Initialize basic services
         simple_llm = SimpleLLMService()
         await simple_llm.initialize()
         self.llm_service = simple_llm
         
-        self.memory_service = SimpleMemoryService()
-        self.file_service = SimpleFileService()
+        self.memory_service = MemoryService()
+        self.file_service = FileService()
         
         # TODO: Initialize conversation service when it's updated to use correct domain models
         # For now, we'll use None which means person_job nodes won't work in local mode

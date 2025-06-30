@@ -98,7 +98,6 @@ export interface DomainNode {
   type: NodeType;
   position: Vec2;
   data: Record<string, any>;
-  displayName?: string;
 }
 
 export interface DomainArrow {

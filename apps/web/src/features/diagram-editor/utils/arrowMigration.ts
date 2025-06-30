@@ -5,8 +5,8 @@
  * particularly for setting branch data on condition node arrows.
  */
 
-import { DomainArrow, DomainNode, parseHandleId, handleId } from '@/core/types';
-import { NodeType } from '@dipeo/domain-models';
+import { DomainArrow, DomainNode, handleId } from '@/core/types';
+import { NodeType, parseHandleId } from '@dipeo/domain-models';
 
 /**
  * Migrates arrows to ensure condition node arrows have proper branch data
@@ -25,7 +25,7 @@ export function migrateArrowBranchData(
     }
     
     // Parse the source handle to get node ID and handle name
-    const { nodeId, handleName } = parseHandleId(handleId(arrow.source));
+    const { nodeId, handleLabel } = parseHandleId(handleId(arrow.source));
     
     // Check if source node is a condition node
     const sourceNode = nodes.get(nodeId);
@@ -34,7 +34,7 @@ export function migrateArrowBranchData(
     }
     
     // Check if handle name is True/False (case-insensitive)
-    const handleNameLower = handleName.toLowerCase();
+    const handleNameLower = handleLabel.toLowerCase();
     if (handleNameLower === 'true' || handleNameLower === 'false') {
       // Create updated arrow with branch data
       return {
@@ -66,13 +66,13 @@ export function needsBranchDataMigration(
   }
   
   // Check if from condition node with True/False handle
-  const { nodeId, handleName } = parseHandleId(handleId(arrow.source));
+  const { nodeId, handleLabel } = parseHandleId(handleId(arrow.source));
   const sourceNode = nodes.get(nodeId);
   
   if (!sourceNode || sourceNode.type !== NodeType.CONDITION) {
     return false;
   }
   
-  const handleNameLower = handleName.toLowerCase();
+  const handleNameLower = handleLabel.toLowerCase();
   return handleNameLower === 'true' || handleNameLower === 'false';
 }

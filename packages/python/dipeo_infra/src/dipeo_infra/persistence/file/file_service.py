@@ -9,7 +9,7 @@ from datetime import datetime
 from dipeo_core import SupportsFile
 
 
-class SimpleFileService(SupportsFile):
+class FileService(SupportsFile):
     """File operations for local execution."""
     
     def __init__(self, base_dir: Optional[str] = None):
