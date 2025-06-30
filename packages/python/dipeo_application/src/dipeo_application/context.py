@@ -4,18 +4,7 @@ This provides an abstraction over the actual application context
 to allow use cases to be used in different environments (server, CLI).
 """
 
-from typing import TYPE_CHECKING, Protocol
-
-if TYPE_CHECKING:
-    from dipeo_core import (
-        SupportsAPIKey,
-        SupportsDiagram,
-        SupportsExecution,
-        SupportsFile,
-        SupportsLLM,
-        SupportsMemory,
-        SupportsNotion,
-    )
+from typing import Protocol
 
 
 class ApplicationContext(Protocol):

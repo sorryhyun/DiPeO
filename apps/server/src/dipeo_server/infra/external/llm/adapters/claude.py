@@ -1,4 +1,3 @@
-
 import anthropic
 
 from ..base import BaseAdapter, ChatResult
@@ -41,7 +40,9 @@ class ClaudeAdapter(BaseAdapter):
 
         # Extract allowed parameters
         allowed_params = ["max_tokens", "temperature", "tools"]
-        api_params = {k: v for k, v in kwargs.items() if k in allowed_params and v is not None}
+        api_params = {
+            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
+        }
 
         # Make API call
         response = self.client.messages.create(
@@ -81,4 +82,3 @@ class ClaudeAdapter(BaseAdapter):
             total_tokens=total_tokens,
             raw_response=response,
         )
-

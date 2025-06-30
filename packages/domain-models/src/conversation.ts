@@ -6,11 +6,12 @@ import { PersonID, MemoryConfig } from "./diagram.js";
  */
 export interface Message {
   id?: string;
-  personId: PersonID;
-  role: 'user' | 'assistant' | 'system';
+  fromPersonId: PersonID | 'system';  // Who sent the message
+  toPersonId: PersonID;               // Who receives/stores this message
   content: string;
   timestamp?: string;
   tokenCount?: number;
+  messageType: 'person_to_person' | 'system_to_person' | 'person_to_system';
   metadata?: Record<string, any>;
 }
 

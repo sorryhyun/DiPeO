@@ -55,14 +55,15 @@ export interface ArrowFormData extends Record<string, unknown> {
  */
 export interface PersonFormData extends Record<string, unknown> {
   label?: string;
-  service?: 'openai' | 'claude' | 'gemini' | 'grok';
-  model?: string;
-  apiKeyId?: string;
-  memoryConfig?: {
-    forgetMode?: 'no_forget' | 'on_every_turn' | 'upon_request';
-    maxMessages?: number;
-    temperature?: number;
+  llmConfig?: {
+    service?: 'openai' | 'claude' | 'gemini' | 'grok';
+    model?: string;
+    apiKeyId?: string;
+    systemPrompt?: string;
   };
+  temperature?: number;
+  type?: 'person';
+  maskedApiKey?: string | null;
 }
 
 // Re-export typed versions from shared types

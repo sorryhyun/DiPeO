@@ -63,7 +63,7 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
           {personData.label || 'Person'}
         </strong>
       </div>
-      <p className="text-sm text-black truncate text-center">Model: {personData.model || 'Not set'}</p>
+      <p className="text-sm text-black truncate text-center">Model: {personData.llmConfig?.model || 'Not set'}</p>
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -75,7 +75,7 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
     prevProps.id === nextProps.id &&
     prevProps.selected === nextProps.selected &&
     prevData.label === nextData.label &&
-    prevData.model === nextData.model
+    prevData.llmConfig?.model === nextData.llmConfig?.model
   );
 });
 

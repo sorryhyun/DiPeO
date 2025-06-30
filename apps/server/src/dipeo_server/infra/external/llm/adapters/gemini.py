@@ -47,7 +47,9 @@ class GeminiAdapter(BaseAdapter):
 
         # Extract allowed parameters
         allowed_params = ["max_tokens", "temperature"]
-        api_params = {k: v for k, v in kwargs.items() if k in allowed_params and v is not None}
+        api_params = {
+            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
+        }
 
         generation_config = genai.GenerationConfig(
             max_output_tokens=api_params.get("max_tokens"),
@@ -83,4 +85,3 @@ class GeminiAdapter(BaseAdapter):
             total_tokens=total_tokens,
             raw_response=response,
         )
-

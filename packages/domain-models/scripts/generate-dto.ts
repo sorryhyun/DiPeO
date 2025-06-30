@@ -225,6 +225,7 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
     result += `\n    @classmethod\n`;
     result += `    def from_domain(cls, domain_model: "domain.${typeDef.name}") -> "${typeDef.name}${suffix}":\n`;
     result += `        """Convert from domain model to DTO."""\n`;
+    result += `        from dipeo_domain import models as domain\n`;
     result += `        return cls(\n`;
     
     typeDef.properties?.forEach((prop, idx) => {

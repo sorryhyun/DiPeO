@@ -10,10 +10,9 @@ if TYPE_CHECKING:
         SupportsMemory,
     )
     from dipeo_infra import (
-        APIIntegrationDomainService,
         NotionIntegrationDomainService,
     )
-
+    from dipeo_domain.domains.api import APIIntegrationDomainService
     from dipeo_domain.domains.conversation.domain_service import (
         ConversationDomainService,
     )

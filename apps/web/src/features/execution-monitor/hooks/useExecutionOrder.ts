@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import { ExecutionID, NodeID } from '@/core/types';
+import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 
 // TODO: Implement executionOrder query in GraphQL schema
 // For now, using execution query to get basic execution state
@@ -51,10 +52,13 @@ export interface ExecutionOrderData {
 export const useExecutionOrder = (executionId?: ExecutionID) => {
   const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
   
+  // Determine if we should poll based on execution status
+  const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as ExecutionStatus) : true;
+  
   const { data, loading, error, refetch } = useQuery(EXECUTION_ORDER_QUERY, {
     variables: { executionId },
     skip: !executionId,
-    pollInterval: 2000, // Poll every 2 seconds for live updates
+    pollInterval: shouldPoll ? 2000 : 0, // Poll only if execution is active
   });
 
   useEffect(() => {

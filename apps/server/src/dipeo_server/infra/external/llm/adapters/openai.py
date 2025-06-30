@@ -23,7 +23,9 @@ class ChatGPTAdapter(BaseAdapter):
 
         # Extract allowed parameters
         allowed_params = ["temperature", "max_tokens", "n", "top_p"]
-        api_params = {k: v for k, v in kwargs.items() if k in allowed_params and v is not None}
+        api_params = {
+            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
+        }
 
         # Make API call
         params = {"model": self.model_name, "messages": mapped_messages, **api_params}
@@ -52,4 +54,3 @@ class ChatGPTAdapter(BaseAdapter):
             total_tokens=total_tokens,
             raw_response=response,
         )
-

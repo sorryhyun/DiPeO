@@ -5,7 +5,7 @@ import uuid
 
 import strawberry
 from dipeo_application.dto.__generated__ import DomainPerson as DomainPersonDTO
-from dipeo_domain import DomainPerson, LLMService
+from dipeo_domain import DomainPerson, LLMService, PersonLLMConfig
 from dipeo_domain import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
@@ -48,10 +48,12 @@ class PersonMutations:
             person = DomainPerson(
                 id=DomainPersonID(person_id),
                 label=person_input.label,
-                service=person_input.service,
-                model=person_input.model,
-                apiKeyId=person_input.api_key_id,
-                systemPrompt=person_input.system_prompt or "",
+                llmConfig=PersonLLMConfig(
+                    service=person_input.service,
+                    model=person_input.model,
+                    apiKeyId=person_input.api_key_id,
+                    systemPrompt=person_input.system_prompt or "",
+                ),
                 type="person",
             )
 
@@ -140,10 +142,14 @@ class PersonMutations:
             updated_person = DomainPerson(
                 id=person_input.id,
                 label=person_data["label"],
-                service=service,
-                model=person_data.get("model", person_data.get("modelName", "gpt-4")),
-                apiKeyId=person_data.get("apiKeyId", ""),
-                systemPrompt=person_data.get("systemPrompt", ""),
+                llmConfig=PersonLLMConfig(
+                    service=service,
+                    model=person_data.get(
+                        "model", person_data.get("modelName", "gpt-4")
+                    ),
+                    apiKeyId=person_data.get("apiKeyId", ""),
+                    systemPrompt=person_data.get("systemPrompt", ""),
+                ),
                 type=person_data.get("type", "person"),
             )
 
@@ -259,15 +265,11 @@ class PersonMutations:
             )
 
             # Initialize the model by making a simple call
-            messages = [
-                {"role": "user", "content": "Say 'initialized'", "personId": person_id}
-            ]
-            await llm_service.call_llm(
-                service=service_str,
-                api_key_id=api_key_id,
-                model=model,
+            messages = [{"role": "user", "content": "Say 'initialized'"}]
+            await llm_service.complete(
                 messages=messages,
-                system_prompt="",
+                model=model,
+                api_key_id=api_key_id,
             )
 
             try:
@@ -278,10 +280,12 @@ class PersonMutations:
             person = DomainPerson(
                 id=person_id,
                 label=person_data.get("label", ""),
-                service=service,
-                model=model,
-                apiKeyId=api_key_id,
-                systemPrompt=person_data.get("systemPrompt", ""),
+                llmConfig=PersonLLMConfig(
+                    service=service,
+                    model=model,
+                    apiKeyId=api_key_id,
+                    systemPrompt=person_data.get("systemPrompt", ""),
+                ),
                 type=person_data.get("type", "person"),
             )
 

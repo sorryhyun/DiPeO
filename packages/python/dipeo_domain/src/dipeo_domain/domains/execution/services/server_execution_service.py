@@ -1,11 +1,10 @@
 """Simplified server execution service using the shared engine."""
 
 import asyncio
-from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo_core import BaseService, SupportsExecution
-from dipeo_diagram import backend_to_graphql
 from dipeo_application import EngineFactory
 
 from ..observers import StreamingObserver
@@ -37,33 +36,26 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         # Import handlers to register them
         from dipeo_application import handlers  # noqa: F401
 
-    async def execute_diagram(
+    async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: dict | str,
-        options: dict,
+        diagram: Dict[str, Any],
+        options: Dict[str, Any],
         execution_id: str,
-        interactive_handler=None,
-    ) -> AsyncIterator[dict]:
+        interactive_handler: Optional[Callable] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
         """Execute diagram with streaming updates."""
 
-        # Load diagram if ID provided
-        if isinstance(diagram, str):
-            diagram_data = await self.diagram_storage_service.read_file(
-                f"{diagram}.json"
-            )
-            diagram_obj = backend_to_graphql(diagram_data)
-        else:
-            from dipeo_domain.models import DomainDiagram
-            from dipeo_diagram import BackendDiagram, backend_to_graphql
+        from dipeo_domain.models import DomainDiagram
+        from dipeo_diagram import BackendDiagram, backend_to_graphql
 
-            # Check if diagram is in backend format (dict of dicts) or domain format (lists)
-            if isinstance(diagram.get("nodes"), dict):
-                # Convert from backend format to domain format
-                backend_diagram = BackendDiagram(**diagram)
-                diagram_obj = backend_to_graphql(backend_diagram)
-            else:
-                # Already in domain format, validate directly
-                diagram_obj = DomainDiagram.model_validate(diagram)
+        # Check if diagram is in backend format (dict of dicts) or domain format (lists)
+        if isinstance(diagram.get("nodes"), dict):
+            # Convert from backend format to domain format
+            backend_diagram = BackendDiagram(**diagram)
+            diagram_obj = backend_to_graphql(backend_diagram)
+        else:
+            # Already in domain format, validate directly
+            diagram_obj = DomainDiagram.model_validate(diagram)
 
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
@@ -85,7 +77,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
                 import logging
 
                 logger = logging.getLogger(__name__)
-                # Starting engine execution
+                logger.debug("Starting engine execution")
                 async for _ in engine.execute(
                     diagram_obj,
                     execution_id,
@@ -93,7 +85,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
                     interactive_handler,
                 ):
                     pass  # Engine uses observers for updates
-                # Engine execution completed
+                logger.debug("Engine execution completed")
             except Exception as e:
                 import logging
 

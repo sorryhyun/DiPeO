@@ -174,27 +174,86 @@ export class PythonGenerator {
       return cache(opt ? optional(py) : py);
     }
 
-    // Union (non-literal)
-    if (ts.includes('|') && !ts.includes('"')) {
-      const branches = ts.split('|').map(x => this.pyType(x.trim()));
-      const uniq = [...new Set(branches)];
-      // Optional alias
-      if (uniq.length === 2 && uniq.includes('None')) {
-        const base = uniq.find(x => x !== 'None')!;
-        return cache(optional(base));
+    // Check if this is a literal union type (all values are quoted strings)
+    // e.g., "foo" | "bar" or 'foo' | 'bar'
+    // First check if the entire string contains | within quotes
+    if (ts.includes('|') && (ts.includes('"') || ts.includes("'"))) {
+      // Check if all parts are quoted strings
+      const parts = ts.split('|').map(p => p.trim());
+      const allQuoted = parts.every(part => 
+        (part.startsWith('"') && part.endsWith('"')) || 
+        (part.startsWith("'") && part.endsWith("'"))
+      );
+      
+      if (allQuoted) {
+        this.addImport('typing', 'Literal');
+        // Join the parts as-is (they already have quotes)
+        const py = `Literal[${parts.join(', ')}]`;
+        return cache(opt ? optional(py) : py);
       }
-      this.addImport('typing', 'Union');
-      const py = `Union[${uniq.join(', ')}]`;
+    }
+
+    // Single literal string (e.g., 'person', "value")
+    if ((ts.startsWith("'") && ts.endsWith("'")) || (ts.startsWith('"') && ts.endsWith('"'))) {
+      this.addImport('typing', 'Literal');
+      const py = `Literal[${ts}]`;
       return cache(opt ? optional(py) : py);
     }
 
-    // Literal
-    if (ts.includes('"')) {
-      this.addImport('typing', 'Literal');
-      const lits = ts.split('|')
-        .map(x => x.trim())
-        .filter(x => !['undefined', 'null'].includes(x));
-      const py = `Literal[${lits.join(', ')}]`;
+    // Union types (including mixed literal/non-literal)
+    if (ts.includes('|')) {
+      const branches = ts.split('|').map(x => x.trim());
+      
+      // Separate literal values from other types
+      const literals: string[] = [];
+      const nonLiterals: string[] = [];
+      
+      for (const branch of branches) {
+        if (branch.includes('"') || branch.includes("'")) {
+          // It's a literal string
+          literals.push(branch);
+        } else if (!['undefined', 'null'].includes(branch)) {
+          // It's a non-literal type
+          nonLiterals.push(branch);
+        }
+      }
+      
+      // Process non-literal types
+      const processedNonLiterals = nonLiterals.map(x => this.pyType(x));
+      
+      // Build the final type
+      const types: string[] = [];
+      
+      // Add literal type if we have any literals
+      if (literals.length > 0) {
+        this.addImport('typing', 'Literal');
+        // If we only have literals and no other types, create a single Literal type
+        if (nonLiterals.length === 0) {
+          return cache(opt ? optional(`Literal[${literals.join(', ')}]`) : `Literal[${literals.join(', ')}]`);
+        }
+        types.push(`Literal[${literals.join(', ')}]`);
+      }
+      
+      // Add non-literal types
+      types.push(...processedNonLiterals);
+      
+      // Handle special cases
+      const uniqTypes = [...new Set(types)];
+      
+      // Optional alias (T | None => Optional[T])
+      if (uniqTypes.length === 2 && uniqTypes.includes('None')) {
+        const base = uniqTypes.find(x => x !== 'None')!;
+        return cache(optional(base));
+      }
+      
+      // Single type after processing
+      if (uniqTypes.length === 1) {
+        return cache(opt ? optional(uniqTypes[0]) : uniqTypes[0]);
+      }
+      
+      // Multiple types => Union
+      this.addImport('typing', 'Union');
+      const py = `Union[${uniqTypes.join(', ')}]`;
       return cache(opt ? optional(py) : py);
     }
 

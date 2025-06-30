@@ -66,22 +66,21 @@ class ConversationDomainService:
                 )
 
         # Handle conversation inputs
-        self.handle_conversation_inputs(
+        self._handle_conversation_inputs(
             inputs=inputs,
             person_id=person_id,
             execution_id=execution_id,
             node_id=node.id,
-            node_label=data.get("label", node.id),
         )
 
         # Prepare prompt
-        prompt = self.prepare_prompt(
+        prompt = self._prepare_prompt(
             exec_count, first_only_prompt, default_prompt, inputs
         )
 
         # Handle judge aggregation
         if is_judge:
-            judge_context = self.prepare_judge_context(
+            judge_context = self._prepare_judge_context(
                 node, diagram, execution_id, inputs
             )
             if judge_context:
@@ -92,17 +91,17 @@ class ConversationDomainService:
 
         # Add prompt as user message if present
         if prompt:
-            self._conversations.add_message_to_conversation_with_tokens(
-                sender_person_id="user",
-                participant_person_ids=[person_id],
-                content=prompt,
+            self._conversations.add_message_to_conversation(
+                person_id=person_id,
                 execution_id=execution_id,
+                role="user",
+                content=prompt,
+                current_person_id="user",
                 node_id=node.id,
-                node_label=data.get("label", node.id),
             )
 
-        # Get updated conversation from memory service
-        conversation = self._conversations.get_conversation_for_person(person_id)
+        # Get conversation history
+        conversation = self._conversations.get_conversation_history(person_id)
 
         # Build messages list with system prompt
         messages = []
@@ -112,136 +111,69 @@ class ConversationDomainService:
             )
         messages.extend(conversation)
 
-        # Call LLM with conversation
-        kwargs = {}
-        
-        # Add temperature if specified in person's memory config
-        if person_config.get("temperature") is not None:
-            kwargs["temperature"] = person_config["temperature"]
-            
-        # Add other LLM config parameters if available
-        if person_config.get("max_tokens") is not None:
-            kwargs["max_tokens"] = person_config["max_tokens"]
-        if person_config.get("top_p") is not None:
-            kwargs["top_p"] = person_config["top_p"]
-        if person_config.get("frequency_penalty") is not None:
-            kwargs["frequency_penalty"] = person_config["frequency_penalty"]
-        if person_config.get("presence_penalty") is not None:
-            kwargs["presence_penalty"] = person_config["presence_penalty"]
+        # Prepare LLM parameters
+        llm_params = self._extract_llm_params(person_config)
 
+        # Call LLM with conversation
         chat_result = await self._llm.complete(
             messages=messages,
             model=person_config["model"],
             api_key_id=person_config["api_key_id"],
-            **kwargs
+            **llm_params,
         )
 
         response_text: str = chat_result.text
-        token_usage_obj: TokenUsage | None = chat_result.token_usage
+        token_usage: TokenUsage | None = chat_result.token_usage
 
         # Add response to memory
-        self._conversations.add_message_to_conversation_with_tokens(
-            sender_person_id=person_id,
-            participant_person_ids=[person_id],
-            content=response_text,
+        self._conversations.add_message_to_conversation(
+            person_id=person_id,
             execution_id=execution_id,
+            role="assistant",
+            content=response_text,
+            current_person_id=person_id,
             node_id=node.id,
-            node_label=data.get("label", node.id),
-            input_tokens=token_usage_obj.input if token_usage_obj else 0,
-            output_tokens=token_usage_obj.output if token_usage_obj else 0,
-            cached_tokens=token_usage_obj.cached if token_usage_obj else 0,
         )
 
         # Prepare output values
-        output_values = {"default": response_text}
+        output_values: dict[str, Any] = {"default": response_text}
 
         # Check if we need to output conversation state
-        for edge in diagram.arrows:
-            if edge.source.startswith(node.id + ":"):
-                edge_data = (
-                    edge.data if edge.data and isinstance(edge.data, dict) else {}
-                )
-                if edge_data.get("contentType") == "conversation_state":
-                    # Get full conversation history for output
-                    conv_history = self._conversations.get_conversation_for_person(
-                        person_id
-                    )
-                    output_values["conversation"] = conv_history
-                    break
+        if self._should_output_conversation(node, diagram):
+            output_values["conversation"] = (
+                self._conversations.get_conversation_history(person_id)
+            )
 
         # Return node output with all metadata
         return NodeOutput(
             value=output_values,
             metadata={
                 "model": person_config["model"],
-                "tokens_used": token_usage_obj.total if token_usage_obj else 0,
+                "tokens_used": token_usage.total if token_usage else 0,
                 "tokenUsage": {
-                    "input": token_usage_obj.input if token_usage_obj else 0,
-                    "output": token_usage_obj.output if token_usage_obj else 0,
-                    "total": token_usage_obj.total if token_usage_obj else 0,
-                    "cached": token_usage_obj.cached if token_usage_obj else 0,
+                    "input": token_usage.input if token_usage else 0,
+                    "output": token_usage.output if token_usage else 0,
+                    "total": token_usage.total if token_usage else 0,
+                    "cached": token_usage.cached if token_usage else 0,
                 },
-                "token_usage": token_usage_obj,
+                "token_usage": token_usage,
             },
         )
 
     def get_person_config(self, person: DomainPerson | None) -> dict[str, Any]:
         """Extract LLM configuration from a person object."""
         if not person:
-            return {
-                "service": "openai",
-                "api_key_id": None,
-                "model": "gpt-4.1-nano",
-                "system_prompt": "",
-                "temperature": None,
-                "max_tokens": None,
-                "top_p": None,
-                "frequency_penalty": None,
-                "presence_penalty": None,
-            }
+            return self._default_person_config()
 
         # Check if person has the new llmConfig structure
-        llm_config = getattr(person, "llm_config", None) or getattr(person, "llmConfig", None)
+        llm_config = getattr(person, "llm_config", None) or getattr(
+            person, "llmConfig", None
+        )
         if llm_config:
-            # Use new structure
-            return {
-                "service": getattr(llm_config, "service", "openai"),
-                "api_key_id": getattr(llm_config, "api_key_id", None) 
-                or getattr(llm_config, "apiKeyId", None),
-                "model": getattr(llm_config, "model", "gpt-4.1-nano"),
-                "system_prompt": getattr(llm_config, "system_prompt", None)
-                or getattr(llm_config, "systemPrompt", ""),
-                "temperature": getattr(llm_config, "temperature", None),
-                "max_tokens": getattr(llm_config, "max_tokens", None)
-                or getattr(llm_config, "maxTokens", None),
-                "top_p": getattr(llm_config, "top_p", None)
-                or getattr(llm_config, "topP", None),
-                "frequency_penalty": getattr(llm_config, "frequency_penalty", None)
-                or getattr(llm_config, "frequencyPenalty", None),
-                "presence_penalty": getattr(llm_config, "presence_penalty", None)
-                or getattr(llm_config, "presencePenalty", None),
-            }
-        
-        # Fallback to legacy fields
-        # Extract memory config temperature if available
-        memory_config = getattr(person, "memory_config", None)
-        temperature = None
-        if memory_config:
-            temperature = getattr(memory_config, "temperature", None)
+            return self._extract_llm_config(llm_config)
 
-        return {
-            "service": getattr(person, "service", "openai"),
-            "api_key_id": getattr(person, "api_key_id", None)
-            or getattr(person, "apiKeyId", None),
-            "model": getattr(person, "model", "gpt-4.1-nano"),
-            "system_prompt": getattr(person, "system_prompt", None)
-            or getattr(person, "systemPrompt", ""),
-            "temperature": temperature,
-            "max_tokens": None,
-            "top_p": None,
-            "frequency_penalty": None,
-            "presence_penalty": None,
-        }
+        # Fallback to legacy fields
+        return self._extract_legacy_config(person)
 
     def find_person_by_id(
         self, persons: list[DomainPerson], person_id: str
@@ -249,7 +181,7 @@ class ConversationDomainService:
         """Find a person by ID in a list of persons."""
         return next((p for p in persons if p.id == person_id), None)
 
-    def prepare_prompt(
+    def _prepare_prompt(
         self,
         exec_count: int,
         first_only_prompt: str,
@@ -263,15 +195,14 @@ class ConversationDomainService:
             return prompt_template.format(**inputs)
         return default_prompt
 
-    def handle_conversation_inputs(
+    def _handle_conversation_inputs(
         self,
         inputs: dict[str, Any],
         person_id: str,
         execution_id: str,
         node_id: str,
-        node_label: str,
     ) -> None:
-        """Handle conversation inputs from upstream nodes (multi-person conversation loops)."""
+        """Handle conversation inputs from upstream nodes."""
         if "conversation" not in inputs:
             return
 
@@ -288,119 +219,199 @@ class ConversationDomainService:
 
         if our_messages_count > 0:
             # In a loop - extract last exchange from other persons
-            last_other_msg = None
-            for i in range(len(upstream_conv) - 1, -1, -1):
-                msg = upstream_conv[i]
-                if msg.get("personId") != person_id and msg.get("role") == "assistant":
-                    last_other_msg = msg
-                    break
-
+            last_other_msg = self._find_last_other_message(upstream_conv, person_id)
             if last_other_msg:
-                # Add as a message to memory service
-                self._conversations.add_message_to_conversation_with_tokens(
-                    sender_person_id=last_other_msg.get("personId", "unknown"),
-                    participant_person_ids=[person_id],
-                    content=last_other_msg.get("content", ""),
+                self._conversations.add_message_to_conversation(
+                    person_id=person_id,
                     execution_id=execution_id,
+                    role="user",
+                    content=last_other_msg.get("content", ""),
+                    current_person_id=last_other_msg.get("personId", "unknown"),
                     node_id=node_id,
-                    node_label=node_label,
                 )
         else:
             # Not in a loop - format upstream conversation as context
-            last_exchange = []
-            for msg in reversed(upstream_conv):
-                if msg.get("role") in ["user", "assistant"]:
-                    last_exchange.append(msg)
-                    if len(last_exchange) == 2:
-                        break
-
-            if last_exchange:
-                context_parts = []
-                for msg in reversed(last_exchange):
-                    role = "Input" if msg.get("role") == "user" else "Response"
-                    context_parts.append(f"{role}: {msg.get('content', '')}")
-
-                upstream_text = "\n".join(context_parts)
-                # Add as a user message
-                self._conversations.add_message_to_conversation_with_tokens(
-                    sender_person_id="user",
-                    participant_person_ids=[person_id],
-                    content=upstream_text,
+            context = self._format_upstream_context(upstream_conv)
+            if context:
+                self._conversations.add_message_to_conversation(
+                    person_id=person_id,
                     execution_id=execution_id,
+                    role="user",
+                    content=context,
+                    current_person_id="user",
                     node_id=node_id,
-                    node_label=node_label,
                 )
 
-    def prepare_judge_context(
+    def _prepare_judge_context(
         self,
         node: DomainNode,
         diagram: DomainDiagram,
         execution_id: str,
         inputs: dict[str, Any],
     ) -> str:
-        """Prepare debate context for judge nodes by aggregating conversations from inputs or memory."""
+        """Prepare debate context for judge nodes."""
+        # First check if conversation data is available in inputs
+        if "conversation" in inputs:
+            context = self._format_conversation_from_inputs(
+                inputs["conversation"], diagram
+            )
+            if context:
+                return context
+
+        # Fallback to memory-based approach
+        return self._format_conversation_from_memory(node, diagram)
+
+    def _should_output_conversation(
+        self, node: DomainNode, diagram: DomainDiagram
+    ) -> bool:
+        """Check if node should output conversation state."""
+        for edge in diagram.arrows:
+            if edge.source.startswith(node.id + ":"):
+                edge_data = (
+                    edge.data if edge.data and isinstance(edge.data, dict) else {}
+                )
+                if edge_data.get("contentType") == "conversation_state":
+                    return True
+        return False
+
+    def _default_person_config(self) -> dict[str, Any]:
+        """Get default person configuration."""
+        return {
+            "service": "openai",
+            "api_key_id": None,
+            "model": "gpt-4.1-nano",
+            "system_prompt": "",
+            "temperature": None,
+            "max_tokens": None,
+            "top_p": None,
+            "frequency_penalty": None,
+            "presence_penalty": None,
+        }
+
+    def _extract_llm_config(self, llm_config: Any) -> dict[str, Any]:
+        """Extract configuration from llm_config object."""
+        return {
+            "service": getattr(llm_config, "service", "openai"),
+            "api_key_id": getattr(llm_config, "api_key_id", None)
+            or getattr(llm_config, "apiKeyId", None),
+            "model": getattr(llm_config, "model", "gpt-4.1-nano"),
+            "system_prompt": getattr(llm_config, "system_prompt", None)
+            or getattr(llm_config, "systemPrompt", ""),
+            "temperature": getattr(llm_config, "temperature", None),
+            "max_tokens": getattr(llm_config, "max_tokens", None)
+            or getattr(llm_config, "maxTokens", None),
+            "top_p": getattr(llm_config, "top_p", None)
+            or getattr(llm_config, "topP", None),
+            "frequency_penalty": getattr(llm_config, "frequency_penalty", None)
+            or getattr(llm_config, "frequencyPenalty", None),
+            "presence_penalty": getattr(llm_config, "presence_penalty", None)
+            or getattr(llm_config, "presencePenalty", None),
+        }
+
+    def _extract_llm_params(self, person_config: dict[str, Any]) -> dict[str, Any]:
+        """Extract LLM parameters from person config."""
+        params = {}
+
+        # Add parameters if specified
+        for key in [
+            "temperature",
+            "max_tokens",
+            "top_p",
+            "frequency_penalty",
+            "presence_penalty",
+        ]:
+            if person_config.get(key) is not None:
+                params[key] = person_config[key]
+
+        return params
+
+    def _find_last_other_message(
+        self, conversation: list[dict[str, Any]], person_id: str
+    ) -> dict[str, Any] | None:
+        """Find the last message from another person."""
+        for msg in reversed(conversation):
+            if msg.get("personId") != person_id and msg.get("role") == "assistant":
+                return msg
+        return None
+
+    def _format_upstream_context(self, conversation: list[dict[str, Any]]) -> str:
+        """Format upstream conversation as context."""
+        last_exchange = []
+        for msg in reversed(conversation):
+            if msg.get("role") in ["user", "assistant"]:
+                last_exchange.append(msg)
+                if len(last_exchange) == 2:
+                    break
+
+        if not last_exchange:
+            return ""
+
+        context_parts = []
+        for msg in reversed(last_exchange):
+            role = "Input" if msg.get("role") == "user" else "Response"
+            context_parts.append(f"{role}: {msg.get('content', '')}")
+
+        return "\n".join(context_parts)
+
+    def _format_conversation_from_inputs(
+        self, conv_data: Any, diagram: DomainDiagram
+    ) -> str:
+        """Format conversation data from inputs for judge context."""
+        if not isinstance(conv_data, list):
+            return ""
+
+        # Group messages by personId
+        person_conversations = {}
+        for msg in conv_data:
+            person_id = msg.get("personId", "unknown")
+            if person_id not in person_conversations:
+                person_conversations[person_id] = []
+            person_conversations[person_id].append(msg)
+
+        # Format conversations by person
+        debate_context_parts = []
+        for person_id, messages in person_conversations.items():
+            # Find the label for this person
+            label = self._find_person_label(person_id, diagram)
+
+            # Don't include judge panels in the context
+            if "judge" not in label.lower():
+                debate_context_parts.append(f"\n{label}:\n")
+                # Show all non-system messages
+                for msg in messages:
+                    if msg.get("role") != "system":
+                        role = "Input" if msg.get("role") == "user" else "Response"
+                        content = msg.get("content", "")
+                        debate_context_parts.append(f"{role}: {content}\n")
+
+        if debate_context_parts:
+            return (
+                "Here are the arguments from different panels:\n"
+                + "".join(debate_context_parts)
+                + "\n\n"
+            )
+        return ""
+
+    def _format_conversation_from_memory(
+        self, node: DomainNode, diagram: DomainDiagram
+    ) -> str:
+        """Format conversation from memory for judge context."""
         debate_context_parts = []
 
-        # First check if conversation data is available in inputs (from edges)
-        if "conversation" in inputs:
-            conv_data = inputs["conversation"]
-            if isinstance(conv_data, list):
-                # Group messages by personId
-                person_conversations = {}
-                for msg in conv_data:
-                    person_id = msg.get("personId", "unknown")
-                    if person_id not in person_conversations:
-                        person_conversations[person_id] = []
-                    person_conversations[person_id].append(msg)
-
-                # Format conversations by person
-                for person_id, messages in person_conversations.items():
-                    # Find the label for this person
-                    label = person_id
-                    for other_node in diagram.nodes:
-                        if other_node.type == "person_job":
-                            other_data = other_node.data or {}
-                            other_person_id = other_data.get(
-                                "person"
-                            ) or other_data.get("personId")
-                            if other_person_id == person_id:
-                                label = other_data.get("label", person_id)
-                                break
-
-                    # Don't include judge panels in the context
-                    if "judge" not in label.lower():
-                        debate_context_parts.append(f"\n{label}:\n")
-                        # Show all non-system messages
-                        for msg in messages:
-                            if msg.get("role") != "system":
-                                role = (
-                                    "Input" if msg.get("role") == "user" else "Response"
-                                )
-                                content = msg.get("content", "")
-                                debate_context_parts.append(f"{role}: {content}\n")
-
-                if debate_context_parts:
-                    return (
-                        "Here are the arguments from different panels:\n"
-                        + "".join(debate_context_parts)
-                        + "\n\n"
-                    )
-
-        # Fallback to memory-based approach if no conversation in inputs
         for other_node in diagram.nodes:
             if other_node.type != "person_job" or other_node.id == node.id:
                 continue
 
-            other_person_id = (
-                other_node.data.get("personId") if other_node.data else None
+            if not other_node.data:
+                continue
+            other_person_id = other_node.data.get("personId") or other_node.data.get(
+                "person"
             )
             if not other_person_id:
                 continue
 
             # Get conversation for the other person
-            other_conv = self._conversations.get_conversation_for_person(
-                other_person_id
-            )
+            other_conv = self._conversations.get_conversation_history(other_person_id)
 
             # Filter out system messages
             debate_messages = [m for m in other_conv if m.get("role") != "system"]
@@ -426,3 +437,13 @@ class ConversationDomainService:
                 + "\n\n"
             )
         return ""
+
+    def _find_person_label(self, person_id: str, diagram: DomainDiagram) -> str:
+        """Find the label for a person from the diagram nodes."""
+        for node in diagram.nodes:
+            if node.type == "person_job":
+                data = node.data or {}
+                node_person_id = data.get("person") or data.get("personId")
+                if node_person_id == person_id:
+                    return data.get("label", person_id)
+        return person_id

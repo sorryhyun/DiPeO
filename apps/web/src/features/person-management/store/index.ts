@@ -43,10 +43,12 @@ export const createPersonSlice: StateCreator<
     const person: DomainPerson = {
       id: generatePersonId(),
       label,
-      apiKeyId: '',
-      service: service as LLMService,
-      model,
-      systemPrompt: '',
+      llmConfig: {
+        apiKeyId: '',
+        service: service as LLMService,
+        model,
+        systemPrompt: ''
+      },
       type: 'person',
       maskedApiKey: null
     };
@@ -118,7 +120,7 @@ export const createPersonSlice: StateCreator<
   getPersonsByService: (service) => {
     const state = get();
     return Array.from(state.persons.values()).filter(
-      person => person.service === service
+      person => person.llmConfig?.service === service
     );
   },
   

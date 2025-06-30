@@ -8,6 +8,9 @@ interface ExtendedPersonFormData extends PersonFormData {
   label?: string;
   systemPrompt?: string;
   temperature?: number;
+  'llmConfig.apiKeyId'?: string;
+  'llmConfig.model'?: string;
+  'llmConfig.systemPrompt'?: string;
 }
 
 export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
@@ -21,7 +24,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'apiKeyId',
+      name: 'llmConfig.apiKeyId',
       label: 'API Key',
       options: async () => {
         try {
@@ -42,11 +45,12 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'model',
+      name: 'llmConfig.model',
       label: 'Model',
       options: async (formData: unknown) => {
         const data = formData as Record<string, unknown>;
-        if (!data.apiKeyId) {
+        const apiKeyId = data['llmConfig.apiKeyId'] as string;
+        if (!apiKeyId) {
           return [];
         }
         try {
@@ -55,7 +59,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'cache-first'
           });
-          const selectedKey = apiKeysData.apiKeys.find((k) => k.id === data.apiKeyId);
+          const selectedKey = apiKeysData.apiKeys.find((k) => k.id === apiKeyId);
           if (!selectedKey) {
             return [];
           }
@@ -64,7 +68,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetAvailableModelsDocument,
             variables: {
               service: selectedKey.service,
-              apiKeyId: data.apiKeyId as string
+              apiKeyId
             }
           });
           
@@ -82,7 +86,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
           return [];
         }
       },
-      dependsOn: ['apiKeyId'],
+      dependsOn: ['llmConfig.apiKeyId'],
       placeholder: 'Select Model'
     },
     {
@@ -91,14 +95,13 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
       label: 'Temperature',
       placeholder: '0.7',
       min: 0,
-      max: 2,
-      step: 0.1
+      max: 2
     }
   ],
   rightColumn: [
     {
       type: 'textarea',
-      name: 'systemPrompt',
+      name: 'llmConfig.systemPrompt',
       label: 'System Prompt',
       placeholder: 'Enter system prompt',
       rows: 4

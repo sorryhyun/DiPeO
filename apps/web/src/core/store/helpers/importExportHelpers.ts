@@ -66,10 +66,12 @@ export function createImportState() {
       persons.set(personId, {
         id: personId,
         label,
-        apiKeyId: null,
-        service: service as LLMService,
-        model,
-        systemPrompt: null,
+        llmConfig: {
+          apiKeyId: '',
+          service: service as LLMService,
+          model,
+          systemPrompt: ''
+        },
         type: 'person',
         maskedApiKey: null
       });

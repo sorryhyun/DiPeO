@@ -107,12 +107,9 @@ class SupportsLLM(Protocol):
         api_key_id: str,
         **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
     ) -> "ChatResult": ...
-    
-    async def get_available_models(
-        self, 
-        api_key_id: str
-    ) -> List[str]: ...
-    
+
+    async def get_available_models(self, api_key_id: str) -> List[str]: ...
+
     def get_token_counts(
         self, client_name: str, usage: Any
     ) -> Any: ...  # Returns TokenUsage

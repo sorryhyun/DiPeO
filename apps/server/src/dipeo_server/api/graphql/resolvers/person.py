@@ -99,7 +99,7 @@ class PersonResolver:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
 
-            return await llm_service.get_available_models(
+            return await llm_service.get_available_models_for_service(
                 service=service, api_key_id=api_key_id
             )
 

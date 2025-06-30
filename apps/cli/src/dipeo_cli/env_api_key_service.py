@@ -10,7 +10,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
     """API Key service that reads from environment variables for CLI usage."""
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
-    
+
     # Mapping of service names to environment variable names
     ENV_VAR_MAPPING = {
         "openai": "OPENAI_API_KEY",
@@ -51,7 +51,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
     def _get_provider_from_model(self, model: str) -> str:
         """Determine provider from model name."""
         model_lower = model.lower()
-        
+
         if "gpt" in model_lower or "o1" in model_lower or "o3" in model_lower:
             return "openai"
         if "claude" in model_lower:
@@ -70,21 +70,34 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
         # First check if it's a direct key ID
         if key_id in self._cached_keys:
             return self._cached_keys[key_id]
-        
+
         # Check if it looks like a model name (contains common model patterns)
-        if any(pattern in key_id.lower() for pattern in ["gpt", "claude", "gemini", "groq", "grok", "llama", "mixtral", "o1", "o3"]):
+        if any(
+            pattern in key_id.lower()
+            for pattern in [
+                "gpt",
+                "claude",
+                "gemini",
+                "groq",
+                "grok",
+                "llama",
+                "mixtral",
+                "o1",
+                "o3",
+            ]
+        ):
             # It's likely a model name, determine the provider
             provider = self._get_provider_from_model(key_id)
             normalized_service = normalize_service_name(provider)
         else:
             # Try to find by service name
             normalized_service = normalize_service_name(key_id)
-        
+
         env_key_id = f"env_{normalized_service}"
-        
+
         if env_key_id in self._cached_keys:
             return self._cached_keys[env_key_id]
-        
+
         # If not found, check if we can load it from environment
         env_var = self.ENV_VAR_MAPPING.get(normalized_service)
         if env_var:
@@ -98,7 +111,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
                 }
                 self._cached_keys[env_key_id] = key_data
                 return key_data
-        
+
         raise APIKeyError(
             f"No API key found for '{key_id}'. "
             f"Please set the appropriate environment variable "

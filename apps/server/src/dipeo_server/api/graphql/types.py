@@ -178,7 +178,12 @@ class DomainPersonType:
     @strawberry.field
     def masked_api_key(self) -> str | None:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
-        if obj and hasattr(obj, "llm_config") and obj.llm_config and obj.llm_config.api_key_id:
+        if (
+            obj
+            and hasattr(obj, "llm_config")
+            and obj.llm_config
+            and obj.llm_config.api_key_id
+        ):
             return f"****{str(obj.llm_config.api_key_id)[-4:]}"
         return None
 

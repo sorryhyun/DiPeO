@@ -10,6 +10,7 @@ import { useConversationData } from '../../hooks';
 import { useUIState, usePersonsData } from '@/shared/hooks/selectors';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView } from '@/features/execution-monitor/components';
+import { useExecution } from '@/features/execution-monitor/hooks';
 import { ConversationFilters, ConversationMessage } from '@/core/types/conversation';
 import { PersonID, executionId, personId } from '@/core/types';
 import { debounce, throttle } from '@/shared/utils/math';
@@ -35,6 +36,7 @@ const ConversationDashboard: React.FC = () => {
 
   const { personsArray, personsMap } = usePersonsData();
   const { selectedId } = useUIState();
+  const { execution } = useExecution();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use persons directly from the hook
@@ -59,7 +61,9 @@ const ConversationDashboard: React.FC = () => {
   } = useConversationData({
     filters,
     personId: dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' ? dashboardSelectedPerson : undefined,
-    enableRealtimeUpdates: true
+    enableRealtimeUpdates: true,
+    // Pass execution status to control polling - when execution is not running, we can stop polling
+    executionStatus: execution.isRunning ? 'RUNNING' : 'COMPLETED'
   });
 
   // Debounced auto-scroll handler

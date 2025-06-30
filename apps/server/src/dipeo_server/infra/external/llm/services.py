@@ -1,8 +1,9 @@
 import time
-from typing import Any
+from typing import Any, Dict, List
 
 from dipeo_core import APIKeyError, BaseService, LLMServiceError, SupportsLLM
-from dipeo_domain import ChatResult, LLMService as LLMServiceEnum, TokenUsage
+from dipeo_domain import ChatResult
+from dipeo_domain import LLMService as LLMServiceEnum
 from dipeo_domain.domains.apikey import APIKeyDomainService
 from dipeo_domain.domains.execution.services.token_usage_service import (
     TokenUsageService,
@@ -25,7 +26,7 @@ class LLMInfraService(BaseService, SupportsLLM):
     def __init__(self, api_key_service: APIKeyDomainService):
         super().__init__()
         self.api_key_service = api_key_service
-        self._adapter_pool = {}
+        self._adapter_pool: Dict[str, Dict[str, Any]] = {}
 
     async def initialize(self) -> None:
         """Initialize the LLM service."""
@@ -68,29 +69,24 @@ class LLMInfraService(BaseService, SupportsLLM):
 
         return entry["adapter"]
 
-
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
     )
     async def _call_llm_with_retry(
-        self, client: Any, messages: list[dict], **kwargs
+        self, client: Any, messages: List[Dict], **kwargs
     ) -> Any:
         """Internal method for LLM calls with retry logic."""
         return client.chat(messages=messages, **kwargs)
 
-    async def complete(
-        self,
-        messages: list[dict[str, str]],
-        model: str,
-        api_key_id: str,
-        **kwargs
+    async def complete(  # type: ignore[override]
+        self, messages: List[Dict[str, str]], model: str, api_key_id: str, **kwargs
     ) -> ChatResult:
         """Make a call to the specified LLM service with retry logic."""
         try:
             # Infer service from model name
-            service = self._infer_service_from_model(model)
+            service = LLMInfraService._infer_service_from_model(model)
             adapter = self._get_client(service, model, api_key_id)
 
             # Messages should already be in the correct format
@@ -99,7 +95,9 @@ class LLMInfraService(BaseService, SupportsLLM):
             # Pass all kwargs to the adapter
             adapter_kwargs = {**kwargs}
 
-            result = await self._call_llm_with_retry(adapter, messages_list, **adapter_kwargs)
+            result = await self._call_llm_with_retry(
+                adapter, messages_list, **adapter_kwargs
+            )
 
             # Create TokenUsage from adapter's ChatResult
             token_usage = TokenUsageService.from_chat_result(
@@ -107,17 +105,17 @@ class LLMInfraService(BaseService, SupportsLLM):
                 completion_tokens=result.completion_tokens,
                 total_tokens=result.total_tokens,
             )
-            
+
             # Return ChatResult with embedded TokenUsage
             return ChatResult(
                 text=result.text,
-                token_usage=token_usage,
-                raw_response=result.raw_response
+                tokenUsage=token_usage,
+                rawResponse=result.raw_response,
             )
 
         except Exception as e:
             raise LLMServiceError(
-                service=self._infer_service_from_model(model),
+                service=LLMInfraService._infer_service_from_model(model),
                 message=f"LLM call failed: {e}",
                 model=model,
             )
@@ -134,28 +132,30 @@ class LLMInfraService(BaseService, SupportsLLM):
                 model=model,
             )
 
-    def _infer_service_from_model(self, model: str) -> str:
+    @staticmethod
+    def _infer_service_from_model(model: str) -> str:
         """Infer the service from the model name."""
         # Map model prefixes to services
         if model.startswith("gpt-") or model.startswith("o1-"):
             return "openai"
-        elif model.startswith("claude-"):
+        if model.startswith("claude-"):
             return "claude"
-        elif model.startswith("gemini-"):
+        if model.startswith("gemini-"):
             return "gemini"
-        elif model.startswith("grok-"):
+        if model.startswith("grok-"):
             return "grok"
-        else:
-            # Default to openai for backwards compatibility
-            return "openai"
+        # Default to openai for backwards compatibility
+        return "openai"
 
-    async def get_available_models(self, api_key_id: str) -> list[str]:
+    async def get_available_models(self, api_key_id: str) -> List[str]:
         """Get available models for all services based on API key."""
         # For now, return an empty list as we need to know which service
         # the API key is for. This could be enhanced later.
         return []
-    
-    async def get_available_models_for_service(self, service: str, api_key_id: str) -> list[str]:
+
+    async def get_available_models_for_service(
+        self, service: str, api_key_id: str
+    ) -> list[str]:
         """Get available models for a service."""
         raw_key = self._get_api_key(api_key_id)
         normalized_service = normalize_service_name(service)
@@ -173,12 +173,10 @@ class LLMInfraService(BaseService, SupportsLLM):
                 )
 
         return []
-    
-    def get_token_counts(
-        self, client_name: str, usage: Any
-    ) -> Any:
+
+    def get_token_counts(self, client_name: str, usage: Any) -> Any:
         """Get token counts from usage data.
-        
+
         This is a pass-through method as token counting is now handled
         by the TokenUsageService in the domain layer.
         """

@@ -35,7 +35,9 @@ class GrokAdapter(BaseAdapter):
 
         # Extract allowed parameters
         allowed_params = ["max_tokens", "temperature"]
-        api_params = {k: v for k, v in kwargs.items() if k in allowed_params and v is not None}
+        api_params = {
+            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
+        }
 
         # Make the API call
         response = self.client.messages.create(

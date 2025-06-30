@@ -44,10 +44,20 @@ class MemoryService(SupportsMemory):
         if timestamp is None:
             timestamp = datetime.now().timestamp()
 
+        # Determine message type
+        if current_person_id == "system":
+            message_type = "system_to_person"
+        elif person_id == "system":
+            message_type = "person_to_system"
+        else:
+            message_type = "person_to_person"
+
         message = {
             "role": role,
             "content": content,
-            "person_id": current_person_id,
+            "from_person_id": current_person_id,
+            "to_person_id": person_id,
+            "message_type": message_type,
             "node_id": node_id,
             "timestamp": timestamp,
             "execution_id": execution_id,
@@ -95,14 +105,14 @@ class MemoryService(SupportsMemory):
                 self._conversations[person_id][execution_id] = [
                     msg
                     for msg in self._conversations[person_id][execution_id]
-                    if msg["person_id"] != person_id
+                    if msg.get("from_person_id") != person_id
                 ]
         else:
             for exec_id in self._conversations[person_id]:
                 self._conversations[person_id][exec_id] = [
                     msg
                     for msg in self._conversations[person_id][exec_id]
-                    if msg["person_id"] != person_id
+                    if msg.get("from_person_id") != person_id
                 ]
 
     def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:

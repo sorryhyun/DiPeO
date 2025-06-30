@@ -92,7 +92,7 @@ class ConversationService:
                 temperature = job.memory_config.temperature
             if person.temperature is not None:
                 temperature = person.temperature
-                
+
             chat_result = await self.llm_service.call_llm(
                 model=person.model,
                 messages=messages,

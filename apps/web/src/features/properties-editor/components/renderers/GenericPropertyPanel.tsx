@@ -31,6 +31,24 @@ const fieldTypeMapping = createHandlerTable<string, [], UnifiedFieldType>({
   'personSelect': () => FIELD_TYPES.PERSON_SELECT
 }, () => FIELD_TYPES.TEXT);
 
+// Helper function to flatten nested object properties
+function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
+  const flattened: Record<string, unknown> = {};
+  
+  Object.keys(obj).forEach(key => {
+    const value = obj[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    
+    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      Object.assign(flattened, flattenObject(value as Record<string, unknown>, newKey));
+    } else {
+      flattened[newKey] = value;
+    }
+  });
+  
+  return flattened;
+}
+
 export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   nodeId,
   data,
@@ -49,12 +67,15 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   
   const entityType = getEntityType(data.type);
 
+  // Flatten the data for form fields if it's a person
+  const flattenedData = entityType === 'person' ? flattenObject(data) : data;
+
   const {
     formData,
     updateField,
     processedFields,
     isReadOnly
-  } = usePropertyManager<T>(nodeId, entityType, data, {
+  } = usePropertyManager<T>(nodeId, entityType, flattenedData as T, {
     autoSave: true,
     autoSaveDelay: 50,
     panelConfig: config
@@ -63,7 +84,7 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const handleFieldUpdate = useCallback(async (name: string, value: unknown) => {
     updateField(name as keyof T, value as T[keyof T]);
     
-    if (data.type === 'person' && name === 'apiKeyId' && value) {
+    if (data.type === 'person' && name === 'llmConfig.apiKeyId' && value) {
       try {
         const { data } = await apolloClient.query<GetApiKeysQuery>({
           query: GetApiKeysDocument,
@@ -71,14 +92,14 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
         });
         const selectedKey = data.apiKeys.find((k) => k.id === value);
         if (selectedKey) {
-          updateField('service' as keyof T, selectedKey.service as T[keyof T]);
+          updateField('llmConfig.service' as keyof T, selectedKey.service as T[keyof T]);
         }
       } catch (error) {
         console.error('Failed to update service:', error);
       }
     }
     
-    if (data.type === 'person' && name === 'model' && value) {
+    if (data.type === 'person' && name === 'llmConfig.model' && value) {
       try {
         const personId = nodeId;
         const { data: result } = await apolloClient.mutate({

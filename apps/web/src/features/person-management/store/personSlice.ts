@@ -43,10 +43,12 @@ export const createPersonSlice: StateCreator<
     const person: DomainPerson = {
       id: generatePersonId(),
       label,
-      apiKeyId: '',
-      service: service as LLMService,
-      model,
-      systemPrompt: '',
+      llmConfig: {
+        apiKeyId: '',
+        service: service as LLMService,
+        model,
+        systemPrompt: ''
+      },
       type: 'person',
       maskedApiKey: null
     };
@@ -63,7 +65,33 @@ export const createPersonSlice: StateCreator<
   updatePerson: (id, updates) => set(state => {
     const person = state.persons.get(id);
     if (person) {
-      const updatedPerson = { ...person, ...updates };
+      // Handle nested llmConfig updates
+      const updatedPerson = { ...person };
+      
+      // Check for nested llmConfig fields in the updates
+      const flatUpdates = { ...updates } as Record<string, unknown>;
+      const llmConfigUpdates: Record<string, unknown> = {};
+      
+      // Extract nested llmConfig fields
+      Object.keys(flatUpdates).forEach(key => {
+        if (key.startsWith('llmConfig.')) {
+          const field = key.substring('llmConfig.'.length);
+          llmConfigUpdates[field] = flatUpdates[key];
+          delete flatUpdates[key];
+        }
+      });
+      
+      // Apply flat updates first
+      Object.assign(updatedPerson, flatUpdates);
+      
+      // Apply llmConfig updates if any
+      if (Object.keys(llmConfigUpdates).length > 0) {
+        updatedPerson.llmConfig = {
+          ...updatedPerson.llmConfig,
+          ...llmConfigUpdates
+        };
+      }
+      
       state.persons.set(id, updatedPerson);
       state.personsArray = Array.from(state.persons.values());
       state.dataVersion += 1;
@@ -118,7 +146,7 @@ export const createPersonSlice: StateCreator<
   getPersonsByService: (service) => {
     const state = get();
     return Array.from(state.persons.values()).filter(
-      person => person.service === service
+      person => person.llmConfig?.service === service
     );
   },
   
