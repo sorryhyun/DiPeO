@@ -12,6 +12,7 @@ from dipeo_domain import (
     DomainHandle,
     DomainNode,
     DomainPerson,
+    PersonLLMConfig,
     ExecutionState,
     NodeOutput,
     NodeState,
@@ -158,8 +159,16 @@ class DomainArrowType:
 
 
 @strawberry.experimental.pydantic.type(
+    PersonLLMConfig,
+    fields=["service", "model", "api_key_id", "system_prompt"],
+)
+class PersonLLMConfigType:
+    pass
+
+
+@strawberry.experimental.pydantic.type(
     DomainPerson,
-    fields=["id", "label", "service", "model", "api_key_id", "system_prompt"],
+    fields=["id", "label", "llm_config", "masked_api_key"],
 )
 class DomainPersonType:
     @strawberry.field
@@ -169,8 +178,8 @@ class DomainPersonType:
     @strawberry.field
     def masked_api_key(self) -> str | None:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
-        if obj and obj.api_key_id:
-            return f"****{str(obj.api_key_id)[-4:]}"
+        if obj and hasattr(obj, "llm_config") and obj.llm_config and obj.llm_config.api_key_id:
+            return f"****{str(obj.llm_config.api_key_id)[-4:]}"
         return None
 
 

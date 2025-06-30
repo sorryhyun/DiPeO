@@ -98,25 +98,24 @@ class SupportsFile(Protocol):
 
 @runtime_checkable
 class SupportsLLM(Protocol):
-    """Protocol for LLM operations."""
+    """Protocol for raw LLM operations - provider adapter interface."""
 
+    async def complete(
+        self,
+        messages: List[Dict[str, str]],  # Standard format
+        model: str,
+        api_key_id: str,
+        **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
+    ) -> "ChatResult": ...
+    
+    async def get_available_models(
+        self, 
+        api_key_id: str
+    ) -> List[str]: ...
+    
     def get_token_counts(
         self, client_name: str, usage: Any
     ) -> Any: ...  # Returns TokenUsage
-    async def call_llm(
-        self,
-        service: Optional[str],
-        api_key_id: str,
-        model: str,
-        messages: Any,
-        system_prompt: str = "",
-    ) -> "ChatResult": ...
-    def pre_initialize_model(
-        self, service: str, model: str, api_key_id: str
-    ) -> bool: ...
-    async def get_available_models(
-        self, service: str, api_key_id: str
-    ) -> List[str]: ...
 
 
 @runtime_checkable

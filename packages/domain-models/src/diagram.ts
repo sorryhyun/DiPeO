@@ -113,13 +113,17 @@ export interface MemoryConfig {
   temperature?: number;
 }
 
+export interface PersonLLMConfig {
+  service: LLMService;
+  model: string;
+  apiKeyId: ApiKeyID;
+  systemPrompt?: string | null;
+}
+
 export interface DomainPerson {
   id: PersonID;
   label: string;
-  service: LLMService;
-  model: string;
-  apiKeyId?: ApiKeyID | null;
-  systemPrompt?: string | null;
+  llmConfig: PersonLLMConfig;
   type: 'person';
   maskedApiKey?: string | null;
 }

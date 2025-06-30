@@ -113,18 +113,28 @@ class ConversationDomainService:
         messages.extend(conversation)
 
         # Call LLM with conversation
-        llm_params = {
-            "service": person_config["service"],
-            "api_key_id": person_config["api_key_id"],
-            "model": person_config["model"],
-            "messages": messages,
-        }
-
+        kwargs = {}
+        
         # Add temperature if specified in person's memory config
         if person_config.get("temperature") is not None:
-            llm_params["temperature"] = person_config["temperature"]
+            kwargs["temperature"] = person_config["temperature"]
+            
+        # Add other LLM config parameters if available
+        if person_config.get("max_tokens") is not None:
+            kwargs["max_tokens"] = person_config["max_tokens"]
+        if person_config.get("top_p") is not None:
+            kwargs["top_p"] = person_config["top_p"]
+        if person_config.get("frequency_penalty") is not None:
+            kwargs["frequency_penalty"] = person_config["frequency_penalty"]
+        if person_config.get("presence_penalty") is not None:
+            kwargs["presence_penalty"] = person_config["presence_penalty"]
 
-        chat_result = await self._llm.call_llm(**llm_params)
+        chat_result = await self._llm.complete(
+            messages=messages,
+            model=person_config["model"],
+            api_key_id=person_config["api_key_id"],
+            **kwargs
+        )
 
         response_text: str = chat_result.text
         token_usage_obj: TokenUsage | None = chat_result.token_usage
@@ -184,8 +194,35 @@ class ConversationDomainService:
                 "model": "gpt-4.1-nano",
                 "system_prompt": "",
                 "temperature": None,
+                "max_tokens": None,
+                "top_p": None,
+                "frequency_penalty": None,
+                "presence_penalty": None,
             }
 
+        # Check if person has the new llmConfig structure
+        llm_config = getattr(person, "llm_config", None) or getattr(person, "llmConfig", None)
+        if llm_config:
+            # Use new structure
+            return {
+                "service": getattr(llm_config, "service", "openai"),
+                "api_key_id": getattr(llm_config, "api_key_id", None) 
+                or getattr(llm_config, "apiKeyId", None),
+                "model": getattr(llm_config, "model", "gpt-4.1-nano"),
+                "system_prompt": getattr(llm_config, "system_prompt", None)
+                or getattr(llm_config, "systemPrompt", ""),
+                "temperature": getattr(llm_config, "temperature", None),
+                "max_tokens": getattr(llm_config, "max_tokens", None)
+                or getattr(llm_config, "maxTokens", None),
+                "top_p": getattr(llm_config, "top_p", None)
+                or getattr(llm_config, "topP", None),
+                "frequency_penalty": getattr(llm_config, "frequency_penalty", None)
+                or getattr(llm_config, "frequencyPenalty", None),
+                "presence_penalty": getattr(llm_config, "presence_penalty", None)
+                or getattr(llm_config, "presencePenalty", None),
+            }
+        
+        # Fallback to legacy fields
         # Extract memory config temperature if available
         memory_config = getattr(person, "memory_config", None)
         temperature = None
@@ -200,6 +237,10 @@ class ConversationDomainService:
             "system_prompt": getattr(person, "system_prompt", None)
             or getattr(person, "systemPrompt", ""),
             "temperature": temperature,
+            "max_tokens": None,
+            "top_p": None,
+            "frequency_penalty": None,
+            "presence_penalty": None,
         }
 
     def find_person_by_id(

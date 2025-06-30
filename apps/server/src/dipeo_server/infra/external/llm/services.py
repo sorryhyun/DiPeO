@@ -75,35 +75,31 @@ class LLMInfraService(BaseService, SupportsLLM):
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
     )
     async def _call_llm_with_retry(
-        self, client: Any, messages: list[dict]
+        self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
         """Internal method for LLM calls with retry logic."""
-        return client.chat(messages=messages)
+        return client.chat(messages=messages, **kwargs)
 
-    async def call_llm(
+    async def complete(
         self,
-        service: str | None,
-        api_key_id: str,
+        messages: list[dict[str, str]],
         model: str,
-        messages: str | list[dict],
-        system_prompt: str = "",
+        api_key_id: str,
+        **kwargs
     ) -> ChatResult:
         """Make a call to the specified LLM service with retry logic."""
         try:
-            adapter = self._get_client(service or "chatgpt", model, api_key_id)
+            # Infer service from model name
+            service = self._infer_service_from_model(model)
+            adapter = self._get_client(service, model, api_key_id)
 
-            # Convert to messages list format
-            if isinstance(messages, list):
-                messages_list = messages
-            else:
-                # Build messages list from system and user prompts
-                messages_list = []
-                if system_prompt:
-                    messages_list.append({"role": "system", "content": system_prompt})
-                if messages:
-                    messages_list.append({"role": "user", "content": messages})
+            # Messages should already be in the correct format
+            messages_list = messages
 
-            result = await self._call_llm_with_retry(adapter, messages_list)
+            # Pass all kwargs to the adapter
+            adapter_kwargs = {**kwargs}
+
+            result = await self._call_llm_with_retry(adapter, messages_list, **adapter_kwargs)
 
             # Create TokenUsage from adapter's ChatResult
             token_usage = TokenUsageService.from_chat_result(
@@ -121,7 +117,7 @@ class LLMInfraService(BaseService, SupportsLLM):
 
         except Exception as e:
             raise LLMServiceError(
-                service=service or "chatgpt",
+                service=self._infer_service_from_model(model),
                 message=f"LLM call failed: {e}",
                 model=model,
             )
@@ -138,7 +134,28 @@ class LLMInfraService(BaseService, SupportsLLM):
                 model=model,
             )
 
-    async def get_available_models(self, service: str, api_key_id: str) -> list[str]:
+    def _infer_service_from_model(self, model: str) -> str:
+        """Infer the service from the model name."""
+        # Map model prefixes to services
+        if model.startswith("gpt-") or model.startswith("o1-"):
+            return "openai"
+        elif model.startswith("claude-"):
+            return "claude"
+        elif model.startswith("gemini-"):
+            return "gemini"
+        elif model.startswith("grok-"):
+            return "grok"
+        else:
+            # Default to openai for backwards compatibility
+            return "openai"
+
+    async def get_available_models(self, api_key_id: str) -> list[str]:
+        """Get available models for all services based on API key."""
+        # For now, return an empty list as we need to know which service
+        # the API key is for. This could be enhanced later.
+        return []
+    
+    async def get_available_models_for_service(self, service: str, api_key_id: str) -> list[str]:
         """Get available models for a service."""
         raw_key = self._get_api_key(api_key_id)
         normalized_service = normalize_service_name(service)
@@ -156,3 +173,13 @@ class LLMInfraService(BaseService, SupportsLLM):
                 )
 
         return []
+    
+    def get_token_counts(
+        self, client_name: str, usage: Any
+    ) -> Any:
+        """Get token counts from usage data.
+        
+        This is a pass-through method as token counting is now handled
+        by the TokenUsageService in the domain layer.
+        """
+        return usage

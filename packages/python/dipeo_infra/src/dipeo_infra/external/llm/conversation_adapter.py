@@ -86,12 +86,17 @@ class ConversationService:
             )
 
             # Call LLM - use person's model and service
+            # Temperature priority: person.temperature > job.memory_config.temperature > default 0.7
+            temperature = 0.7  # default
+            if job.memory_config and job.memory_config.temperature is not None:
+                temperature = job.memory_config.temperature
+            if person.temperature is not None:
+                temperature = person.temperature
+                
             chat_result = await self.llm_service.call_llm(
                 model=person.model,
                 messages=messages,
-                temperature=job.memory_config.temperature
-                if job.memory_config and job.memory_config.temperature
-                else 0.7,
+                temperature=temperature,
                 max_tokens=None,  # Let the service use defaults
             )
 

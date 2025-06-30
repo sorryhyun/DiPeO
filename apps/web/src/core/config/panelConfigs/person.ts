@@ -7,6 +7,7 @@ interface ExtendedPersonFormData extends PersonFormData {
   model?: string;
   label?: string;
   systemPrompt?: string;
+  temperature?: number;
 }
 
 export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
@@ -83,6 +84,15 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
       },
       dependsOn: ['apiKeyId'],
       placeholder: 'Select Model'
+    },
+    {
+      type: 'number',
+      name: 'temperature',
+      label: 'Temperature',
+      placeholder: '0.7',
+      min: 0,
+      max: 2,
+      step: 0.1
     }
   ],
   rightColumn: [
