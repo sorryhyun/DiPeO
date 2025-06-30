@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
 from dipeo_container import Container as BaseContainer
 from dipeo_core import (
     SupportsAPIKey,
@@ -13,23 +13,32 @@ from dipeo_core import (
     SupportsMemory,
     SupportsNotion,
 )
-
 from dipeo_domain.domains.apikey import APIKeyDomainService
 from dipeo_domain.domains.conversation import ConversationMemoryDomainService
 from dipeo_domain.domains.conversation.domain_service import ConversationDomainService
 from dipeo_domain.domains.db import DBOperationsDomainService
-from dipeo_domain.domains.diagram.services import DiagramFileRepository, DiagramStorageAdapter
+from dipeo_domain.domains.diagram.services import (
+    DiagramFileRepository,
+    DiagramStorageAdapter,
+)
 from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
-from dipeo_domain.domains.execution.services import ExecuteDiagramUseCase, ServiceRegistry
+from dipeo_domain.domains.execution.services import (
+    ExecuteDiagramUseCase,
+    ServiceRegistry,
+)
 from dipeo_domain.domains.file import FileOperationsDomainService
 from dipeo_domain.domains.text import TextProcessingDomainService
 from dipeo_domain.domains.validation import ValidationDomainService
+from dipeo_infra import (
+    APIIntegrationDomainService,
+    MessageRouter,
+    NotionIntegrationDomainService,
+)
+
 from dipeo_server.infra.external.integrations.notion import NotionAPIService
 from dipeo_server.infra.external.llm import LLMInfraService
-from dipeo_server.infra.messaging.message_router import MessageRouter
 from dipeo_server.infra.persistence import FileSystemRepository
 from dipeo_server.infra.persistence.state_registry import state_store
-from dipeo_infra import APIIntegrationDomainService, NotionIntegrationDomainService
 from dipeo_server.shared.constants import BASE_DIR
 
 

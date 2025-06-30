@@ -2,6 +2,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Types
 interface Property {
@@ -85,7 +90,7 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
       const pythonName = value.toUpperCase();
       result += `    ${pythonName} = "${value}"\n`;
     });
-    return result + '\n';
+    return `${result  }\n`;
   }
 
   if (typeDef.type === 'type' && typeDef.value) {
@@ -101,7 +106,7 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
   
   if (!typeDef.properties || typeDef.properties.length === 0) {
     result += '    pass\n';
-    return result + '\n';
+    return `${result  }\n`;
   }
 
   // First, add all required fields
@@ -132,7 +137,7 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
     }
   });
 
-  return result + '\n';
+  return `${result  }\n`;
 }
 
 // Convert camelCase to snake_case

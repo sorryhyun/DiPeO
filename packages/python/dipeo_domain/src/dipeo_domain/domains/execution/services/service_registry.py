@@ -103,38 +103,43 @@ class ServiceRegistry:
         """Get database operations domain service."""
         return self._db_operations_service
 
-    def get_handler_services(self, node_type: str) -> dict[str, Any]:
-        """Return only services needed by specific handler type."""
+    def get_handler_services(self, requires_services: list[str]) -> dict[str, Any]:
+        """Return services required by a handler based on its declared requirements."""
+        # Service name mapping - maps from handler-declared names to actual services
         service_map = {
-            # Person job needs conversation service
-            "person_job": {"conversation": self.conversation},
-            # Person batch job needs conversation and diagram storage
-            "person_batch_job": {
-                "conversation": self.conversation,
-                "diagram_storage": self.diagram_storage,
-            },
-            # Notion nodes need notion integration
-            "notion": {"notion": self.notion_integration},
-            "notion_read": {"notion": self.notion_integration},
-            "notion_save": {"notion": self.notion_integration},
-            # File operations
-            "file": {"file": self.file_operations},
-            "file_read": {"file": self.file_operations},
-            "file_save": {"file": self.file_operations},
-            # Diagram operations
-            "diagram": {"storage": self.diagram_storage},
-            # Job nodes need LLM service directly
-            "job": {"llm": self._llm_service, "api_key": self._api_key_service},
-            # API nodes
-            "api": {"api": self.api_integration, "file": self._file_service},
-            # Text nodes
-            "text": {"text": self.text_processing},
-            "endpoint": {"file": self._file_service},
-            "start": {},
-            # Condition nodes might need file service for evaluations
-            "condition": {"file": self._file_service},
-            # Database nodes need db operations service
-            "db": {"db_operations": self.db_operations},
+            # Core services
+            "llm": self._llm_service,
+            "llm_service": self._llm_service,
+            "api_key": self._api_key_service,
+            "api_key_service": self._api_key_service,
+            "file": self._file_service,
+            "file_service": self._file_service,
+            "conversation_memory": self._conversation_memory_service,
+            "conversation_memory_service": self._conversation_memory_service,
+            
+            # Domain services
+            "conversation": self.conversation,
+            "conversation_service": self.conversation,
+            "notion": self.notion_integration,
+            "notion_integration": self.notion_integration,
+            "diagram_storage": self.diagram_storage,
+            "storage": self.diagram_storage,
+            "api": self.api_integration,
+            "api_integration": self.api_integration,
+            "text": self.text_processing,
+            "text_processing": self.text_processing,
+            "file_operations": self.file_operations,
+            "validation": self.validation,
+            "db_operations": self.db_operations,
         }
-
-        return service_map.get(node_type, {})
+        
+        # Build the services dict based on requirements
+        services = {}
+        for service_name in requires_services:
+            if service_name in service_map:
+                services[service_name] = service_map[service_name]
+            else:
+                # Log warning or raise error for unknown service
+                raise ValueError(f"Unknown service requested: {service_name}")
+                
+        return services

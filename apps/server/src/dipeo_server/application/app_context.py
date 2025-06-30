@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from dipeo_container.app_context_adapter import AppContextAdapter
+from fastapi import FastAPI
 
 from .container import ServerContainer, init_server_resources, shutdown_server_resources
-from fastapi import FastAPI
 
 if TYPE_CHECKING:
     from dipeo_core import (
@@ -19,15 +19,14 @@ if TYPE_CHECKING:
         SupportsMemory,
         SupportsNotion,
     )
-    from dipeo_infra import APIIntegrationDomainService
-
     from dipeo_domain.domains.diagram.services import (
         DiagramStorageAdapter,
     )
     from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
     from dipeo_domain.domains.file import FileOperationsDomainService
     from dipeo_domain.domains.text import TextProcessingDomainService
-    from dipeo_server.infra.messaging import MessageRouter
+    from dipeo_infra import APIIntegrationDomainService, MessageRouter
+
     from dipeo_server.infra.persistence import StateStore
 
 

@@ -37,7 +37,7 @@ if __name__ == "__main__":
     import sys
 
     schema_str = unified_schema.as_str()
-    
+
     # If output path is provided as argument, write to file
     if len(sys.argv) > 1:
         output_path = sys.argv[1]

@@ -17,10 +17,10 @@ from dipeo_domain import (
     DiagramMetadata,
     DomainDiagram,
 )
+from dipeo_domain.domains.apikey import APIKeyDomainService
 from strawberry.file_uploads import Upload
 
 from config import BASE_DIR
-from dipeo_domain.domains.apikey import APIKeyDomainService
 
 from ..context import GraphQLContext
 from ..types import (

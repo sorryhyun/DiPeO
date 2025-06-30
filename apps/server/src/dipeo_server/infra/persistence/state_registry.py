@@ -270,15 +270,29 @@ class StateRegistry:
         return state.node_outputs.get(node_id)
 
     async def update_node_output(
-        self, execution_id: str, node_id: str, output: NodeOutput
+        self,
+        execution_id: str,
+        node_id: str,
+        output: Any,
+        is_exception: bool = False,
+        token_usage: TokenUsage | None = None,
     ) -> None:
         """Store output, using references for large data."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
 
+        # Convert output to NodeOutput if it isn't already
+        if not isinstance(output, NodeOutput):
+            node_output = NodeOutput(
+                value={"default": str(output)} if is_exception else output,
+                metadata={"is_exception": is_exception} if is_exception else {}
+            )
+        else:
+            node_output = output
+
         # For PersonJob outputs with conversation history
-        if output.metadata and output.metadata.get("_type") == "personjob_output":
+        if node_output.metadata and node_output.metadata.get("_type") == "personjob_output":
             # Check if execution is active - defer persistence for active executions
             is_active = (
                 state.is_active
@@ -290,21 +304,26 @@ class StateRegistry:
 
             if not is_active:
                 # Only persist conversation for completed executions
-                conversation = output.metadata.get("conversation_history", [])
+                conversation = node_output.metadata.get("conversation_history", [])
                 if conversation and self.message_store:
                     message_ref = await self.message_store.store_message(
                         execution_id=execution_id,
                         node_id=node_id,
                         content={"conversation": conversation},
-                        person_id=output.metadata.get("person_id"),
-                        token_count=output.metadata.get("token_count"),
+                        person_id=node_output.metadata.get("person_id"),
+                        token_count=node_output.metadata.get("token_count"),
                     )
                     # Replace conversation with reference
-                    output.metadata["conversation_ref"] = message_ref
-                    output.metadata.pop("conversation_history", None)
+                    node_output.metadata["conversation_ref"] = message_ref
+                    node_output.metadata.pop("conversation_history", None)
 
         # Store the output with reference
-        state.node_outputs[node_id] = output
+        state.node_outputs[node_id] = node_output
+
+        # Update token usage if provided
+        if token_usage:
+            await self.add_token_usage(execution_id, token_usage)
+
         await self.save_state(state)
 
     async def update_node_status(
@@ -312,7 +331,6 @@ class StateRegistry:
         execution_id: str,
         node_id: str,
         status: NodeExecutionStatus,
-        output: NodeOutput | None = None,
         error: str | None = None,
     ):
         """Update node execution status."""
@@ -344,16 +362,6 @@ class StateRegistry:
         # Update error
         if error:
             state.node_states[node_id].error = error
-
-        # Store output if completed
-        if status == NodeExecutionStatus.COMPLETED and output is not None:
-            state.node_outputs[node_id] = output
-            if output.metadata and "tokenUsage" in output.metadata:
-                token_usage_data = output.metadata["tokenUsage"]
-                if isinstance(token_usage_data, dict):
-                    state.node_states[node_id].token_usage = TokenUsage(
-                        **token_usage_data
-                    )
 
         await self.save_state(state)
 
@@ -407,18 +415,33 @@ class StateRegistry:
         await self.save_state(state)
 
     async def list_executions(
-        self, limit: int = 100, offset: int = 0
-    ) -> list[dict[str, Any]]:
+        self,
+        diagram_id: DiagramID | None = None,
+        status: ExecutionStatus | None = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> list[ExecutionState]:
         """List recent executions with metadata."""
-        cursor = await self._execute(
-            """
-            SELECT execution_id, status, started_at, ended_at, node_states, diagram_id
-            FROM execution_states
-            ORDER BY started_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (limit, offset),
-        )
+        # Build query with optional filters
+        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables FROM execution_states"
+        conditions = []
+        params = []
+
+        if diagram_id:
+            conditions.append("diagram_id = ?")
+            params.append(diagram_id)
+
+        if status:
+            conditions.append("status = ?")
+            params.append(status.value if hasattr(status, 'value') else status)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY started_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor = await self._execute(query, params)
 
         rows = await asyncio.get_event_loop().run_in_executor(
             self._executor, cursor.fetchall
@@ -426,17 +449,60 @@ class StateRegistry:
 
         executions = []
         for row in rows:
-            node_states = json.loads(row[4]) if row[4] else {}
-            executions.append(
-                {
-                    "execution_id": row[0],
-                    "status": row[1],
-                    "started_at": row[2],
-                    "ended_at": row[3],
-                    "total_nodes": len(node_states),
-                    "diagram_id": row[5],
-                }
+            # Deserialize data from database
+            node_states_data = json.loads(row[4]) if row[4] else {}
+            node_outputs_data = json.loads(row[6]) if row[6] else {}
+            token_usage_data = json.loads(row[7]) if row[7] else {}
+            variables_data = json.loads(row[9]) if row[9] else {}
+
+            # Convert node states to NodeState objects
+            node_states = {}
+            for node_id, state_data in node_states_data.items():
+                if isinstance(state_data, dict):
+                    # Handle token usage in node state
+                    token_usage = None
+                    if "token_usage" in state_data:
+                        tu_data = state_data["token_usage"]
+                        if isinstance(tu_data, dict):
+                            token_usage = TokenUsage(**tu_data)
+
+                    node_states[node_id] = NodeState(
+                        status=NodeExecutionStatus(state_data.get("status", "pending")),
+                        startedAt=state_data.get("started_at"),
+                        endedAt=state_data.get("ended_at"),
+                        error=state_data.get("error"),
+                        tokenUsage=token_usage,
+                    )
+
+            # Convert node outputs to NodeOutput objects
+            node_outputs = {}
+            for node_id, output_data in node_outputs_data.items():
+                if isinstance(output_data, dict):
+                    node_outputs[node_id] = NodeOutput(
+                        value=output_data.get("value", {}),
+                        metadata=output_data.get("metadata", {}),
+                    )
+
+            # Convert token usage
+            token_usage = None
+            if token_usage_data:
+                token_usage = TokenUsage(**token_usage_data)
+
+            # Create ExecutionState object
+            execution_state = ExecutionState(
+                executionId=ExecutionID(row[0]),
+                status=ExecutionStatus(row[1]),
+                nodeStates=node_states,
+                nodeOutputs=node_outputs,
+                diagramId=DiagramID(row[5]) if row[5] else None,
+                variables=variables_data,
+                startedAt=row[2],
+                endedAt=row[3],
+                tokenUsage=token_usage,
+                error=row[8],
             )
+
+            executions.append(execution_state)
 
         return executions
 

@@ -92,7 +92,7 @@ class ConversationDomainService:
 
         # Add prompt as user message if present
         if prompt:
-            self._conversations.add_message_to_conversation(
+            self._conversations.add_message_to_conversation_with_tokens(
                 sender_person_id="user",
                 participant_person_ids=[person_id],
                 content=prompt,
@@ -122,7 +122,7 @@ class ConversationDomainService:
         token_usage_obj = llm_result.get("token_usage")
 
         # Add response to memory
-        self._conversations.add_message_to_conversation(
+        self._conversations.add_message_to_conversation_with_tokens(
             sender_person_id=person_id,
             participant_person_ids=[person_id],
             content=response_text,
@@ -263,7 +263,7 @@ class ConversationDomainService:
 
             if last_other_msg:
                 # Add as a message to memory service
-                self._conversations.add_message_to_conversation(
+                self._conversations.add_message_to_conversation_with_tokens(
                     sender_person_id=last_other_msg.get("personId", "unknown"),
                     participant_person_ids=[person_id],
                     content=last_other_msg.get("content", ""),
@@ -288,7 +288,7 @@ class ConversationDomainService:
 
                 upstream_text = "\n".join(context_parts)
                 # Add as a user message
-                self._conversations.add_message_to_conversation(
+                self._conversations.add_message_to_conversation_with_tokens(
                     sender_person_id="user",
                     participant_person_ids=[person_id],
                     content=upstream_text,

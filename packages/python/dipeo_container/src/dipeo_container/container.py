@@ -36,7 +36,7 @@ def _import_state_store():
 
 
 def _import_message_router():
-    from dipeo_server.infra.messaging import message_router
+    from dipeo_infra import message_router
     return message_router
 
 
@@ -105,7 +105,7 @@ def _create_file_operations_service(file_service):
 
 
 def _create_notion_integration_service(notion_service, file_service):
-    from dipeo_services import NotionIntegrationDomainService
+    from dipeo_infra import NotionIntegrationDomainService
     return NotionIntegrationDomainService(notion_service, file_service)
 
 

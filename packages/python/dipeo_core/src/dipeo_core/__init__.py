@@ -7,7 +7,15 @@ from .base.exceptions import (
     ServiceError,
     ValidationError,
 )
-from .constants import VALID_LLM_SERVICES, normalize_service_name
+from .constants import (
+    VALID_LLM_SERVICES,
+    normalize_service_name,
+    DEFAULT_TIMEOUT,
+    MAX_EXECUTION_TIMEOUT,
+    MAX_RETRIES,
+    DEFAULT_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+)
 from .base.protocols import (
     SupportsAPIKey,
     SupportsDiagram,
@@ -40,6 +48,17 @@ from .execution.types import (
     NodeHandler,
     RuntimeContext,
 )
+from .types import Result, Error, JsonDict, JsonList, JsonValue
+from .utils import (
+    ensure_list,
+    safe_json_loads,
+    safe_json_dumps,
+    get_timestamp,
+    truncate_string,
+    snake_to_camel,
+    camel_to_snake,
+    merge_dicts,
+)
 
 __version__ = "0.1.0"
 
@@ -54,6 +73,12 @@ __all__ = [
     "ExecutionOptions",
     "NodeDefinition",
     "NodeHandler",
+    # Shared types
+    "Result",
+    "Error",
+    "JsonDict",
+    "JsonList",
+    "JsonValue",
     # Base exceptions
     "DiPeOError",
     "ValidationError",
@@ -84,7 +109,20 @@ __all__ = [
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
+    "ensure_list",
+    "safe_json_loads",
+    "safe_json_dumps",
+    "get_timestamp",
+    "truncate_string",
+    "snake_to_camel",
+    "camel_to_snake",
+    "merge_dicts",
     # Constants
     "VALID_LLM_SERVICES",
     "normalize_service_name",
+    "DEFAULT_TIMEOUT",
+    "MAX_EXECUTION_TIMEOUT",
+    "MAX_RETRIES",
+    "DEFAULT_PAGE_SIZE",
+    "MAX_PAGE_SIZE",
 ]

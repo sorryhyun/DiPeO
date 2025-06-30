@@ -1,6 +1,8 @@
+import json
 import uuid
 from collections import OrderedDict
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from dipeo_core import BaseService, SupportsMemory
@@ -42,7 +44,7 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
             )
         return self.person_conversations[person_id]
 
-    def add_message_to_conversation(
+    def add_message_to_conversation_with_tokens(
         self,
         content: str,
         sender_person_id: str,
@@ -56,14 +58,13 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
         output_tokens: int | None = None,
         cached_tokens: int | None = None,
     ) -> Message:
-        """Create and add message to conversation."""
-        message = Message(
-            id=str(uuid.uuid4()),
-            role=role,
+        """Extended method for adding messages with token tracking - backward compatibility."""
+        return self._add_message_internal(
             content=content,
-            timestamp=datetime.now(),
             sender_person_id=sender_person_id,
             execution_id=execution_id,
+            participant_person_ids=participant_person_ids,
+            role=role,
             node_id=node_id,
             node_label=node_label,
             token_count=token_count,
@@ -71,40 +72,6 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
             output_tokens=output_tokens,
             cached_tokens=cached_tokens,
         )
-
-        self._store_message(message)
-
-        for person_id in participant_person_ids:
-            person_conversation = self.get_or_create_person_conversation(person_id)
-            person_conversation.add_message(message)
-
-        # Queue for deferred persistence
-        if execution_id not in self._pending_persistence:
-            self._pending_persistence[execution_id] = []
-        self._pending_persistence[execution_id].append(message)
-
-        if execution_id not in self.execution_metadata:
-            self.execution_metadata[execution_id] = {
-                "start_time": datetime.now(),
-                "message_count": 0,
-                "total_tokens": 0,
-                "input_tokens": 0,
-                "output_tokens": 0,
-                "cached_tokens": 0,
-            }
-
-        metadata = self.execution_metadata[execution_id]
-        metadata["message_count"] += 1
-        if token_count:
-            metadata["total_tokens"] += token_count
-        if input_tokens:
-            metadata["input_tokens"] += input_tokens
-        if output_tokens:
-            metadata["output_tokens"] += output_tokens
-        if cached_tokens:
-            metadata["cached_tokens"] += cached_tokens
-
-        return message
 
     def forget_for_person(
         self, person_id: str, execution_id: str | None = None
@@ -205,6 +172,98 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
     def get_or_create_person_memory(self, person_id: str) -> PersonConversation:
         """Get or create person memory - alias for get_or_create_person_conversation."""
         return self.get_or_create_person_conversation(person_id)
+    
+    # Protocol-compliant wrapper for add_message_to_conversation
+    def add_message_to_conversation(
+        self,
+        person_id: str,
+        execution_id: str,
+        role: str,
+        content: str,
+        current_person_id: str,
+        node_id: str | None = None,
+        timestamp: float | None = None,
+    ) -> None:
+        """Protocol-compliant add_message_to_conversation method."""
+        # Map protocol parameters to internal method
+        participant_person_ids = [person_id]
+        if current_person_id != person_id:
+            participant_person_ids.append(current_person_id)
+        
+        # Call internal method with mapped parameters
+        self._add_message_internal(
+            content=content,
+            sender_person_id=current_person_id,
+            execution_id=execution_id,
+            participant_person_ids=participant_person_ids,
+            role=role,
+            node_id=node_id,
+        )
+    
+    # Rename the original method to internal
+    def _add_message_internal(
+        self,
+        content: str,
+        sender_person_id: str,
+        execution_id: str,
+        participant_person_ids: list[str],
+        role: str = "assistant",
+        node_id: str | None = None,
+        node_label: str | None = None,
+        token_count: int | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cached_tokens: int | None = None,
+    ) -> Message:
+        """Internal method for creating and adding messages to conversation."""
+        message = Message(
+            id=str(uuid.uuid4()),
+            role=role,
+            content=content,
+            timestamp=datetime.now(),
+            sender_person_id=sender_person_id,
+            execution_id=execution_id,
+            node_id=node_id,
+            node_label=node_label,
+            token_count=token_count,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cached_tokens=cached_tokens,
+        )
+
+        self._store_message(message)
+
+        for person_id in participant_person_ids:
+            person_conversation = self.get_or_create_person_conversation(person_id)
+            person_conversation.add_message(message)
+
+        # Queue for deferred persistence
+        if execution_id not in self._pending_persistence:
+            self._pending_persistence[execution_id] = []
+        self._pending_persistence[execution_id].append(message)
+
+        if execution_id not in self.execution_metadata:
+            self.execution_metadata[execution_id] = {
+                "start_time": datetime.now(),
+                "message_count": 0,
+                "total_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cached_tokens": 0,
+            }
+
+        metadata = self.execution_metadata[execution_id]
+        metadata["message_count"] += 1
+        if token_count:
+            metadata["total_tokens"] += token_count
+        if input_tokens:
+            metadata["input_tokens"] += input_tokens
+        if output_tokens:
+            metadata["output_tokens"] += output_tokens
+        if cached_tokens:
+            metadata["cached_tokens"] += cached_tokens
+
+        return message
 
     def get_conversation_history(
         self, person_id: str, limit: int | None = None
@@ -215,7 +274,35 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
             return conversation[-limit:]
         return conversation
 
-    async def save_conversation_log(
+    async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str:
+        """Save conversation log to file - protocol compliant method."""
+        # Ensure log directory exists
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Collect all messages for this execution
+        execution_messages = []
+        for message in self.all_messages.values():
+            if message.execution_id == execution_id:
+                execution_messages.append(message.to_dict())
+        
+        # Sort by timestamp
+        execution_messages.sort(key=lambda m: m.get("timestamp", ""))
+        
+        # Create log file
+        log_filename = f"conversation_{execution_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        log_path = log_dir / log_filename
+        
+        # Write to file
+        with open(log_path, "w") as f:
+            json.dump({
+                "execution_id": execution_id,
+                "messages": execution_messages,
+                "metadata": self.execution_metadata.get(execution_id, {}),
+            }, f, indent=2, default=str)
+        
+        return str(log_path)
+    
+    async def save_conversation_log_internal(
         self,
         execution_id: str,
         node_id: str,
@@ -223,7 +310,7 @@ class ConversationMemoryDomainService(BaseService, SupportsMemory):
         person_id: str,
         token_count: int = 0,
     ) -> None:
-        """Save conversation log for a specific execution and node."""
+        """Internal method for saving conversation log for a specific execution and node."""
         # Create messages from conversation data
         for msg_data in conversation:
             message = Message(

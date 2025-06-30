@@ -10,20 +10,13 @@ from gql.transport.websockets import (
 )  # For GraphQL subscriptions only
 
 from dipeo_cli.__generated__.graphql_operations import (
-    EXECUTE_DIAGRAM_MUTATION,
-    CONVERT_DIAGRAM_MUTATION,
     CONTROL_EXECUTION_MUTATION,
-    SUBMIT_INTERACTIVE_RESPONSE_MUTATION,
+    CONVERT_DIAGRAM_MUTATION,
+    EXECUTE_DIAGRAM_MUTATION,
     EXECUTION_UPDATES_SUBSCRIPTION,
-    NODE_UPDATES_SUBSCRIPTION,
     INTERACTIVE_PROMPTS_SUBSCRIPTION,
-    get_execute_diagram_variables,
-    get_convert_diagram_variables,
-    get_control_execution_variables,
-    get_submit_interactive_response_variables,
-    get_execution_updates_variables,
-    get_node_updates_variables,
-    get_interactive_prompts_variables,
+    NODE_UPDATES_SUBSCRIPTION,
+    SUBMIT_INTERACTIVE_RESPONSE_MUTATION,
 )
 
 T = TypeVar("T")

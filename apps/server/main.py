@@ -26,8 +26,11 @@ logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Use consolidated app context
+from dipeo_server.api.graphql.schema import (
+    create_unified_graphql_router as create_graphql_router,
+)
 from dipeo_server.application.app_context import app_context
-from dipeo_server.api.graphql.schema import create_unified_graphql_router as create_graphql_router
+
 logger.info("🚀 Using UNIFIED architecture with direct streaming")
 
 from dipeo_server.api.graphql.context import get_graphql_context

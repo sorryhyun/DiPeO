@@ -1,10 +1,12 @@
 """Local application context for CLI execution."""
 
-import os
-from typing import Any, Dict, List, Optional
 import logging
+import os
+from typing import Any
 
 from dipeo_core import (
+    BaseService,
+    LLMServiceError,
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
@@ -12,8 +14,6 @@ from dipeo_core import (
     SupportsLLM,
     SupportsMemory,
     SupportsNotion,
-    BaseService,
-    LLMServiceError,
 )
 
 
@@ -49,11 +49,11 @@ class LLMServiceAdapter:
     async def call_llm(
         self,
         model: str,
-        messages: List[Dict[str, Any]],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        messages: list[dict[str, Any]],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Adapt the call to match SimpleConversationService expectations."""
         return await self.simple_llm_service.call_llm(
             model=model,
@@ -83,13 +83,13 @@ class SimpleLLMService(BaseService):
     
     async def call_llm(
         self,
-        service: Optional[str] = None,
+        service: str | None = None,
         api_key_id: str = "",
         model: str = "gpt-4.1-nano",
         messages: Any = None,
         system_prompt: str = "",
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Call an LLM with the given messages."""
         # Handle both protocol signature and simplified signature
         if isinstance(messages, list) and messages:
@@ -140,7 +140,7 @@ class SimpleLLMService(BaseService):
                     } if response.usage else None
                 }
             
-            elif provider == "anthropic":
+            if provider == "anthropic":
                 from anthropic import Anthropic
                 client = Anthropic(api_key=api_key)
                 
@@ -172,14 +172,13 @@ class SimpleLLMService(BaseService):
                     } if response.usage else None
                 }
             
-            else:
-                raise LLMServiceError(
-                    service=provider,
-                    message=f"Provider {provider} not yet implemented in local mode"
-                )
+            raise LLMServiceError(
+                service=provider,
+                message=f"Provider {provider} not yet implemented in local mode"
+            )
                 
         except Exception as e:
-            logger.error(f"Error calling LLM: {str(e)}")
+            logger.error(f"Error calling LLM: {e!s}")
             raise LLMServiceError(service="llm", message=str(e))
     
     def _get_provider_from_model(self, model: str) -> str:
@@ -188,17 +187,16 @@ class SimpleLLMService(BaseService):
         
         if "gpt" in model_lower or "o1" in model_lower or "o3" in model_lower:
             return "openai"
-        elif "claude" in model_lower:
+        if "claude" in model_lower:
             return "anthropic"
-        elif "gemini" in model_lower:
+        if "gemini" in model_lower:
             return "google"
-        elif "groq" in model_lower or "llama" in model_lower or "mixtral" in model_lower:
+        if "groq" in model_lower or "llama" in model_lower or "mixtral" in model_lower:
             return "groq"
-        elif "grok" in model_lower:
+        if "grok" in model_lower:
             return "xai"
-        else:
-            # Default to OpenAI for unknown models
-            return "openai"
+        # Default to OpenAI for unknown models
+        return "openai"
     
     def get_token_counts(self, client_name: str, usage: Any) -> Any:
         """Get token counts from usage data."""
@@ -209,15 +207,14 @@ class SimpleLLMService(BaseService):
         """Pre-initialize a model (no-op for local execution)."""
         return True
     
-    async def get_available_models(self, service: str, api_key_id: str) -> List[str]:
+    async def get_available_models(self, service: str, api_key_id: str) -> list[str]:
         """Get available models for a service."""
         # Return a basic list of known models
         if service == "openai":
             return ["gpt-4.1-nano", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"]
-        elif service == "anthropic":
+        if service == "anthropic":
             return ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
-        else:
-            return []
+        return []
 
 
 class LocalAppContext:
@@ -242,7 +239,7 @@ class LocalAppContext:
         """Initialize minimal services for local execution."""
         # Import necessary services
         from dipeo_application import LocalExecutionService
-        from dipeo_infra import SimpleMemoryService, SimpleFileService
+        from dipeo_infra import SimpleFileService, SimpleMemoryService
 
         # Initialize basic services
         simple_llm = SimpleLLMService()

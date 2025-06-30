@@ -5,7 +5,8 @@ Convert command implementation for DiPeO CLI.
 import json
 from pathlib import Path
 
-from dipeo_diagram import UnifiedDiagramConverter, backend_to_graphql
+from dipeo_diagram import UnifiedDiagramConverter
+
 from .api_client import DiPeoAPIClient
 from .utils import DiagramLoader
 
@@ -38,7 +39,7 @@ async def convert_command(args: list[str]) -> None:
         if use_local:
             converter = UnifiedDiagramConverter()
             
-            with open(input_path, 'r') as f:
+            with open(input_path) as f:
                 content = f.read()
             
             domain_diagram = converter.deserialize(content)

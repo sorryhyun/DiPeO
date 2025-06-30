@@ -12,7 +12,6 @@ from dipeo_diagram import (
     graphql_to_backend,
 )
 from dipeo_domain import DiagramMetadata, DomainDiagram
-
 from dipeo_domain.domains.diagram.services import DiagramFileRepository
 
 from ..types import (
