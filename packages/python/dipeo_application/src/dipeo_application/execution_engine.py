@@ -199,14 +199,22 @@ class ExecutionEngine:
         if node_view.output is not None:
             return False
 
-        # Special handling for person_job nodes on first execution
-        if node_view.node.type == "person_job" and node_view.exec_count == 0:
-            # Check if at least "first" inputs are ready
-            first_edges = [
-                e for e in node_view.incoming_edges if e.target_handle == "first"
-            ]
-            if first_edges:
-                return all(edge.source_view.output is not None for edge in first_edges)
+        # Special handling for person_job nodes based on execution count
+        if node_view.node.type == "person_job":
+            # On first execution (exec_count == 0), only check "first" inputs if they exist
+            if node_view.exec_count == 0:
+                first_edges = [
+                    e for e in node_view.incoming_edges if e.target_handle == "first"
+                ]
+                if first_edges:
+                    return all(edge.source_view.output is not None for edge in first_edges)
+            else:
+                # On subsequent executions, only check "default" inputs
+                default_edges = [
+                    e for e in node_view.incoming_edges if e.target_handle == "default"
+                ]
+                if default_edges:
+                    return all(edge.source_view.output is not None for edge in default_edges)
 
         # Standard check: all dependencies must be satisfied
         return all(

@@ -53,15 +53,26 @@ class ConditionNodeHandler(BaseNodeHandler):
                         result = False
                         break
 
-        # Forward inputs directly
-        value: dict[str, Any] = {**inputs}
-
-        if "default" not in value and inputs:
-            if "conversation" in inputs:
-                value["default"] = inputs["conversation"]
-            else:
-                first_key = next(iter(inputs.keys()), None)
-                if first_key:
-                    value["default"] = inputs[first_key]
+        # Forward all inputs to outputs, preserving conversation state
+        value: dict[str, Any] = {}
+        
+        # Copy all inputs to outputs
+        if inputs:
+            value.update(inputs)
+            
+            # For person_job nodes, conversation state comes as "conversation" key
+            # We need to ensure it's available in both the output and branch-specific keys
+            if "conversation" in inputs and "default" in inputs:
+                # This is typical person_job output format
+                # Keep both default (text) and conversation (history)
+                pass  # Already copied via update()
+            elif "default" not in value and inputs:
+                # Ensure we have a default output
+                if "conversation" in inputs:
+                    value["default"] = inputs["conversation"]
+                else:
+                    first_key = next(iter(inputs.keys()), None)
+                    if first_key:
+                        value["default"] = inputs[first_key]
 
         return create_node_output(value, {"condition_result": result})

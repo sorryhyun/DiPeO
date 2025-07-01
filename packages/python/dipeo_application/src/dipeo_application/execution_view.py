@@ -59,7 +59,7 @@ class NodeView:
 
         # Select edges based on node type and execution count
         if self.node.type == "person_job":
-            if self.exec_count == 1 and first_edges:
+            if self.exec_count == 0 and first_edges:
                 selected_edges = first_edges
             else:
                 selected_edges = default_edges
