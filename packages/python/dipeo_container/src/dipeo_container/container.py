@@ -64,7 +64,7 @@ def _create_conversation_service():
 
 
 def _create_llm_service(api_key_service):
-    from dipeo_server.infra.external.llm import LLMInfraService
+    from dipeo_infra.external.llm import LLMInfraService
 
     return LLMInfraService(api_key_service)
 

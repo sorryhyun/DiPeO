@@ -8,21 +8,14 @@ from .types import ExecutionContext
 
 @dataclass
 class ExtendedExecutionContext(ExecutionContext):
-    """Extended execution context with server-specific functionality.
-
-    This adds token tracking and other features needed by servers
-    while maintaining compatibility with the base ExecutionContext.
-    """
 
     # Token usage accumulation
     _token_accumulator: Dict[str, Any] = field(default_factory=dict, init=False)
 
     def add_token_usage(self, node_id: str, tokens: Any) -> None:
-        """Accumulate token usage in memory for later persistence."""
         self._token_accumulator[node_id] = tokens
 
     def get_total_token_usage(self) -> Any:
-        """Calculate total token usage from accumulator."""
         # Avoid circular import by checking token type at runtime
         token_type = type(next(iter(self._token_accumulator.values()), None))
         if not self._token_accumulator or token_type is None:
@@ -42,7 +35,6 @@ class ExtendedExecutionContext(ExecutionContext):
         return total
 
     def find_edges_from(self, node_id: str) -> list[Dict[str, Any]]:
-        """Find all edges originating from a node."""
         return [
             edge
             for edge in self.edges
@@ -50,7 +42,6 @@ class ExtendedExecutionContext(ExecutionContext):
         ]
 
     def find_edges_to(self, node_id: str) -> list[Dict[str, Any]]:
-        """Find all edges targeting a node."""
         return [
             edge
             for edge in self.edges

@@ -1,9 +1,4 @@
-"""Execution context for DiPeO.
-
-This module provides ExecutionContext which is the main context object used during
-diagram execution. It's a simplified version that domain services can use without
-depending on application-specific implementations.
-"""
+# Execution context for DiPeO
 
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -15,11 +10,6 @@ from .execution.types import RuntimeContext
 
 @dataclass
 class ExecutionContext:
-    """Pure data container for execution state.
-
-    This context is used by the execution engine and domain services to track
-    the state of diagram execution without service dependencies.
-    """
 
     # Core execution data
     execution_id: str
@@ -61,7 +51,6 @@ class ExecutionContext:
         self.node_outputs[node_id] = output
 
     def increment_exec_count(self, node_id: str) -> int:
-        """Increment and return the execution count for a node."""
         self.exec_counts[node_id] = self.exec_counts.get(node_id, 0) + 1
         return self.exec_counts[node_id]
 
@@ -69,11 +58,9 @@ class ExecutionContext:
         return self.api_keys.get(service)
 
     def add_token_usage(self, node_id: str, tokens: TokenUsage) -> None:
-        """Accumulate token usage for later tracking."""
         self._token_accumulator[node_id] = tokens
 
     def get_total_token_usage(self) -> TokenUsage:
-        """Calculate total token usage from accumulator."""
         if not self._token_accumulator:
             return TokenUsage(input=0, output=0, total=0)
 
@@ -87,7 +74,6 @@ class ExecutionContext:
         return total
 
     def to_runtime_context(self, current_node_id: str = "") -> RuntimeContext:
-        """Convert to RuntimeContext for handler compatibility."""
         # Convert edges to dict format
         edges = [
             {

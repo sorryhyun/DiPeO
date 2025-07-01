@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 
 class NodeHandler(Protocol):
-    """Protocol for node handlers."""
 
     async def __call__(
         self,
@@ -16,16 +15,11 @@ class NodeHandler(Protocol):
         inputs: Dict[str, Any],
         services: Dict[str, Any],
     ) -> Any:
-        """Execute the node handler with validated properties and injected services."""
         ...
 
 
 @dataclass
 class RuntimeContext:
-    """Runtime execution context for handlers.
-
-    This is a lightweight data container used during diagram execution.
-    """
 
     # Core execution data
     execution_id: str
@@ -49,36 +43,26 @@ class RuntimeContext:
     diagram_id: Optional[str] = None
 
     def get_node_execution_count(self, node_id: str) -> int:
-        """Get execution count for a specific node."""
         return self.exec_cnt.get(node_id, 0)
 
     def increment_node_execution_count(self, node_id: str) -> None:
-        """Increment execution count for a specific node."""
         self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
 
     def get_node_output(self, node_id: str) -> Any:
-        """Get output from a specific node."""
         return self.outputs.get(node_id)
 
     def set_node_output(self, node_id: str, output: Any) -> None:
-        """Set output for a specific node."""
         self.outputs[node_id] = output
 
     def get_variable(self, name: str, default: Any = None) -> Any:
-        """Get a variable value."""
         return self.variables.get(name, default)
 
     def set_variable(self, name: str, value: Any) -> None:
-        """Set a variable value."""
         self.variables[name] = value
 
 
 @dataclass
 class ExecutionContext:
-    """Serializable execution context for persistence and API communication.
-
-    This is a more complete representation that includes all execution data.
-    """
 
     execution_id: str
     diagram_id: str
@@ -97,34 +81,27 @@ class ExecutionContext:
     current_node_id: str = ""
 
     def get_node_output(self, node_id: str) -> Any:
-        """Get output from a specific node."""
         return self.node_outputs.get(node_id)
 
     def set_node_output(self, node_id: str, output: Any) -> None:
-        """Set output for a specific node."""
         self.node_outputs[node_id] = output
 
     def increment_exec_count(self, node_id: str) -> int:
-        """Increment and return execution count for a node."""
         self.exec_cnt[node_id] = self.exec_cnt.get(node_id, 0) + 1
         return self.exec_cnt[node_id]
 
     def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
-        """Get conversation history for a person."""
         return self.persons.get(person_id, [])
 
     def add_to_conversation(self, person_id: str, message: Dict[str, Any]) -> None:
-        """Add a message to a person's conversation history."""
         if person_id not in self.persons:
             self.persons[person_id] = []
         self.persons[person_id].append(message)
 
     def get_api_key(self, service: str) -> Optional[str]:
-        """Get API key for a service."""
         return self.api_keys.get(service)
 
     def to_runtime_context(self) -> "RuntimeContext":
-        """Convert to RuntimeContext for handler compatibility."""
         return RuntimeContext(
             execution_id=self.execution_id,
             current_node_id=self.current_node_id,
@@ -142,7 +119,6 @@ class ExecutionContext:
 
 @dataclass
 class NodeDefinition:
-    """Definition of a node type with handler and schema."""
 
     type: str
     node_schema: Type[BaseModel]  # Renamed from 'schema' to avoid Pydantic conflict
@@ -153,7 +129,6 @@ class NodeDefinition:
 
 @dataclass
 class ExecutionOptions:
-    """Options for diagram execution."""
 
     debug: bool = False
     timeout: Optional[float] = None
@@ -167,7 +142,6 @@ class ExecutionOptions:
 def runtime_to_execution_context(
     runtime_ctx: RuntimeContext, diagram_id: Optional[str] = None
 ) -> ExecutionContext:
-    """Convert runtime context to execution context."""
     return ExecutionContext(
         execution_id=runtime_ctx.execution_id,
         diagram_id=diagram_id or runtime_ctx.diagram_id or "",
@@ -185,7 +159,6 @@ def runtime_to_execution_context(
 def execution_to_runtime_context(
     exec_ctx: ExecutionContext, current_node_id: str = ""
 ) -> RuntimeContext:
-    """Convert execution context to runtime context."""
     return RuntimeContext(
         execution_id=exec_ctx.execution_id,
         current_node_id=current_node_id,

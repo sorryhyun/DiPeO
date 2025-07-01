@@ -1,4 +1,4 @@
-"""Service for handling diagram file I/O operations."""
+# Service for handling diagram file I/O operations.
 
 import json
 import logging
@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class FileInfo(BaseModel):
-    """Information about a diagram file."""
-
+    # Information about a diagram file.
     id: str
     name: str
     path: str
@@ -26,12 +25,13 @@ class FileInfo(BaseModel):
     size: int
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dict for backward compatibility."""
         return self.model_dump()
 
 
 class DiagramFileRepository(BaseService, SupportsDiagram):
-    """Handles file I/O operations for diagram files that implements the SupportsDiagram protocol."""
+    # Handles file I/O operations for diagram files that implements the SupportsDiagram protocol.
+    # Supports reading/writing JSON and YAML files with format detection.
+    # Provides file listing and search capabilities.
 
     def __init__(self, base_dir: Path | None = None):
         super().__init__()
@@ -43,7 +43,6 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
         logger.info(f"Ensured diagrams directory exists: {self.diagrams_dir}")
 
     async def read_file(self, path: str) -> dict[str, Any]:
-        """Read a diagram file and return its contents as a dictionary."""
         file_path = self.diagrams_dir / path
         logger.debug(f"Attempting to read file: {file_path}")
 
@@ -77,7 +76,6 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
             raise
 
     async def write_file(self, path: str, content: dict[str, Any]) -> None:
-        """Write a dictionary to a diagram file."""
         file_path = self.diagrams_dir / path
 
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,14 +96,11 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
             else:
                 raise ValueError(f"Unsupported file format: {file_path.suffix}")
 
-            logger.info(f"Successfully wrote file: {path}")
-
         except Exception as e:
             logger.error(f"Failed to write file {path}: {e}")
             raise
 
     async def delete_file(self, path: str) -> None:
-        """Delete a diagram file."""
         file_path = self.diagrams_dir / path
 
         if not file_path.exists():
@@ -113,13 +108,11 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
 
         try:
             file_path.unlink()
-            logger.info(f"Successfully deleted file: {path}")
         except Exception as e:
             logger.error(f"Failed to delete file {path}: {e}")
             raise
 
     async def list_files(self, directory: str | None = None) -> list[FileInfo]:
-        """List all diagram files in the diagrams directory."""
         files = []
 
         if directory:
@@ -143,7 +136,6 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
                     format_type = self._determine_format_type(relative_path)
 
                     # Generate ID that includes subdirectory path (without extension)
-                    # e.g., "light/quicksave" for "light/quicksave.yaml"
                     file_id = str(relative_path.with_suffix(""))
 
                     file_info = FileInfo(
@@ -169,17 +161,11 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
         return files
 
     async def exists(self, path: str) -> bool:
-        """Check if a diagram file exists."""
         file_path = self.diagrams_dir / path
         return file_path.exists() and file_path.is_file()
 
     async def find_by_id(self, diagram_id: str) -> str | None:
-        """Find a diagram file by its ID (filename without extension)."""
-        logger.debug(f"find_by_id called with diagram_id: {diagram_id}")
-        logger.debug(f"Diagrams directory: {self.diagrams_dir}")
-
         # First check if diagram_id already contains a path separator
-        # This handles cases like "light/quicksave" directly
         for ext in [".yaml", ".yml", ".json"]:
             path = f"{diagram_id}{ext}"
             full_path = self.diagrams_dir / path
@@ -198,9 +184,7 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
                         return path
 
         # Finally, check all files using list_files (for any other subdirectories)
-        logger.debug("Checking all files via list_files()")
         all_files = await self.list_files()
-        logger.debug(f"Found {len(all_files)} total files")
         for file_info in all_files:
             logger.debug(f"Checking file: id={file_info.id}, path={file_info.path}")
             if file_info.id == diagram_id:

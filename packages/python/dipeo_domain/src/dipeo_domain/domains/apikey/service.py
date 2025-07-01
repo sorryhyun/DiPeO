@@ -1,4 +1,3 @@
-"""API Key management service."""
 
 import json
 import os
@@ -9,7 +8,6 @@ from dipeo_core.constants import VALID_LLM_SERVICES, normalize_service_name
 
 
 class APIKeyDomainService(BaseService, SupportsAPIKey):
-    """Domain service for managing API keys that implements the SupportsAPIKey protocol."""
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 
@@ -22,12 +20,9 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
         self._load_store()
 
     async def initialize(self) -> None:
-        """Initialize the API key service."""
-        # Service is already initialized in __init__
         pass
 
     def _load_store(self) -> None:
-        """Load API keys from disk storage."""
         if os.path.exists(self.store_file):
             try:
                 with open(self.store_file) as f:
@@ -41,7 +36,6 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
             print(f"[APIKeyDomainService] No store file found at {self.store_file}")
 
     def _save_store(self) -> None:
-        """Save API keys to disk storage."""
         try:
             with open(self.store_file, "w") as f:
                 json.dump(self._store, f, indent=2)
@@ -49,7 +43,6 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
             raise APIKeyError(f"Failed to save API key store: {e}")
 
     def _validate_service(self, service: str) -> None:
-        """Validate service name."""
         normalized_service = normalize_service_name(service)
         if normalized_service not in self.VALID_SERVICES:
             raise ValidationError(
@@ -57,7 +50,6 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
             )
 
     def get_api_key(self, key_id: str) -> dict:
-        """Get API key details by ID."""
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
 
@@ -88,7 +80,6 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
         return result
 
     def create_api_key(self, label: str, service: str, key: str) -> dict:
-        """Create a new API key entry."""
         self.validate_required_fields(
             {"label": label, "service": service, "key": key},
             ["label", "service", "key"],
@@ -110,7 +101,6 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
         return {"id": key_id, "label": label, "service": normalized_service}
 
     def delete_api_key(self, key_id: str) -> None:
-        """Delete an API key by ID."""
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
 
@@ -124,7 +114,6 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
         service: str | None = None,
         key: str | None = None,
     ) -> dict:
-        """Update an existing API key."""
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
 
