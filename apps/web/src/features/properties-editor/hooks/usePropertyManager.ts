@@ -125,7 +125,16 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
         // updateNode expects Partial<DomainNode>, so we need to wrap the data
         updateNode(nodeId(entityId), { data: data as Record<string, unknown> });
       } else if (entityType === 'arrow') {
-        updateArrow(arrowId(entityId), { data });
+        // Extract contentType and label from data and set as direct fields
+        const { contentType, label, ...restData } = data as any;
+        const updates: any = { data: restData };
+        if (contentType !== undefined) {
+          updates.contentType = contentType;
+        }
+        if (label !== undefined) {
+          updates.label = label;
+        }
+        updateArrow(arrowId(entityId), updates);
       } else {
         updatePerson(personId(entityId), data);
       }

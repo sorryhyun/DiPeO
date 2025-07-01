@@ -104,6 +104,8 @@ export interface DomainArrow {
   id: ArrowID;
   source: HandleID; // "nodeId:handleName" format
   target: HandleID; // "nodeId:handleName" format
+  contentType?: ContentType | null;
+  label?: string | null;
   data?: Record<string, any> | null;
 }
 

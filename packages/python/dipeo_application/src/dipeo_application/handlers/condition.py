@@ -78,7 +78,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         # Return output based on result
         if result:
             # Max iterations reached - output on True branch
-            return create_node_output({"True": value.get("default", "")}, {"condition_result": result})
+            return create_node_output({"True": value}, {"condition_result": result})
         else:
             # Iterations remaining - output on False branch 
-            return create_node_output({"False": value.get("default", "")}, {"condition_result": result})
+            return create_node_output({"False": value}, {"condition_result": result})

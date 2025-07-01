@@ -27,6 +27,7 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, React
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, createHandleId, parseHandleId } from '@dipeo/domain-models';
+import { ContentType } from '@/__generated__/graphql';
 
 /**
  * React Flow specific diagram representation
@@ -170,13 +171,34 @@ export class DiagramAdapter {
   }
 
   /**
+   * Clear all caches - useful when loading new diagrams
+   */
+  static clearCaches() {
+    this.nodeCache.clear();
+    this.edgeCache.clear();
+    this.reverseNodeCache.clear();
+    this.reverseEdgeCache.clear();
+  }
+
+  /**
    * Convert domain arrow to React Flow edge with caching
    */
   static arrowToReactFlow(arrow: DomainArrow): DiPeoEdge {
     // Check cache first
     const cached = this.edgeCache.get(arrow);
     if (cached) {
-      return cached;
+      // Clear cache if arrow has been updated with label or contentType
+      const cacheInvalid = 
+        (arrow.label && cached.data?.label !== arrow.label) ||
+        (arrow.contentType && cached.data?.contentType !== arrow.contentType) ||
+        (!arrow.label && cached.data?.label) ||
+        (!arrow.contentType && cached.data?.contentType);
+        
+      if (cacheInvalid) {
+        this.edgeCache.delete(arrow);
+      } else {
+        return cached;
+      }
     }
 
     const sourceParsed = parseHandleId(arrow.source as HandleID);
@@ -186,6 +208,16 @@ export class DiagramAdapter {
     const targetNode = targetParsed.nodeId;
     const targetHandle = targetParsed.handleLabel;
     
+    // Merge arrow's direct fields (contentType, label) into data
+    const edgeData = { ...(arrow.data || {}) };
+    if (arrow.contentType) {
+      edgeData.contentType = arrow.contentType;
+    }
+    if (arrow.label) {
+      edgeData.label = arrow.label;
+      console.log(`DiagramAdapter: Arrow ${arrow.id} has label "${arrow.label}"`, edgeData);
+    }
+    
     const reactEdge: DiPeoEdge = {
       id: arrow.id,
       type: 'customArrow',
@@ -193,7 +225,7 @@ export class DiagramAdapter {
       target: targetNode,
       sourceHandle,
       targetHandle,
-      data: arrow.data || {},
+      data: edgeData,
       animated: false,
       deletable: true,
       focusable: true,
@@ -252,12 +284,23 @@ export class DiagramAdapter {
       rfEdge.targetHandle || 'default'
     );
 
+    // Extract contentType and label from data
+    const { contentType, label, ...restData } = rfEdge.data || {};
+    
     const domainArrow: DomainArrow = {
       id: rfEdge.id as ArrowID,
       source: sourceHandle,
       target: targetHandle,
-      data: rfEdge.data || {}
+      data: Object.keys(restData).length > 0 ? restData : null
     };
+    
+    // Add contentType and label as direct fields if present
+    if (contentType !== undefined && contentType !== null) {
+      domainArrow.contentType = contentType as ContentType;
+    }
+    if (label !== undefined && label !== null && typeof label === 'string') {
+      domainArrow.label = label;
+    }
 
     // Cache the result
     this.reverseEdgeCache.set(rfEdge, domainArrow);

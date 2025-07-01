@@ -48,7 +48,7 @@ class EndpointNodeHandler(BaseNodeHandler):
                 else:
                     content = str(result_data)
 
-                await file_service.write(props.file_name, content)
+                await file_service.write(props.file_name, None, None, content)
 
                 return create_node_output(
                     {"default": result_data}, {"saved_to": props.file_name}

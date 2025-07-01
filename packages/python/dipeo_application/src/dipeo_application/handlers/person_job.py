@@ -242,8 +242,9 @@ class PersonJobNodeHandler(BaseNodeHandler):
         """Check if any outgoing edge needs conversation data."""
         if not diagram:
             return False
+        from dipeo_domain.models import ContentType
         for arrow in diagram.arrows:
             if arrow.source.startswith(node_id + ":"):
-                if arrow.data and arrow.data.get("contentType") == "conversation_state":
+                if arrow.content_type == ContentType.conversation_state:
                     return True
         return False

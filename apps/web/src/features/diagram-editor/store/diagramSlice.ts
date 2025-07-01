@@ -4,6 +4,7 @@ import { generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { NodeType, Vec2 } from '@dipeo/domain-models';
+import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
   // Core data structures
@@ -101,12 +102,32 @@ export const createDiagramSlice: StateCreator<
   
   // Arrow operations with array sync
   addArrow: (source, target, data) => {
+    // Extract contentType and label from data if present
+    let contentType: ContentType | undefined;
+    let label: string | undefined;
+    let arrowData = data;
+    
+    if (data) {
+      const { contentType: ct, label: l, ...restData } = data as any;
+      contentType = ct;
+      label = l;
+      arrowData = Object.keys(restData).length > 0 ? restData : null;
+    }
+    
     const arrow: DomainArrow = {
       id: generateArrowId(),
       source,
       target,
-      data: data || null  // Match Python model's default
+      data: arrowData || null  // Match Python model's default
     };
+    
+    // Add optional fields only if they have actual values
+    if (contentType !== undefined && contentType !== null) {
+      arrow.contentType = contentType;
+    }
+    if (label !== undefined && label !== null) {
+      arrow.label = label;
+    }
     set(state => {
       state.arrows.set(arrow.id as ArrowID, arrow);
       state.arrowsArray = Array.from(state.arrows.values());

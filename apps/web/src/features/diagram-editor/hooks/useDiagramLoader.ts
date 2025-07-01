@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { diagramId, arrowId } from '@/core/types';
 import { domainToReactDiagram, diagramToStoreMaps } from '@/graphql/types';
 import { migrateArrowBranchData } from '../utils/arrowMigration';
+import { DiagramAdapter } from '../adapters/DiagramAdapter';
 
 /**
  * Hook that loads a diagram from the backend when a diagram ID is present in the URL
@@ -62,6 +63,9 @@ export function useDiagramLoader() {
         const loadTimer = setTimeout(() => {
           try {
             if (!data?.diagram) return;
+          
+          // Clear adapter caches before loading new diagram
+          DiagramAdapter.clearCaches();
           
           // Convert GraphQL diagram to domain format
           const diagramWithCounts = {

@@ -29,6 +29,8 @@ query GetDiagram($id: DiagramID!) {
       id
       source
       target
+      contentType
+      label
       data
     }
     persons {

@@ -253,8 +253,17 @@ class UnifiedDiagramConverter(DiagramConverter):
             "id", self.arrow_builder.create_arrow_id(source, target)
         )
 
+        # Extract contentType and label from arrow_data (they may be at the top level, not in data)
+        content_type = arrow_data.get("contentType")
+        label = arrow_data.get("label")
+
         return DomainArrow(
-            id=arrow_id, source=source, target=target, data=arrow_data.get("data")
+            id=arrow_id, 
+            source=source, 
+            target=target, 
+            content_type=content_type,
+            label=label,
+            data=arrow_data.get("data")
         )
 
     def validate(

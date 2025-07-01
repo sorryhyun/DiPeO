@@ -71,6 +71,9 @@ class ExecutionEngine:
             node_view._handler_def = node_def
 
         try:
+            # Track if endpoint has been executed
+            endpoint_executed = False
+            
             # Execute topological levels
             # Execution order computed
             for i, level in enumerate(execution_view.execution_order):
@@ -78,11 +81,23 @@ class ExecutionEngine:
                 await self._execute_level(
                     level, execution_id, options, execution_view, interactive_handler
                 )
+                
+                # Check if any endpoint nodes have been executed
+                for node_view in execution_view.node_views.values():
+                    if node_view.node.type == "endpoint" and node_view.output is not None:
+                        endpoint_executed = True
+                        break
+                
+                # If endpoint executed, stop processing further levels
+                if endpoint_executed:
+                    log.info(f"Endpoint node executed, terminating execution early")
+                    break
 
-            # Handle iterative nodes
-            await self._execute_iterations(
-                execution_view, execution_id, options, interactive_handler
-            )
+            # Only handle iterative nodes if no endpoint has been executed
+            if not endpoint_executed:
+                await self._execute_iterations(
+                    execution_view, execution_id, options, interactive_handler
+                )
 
             # Notify completion
             for observer in self.observers:
@@ -336,6 +351,16 @@ class ExecutionEngine:
 
         # Process queue
         while ready_queue and iteration_count < max_iterations:
+            # Check if any endpoint nodes have been executed
+            endpoint_executed = False
+            for node_view in execution_view.node_views.values():
+                if node_view.node.type == "endpoint" and node_view.output is not None:
+                    endpoint_executed = True
+                    log.info(f"Endpoint node executed, terminating iterations early")
+                    break
+            
+            if endpoint_executed:
+                break
             # Get current batch of ready nodes
             current_batch = []
             batch_size = len(ready_queue)
@@ -369,6 +394,17 @@ class ExecutionEngine:
                 execution_view,
                 interactive_handler,
             )
+            
+            # Check if any endpoint nodes have been executed after this batch
+            endpoint_executed = False
+            for node_view in execution_view.node_views.values():
+                if node_view.node.type == "endpoint" and node_view.output is not None:
+                    endpoint_executed = True
+                    log.info(f"Endpoint node executed during iterations, terminating early")
+                    break
+            
+            if endpoint_executed:
+                break
 
             # Add newly unblocked nodes to queue
             for executed_node in current_batch:
@@ -394,3 +430,31 @@ class ExecutionEngine:
                             ready_queue.append(target)
 
             iteration_count += 1
+        
+        # Final pass: After all iterations complete, check for any remaining
+        # non-iterative nodes that might now be executable (e.g., endpoint nodes
+        # that depend on nodes executed during iterations)
+        
+        # But first check if endpoint has already been executed
+        endpoint_executed = False
+        for node_view in execution_view.node_views.values():
+            if node_view.node.type == "endpoint" and node_view.output is not None:
+                endpoint_executed = True
+                break
+        
+        if not endpoint_executed:
+            final_batch = []
+            for node_view in execution_view.node_views.values():
+                if (node_view.output is None and 
+                    node_view.node.type not in ["job", "person_job", "loop"] and
+                    self._can_execute(node_view)):
+                    final_batch.append(node_view)
+            
+            if final_batch:
+                await self._execute_level(
+                    final_batch,
+                    execution_id,
+                    options,
+                    execution_view,
+                    interactive_handler,
+                )

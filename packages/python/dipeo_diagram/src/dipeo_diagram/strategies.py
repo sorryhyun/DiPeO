@@ -91,7 +91,17 @@ class NativeJsonStrategy(_JsonMixin, _BaseStrategy):
             },
             "handles": {h.id: h.model_dump(by_alias=True) for h in diagram.handles},
             "arrows": {
-                a.id: {"source": a.source, "target": a.target, "data": a.data}
+                a.id: {
+                    "source": a.source, 
+                    "target": a.target, 
+                    "data": a.data,
+                    **({
+                        "contentType": a.content_type.value if hasattr(a.content_type, "value") else str(a.content_type)
+                    } if a.content_type else {}),
+                    **({
+                        "label": a.label
+                    } if a.label else {})
+                }
                 for a in diagram.arrows
             },
             "persons": {p.id: p.model_dump(by_alias=True) for p in diagram.persons},
@@ -141,6 +151,10 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 # Add default values for required fields
                 props.setdefault("customData", {})
                 props.setdefault("outputDataStructure", {})
+            elif node_type == "endpoint":
+                # Map filePath to fileName for endpoint nodes
+                if "filePath" in props and "fileName" not in props:
+                    props["fileName"] = props.pop("filePath")
             
             node = build_node(
                 id=f"node_{idx}",
@@ -192,15 +206,22 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
 
             # Create arrow with data (light format doesn't include controlPointOffset)
             arrow_data = c.get("data", {})
+            
+            # Extract contentType and label from connection level
+            arrow_dict = {
+                "id": c.get("data", {}).get("id", f"arrow_{idx}"),
+                "source": f"{sid}:{src_handle}",
+                "target": f"{tid}:{dst_handle}",
+                "data": arrow_data,
+            }
+            
+            # Add contentType and label as direct fields if present
+            if "contentType" in c:
+                arrow_dict["contentType"] = c["contentType"]
+            if "label" in c:
+                arrow_dict["label"] = c["label"]
 
-            arrows.append(
-                {
-                    "id": c.get("data", {}).get("id", f"arrow_{idx}"),
-                    "source": f"{sid}:{src_handle}",
-                    "target": f"{tid}:{dst_handle}",
-                    "data": arrow_data,
-                }
-            )
+            arrows.append(arrow_dict)
         return arrows
 
     # ---- export ----------------------------------------------------------- #
@@ -218,9 +239,10 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             base = n.data.get("label") or str(n.type).split(".")[-1].title()
             label = _unique(base)
             id_to_label[n.id] = label
+            node_type = str(n.type).split(".")[-1]
             node_dict = {
                 "label": label,
-                "type": str(n.type).split(".")[-1],
+                "type": node_type,
                 "position": _round_pos(n.position),
             }
             props = {
@@ -228,6 +250,9 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 for k, v in (n.data or {}).items()
                 if k not in {"label", "position"} and v not in (None, "", {}, [])
             }
+            # Map fileName back to filePath for endpoint nodes
+            if node_type == "endpoint" and "fileName" in props:
+                props["filePath"] = props.pop("fileName")
             if props:
                 node_dict["props"] = props
             nodes_out.append(node_dict)
@@ -240,6 +265,12 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 "from": f"{id_to_label[s_id]}{':' + s_handle if s_handle != 'default' else ''}",
                 "to": f"{id_to_label[t_id]}{':' + t_handle if t_handle != 'default' else ''}",
             }
+            # Add contentType and label from direct fields
+            if a.content_type:
+                conn["contentType"] = a.content_type.value
+            if a.label:
+                conn["label"] = a.label
+            
             if a.data:
                 # Only include essential arrow data for light format
                 filtered_data = {}
@@ -249,8 +280,6 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                     "type",
                     "_sourceNodeType",
                     "_isFromConditionBranch",
-                    "contentType",
-                    "label",
                     "branch",
                 ]:
                     if key in a.data:

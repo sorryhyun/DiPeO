@@ -148,15 +148,11 @@ class EdgeView:
 
     @property
     def label(self) -> str:
-        if self.arrow.data and isinstance(self.arrow.data, dict):
-            return self.arrow.data.get("label", "default")
-        return "default"
+        return self.arrow.label or "default"
 
     @property
     def content_type(self) -> str:
-        if self.arrow.data and isinstance(self.arrow.data, dict):
-            return self.arrow.data.get("contentType", "raw_text")
-        return "raw_text"
+        return self.arrow.content_type.value if self.arrow.content_type else "raw_text"
 
 
 class LocalExecutionView:

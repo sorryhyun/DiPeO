@@ -81,25 +81,31 @@ class ServerDiagramRunner:
             self._handle_execution_stream(client, execution_id, result)
         )
 
-        # Wait for execution to complete
-        tasks = [node_task, prompt_task, exec_task]
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-
-        # Cancel remaining tasks
-        for task in pending:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-
-        # Check if execution completed successfully
-        if exec_task in done:
+        # Wait for execution to complete - exec_task should determine when we're done
+        try:
+            # Run all tasks concurrently but wait for exec_task to complete
             exec_result = await exec_task
+            
+            # Once execution is done, cancel other tasks
+            node_task.cancel()
+            prompt_task.cancel()
+            
+            # Wait for cancellation to complete
+            await asyncio.gather(node_task, prompt_task, return_exceptions=True)
+            
+            # Update result with execution data
             if exec_result and "error" in exec_result:
                 result["error"] = exec_result["error"]
             else:
                 result.update(exec_result or {})
+                
+        except Exception as e:
+            # Cancel all tasks on error
+            node_task.cancel()
+            prompt_task.cancel()
+            exec_task.cancel()
+            await asyncio.gather(node_task, prompt_task, exec_task, return_exceptions=True)
+            raise
 
     async def _handle_node_stream(
         self, client: DiPeoAPIClient, execution_id: str, result: dict[str, Any]
@@ -185,10 +191,16 @@ class ServerDiagramRunner:
             async for update in client.subscribe_to_execution(execution_id):
                 self.last_activity_time = time.time()
                 status = update.get("status", "").upper()
+                
+                if self.options.debug:
+                    print(f"🐛 Debug: Execution status update: {status}")
 
                 if status == "COMPLETED":
                     # Try different field names for token usage
                     token_usage = update.get("tokenUsage") or update.get("token_usage") or {}
+                    if self.options.debug:
+                        print(f"\n🐛 Debug: Execution completed update: {update}")
+                        print(f"🐛 Debug: Token usage extracted: {token_usage}")
                     return {
                         "context": update.get("nodeOutputs", {}),
                         "total_token_count": token_usage.get("total", 0)

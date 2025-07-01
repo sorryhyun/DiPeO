@@ -4,7 +4,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .app_context import AppContext
+    from .app_context import AppContext, get_app_context, lifespan
     from .execution_context import ExecutionContext
 
 __all__ = [

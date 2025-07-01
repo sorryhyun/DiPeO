@@ -153,9 +153,14 @@ class DomainNodeType:
         return []
 
 
-@strawberry.experimental.pydantic.type(DomainArrow, fields=["id", "source", "target"])
+@strawberry.experimental.pydantic.type(DomainArrow, fields=["id", "source", "target", "content_type", "label"])
 class DomainArrowType:
-    data: JSONScalar | None = strawberry.auto
+    @strawberry.field
+    def data(self) -> JSONScalar | None:
+        # Direct access to domain model fields
+        if hasattr(self, "_pydantic_object") and self._pydantic_object:
+            return self._pydantic_object.data
+        return getattr(self, "data", None)
 
 
 @strawberry.experimental.pydantic.type(
