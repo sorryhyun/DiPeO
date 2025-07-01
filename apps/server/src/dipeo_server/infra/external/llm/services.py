@@ -1,13 +1,10 @@
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from dipeo_core import APIKeyError, BaseService, LLMServiceError, SupportsLLM
 from dipeo_domain import ChatResult
 from dipeo_domain import LLMService as LLMServiceEnum
 from dipeo_domain.domains.apikey import APIKeyDomainService
-from dipeo_domain.domains.execution.services.token_usage_service import (
-    TokenUsageService,
-)
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -26,7 +23,7 @@ class LLMInfraService(BaseService, SupportsLLM):
     def __init__(self, api_key_service: APIKeyDomainService):
         super().__init__()
         self.api_key_service = api_key_service
-        self._adapter_pool: Dict[str, Dict[str, Any]] = {}
+        self._adapter_pool: dict[str, dict[str, Any]] = {}
 
     async def initialize(self) -> None:
         """Initialize the LLM service."""
@@ -75,13 +72,13 @@ class LLMInfraService(BaseService, SupportsLLM):
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
     )
     async def _call_llm_with_retry(
-        self, client: Any, messages: List[Dict], **kwargs
+        self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
         """Internal method for LLM calls with retry logic."""
         return client.chat(messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
-        self, messages: List[Dict[str, str]], model: str, api_key_id: str, **kwargs
+        self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs
     ) -> ChatResult:
         """Make a call to the specified LLM service with retry logic."""
         try:
@@ -95,22 +92,9 @@ class LLMInfraService(BaseService, SupportsLLM):
             # Pass all kwargs to the adapter
             adapter_kwargs = {**kwargs}
 
-            result = await self._call_llm_with_retry(
+            # Domain ChatResult already has tokenUsage, just return it
+            return await self._call_llm_with_retry(
                 adapter, messages_list, **adapter_kwargs
-            )
-
-            # Create TokenUsage from adapter's ChatResult
-            token_usage = TokenUsageService.from_chat_result(
-                prompt_tokens=result.prompt_tokens,
-                completion_tokens=result.completion_tokens,
-                total_tokens=result.total_tokens,
-            )
-
-            # Return ChatResult with embedded TokenUsage
-            return ChatResult(
-                text=result.text,
-                tokenUsage=token_usage,
-                rawResponse=result.raw_response,
             )
 
         except Exception as e:
@@ -147,7 +131,7 @@ class LLMInfraService(BaseService, SupportsLLM):
         # Default to openai for backwards compatibility
         return "openai"
 
-    async def get_available_models(self, api_key_id: str) -> List[str]:
+    async def get_available_models(self, api_key_id: str) -> list[str]:
         """Get available models for all services based on API key."""
         # For now, return an empty list as we need to know which service
         # the API key is for. This could be enhanced later.

@@ -42,6 +42,10 @@ class NodeView:
 
     def get_active_inputs(self) -> Dict[str, Any]:
         """Get inputs considering condition routing and person_job first/default logic."""
+        import logging
+
+        log = logging.getLogger(__name__)
+
         inputs = {}
 
         # Separate first/default edges for person_job nodes
@@ -84,12 +88,43 @@ class NodeView:
             label = edge.label
             source_values = edge.source_view.output.value
 
-            if label in source_values:
-                inputs[label] = source_values[label]
-            elif label == "default" and "conversation" in source_values:
-                # Special case for conversation passthrough
-                inputs[label] = source_values["conversation"]
+            log.debug(
+                f"  Edge from {edge.source_view.id} - label={label}, source_values keys={list(source_values.keys())}"
+            )
 
+            # Find the value to use
+            value = None
+            
+            # First try: exact match with edge label
+            if label in source_values:
+                value = source_values[label]
+                log.debug(
+                    f"    Found exact match for label '{label}': {repr(value)[:100]}"
+                )
+            # Second try: use "default" if available
+            elif "default" in source_values:
+                value = source_values["default"]
+                log.debug(
+                    f"    Using 'default' value for label '{label}': {repr(value)[:100]}"
+                )
+            # Special case: conversation passthrough
+            elif "conversation" in source_values:
+                value = source_values["conversation"]
+                log.debug(f"    Using 'conversation' value for label '{label}'")
+            # Fallback: use first available value if only one exists
+            elif len(source_values) == 1:
+                value = list(source_values.values())[0]
+                log.debug(
+                    f"    Using only available value for label '{label}': {repr(value)[:100]}"
+                )
+            else:
+                log.debug(f"    No suitable value found for label '{label}'")
+            
+            # Add to inputs using the edge label as key
+            if value is not None:
+                inputs[label] = value
+
+        log.debug(f"  Final inputs for {self.id}: {list(inputs.keys())}")
         return inputs
 
 

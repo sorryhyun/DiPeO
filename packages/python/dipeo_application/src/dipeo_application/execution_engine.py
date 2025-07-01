@@ -194,6 +194,27 @@ class ExecutionEngine:
                     await observer.on_node_error(execution_id, node_view.id, str(e))
                 raise
 
+    def _has_dependency_output(self, edge):
+        """Check if a dependency has output available (current or from history)."""
+        source = edge.source_view
+        
+        # For condition nodes, check if the specific branch has output
+        if source.node.type == "condition" and source.output is not None:
+            # Extract the branch from the edge source handle (e.g., "node_nL9Q:True" -> "True")
+            branch = edge.source_handle
+            # Only satisfied if this specific branch has a value
+            return branch in source.output.value and source.output.value[branch] is not None
+        
+        # If source has current output, dependency is satisfied
+        if source.output is not None:
+            return True
+            
+        # For iterative nodes, check if they have executed at least once
+        if source.node.type in ["job", "person_job", "loop"]:
+            return hasattr(source, "output_history") and len(source.output_history) > 0
+            
+        return False
+
     def _can_execute(self, node_view):
         """Check if node can execute."""
         if node_view.output is not None:
@@ -207,18 +228,22 @@ class ExecutionEngine:
                     e for e in node_view.incoming_edges if e.target_handle == "first"
                 ]
                 if first_edges:
-                    return all(edge.source_view.output is not None for edge in first_edges)
+                    return all(
+                        edge.source_view.output is not None for edge in first_edges
+                    )
             else:
                 # On subsequent executions, only check "default" inputs
                 default_edges = [
                     e for e in node_view.incoming_edges if e.target_handle == "default"
                 ]
                 if default_edges:
-                    return all(edge.source_view.output is not None for edge in default_edges)
+                    return all(
+                        self._has_dependency_output(edge) for edge in default_edges
+                    )
 
         # Standard check: all dependencies must be satisfied
         return all(
-            edge.source_view.output is not None for edge in node_view.incoming_edges
+            self._has_dependency_output(edge) for edge in node_view.incoming_edges
         )
 
     def _create_runtime_context(self, node_view, execution_id, options, execution_view):
@@ -271,11 +296,8 @@ class ExecutionEngine:
             if node_view.node.type in ["job", "person_job", "loop"]:
                 max_iter = node_view.data.get("maxIteration", 1)
                 if node_view.exec_count < max_iter and node_view.output is None:
-                    # Check if dependencies are satisfied
-                    if all(
-                        edge.source_view.output is not None
-                        for edge in node_view.incoming_edges
-                    ):
+                    # Check if dependencies are satisfied using the same logic as _can_execute
+                    if self._can_execute(node_view):
                         ready_queue.append(node_view)
 
         # Process queue
@@ -318,15 +340,10 @@ class ExecutionEngine:
                     if target.node.type in ["job", "person_job", "loop"]:
                         max_iter = target.data.get("maxIteration", 1)
                         if target.exec_count < max_iter and target.output is None:
-                            if all(
-                                e.source_view.output is not None
-                                for e in target.incoming_edges
-                            ):
+                            if self._can_execute(target):
                                 if target not in ready_queue:
                                     ready_queue.append(target)
-                    elif target.output is None and all(
-                        e.source_view.output is not None for e in target.incoming_edges
-                    ):
+                    elif target.output is None and self._can_execute(target):
                         if target not in ready_queue:
                             ready_queue.append(target)
 

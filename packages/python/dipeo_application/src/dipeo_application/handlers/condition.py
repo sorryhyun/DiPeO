@@ -32,7 +32,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute condition node."""
-        if props.conditionType != "detect_max_iterations":
+        if props.condition_type != "detect_max_iterations":
             return create_node_output({"False": None}, {"condition_result": False})
 
         # Get diagram to check upstream nodes
@@ -55,11 +55,11 @@ class ConditionNodeHandler(BaseNodeHandler):
 
         # Forward all inputs to outputs, preserving conversation state
         value: dict[str, Any] = {}
-        
+
         # Copy all inputs to outputs
         if inputs:
             value.update(inputs)
-            
+
             # For person_job nodes, conversation state comes as "conversation" key
             # We need to ensure it's available in both the output and branch-specific keys
             if "conversation" in inputs and "default" in inputs:
@@ -75,4 +75,10 @@ class ConditionNodeHandler(BaseNodeHandler):
                     if first_key:
                         value["default"] = inputs[first_key]
 
-        return create_node_output(value, {"condition_result": result})
+        # Return output based on result
+        if result:
+            # Max iterations reached - output on True branch
+            return create_node_output({"True": value.get("default", "")}, {"condition_result": result})
+        else:
+            # Iterations remaining - output on False branch 
+            return create_node_output({"False": value.get("default", "")}, {"condition_result": result})

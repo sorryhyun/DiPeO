@@ -12,7 +12,7 @@ load_dotenv()
 # Set up logging
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 # Reduce noisy debug logging
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="DiPeO Backend API",
     description="API server for DiPeO visual programming environment",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 setup_middleware(app)
@@ -66,19 +66,19 @@ async def metrics(request: Request):
         from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
         if "application/json" in accept_header:
-            metrics_data = generate_latest().decode('utf-8')
+            metrics_data = generate_latest().decode("utf-8")
             return {
                 "metrics": metrics_data,
                 "format": "prometheus",
-                "message": "Metrics in Prometheus format"
+                "message": "Metrics in Prometheus format",
             }
 
-        return Response(
-            content=generate_latest(),
-            media_type=CONTENT_TYPE_LATEST
-        )
+        return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
     except ImportError:
-        return {"message": "Prometheus client not installed. Install with: pip install prometheus-client"}
+        return {
+            "message": "Prometheus client not installed. Install with: pip install prometheus-client"
+        }
+
 
 def start():
     import asyncio
@@ -108,9 +108,12 @@ def start():
     config.h2_max_concurrent_streams = 100
 
     if os.environ.get("RELOAD", "false").lower() == "true":
-        logger.warning("Hot reload is not supported with Hypercorn. Please restart the server manually for changes.")
+        logger.warning(
+            "Hot reload is not supported with Hypercorn. Please restart the server manually for changes."
+        )
 
     asyncio.run(serve(app, config))
+
 
 if __name__ == "__main__":
     start()

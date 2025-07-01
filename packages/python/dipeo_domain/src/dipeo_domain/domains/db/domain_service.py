@@ -49,6 +49,17 @@ class DBOperationsDomainService:
 
     async def _get_db_file_path(self, db_name: str) -> str:
         """Get the full path for a database file."""
+        import logging
+
+        log = logging.getLogger(__name__)
+        log.debug(f"_get_db_file_path: db_name='{db_name}'")
+
+        # Check if db_name already contains a path (e.g., "files/uploads/questions.txt")
+        if "/" in db_name or "\\" in db_name:
+            # It's already a path, use it as-is
+            log.debug(f"Using db_name as path: '{db_name}'")
+            return db_name
+
         # Remove any path separators from db_name for security
         safe_db_name = db_name.replace("/", "_").replace("\\", "_")
 
@@ -63,19 +74,32 @@ class DBOperationsDomainService:
             # Simple path construction for basic file services
             db_path = f"dbs/{safe_db_name}"
 
+        log.debug(f"Constructed db_path: '{db_path}'")
         return db_path
 
     async def _read_db(self, file_path: str) -> Dict[str, Any]:
         """Read data from database file."""
+        import logging
+
+        log = logging.getLogger(__name__)
+        log.debug(f"_read_db: file_path='{file_path}'")
+
         try:
             # Handle different file service types
             # Check if it's a SimpleFileService by trying to call read and seeing if it returns a dict
             try:
                 result = self.file_service.read(file_path)
+                log.debug(
+                    f"File service read result type: {type(result)}, content preview: {repr(result)[:200]}"
+                )
+
                 if isinstance(result, dict) and "success" in result:
                     # SimpleFileService style - returns dict
                     if result.get("success"):
                         data = result.get("content", {})
+                        log.debug(
+                            f"SimpleFileService success - data type: {type(data)}, data: {repr(data)[:200]}"
+                        )
                         return {
                             "value": data,
                             "metadata": {
@@ -86,6 +110,7 @@ class DBOperationsDomainService:
                         }
                     else:
                         # File doesn't exist
+                        log.debug("SimpleFileService - file doesn't exist")
                         return {
                             "value": {},
                             "metadata": {"empty": True, "file_path": file_path},

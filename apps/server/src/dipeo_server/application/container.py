@@ -13,8 +13,7 @@ from dipeo_core import (
     SupportsNotion,
 )
 from dipeo_domain.domains.apikey import APIKeyDomainService
-from dipeo_domain.domains.conversation import ConversationMemoryDomainService
-from dipeo_domain.domains.conversation.domain_service import ConversationDomainService
+from dipeo_domain.domains.conversation.simple_service import ConversationMemoryService
 from dipeo_domain.domains.db import DBOperationsDomainService
 from dipeo_domain.domains.diagram.services import (
     DiagramFileRepository,
@@ -67,14 +66,7 @@ class ServerContainer(BaseContainer):
     )
 
     conversation_memory_service = providers.Singleton(
-        ConversationMemoryDomainService,
-    )
-
-    conversation_service = providers.Singleton(
-        ConversationDomainService,
-        llm_service=llm_service,
-        api_key_service=api_key_service,
-        conversation_service=conversation_memory_service,
+        ConversationMemoryService,
     )
 
     diagram_file_repository = providers.Singleton(
@@ -131,7 +123,6 @@ class ServerContainer(BaseContainer):
         llm_service=llm_service,
         file_service=file_service,
         conversation_memory_service=conversation_memory_service,
-        conversation_service=conversation_service,
         diagram_storage_service=diagram_storage_service,
         text_processing_service=text_processing_service,
         file_operations_service=file_operations_service,

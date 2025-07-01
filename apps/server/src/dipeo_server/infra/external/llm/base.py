@@ -1,32 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any
 
-
-@dataclass
-class ChatResult:
-    text: str
-    prompt_tokens: int | None = None
-    completion_tokens: int | None = None
-    total_tokens: int | None = None
-    raw_response: Any | None = None
-
-    @property
-    def has_usage(self) -> bool:
-        return any(
-            v is not None
-            for v in (self.prompt_tokens, self.completion_tokens, self.total_tokens)
-        )
-
-    @property
-    def usage(self) -> dict[str, int | None] | None:
-        if self.has_usage:
-            return {
-                "prompt_tokens": self.prompt_tokens,
-                "completion_tokens": self.completion_tokens,
-                "total_tokens": self.total_tokens,
-            }
-        return None
+from dipeo_domain import ChatResult
 
 
 class BaseAdapter(ABC):

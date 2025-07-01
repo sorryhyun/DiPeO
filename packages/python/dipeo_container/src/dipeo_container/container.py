@@ -56,9 +56,11 @@ def _create_file_service(base_dir):
 
 
 def _create_conversation_service():
-    from dipeo_domain.domains.conversation import ConversationMemoryDomainService
+    from dipeo_domain.domains.conversation.simple_service import (
+        ConversationMemoryService,
+    )
 
-    return ConversationMemoryDomainService()
+    return ConversationMemoryService()
 
 
 def _create_llm_service(api_key_service):
@@ -125,20 +127,6 @@ def _create_notion_integration_service(notion_service, file_service):
     return NotionIntegrationDomainService(notion_service, file_service)
 
 
-def _create_conversation_domain_service(
-    llm_service, api_key_service, conversation_service
-):
-    from dipeo_domain.domains.conversation.domain_service import (
-        ConversationDomainService,
-    )
-
-    return ConversationDomainService(
-        llm_service=llm_service,
-        api_key_service=api_key_service,
-        conversation_service=conversation_service,
-    )
-
-
 def _create_diagram_storage_domain_service(storage_service):
     from dipeo_domain.domains.diagram.services.domain_service import (
         DiagramStorageDomainService,
@@ -164,7 +152,6 @@ def _create_service_registry(
     api_key_service,
     file_service,
     conversation_memory_service,
-    conversation_domain_service,
     notion_integration_service,
     diagram_storage_domain_service,
     api_integration_service,
@@ -181,7 +168,6 @@ def _create_service_registry(
         api_key_service=api_key_service,
         file_service=file_service,
         conversation_memory_service=conversation_memory_service,
-        conversation_service=conversation_domain_service,
         notion_integration_service=notion_integration_service,
         diagram_storage_service=diagram_storage_domain_service,
         api_integration_service=api_integration_service,
@@ -329,12 +315,6 @@ class Container(containers.DeclarativeContainer):
     )
 
     # Additional Domain Services
-    conversation_domain_service = providers.Singleton(
-        _create_conversation_domain_service,
-        llm_service=llm_service,
-        api_key_service=api_key_service,
-        conversation_service=conversation_service,
-    )
 
     diagram_storage_domain_service = providers.Singleton(
         _create_diagram_storage_domain_service,
@@ -356,7 +336,6 @@ class Container(containers.DeclarativeContainer):
         api_key_service=api_key_service,
         file_service=file_service,
         conversation_memory_service=conversation_service,
-        conversation_domain_service=conversation_domain_service,
         notion_integration_service=notion_integration_service,
         diagram_storage_domain_service=diagram_storage_domain_service,
         api_integration_service=api_integration_service,

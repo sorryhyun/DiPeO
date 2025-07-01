@@ -13,9 +13,6 @@ if TYPE_CHECKING:
         NotionIntegrationDomainService,
     )
     from dipeo_domain.domains.api import APIIntegrationDomainService
-    from dipeo_domain.domains.conversation.domain_service import (
-        ConversationDomainService,
-    )
     from dipeo_domain.domains.diagram.services.domain_service import (
         DiagramStorageDomainService,
     )
@@ -36,7 +33,6 @@ class ServiceRegistry:
         file_service: "SupportsFile",
         conversation_memory_service: "SupportsMemory",
         # Domain services
-        conversation_service: "ConversationDomainService",
         notion_integration_service: "NotionIntegrationDomainService",
         diagram_storage_service: "DiagramStorageDomainService",
         api_integration_service: "APIIntegrationDomainService",
@@ -53,7 +49,6 @@ class ServiceRegistry:
         self._conversation_memory_service = conversation_memory_service
 
         # Store domain services
-        self._conversation_service = conversation_service
         self._notion_integration_service = notion_integration_service
         self._diagram_storage_service = diagram_storage_service
         self._api_integration_service = api_integration_service
@@ -61,11 +56,6 @@ class ServiceRegistry:
         self._file_operations_service = file_operations_service
         self._validation_service = validation_service
         self._db_operations_service = db_operations_service
-
-    @property
-    def conversation(self) -> "ConversationDomainService":
-        """Get conversation domain service."""
-        return self._conversation_service
 
     @property
     def notion_integration(self) -> "NotionIntegrationDomainService":
@@ -116,8 +106,7 @@ class ServiceRegistry:
             "conversation_memory": self._conversation_memory_service,
             "conversation_memory_service": self._conversation_memory_service,
             # Domain services
-            "conversation": self.conversation,
-            "conversation_service": self.conversation,
+            "conversation": self._conversation_memory_service,  # Use simple memory service for handlers
             "notion": self.notion_integration,
             "notion_integration": self.notion_integration,
             "diagram_storage": self.diagram_storage,

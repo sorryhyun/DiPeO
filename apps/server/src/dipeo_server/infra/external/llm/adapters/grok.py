@@ -1,8 +1,9 @@
 import logging
 
 import anthropic
+from dipeo_domain import ChatResult, TokenUsage
 
-from ..base import BaseAdapter, ChatResult
+from ..base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -56,19 +57,25 @@ class GrokAdapter(BaseAdapter):
         # Extract usage
         prompt_tokens = None
         completion_tokens = None
-        total_tokens = None
 
         usage_obj = getattr(response, "usage", None)
         if usage_obj:
             prompt_tokens = getattr(usage_obj, "input_tokens", None)
             completion_tokens = getattr(usage_obj, "output_tokens", None)
-            if prompt_tokens is not None and completion_tokens is not None:
-                total_tokens = prompt_tokens + completion_tokens
+
+        # Create TokenUsage if we have usage data
+        token_usage = None
+        if prompt_tokens is not None or completion_tokens is not None:
+            token_usage = TokenUsage(
+                input=prompt_tokens or 0,
+                output=completion_tokens or 0,
+                total=(prompt_tokens or 0) + (completion_tokens or 0)
+                if prompt_tokens is not None and completion_tokens is not None
+                else None,
+            )
 
         return ChatResult(
             text=text,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            raw_response=response,
+            tokenUsage=token_usage,
+            rawResponse=response,
         )

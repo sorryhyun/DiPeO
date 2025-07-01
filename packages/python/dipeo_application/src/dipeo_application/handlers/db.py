@@ -61,12 +61,16 @@ class DBNodeHandler(BaseNodeHandler):
                 metadata = result["metadata"]
                 output_value = f"{props.operation.capitalize()}d to {metadata['file_path']} ({metadata.get('size', 0)} bytes)"
 
-            return create_node_output({"default": output_value, "topic": output_value})
+            import logging
+
+            log = logging.getLogger(__name__)
+            log.debug(f"DB node output_value: {repr(output_value)}")
+            return create_node_output({"default": output_value})
 
         except Exception as exc:
             # Domain service throws specific validation errors
             error_msg = f"DB operation failed: {str(exc)}"
             return create_node_output(
-                {"default": error_msg, "topic": error_msg},
+                {"default": error_msg},
                 metadata={"error": str(exc), "status": "failed"},
             )
