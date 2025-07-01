@@ -49,10 +49,10 @@ def _make_handle(
     hid = f"{node_id}:{suffix}"
     return DomainHandle(
         id=HandleID(hid),
-        nodeId=NodeID(node_id),
+        node_id=NodeID(node_id),
         label=label,
         direction=direction,
-        dataType=dtype,
+        data_type=dtype,
         position="left" if direction is HandleDirection.input else "right",
     )
 

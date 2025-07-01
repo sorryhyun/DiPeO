@@ -148,6 +148,32 @@ export class PythonGenerator {
       return cache(opt ? optional(listType) : listType);
     }
 
+    // Map (ES6 Map -> Python Dict)
+    if (ts.startsWith('Map<')) {
+      const match = ts.match(/^Map<([^,]+),\s*(.+)>$/);
+      if (match) {
+        const keyType = match[1].trim();
+        const valueType = match[2].trim();
+        
+        // Convert key type
+        let pyKeyType = 'str';  // Default to str for branded types like NodeID
+        if (keyType !== 'string' && !BRANDED_IDS.includes(keyType)) {
+          pyKeyType = this.pyType(keyType);
+        }
+        
+        // Convert value type
+        const pyValueType = this.pyType(valueType);
+        
+        this.addImport('typing', 'Dict');
+        const py = `Dict[${pyKeyType}, ${pyValueType}]`;
+        return cache(opt ? optional(py) : py);
+      }
+      // Fallback for malformed Map types
+      this.addImport('typing', 'Dict', 'Any');
+      const py = 'Dict[str, Any]';
+      return cache(opt ? optional(py) : py);
+    }
+
     // Record
     if (ts.startsWith('Record<')) {
       const match = ts.match(/^Record<([^,]+),\s*(.+)>$/);
@@ -274,15 +300,6 @@ export class PythonGenerator {
     return cache(opt ? optional(mapped) : mapped);
   }
 
-  private convertPropNameToSnakeCase(name: string): string {
-    // Special case for fields starting with underscore
-    if (name.startsWith('_')) {
-      return name;
-    }
-    // Convert camelCase to snake_case
-    return name.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
-  }
-
   private generateClass(schema: SchemaDefinition): string[] {
     const lines: string[] = [];
     
@@ -330,22 +347,11 @@ export class PythonGenerator {
       } else {
         for (const [propName, propInfo] of Object.entries(allProperties)) {
           const pyT = this.pyType(propInfo.type, propInfo.optional, propName);
-          const snakeName = this.convertPropNameToSnakeCase(propName);
           
-          // Check if we need Field with alias
-          if (snakeName !== propName) {
-            this.addImport('pydantic', 'Field');
-            if (propInfo.optional) {
-              lines.push(`    ${snakeName}: ${pyT} = Field(alias="${propName}", default=None)`);
-            } else {
-              lines.push(`    ${snakeName}: ${pyT} = Field(alias="${propName}")`);
-            }
+          if (propInfo.optional) {
+            lines.push(`    ${propName}: ${pyT} = Field(default=None)`);
           } else {
-            if (propInfo.optional) {
-              lines.push(`    ${propName}: ${pyT} = Field(default=None)`);
-            } else {
-              lines.push(`    ${propName}: ${pyT}`);
-            }
+            lines.push(`    ${propName}: ${pyT}`);
           }
         }
       }

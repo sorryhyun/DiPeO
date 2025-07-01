@@ -31,8 +31,8 @@ import { TokenUsage } from './execution.js';
 // LLM Chat Result
 export interface ChatResult {
   text: string;
-  tokenUsage?: TokenUsage | null;
-  rawResponse?: any | null;
+  token_usage?: TokenUsage | null;
+  raw_response?: any | null;
 }
 
 // Future: Add more integration-related types here

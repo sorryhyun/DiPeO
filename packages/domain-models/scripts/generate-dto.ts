@@ -74,6 +74,35 @@ function mapTypeToPython(tsType: string): string {
     return `List[${mapTypeToPython(innerType)}]`;
   }
 
+  // Handle Map types (ES6 Map)
+  if (tsType.startsWith('Map<')) {
+    // Extract content between < and >
+    const mapContent = tsType.slice(4, -1);
+    
+    // Find comma separating key and value types, handling nested generics
+    let depth = 0;
+    let commaIndex = -1;
+    for (let i = 0; i < mapContent.length; i++) {
+      if (mapContent[i] === '<') depth++;
+      else if (mapContent[i] === '>') depth--;
+      else if (mapContent[i] === ',' && depth === 0) {
+        commaIndex = i;
+        break;
+      }
+    }
+    
+    if (commaIndex !== -1) {
+      const keyType = mapContent.slice(0, commaIndex).trim();
+      const valueType = mapContent.slice(commaIndex + 1).trim();
+      
+      // Remove import() statements and extract the type name
+      const cleanKeyType = keyType.replace(/import\([^)]+\)\./g, '');
+      const cleanValueType = valueType.replace(/import\([^)]+\)\./g, '');
+      
+      return `Dict[${mapTypeToPython(cleanKeyType)}, ${mapTypeToPython(cleanValueType)}]`;
+    }
+  }
+
   // Handle Record types
   if (tsType.startsWith('Record<')) {
     const match = tsType.match(/Record<(\w+),\s*(.+)>/);
@@ -110,7 +139,7 @@ function shouldHaveConversion(typeDef: TypeDef): boolean {
 
 // Generate field with validation
 function generateFieldWithValidation(prop: Property, isOptional: boolean): string {
-  const pythonName = camelToSnake(prop.name);
+  const pythonName = prop.name;
   const pythonType = mapTypeToPython(prop.type);
   let fieldDef = '';
   
@@ -229,7 +258,7 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
     result += `        return cls(\n`;
     
     typeDef.properties?.forEach((prop, idx) => {
-      const pythonName = camelToSnake(prop.name);
+      const pythonName = prop.name;
       const isLast = idx === typeDef.properties!.length - 1;
       result += `            ${pythonName}=domain_model.${pythonName}${isLast ? '' : ','}\n`;
     });
@@ -242,7 +271,7 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
     result += `        return domain.${typeDef.name}(\n`;
     
     typeDef.properties?.forEach((prop, idx) => {
-      const pythonName = camelToSnake(prop.name);
+      const pythonName = prop.name;
       const isLast = idx === typeDef.properties!.length - 1;
       result += `            ${pythonName}=self.${pythonName}${isLast ? '' : ','}\n`;
     });
@@ -251,11 +280,6 @@ function generateDTO(typeDef: TypeDef, suffix: string = 'DTO'): string {
   }
 
   return `${result  }\n`;
-}
-
-// Convert camelCase to snake_case
-function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
 }
 
 // Parse schema and generate DTOs

@@ -6,21 +6,21 @@ import { PersonID, MemoryConfig } from "./diagram.js";
  */
 export interface Message {
   id?: string;
-  fromPersonId: PersonID | 'system';  // Who sent the message
-  toPersonId: PersonID;               // Who receives/stores this message
+  from_person_id: PersonID | 'system';  // Who sent the message
+  to_person_id: PersonID;               // Who receives/stores this message
   content: string;
   timestamp?: string;
-  tokenCount?: number;
-  messageType: 'person_to_person' | 'system_to_person' | 'person_to_system';
+  token_count?: number;
+  message_type: 'person_to_person' | 'system_to_person' | 'person_to_system';
   metadata?: Record<string, any>;
 }
 
 export interface ConversationMetadata {
-  startedAt: string;
-  lastMessageAt: string;
-  totalTokens: number;
-  messageCount: number;
-  contextResets: number;
+  started_at: string;
+  last_message_at: string;
+  total_tokens: number;
+  message_count: number;
+  context_resets: number;
 }
 
 export interface Conversation {
@@ -30,7 +30,7 @@ export interface Conversation {
 
 
 export interface MemoryState extends Conversation {
-  visibleMessages: number;
-  hasMore?: boolean;
+  visible_messages: number;
+  has_more?: boolean;
   config?: MemoryConfig;
 }

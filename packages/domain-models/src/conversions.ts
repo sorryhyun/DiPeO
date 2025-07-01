@@ -24,14 +24,14 @@ import {
 // ============================================================================
 
 /**
- * Maps frontend node types to GraphQL/domain node types
+ * Maps node type strings to GraphQL/domain node types
  */
 export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'job': NodeType.JOB,
-  'personJob': NodeType.PERSON_JOB,
-  'personBatchJob': NodeType.PERSON_BATCH_JOB,
+  'person_job': NodeType.PERSON_JOB,
+  'person_batch_job': NodeType.PERSON_BATCH_JOB,
   'condition': NodeType.CONDITION,
-  'userResponse': NodeType.USER_RESPONSE,
+  'user_response': NodeType.USER_RESPONSE,
   'start': NodeType.START,
   'endpoint': NodeType.ENDPOINT,
   'db': NodeType.DB,
@@ -80,7 +80,7 @@ export function createHandleId(nodeId: NodeID, handleLabel: string): HandleID {
 /**
  * Parse a handle ID into its components
  */
-export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleLabel: string } {
+export function parseHandleId(handleId: HandleID): { node_id: NodeID; handle_label: string } {
   const [nodeId, ...labelParts] = handleId.split(':');
   const handleLabel = labelParts.join(':'); // Handle labels might contain ':'
   
@@ -88,7 +88,7 @@ export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleLabel
     throw new Error(`Invalid handle ID format: ${handleId}`);
   }
   
-  return { nodeId: nodeId as NodeID, handleLabel };
+  return { node_id: nodeId as NodeID, handle_label: handleLabel };
 }
 
 // ============================================================================
@@ -113,7 +113,7 @@ export function areHandlesCompatible(
   }
   
   // Check data type compatibility
-  return isDataTypeCompatible(sourceHandle.dataType, targetHandle.dataType);
+  return isDataTypeCompatible(sourceHandle.data_type, targetHandle.data_type);
 }
 
 /**
@@ -319,11 +319,11 @@ export function validateArrowConnection(
   const errors: string[] = [];
   
   // Check handle ownership
-  if (parseHandleId(sourceHandle.id).nodeId !== sourceNode.id) {
+  if (parseHandleId(sourceHandle.id).node_id !== sourceNode.id) {
     errors.push('Source handle does not belong to source node');
   }
   
-  if (parseHandleId(targetHandle.id).nodeId !== targetNode.id) {
+  if (parseHandleId(targetHandle.id).node_id !== targetNode.id) {
     errors.push('Target handle does not belong to target node');
   }
   

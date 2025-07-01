@@ -44,16 +44,13 @@ from dipeo_domain import (
 NODE_TYPE_MAP: Dict[str, NodeType] = {
     'start': NodeType.start,
     'person_job': NodeType.person_job,
-    'personJob': NodeType.person_job,  # Frontend compatibility
     'condition': NodeType.condition,
     'job': NodeType.job,
     'endpoint': NodeType.endpoint,
     'db': NodeType.db,
     'user_response': NodeType.user_response,
-    'userResponse': NodeType.user_response,  # Frontend compatibility
     'notion': NodeType.notion,
     'person_batch_job': NodeType.person_batch_job,
-    'personBatchJob': NodeType.person_batch_job,  # Frontend compatibility
 }
 
 NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {
