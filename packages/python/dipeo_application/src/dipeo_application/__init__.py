@@ -36,6 +36,9 @@ from .execution_view import LocalExecutionView, NodeView, EdgeView
 # Export service registry
 from .service_registry import LocalServiceRegistry
 
+# Export minimal services
+from .services import MinimalStateStore, MinimalMessageRouter
+
 __all__ = [
     # Context
     "ApplicationContext",
@@ -49,6 +52,9 @@ __all__ = [
     "EdgeView",
     # Service Registry
     "LocalServiceRegistry",
+    # Minimal Services
+    "MinimalStateStore",
+    "MinimalMessageRouter",
     # Handlers
     "ConditionNodeHandler",
     "DBNodeHandler",

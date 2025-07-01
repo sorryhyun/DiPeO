@@ -8,8 +8,8 @@ import asyncio
 import sys
 
 from .convert import convert_command as convert
+from .execution_handler import run_command as run
 from .monitor import monitor_command as monitor
-from .run import run_command as run
 from .stats import stats_command as stats
 
 
@@ -22,8 +22,6 @@ def print_usage():
     print("    --local                 - Run locally without server (limited features)")
     print("    --monitor               - Open browser monitor before execution")
     print("    --mode=headless         - Run without browser")
-    print("    --no-browser            - Disable browser visualization")
-    print("    --no-stream             - Disable streaming output")
     print("    --debug                 - Enable debug mode")
     print("    --keep-server           - Keep server running after debug execution")
     print("    --timeout=<seconds>     - Set inactivity timeout (default: 300)")

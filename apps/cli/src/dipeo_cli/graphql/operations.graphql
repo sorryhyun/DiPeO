@@ -53,20 +53,20 @@ subscription ExecutionUpdates($executionId: ExecutionID!) {
     executionUpdates(executionId: $executionId) {
         id
         status
-        diagramId
-        startedAt
-        endedAt
-        nodeStates
-        nodeOutputs
+        diagram_id
+        started_at
+        ended_at
+        node_states
+        node_outputs
         variables
-        tokenUsage {
+        token_usage {
             input
             output
             total
         }
         error
-        isActive
-        durationSeconds
+        is_active
+        duration_seconds
     }
 }
 

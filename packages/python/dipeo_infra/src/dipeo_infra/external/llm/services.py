@@ -12,7 +12,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from dipeo_server.shared.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo_core.constants import VALID_LLM_SERVICES, normalize_service_name
 
 from . import create_adapter
 

@@ -15,17 +15,19 @@ def stats_command(args: list[str]) -> None:
         diagram = DiagramLoader.load(args[0])
 
         # Calculate statistics
-        nodes = diagram.get("nodes", {})
+        nodes = diagram.get("nodes", [])
         node_types = {}
-        for node_id, node in nodes.items():
+        for node in nodes:
             node_type = node.get("type", "unknown")
             node_types[node_type] = node_types.get(node_type, 0) + 1
 
         print("\nDiagram Statistics:")
-        print(f"  Persons: {len(diagram.get('persons', {}))}")
+        print(f"  Persons: {len(diagram.get('persons', []))}")
         print(f"  Nodes: {len(nodes)}")
-        print(f"  Arrows: {len(diagram.get('arrows', {}))}")
-        print(f"  API Keys: {'Yes' if diagram.get('apiKeys') else 'No'}")
+        print(f"  Arrows: {len(diagram.get('arrows', []))}")
+        # Handle both camelCase and snake_case
+        api_keys = diagram.get('api_keys', diagram.get('apiKeys', []))
+        print(f"  API Keys: {'Yes' if api_keys else 'No'}")
 
         if node_types:
             print("\nNode Types:")

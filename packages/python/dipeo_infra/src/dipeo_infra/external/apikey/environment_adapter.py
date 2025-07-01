@@ -1,4 +1,4 @@
-"""Environment-based API Key Service for CLI."""
+"""Environment-based API Key Service infrastructure adapter."""
 
 import os
 
@@ -7,7 +7,11 @@ from dipeo_core.constants import VALID_LLM_SERVICES, normalize_service_name
 
 
 class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
-    """API Key service that reads from environment variables for CLI usage."""
+    """API Key service that reads from environment variables.
+    
+    This adapter allows applications to use environment variables for API key management,
+    which is useful for CLI applications and containerized deployments.
+    """
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 

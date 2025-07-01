@@ -38,29 +38,24 @@ class EndpointNodeHandler(BaseNodeHandler):
         """Execute endpoint node."""
         file_service = services["file"]
 
-        if props.data is not None:
-            result_data = props.data
-        else:
-            result_data = inputs if inputs else {}
+        # Endpoint nodes pass through their inputs
+        result_data = inputs if inputs else {}
 
-        if props.saveToFile:
-            file_path = props.filePath or props.fileName
+        if props.save_to_file and props.file_name:
+            try:
+                if isinstance(result_data, dict) and "default" in result_data:
+                    content = str(result_data["default"])
+                else:
+                    content = str(result_data)
 
-            if file_path:
-                try:
-                    if isinstance(result_data, dict) and "default" in result_data:
-                        content = str(result_data["default"])
-                    else:
-                        content = str(result_data)
+                await file_service.write(props.file_name, content)
 
-                    await file_service.write(file_path, content)
-
-                    return create_node_output(
-                        {"default": result_data}, {"saved_to": file_path}
-                    )
-                except Exception as exc:
-                    return create_node_output(
-                        {"default": result_data}, {"save_error": str(exc)}
-                    )
+                return create_node_output(
+                    {"default": result_data}, {"saved_to": props.file_name}
+                )
+            except Exception as exc:
+                return create_node_output(
+                    {"default": result_data}, {"save_error": str(exc)}
+                )
 
         return create_node_output({"default": result_data})

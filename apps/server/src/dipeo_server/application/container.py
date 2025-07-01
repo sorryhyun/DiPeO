@@ -30,10 +30,10 @@ from dipeo_domain.domains.validation import ValidationDomainService
 from dipeo_infra import (
     MessageRouter,
     NotionIntegrationDomainService,
+    LLMInfraService,
 )
 from dipeo_domain.domains.api import APIIntegrationDomainService
 from dipeo_server.infra.external.integrations.notion import NotionAPIService
-from dipeo_server.infra.external.llm import LLMInfraService
 from dipeo_server.infra.persistence import FileSystemRepository
 from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR

@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 
+from dipeo_application import MinimalMessageRouter, MinimalStateStore
 from dipeo_core import (
     SupportsAPIKey,
     SupportsDiagram,
@@ -12,31 +13,7 @@ from dipeo_core import (
     SupportsMemory,
     SupportsNotion,
 )
-
-from .env_api_key_service import EnvironmentAPIKeyService
-
-
-class MinimalStateStore:
-    """Minimal state store for local execution."""
-
-    async def create_execution_in_cache(
-        self, execution_id: str, diagram_id: str | None, variables: dict
-    ):
-        """Create execution record (no-op for local execution)."""
-        pass
-
-    async def update_node_state(self, execution_id: str, node_id: str, state: str):
-        """Update node state (no-op for local execution)."""
-        pass
-
-
-class MinimalMessageRouter:
-    """Minimal message router for local execution."""
-
-    async def send_update(self, execution_id: str, update: dict):
-        """Send update (no-op for local execution)."""
-        pass
-
+from dipeo_infra.external.apikey import EnvironmentAPIKeyService
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +44,7 @@ class LocalAppContext:
         """Initialize minimal services for local execution."""
         # Import necessary services
         from dipeo_application import LocalExecutionService
-        from dipeo_infra import FileService, MemoryService
-        from dipeo_server.infra.external.llm import LLMInfraService
+        from dipeo_infra import FileService, LLMInfraService, MemoryService
 
         # Initialize API key service with environment variables
         self.api_key_service = EnvironmentAPIKeyService()

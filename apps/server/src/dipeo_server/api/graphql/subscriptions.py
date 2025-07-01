@@ -142,6 +142,7 @@ class Subscription:
                         # For other updates, fetch current state
                         state = await state_store.get_state_from_cache(execution_id)
                         if state:
+                            logger.debug(f"Yielding state with token_usage: {state.token_usage}")
                             yield state
 
                     # Check if execution is complete
@@ -271,12 +272,17 @@ class Subscription:
                         tokens_used = None
 
                         if output_data and isinstance(output_data, dict):
-                            output_value = output_data.get("data")
+                            output_value = output_data.get("value")
                             metadata = output_data.get("metadata")
                             if metadata and isinstance(metadata, dict):
-                                usage = metadata.get("usage", {})
-                                if usage:
-                                    tokens_used = usage.get("total_tokens", 0)
+                                # Try multiple places for token usage
+                                # 1. Direct tokens_used field
+                                tokens_used = metadata.get("tokens_used", 0)
+                                # 2. tokenUsage object with total field
+                                if not tokens_used and "tokenUsage" in metadata:
+                                    token_usage = metadata["tokenUsage"]
+                                    if isinstance(token_usage, dict):
+                                        tokens_used = token_usage.get("total", 0)
 
                         yield NodeExecution(
                             execution_id=execution_id,

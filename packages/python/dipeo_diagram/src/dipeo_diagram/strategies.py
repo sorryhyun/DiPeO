@@ -84,7 +84,7 @@ class NativeJsonStrategy(_JsonMixin, _BaseStrategy):
             "nodes": {
                 n.id: {
                     "type": n.type,
-                    "position": n.position,
+                    "position": n.position.model_dump(),
                     "data": n.data,
                 }
                 for n in diagram.nodes
@@ -134,9 +134,17 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                     if k not in {"label", "type", "position", "props"}
                 },
             }
+            
+            # Add required fields for specific node types
+            node_type = n.get("type", "job")
+            if node_type == "start":
+                # Add default values for required fields
+                props.setdefault("customData", {})
+                props.setdefault("outputDataStructure", {})
+            
             node = build_node(
                 id=f"node_{idx}",
-                type_=n.get("type", "job"),
+                type_=node_type,
                 pos=n.get("position", {}),
                 label=n.get("label"),
                 **props,
@@ -258,16 +266,16 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
         for p in diagram.persons:
             person_data = {
                 "label": p.label,
-                "service": p.service.value
-                if hasattr(p.service, "value")
-                else str(p.service),
-                "model": p.model,
+                "service": p.llm_config.service.value
+                if hasattr(p.llm_config.service, "value")
+                else str(p.llm_config.service),
+                "model": p.llm_config.model,
             }
             # Only include optional fields if they have values
-            if p.system_prompt:
-                person_data["systemPrompt"] = p.system_prompt
-            if p.api_key_id:
-                person_data["apiKeyId"] = p.api_key_id
+            if p.llm_config.system_prompt:
+                person_data["systemPrompt"] = p.llm_config.system_prompt
+            if p.llm_config.api_key_id:
+                person_data["apiKeyId"] = p.llm_config.api_key_id
             persons_out[p.id] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}

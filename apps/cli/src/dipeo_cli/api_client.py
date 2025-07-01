@@ -263,11 +263,3 @@ class DiPeoAPIClient:
                 or response.get("message", "Interactive response failed")
             )
         return response["success"]
-
-    async def save_diagram(
-        self, diagram_data: dict[str, Any], filename: str | None = None
-    ) -> str:
-        """Save a diagram and return its ID."""
-        raise NotImplementedError(
-            "save_diagram is deprecated. Use execute_diagram with diagram_data instead."
-        )

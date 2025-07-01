@@ -19,17 +19,19 @@ if TYPE_CHECKING:
     )
 
 
-def substitute_template(template: str, values: dict[str, Any]) -> tuple[str, list[str]]:
+def substitute_template(template: str, values: dict[str, Any]) -> tuple[str, list[str], list[str]]:
     """Substitute {{placeholders}} in template with values.
     
     Returns:
-        tuple: (substituted_string, list_of_missing_keys)
+        tuple: (substituted_string, list_of_missing_keys, list_of_used_keys)
     """
     missing_keys = []
+    used_keys = []
     
     def replacer(match):
         key = match.group(1)
         if key in values:
+            used_keys.append(key)
             return str(values[key])
         else:
             missing_keys.append(key)
@@ -39,7 +41,7 @@ def substitute_template(template: str, values: dict[str, Any]) -> tuple[str, lis
     pattern = r'\{\{(\w+)\}\}'
     result = re.sub(pattern, replacer, template)
     
-    return result, missing_keys
+    return result, missing_keys, used_keys
 
 
 @register_handler
@@ -96,27 +98,17 @@ class PersonJobNodeHandler(BaseNodeHandler):
             if context.get_node_execution_count(context.current_node_id) > 0:
                 conversation_service.clear_own_messages(person_id)
 
-        # Add external inputs as separate messages
-        if inputs:
-            # Handle special conversation input from other person nodes
-            if "conversation" in inputs:
-                # This is handled by judge_helper logic below
-                pass
-            else:
-                # Add other external inputs (from DB, API, etc.) as external messages
-                for key, value in inputs.items():
-                    if value and key != "conversation":
-                        # Format the external input with its source
-                        external_content = f"[Input from {key}]: {value}"
-                        conversation_service.add_message(person_id, "external", external_content)
-
+        # Track which keys are used in template substitution to avoid duplication
+        used_template_keys = set()
+        
         # Build prompt
         exec_count = context.get_node_execution_count(context.current_node_id)
         if exec_count == 0 and props.first_only_prompt:
             # For first execution, use inputs for template substitution
             # but don't include them in the prompt text
             log.debug(f"Attempting template substitution with inputs: {inputs}")
-            prompt, missing_keys = substitute_template(props.first_only_prompt, inputs)
+            prompt, missing_keys, used_keys = substitute_template(props.first_only_prompt, inputs)
+            used_template_keys.update(used_keys)
             
             if missing_keys:
                 available_keys = list(inputs.keys())
@@ -136,7 +128,8 @@ class PersonJobNodeHandler(BaseNodeHandler):
             prompt = props.default_prompt or ""
             # Check if default_prompt has placeholders and substitute them
             if prompt and "{{" in prompt:
-                prompt, missing_keys = substitute_template(prompt, inputs)
+                prompt, missing_keys, used_keys = substitute_template(prompt, inputs)
+                used_template_keys.update(used_keys)
                 
                 if missing_keys:
                     available_keys = list(inputs.keys())
@@ -150,6 +143,21 @@ class PersonJobNodeHandler(BaseNodeHandler):
                         value={"default": error_msg},
                         metadata={"error": error_msg, "missing_placeholders": missing_keys}
                     )
+        
+        # Add external inputs as separate messages (only for keys not used in template)
+        if inputs:
+            # Handle special conversation input from other person nodes
+            if "conversation" in inputs:
+                # This is handled by judge_helper logic below
+                pass
+            else:
+                # Add other external inputs (from DB, API, etc.) as external messages
+                # Only add if they weren't already used in template substitution
+                for key, value in inputs.items():
+                    if value and key != "conversation" and key not in used_template_keys:
+                        # Format the external input with its source
+                        external_content = f"[Input from {key}]: {value}"
+                        conversation_service.add_message(person_id, "external", external_content)
 
         # Check if this is a judge node and add conversation context
         if "judge" in (props.label or "").lower():
@@ -188,6 +196,11 @@ class PersonJobNodeHandler(BaseNodeHandler):
 
         # Store response
         conversation_service.add_message(person_id, "assistant", result.text)
+        
+        # Debug token usage
+        log.debug(f"PersonJobNodeHandler - result.token_usage: {result.token_usage}")
+        if result.token_usage:
+            log.debug(f"PersonJobNodeHandler - token_usage.total: {result.token_usage.total}")
 
         # Prepare output
         output_value = {"default": result.text}

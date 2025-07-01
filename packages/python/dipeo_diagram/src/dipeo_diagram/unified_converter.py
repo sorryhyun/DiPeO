@@ -118,12 +118,21 @@ class UnifiedDiagramConverter(DiagramConverter):
             if fmt == "light":
                 persons_dict = {}
                 for person_id, person_config in persons_data.items():
+                    # Transform flat structure to nested llmConfig structure
+                    llm_config = {
+                        "service": person_config.get("service", "openai"),
+                        "model": person_config.get("model", "gpt-4-mini"),
+                        "apiKeyId": person_config.get("apiKeyId", "default"),
+                    }
+                    if "systemPrompt" in person_config:
+                        llm_config["systemPrompt"] = person_config["systemPrompt"]
+                    
                     # Add required fields for DomainPerson
                     person_dict = {
                         "id": person_id,
-                        "label": person_id,
+                        "label": person_config.get("label", person_id),
                         "type": "person",
-                        **person_config,
+                        "llmConfig": llm_config,
                     }
                     persons_dict[person_id] = person_dict
             else:

@@ -156,19 +156,53 @@ class ExecutionEngine:
                     "interactive_handler": interactive_handler
                 }
 
-                # Execute handler
-                output = await node_view.handler(
-                    props=node_view._handler_def.node_schema.model_validate(
-                        node_view.data
-                    ),
-                    context=context,
-                    inputs=inputs,
-                    services=services,
-                )
+                # Check if we should skip execution (node at max iterations)
+                was_skipped = hasattr(node_view, '_skip_execution') and node_view._skip_execution
+                
+                # Handle missing firstOnlyPrompt for person_job nodes
+                node_data = node_view.data.copy() if node_view.data else {}
+                if node_view.node.type == "person_job" and "firstOnlyPrompt" not in node_data:
+                    # Default to empty string if firstOnlyPrompt is missing
+                    node_data["firstOnlyPrompt"] = ""
+                
+                if was_skipped:
+                    # Pass through inputs as outputs
+                    from dipeo_core.execution import create_node_output
+                    # Use last output's value but update with new inputs if any
+                    if hasattr(node_view, 'output_history') and node_view.output_history:
+                        last_output = node_view.output_history[-1]
+                        output_value = last_output.value.copy() if last_output.value else {}
+                    else:
+                        output_value = {}
+                    
+                    # If we have new inputs, pass them through
+                    if inputs:
+                        output_value.update(inputs)
+                        # Ensure we have a default output
+                        if 'default' not in output_value and inputs:
+                            first_key = next(iter(inputs.keys()), None)
+                            if first_key:
+                                output_value['default'] = inputs[first_key]
+                    
+                    output = create_node_output(output_value, {"skipped": True, "reason": "max_iterations_reached"})
+                    # Clear the skip flag
+                    node_view._skip_execution = False
+                else:
+                    # Execute handler normally
+                    output = await node_view.handler(
+                        props=node_view._handler_def.node_schema.model_validate(
+                            node_data
+                        ),
+                        context=context,
+                        inputs=inputs,
+                        services=services,
+                    )
 
                 # Store output
                 node_view.output = output
-                node_view.exec_count += 1
+                # Only increment exec_count if we actually executed (not skipped)
+                if not was_skipped:
+                    node_view.exec_count += 1
 
                 # For iterative nodes, store output in history and clear current output
                 # to allow re-execution
@@ -313,6 +347,12 @@ class ExecutionEngine:
                 if node_view.node.type in ["job", "person_job", "loop"]:
                     max_iter = node_view.data.get("maxIteration", 1)
                     if node_view.exec_count >= max_iter:
+                        # Skip execution but check if we need to pass through data
+                        if self._can_execute(node_view):
+                            # Node has new inputs but is at max iterations
+                            # Add to batch to pass through data
+                            node_view._skip_execution = True
+                            current_batch.append(node_view)
                         continue
 
                 if self._can_execute(node_view):
@@ -345,6 +385,12 @@ class ExecutionEngine:
                                     ready_queue.append(target)
                     elif target.output is None and self._can_execute(target):
                         if target not in ready_queue:
+                            ready_queue.append(target)
+                    # Special case: condition nodes with detect_max_iterations can re-execute
+                    elif target.node.type == "condition" and target.data.get("conditionType") == "detect_max_iterations":
+                        # Clear output to allow re-evaluation when upstream nodes change
+                        target.output = None
+                        if self._can_execute(target) and target not in ready_queue:
                             ready_queue.append(target)
 
             iteration_count += 1
