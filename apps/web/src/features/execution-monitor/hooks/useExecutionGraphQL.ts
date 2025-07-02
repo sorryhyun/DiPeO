@@ -54,8 +54,8 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
     submitInteractiveResponse: submitInteractiveResponseMutation,
     
     // Subscription data
-    executionUpdates: executionData?.executionUpdates,
-    nodeUpdates: nodeData?.nodeUpdates,
-    interactivePrompts: promptData?.interactivePrompts,
+    executionUpdates: executionData?.execution_updates,
+    nodeUpdates: nodeData?.node_updates,
+    interactivePrompts: promptData?.interactive_prompts,
   };
 }

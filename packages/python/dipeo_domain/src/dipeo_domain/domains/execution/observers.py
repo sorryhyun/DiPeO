@@ -40,8 +40,8 @@ class StateStoreObserver(ExecutionObserver):
             import logging
             logger = logging.getLogger(__name__)
             logger.debug(f"StateStoreObserver - node {node_id} metadata: {output.metadata}")
-            if "tokenUsage" in output.metadata:
-                token_usage = TokenUsage(**output.metadata["tokenUsage"])
+            if "token_usage" in output.metadata:
+                token_usage = TokenUsage(**output.metadata["token_usage"])
                 logger.debug(f"StateStoreObserver - extracted token_usage: {token_usage}")
 
         await self.state_store.update_node_output(

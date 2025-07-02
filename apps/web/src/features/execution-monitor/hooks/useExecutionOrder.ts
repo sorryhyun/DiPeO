@@ -10,11 +10,11 @@ const EXECUTION_ORDER_QUERY = gql`
     execution(id: $executionId) {
       id
       status
-      startedAt
-      endedAt
-      nodeStates
-      nodeOutputs
-      tokenUsage {
+      started_at
+      ended_at
+      node_states
+      node_outputs
+      token_usage {
         input
         output
         cached
@@ -68,18 +68,18 @@ export const useExecutionOrder = (executionId?: ExecutionID) => {
       const executionData: ExecutionOrderData = {
         executionId: executionId!,
         status: data.execution.status,
-        startedAt: data.execution.startedAt,
-        endedAt: data.execution.endedAt,
+        startedAt: data.execution.started_at,
+        endedAt: data.execution.ended_at,
         nodes: [],
         totalNodes: 0,
       };
       
       // Parse nodeStates if available
-      if (data.execution.nodeStates) {
+      if (data.execution.node_states) {
         try {
-          const nodeStates = typeof data.execution.nodeStates === 'string' 
-            ? JSON.parse(data.execution.nodeStates) 
-            : data.execution.nodeStates;
+          const nodeStates = typeof data.execution.node_states === 'string' 
+            ? JSON.parse(data.execution.node_states) 
+            : data.execution.node_states;
           
           executionData.nodes = Object.entries(nodeStates).map(([nodeId, state]: [string, any]) => ({
             nodeId: nodeId as NodeID,

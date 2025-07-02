@@ -14,25 +14,25 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     output: [{ id: 'default', position: 'right' }]
   },
   fields: [
-    { name: 'maxIteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
-    { name: 'firstOnlyPrompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
-    { name: 'defaultPrompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' }
+    { name: 'max_iteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
+    { name: 'first_only_prompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
+    { name: 'default_prompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' }
   ],
   defaults: { 
     person: '', 
-    maxIteration: 1, 
-    firstOnlyPrompt: '', 
-    defaultPrompt: ''
+    max_iteration: 1, 
+    first_only_prompt: '', 
+    default_prompt: ''
   },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['labelPersonRow', 'maxIteration', 'defaultPrompt', 'firstOnlyPrompt'],
+  panelFieldOrder: ['labelPersonRow', 'max_iteration', 'default_prompt', 'first_only_prompt'],
   panelFieldOverrides: {
-    maxIteration: {
+    max_iteration: {
       type: 'maxIteration' // Use the special maxIteration component
     },
-    defaultPrompt: {
+    default_prompt: {
       rows: 6,
       placeholder: 'Enter default prompt. Use {{variable_name}} for variables.',
       validate: (value) => {
@@ -42,7 +42,7 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
         return { isValid: true };
       }
     },
-    firstOnlyPrompt: {
+    first_only_prompt: {
       label: 'First-Only Prompt',
       rows: 4,
       placeholder: 'Prompt to use only on first execution.',

@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { useGetDiagramQuery } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
-import { diagramId, arrowId } from '@/core/types';
+import { diagramId } from '@/core/types';
 import { domainToReactDiagram, diagramToStoreMaps } from '@/graphql/types';
-import { migrateArrowBranchData } from '../utils/arrowMigration';
 import { DiagramAdapter } from '../adapters/DiagramAdapter';
 
 /**
@@ -79,16 +78,8 @@ export function useDiagramLoader() {
           // Convert arrays to Maps for the store
           const { nodes, handles, arrows, persons } = diagramToStoreMaps(reactDiagram);
           
-          // Migrate arrow data to ensure condition arrows have branch data
-          const migratedArrows = migrateArrowBranchData(
-            Array.from(arrows.values()),
-            nodes
-          );
-          
-          // Update arrows map with migrated data
-          migratedArrows.forEach(arrow => {
-            arrows.set(arrowId(arrow.id), arrow);
-          });
+          // Note: Arrow migration removed as backward compatibility is not required
+          // The backend should ensure all diagrams have proper branch data
           
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();

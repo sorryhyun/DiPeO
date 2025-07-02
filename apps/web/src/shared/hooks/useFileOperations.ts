@@ -157,11 +157,11 @@ export const useFileOperations = () => {
         }
       });
       
-      if (!data?.convertDiagram.success) {
-        throw new Error(data?.convertDiagram.error || 'Failed to convert diagram');
+      if (!data?.convert_diagram.success) {
+        throw new Error(data?.convert_diagram.error || 'Failed to convert diagram');
       }
       
-      const exportResult = data.convertDiagram;
+      const exportResult = data.convert_diagram;
       
       // Determine filename
       const actualFilename = filename || exportResult.filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
@@ -205,11 +205,11 @@ export const useFileOperations = () => {
         }
       });
       
-      if (!data?.convertDiagram.success) {
-        throw new Error(data?.convertDiagram.error || 'Failed to convert diagram');
+      if (!data?.convert_diagram.success) {
+        throw new Error(data?.convert_diagram.error || 'Failed to convert diagram');
       }
       
-      const result = data.convertDiagram;
+      const result = data.convert_diagram;
       
       return {
         content: result.content || '',

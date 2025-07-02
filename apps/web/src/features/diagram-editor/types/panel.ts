@@ -40,7 +40,7 @@ export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;
  * DB form data with UI-specific field mapping
  */
 export type DBFormData = PanelFormData<DBNodeData> & {
-  sourceDetails?: string; // Maps to different fields based on subType
+  source_details?: string; // Maps to different fields based on sub_type
 };
 /**
  * Arrow form data - extends domain arrow with UI fields
@@ -55,15 +55,15 @@ export interface ArrowFormData extends Record<string, unknown> {
  */
 export interface PersonFormData extends Record<string, unknown> {
   label?: string;
-  llmConfig?: {
+  llm_config?: {
     service?: 'openai' | 'claude' | 'gemini' | 'grok';
     model?: string;
-    apiKeyId?: string;
-    systemPrompt?: string;
+    api_key_id?: string;
+    system_prompt?: string;
   };
   temperature?: number;
   type?: 'person';
-  maskedApiKey?: string | null;
+  masked_api_key?: string | null;
 }
 
 // Re-export typed versions from shared types

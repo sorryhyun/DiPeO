@@ -34,10 +34,11 @@ generates:
       skipTypename: false
       # Use proper imports
       useTypeImports: true
-      # Keep enum names as-is from schema
+      # Keep all names as-is from schema (including snake_case field names)
       namingConvention:
         enumValues: keep
         typeNames: keep
+        fieldNames: keep
       # Generate React hooks
       withHooks: true
       # Generate HOCs for components

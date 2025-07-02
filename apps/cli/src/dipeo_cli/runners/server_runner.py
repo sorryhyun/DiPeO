@@ -163,7 +163,7 @@ class ServerDiagramRunner:
                 if prompt is None:
                     continue
 
-                node_id = prompt.get("nodeId")
+                node_id = prompt.get("node_id")
                 prompt_text = prompt.get("prompt", "Input required:")
 
                 print(f"\n💬 {prompt_text}")

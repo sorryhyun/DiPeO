@@ -60,6 +60,7 @@ export interface DiPeoEdge extends Edge {
   data?: {
     label?: string;
     dataType?: string;
+    content_type?: ContentType | null;
   };
 }
 
@@ -174,10 +175,11 @@ export class DiagramAdapter {
    * Clear all caches - useful when loading new diagrams
    */
   static clearCaches() {
-    this.nodeCache.clear();
-    this.edgeCache.clear();
-    this.reverseNodeCache.clear();
-    this.reverseEdgeCache.clear();
+    // WeakMap doesn't have clear(), so reassign new instances
+    this.nodeCache = new WeakMap<DomainNode, DiPeoNode>();
+    this.edgeCache = new WeakMap<DomainArrow, DiPeoEdge>();
+    this.reverseNodeCache = new WeakMap<RFNode, DomainNode>();
+    this.reverseEdgeCache = new WeakMap<RFEdge, DomainArrow>();
   }
 
   /**
@@ -187,12 +189,12 @@ export class DiagramAdapter {
     // Check cache first
     const cached = this.edgeCache.get(arrow);
     if (cached) {
-      // Clear cache if arrow has been updated with label or contentType
+      // Clear cache if arrow has been updated with label or content_type
       const cacheInvalid = 
         (arrow.label && cached.data?.label !== arrow.label) ||
-        (arrow.contentType && cached.data?.contentType !== arrow.contentType) ||
+        (arrow.content_type && cached.data?.content_type !== arrow.content_type) ||
         (!arrow.label && cached.data?.label) ||
-        (!arrow.contentType && cached.data?.contentType);
+        (!arrow.content_type && cached.data?.content_type);
         
       if (cacheInvalid) {
         this.edgeCache.delete(arrow);
@@ -203,15 +205,15 @@ export class DiagramAdapter {
 
     const sourceParsed = parseHandleId(arrow.source as HandleID);
     const targetParsed = parseHandleId(arrow.target as HandleID);
-    const sourceNode = sourceParsed.nodeId;
-    const sourceHandle = sourceParsed.handleLabel;
-    const targetNode = targetParsed.nodeId;
-    const targetHandle = targetParsed.handleLabel;
+    const sourceNode = sourceParsed.node_id;
+    const sourceHandle = sourceParsed.handle_label;
+    const targetNode = targetParsed.node_id;
+    const targetHandle = targetParsed.handle_label;
     
-    // Merge arrow's direct fields (contentType, label) into data
+    // Merge arrow's direct fields (content_type, label) into data
     const edgeData = { ...(arrow.data || {}) };
-    if (arrow.contentType) {
-      edgeData.contentType = arrow.contentType;
+    if (arrow.content_type) {
+      edgeData.content_type = arrow.content_type;
     }
     if (arrow.label) {
       edgeData.label = arrow.label;
@@ -256,8 +258,7 @@ export class DiagramAdapter {
       data: {
         ...nodeData,
         label: (nodeData.label || rfNode.id) as string
-      } as Record<string, unknown>,
-      handles: []
+      } as Record<string, unknown>
     };
 
     // Cache the result
@@ -284,8 +285,8 @@ export class DiagramAdapter {
       rfEdge.targetHandle || 'default'
     );
 
-    // Extract contentType and label from data
-    const { contentType, label, ...restData } = rfEdge.data || {};
+    // Extract content_type and label from data
+    const { content_type, label, ...restData } = rfEdge.data || {};
     
     const domainArrow: DomainArrow = {
       id: rfEdge.id as ArrowID,
@@ -294,9 +295,9 @@ export class DiagramAdapter {
       data: Object.keys(restData).length > 0 ? restData : null
     };
     
-    // Add contentType and label as direct fields if present
-    if (contentType !== undefined && contentType !== null) {
-      domainArrow.contentType = contentType as ContentType;
+    // Add content_type and label as direct fields if present
+    if (content_type !== undefined && content_type !== null) {
+      domainArrow.content_type = content_type as ContentType;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {
       domainArrow.label = label;
@@ -392,7 +393,7 @@ export class DiagramAdapter {
     // Check compatibility
     if (!areHandlesCompatible(sourceHandle, targetHandle)) {
       validated.isValid = false;
-      validated.validationMessage = `Incompatible types: ${sourceHandle.dataType} → ${targetHandle.dataType}`;
+      validated.validationMessage = `Incompatible types: ${sourceHandle.data_type} → ${targetHandle.data_type}`;
       return validated;
     }
 
@@ -420,15 +421,6 @@ export class DiagramAdapter {
     return [];
   }
 
-  /**
-   * Clear all caches (useful for memory management)
-   */
-  static clearCaches(): void {
-    this.nodeCache = new WeakMap();
-    this.edgeCache = new WeakMap();
-    this.reverseNodeCache = new WeakMap();
-    this.reverseEdgeCache = new WeakMap();
-  }
 
   /**
    * Helper to check if handles match cached version
@@ -472,28 +464,6 @@ export class DiagramAdapter {
     return arrows;
   }
 }
-
-// Static function exports for backward compatibility with existing code
-export const nodeToReact = (node: DomainNode, handles: DomainHandle[]) => 
-  DiagramAdapter.nodeToReactFlow(node, handles);
-
-export const arrowToReact = (arrow: DomainArrow) => 
-  DiagramAdapter.arrowToReactFlow(arrow);
-
-export const diagramToReact = (diagram: ReactDiagram) => 
-  DiagramAdapter.toReactFlow(diagram);
-
-export const reactToNode = (rfNode: RFNode) => 
-  DiagramAdapter.reactToNode(rfNode);
-
-export const reactToArrow = (rfEdge: RFEdge) => 
-  DiagramAdapter.reactToArrow(rfEdge);
-
-export const connectionToArrow = (connection: Connection) => 
-  DiagramAdapter.connectionToArrow(connection);
-
-export const validateConnection = (connection: Connection, diagram: ReactDiagram) => 
-  DiagramAdapter.validateConnection(connection, diagram);
 
 // Note: Import data conversion functions directly from '@/graphql/types' when needed
 // This adapter focuses solely on React Flow conversions

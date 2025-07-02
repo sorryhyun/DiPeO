@@ -123,8 +123,8 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
       }
     });
     
-    if (!data?.uploadFile.success) {
-      throw new Error(data?.uploadFile.error || 'Failed to save diagram');
+    if (!data?.upload_file.success) {
+      throw new Error(data?.upload_file.error || 'Failed to save diagram');
     }
     
     // Extract diagram ID from filename
@@ -136,7 +136,7 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
       diagramId,
       diagramName: filename,
       nodeCount: undefined, // We don't have this info from upload_file
-      message: data.uploadFile.message || 'Diagram saved successfully'
+      message: data.upload_file.message || 'Diagram saved successfully'
     };
   } catch (error) {
     console.error('[Save diagram GraphQL]', error);
@@ -175,15 +175,15 @@ export const uploadFile = async (
       }
     });
     
-    if (!data?.uploadFile.success) {
-      throw new Error(data?.uploadFile.error || 'Failed to upload file');
+    if (!data?.upload_file.success) {
+      throw new Error(data?.upload_file.error || 'Failed to upload file');
     }
     
     return {
       success: true,
-      path: data.uploadFile.path || undefined,
-      sizeBytes: data.uploadFile.sizeBytes || undefined,
-      message: data.uploadFile.message || undefined
+      path: data.upload_file.path || undefined,
+      sizeBytes: data.upload_file.size_bytes || undefined,
+      message: data.upload_file.message || undefined
     };
   } catch (error) {
     console.error('[Upload file GraphQL]', error);

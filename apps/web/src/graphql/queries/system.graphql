@@ -1,4 +1,4 @@
 # System Queries
 query GetSystemInfo {
-  systemInfo
+  system_info
 }

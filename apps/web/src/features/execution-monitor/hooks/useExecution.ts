@@ -134,12 +134,12 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       const result = await graphql.executeDiagram({
         variables: {
           data: {
-            diagramData,
-            diagramId: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
+            diagram_data: diagramData,
+            diagram_id: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
             variables: (options as ExecutionOptions & { variables?: Record<string, unknown> })?.variables || {},
-            debugMode: options?.debug || false,
-            timeout: (options as ExecutionOptions & { timeout?: number })?.timeout,
-            maxIterations: (options as ExecutionOptions & { maxIterations?: number })?.maxIterations
+            debug_mode: options?.debug || false,
+            timeout_seconds: (options as ExecutionOptions & { timeout?: number })?.timeout,
+            max_iterations: (options as ExecutionOptions & { maxIterations?: number })?.maxIterations
           }
         }
       });
@@ -149,7 +149,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(execId, totalNodes, formatDuration);
         executionActions.startExecution(execId);
-        onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, executionId: executionId(execId), timestamp: new Date().toISOString() });
+        onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, execution_id: executionId(execId), timestamp: new Date().toISOString() });
       } else {
         throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
       }

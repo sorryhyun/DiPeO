@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { DomainPerson } from '@/core/types';
+import { DomainPerson, apiKeyId } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
 import { LLMService, NodeType, type PersonID } from '@dipeo/domain-models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
@@ -43,14 +43,14 @@ export const createPersonSlice: StateCreator<
     const person: DomainPerson = {
       id: generatePersonId(),
       label,
-      llmConfig: {
-        apiKeyId: '',
+      llm_config: {
+        api_key_id: apiKeyId(''),
         service: service as LLMService,
         model,
-        systemPrompt: ''
+        system_prompt: ''
       },
       type: 'person',
-      maskedApiKey: null
+      masked_api_key: null
     };
     
     set(state => {
@@ -120,7 +120,7 @@ export const createPersonSlice: StateCreator<
   getPersonsByService: (service) => {
     const state = get();
     return Array.from(state.persons.values()).filter(
-      person => person.llmConfig?.service === service
+      person => person.llm_config?.service === service
     );
   },
   

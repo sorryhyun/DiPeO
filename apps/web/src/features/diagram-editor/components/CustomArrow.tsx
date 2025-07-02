@@ -55,7 +55,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
       return <span>{isTrueBranch ? '✅' : '❌'}</span>;
     }
     
-    if (arrowData?.contentType) {
+    if (arrowData?.content_type) {
       const icons: Record<string, string> = {
         'conversation_state': '💬',
         'variable_in_object': '📦',
@@ -63,17 +63,17 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
         'empty': '⚪',
         'generic': '🔄',
       };
-      return <span>{icons[arrowData.contentType] || '📋'}</span>;
+      return <span>{arrowData.contentType && icons[arrowData.contentType] || '📋'}</span>;
     }
     
-    // If arrow has a label but no contentType, assume it's raw text
+    // If arrow has a label but no content_type, assume it's raw text
     if (arrowData?.label) {
       return <span>📝</span>;
     }
     
-    // No emoji for arrows without explicit contentType or label
+    // No emoji for arrows without explicit content_type or label
     return null;
-  }, [arrowData?.branch, arrowData?.contentType, arrowData?.label, source, sourceHandle]);
+  }, [arrowData?.branch, arrowData?.content_type, arrowData?.label, source, sourceHandle]);
 
 
   // Create a type-safe wrapper that updates arrow data in the store

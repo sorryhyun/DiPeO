@@ -12,7 +12,7 @@ import { isWithinTolerance } from '@/shared/utils/math';
 import { createHandlerTable } from '@/shared/utils/dispatchTable';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
-import { nodeToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { NodeType, type NodeID, type ArrowID, type HandleID, createHandleId } from '@dipeo/domain-models';
 
@@ -51,7 +51,7 @@ export interface UseCanvasOptions {
 
 export interface UseCanvasReturn {
   // Canvas Data (optimized with caching)
-  nodes: ReturnType<typeof nodeToReact>[];
+  nodes: ReturnType<typeof DiagramAdapter.nodeToReactFlow>[];
   arrows: DomainArrow[];
   persons: DomainPerson[];
   handles: Map<HandleID, DomainHandle>;
@@ -233,9 +233,9 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
   const handlesByNode = React.useMemo(() => {
     const lookup = new Map<NodeID, DomainHandle[]>();
     handlesArray.forEach(handle => {
-      const handles = lookup.get(nodeId(handle.nodeId)) || [];
+      const handles = lookup.get(nodeId(handle.node_id)) || [];
       handles.push(handle);
-      lookup.set(nodeId(handle.nodeId), handles);
+      lookup.set(nodeId(handle.node_id), handles);
     });
     return lookup;
   }, [handlesArray]);
@@ -244,7 +244,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
   const nodes = React.useMemo(() => {
     return nodesArray.map(node => {
       const nodeHandles = handlesByNode.get(node.id as NodeID) || [];
-      return nodeToReact(node, nodeHandles);
+      return DiagramAdapter.nodeToReactFlow(node, nodeHandles);
     });
   }, [nodesArray, handlesByNode]);
   

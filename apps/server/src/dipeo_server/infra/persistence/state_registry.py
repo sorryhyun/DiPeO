@@ -116,14 +116,14 @@ class StateRegistry:
             id=ExecutionID(execution_id),
             status=ExecutionStatus.PENDING,
             diagramId=DiagramID(diagram_id) if diagram_id else None,
-            startedAt=now,
-            endedAt=None,
-            nodeStates={},
-            nodeOutputs={},
-            tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
+            started_at=now,
+            ended_at=None,
+            node_states={},
+            node_outputs={},
+            token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
             error=None,
             variables=variables or {},
-            isActive=True,
+            is_active=True,
         )
 
         await self.save_state(state)
@@ -226,11 +226,11 @@ class StateRegistry:
             id=ExecutionID(row[0]),
             status=ExecutionStatus(row[1]),
             diagramId=DiagramID(row[2]) if row[2] else None,
-            startedAt=row[3],
-            endedAt=row[4],
-            nodeStates=node_states,
-            nodeOutputs=node_outputs,
-            tokenUsage=TokenUsage(**token_usage_dict)
+            started_at=row[3],
+            ended_at=row[4],
+            node_states=node_states,
+            node_outputs=node_outputs,
+            token_usage=TokenUsage(**token_usage_dict)
             if token_usage_dict
             else TokenUsage(input=0, output=0, cached=None),
             error=row[8],
@@ -343,10 +343,10 @@ class StateRegistry:
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
-                startedAt=now if status == NodeExecutionStatus.RUNNING else None,
-                endedAt=None,
+                started_at=now if status == NodeExecutionStatus.RUNNING else None,
+                ended_at=None,
                 error=None,
-                tokenUsage=None,
+                token_usage=None,
             )
         else:
             state.node_states[node_id].status = status
@@ -474,10 +474,10 @@ class StateRegistry:
 
                     node_states[node_id] = NodeState(
                         status=NodeExecutionStatus(state_data.get("status", "pending")),
-                        startedAt=state_data.get("started_at"),
-                        endedAt=state_data.get("ended_at"),
+                        started_at=state_data.get("started_at"),
+                        ended_at=state_data.get("ended_at"),
                         error=state_data.get("error"),
-                        tokenUsage=token_usage,
+                        token_usage=token_usage,
                     )
 
             # Convert node outputs to NodeOutput objects
@@ -498,13 +498,13 @@ class StateRegistry:
             execution_state = ExecutionState(
                 executionId=ExecutionID(row[0]),
                 status=ExecutionStatus(row[1]),
-                nodeStates=node_states,
-                nodeOutputs=node_outputs,
+                node_states=node_states,
+                node_outputs=node_outputs,
                 diagramId=DiagramID(row[5]) if row[5] else None,
                 variables=variables_data,
-                startedAt=row[2],
-                endedAt=row[3],
-                tokenUsage=token_usage,
+                started_at=row[2],
+                ended_at=row[3],
+                token_usage=token_usage,
                 error=row[8],
             )
 
@@ -540,15 +540,15 @@ class StateRegistry:
         state = ExecutionState(
             id=ExecutionID(execution_id),
             status=ExecutionStatus.PENDING,
-            diagramId=DiagramID(diagram_id) if diagram_id else None,
-            startedAt=now,
-            endedAt=None,
-            nodeStates={},
-            nodeOutputs={},
-            tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
+            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            started_at=now,
+            ended_at=None,
+            node_states={},
+            node_outputs={},
+            token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
             error=None,
             variables=variables or {},
-            isActive=True,
+            is_active=True,
         )
 
         # Only store in cache, not in database

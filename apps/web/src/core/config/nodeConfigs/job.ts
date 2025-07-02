@@ -12,7 +12,7 @@ export const jobConfig = createUnifiedConfig<JobFormData>({
   },
   fields: [
     { 
-      name: 'subType', 
+      name: 'sub_type', 
       type: 'select', 
       label: 'Language', 
       required: true,
@@ -24,13 +24,13 @@ export const jobConfig = createUnifiedConfig<JobFormData>({
     },
     { name: 'code', type: 'textarea', label: 'Code', required: true, placeholder: 'Enter your code here' }
   ],
-  defaults: { subType: 'python', code: '', label: '', maxIteration: 1, sourceDetails: '', firstOnlyPrompt: '' },
+  defaults: { sub_type: 'python', code: '', label: '', max_iteration: 1, source_details: '', first_only_prompt: '' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'subType', 'maxIteration', 'sourceDetails', 'firstOnlyPrompt'],
+  panelFieldOrder: ['label', 'sub_type', 'max_iteration', 'source_details', 'first_only_prompt'],
   panelFieldOverrides: {
-    subType: {
+    sub_type: {
       label: 'Type',
       options: [
         { value: 'code_execution', label: 'Code Execution' },
@@ -48,7 +48,7 @@ export const jobConfig = createUnifiedConfig<JobFormData>({
     },
     {
       type: 'maxIteration',
-      name: 'maxIteration',
+      name: 'max_iteration',
       label: 'Max Iteration'
     },
     {
@@ -66,7 +66,7 @@ export const jobConfig = createUnifiedConfig<JobFormData>({
     },
     {
       type: 'variableTextArea',
-      name: 'firstOnlyPrompt',
+      name: 'first_only_prompt',
       label: 'First-Only Prompt',
       rows: 4,
       placeholder: 'Prompt to use only on first execution.'

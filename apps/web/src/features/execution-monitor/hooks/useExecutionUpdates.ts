@@ -68,9 +68,9 @@ export function useExecutionUpdates({
     
     onUpdate?.({ 
       type: EventType.NODE_STATUS_CHANGED, 
-      executionId: executionId(executionIdRef.current!), 
-      nodeId: nodeId(nodeIdStr), 
-      nodeType, 
+      execution_id: executionId(executionIdRef.current!),
+      node_id: nodeId(nodeIdStr),
+      node_type: nodeType,
       status: NodeExecutionStatus.RUNNING, 
       timestamp: new Date().toISOString() 
     });
@@ -108,8 +108,8 @@ export function useExecutionUpdates({
     
     onUpdate?.({ 
       type: EventType.NODE_STATUS_CHANGED, 
-      executionId: executionId(executionIdRef.current!), 
-      nodeId: nodeId(nodeIdStr), 
+      execution_id: executionId(executionIdRef.current!),
+      node_id: nodeId(nodeIdStr),
       tokens: tokenCount, 
       result: output, 
       status: NodeExecutionStatus.COMPLETED, 
@@ -136,8 +136,8 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.EXECUTION_STATUS_CHANGED, 
-        executionId: executionId(executionIdRef.current!), 
-        totalTokens, 
+        execution_id: executionId(executionIdRef.current!),
+        total_tokens: totalTokens,
         timestamp: new Date().toISOString() 
       });
     } else if (executionUpdates.status === ExecutionStatus.FAILED && executionUpdates.error) {
@@ -150,7 +150,7 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR, 
-        executionId: executionId(executionIdRef.current!), 
+        execution_id: executionId(executionIdRef.current!),
         error: executionUpdates.error, 
         timestamp: new Date().toISOString() 
       });
@@ -164,7 +164,7 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.EXECUTION_STATUS_CHANGED, 
-        executionId: executionId(executionIdRef.current!), 
+        execution_id: executionId(executionIdRef.current!),
         timestamp: new Date().toISOString() 
       });
     }
@@ -199,8 +199,8 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR,
-        executionId: executionId(executionIdRef.current!), 
-        nodeId: nodeId(nodeUpdates.nodeId), 
+        execution_id: executionId(executionIdRef.current!),
+        node_id: nodeId(nodeUpdates.nodeId),
         error: nodeUpdates.error || undefined, 
         status: NodeExecutionStatus.FAILED, 
         timestamp: new Date().toISOString() 
@@ -221,8 +221,8 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.EXECUTION_UPDATE,
-        executionId: executionId(executionIdRef.current!), 
-        nodeId: nodeId(nodeUpdates.nodeId), 
+        execution_id: executionId(executionIdRef.current!),
+        node_id: nodeId(nodeUpdates.nodeId),
         status: NodeExecutionStatus.SKIPPED, 
         timestamp: new Date().toISOString() 
       });
@@ -233,8 +233,8 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.NODE_STATUS_CHANGED, 
-        executionId: executionId(executionIdRef.current!), 
-        nodeId: nodeId(nodeUpdates.nodeId), 
+        execution_id: executionId(executionIdRef.current!),
+        node_id: nodeId(nodeUpdates.nodeId),
         status: NodeExecutionStatus.PAUSED, 
         timestamp: new Date().toISOString() 
       });
@@ -248,8 +248,8 @@ export function useExecutionUpdates({
       
       onUpdate?.({ 
         type: EventType.NODE_PROGRESS, 
-        executionId: executionId(executionIdRef.current!), 
-        nodeId: nodeId(nodeUpdates.nodeId), 
+        execution_id: executionId(executionIdRef.current!),
+        node_id: nodeId(nodeUpdates.nodeId),
         status: NodeExecutionStatus.RUNNING, 
         timestamp: new Date().toISOString() 
       });
@@ -261,7 +261,7 @@ export function useExecutionUpdates({
     if (!interactivePrompts) return;
     
     setInteractivePrompt({
-      executionId: executionId(interactivePrompts.executionId),
+      executionId: executionId(interactivePrompts.execution_id),
       nodeId: nodeId(interactivePrompts.nodeId),
       prompt: interactivePrompts.prompt,
       timeout: interactivePrompts.timeoutSeconds || undefined,
@@ -269,8 +269,8 @@ export function useExecutionUpdates({
     
     onUpdate?.({ 
       type: EventType.INTERACTIVE_PROMPT, 
-      executionId: executionId(executionIdRef.current!), 
-      nodeId: nodeId(interactivePrompts.nodeId), 
+      execution_id: executionId(executionIdRef.current!),
+      node_id: nodeId(interactivePrompts.nodeId),
       status: NodeExecutionStatus.PAUSED, 
       timestamp: new Date().toISOString() 
     });

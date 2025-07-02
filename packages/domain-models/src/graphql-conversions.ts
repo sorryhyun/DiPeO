@@ -136,10 +136,10 @@ export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
  */
 export function getNodeHandles(
   diagram: DomainDiagram,
-  nodeId: NodeID
+  node_id: NodeID
 ): DomainHandle[] {
   return diagram.handles.filter(
-    (handle) => handle.node_id === nodeId
+    (handle) => handle.node_id === node_id
   );
 }
 
@@ -148,9 +148,9 @@ export function getNodeHandles(
  */
 export function getHandleById(
   diagram: DomainDiagram,
-  handleId: HandleID
+  handle_id: HandleID
 ): DomainHandle | undefined {
-  return diagram.handles.find((handle) => handle.id === handleId);
+  return diagram.handles.find((handle) => handle.id === handle_id);
 }
 
 // Re-export utilities for convenience

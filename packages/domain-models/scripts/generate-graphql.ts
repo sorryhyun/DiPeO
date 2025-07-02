@@ -84,7 +84,11 @@ class GraphQLGenerator {
   }
 
   private fieldName(name: string) {
-    return name.replace(/([A-Z])/g, '_$1').toLowerCase();
+    // Convert camelCase/PascalCase to snake_case
+    // First, handle the case where the field starts with a capital letter
+    const result = name.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+    // Also handle sequences of capitals (e.g., "XMLParser" -> "xml_parser")
+    return result.replace(/([A-Z])([A-Z][a-z])/g, '$1_$2').toLowerCase();
   }
 
   private genType(s: SchemaDefinition): string {

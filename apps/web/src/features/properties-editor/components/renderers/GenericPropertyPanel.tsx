@@ -27,7 +27,7 @@ const fieldTypeMapping = createHandlerTable<string, [], UnifiedFieldType>({
   'textarea': () => FIELD_TYPES.TEXTAREA,
   'variableTextArea': () => FIELD_TYPES.VARIABLE_TEXTAREA,
   'checkbox': () => FIELD_TYPES.BOOLEAN,
-  'maxIteration': () => FIELD_TYPES.MAX_ITERATION,
+  'max_iteration': () => FIELD_TYPES.MAX_ITERATION,
   'personSelect': () => FIELD_TYPES.PERSON_SELECT
 }, () => FIELD_TYPES.TEXT);
 
@@ -84,22 +84,22 @@ export const GenericPropertyPanel = <T extends Record<string, unknown>>({
   const handleFieldUpdate = useCallback(async (name: string, value: unknown) => {
     updateField(name as keyof T, value as T[keyof T]);
     
-    if (data.type === 'person' && name === 'llmConfig.apiKeyId' && value) {
+    if (data.type === 'person' && name === 'llm_config.api_key_id' && value) {
       try {
         const { data } = await apolloClient.query<GetApiKeysQuery>({
           query: GetApiKeysDocument,
           fetchPolicy: 'cache-first'
         });
-        const selectedKey = data.apiKeys.find((k) => k.id === value);
+        const selectedKey = data.api_keys.find((k) => k.id === value);
         if (selectedKey) {
-          updateField('llmConfig.service' as keyof T, selectedKey.service as T[keyof T]);
+          updateField('llm_config.service' as keyof T, selectedKey.service as T[keyof T]);
         }
       } catch (error) {
         console.error('Failed to update service:', error);
       }
     }
     
-    if (data.type === 'person' && name === 'llmConfig.model' && value) {
+    if (data.type === 'person' && name === 'llm_config.model' && value) {
       try {
         const personId = nodeId;
         const { data: result } = await apolloClient.mutate({

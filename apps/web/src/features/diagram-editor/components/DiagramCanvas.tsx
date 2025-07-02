@@ -29,7 +29,7 @@ import { useUnifiedStore } from "@/core/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
 import { DomainArrow, arrowId, nodeId, NodeID, PersonID } from '@/core/types';
-import { arrowToReact } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
 
 // Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
@@ -100,7 +100,7 @@ function useCommonFlowProps({
 }: CommonFlowPropsParams) {
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
-    const edges = arrows.map(arrow => arrowToReact(arrow)) as Edge[];
+    const edges = arrows.map(arrow => DiagramAdapter.arrowToReactFlow(arrow)) as Edge[];
 
     
     const baseProps = {

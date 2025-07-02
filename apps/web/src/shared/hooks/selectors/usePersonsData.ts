@@ -58,7 +58,7 @@ export const usePersonsData = (): PersonsData => {
   // Calculate persons by service
   const personsByService: Record<string, number> = {};
   personsArray.forEach(person => {
-    const service = person.llmConfig?.service || 'unknown';
+    const service = person.llm_config?.service || 'unknown';
     personsByService[service] = (personsByService[service] || 0) + 1;
   });
   
@@ -71,8 +71,8 @@ export const usePersonsData = (): PersonsData => {
   const personIds = personsArray.map(p => p.id as PersonID);
   
   // Get unique services and models
-  const uniqueServices = Array.from(new Set(personsArray.map(p => p.llmConfig?.service).filter(Boolean))).sort();
-  const uniqueModels = Array.from(new Set(personsArray.map(p => p.llmConfig?.model).filter(Boolean))).sort();
+  const uniqueServices = Array.from(new Set(personsArray.map(p => p.llm_config?.service).filter(Boolean))).sort();
+  const uniqueModels = Array.from(new Set(personsArray.map(p => p.llm_config?.model).filter(Boolean))).sort();
   
   // Query functions
   const getPersonById = (id: PersonID): DomainPerson | null => {
@@ -84,11 +84,11 @@ export const usePersonsData = (): PersonsData => {
   };
   
   const getPersonsByService = (service: string): DomainPerson[] => {
-    return personsArray.filter(p => p.llmConfig?.service === service);
+    return personsArray.filter(p => p.llm_config?.service === service);
   };
   
   const getPersonsByModel = (model: string): DomainPerson[] => {
-    return personsArray.filter(p => p.llmConfig?.model === model);
+    return personsArray.filter(p => p.llm_config?.model === model);
   };
   
   return {
@@ -136,7 +136,7 @@ export const usePersonsByService = (service: string): DomainPerson[] => {
     useShallow(state => 
       state.getPersonsByService?.(service) ||
       (state.personsArray || Array.from(state.persons.values()))
-        .filter(person => person.llmConfig?.service === service)
+        .filter(person => person.llm_config?.service === service)
     )
   );
 };

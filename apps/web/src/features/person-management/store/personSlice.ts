@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { DomainPerson, PersonID } from '@/core/types';
+import { DomainPerson, PersonID, apiKeyId } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
 import { LLMService, NodeType } from '@dipeo/domain-models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
@@ -43,14 +43,14 @@ export const createPersonSlice: StateCreator<
     const person: DomainPerson = {
       id: generatePersonId(),
       label,
-      llmConfig: {
-        apiKeyId: '',
+      llm_config: {
+        api_key_id: apiKeyId(''),
         service: service as LLMService,
         model,
-        systemPrompt: ''
+        system_prompt: ''
       },
       type: 'person',
-      maskedApiKey: null
+      masked_api_key: null
     };
     
     set(state => {
@@ -65,17 +65,17 @@ export const createPersonSlice: StateCreator<
   updatePerson: (id, updates) => set(state => {
     const person = state.persons.get(id);
     if (person) {
-      // Handle nested llmConfig updates
+      // Handle nested llm_config updates
       const updatedPerson = { ...person };
       
-      // Check for nested llmConfig fields in the updates
+      // Check for nested llm_config fields in the updates
       const flatUpdates = { ...updates } as Record<string, unknown>;
       const llmConfigUpdates: Record<string, unknown> = {};
       
-      // Extract nested llmConfig fields
+      // Extract nested llm_config fields
       Object.keys(flatUpdates).forEach(key => {
-        if (key.startsWith('llmConfig.')) {
-          const field = key.substring('llmConfig.'.length);
+        if (key.startsWith('llm_config.')) {
+          const field = key.substring('llm_config.'.length);
           llmConfigUpdates[field] = flatUpdates[key];
           delete flatUpdates[key];
         }
@@ -84,10 +84,10 @@ export const createPersonSlice: StateCreator<
       // Apply flat updates first
       Object.assign(updatedPerson, flatUpdates);
       
-      // Apply llmConfig updates if any
+      // Apply llm_config updates if any
       if (Object.keys(llmConfigUpdates).length > 0) {
-        updatedPerson.llmConfig = {
-          ...updatedPerson.llmConfig,
+        updatedPerson.llm_config = {
+          ...updatedPerson.llm_config,
           ...llmConfigUpdates
         };
       }
@@ -101,7 +101,7 @@ export const createPersonSlice: StateCreator<
   deletePerson: (id) => set(state => {
     // Check if person is in use
     const isInUse = Array.from(state.nodes.values()).some(
-      node => node.type === NodeType.PERSON_JOB && node.data.personId === id
+      node => node.type === NodeType.PERSON_JOB && node.data.person_id === id
     );
     
     if (!isInUse && state.persons.delete(id)) {
@@ -146,7 +146,7 @@ export const createPersonSlice: StateCreator<
   getPersonsByService: (service) => {
     const state = get();
     return Array.from(state.persons.values()).filter(
-      person => person.llmConfig?.service === service
+      person => person.llm_config?.service === service
     );
   },
   
@@ -155,8 +155,8 @@ export const createPersonSlice: StateCreator<
     const usedPersonIds = new Set<PersonID>();
     
     state.nodes.forEach(node => {
-      if (node.type === NodeType.PERSON_JOB && node.data.personId) {
-        usedPersonIds.add(node.data.personId);
+      if (node.type === NodeType.PERSON_JOB && node.data.person_id) {
+        usedPersonIds.add(node.data.person_id);
       }
     });
     
@@ -169,7 +169,7 @@ export const createPersonSlice: StateCreator<
   isPersonInUse: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).some(
-      node => node.type === NodeType.PERSON_JOB && node.data.personId === personId
+      node => node.type === NodeType.PERSON_JOB && node.data.person_id === personId
     );
   },
   

@@ -15,7 +15,7 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
   },
   fields: [
     { 
-      name: 'conditionType', 
+      name: 'condition_type', 
       type: 'select', 
       label: 'Type', 
       required: true,
@@ -33,13 +33,13 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
       placeholder: 'e.g., {{value}} > 10'
     }
   ],
-  defaults: { conditionType: 'simple', condition: '', label: '' },
+  defaults: { condition_type: 'simple', condition: '', label: '' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'conditionType', 'condition', 'expression'],
+  panelFieldOrder: ['label', 'condition_type', 'condition', 'expression'],
   panelFieldOverrides: {
-    conditionType: {
+    condition_type: {
       options: [
         { value: 'expression', label: 'Expression' },
         { value: 'detect_max_iterations', label: '🔁 Max Iterations' }
@@ -48,7 +48,7 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
     },
     condition: {
       column: 2,
-      disabled: (formData) => formData?.conditionType === 'detect_max_iterations'
+      disabled: (formData) => formData?.condition_type === 'detect_max_iterations'
     }
   },
   panelCustomFields: [
@@ -70,12 +70,12 @@ export const conditionConfig = createUnifiedConfig<ConditionFormData>({
       rows: 3,
       column: 2,
       conditional: {
-        field: 'conditionType',
+        field: 'condition_type',
         values: ['expression'],
         operator: 'equals'
       },
       validate: (value, formData) => {
-        if (formData?.conditionType === 'expression' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+        if (formData?.condition_type === 'expression' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
           return { isValid: false, error: 'Expression is required' };
         }
         return { isValid: true };

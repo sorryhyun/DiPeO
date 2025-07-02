@@ -122,17 +122,17 @@ class UnifiedDiagramConverter(DiagramConverter):
                     llm_config = {
                         "service": person_config.get("service", "openai"),
                         "model": person_config.get("model", "gpt-4-mini"),
-                        "apiKeyId": person_config.get("apiKeyId", "default"),
+                        "api_key_id": person_config.get("api_key_id", "default"),
                     }
-                    if "systemPrompt" in person_config:
-                        llm_config["systemPrompt"] = person_config["systemPrompt"]
+                    if "system_prompt" in person_config:
+                        llm_config["system_prompt"] = person_config["system_prompt"]
                     
                     # Add required fields for DomainPerson
                     person_dict = {
                         "id": person_id,
                         "label": person_config.get("label", person_id),
                         "type": "person",
-                        "llmConfig": llm_config,
+                        "llm_config": llm_config,
                     }
                     persons_dict[person_id] = person_dict
             else:
@@ -174,7 +174,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 (
                     handle.get("nodeId") == node_id
                     if isinstance(handle, dict)
-                    else handle.nodeId == node_id
+                    else handle.node_id == node_id
                 )
                 for handle in handles_dict.values()
             )
@@ -193,10 +193,10 @@ class UnifiedDiagramConverter(DiagramConverter):
                     # Create output handle
                     diagram_dict.handles[handle_id] = DomainHandle(
                         id=handle_id,
-                        nodeId=node_id,
+                        node_id=node_id,
                         label=handle_name,
                         direction=HandleDirection.output,
-                        dataType=DataType.any,
+                        data_type=DataType.any,
                         position="right",
                     )
 
@@ -208,10 +208,10 @@ class UnifiedDiagramConverter(DiagramConverter):
                     # Create input handle
                     diagram_dict.handles[handle_id] = DomainHandle(
                         id=handle_id,
-                        nodeId=node_id,
+                        node_id=node_id,
                         label=handle_name,
                         direction=HandleDirection.input,
-                        dataType=DataType.any,
+                        data_type=DataType.any,
                         position="left",
                     )
 
@@ -254,7 +254,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         )
 
         # Extract contentType and label from arrow_data (they may be at the top level, not in data)
-        content_type = arrow_data.get("contentType")
+        content_type = arrow_data.get("content_type")
         label = arrow_data.get("label")
 
         return DomainArrow(

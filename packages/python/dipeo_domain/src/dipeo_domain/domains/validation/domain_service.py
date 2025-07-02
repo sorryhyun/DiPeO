@@ -159,14 +159,14 @@ class ValidationDomainService:
         self, data: Dict[str, Any]
     ) -> tuple[str, Optional[str]]:
         """Validate and extract file operation parameters."""
-        file_path = data.get("filePath", "").strip()
-        file_name = data.get("fileName", "").strip()
+        file_path = data.get("file_path", "").strip()
+        file_name = data.get("file_name", "").strip()
 
         if not file_path and not file_name:
             raise InputValidationError(
                 "file_params",
-                {"filePath": file_path, "fileName": file_name},
-                "Either 'filePath' or 'fileName' must be provided",
+                {"file_path": file_path, "file_name": file_name},
+                "Either 'file_path' or 'file_name' must be provided",
             )
 
         return file_path, file_name

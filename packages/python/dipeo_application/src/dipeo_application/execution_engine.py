@@ -176,9 +176,9 @@ class ExecutionEngine:
                 
                 # Handle missing firstOnlyPrompt for person_job nodes
                 node_data = node_view.data.copy() if node_view.data else {}
-                if node_view.node.type == "person_job" and "firstOnlyPrompt" not in node_data:
-                    # Default to empty string if firstOnlyPrompt is missing
-                    node_data["firstOnlyPrompt"] = ""
+                if node_view.node.type == "person_job" and "first_only_prompt" not in node_data:
+                    # Default to empty string if first_only_prompt is missing
+                    node_data["first_only_prompt"] = ""
                 
                 if was_skipped:
                     # Pass through inputs as outputs
@@ -228,7 +228,7 @@ class ExecutionEngine:
                     node_view.output_history.append(output)
 
                     # Check if we can iterate again
-                    max_iter = node_view.data.get("maxIteration", 1)
+                    max_iter = node_view.data.get("max_iteration", 1)
                     if node_view.exec_count < max_iter:
                         # Clear output to allow re-execution
                         node_view.output = None
@@ -343,7 +343,7 @@ class ExecutionEngine:
         # Find nodes that might iterate
         for node_view in execution_view.node_views.values():
             if node_view.node.type in ["job", "person_job", "loop"]:
-                max_iter = node_view.data.get("maxIteration", 1)
+                max_iter = node_view.data.get("max_iteration", 1)
                 if node_view.exec_count < max_iter and node_view.output is None:
                     # Check if dependencies are satisfied using the same logic as _can_execute
                     if self._can_execute(node_view):
@@ -370,7 +370,7 @@ class ExecutionEngine:
 
                 # Double-check the node can still execute
                 if node_view.node.type in ["job", "person_job", "loop"]:
-                    max_iter = node_view.data.get("maxIteration", 1)
+                    max_iter = node_view.data.get("max_iteration", 1)
                     if node_view.exec_count >= max_iter:
                         # Skip execution but check if we need to pass through data
                         if self._can_execute(node_view):
@@ -414,7 +414,7 @@ class ExecutionEngine:
 
                     # Check if target can iterate or is newly unblocked
                     if target.node.type in ["job", "person_job", "loop"]:
-                        max_iter = target.data.get("maxIteration", 1)
+                        max_iter = target.data.get("max_iteration", 1)
                         if target.exec_count < max_iter and target.output is None:
                             if self._can_execute(target):
                                 if target not in ready_queue:
@@ -423,7 +423,7 @@ class ExecutionEngine:
                         if target not in ready_queue:
                             ready_queue.append(target)
                     # Special case: condition nodes with detect_max_iterations can re-execute
-                    elif target.node.type == "condition" and target.data.get("conditionType") == "detect_max_iterations":
+                    elif target.node.type == "condition" and target.data.get("condition_type") == "detect_max_iterations":
                         # Clear output to allow re-evaluation when upstream nodes change
                         target.output = None
                         if self._can_execute(target) and target not in ready_queue:

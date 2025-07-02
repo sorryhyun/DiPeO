@@ -32,7 +32,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'network-only'
           });
-          return data.apiKeys.map((key) => ({
+          return data.api_keys.map((key) => ({
             value: key.id,
             label: `${key.label} (${key.service})`
           }));
@@ -59,7 +59,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'cache-first'
           });
-          const selectedKey = apiKeysData.apiKeys.find((k) => k.id === apiKeyId);
+          const selectedKey = apiKeysData.api_keys.find((k) => k.id === apiKeyId);
           if (!selectedKey) {
             return [];
           }

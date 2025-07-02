@@ -38,10 +38,10 @@ export interface ExecutionState {
 export function toDomainNodeState(nodeState: NodeState): DomainNodeState {
   return {
     status: nodeState.status,
-    startedAt: new Date(nodeState.timestamp).toISOString(),
-    endedAt: null,
+    started_at: new Date(nodeState.timestamp).toISOString(),
+    ended_at: null,
     error: nodeState.error || null,
-    tokenUsage: null,
+    token_usage: null,
   };
 }
 
@@ -89,15 +89,15 @@ export function toCanonicalExecutionState(
   return {
     id: (storeState.id || '') as any, // ExecutionID branded type
     status,
-    diagramId: diagramId as any, // DiagramID branded type
-    startedAt: new Date().toISOString(), // Store doesn't track this, using current time
-    nodeStates: nodeStatesDict,
-    nodeOutputs: nodeOutputsDict,
+    diagram_id: diagramId as any, // DiagramID branded type
+    started_at: new Date().toISOString(), // Store doesn't track this, using current time
+    node_states: nodeStatesDict,
+    node_outputs: nodeOutputsDict,
     variables: {},
-    tokenUsage: { input: 0, output: 0, cached: null, total: 0 },
+    token_usage: { input: 0, output: 0, cached: null, total: 0 },
     error: null,
-    endedAt: status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED ? new Date().toISOString() : null,
-    isActive: storeState.isRunning,
+    ended_at: status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED ? new Date().toISOString() : null,
+    is_active: storeState.isRunning,
   };
 }
 

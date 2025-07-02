@@ -8,41 +8,33 @@ query GetDiagram($id: DiagramID!) {
         y
       }
       data
-      handles {
-        id
-        nodeId
-        label
-        direction
-        dataType
-        position
-      }
     }
     handles {
       id
-      nodeId
+      node_id
       label
       direction
-      dataType
+      data_type
       position
     }
     arrows {
       id
       source
       target
-      contentType
+      content_type
       label
       data
     }
     persons {
       id
       label
-      llmConfig {
+      llm_config {
         service
         model
-        apiKeyId
-        systemPrompt
+        api_key_id
+        system_prompt
       }
-      maskedApiKey
+      masked_api_key
       type
     }
     metadata {
@@ -76,7 +68,7 @@ query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
 }
 
 mutation CreateDiagram($input: CreateDiagramInput!) {
-  createDiagram(input: $input) {
+  create_diagram(input: $input) {
     success
     diagram {
       metadata {
@@ -90,7 +82,7 @@ mutation CreateDiagram($input: CreateDiagramInput!) {
 }
 
 mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
-  executeDiagram(data: $data) {
+  execute_diagram(data: $data) {
     success
     execution {
       id
@@ -101,9 +93,9 @@ mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
 }
 
 mutation DeleteDiagram($id: DiagramID!) {
-  deleteDiagram(id: $id) {
+  delete_diagram(id: $id) {
     success
-    deletedId
+    deleted_id
     message
     error
   }

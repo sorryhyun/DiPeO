@@ -58,7 +58,7 @@ export const createComputedSlice: StateCreator<
     
     // Get handles for this node by filtering all handles
     const nodeHandles = Array.from(state.handles.values()).filter(
-      handle => handle.nodeId === nodeId
+      handle => handle.node_id === nodeId
     );
     return nodeHandles.length > 0 ? { ...node, handles: nodeHandles } : node;
   },
@@ -109,7 +109,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     // Filter handles by nodeId
     return Array.from(state.handles.values()).filter(
-      handle => handle.nodeId === nodeId
+      handle => handle.node_id === nodeId
     );
   },
   
@@ -117,7 +117,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     // Find handle by nodeId and handleName
     return Array.from(state.handles.values()).find(
-      h => h.nodeId === nodeId && h.label === handleName
+      h => h.node_id === nodeId && h.label === handleName
     );
   },
   

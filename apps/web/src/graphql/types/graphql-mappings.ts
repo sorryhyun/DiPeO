@@ -40,27 +40,12 @@ export type DomainDiagram = DomainDiagramType;
 export type ReactDiagram = DomainDiagramType;
 
 // Re-export centralized conversions
-export { diagramToStoreMaps, storeMapsToArrays, StoreDiagram } from '@dipeo/domain-models';
+export { diagramToStoreMaps, storeMapsToArrays } from '@dipeo/domain-models';
+export type { StoreDiagram } from '@dipeo/domain-models';
 
 // Convert from React format to Domain/GraphQL format for server communication
 export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagramType> {
-  return {
-    nodes: diagram.nodes || [],
-    handles: diagram.handles || [],
-    arrows: diagram.arrows || [],
-    persons: diagram.persons || [],
-    metadata: diagram.metadata ? {
-      __typename: 'DiagramMetadataType' as const,
-      id: diagram.metadata.id || null,
-      name: diagram.metadata.name || null,
-      description: diagram.metadata.description || null,
-      version: diagram.metadata.version,
-      created: diagram.metadata.created,
-      modified: diagram.metadata.modified,
-      author: diagram.metadata.author || null,
-      tags: diagram.metadata.tags || null
-    } : undefined
-  };
+  return diagram;
 }
 
 // Convert from Domain/GraphQL format to React format for component usage
@@ -92,22 +77,7 @@ export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName:
 }
 
 // Check if two handles are compatible for connection
-export function areHandlesCompatible(source: DomainHandle, target: DomainHandle): boolean {
-  // Convert GraphQL handles to domain format for compatibility check
-  const sourceHandle = {
-    ...source,
-    id: source.id as HandleID,
-    nodeId: source.nodeId as NodeID
-  };
-  const targetHandle = {
-    ...target,
-    id: target.id as HandleID,
-    nodeId: target.nodeId as NodeID
-  };
-  
-  // Use centralized compatibility check
-  return domainAreHandlesCompatible(sourceHandle, targetHandle);
-}
+export const areHandlesCompatible = domainAreHandlesCompatible;
 
 // Arrow data interface
 export interface ArrowData {

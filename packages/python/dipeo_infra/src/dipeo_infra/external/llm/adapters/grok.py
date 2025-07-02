@@ -76,6 +76,6 @@ class GrokAdapter(BaseAdapter):
 
         return ChatResult(
             text=text,
-            tokenUsage=token_usage,
-            rawResponse=response,
+            token_usage=token_usage,
+            raw_response=response,
         )

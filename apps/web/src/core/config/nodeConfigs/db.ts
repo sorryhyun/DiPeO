@@ -3,7 +3,7 @@ import { createUnifiedConfig } from '../unifiedConfig';
 // Define type inline to satisfy constraint
 type DBFormDataType = {
   label?: string;
-  subType?: string;
+  sub_type?: string;
   sourceDetails?: string;
   operation?: string;
   [key: string]: unknown;
@@ -23,11 +23,11 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
     output: [{ id: 'default', position: 'bottom', offset: { x: 30, y: 0 } }]
   },
   fields: [], // Fields are defined in panelCustomFields to match backend expectations
-  defaults: { label: '', subType: 'fixed_prompt', sourceDetails: '', operation: 'read' },
+  defaults: { label: '', sub_type: 'fixed_prompt', sourceDetails: '', operation: 'read' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'subType', 'operation', 'sourceDetails'],
+  panelFieldOrder: ['label', 'sub_type', 'operation', 'sourceDetails'],
   panelCustomFields: [
     {
       type: 'text',
@@ -38,7 +38,7 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
     },
     {
       type: 'select',
-      name: 'subType',
+      name: 'sub_type',
       label: 'Source Type',
       options: [
         { value: 'fixed_prompt', label: 'Fixed Prompt' },
@@ -69,7 +69,7 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return { isValid: false, error: 'Source details are required' };
         }
-        if (formData?.subType === 'file' && !value.includes('.')) {
+        if (formData?.sub_type === 'file' && !value.includes('.')) {
           return { isValid: false, error: 'Please provide a valid file path with extension' };
         }
         return { isValid: true };

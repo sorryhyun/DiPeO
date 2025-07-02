@@ -29,10 +29,10 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   // GraphQL query with automatic loading state
   const { data, loading, error, refetch, fetchMore } = useGetConversationsQuery({
     variables: {
-      personId: personId || undefined,
-      executionId: filters.executionId || undefined,
+      person_id: personId || undefined,
+      execution_id: filters.executionId || undefined,
       search: filters.searchTerm || undefined,
-      showForgotten: filters.showForgotten || false,
+      show_forgotten: filters.showForgotten || false,
       limit: MESSAGES_PER_PAGE,
       offset: 0,
       since: filters.startTime ? new Date(filters.startTime) : undefined
@@ -123,10 +123,10 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   // Refresh data for a specific person or all
   const refresh = useCallback((personId?: PersonID) => {
     return refetch({
-      personId: personId || undefined,
-      executionId: filters.executionId || undefined,
+      person_id: personId || undefined,
+      execution_id: filters.executionId || undefined,
       search: filters.searchTerm || undefined,
-      showForgotten: filters.showForgotten || false,
+      show_forgotten: filters.showForgotten || false,
       limit: MESSAGES_PER_PAGE,
       offset: 0,
       since: filters.startTime ? new Date(filters.startTime) : undefined

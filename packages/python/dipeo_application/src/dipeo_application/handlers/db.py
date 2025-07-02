@@ -50,7 +50,7 @@ class DBNodeHandler(BaseNodeHandler):
         try:
             # Delegate to domain service which handles validation and business logic
             result = await db_service.execute_operation(
-                db_name=props.sourceDetails, operation=props.operation, value=input_val
+                db_name=props.source_details, operation=props.operation, value=input_val
             )
 
             # Format output based on operation

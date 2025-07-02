@@ -106,12 +106,12 @@ export const FileOperations: React.FC = () => {
         }
       });
       
-      if (!convertResult.data?.convertDiagram?.success) {
-        throw new Error(convertResult.data?.convertDiagram?.error || 'Conversion failed');
+      if (!convertResult.data?.convert_diagram?.success) {
+        throw new Error(convertResult.data?.convert_diagram?.error || 'Conversion failed');
       }
       
       // Get the converted content
-      const convertedContent = convertResult.data.convertDiagram.content;
+      const convertedContent = convertResult.data.convert_diagram.content;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }
@@ -132,8 +132,8 @@ export const FileOperations: React.FC = () => {
         }
       });
       
-      if (!uploadResult.data?.uploadFile?.success) {
-        throw new Error(uploadResult.data?.uploadFile?.error || 'Upload failed');
+      if (!uploadResult.data?.upload_file?.success) {
+        throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
       }
       
       // Show success message

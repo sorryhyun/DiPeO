@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, DomainArrow, DomainNode, NodeID } from '@/core/types';
+import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/core/types';
 import { generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
@@ -102,28 +102,28 @@ export const createDiagramSlice: StateCreator<
   
   // Arrow operations with array sync
   addArrow: (source, target, data) => {
-    // Extract contentType and label from data if present
-    let contentType: ContentType | undefined;
+    // Extract content_type and label from data if present
+    let content_type: ContentType | undefined;
     let label: string | undefined;
     let arrowData = data;
     
     if (data) {
-      const { contentType: ct, label: l, ...restData } = data as any;
-      contentType = ct;
+      const { content_type: ct, label: l, ...restData } = data as any;
+      content_type = ct;
       label = l;
       arrowData = Object.keys(restData).length > 0 ? restData : null;
     }
     
     const arrow: DomainArrow = {
       id: generateArrowId(),
-      source,
-      target,
+      source: source as HandleID,
+      target: target as HandleID,
       data: arrowData || null  // Match Python model's default
     };
     
     // Add optional fields only if they have actual values
-    if (contentType !== undefined && contentType !== null) {
-      arrow.contentType = contentType;
+    if (content_type !== undefined && content_type !== null) {
+      arrow.content_type = content_type;
     }
     if (label !== undefined && label !== null) {
       arrow.label = label;

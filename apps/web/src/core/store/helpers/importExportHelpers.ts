@@ -22,8 +22,7 @@ export function createNode(type: NodeType, position: Vec2, initialData?: Record<
       ...configDefaults,
       ...initialData,
       label,
-    },
-    handles: []
+    }
   };
 }
 
@@ -66,14 +65,14 @@ export function createImportState() {
       persons.set(personId, {
         id: personId,
         label,
-        llmConfig: {
-          apiKeyId: '',
+        llm_config: {
+          api_key_id: apiKeyId(''),
           service: service as LLMService,
           model,
-          systemPrompt: ''
+          system_prompt: ''
         },
         type: 'person',
-        maskedApiKey: null
+        masked_api_key: null
       });
       return personId;
     },
@@ -84,7 +83,7 @@ export function createImportState() {
         id,
         label,
         service: service as LLMService,
-        maskedKey: '••••••••'
+        masked_key: '••••••••'
       });
       return id;
     },

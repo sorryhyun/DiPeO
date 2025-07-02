@@ -96,7 +96,7 @@ class NativeJsonStrategy(_JsonMixin, _BaseStrategy):
                     "target": a.target, 
                     "data": a.data,
                     **({
-                        "contentType": a.content_type.value if hasattr(a.content_type, "value") else str(a.content_type)
+                        "content_type": a.content_type.value if hasattr(a.content_type, "value") else str(a.content_type)
                     } if a.content_type else {}),
                     **({
                         "label": a.label
@@ -149,12 +149,12 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             node_type = n.get("type", "job")
             if node_type == "start":
                 # Add default values for required fields
-                props.setdefault("customData", {})
-                props.setdefault("outputDataStructure", {})
+                props.setdefault("custom_data", {})
+                props.setdefault("output_data_structure", {})
             elif node_type == "endpoint":
                 # Map filePath to fileName for endpoint nodes
-                if "filePath" in props and "fileName" not in props:
-                    props["fileName"] = props.pop("filePath")
+                if "filePath" in props and "file_name" not in props:
+                    props["file_name"] = props.pop("filePath")
             
             node = build_node(
                 id=f"node_{idx}",
@@ -216,8 +216,8 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             }
             
             # Add contentType and label as direct fields if present
-            if "contentType" in c:
-                arrow_dict["contentType"] = c["contentType"]
+            if "content_type" in c:
+                arrow_dict["content_type"] = c["content_type"]
             if "label" in c:
                 arrow_dict["label"] = c["label"]
 
@@ -251,8 +251,8 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 if k not in {"label", "position"} and v not in (None, "", {}, [])
             }
             # Map fileName back to filePath for endpoint nodes
-            if node_type == "endpoint" and "fileName" in props:
-                props["filePath"] = props.pop("fileName")
+            if node_type == "endpoint" and "file_name" in props:
+                props["file_path"] = props.pop("file_name")
             if props:
                 node_dict["props"] = props
             nodes_out.append(node_dict)
@@ -267,7 +267,7 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             }
             # Add contentType and label from direct fields
             if a.content_type:
-                conn["contentType"] = a.content_type.value
+                conn["content_type"] = a.content_type.value
             if a.label:
                 conn["label"] = a.label
             
@@ -302,9 +302,9 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             }
             # Only include optional fields if they have values
             if p.llm_config.system_prompt:
-                person_data["systemPrompt"] = p.llm_config.system_prompt
+                person_data["system_prompt"] = p.llm_config.system_prompt
             if p.llm_config.api_key_id:
-                person_data["apiKeyId"] = p.llm_config.api_key_id
+                person_data["api_key_id"] = p.llm_config.api_key_id
             persons_out[p.id] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
@@ -374,18 +374,29 @@ class ReadableYamlStrategy(_YamlMixin, _BaseStrategy):
 
     # ---- export ----------------------------------------------------------- #
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
+        # Build a mapping from node ID to label (or ID if no label)
+        id_to_label: dict[str, str] = {}
+        for n in diagram.nodes:
+            id_to_label[n.id] = n.data.get("label") or n.id
+        
         workflow = [
             {
-                n.data.get("label") or n.id: {
+                id_to_label[n.id]: {
                     k: v for k, v in n.data.items() if k not in {"label", "position"}
                 }
             }
             for n in diagram.nodes
         ]
-        flow = [
-            f"{a.source.split(':')[0]} -> {a.target.split(':')[0]}"
-            for a in diagram.arrows
-        ]
+        
+        # Use labels in flow section too
+        flow = []
+        for a in diagram.arrows:
+            source_id = a.source.split(':')[0]
+            target_id = a.target.split(':')[0]
+            source_label = id_to_label.get(source_id, source_id)
+            target_label = id_to_label.get(target_id, target_id)
+            flow.append(f"{source_label} -> {target_label}")
+        
         out: dict[str, Any] = {"workflow": workflow}
         if flow:
             out["flow"] = flow

@@ -60,25 +60,25 @@ function cleanNodeData(node: DomainNode): DomainNode {
   // Add node-type specific required fields with defaults
   switch (nodeProps.type) {
     case 'start':
-      nodeData.customData = nodeData.customData || {};
-      nodeData.outputDataStructure = nodeData.outputDataStructure || {};
+      nodeData.custom_data = nodeData.custom_data || {};
+      nodeData.output_data_structure = nodeData.output_data_structure || {};
       break;
     case 'condition':
-      nodeData.conditionType = nodeData.conditionType || 'simple';
+      nodeData.condition_type = nodeData.condition_type || 'simple';
       break;
     case 'person_job':
-      nodeData.firstOnlyPrompt = nodeData.firstOnlyPrompt || '';
-      nodeData.maxIteration = nodeData.maxIteration || 1;
+      nodeData.first_only_prompt = nodeData.first_only_prompt || '';
+      nodeData.max_iteration = nodeData.max_iteration || 1;
       break;
     case 'endpoint':
-      nodeData.saveToFile = nodeData.saveToFile ?? false;
+      nodeData.save_to_file = nodeData.save_to_file ?? false;
       break;
     case 'db':
-      nodeData.subType = nodeData.subType || 'fixed_prompt';
+      nodeData.sub_type = nodeData.sub_type || 'fixed_prompt';
       nodeData.operation = nodeData.operation || 'read';
       break;
     case 'job':
-      nodeData.codeType = nodeData.codeType || 'python';
+      nodeData.code_type = nodeData.code_type || 'python';
       nodeData.code = nodeData.code || '';
       break;
     case 'user_response':
@@ -114,10 +114,10 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
       const handleId = `${node.id}:${handleConfig.id}`;
       handles.push({
         id: handleId as import('@dipeo/domain-models').HandleID,
-        nodeId: node.id,
+        node_id: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.INPUT,
-        dataType: DataType.ANY,
+        data_type: DataType.ANY,
         position: handleConfig.position || 'left'
       });
     });
@@ -129,10 +129,10 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
       const handleId = `${node.id}:${handleConfig.id}`;
       handles.push({
         id: handleId as import('@dipeo/domain-models').HandleID,
-        nodeId: node.id,
+        node_id: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.OUTPUT,
-        dataType: DataType.ANY,
+        data_type: DataType.ANY,
         position: handleConfig.position || 'right'
       });
     });

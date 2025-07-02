@@ -60,13 +60,13 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         prompt = props.prompt
 
         results = {}
-        metadata = {"person_count": len(props.personIds)}
+        metadata = {"person_count": len(props.person_ids)}
         total_tokens = 0
 
-        if props.parallelExecution:
+        if props.parallel_execution:
             # Execute in parallel
             tasks = []
-            for person_id in props.personIds:
+            for person_id in props.person_ids:
                 task = self._execute_single_person(
                     person_id=person_id,
                     prompt=prompt,
@@ -81,7 +81,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
 
             responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for person_id, response in zip(props.personIds, responses, strict=False):
+            for person_id, response in zip(props.person_ids, responses, strict=False):
                 if isinstance(response, Exception):
                     results[person_id] = {"error": str(response)}
                 else:
@@ -90,7 +90,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                         total_tokens += response["tokens"]
         else:
             # Execute sequentially
-            for person_id in props.personIds:
+            for person_id in props.person_ids:
                 try:
                     response = await self._execute_single_person(
                         person_id=person_id,
@@ -109,7 +109,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                     results[person_id] = {"error": str(e)}
 
         # Aggregate results if requested
-        if props.aggregateResults:
+        if props.aggregate_results:
             aggregated = "\n\n".join(
                 [f"Person {pid}: {result}" for pid, result in results.items()]
             )
@@ -123,7 +123,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
 
         # Add token usage if any
         if total_tokens > 0:
-            output.tokenUsage = {"total": total_tokens}
+            output.token_usage = {"total": total_tokens}
             output.metadata["tokens_used"] = total_tokens
 
         return output

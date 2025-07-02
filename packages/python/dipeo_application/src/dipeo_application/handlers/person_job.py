@@ -74,7 +74,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
         """Execute person_job node."""
         import logging
         log = logging.getLogger(__name__)
-        log.debug(f"PersonJobNodeHandler.execute - inputs: {inputs}, firstOnlyPrompt: {props.first_only_prompt}")
+        log.debug(f"PersonJobNodeHandler.execute - inputs: {inputs}, first_only_prompt: {props.first_only_prompt}")
         
         conversation_service: "ConversationMemoryService" = services["conversation"]
         llm_service = services["llm"]
@@ -211,7 +211,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
             conv_messages = []
             for msg in conversation_service.get_messages(person_id):
                 msg_with_person = msg.copy()
-                msg_with_person["personId"] = person_id
+                msg_with_person["person_id"] = person_id
                 conv_messages.append(msg_with_person)
             output_value["conversation"] = conv_messages
 
@@ -224,7 +224,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
                 "tokens_used": result.token_usage.total
                 if result.token_usage and result.token_usage.total
                 else 0,
-                "tokenUsage": result.token_usage.model_dump() if result.token_usage else None,
+                "token_usage": result.token_usage.model_dump() if result.token_usage else None,
             },
         )
 
