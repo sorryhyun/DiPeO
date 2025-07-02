@@ -15,20 +15,16 @@ class LocalServiceRegistry:
 
     def get_service(self, service_name: str) -> Any:
         """Get a service by name, handling special cases."""
-        # Service name mapping - handles both styles
+        # Service name mapping
         service_map = {
             # File services
             "file": "file_service",
-            "file_service": "file_service",  # For backward compatibility
             # Conversation service
             "conversation": "conversation_service",
-            "conversation_service": "conversation_service",
             # LLM service
             "llm": "llm_service",
-            "llm_service": "llm_service",
             # API key service
             "api_key": "api_key_service",
-            "api_key_service": "api_key_service",
             # Diagram storage
             "diagram_storage": "diagram_storage_service",
             "storage": "diagram_storage_service",
@@ -40,7 +36,6 @@ class LocalServiceRegistry:
             "text_processing": "text_processing_service",
             # Notion integration
             "notion": "notion_service",
-            "notion_service": "notion_service",
         }
 
         # Get the actual attribute name

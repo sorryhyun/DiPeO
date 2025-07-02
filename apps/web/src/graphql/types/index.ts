@@ -19,8 +19,6 @@ export {
   domainToReactDiagram,
   nodeKindToGraphQLType,
   graphQLTypeToNodeKind,
-  vec2ToInput,
-  vec2FromGraphQL,
   isDomainNode,
   isReactDiagram,
   areHandlesCompatible,

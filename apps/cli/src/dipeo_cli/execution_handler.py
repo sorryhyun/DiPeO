@@ -7,7 +7,7 @@ from typing import Any
 from .execution_options import ExecutionMode, ExecutionOptions, parse_run_options
 from .runners import LocalDiagramRunner, ServerDiagramRunner
 from .server_manager import restart_backend_server, stop_backend_server
-from .utils import DiagramLoader, to_graphql_format
+from .utils import DiagramLoader
 
 
 async def run_command(args: list[str]) -> None:
@@ -22,9 +22,6 @@ async def run_command(args: list[str]) -> None:
 
     # Load diagram
     diagram = DiagramLoader.load(file_path, format_id=options.format)
-
-    # Convert to GraphQL format if needed
-    diagram = to_graphql_format(diagram)
 
     # Execute based on mode
     if options.local:

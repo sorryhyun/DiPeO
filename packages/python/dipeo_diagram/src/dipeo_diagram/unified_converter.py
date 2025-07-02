@@ -327,27 +327,10 @@ class UnifiedDiagramConverter(DiagramConverter):
             if strategy.format_info.get("supports_import", True)
         ]
 
-    # Backward compatibility methods (from registry.py)
-    def list_formats(self) -> list[dict[str, str]]:
-        """Backward compatibility alias for get_supported_formats."""
-        return self.get_supported_formats()
-
     def convert(self, content: str, from_format: str, to_format: str) -> str:
         """Convert content from one format to another."""
         diagram = self.deserialize(content, from_format)
         return self.serialize(diagram, to_format)
-
-    def get(self, format_id: str) -> "UnifiedDiagramConverter | None":
-        """Get converter for format (backward compatibility)."""
-        if format_id in self.strategies:
-            self.set_format(format_id)
-            return self
-        return None
-
-    def get_info(self, format_id: str) -> dict[str, str] | None:
-        """Get format info (backward compatibility)."""
-        strategy = self.strategies.get(format_id)
-        return strategy.format_info if strategy else None
 
 
 # Create a singleton instance to act as the registry

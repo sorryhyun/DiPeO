@@ -25,8 +25,7 @@ def stats_command(args: list[str]) -> None:
         print(f"  Persons: {len(diagram.get('persons', []))}")
         print(f"  Nodes: {len(nodes)}")
         print(f"  Arrows: {len(diagram.get('arrows', []))}")
-        # Handle both camelCase and snake_case
-        api_keys = diagram.get('api_keys', diagram.get('apiKeys', []))
+        api_keys = diagram.get('api_keys', [])
         print(f"  API Keys: {'Yes' if api_keys else 'No'}")
 
         if node_types:

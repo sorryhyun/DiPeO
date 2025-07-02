@@ -26,7 +26,7 @@ from .shared_components import (
 
 log = logging.getLogger(__name__)
 
-from .conversion_utils import _JsonMixin, _YamlMixin, _node_id_map, _round_pos
+from .conversion_utils import _JsonMixin, _YamlMixin, _node_id_map
 
 
 class _BaseStrategy(FormatStrategy):
@@ -243,7 +243,7 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             node_dict = {
                 "label": label,
                 "type": node_type,
-                "position": _round_pos(n.position),
+                "position": {"x": round(n.position.x), "y": round(n.position.y)},
             }
             props = {
                 k: v

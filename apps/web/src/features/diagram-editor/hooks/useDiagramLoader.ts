@@ -78,8 +78,6 @@ export function useDiagramLoader() {
           // Convert arrays to Maps for the store
           const { nodes, handles, arrows, persons } = diagramToStoreMaps(reactDiagram);
           
-          // Note: Arrow migration removed as backward compatibility is not required
-          // The backend should ensure all diagrams have proper branch data
           
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();
@@ -94,7 +92,7 @@ export function useDiagramLoader() {
               arrows,
               persons,
               nodesArray: reactDiagram.nodes || [],
-              arrowsArray: migratedArrows,
+              arrowsArray: reactDiagram.arrows || [],
               personsArray: reactDiagram.persons || [],
               dataVersion: state.dataVersion + 1  // Single increment
             }));

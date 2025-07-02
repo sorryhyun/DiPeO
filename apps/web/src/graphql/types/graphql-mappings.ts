@@ -14,15 +14,13 @@ import {
   nodeKindToDomainType, domainTypeToNodeKind,
   areHandlesCompatible as domainAreHandlesCompatible,
   parseHandleId as domainParseHandleId,
-  diagramToStoreMaps,
-  storeMapsToArrays,
-  vec2ToInput,
-  vec2FromGraphQL,
+  diagramToStoreMaps as originalDiagramToStoreMaps,
+  storeMapsToArrays as originalStoreMapsToArrays,
   isDomainNode,
   isDomainDiagram,
   createEmptyDiagram,
-  getNodeHandles,
-  getHandleById,
+  getNodeHandles as originalGetNodeHandles,
+  getHandleById as originalGetHandleById,
   StoreDiagram
 } from '@dipeo/domain-models';
 
@@ -39,9 +37,31 @@ export type DomainDiagram = DomainDiagramType;
 
 export type ReactDiagram = DomainDiagramType;
 
-// Re-export centralized conversions
-export { diagramToStoreMaps, storeMapsToArrays } from '@dipeo/domain-models';
+// Re-export type only
 export type { StoreDiagram } from '@dipeo/domain-models';
+
+// Wrapper function to handle GraphQL type to domain type conversion
+export function diagramToStoreMaps(diagram: Partial<DomainDiagramType>): {
+  nodes: Map<NodeID, DomainNodeType>;
+  handles: Map<HandleID, DomainHandleType>;
+  arrows: Map<ArrowID, DomainArrowType>;
+  persons: Map<PersonID, DomainPersonType>;
+} {
+  // The types are structurally compatible, we just need to cast them
+  // to satisfy TypeScript's type checking with the different ContentType enums
+  return originalDiagramToStoreMaps(diagram as any) as any;
+}
+
+// Wrapper function to handle domain type to GraphQL type conversion
+export function storeMapsToArrays(store: {
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
+}): Partial<DomainDiagramType> {
+  // The types are structurally compatible, we just need to cast them
+  return originalStoreMapsToArrays(store as any) as Partial<DomainDiagramType>;
+}
 
 // Convert from React format to Domain/GraphQL format for server communication
 export function reactDiagramToDomain(diagram: ReactDiagram): Partial<DomainDiagramType> {
@@ -57,15 +77,32 @@ export function domainToReactDiagram(diagram: Partial<DomainDiagramType>): React
 export const nodeKindToGraphQLType = nodeKindToDomainType;
 export const graphQLTypeToNodeKind = domainTypeToNodeKind;
 
-// Re-export Vec2 conversions
-export { vec2ToInput, vec2FromGraphQL } from '@dipeo/domain-models';
 
 // Re-export type guards with aliases
 export { isDomainNode } from '@dipeo/domain-models';
 export const isReactDiagram = isDomainDiagram;
 
 // Re-export utility functions
-export { createEmptyDiagram, getNodeHandles, getHandleById } from '@dipeo/domain-models';
+export { createEmptyDiagram } from '@dipeo/domain-models';
+
+// Wrapper for getNodeHandles to handle GraphQL types
+export function getNodeHandles(
+  diagram: DomainDiagramType,
+  nodeId: NodeID
+): DomainHandleType[] {
+  // Cast to domain types for the function call, then cast result back
+  const domainHandles = originalGetNodeHandles(diagram as any, nodeId);
+  return domainHandles as DomainHandleType[];
+}
+
+// Wrapper for getHandleById to handle GraphQL types
+export function getHandleById(
+  diagram: DomainDiagramType,
+  handleId: HandleID
+): DomainHandleType | undefined {
+  const domainHandle = originalGetHandleById(diagram as any, handleId);
+  return domainHandle as DomainHandleType | undefined;
+}
 
 export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
   // Use centralized implementation, but adapt return type names

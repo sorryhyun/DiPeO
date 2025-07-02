@@ -166,14 +166,3 @@ def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
         label_map[label] = n["id"]
     return label_map
 
-
-def _round_pos(pos: Any) -> dict[str, int]:
-    """Return a rounded position dict from Domain Vec2 or mapping."""
-
-    if hasattr(pos, "model_dump"):
-        pos = pos.model_dump()
-    if hasattr(pos, "x") and hasattr(pos, "y"):
-        return {"x": round(pos.x), "y": round(pos.y)}  # type: ignore[attr-defined]
-    if isinstance(pos, dict):
-        return {"x": round(pos.get("x", 0)), "y": round(pos.get("y", 0))}
-    return {"x": 0, "y": 0}

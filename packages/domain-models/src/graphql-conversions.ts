@@ -91,23 +91,6 @@ export function storeMapsToArrays(store: {
   };
 }
 
-// ============================================================================
-// Vec2 Conversions
-// ============================================================================
-
-/**
- * Convert Vec2 to input format (for GraphQL mutations)
- */
-export function vec2ToInput(vec: Vec2): Vec2 {
-  return { x: vec.x, y: vec.y };
-}
-
-/**
- * Convert from GraphQL Vec2 format
- */
-export function vec2FromGraphQL(vec: { x: number; y: number }): Vec2 {
-  return { x: vec.x, y: vec.y };
-}
 
 // ============================================================================
 // Type Guards
