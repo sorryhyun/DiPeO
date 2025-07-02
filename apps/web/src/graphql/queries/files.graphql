@@ -1,28 +1,28 @@
 # File Operations
 
 mutation UploadFile($file: Upload!, $category: String! = "general") {
-  uploadFile(file: $file, category: $category) {
+  upload_file(file: $file, category: $category) {
     success
     path
-    sizeBytes
-    contentType
+    size_bytes
+    content_type
     message
     error
   }
 }
 
 mutation ValidateDiagram($diagramContent: JSONScalar!) {
-  validateDiagram(diagramContent: $diagramContent) {
-    isValid
+  validate_diagram(diagram_content: $diagramContent) {
+    is_valid
     errors
-    nodeCount
-    arrowCount
-    personCount
+    node_count
+    arrow_count
+    person_count
   }
 }
 
 mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = native, $includeMetadata: Boolean = true) {
-  convertDiagram(content: $content, targetFormat: $targetFormat, includeMetadata: $includeMetadata) {
+  convert_diagram(content: $content, target_format: $targetFormat, include_metadata: $includeMetadata) {
     success
     message
     error

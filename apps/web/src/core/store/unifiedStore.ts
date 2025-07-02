@@ -2,9 +2,7 @@ import { create } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { ArrowID, NodeID, PersonID } from '@/core/types';
-import { entityIdGenerators } from '@/core/types/utilities';
 import { UnifiedStore } from "./unifiedStore.types";
-// Removed deprecated imports - auto-save is now handled by the backend
 
 // Import slices
 import {

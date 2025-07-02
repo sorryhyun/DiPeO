@@ -86,10 +86,10 @@ export type DiagramID = string & { readonly __brand: 'DiagramID' };
 // Domain models
 export interface DomainHandle {
   id: HandleID;
-  nodeId: NodeID;
+  node_id: NodeID;
   label: string;
   direction: HandleDirection;
-  dataType: DataType;
+  data_type: DataType;
   position?: string | null; // 'left' | 'right' | 'top' | 'bottom'
 }
 
@@ -98,31 +98,36 @@ export interface DomainNode {
   type: NodeType;
   position: Vec2;
   data: Record<string, any>;
-  displayName?: string;
 }
 
 export interface DomainArrow {
   id: ArrowID;
   source: HandleID; // "nodeId:handleName" format
   target: HandleID; // "nodeId:handleName" format
+  content_type?: ContentType | null;
+  label?: string | null;
   data?: Record<string, any> | null;
 }
 
 export interface MemoryConfig {
-  forgetMode?: ForgettingMode;
-  maxMessages?: number;
+  forget_mode?: ForgettingMode;
+  max_messages?: number;
   temperature?: number;
+}
+
+export interface PersonLLMConfig {
+  service: LLMService;
+  model: string;
+  api_key_id: ApiKeyID;
+  system_prompt?: string | null;
 }
 
 export interface DomainPerson {
   id: PersonID;
   label: string;
-  service: LLMService;
-  model: string;
-  apiKeyId?: ApiKeyID | null;
-  systemPrompt?: string | null;
+  llm_config: PersonLLMConfig;
   type: 'person';
-  maskedApiKey?: string | null;
+  masked_api_key?: string | null;
 }
 
 export interface DomainApiKey {
@@ -130,7 +135,7 @@ export interface DomainApiKey {
   label: string;
   service: LLMService;
   key?: string; // Excluded from serialization by default
-  maskedKey: string;
+  masked_key: string;
 }
 
 export interface DiagramMetadata {
@@ -162,40 +167,40 @@ export interface BaseNodeData {
 }
 
 export interface StartNodeData extends BaseNodeData {
-  customData: Record<string, string | number | boolean>;
-  outputDataStructure: Record<string, string>;
+  custom_data: Record<string, string | number | boolean>;
+  output_data_structure: Record<string, string>;
 }
 
 export interface ConditionNodeData extends BaseNodeData {
-  conditionType: string;
+  condition_type: string;
   expression?: string;
   node_indices?: string[];
 }
 
 export interface PersonJobNodeData extends BaseNodeData {
   person?: PersonID;
-  firstOnlyPrompt: string;
-  defaultPrompt?: string;
-  maxIteration: number;
-  memoryConfig?: MemoryConfig | null;
+  first_only_prompt: string;
+  default_prompt?: string;
+  max_iteration: number;
+  memory_config?: MemoryConfig | null;
 }
 
 export interface EndpointNodeData extends BaseNodeData {
-  saveToFile: boolean;
-  fileName?: string;
+  save_to_file: boolean;
+  file_name?: string;
 }
 
 export interface DBNodeData extends BaseNodeData {
   file?: string;
   collection?: string;
-  subType: DBBlockSubType;
+  sub_type: DBBlockSubType;
   operation: string;
   query?: string;
   data?: Record<string, any>;
 }
 
 export interface JobNodeData extends BaseNodeData {
-  codeType: SupportedLanguage;
+  code_type: SupportedLanguage;
   code: string;
 }
 
@@ -206,8 +211,8 @@ export interface UserResponseNodeData extends BaseNodeData {
 
 export interface NotionNodeData extends BaseNodeData {
   operation: NotionOperation;
-  pageId?: string;
-  databaseId?: string;
+  page_id?: string;
+  database_id?: string;
 }
 
 export type PersonBatchJobNodeData = PersonJobNodeData;

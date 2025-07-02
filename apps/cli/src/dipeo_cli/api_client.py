@@ -10,20 +10,13 @@ from gql.transport.websockets import (
 )  # For GraphQL subscriptions only
 
 from dipeo_cli.__generated__.graphql_operations import (
-    EXECUTE_DIAGRAM_MUTATION,
-    CONVERT_DIAGRAM_MUTATION,
     CONTROL_EXECUTION_MUTATION,
-    SUBMIT_INTERACTIVE_RESPONSE_MUTATION,
+    CONVERT_DIAGRAM_MUTATION,
+    EXECUTE_DIAGRAM_MUTATION,
     EXECUTION_UPDATES_SUBSCRIPTION,
-    NODE_UPDATES_SUBSCRIPTION,
     INTERACTIVE_PROMPTS_SUBSCRIPTION,
-    get_execute_diagram_variables,
-    get_convert_diagram_variables,
-    get_control_execution_variables,
-    get_submit_interactive_response_variables,
-    get_execution_updates_variables,
-    get_node_updates_variables,
-    get_interactive_prompts_variables,
+    NODE_UPDATES_SUBSCRIPTION,
+    SUBMIT_INTERACTIVE_RESPONSE_MUTATION,
 )
 
 T = TypeVar("T")
@@ -31,6 +24,7 @@ T = TypeVar("T")
 
 class DiPeoAPIClient:
     """GraphQL API client for DiPeO server communication."""
+
     def __init__(
         self,
         host: str = "localhost:8000",
@@ -127,17 +121,17 @@ class DiPeoAPIClient:
         mutation = gql(EXECUTE_DIAGRAM_MUTATION)
 
         input_data = {
-            "debugMode": debug_mode,
-            "timeoutSeconds": timeout,
-            "maxIterations": 1000,
+            "debug_mode": debug_mode,
+            "timeout_seconds": timeout,
+            "max_iterations": 1000,
         }
 
         if diagram_data:
-            input_data["diagramData"] = diagram_data
+            input_data["diagram_data"] = diagram_data
             if variables:
                 input_data["variables"] = variables
         elif diagram_id:
-            input_data["diagramId"] = diagram_id
+            input_data["diagram_id"] = diagram_id
         else:
             raise ValueError("Either diagram_id or diagram_data must be provided")
 
@@ -147,7 +141,7 @@ class DiPeoAPIClient:
             variable_values={"data": input_data},
         )
 
-        response = result["executeDiagram"]
+        response = result["execute_diagram"]
         if response["success"]:
             return response["execution"]["id"]
         raise Exception(
@@ -190,9 +184,9 @@ class DiPeoAPIClient:
 
         client = self._get_subscription_client("execution")
         async for result in client.subscribe_async(
-            subscription, variable_values={"executionId": execution_id}
+            subscription, variable_values={"execution_id": execution_id}
         ):
-            yield result["executionUpdates"]
+            yield result["execution_updates"]
 
     async def subscribe_to_node_updates(
         self, execution_id: str, node_types: list[str] | None = None
@@ -200,15 +194,15 @@ class DiPeoAPIClient:
         """Subscribe to node execution updates."""
         subscription = gql(NODE_UPDATES_SUBSCRIPTION)
 
-        variables = {"executionId": execution_id}
+        variables = {"execution_id": execution_id}
         if node_types:
-            variables["nodeTypes"] = node_types
+            variables["node_types"] = node_types
 
         client = self._get_subscription_client("nodes")
         async for result in client.subscribe_async(
             subscription, variable_values=variables
         ):
-            yield result["nodeUpdates"]
+            yield result["node_updates"]
 
     async def subscribe_to_interactive_prompts(
         self, execution_id: str
@@ -218,9 +212,9 @@ class DiPeoAPIClient:
 
         client = self._get_subscription_client("prompts")
         async for result in client.subscribe_async(
-            subscription, variable_values={"executionId": execution_id}
+            subscription, variable_values={"execution_id": execution_id}
         ):
-            yield result["interactivePrompts"]
+            yield result["interactive_prompts"]
 
     async def control_execution(
         self, execution_id: str, action: str, node_id: str | None = None
@@ -228,15 +222,15 @@ class DiPeoAPIClient:
         """Control a running execution (pause, resume, abort, skip_node)."""
         mutation = gql(CONTROL_EXECUTION_MUTATION)
 
-        input_data = {"executionId": execution_id, "action": action}
+        input_data = {"execution_id": execution_id, "action": action}
         if node_id and action == "skip_node":
-            input_data["nodeId"] = node_id
+            input_data["node_id"] = node_id
 
         result = await self._retry_with_backoff(
             self._client.execute_async, mutation, variable_values={"data": input_data}
         )
 
-        response = result["controlExecution"]
+        response = result["control_execution"]
         if not response["success"]:
             raise Exception(
                 response.get("error")
@@ -255,25 +249,17 @@ class DiPeoAPIClient:
             mutation,
             variable_values={
                 "data": {
-                    "executionId": execution_id,
-                    "nodeId": node_id,
+                    "execution_id": execution_id,
+                    "node_id": node_id,
                     "response": response,
                 }
             },
         )
 
-        response = result["submitInteractiveResponse"]
+        response = result["submit_interactive_response"]
         if not response["success"]:
             raise Exception(
                 response.get("error")
                 or response.get("message", "Interactive response failed")
             )
         return response["success"]
-
-    async def save_diagram(
-        self, diagram_data: dict[str, Any], filename: str | None = None
-    ) -> str:
-        """Save a diagram and return its ID."""
-        raise NotImplementedError(
-            "save_diagram is deprecated. Use execute_diagram with diagram_data instead."
-        )

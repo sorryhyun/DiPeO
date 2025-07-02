@@ -26,6 +26,9 @@ dependencies = [
     "dipeo-core",
     "dipeo-domain",
     "dipeo-diagram",
+    "dipeo-application",
+    "dipeo-infra",
+    "dipeo-server",
 ]
 keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
 

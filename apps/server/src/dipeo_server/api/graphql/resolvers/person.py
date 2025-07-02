@@ -2,18 +2,14 @@
 
 import logging
 
-from dipeo_domain import LLMService
+from dipeo_domain import LLMService, DomainApiKey, DomainPerson
 
 from ..context import GraphQLContext
 from ..types import (
     ApiKeyID,
     PersonID,
-)
-from ..types import (
-    DomainApiKeyType as DomainApiKey,
-)
-from ..types import (
-    DomainPersonType as DomainPerson,
+    DomainApiKeyType,
+    DomainPersonType,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,12 +72,12 @@ class PersonResolver:
 
             result = []
             for key_data in all_keys:
-                logger.info(f"Processing key: {key_data['id']} with service: {key_data['service']}")
                 if self._is_llm_service(key_data["service"]):
                     pydantic_api_key = DomainApiKey(
                         id=key_data["id"],
                         label=key_data["label"],
                         service=self._map_service(key_data["service"]),
+                        masked_key=f"{key_data['service']}-****",
                     )
                     result.append(pydantic_api_key)
                 else:
@@ -103,7 +99,7 @@ class PersonResolver:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
 
-            return await llm_service.get_available_models(
+            return await llm_service.get_available_models_for_service(
                 service=service, api_key_id=api_key_id
             )
 

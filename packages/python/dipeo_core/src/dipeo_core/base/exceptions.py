@@ -19,24 +19,16 @@ class DiPeOError(Exception):
 
 
 class ValidationError(DiPeOError):
-    """Raised when input validation fails."""
-
     error_code = "VALIDATION_ERROR"
 
 
 class ConfigurationError(DiPeOError):
-    """Raised when configuration is invalid."""
-
     error_code = "CONFIGURATION_ERROR"
 
 
 class ServiceError(DiPeOError):
-    """Base class for service-related errors."""
-
     error_code = "SERVICE_ERROR"
 
 
 class ExecutionError(DiPeOError):
-    """Base class for execution-related errors."""
-
     error_code = "EXECUTION_ERROR"

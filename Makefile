@@ -24,10 +24,13 @@ install:
 
 # Code generation
 codegen:
-	@echo "🔄 Generating code..."
-	cd packages/domain-models && pnpm build
+	@echo "🔄 Generating code from domain models..."
+	cd packages/domain-models && pnpm generate:all
+	@echo "📝 Exporting GraphQL schema from server..."
 	make graphql-schema
+	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
+	@echo "🔄 Generating GraphQL operations for CLI..."
 	cd apps/cli && python scripts/generate_graphql_operations.py
 	@echo "✅ All code generation completed!"
 
@@ -63,14 +66,14 @@ lint-web:
 lint-server:
 	@echo "🔍 Linting..."
 	@for dir in $(PY_DIRS); do \
-		[ -d "$$dir/src" ] && (cd $$dir && ruff check src $$([ -d tests ] && echo tests)) || true; \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/server && mypy src || true
 
 lint-cli:
 	@echo "🔍 Linting..."
 	@for dir in $(PY_DIRS); do \
-		[ -d "$$dir/src" ] && (cd $$dir && ruff check src $$([ -d tests ] && echo tests)) || true; \
+		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/cli && mypy src || true
 

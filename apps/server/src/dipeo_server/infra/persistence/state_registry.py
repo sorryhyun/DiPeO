@@ -23,10 +23,7 @@ from dipeo_domain import (
 from .execution_cache import ExecutionCache
 from .message_store import MessageStore
 
-try:
-    from config import STATE_DB_PATH
-except ImportError:
-    STATE_DB_PATH = Path("/tmp/dipeo_state.db")
+from dipeo_core.constants import STATE_DB_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -118,15 +115,15 @@ class StateRegistry:
         state = ExecutionState(
             id=ExecutionID(execution_id),
             status=ExecutionStatus.PENDING,
-            diagramId=DiagramID(diagram_id) if diagram_id else None,
-            startedAt=now,
-            endedAt=None,
-            nodeStates={},
-            nodeOutputs={},
-            tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
+            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            started_at=now,
+            ended_at=None,
+            node_states={},
+            node_outputs={},
+            token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
             error=None,
             variables=variables or {},
-            isActive=True,
+            is_active=True,
         )
 
         await self.save_state(state)
@@ -135,11 +132,7 @@ class StateRegistry:
     async def save_state(self, state: ExecutionState):
         """Save execution state to database and cache."""
         # Update cache for active executions
-        if (
-            state.is_active
-            if hasattr(state, "is_active")
-            else (state.status in [ExecutionStatus.PENDING, ExecutionStatus.RUNNING])
-        ):
+        if state.is_active:
             await self._execution_cache.set(state.id, state)
         else:
             # Remove from cache if execution is no longer active
@@ -147,19 +140,15 @@ class StateRegistry:
 
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
-            node_states_dict = {}
-            for node_id, node_state in state.node_states.items():
-                if hasattr(node_state, "model_dump"):
-                    node_states_dict[node_id] = node_state.model_dump()
-                else:
-                    node_states_dict[node_id] = node_state
+            node_states_dict = {
+                node_id: node_state.model_dump() 
+                for node_id, node_state in state.node_states.items()
+            }
 
-            node_outputs_dict = {}
-            for node_id, node_output in state.node_outputs.items():
-                if hasattr(node_output, "model_dump"):
-                    node_outputs_dict[node_id] = node_output.model_dump()
-                else:
-                    node_outputs_dict[node_id] = node_output
+            node_outputs_dict = {
+                node_id: node_output.model_dump()
+                for node_id, node_output in state.node_outputs.items()
+            }
 
             await self._execute(
                 """
@@ -170,17 +159,13 @@ class StateRegistry:
                 """,
                 (
                     state.id,
-                    state.status.value
-                    if isinstance(state.status, ExecutionStatus)
-                    else state.status,
+                    state.status.value,
                     state.diagram_id,
                     state.started_at,
                     state.ended_at,
                     json.dumps(node_states_dict),
                     json.dumps(node_outputs_dict),
-                    json.dumps(
-                        state.token_usage.model_dump() if state.token_usage else {}
-                    ),
+                    json.dumps(state.token_usage.model_dump() if state.token_usage else {}),
                     state.error,
                     json.dumps(state.variables),
                 ),
@@ -228,12 +213,12 @@ class StateRegistry:
         return ExecutionState(
             id=ExecutionID(row[0]),
             status=ExecutionStatus(row[1]),
-            diagramId=DiagramID(row[2]) if row[2] else None,
-            startedAt=row[3],
-            endedAt=row[4],
-            nodeStates=node_states,
-            nodeOutputs=node_outputs,
-            tokenUsage=TokenUsage(**token_usage_dict)
+            diagram_id=DiagramID(row[2]) if row[2] else None,
+            started_at=row[3],
+            ended_at=row[4],
+            node_states=node_states,
+            node_outputs=node_outputs,
+            token_usage=TokenUsage(**token_usage_dict)
             if token_usage_dict
             else TokenUsage(input=0, output=0, cached=None),
             error=row[8],
@@ -270,41 +255,57 @@ class StateRegistry:
         return state.node_outputs.get(node_id)
 
     async def update_node_output(
-        self, execution_id: str, node_id: str, output: NodeOutput
+        self,
+        execution_id: str,
+        node_id: str,
+        output: Any,
+        is_exception: bool = False,
+        token_usage: TokenUsage | None = None,
     ) -> None:
         """Store output, using references for large data."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
 
-        # For PersonJob outputs with conversation history
-        if output.metadata and output.metadata.get("_type") == "personjob_output":
-            # Check if execution is active - defer persistence for active executions
-            is_active = (
-                state.is_active
-                if hasattr(state, "is_active")
-                else (
-                    state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING]
-                )
+        # Convert output to NodeOutput if it isn't already
+        if not isinstance(output, NodeOutput):
+            node_output = NodeOutput(
+                value={"default": str(output)} if is_exception else output,
+                metadata={"is_exception": is_exception} if is_exception else {},
             )
+        else:
+            node_output = output
+
+        # For PersonJob outputs with conversation history
+        if (
+            node_output.metadata
+            and node_output.metadata.get("_type") == "personjob_output"
+        ):
+            # Check if execution is active - defer persistence for active executions
+            is_active = state.is_active
 
             if not is_active:
                 # Only persist conversation for completed executions
-                conversation = output.metadata.get("conversation_history", [])
+                conversation = node_output.metadata.get("conversation_history", [])
                 if conversation and self.message_store:
                     message_ref = await self.message_store.store_message(
                         execution_id=execution_id,
                         node_id=node_id,
                         content={"conversation": conversation},
-                        person_id=output.metadata.get("person_id"),
-                        token_count=output.metadata.get("token_count"),
+                        person_id=node_output.metadata.get("person_id"),
+                        token_count=node_output.metadata.get("token_count"),
                     )
                     # Replace conversation with reference
-                    output.metadata["conversation_ref"] = message_ref
-                    output.metadata.pop("conversation_history", None)
+                    node_output.metadata["conversation_ref"] = message_ref
+                    node_output.metadata.pop("conversation_history", None)
 
         # Store the output with reference
-        state.node_outputs[node_id] = output
+        state.node_outputs[node_id] = node_output
+
+        # Update token usage if provided
+        if token_usage:
+            await self.add_token_usage(execution_id, token_usage)
+
         await self.save_state(state)
 
     async def update_node_status(
@@ -312,7 +313,6 @@ class StateRegistry:
         execution_id: str,
         node_id: str,
         status: NodeExecutionStatus,
-        output: NodeOutput | None = None,
         error: str | None = None,
     ):
         """Update node execution status."""
@@ -325,10 +325,10 @@ class StateRegistry:
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
-                startedAt=now if status == NodeExecutionStatus.RUNNING else None,
-                endedAt=None,
+                started_at=now if status == NodeExecutionStatus.RUNNING else None,
+                ended_at=None,
                 error=None,
-                tokenUsage=None,
+                token_usage=None,
             )
         else:
             state.node_states[node_id].status = status
@@ -344,16 +344,6 @@ class StateRegistry:
         # Update error
         if error:
             state.node_states[node_id].error = error
-
-        # Store output if completed
-        if status == NodeExecutionStatus.COMPLETED and output is not None:
-            state.node_outputs[node_id] = output
-            if output.metadata and "tokenUsage" in output.metadata:
-                token_usage_data = output.metadata["tokenUsage"]
-                if isinstance(token_usage_data, dict):
-                    state.node_states[node_id].token_usage = TokenUsage(
-                        **token_usage_data
-                    )
 
         await self.save_state(state)
 
@@ -389,6 +379,7 @@ class StateRegistry:
 
     async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
         """Add token usage to existing statistics (incremental update)."""
+
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -407,18 +398,33 @@ class StateRegistry:
         await self.save_state(state)
 
     async def list_executions(
-        self, limit: int = 100, offset: int = 0
-    ) -> list[dict[str, Any]]:
+        self,
+        diagram_id: DiagramID | None = None,
+        status: ExecutionStatus | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[ExecutionState]:
         """List recent executions with metadata."""
-        cursor = await self._execute(
-            """
-            SELECT execution_id, status, started_at, ended_at, node_states, diagram_id
-            FROM execution_states
-            ORDER BY started_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (limit, offset),
-        )
+        # Build query with optional filters
+        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables FROM execution_states"
+        conditions = []
+        params = []
+
+        if diagram_id:
+            conditions.append("diagram_id = ?")
+            params.append(diagram_id)
+
+        if status:
+            conditions.append("status = ?")
+            params.append(status.value)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY started_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor = await self._execute(query, params)
 
         rows = await asyncio.get_event_loop().run_in_executor(
             self._executor, cursor.fetchall
@@ -426,17 +432,60 @@ class StateRegistry:
 
         executions = []
         for row in rows:
-            node_states = json.loads(row[4]) if row[4] else {}
-            executions.append(
-                {
-                    "execution_id": row[0],
-                    "status": row[1],
-                    "started_at": row[2],
-                    "ended_at": row[3],
-                    "total_nodes": len(node_states),
-                    "diagram_id": row[5],
-                }
+            # Deserialize data from database
+            node_states_data = json.loads(row[4]) if row[4] else {}
+            node_outputs_data = json.loads(row[6]) if row[6] else {}
+            token_usage_data = json.loads(row[7]) if row[7] else {}
+            variables_data = json.loads(row[9]) if row[9] else {}
+
+            # Convert node states to NodeState objects
+            node_states = {}
+            for node_id, state_data in node_states_data.items():
+                if isinstance(state_data, dict):
+                    # Handle token usage in node state
+                    token_usage = None
+                    if "token_usage" in state_data:
+                        tu_data = state_data["token_usage"]
+                        if isinstance(tu_data, dict):
+                            token_usage = TokenUsage(**tu_data)
+
+                    node_states[node_id] = NodeState(
+                        status=NodeExecutionStatus(state_data.get("status", "pending")),
+                        started_at=state_data.get("started_at"),
+                        ended_at=state_data.get("ended_at"),
+                        error=state_data.get("error"),
+                        token_usage=token_usage,
+                    )
+
+            # Convert node outputs to NodeOutput objects
+            node_outputs = {}
+            for node_id, output_data in node_outputs_data.items():
+                if isinstance(output_data, dict):
+                    node_outputs[node_id] = NodeOutput(
+                        value=output_data.get("value", {}),
+                        metadata=output_data.get("metadata", {}),
+                    )
+
+            # Convert token usage
+            token_usage = None
+            if token_usage_data:
+                token_usage = TokenUsage(**token_usage_data)
+
+            # Create ExecutionState object
+            execution_state = ExecutionState(
+                id=ExecutionID(row[0]),
+                status=ExecutionStatus(row[1]),
+                node_states=node_states,
+                node_outputs=node_outputs,
+                diagram_id=DiagramID(row[5]) if row[5] else None,
+                variables=variables_data,
+                started_at=row[2],
+                ended_at=row[3],
+                token_usage=token_usage,
+                error=row[8],
             )
+
+            executions.append(execution_state)
 
         return executions
 
@@ -468,15 +517,15 @@ class StateRegistry:
         state = ExecutionState(
             id=ExecutionID(execution_id),
             status=ExecutionStatus.PENDING,
-            diagramId=DiagramID(diagram_id) if diagram_id else None,
-            startedAt=now,
-            endedAt=None,
-            nodeStates={},
-            nodeOutputs={},
-            tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
+            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            started_at=now,
+            ended_at=None,
+            node_states={},
+            node_outputs={},
+            token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
             error=None,
             variables=variables or {},
-            isActive=True,
+            is_active=True,
         )
 
         # Only store in cache, not in database

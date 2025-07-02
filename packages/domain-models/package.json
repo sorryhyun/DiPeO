@@ -13,11 +13,8 @@
     "typecheck": "tsc --noEmit",
     "generate:schema": "tsx scripts/generate-schema.ts",
     "generate:python": "tsx scripts/generate-python.ts",
-    "generate:graphql": "tsx scripts/generate-graphql.ts",
-    "generate:cli": "tsx scripts/generate-cli.ts",
-    "generate:dto": "tsx scripts/generate-dto.ts",
-    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:graphql && pnpm generate:cli && pnpm generate:dto",
-    "postbuild": "pnpm generate:all"
+    "generate:conversions": "tsx scripts/generate-conversions.ts",
+    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions"
   },
   "dependencies": {
     "zod": "^3.25.42"

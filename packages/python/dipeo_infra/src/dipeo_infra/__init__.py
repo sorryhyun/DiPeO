@@ -1,22 +1,31 @@
-"""DiPeO Services - Simplified domain services for shared use."""
+"""DiPeO Infrastructure - Infrastructure adapters and services."""
 
 __version__ = "0.1.0"
 
-# Import all services
-from .file import SimpleFileService
-from .memory import SimpleMemoryService
-from .text import SimpleTextService
-from .file_ops import SimpleFileOperationsService
-from .conversation import SimpleConversationService
-from .api_integration import APIIntegrationDomainService
-from .notion_integration import NotionIntegrationDomainService
+# Import from organized structure
+from .persistence.file.file_service import FileService
+from .persistence.file.file_operations import FileOperationsService
+from .persistence.memory.memory_service import MemoryService
+from .external.llm.conversation_adapter import ConversationService
+from .external.llm.services import LLMInfraService
+from .external.notion.notion_adapter import NotionIntegrationDomainService
+from .external.apikey.environment_adapter import EnvironmentAPIKeyService
+from .messaging.websocket_router import MessageRouter, message_router
+from .config import Settings, Environment, settings, get_settings, reload_settings
 
 __all__ = [
-    "SimpleFileService", 
-    "SimpleMemoryService",
-    "SimpleTextService",
-    "SimpleFileOperationsService",
-    "SimpleConversationService",
-    "APIIntegrationDomainService",
+    "FileService",
+    "MemoryService",
+    "FileOperationsService",
+    "ConversationService",
+    "LLMInfraService",
     "NotionIntegrationDomainService",
+    "EnvironmentAPIKeyService",
+    "MessageRouter",
+    "message_router",
+    "Settings",
+    "Environment",
+    "settings",
+    "get_settings",
+    "reload_settings",
 ]

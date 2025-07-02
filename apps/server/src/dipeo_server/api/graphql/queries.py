@@ -4,6 +4,9 @@ from datetime import datetime
 
 import strawberry
 from dipeo_domain import LLMService, NodeType
+from dipeo_core.constants import FILES_DIR
+
+from dipeo_server.shared.constants import DIAGRAM_VERSION
 
 from .types import (
     ApiKeyID,
@@ -96,7 +99,7 @@ class Query:
     @strawberry.field
     async def system_info(self, info) -> JSONScalar:
         return {
-            "version": "2.0.0",
+            "version": DIAGRAM_VERSION,
             "supported_node_types": [t.value for t in NodeType],
             "supported_llm_services": [s.value for s in LLMService],
             "max_upload_size_mb": 100,
@@ -153,7 +156,7 @@ class Query:
         try:
             import os
 
-            os.path.exists("files/diagrams")
+            (FILES_DIR / "diagrams").exists()
             checks["file_system"] = True
         except:
             pass
@@ -164,7 +167,7 @@ class Query:
             "status": "healthy" if all_healthy else "degraded",
             "timestamp": datetime.now().isoformat(),
             "checks": checks,
-            "version": "2.0.0",
+            "version": DIAGRAM_VERSION,
         }
 
     @strawberry.field

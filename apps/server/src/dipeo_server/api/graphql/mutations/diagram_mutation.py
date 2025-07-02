@@ -60,11 +60,10 @@ class DiagramMutations:
             path = f"{input.name}.json"
             await storage_service.write_file(path, storage_dict)
 
-            graphql_diagram = diagram_model
-
+            # Use domain model directly
             return DiagramResult(
                 success=True,
-                diagram=graphql_diagram,
+                diagram=diagram_model,
                 message=f"Created diagram at {path}",
             )
 

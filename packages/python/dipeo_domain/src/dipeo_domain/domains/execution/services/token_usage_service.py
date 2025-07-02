@@ -45,8 +45,8 @@ class TokenUsageService:
     def aggregate_node_outputs(outputs: dict[str, NodeOutput]) -> TokenUsage:
         total = TokenUsageService.zero()
         for output in outputs.values():
-            if output.tokenUsage:
-                total = TokenUsageService.add(total, output.tokenUsage)
+            if output.token_usage:
+                total = TokenUsageService.add(total, output.token_usage)
         return total
 
     @staticmethod

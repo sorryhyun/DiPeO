@@ -3,10 +3,8 @@ from typing import NewType
 
 import strawberry
 
-# Import domain models from the generated package
+# Import domain models directly instead of DTOs
 from dipeo_domain import (
-    DataType,
-    DiagramFormat,
     DiagramMetadata,
     DomainApiKey,
     DomainArrow,
@@ -14,18 +12,25 @@ from dipeo_domain import (
     DomainHandle,
     DomainNode,
     DomainPerson,
-    EventType,
+    PersonLLMConfig,
     ExecutionState,
+    NodeOutput,
+    NodeState,
+    TokenUsage,
+    Vec2,
+)
+
+# Import enums and basic types from domain
+from dipeo_domain import (
+    DataType,
+    DiagramFormat,
+    EventType,
     ExecutionStatus,
     ForgettingMode,
     HandleDirection,
     LLMService,
     NodeExecutionStatus,
-    NodeOutput,
-    NodeState,
     NodeType,
-    TokenUsage,
-    Vec2,
 )
 
 # SCALAR TYPES - Keep these for GraphQL-specific type safety
@@ -101,7 +106,7 @@ NodeExecutionStatusEnum = strawberry.enum(NodeExecutionStatus)
 EventTypeEnum = strawberry.enum(EventType)
 
 
-# Simple types - Direct conversions
+# Simple types - Direct conversions using domain models
 @strawberry.experimental.pydantic.type(Vec2, all_fields=True)
 class Vec2Type:
     pass
@@ -122,9 +127,17 @@ class NodeOutputType:
     pass
 
 
-@strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
+@strawberry.experimental.pydantic.type(DomainHandle, fields=["label", "direction", "data_type", "position"])
 class DomainHandleType:
-    pass
+    @strawberry.field
+    def id(self) -> HandleID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return HandleID(str(obj.id))
+    
+    @strawberry.field
+    def node_id(self) -> NodeID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return NodeID(str(obj.node_id))
 
 
 @strawberry.experimental.pydantic.type(DiagramMetadata, all_fields=True)
@@ -133,90 +146,121 @@ class DiagramMetadataType:
 
 
 # Types with custom fields
-@strawberry.experimental.pydantic.type(
-    DomainNode, fields=["id", "type", "position", "display_name"]
-)
+@strawberry.experimental.pydantic.type(DomainNode, fields=["type", "position"])
 class DomainNodeType:
     @strawberry.field
+    def id(self) -> NodeID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return NodeID(str(obj.id))
+    
+    @strawberry.field
+    def data(self) -> JSONScalar:
+        # Direct access to domain model fields
+        if hasattr(self, "_pydantic_object") and self._pydantic_object:
+            return self._pydantic_object.data or {}
+        return getattr(self, "data", {})
+
+
+@strawberry.experimental.pydantic.type(DomainArrow, fields=["content_type", "label"])
+class DomainArrowType:
+    @strawberry.field
+    def id(self) -> ArrowID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return ArrowID(str(obj.id))
+    
+    @strawberry.field
+    def source(self) -> HandleID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return HandleID(str(obj.source))
+    
+    @strawberry.field
+    def target(self) -> HandleID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return HandleID(str(obj.target))
+    
+    @strawberry.field
     def data(self) -> JSONScalar | None:
-        # Try multiple ways to access the data
+        # Direct access to domain model fields
         if hasattr(self, "_pydantic_object") and self._pydantic_object:
             return self._pydantic_object.data
-        if hasattr(self, "data") and self.data is not None:
-            return self.data
-        if hasattr(self, "__strawberry_definition__"):
-            # Try to access through the Strawberry definition
-            origin = getattr(self, "__strawberry_definition__", {}).get("origin")
-            if origin and hasattr(origin, "data"):
-                return origin.data
-        return None
+        return getattr(self, "data", None)
 
+
+@strawberry.experimental.pydantic.type(
+    PersonLLMConfig,
+    fields=["service", "model", "system_prompt"],
+)
+class PersonLLMConfigType:
     @strawberry.field
-    def handles(self) -> list[DomainHandleType]:
-        # Handles are resolved at the diagram level
-        return []
-
-
-@strawberry.experimental.pydantic.type(DomainArrow, fields=["id", "source", "target"])
-class DomainArrowType:
-    data: JSONScalar | None = strawberry.auto
+    def api_key_id(self) -> ApiKeyID | None:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        if obj and hasattr(obj, "api_key_id") and obj.api_key_id:
+            return ApiKeyID(str(obj.api_key_id))
+        return None
 
 
 @strawberry.experimental.pydantic.type(
     DomainPerson,
-    fields=["id", "label", "service", "model", "api_key_id", "system_prompt"],
+    fields=["label", "llm_config"],
 )
 class DomainPersonType:
+    @strawberry.field
+    def id(self) -> PersonID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return PersonID(str(obj.id))
+    
     @strawberry.field
     def type(self) -> str:
         return "person"
 
     @strawberry.field
     def masked_api_key(self) -> str | None:
-        if hasattr(self, "_pydantic_object") and self._pydantic_object.api_key_id:
-            return f"****{str(self._pydantic_object.api_key_id)[-4:]}"
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        if (
+            obj
+            and hasattr(obj, "llm_config")
+            and obj.llm_config
+            and obj.llm_config.api_key_id
+        ):
+            return f"****{str(obj.llm_config.api_key_id)[-4:]}"
         return None
 
 
-@strawberry.experimental.pydantic.type(DomainApiKey, all_fields=True)
+@strawberry.experimental.pydantic.type(DomainApiKey, fields=["label", "service", "key"])
 class DomainApiKeyType:
     @strawberry.field
+    def id(self) -> ApiKeyID:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return ApiKeyID(str(obj.id))
+    
+    @strawberry.field
     def masked_key(self) -> str:
-        if hasattr(self, "_pydantic_object"):
-            service = self._pydantic_object.service
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        if obj and hasattr(obj, "service"):
+            service = obj.service
             service_str = service.value if hasattr(service, "value") else str(service)
             return f"{service_str}-****"
         return "unknown-****"
 
 
 @strawberry.experimental.pydantic.type(
-    DomainDiagram,
-    fields=[
-        "nodes",
-        "handles",
-        "arrows",
-        "persons",
-        "metadata"
-    ]
+    DomainDiagram, fields=["nodes", "handles", "arrows", "persons", "metadata"]
 )
 class DomainDiagramType:
     @strawberry.field
     def nodeCount(self) -> int:
-        if hasattr(self, "_pydantic_object"):
-            return len(self._pydantic_object.nodes)
-        return 0
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return len(obj.nodes) if obj and hasattr(obj, "nodes") else 0
 
     @strawberry.field
     def arrowCount(self) -> int:
-        if hasattr(self, "_pydantic_object"):
-            return len(self._pydantic_object.arrows)
-        return 0
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return len(obj.arrows) if obj and hasattr(obj, "arrows") else 0
 
     @strawberry.field
     def personCount(self) -> int:
-        if hasattr(self, "_pydantic_object"):
-            return len(self._pydantic_object.persons)
-        return 0
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return len(obj.persons) if obj and hasattr(obj, "persons") else 0
 
 
 @strawberry.experimental.pydantic.type(
@@ -236,18 +280,20 @@ class DomainDiagramType:
 class ExecutionStateType:
     @strawberry.field
     def node_states(self) -> JSONScalar:
-        if hasattr(self, "_pydantic_object") and self._pydantic_object.node_states:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        if obj and hasattr(obj, "node_states") and obj.node_states:
             return {
                 node_id: state.model_dump() if hasattr(state, "model_dump") else state
-                for node_id, state in self._pydantic_object.node_states.items()
+                for node_id, state in obj.node_states.items()
             }
         return {}
 
     @strawberry.field
     def node_outputs(self) -> JSONScalar:
-        if hasattr(self, "_pydantic_object") and self._pydantic_object.node_outputs:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        if obj and hasattr(obj, "node_outputs") and obj.node_outputs:
             result = {}
-            for node_id, output in self._pydantic_object.node_outputs.items():
+            for node_id, output in obj.node_outputs.items():
                 if output is None:
                     result[node_id] = None
                 elif hasattr(output, "model_dump"):
@@ -259,10 +305,8 @@ class ExecutionStateType:
 
     @strawberry.field
     def variables(self) -> JSONScalar:
-        if hasattr(self, "_pydantic_object"):
-            return self._pydantic_object.variables
-        return {}
-
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.variables if obj and hasattr(obj, "variables") else {}
 
 
 # INPUT TYPES - Create input types that match the domain model structure

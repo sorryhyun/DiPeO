@@ -1,16 +1,17 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, DomainArrow, DomainNode, NodeID } from '@/core/types';
+import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/core/types';
 import { generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { NodeType, Vec2 } from '@dipeo/domain-models';
+import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
   // Core data structures
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   
-  // Maintain arrays for stable references
+  // Array getters for React components
   nodesArray: DomainNode[];
   arrowsArray: DomainArrow[];
   
@@ -22,11 +23,13 @@ export interface DiagramSlice {
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
+  getNode: (id: NodeID) => DomainNode | undefined;
   
   // Arrow operations
   addArrow: (source: string, target: string, data?: any) => ArrowID;
   updateArrow: (id: ArrowID, updates: Partial<DomainArrow>) => void;
   deleteArrow: (id: ArrowID) => void;
+  getArrow: (id: ArrowID) => DomainArrow | undefined;
   
   // Batch operations
   batchUpdateNodes: (updates: Array<{id: NodeID, updates: Partial<DomainNode>}>) => void;
@@ -42,75 +45,105 @@ export const createDiagramSlice: StateCreator<
   [['zustand/immer', never]],
   [],
   DiagramSlice
-> = (set, get) => ({
-  // Initialize data structures
-  nodes: new Map(),
-  arrows: new Map(),
-  nodesArray: [],
-  arrowsArray: [],
-  dataVersion: 0,
+> = (set, get) => {
+  // Helper function to sync arrays with maps
+  const syncArrays = (state: any) => {
+    state.nodesArray = Array.from(state.nodes.values());
+    state.arrowsArray = Array.from(state.arrows.values());
+  };
+
+  return {
+    // Initialize data structures
+    nodes: new Map(),
+    arrows: new Map(),
+    dataVersion: 0,
+    
+    // Array getters - convert Maps to arrays for React components  
+    nodesArray: [],
+    arrowsArray: [],
   
-  // Node operations with array sync
-  addNode: (type, position, initialData) => {
-    const node = createNode(type, position, initialData);
-    set(state => {
-      state.nodes.set(node.id as NodeID, node);
-      state.nodesArray = Array.from(state.nodes.values());
-      state.dataVersion += 1;
-    });
-    return node.id as NodeID;
-  },
+    // Node operations
+    addNode: (type, position, initialData) => {
+      const node = createNode(type, position, initialData);
+      set(state => {
+        state.nodes.set(node.id as NodeID, node);
+        state.dataVersion += 1;
+        syncArrays(state);
+      });
+      return node.id as NodeID;
+    },
   
-  updateNode: (id, updates) => set(state => {
-    const node = state.nodes.get(id);
-    if (node) {
-      const updatedNode = { ...node, ...updates };
-      state.nodes.set(id, updatedNode);
-      state.nodesArray = Array.from(state.nodes.values());
-      state.dataVersion += 1;
-    }
-  }),
+    updateNode: (id, updates) => set(state => {
+      const node = state.nodes.get(id);
+      if (node) {
+        const updatedNode = { ...node, ...updates };
+        state.nodes.set(id, updatedNode);
+        state.dataVersion += 1;
+        syncArrays(state);
+      }
+    }),
+    
+    updateNodeSilently: (id, updates) => set(state => {
+      const node = state.nodes.get(id);
+      if (node) {
+        const updatedNode = { ...node, ...updates };
+        state.nodes.set(id, updatedNode);
+        syncArrays(state);
+        // No version increment for silent updates
+      }
+    }),
+    
+    deleteNode: (id) => set(state => {
+      const deleted = state.nodes.delete(id);
+      if (deleted) {
+        // Remove connected arrows
+        const arrowsToDelete = Array.from(state.arrows.entries())
+          .filter(([_, arrow]) => 
+            arrow.source.includes(id) || arrow.target.includes(id)
+          )
+          .map(([arrowId]) => arrowId);
+        
+        arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
+        
+        state.dataVersion += 1;
+        syncArrays(state);
+      }
+    }),
   
-  updateNodeSilently: (id, updates) => set(state => {
-    const node = state.nodes.get(id);
-    if (node) {
-      const updatedNode = { ...node, ...updates };
-      state.nodes.set(id, updatedNode);
-      state.nodesArray = Array.from(state.nodes.values());
-      // No version increment for silent updates
-    }
-  }),
+  getNode: (id) => get().nodes.get(id),
   
-  deleteNode: (id) => set(state => {
-    const deleted = state.nodes.delete(id);
-    if (deleted) {
-      // Remove connected arrows
-      const arrowsToDelete = Array.from(state.arrows.entries())
-        .filter(([_, arrow]) => 
-          arrow.source.includes(id) || arrow.target.includes(id)
-        )
-        .map(([arrowId]) => arrowId);
-      
-      arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
-      
-      state.nodesArray = Array.from(state.nodes.values());
-      state.arrowsArray = Array.from(state.arrows.values());
-      state.dataVersion += 1;
-    }
-  }),
-  
-  // Arrow operations with array sync
+  // Arrow operations
   addArrow: (source, target, data) => {
+    // Extract content_type and label from data if present
+    let content_type: ContentType | undefined;
+    let label: string | undefined;
+    let arrowData = data;
+    
+    if (data) {
+      const { content_type: ct, label: l, ...restData } = data as any;
+      content_type = ct;
+      label = l;
+      arrowData = Object.keys(restData).length > 0 ? restData : null;
+    }
+    
     const arrow: DomainArrow = {
       id: generateArrowId(),
-      source,
-      target,
-      data: data || null  // Match Python model's default
+      source: source as HandleID,
+      target: target as HandleID,
+      data: arrowData || null  // Match Python model's default
     };
+    
+    // Add optional fields only if they have actual values
+    if (content_type !== undefined && content_type !== null) {
+      arrow.content_type = content_type;
+    }
+    if (label !== undefined && label !== null) {
+      arrow.label = label;
+    }
     set(state => {
       state.arrows.set(arrow.id as ArrowID, arrow);
-      state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
+      syncArrays(state);
     });
     return arrow.id as ArrowID;
   },
@@ -124,67 +157,67 @@ export const createDiagramSlice: StateCreator<
         updatedArrow.data = { ...arrow.data, ...updates.data };
       }
       state.arrows.set(id, updatedArrow);
-      state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
+      syncArrays(state);
     }
   }),
   
-  deleteArrow: (id) => set(state => {
-    const deleted = state.arrows.delete(id);
-    if (deleted) {
-      state.arrowsArray = Array.from(state.arrows.values());
-      state.dataVersion += 1;
-    }
-  }),
-  
-  // Batch operations for performance
-  batchUpdateNodes: (updates) => set(state => {
-    let hasChanges = false;
-    updates.forEach(({ id, updates: nodeUpdates }) => {
-      const node = state.nodes.get(id);
-      if (node) {
-        state.nodes.set(id, { ...node, ...nodeUpdates });
-        hasChanges = true;
+    deleteArrow: (id) => set(state => {
+      const deleted = state.arrows.delete(id);
+      if (deleted) {
+        state.dataVersion += 1;
+        syncArrays(state);
       }
-    });
-    
-    if (hasChanges) {
-      state.nodesArray = Array.from(state.nodes.values());
-      state.dataVersion += 1;
-    }
-  }),
+    }),
   
-  batchDeleteNodes: (ids) => set(state => {
-    let hasChanges = false;
-    ids.forEach(id => {
-      if (state.nodes.delete(id)) {
-        hasChanges = true;
-        
-        // Remove connected arrows
-        const arrowsToDelete = Array.from(state.arrows.entries())
-          .filter(([_, arrow]) => 
-            arrow.source.includes(id) || arrow.target.includes(id)
-          )
-          .map(([arrowId]) => arrowId);
-        
-        arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
+  getArrow: (id) => get().arrows.get(id),
+  
+    // Batch operations for performance
+    batchUpdateNodes: (updates) => set(state => {
+      let hasChanges = false;
+      updates.forEach(({ id, updates: nodeUpdates }) => {
+        const node = state.nodes.get(id);
+        if (node) {
+          state.nodes.set(id, { ...node, ...nodeUpdates });
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        state.dataVersion += 1;
+        syncArrays(state);
       }
-    });
+    }),
     
-    if (hasChanges) {
-      state.nodesArray = Array.from(state.nodes.values());
-      state.arrowsArray = Array.from(state.arrows.values());
+    batchDeleteNodes: (ids) => set(state => {
+      let hasChanges = false;
+      ids.forEach(id => {
+        if (state.nodes.delete(id)) {
+          hasChanges = true;
+          
+          // Remove connected arrows
+          const arrowsToDelete = Array.from(state.arrows.entries())
+            .filter(([_, arrow]) => 
+              arrow.source.includes(id) || arrow.target.includes(id)
+            )
+            .map(([arrowId]) => arrowId);
+          
+          arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
+        }
+      });
+      
+      if (hasChanges) {
+        state.dataVersion += 1;
+        syncArrays(state);
+      }
+    }),
+    
+    clearDiagram: () => set(state => {
+      state.nodes.clear();
+      state.arrows.clear();
       state.dataVersion += 1;
-    }
-  }),
-  
-  clearDiagram: () => set(state => {
-    state.nodes.clear();
-    state.arrows.clear();
-    state.nodesArray = [];
-    state.arrowsArray = [];
-    state.dataVersion += 1;
-  }),
+      syncArrays(state);
+    }),
 
   validateDiagram: () => {
     const state = get();
@@ -232,7 +265,7 @@ export const createDiagramSlice: StateCreator<
     // Check for person nodes without assigned persons
     state.nodes.forEach(node => {
       if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && !node.data?.person) {
-        errors.push(`Node ${node.displayName || node.id} requires a person to be assigned`);
+        errors.push(`Node ${(node.data as any)?.label || node.id} requires a person to be assigned`);
       }
     });
     
@@ -241,4 +274,5 @@ export const createDiagramSlice: StateCreator<
       errors
     };
   }
-});
+  };
+};

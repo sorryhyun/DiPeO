@@ -204,22 +204,21 @@ const NodeBody = React.memo(({
         return null;
       }
       
-      // Special handling for conditionType - use emojis
-      if (key === 'conditionType') {
+      // Special handling for conditionType - use only emojis
+      if (key === 'condition_type') {
         const emoji = value === 'expression' ? '📝' : 
                      value === 'detect_max_iterations' ? '🔄' : 
                      value === 'simple' ? '✓' : 
                      value === 'complex' ? '⚙️' : '🔀';
-        const displayText = value === 'detect_max_iterations' ? 'Max Iter' : String(value);
         return (
           <div key={key} className="text-sm text-black font-medium text-center">
-            <span className="text-xs text-gray-500">type:</span> {emoji} {displayText}
+            <span className="text-xs text-gray-500">type:</span> {emoji}
           </div>
         );
       }
       
       // Special handling for forgettingMode - use emojis
-      if (key === 'forgettingMode') {
+      if (key === 'forgetting_mode') {
         const emoji = value === 'keep_first' ? '📌' : 
                      value === 'keep_last' ? '📍' : 
                      value === 'summarize' ? '📄' : '❓';
@@ -311,7 +310,7 @@ export function BaseNode({
   const displayData = useMemo(() => {
     const entries = Object.entries(data).filter(([key, value]) => 
       // Filter out system keys and personId
-      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
+      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
       // Filter out blank values (null, undefined, empty string)
       value !== null && value !== undefined && value !== ''
     );

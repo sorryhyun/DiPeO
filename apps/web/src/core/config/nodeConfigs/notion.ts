@@ -6,8 +6,8 @@ import { GetApiKeysDocument } from '@/__generated__/graphql';
 type NotionFormDataType = {
   label?: string;
   operation?: string;
-  pageId?: string;
-  databaseId?: string;
+  page_id?: string;
+  database_id?: string;
   prompt?: string;
   [key: string]: unknown;
 };
@@ -37,18 +37,18 @@ export const notionConfig = createUnifiedConfig<NotionFormDataType>({
         { value: 'extract_text', label: 'Extract Text' }
       ]
     },
-    { name: 'apiKeyId', type: 'string', label: 'API Key', required: true, placeholder: 'Select API key' },
-    { name: 'pageId', type: 'string', label: 'Page ID', required: false, placeholder: 'Page ID' },
-    { name: 'blockId', type: 'string', label: 'Block ID', required: false, placeholder: 'Block ID' },
-    { name: 'databaseId', type: 'string', label: 'Database ID', required: false, placeholder: 'Database ID' }
+    { name: 'api_key_id', type: 'string', label: 'API Key', required: true, placeholder: 'Select API key' },
+    { name: 'page_id', type: 'string', label: 'Page ID', required: false, placeholder: 'Page ID' },
+    { name: 'block_id', type: 'string', label: 'Block ID', required: false, placeholder: 'Block ID' },
+    { name: 'database_id', type: 'string', label: 'Database ID', required: false, placeholder: 'Database ID' }
   ],
-  defaults: { operation: 'read_page', apiKeyId: '', pageId: '', blockId: '', databaseId: '', label: '' },
+  defaults: { operation: 'read_page', api_key_id: '', page_id: '', block_id: '', database_id: '', label: '' },
   
   // Panel configuration overrides
   panelLayout: 'single',
-  panelFieldOrder: ['label', 'operation', 'apiKeyId', 'pageId', 'blockId', 'databaseId'],
+  panelFieldOrder: ['label', 'operation', 'api_key_id', 'page_id', 'block_id', 'database_id'],
   panelFieldOverrides: {
-    apiKeyId: {
+    api_key_id: {
       type: 'select',
       options: async () => {
         try {
@@ -69,21 +69,21 @@ export const notionConfig = createUnifiedConfig<NotionFormDataType>({
       },
       placeholder: 'Select Notion API key...'
     },
-    pageId: {
+    page_id: {
       conditional: {
         field: 'operation',
         values: ['read_page', 'list_blocks', 'append_blocks', 'create_page', 'extract_text'],
         operator: 'includes'
       }
     },
-    blockId: {
+    block_id: {
       conditional: {
         field: 'operation',
         values: ['update_block'],
         operator: 'equals'
       }
     },
-    databaseId: {
+    database_id: {
       conditional: {
         field: 'operation',
         values: ['query_database'],

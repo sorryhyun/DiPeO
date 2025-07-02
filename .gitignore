@@ -32,6 +32,8 @@ apps/server/.import_linter_cache
 
 packages/domain-models/__generated__
 packages/python/dipeo_domain/src/dipeo_domain/models.py
+packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
+packages/python/dipeo_domain/src/dipeo_domain/conversions.py
 apps/cli/src/dipeo_cli/__generated__
 apps/web/src/__generated__
 

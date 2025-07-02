@@ -7,6 +7,10 @@ interface ExtendedPersonFormData extends PersonFormData {
   model?: string;
   label?: string;
   systemPrompt?: string;
+  temperature?: number;
+  'llmConfig.apiKeyId'?: string;
+  'llmConfig.model'?: string;
+  'llmConfig.systemPrompt'?: string;
 }
 
 export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
@@ -20,7 +24,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'apiKeyId',
+      name: 'llmConfig.apiKeyId',
       label: 'API Key',
       options: async () => {
         try {
@@ -28,7 +32,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'network-only'
           });
-          return data.apiKeys.map((key) => ({
+          return data.api_keys.map((key) => ({
             value: key.id,
             label: `${key.label} (${key.service})`
           }));
@@ -41,11 +45,12 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'model',
+      name: 'llmConfig.model',
       label: 'Model',
       options: async (formData: unknown) => {
         const data = formData as Record<string, unknown>;
-        if (!data.apiKeyId) {
+        const apiKeyId = data['llmConfig.apiKeyId'] as string;
+        if (!apiKeyId) {
           return [];
         }
         try {
@@ -54,7 +59,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'cache-first'
           });
-          const selectedKey = apiKeysData.apiKeys.find((k) => k.id === data.apiKeyId);
+          const selectedKey = apiKeysData.api_keys.find((k) => k.id === apiKeyId);
           if (!selectedKey) {
             return [];
           }
@@ -63,7 +68,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetAvailableModelsDocument,
             variables: {
               service: selectedKey.service,
-              apiKeyId: data.apiKeyId as string
+              apiKeyId
             }
           });
           
@@ -81,14 +86,22 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
           return [];
         }
       },
-      dependsOn: ['apiKeyId'],
+      dependsOn: ['llmConfig.apiKeyId'],
       placeholder: 'Select Model'
+    },
+    {
+      type: 'number',
+      name: 'temperature',
+      label: 'Temperature',
+      placeholder: '0.7',
+      min: 0,
+      max: 2
     }
   ],
   rightColumn: [
     {
       type: 'textarea',
-      name: 'systemPrompt',
+      name: 'llmConfig.systemPrompt',
       label: 'System Prompt',
       placeholder: 'Enter system prompt',
       rows: 4

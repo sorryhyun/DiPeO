@@ -3,14 +3,20 @@
 import strawberry
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
+from strawberry.schema.config import StrawberryConfig
 
 from .mutations import Mutation
 from .queries import Query
 from .subscriptions import Subscription
 
 # Create unified schema with direct streaming subscriptions
+# Disable auto camelCase conversion to keep snake_case field names
 unified_schema = strawberry.Schema(
-    query=Query, mutation=Mutation, subscription=Subscription, extensions=[]
+    query=Query, 
+    mutation=Mutation, 
+    subscription=Subscription, 
+    extensions=[],
+    config=StrawberryConfig(auto_camel_case=False)
 )
 
 
@@ -37,7 +43,7 @@ if __name__ == "__main__":
     import sys
 
     schema_str = unified_schema.as_str()
-    
+
     # If output path is provided as argument, write to file
     if len(sys.argv) > 1:
         output_path = sys.argv[1]

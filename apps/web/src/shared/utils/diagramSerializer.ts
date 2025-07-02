@@ -6,7 +6,7 @@
 import { HandleDirection, DataType, NodeID, ArrowID, PersonID, HandleID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { storeMapsToArrays } from '@/graphql/types';
+import { storeMapsToArrays, convertGraphQLPersonToDomain, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // The serialized diagram should match the GraphQL schema format
@@ -60,25 +60,25 @@ function cleanNodeData(node: DomainNode): DomainNode {
   // Add node-type specific required fields with defaults
   switch (nodeProps.type) {
     case 'start':
-      nodeData.customData = nodeData.customData || {};
-      nodeData.outputDataStructure = nodeData.outputDataStructure || {};
+      nodeData.custom_data = nodeData.custom_data || {};
+      nodeData.output_data_structure = nodeData.output_data_structure || {};
       break;
     case 'condition':
-      nodeData.conditionType = nodeData.conditionType || 'simple';
+      nodeData.condition_type = nodeData.condition_type || 'simple';
       break;
     case 'person_job':
-      nodeData.firstOnlyPrompt = nodeData.firstOnlyPrompt || '';
-      nodeData.maxIteration = nodeData.maxIteration || 1;
+      nodeData.first_only_prompt = nodeData.first_only_prompt || '';
+      nodeData.max_iteration = nodeData.max_iteration || 1;
       break;
     case 'endpoint':
-      nodeData.saveToFile = nodeData.saveToFile ?? false;
+      nodeData.save_to_file = nodeData.save_to_file ?? false;
       break;
     case 'db':
-      nodeData.subType = nodeData.subType || 'fixed_prompt';
+      nodeData.sub_type = nodeData.sub_type || 'fixed_prompt';
       nodeData.operation = nodeData.operation || 'read';
       break;
     case 'job':
-      nodeData.codeType = nodeData.codeType || 'python';
+      nodeData.code_type = nodeData.code_type || 'python';
       nodeData.code = nodeData.code || '';
       break;
     case 'user_response':
@@ -114,10 +114,10 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
       const handleId = `${node.id}:${handleConfig.id}`;
       handles.push({
         id: handleId as import('@dipeo/domain-models').HandleID,
-        nodeId: node.id,
+        node_id: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.INPUT,
-        dataType: DataType.ANY,
+        data_type: DataType.ANY,
         position: handleConfig.position || 'left'
       });
     });
@@ -129,10 +129,10 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
       const handleId = `${node.id}:${handleConfig.id}`;
       handles.push({
         id: handleId as import('@dipeo/domain-models').HandleID,
-        nodeId: node.id,
+        node_id: node.id,
         label: handleConfig.label || handleConfig.id,
         direction: HandleDirection.OUTPUT,
-        dataType: DataType.ANY,
+        data_type: DataType.ANY,
         position: handleConfig.position || 'right'
       });
     });
@@ -147,29 +147,19 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
 function getStoreStateWithMaps() {
   const state = useUnifiedStore.getState();
   
-  // Direct access to store properties should give us Maps
-  // But in case they're serialized, we'll ensure they're Maps
-  const ensureMap = <K, V>(value: unknown): Map<K, V> => {
-    if (value instanceof Map) {
-      return value;
-    }
-    // Handle devtools serialized format
-    if (value && typeof value === 'object' && '_type' in value && value._type === 'Map' && '_value' in value && Array.isArray(value._value)) {
-      return new Map(value._value) as Map<K, V>;
-    }
-    // If it's a plain object, try to convert it
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return new Map(Object.entries(value)) as Map<K, V>;
-    }
-    return new Map<K, V>();
+  // Convert store arrays to a diagram format
+  const graphqlDiagram = {
+    nodes: state.nodesArray || [],
+    handles: Array.from(state.handles?.values() || []),
+    arrows: state.arrowsArray || [],
+    persons: state.personsArray || []
   };
   
-  return {
-    nodes: ensureMap<NodeID, DomainNode>(state.nodes),
-    handles: ensureMap<HandleID, DomainHandle>(state.handles),
-    arrows: ensureMap<ArrowID, DomainArrow>(state.arrows),
-    persons: ensureMap<PersonID, DomainPerson>(state.persons)
-  };
+  // Convert GraphQL diagram to domain format (handles type mismatches)
+  const domainDiagram = convertGraphQLDiagramToDomain(graphqlDiagram);
+  
+  // Convert back to Maps
+  return diagramToStoreMaps(domainDiagram);
 }
 
 /**

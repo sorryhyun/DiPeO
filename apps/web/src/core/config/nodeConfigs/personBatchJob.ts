@@ -19,16 +19,16 @@ export const personBatchJobConfig = createUnifiedConfig<PersonBatchJobFormData>(
     person: '', 
     prompt: '', 
     batchSize: 10,
-    maxIteration: 1,
-    parallelProcessing: false,
-    aggregationMethod: 'concatenate',
+    max_iteration: 1,
+    parallel_processing: false,
+    aggregation_method: 'concatenate',
     batchPrompt: '',
     customAggregationPrompt: ''
   },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['labelPersonRow', 'batchSize', 'maxIteration', 'parallelProcessing', 'aggregationMethod', 'batchPrompt', 'customAggregationPrompt'],
+  panelFieldOrder: ['labelPersonRow', 'batchSize', 'max_iteration', 'parallelProcessing', 'aggregationMethod', 'batchPrompt', 'customAggregationPrompt'],
   panelFieldOverrides: {
     batchSize: {
       type: 'text',
@@ -48,7 +48,7 @@ export const personBatchJobConfig = createUnifiedConfig<PersonBatchJobFormData>(
     },
     {
       type: 'maxIteration',
-      name: 'maxIteration',
+      name: 'max_iteration',
       label: 'Max Iteration'
     },
     {

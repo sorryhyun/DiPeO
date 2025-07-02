@@ -11,9 +11,14 @@ from typing import Any
 import aiofiles
 import yaml
 from dipeo_core import BaseService, SupportsFile
+from dipeo_core.constants import (
+    CONVERSATION_LOG_DIR,
+    RESULT_DIR,
+    UPLOAD_DIR,
+    ensure_directories_exist,
+)
 from docx import Document
 
-from config import CONVERSATION_LOG_DIR, RESULT_DIR, UPLOAD_DIR
 from dipeo_server.shared.exceptions import FileOperationError, ValidationError
 
 
@@ -30,13 +35,38 @@ class FileSystemRepository(BaseService, SupportsFile):
 
     async def initialize(self) -> None:
         """Initialize the file service."""
-        # Service is already initialized in __init__
-        pass
+        # Ensure directories exist when service is initialized
+        ensure_directories_exist()
 
     def read(
+        self,
+        file_id: str,
+        person_id: str | None = None,
+        directory: str | None = None,
+    ) -> dict[str, Any]:
+        """Read file implementing SupportsFile protocol."""
+        # Map file_id to path, incorporating person_id if provided
+        if person_id and directory:
+            path = os.path.join(directory, f"person_{person_id}", file_id)
+        elif directory:
+            path = os.path.join(directory, file_id)
+        else:
+            path = file_id
+
+        # Use internal method for actual reading
+        content = self._read_internal(path, "base", "utf-8")
+
+        return {
+            "success": True,
+            "content": content,
+            "file_id": file_id,
+            "person_id": person_id,
+        }
+
+    def _read_internal(
         self, path: str, relative_to: str = "base", encoding: str = "utf-8"
     ) -> str | dict[str, Any]:
-        """Read file with automatic format detection."""
+        """Internal read method with automatic format detection."""
         file_path = self._resolve_and_validate_path(path, relative_to)
 
         if not file_path.exists():
@@ -54,6 +84,13 @@ class FileSystemRepository(BaseService, SupportsFile):
             return self._read_csv(file_path, encoding)
         else:
             return file_path.read_text(encoding=encoding)
+
+    # Backward compatibility methods for services using the old interface
+    def read_path(
+        self, path: str, relative_to: str = "base", encoding: str = "utf-8"
+    ) -> str | dict[str, Any]:
+        """Legacy read method for backward compatibility."""
+        return self._read_internal(path, relative_to, encoding)
 
     async def aread(
         self, path: str, relative_to: str = "base", encoding: str = "utf-8"
@@ -86,13 +123,42 @@ class FileSystemRepository(BaseService, SupportsFile):
 
     async def write(
         self,
+        file_id: str,
+        person_id: str | None = None,
+        directory: str | None = None,
+        content: str | None = None,
+    ) -> dict[str, Any]:
+        """Write file implementing SupportsFile protocol."""
+        # Map file_id to path, incorporating person_id if provided
+        if person_id and directory:
+            path = os.path.join(directory, f"person_{person_id}", file_id)
+        elif directory:
+            path = os.path.join(directory, file_id)
+        else:
+            path = file_id
+
+        # Use internal method for actual writing
+        if content is None:
+            content = ""
+
+        relative_path = await self._write_internal(path, content, "base", None, "utf-8")
+
+        return {
+            "success": True,
+            "file_id": file_id,
+            "person_id": person_id,
+            "path": relative_path,
+        }
+
+    async def _write_internal(
+        self,
         path: str,
         content: Any,
         relative_to: str = "",
         format: str | None = None,
         encoding: str = "utf-8",
     ) -> str:
-        """Write file with automatic format handling."""
+        """Internal write method with automatic format handling."""
         file_path = self._resolve_and_validate_path(
             path, relative_to, create_parents=True
         )
@@ -118,6 +184,18 @@ class FileSystemRepository(BaseService, SupportsFile):
             await self._write_text(file_path, content, encoding)
 
         return str(file_path.relative_to(self.base_dir))
+
+    # Backward compatibility write method
+    async def write_path(
+        self,
+        path: str,
+        content: Any,
+        relative_to: str = "",
+        format: str | None = None,
+        encoding: str = "utf-8",
+    ) -> str:
+        """Legacy write method for backward compatibility."""
+        return await self._write_internal(path, content, relative_to, format, encoding)
 
     def _resolve_and_validate_path(
         self, path: str, relative_to: str, create_parents: bool = False

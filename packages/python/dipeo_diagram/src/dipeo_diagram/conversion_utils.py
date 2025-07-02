@@ -1,51 +1,67 @@
 """Conversion utilities for diagram formats."""
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from pydantic import BaseModel, Field
 from dipeo_domain import DomainDiagram
+from dipeo_domain.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
+import json
+import yaml
+from .base import FormatStrategy
+from .shared_components import extract_common_arrows
 
-if TYPE_CHECKING:
-    from .models import BackendDiagram
+
+# Ensure models are rebuilt to resolve forward references
+DomainDiagram.model_rebuild()
 
 
-def backend_to_graphql(backend_dict: "BackendDiagram") -> DomainDiagram:
+class BackendDiagram(BaseModel):
+    """Backend representation of a diagram (dict of dicts).
+
+    This is a simple wrapper around the dict format used for storage and execution.
+    Fields are untyped dicts to avoid unnecessary conversions.
+    """
+
+    nodes: dict[str, Any] = Field(default_factory=dict)
+    arrows: dict[str, Any] = Field(default_factory=dict)
+    persons: dict[str, Any] = Field(default_factory=dict)
+    handles: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] | None = None
+
+    class Config:
+        extra = "allow"  # Allow additional fields like _execution_hints
+
+
+def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
     """Convert backend dict representation to GraphQL domain model.
 
     The backend representation uses dicts of dicts for efficient lookup.
     The GraphQL representation uses lists for easier client handling.
     """
-    # Convert dict-of-dicts to lists (if necessary)
-    def ensure_list(obj):
-        if obj is None:
-            return []
-        if isinstance(obj, dict):
-            return list(obj.values())
-        return obj
+    # Use the imported conversion function to convert maps to arrays
+    arrays_dict = diagram_maps_to_arrays(
+        nodes=backend_dict.nodes or {},
+        arrows=backend_dict.arrows or {},
+        handles=backend_dict.handles or {},
+        persons=backend_dict.persons or {},
+        api_keys=None  # Not used in BackendDiagram
+    )
 
     # Special handling for handles to ensure 'id' field exists
-    def ensure_handles_list(handles_dict):
-        if handles_dict is None:
-            return []
-        if isinstance(handles_dict, dict):
-            result = []
-            for key, value in handles_dict.items():
-                if isinstance(value, dict) and 'id' not in value:
-                    # Add the key as id if missing
-                    handle = value.copy()
-                    handle['id'] = key
-                    result.append(handle)
-                else:
-                    result.append(value)
-            return result
-        return handles_dict
+    handles_list = []
+    for handle in arrays_dict.get("handles", []):
+        if isinstance(handle, dict) and "id" not in handle:
+            # This shouldn't happen with proper domain models, but keep for safety
+            continue
+        handles_list.append(handle)
 
-    # Create a copy to avoid mutating the original
+    # Create the result dict
     result_dict = {
-        "nodes": ensure_list(backend_dict.nodes),
-        "arrows": ensure_list(backend_dict.arrows),
-        "handles": ensure_handles_list(backend_dict.handles),
-        "persons": ensure_list(backend_dict.persons),
+        "nodes": arrays_dict["nodes"],
+        "arrows": arrays_dict["arrows"],
+        "handles": handles_list,
+        "persons": arrays_dict["persons"],
         "metadata": backend_dict.metadata,
     }
 
@@ -61,34 +77,99 @@ def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, An
     The backend representation uses dicts of dicts for efficient lookup.
     The GraphQL representation uses lists for easier client handling.
     """
-
-    def list_to_dict(items, id_attr="id"):
-        if items is None:
-            return {}
-        # If already a dict, return as-is
-        if isinstance(items, Mapping):
-            return dict(items)
-        # Convert list to dict using ID
-        result = {}
-        for item in items:
-            # Handle both dict and object representations
-            if hasattr(item, "__dict__"):
-                item_dict = item.__dict__
-                item_id = getattr(item, id_attr)
-            else:
-                item_dict = item
-                item_id = item.get(id_attr)
-
-            if item_id:
-                result[item_id] = item_dict
-
-        return result
+    # Use the imported conversion function to convert arrays to maps
+    maps_dict = diagram_arrays_to_maps(
+        nodes=graphql_diagram.nodes or [],
+        arrows=graphql_diagram.arrows or [],
+        handles=graphql_diagram.handles or [],
+        persons=graphql_diagram.persons or [],
+        api_keys=None  # Not used in conversion
+    )
 
     # Build the backend dict structure
-    return {
-        "nodes": list_to_dict(graphql_diagram.nodes),
-        "arrows": list_to_dict(graphql_diagram.arrows),
-        "handles": list_to_dict(graphql_diagram.handles),
-        "persons": list_to_dict(graphql_diagram.persons),
-        "metadata": graphql_diagram.metadata.model_dump() if graphql_diagram.metadata else {},
+    result = {
+        "nodes": maps_dict["nodes"],
+        "arrows": maps_dict["arrows"],
+        "handles": maps_dict["handles"],
+        "persons": maps_dict["persons"],
+        "metadata": graphql_diagram.metadata.model_dump()
+        if graphql_diagram.metadata
+        else {},
     }
+
+    # Convert domain models to dicts for backend storage
+    for key in ["nodes", "arrows", "handles", "persons"]:
+        result[key] = {
+            k: v.model_dump() if hasattr(v, "model_dump") else v
+            for k, v in result[key].items()
+        }
+
+    return result
+
+
+#  generic helpers
+
+
+class _JsonMixin:
+    """Minimal JSON helpers."""
+
+    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
+        return json.loads(content or "{}")
+
+    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
+
+class _YamlMixin:
+    """Minimal YAML helpers."""
+
+    def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
+        return yaml.safe_load(content) or {}
+
+    def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
+        # Create a custom YAML dumper class
+        class PositionDumper(yaml.SafeDumper):
+            pass
+
+        # Custom representer for position dicts to use flow style
+        def position_representer(dumper, data):
+            if isinstance(data, dict) and set(data.keys()) == {"x", "y"}:
+                return dumper.represent_mapping(
+                    "tag:yaml.org,2002:map", data, flow_style=True
+                )
+            return dumper.represent_dict(data)
+
+        PositionDumper.add_representer(dict, position_representer)
+
+        return yaml.dump(
+            data, Dumper=PositionDumper, sort_keys=False, allow_unicode=True
+        )
+
+
+def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
+    """Map `label` → `node.id` for already‑built nodes."""
+
+    label_map = {}
+    for n in nodes:
+        # Try to get label from the node structure
+        label = n.get("label") or n.get("data", {}).get("label") or n["id"]
+        label_map[label] = n["id"]
+    return label_map
+
+
+class _BaseStrategy(FormatStrategy):
+    """Common scaffolding – subclasses only override what they need."""
+
+    # Concrete classes must define `format_id` and `format_info`.
+
+    # --- stubs that *may* be overridden ------------------------------------ #
+    def extract_arrows(
+        self, data: dict[str, Any], _nodes: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        return extract_common_arrows(data.get("arrows", []))
+
+    def detect_confidence(self, _data: dict[str, Any]) -> float:
+        return 0.5
+
+    def quick_match(self, _content: str) -> bool:  # noqa: D401 (one‑line doc)
+        return False

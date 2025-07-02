@@ -59,10 +59,10 @@ export interface TokenUsage {
 // Simplified node state tracking
 export interface NodeState {
   status: NodeExecutionStatus;
-  startedAt?: string | null;
-  endedAt?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
   error?: string | null;
-  tokenUsage?: TokenUsage | null;
+  token_usage?: TokenUsage | null;
 }
 
 // Single output format for ALL nodes
@@ -75,17 +75,17 @@ export interface NodeOutput {
 export interface ExecutionState {
   id: ExecutionID;
   status: ExecutionStatus;
-  diagramId?: DiagramID | null;
-  startedAt: string;
-  endedAt?: string | null;
+  diagram_id?: DiagramID | null;
+  started_at: string;
+  ended_at?: string | null;
   // Simplified node tracking
-  nodeStates: Record<string, NodeState>;
-  nodeOutputs: Record<string, NodeOutput>;
-  tokenUsage: TokenUsage;
+  node_states: Record<string, NodeState>;
+  node_outputs: Record<string, NodeOutput>;
+  token_usage: TokenUsage;
   error?: string | null;
   variables: Record<string, any>;
-  durationSeconds?: number | null; // Computed field
-  isActive?: boolean; // Computed field
+  duration_seconds?: number | null; // Computed field
+  is_active?: boolean; // Computed field
 }
 
 
@@ -98,14 +98,14 @@ export interface ExecutionOptions {
 }
 
 export interface InteractivePromptData {
-  nodeId: NodeID;
+  node_id: NodeID;
   prompt: string;
   timeout?: number;
-  defaultValue?: string | null;
+  default_value?: string | null;
 }
 
 export interface InteractiveResponse {
-  nodeId: NodeID;
+  node_id: NodeID;
   response: string;
   timestamp: string;
 }
@@ -118,14 +118,14 @@ export type PersonMemoryConfig = MemoryConfig;
 // Update events for real-time communication
 export interface ExecutionUpdate {
   type: EventType;
-  executionId: ExecutionID;
-  nodeId?: NodeID;
+  execution_id: ExecutionID;
+  node_id?: NodeID;
   status?: NodeExecutionStatus;
   result?: any;
   error?: string;
   timestamp?: string;
-  totalTokens?: number;
-  nodeType?: string;
+  total_tokens?: number;
+  node_type?: string;
   tokens?: number;
   data?: Record<string, any>;
 }
@@ -134,9 +134,9 @@ export interface ExecutionUpdate {
 // Node handler definition
 export interface NodeDefinition {
   type: string;
-  nodeSchema: any; // Type reference to schema class (renamed from 'schema' to avoid Pydantic conflict)
+  node_schema: any; // Type reference to schema class (renamed from 'schema' to avoid Pydantic conflict)
   handler: any; // Handler function reference
-  requiresServices?: string[];
+  requires_services?: string[];
   description?: string;
 }
 
@@ -156,15 +156,15 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
   return {
     id: executionId,
     status: ExecutionStatus.PENDING,
-    diagramId: diagramId ?? null,
-    startedAt: now,
-    endedAt: null,
-    nodeStates: {},
-    nodeOutputs: {},
-    tokenUsage: { input: 0, output: 0, cached: null, total: 0 },
+    diagram_id: diagramId ?? null,
+    started_at: now,
+    ended_at: null,
+    node_states: {},
+    node_outputs: {},
+    token_usage: { input: 0, output: 0, cached: null, total: 0 },
     error: null,
     variables: {},
-    isActive: true
+    is_active: true
   };
 }
 

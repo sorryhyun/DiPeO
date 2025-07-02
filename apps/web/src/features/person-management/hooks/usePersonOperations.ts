@@ -23,9 +23,8 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
   selectDeleteAction: (state) => (id: string) => 
     state.deletePerson(personId(id)),
   
-  // Related data selector - we need to check if API keys exist
+  // Related data selector
   selectRelated: (state) => ({
-    apiKeys: state.apiKeys,
     nodes: state.nodes
   }),
   
@@ -64,14 +63,14 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
       errors.push('Person label cannot be empty');
     }
     
-    if (updates.service !== undefined) {
+    if (updates.llm_config?.service !== undefined) {
       const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'grok', 'deepseek', 'bedrock', 'vertex'];
-      if (!validServices.includes(updates.service)) {
-        errors.push(`Invalid service: ${updates.service}`);
+      if (!validServices.includes(updates.llm_config.service)) {
+        errors.push(`Invalid service: ${updates.llm_config.service}`);
       }
     }
     
-    if (updates.model !== undefined && (!updates.model || updates.model.trim().length === 0)) {
+    if (updates.llm_config?.model !== undefined && (!updates.llm_config.model || updates.llm_config.model.trim().length === 0)) {
       errors.push('Model cannot be empty');
     }
     
@@ -154,12 +153,12 @@ export const usePersonUtils = () => {
   
   // Get persons by service
   const getByService = (service: string): DomainPerson[] => {
-    return items.filter(person => person.service === service);
+    return items.filter(person => person.llm_config?.service === service);
   };
   
   // Get persons by model
   const getByModel = (model: string): DomainPerson[] => {
-    return items.filter(person => person.model === model);
+    return items.filter(person => person.llm_config?.model === model);
   };
   
   // Find person by label
@@ -187,13 +186,13 @@ export const usePersonUtils = () => {
   
   // Get all unique models being used
   const getUniqueModels = (): string[] => {
-    const models = new Set(items.map(person => person.model));
+    const models = new Set(items.map(person => person.llm_config?.model).filter(Boolean));
     return Array.from(models);
   };
   
   // Get all unique services being used
   const getUniqueServices = (): string[] => {
-    const services = new Set(items.map(person => person.service));
+    const services = new Set(items.map(person => person.llm_config?.service).filter(Boolean));
     return Array.from(services);
   };
   

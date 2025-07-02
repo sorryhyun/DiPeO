@@ -3,14 +3,13 @@
 Generate typed GraphQL operations for the CLI from operations.graphql
 """
 
-import os
 import re
 from pathlib import Path
-from typing import List, Tuple, Dict
 
-def parse_graphql_file(file_path: Path) -> List[Tuple[str, str, str]]:
+
+def parse_graphql_file(file_path: Path) -> list[tuple[str, str, str]]:
     """Parse GraphQL operations file and extract operations."""
-    with open(file_path, 'r') as f:
+    with open(file_path) as f:
         content = f.read()
     
     operations = []
@@ -83,7 +82,7 @@ def parse_graphql_file(file_path: Path) -> List[Tuple[str, str, str]]:
     
     return operations
 
-def extract_variable_types(variables_str: str) -> Dict[str, str]:
+def extract_variable_types(variables_str: str) -> dict[str, str]:
     """Extract variable names and types from GraphQL variable declarations."""
     var_pattern = r'\$(\w+):\s*([^,)!]+)(!?)'
     variables = {}
@@ -124,7 +123,7 @@ def map_graphql_to_python_type(graphql_type: str) -> str:
     
     return type_mapping.get(graphql_type, 'Any')
 
-def generate_python_operations(operations: List[Tuple[str, str, str]]) -> str:
+def generate_python_operations(operations: list[tuple[str, str, str]]) -> str:
     """Generate Python code for GraphQL operations."""
     imports = [
         "from typing import Dict, Any, List, Optional",

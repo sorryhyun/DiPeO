@@ -1,11 +1,10 @@
 # Node Mutations
 mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
-  createNode(diagramId: $diagramId, inputData: $inputData) {
+  create_node(diagram_id: $diagramId, input_data: $inputData) {
     success
     node {
       id
       type
-      displayName
       position {
         x
         y
@@ -18,12 +17,11 @@ mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
 }
 
 mutation UpdateNode($inputData: UpdateNodeInput!) {
-  updateNode(inputData: $inputData) {
+  update_node(input_data: $inputData) {
     success
     node {
       id
       type
-      displayName
       position {
         x
         y
@@ -36,9 +34,9 @@ mutation UpdateNode($inputData: UpdateNodeInput!) {
 }
 
 mutation DeleteNode($nodeId: NodeID!) {
-  deleteNode(nodeId: $nodeId) {
+  delete_node(node_id: $nodeId) {
     success
-    deletedId
+    deleted_id
     message
     error
   }
@@ -46,7 +44,7 @@ mutation DeleteNode($nodeId: NodeID!) {
 
 # Arrow Mutations
 mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
-  createArrow(diagramId: $diagramId, data: $input) {
+  create_arrow(diagram_id: $diagramId, data: $input) {
     success
     diagram {
       arrows {
@@ -62,9 +60,9 @@ mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
 }
 
 mutation DeleteArrow($id: ArrowID!) {
-  deleteArrow(arrowId: $id) {
+  delete_arrow(arrow_id: $id) {
     success
-    deletedId
+    deleted_id
     message
     error
   }

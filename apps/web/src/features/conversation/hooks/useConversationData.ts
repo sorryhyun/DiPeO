@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useGetConversationsQuery } from '@/__generated__/graphql';
 import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/core/types/conversation';
-import type { PersonID } from '@dipeo/domain-models';
+import { type PersonID, ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -10,32 +10,36 @@ export interface UseConversationDataOptions {
   filters: ConversationFilters;
   personId?: PersonID | null;
   enableRealtimeUpdates?: boolean;
+  executionStatus?: string | null; // Pass execution status to control polling
 }
 
 export const useConversationData = (options: UseConversationDataOptions | ConversationFilters) => {
   // Support both old and new API for backward compatibility
-  const { filters, personId = null, enableRealtimeUpdates = true } = 
-    'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true };
+  const { filters, personId = null, enableRealtimeUpdates = true, executionStatus = null } = 
+    'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true, executionStatus: null };
   
   const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const lastUpdateTime = useRef<string | null>(null);
   const messageCounts = useRef<Record<string, number>>({});
 
+  // Determine if we should poll based on execution status
+  const shouldPoll = enableRealtimeUpdates && (!executionStatus || isExecutionActive(executionStatus as ExecutionStatus));
+  
   // GraphQL query with automatic loading state
   const { data, loading, error, refetch, fetchMore } = useGetConversationsQuery({
     variables: {
-      personId: personId || undefined,
-      executionId: filters.executionId || undefined,
+      person_id: personId || undefined,
+      execution_id: filters.executionId || undefined,
       search: filters.searchTerm || undefined,
-      showForgotten: filters.showForgotten || false,
+      show_forgotten: filters.showForgotten || false,
       limit: MESSAGES_PER_PAGE,
       offset: 0,
       since: filters.startTime ? new Date(filters.startTime) : undefined
     },
     skip: false,
-    // Poll for updates every 5 seconds when realtime updates are enabled
-    pollInterval: enableRealtimeUpdates ? 5000 : 0,
+    // Poll for updates only when realtime updates are enabled AND execution is active
+    pollInterval: shouldPoll ? 5000 : 0,
     // Error handling
     onError: (error) => {
       console.error('Failed to fetch conversation data:', error);
@@ -119,10 +123,10 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   // Refresh data for a specific person or all
   const refresh = useCallback((personId?: PersonID) => {
     return refetch({
-      personId: personId || undefined,
-      executionId: filters.executionId || undefined,
+      person_id: personId || undefined,
+      execution_id: filters.executionId || undefined,
       search: filters.searchTerm || undefined,
-      showForgotten: filters.showForgotten || false,
+      show_forgotten: filters.showForgotten || false,
       limit: MESSAGES_PER_PAGE,
       offset: 0,
       since: filters.startTime ? new Date(filters.startTime) : undefined

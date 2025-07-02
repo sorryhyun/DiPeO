@@ -29,14 +29,20 @@ class StateStoreObserver(ExecutionObserver):
     async def on_node_complete(
         self, execution_id: str, node_id: str, output: NodeOutput
     ):
+        # Update node status
         await self.state_store.update_node_status(
-            execution_id, node_id, NodeExecutionStatus.COMPLETED, output
+            execution_id, node_id, NodeExecutionStatus.COMPLETED
         )
 
-        # Update token usage if present
-        if output.metadata and "tokenUsage" in output.metadata:
-            tokens = TokenUsage(**output.metadata["tokenUsage"])
-            await self.state_store.add_token_usage(execution_id, tokens)
+        # Store the output separately
+        token_usage = None
+        if output.metadata:
+            if "token_usage" in output.metadata:
+                token_usage = TokenUsage(**output.metadata["token_usage"])
+
+        await self.state_store.update_node_output(
+            execution_id, node_id, output, token_usage=token_usage
+        )
 
     async def on_node_error(self, execution_id: str, node_id: str, error: str):
         await self.state_store.update_node_status(
@@ -45,6 +51,10 @@ class StateStoreObserver(ExecutionObserver):
 
     async def on_execution_complete(self, execution_id: str):
         await self.state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
+        # Small delay to ensure state is fully persisted
+        import asyncio
+
+        await asyncio.sleep(0.1)
 
     async def on_execution_error(self, execution_id: str, error: str):
         await self.state_store.update_status(

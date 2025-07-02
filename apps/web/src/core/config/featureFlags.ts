@@ -12,6 +12,6 @@ export function shouldUseGraphQL(): boolean {
     }
   }
 
-  // Default to false for now (will change to true after migration)
+  // Default to false
   return false;
 }

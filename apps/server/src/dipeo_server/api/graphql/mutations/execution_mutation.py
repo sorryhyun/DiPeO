@@ -7,11 +7,7 @@ from datetime import UTC, datetime
 
 import strawberry
 from dipeo_domain import (
-    DiagramID,
-    ExecutionID,
-    ExecutionState,
     ExecutionStatus,
-    TokenUsage,
 )
 
 from ..context import GraphQLContext
@@ -38,8 +34,10 @@ class ExecutionMutations:
             state_store = context.state_store
 
             if data.diagram_data:
+                # The execution service will validate as DomainDiagram which expects lists
+                # If the data is in backend format (dict of dicts), it needs to stay as dict
+                # because the execution service handles the conversion internally
                 diagram_data = data.diagram_data
-                # The execution service expects dict format, so we don't need to convert
             elif data.diagram_id:
                 # Use new services
                 storage_service = context.diagram_storage_service
@@ -60,7 +58,9 @@ class ExecutionMutations:
             }
 
             diagram_id = data.diagram_id if data.diagram_id else None
-            await state_store.create_execution(execution_id, diagram_id, options)
+            execution = await state_store.create_execution(
+                execution_id, diagram_id, data.variables
+            )
 
             # Start the actual execution asynchronously
             async def run_execution():
@@ -73,6 +73,7 @@ class ExecutionMutations:
                         pass
                 except Exception as ex:
                     import traceback
+
                     logger.error(f"Execution failed for {execution_id}: {ex}")
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     await state_store.update_status(
@@ -82,23 +83,9 @@ class ExecutionMutations:
             # Launch execution in background
             asyncio.create_task(run_execution())
 
-            # Execution starts asynchronously; client monitors via subscriptions
-            execution = ExecutionState(
-                id=ExecutionID(execution_id),
-                status=ExecutionStatus.PENDING,
-                diagramId=DiagramID(diagram_id) if diagram_id else None,
-                startedAt=datetime.now(UTC).isoformat(),
-                endedAt=None,
-                nodeStates={},
-                nodeOutputs={},
-                tokenUsage=TokenUsage(input=0, output=0, cached=None, total=0),
-                error=None,
-                variables={},
-            )
-
             return ExecutionResult(
                 success=True,
-                execution=execution,
+                execution=execution,  # Use the domain model directly, Strawberry will convert it
                 execution_id=execution_id,
                 message=f"Started execution {execution_id}",
             )
@@ -163,13 +150,9 @@ class ExecutionMutations:
 
             updated_state = await state_store.get_state(data.execution_id)
 
-            execution_state = ExecutionMutations._create_execution_state(
-                data.execution_id, updated_state
-            )
-
             return ExecutionResult(
                 success=True,
-                execution=execution_state,
+                execution=updated_state,
                 message=f"Execution control '{data.action}' sent successfully",
             )
 
@@ -222,13 +205,9 @@ class ExecutionMutations:
 
             updated_state = await state_store.get_state(data.execution_id)
 
-            execution = ExecutionMutations._create_execution_state(
-                data.execution_id, updated_state
-            )
-
             return ExecutionResult(
                 success=True,
-                execution=execution,
+                execution=updated_state,
                 message=f"Interactive response submitted for node {data.node_id}",
             )
 
@@ -240,22 +219,6 @@ class ExecutionMutations:
             return ExecutionResult(
                 success=False, error=f"Failed to submit interactive response: {e!s}"
             )
-
-    @staticmethod
-    def _create_execution_state(execution_id: str, state) -> ExecutionState:
-        return ExecutionState(
-            id=ExecutionID(execution_id),
-            status=state.status,
-            diagramId=state.diagram_id,
-            startedAt=state.started_at,
-            endedAt=state.ended_at,
-            nodeStates=state.node_states,
-            nodeOutputs=state.node_outputs,
-            tokenUsage=state.token_usage
-            or TokenUsage(input=0, output=0, cached=None, total=0),
-            error=state.error,
-            variables=state.variables,
-        )
 
 
 def _map_status(status: str) -> ExecutionStatus:

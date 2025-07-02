@@ -32,7 +32,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute condition node."""
-        if props.conditionType != "detect_max_iterations":
+        if props.condition_type != "detect_max_iterations":
             return create_node_output({"False": None}, {"condition_result": False})
 
         # Get diagram to check upstream nodes
@@ -48,20 +48,21 @@ class ConditionNodeHandler(BaseNodeHandler):
                 src_node = next((n for n in diagram.nodes if n.id == src_node_id), None)
                 if src_node and src_node.type == "person_job":
                     exec_count = context.get_node_execution_count(src_node_id)
-                    max_iter = int((src_node.data or {}).get("maxIteration", 1))
+                    max_iter = int((src_node.data or {}).get("max_iteration", 1))
                     if exec_count < max_iter:
                         result = False
                         break
 
-        # Forward inputs directly
-        value: dict[str, Any] = {**inputs}
-
-        if "default" not in value and inputs:
-            if "conversation" in inputs:
-                value["default"] = inputs["conversation"]
-            else:
-                first_key = next(iter(inputs.keys()), None)
-                if first_key:
-                    value["default"] = inputs[first_key]
-
-        return create_node_output(value, {"condition_result": result})
+        # Output data to the appropriate branch based on condition result
+        # The execution engine expects outputs keyed by branch name
+        # We need to pass through all inputs, including conversation data
+        if result:
+            # When condition is True, output goes to "True" branch
+            # Pass through all inputs as a single value
+            output_value = {"True": inputs if inputs else {}, "False": None}
+        else:
+            # When condition is False, output goes to "False" branch
+            # Pass through all inputs as a single value
+            output_value = {"False": inputs if inputs else {}, "True": None}
+        
+        return create_node_output(output_value, {"condition_result": result})

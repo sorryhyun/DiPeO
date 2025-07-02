@@ -7,6 +7,7 @@ while maintaining type safety.
 
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncIterator,
     Callable,
@@ -16,6 +17,9 @@ from typing import (
     Protocol,
     runtime_checkable,
 )
+
+if TYPE_CHECKING:
+    from dipeo_domain import ChatResult
 
 
 @runtime_checkable
@@ -94,25 +98,21 @@ class SupportsFile(Protocol):
 
 @runtime_checkable
 class SupportsLLM(Protocol):
-    """Protocol for LLM operations."""
+    """Protocol for raw LLM operations - provider adapter interface."""
+
+    async def complete(
+        self,
+        messages: List[Dict[str, str]],  # Standard format
+        model: str,
+        api_key_id: str,
+        **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
+    ) -> "ChatResult": ...
+
+    async def get_available_models(self, api_key_id: str) -> List[str]: ...
 
     def get_token_counts(
         self, client_name: str, usage: Any
     ) -> Any: ...  # Returns TokenUsage
-    async def call_llm(
-        self,
-        service: Optional[str],
-        api_key_id: str,
-        model: str,
-        messages: Any,
-        system_prompt: str = "",
-    ) -> Dict[str, Any]: ...
-    def pre_initialize_model(
-        self, service: str, model: str, api_key_id: str
-    ) -> bool: ...
-    async def get_available_models(
-        self, service: str, api_key_id: str
-    ) -> List[str]: ...
 
 
 @runtime_checkable

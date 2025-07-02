@@ -51,7 +51,7 @@ class DiagramStorageDomainService:
                 "diagram_id": saved_id,
                 "source_id": source_id,
                 "name": new_name,
-                "created_at": cloned_diagram.metadata.createdAt,
+                "created_at": cloned_diagram.metadata.created_at,
             }
 
         except Exception as e:
@@ -80,7 +80,7 @@ class DiagramStorageDomainService:
                         {
                             "id": diagram.metadata.id,
                             "name": diagram.metadata.name,
-                            "format": file_info.get("format", DiagramFormat.NATIVE),
+                            "format": file_info.get("format", DiagramFormat.native),
                             "nodes": len(diagram.nodes),
                             "arrows": len(diagram.arrows),
                         }

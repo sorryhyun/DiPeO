@@ -188,8 +188,8 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                     logger.info(
                         f"Replaced invalid API key {api_key_id} with {fallback['id']}"
                     )
-                    if "apiKeyId" in person:
-                        person["apiKeyId"] = fallback["id"]
+                    if "api_key_id" in person:
+                        person["api_key_id"] = fallback["id"]
                     else:
                         person["api_key_id"] = fallback["id"]
                 else:

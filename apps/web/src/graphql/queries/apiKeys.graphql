@@ -1,35 +1,35 @@
 # API Key Queries
 query GetApiKeys($service: String) {
-  apiKeys(service: $service) {
+  api_keys(service: $service) {
     id
     label
     service
-    maskedKey
+    masked_key
   }
 }
 
 query GetApiKey($id: ApiKeyID!) {
-  apiKey(id: $id) {
+  api_key(id: $id) {
     id
     label
     service
-    maskedKey
+    masked_key
   }
 }
 
 query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
-  availableModels(service: $service, apiKeyId: $apiKeyId)
+  available_models(service: $service, api_key_id: $apiKeyId)
 }
 
 # API Key Mutations
 mutation CreateApiKey($input: CreateApiKeyInput!) {
-  createApiKey(input: $input) {
+  create_api_key(input: $input) {
     success
-    apiKey {
+    api_key {
       id
       label
       service
-      maskedKey
+      masked_key
     }
     message
     error
@@ -37,7 +37,7 @@ mutation CreateApiKey($input: CreateApiKeyInput!) {
 }
 
 mutation TestApiKey($id: ApiKeyID!) {
-  testApiKey(id: $id) {
+  test_api_key(id: $id) {
     success
     message
     error
@@ -45,7 +45,7 @@ mutation TestApiKey($id: ApiKeyID!) {
 }
 
 mutation DeleteApiKey($id: ApiKeyID!) {
-  deleteApiKey(id: $id) {
+  delete_api_key(id: $id) {
     success
     message
   }

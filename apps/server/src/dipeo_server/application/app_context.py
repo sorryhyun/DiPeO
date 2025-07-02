@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from dipeo_container.app_context_adapter import AppContextAdapter
+from fastapi import FastAPI
 
 from .container import ServerContainer, init_server_resources, shutdown_server_resources
-from fastapi import FastAPI
 
 if TYPE_CHECKING:
     from dipeo_core import (
@@ -19,16 +19,16 @@ if TYPE_CHECKING:
         SupportsMemory,
         SupportsNotion,
     )
-    from dipeo_infra import APIIntegrationDomainService
-
     from dipeo_domain.domains.diagram.services import (
         DiagramStorageAdapter,
     )
     from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
+    from dipeo_domain.domains.api import APIIntegrationDomainService
     from dipeo_domain.domains.file import FileOperationsDomainService
     from dipeo_domain.domains.text import TextProcessingDomainService
-    from dipeo_server.infra.messaging import MessageRouter
-    from dipeo_server.infra.persistence import StateStore
+    from dipeo_infra import MessageRouter
+
+    from dipeo_server.infra.persistence.state_registry import StateRegistry
 
 
 # Global container instance
@@ -41,7 +41,9 @@ _app_context: AppContextAdapter | None = None
 def get_container() -> ServerContainer:
     """Get the global DI container instance."""
     if _container is None:
-        raise RuntimeError("Container not initialized. Call initialize_container() first.")
+        raise RuntimeError(
+            "Container not initialized. Call initialize_container() first."
+        )
     return _container
 
 
@@ -55,13 +57,15 @@ def initialize_container() -> ServerContainer:
         # as we're using factory functions that handle env vars directly
 
         # Wire the container to necessary modules
-        _container.wire(modules=[
-            "dipeo_server.api.graphql.queries",
-            "dipeo_server.api.graphql.mutations",
-            "dipeo_server.api.graphql.subscriptions",
-            "dipeo_server.api.graphql.resolvers",
-            "dipeo_domain.domains.execution.services",
-        ])
+        _container.wire(
+            modules=[
+                "dipeo_server.api.graphql.queries",
+                "dipeo_server.api.graphql.mutations",
+                "dipeo_server.api.graphql.subscriptions",
+                "dipeo_server.api.graphql.resolvers",
+                "dipeo_domain.domains.execution.services",
+            ]
+        )
 
         # Create app context adapter
         _app_context = AppContextAdapter(_container)
@@ -143,7 +147,7 @@ class AppContext:
         return self._adapter.file_operations_service
 
     @property
-    def state_store(self) -> "StateStore":
+    def state_store(self) -> "StateRegistry":
         return self._adapter.state_store
 
     @property

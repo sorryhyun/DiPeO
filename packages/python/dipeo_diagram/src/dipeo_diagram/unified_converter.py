@@ -12,20 +12,20 @@ from dipeo_domain import (
     HandleDirection,
 )
 
+# Ensure models are rebuilt to resolve forward references
+DomainDiagram.model_rebuild()
+
 from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import backend_to_graphql
-from .models import BackendDiagram
+from .conversion_utils import backend_to_graphql, BackendDiagram
+from dipeo_domain.conversions import node_kind_to_domain_type
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
-    NodeTypeMapper,
     PositionCalculator,
 )
-from .strategies import (
-    LightYamlStrategy,
-    NativeJsonStrategy,
-    ReadableYamlStrategy,
-)
+from .native_strategy import NativeJsonStrategy
+from .light_strategy import LightYamlStrategy
+from .readable_strategy import ReadableYamlStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         self.strategies: dict[str, FormatStrategy] = {}
         self.handle_generator = HandleGenerator()
         self.position_calculator = PositionCalculator()
-        self.node_mapper = NodeTypeMapper()
         self.arrow_builder = ArrowBuilder()
 
         self._register_default_strategies()
@@ -117,21 +116,53 @@ class UnifiedDiagramConverter(DiagramConverter):
             if fmt == "light":
                 persons_dict = {}
                 for person_id, person_config in persons_data.items():
+                    # Transform flat structure to nested llmConfig structure
+                    llm_config = {
+                        "service": person_config.get("service", "openai"),
+                        "model": person_config.get("model", "gpt-4-mini"),
+                        "api_key_id": person_config.get("api_key_id", "default"),
+                    }
+                    if "system_prompt" in person_config:
+                        llm_config["system_prompt"] = person_config["system_prompt"]
+                    
                     # Add required fields for DomainPerson
                     person_dict = {
                         "id": person_id,
-                        "label": person_id,
+                        "label": person_config.get("label", person_id),
                         "type": "person",
-                        **person_config,
+                        "llm_config": llm_config,
                     }
                     persons_dict[person_id] = person_dict
             else:
                 persons_dict = persons_data
         elif isinstance(persons_data, list):
-            persons_dict = {
-                person.get("id", f"person_{i}"): person
-                for i, person in enumerate(persons_data)
-            }
+            # For readable format, persons are a list of dicts with person name as key
+            if fmt == "readable":
+                persons_dict = {}
+                for person_item in persons_data:
+                    if isinstance(person_item, dict):
+                        # Each item should have one key (the person name)
+                        for person_name, person_config in person_item.items():
+                            llm_config = {
+                                "service": person_config.get("service", "openai"),
+                                "model": person_config.get("model", "gpt-4-mini"),
+                                "api_key_id": person_config.get("api_key_id", "default"),
+                                "system_prompt": person_config.get("system_prompt"),
+                            }
+                            
+                            # Add required fields for DomainPerson
+                            person_dict = {
+                                "id": person_name,
+                                "label": person_name,
+                                "type": "person",
+                                "llm_config": llm_config,
+                            }
+                            persons_dict[person_name] = person_dict
+            else:
+                persons_dict = {
+                    person.get("id", f"person_{i}"): person
+                    for i, person in enumerate(persons_data)
+                }
         else:
             persons_dict = {}
 
@@ -161,7 +192,11 @@ class UnifiedDiagramConverter(DiagramConverter):
         for node_id, node in nodes_dict.items():
             # Check if this node has any handles already
             node_has_handles = any(
-                (handle.get("nodeId") == node_id if isinstance(handle, dict) else handle.nodeId == node_id)
+                (
+                    handle.get("nodeId") == node_id
+                    if isinstance(handle, dict)
+                    else handle.node_id == node_id
+                )
                 for handle in handles_dict.values()
             )
             if not node_has_handles:
@@ -179,10 +214,10 @@ class UnifiedDiagramConverter(DiagramConverter):
                     # Create output handle
                     diagram_dict.handles[handle_id] = DomainHandle(
                         id=handle_id,
-                        nodeId=node_id,
+                        node_id=node_id,
                         label=handle_name,
                         direction=HandleDirection.output,
-                        dataType=DataType.any,
+                        data_type=DataType.any,
                         position="right",
                     )
 
@@ -194,10 +229,10 @@ class UnifiedDiagramConverter(DiagramConverter):
                     # Create input handle
                     diagram_dict.handles[handle_id] = DomainHandle(
                         id=handle_id,
-                        nodeId=node_id,
+                        node_id=node_id,
                         label=handle_name,
                         direction=HandleDirection.input,
-                        dataType=DataType.any,
+                        data_type=DataType.any,
                         position="left",
                     )
 
@@ -206,7 +241,14 @@ class UnifiedDiagramConverter(DiagramConverter):
     def _create_node(self, node_data: dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""
         node_id = node_data.get("id", f"node_{index}")
-        node_type = node_data.get("type", "unknown")
+        node_type_str = node_data.get("type", "job")
+
+        # Convert node type string to domain enum
+        try:
+            node_type = node_kind_to_domain_type(node_type_str)
+        except ValueError:
+            logger.warning(f"Unknown node type '{node_type_str}', defaulting to 'job'")
+            node_type = node_kind_to_domain_type("job")
 
         position = node_data.get("position")
         if not position:
@@ -232,8 +274,17 @@ class UnifiedDiagramConverter(DiagramConverter):
             "id", self.arrow_builder.create_arrow_id(source, target)
         )
 
+        # Extract contentType and label from arrow_data (they may be at the top level, not in data)
+        content_type = arrow_data.get("content_type")
+        label = arrow_data.get("label")
+
         return DomainArrow(
-            id=arrow_id, source=source, target=target, data=arrow_data.get("data")
+            id=arrow_id, 
+            source=source, 
+            target=target, 
+            content_type=content_type,
+            label=label,
+            data=arrow_data.get("data")
         )
 
     def validate(
@@ -273,7 +324,8 @@ class UnifiedDiagramConverter(DiagramConverter):
 
     def detect_format_confidence(self, content: str) -> float:
         format_id = self.detect_format(content)
-        if format_id: return 1.0
+        if format_id:
+            return 1.0
         return 0.0
 
     def get_supported_formats(self) -> list[dict[str, str]]:
@@ -295,3 +347,21 @@ class UnifiedDiagramConverter(DiagramConverter):
             for format_id, strategy in self.strategies.items()
             if strategy.format_info.get("supports_import", True)
         ]
+
+    def convert(self, content: str, from_format: str, to_format: str) -> str:
+        """Convert content from one format to another."""
+        diagram = self.deserialize(content, from_format)
+        return self.serialize(diagram, to_format)
+
+    def get(self, format_id: str) -> FormatStrategy:
+        """Get strategy for the specified format (alias for get_strategy)."""
+        return self.get_strategy(format_id)
+
+    def get_info(self, format_id: str) -> dict[str, str]:
+        """Get format information for the specified format."""
+        strategy = self.get_strategy(format_id)
+        return strategy.format_info
+
+
+# Create a singleton instance to act as the registry
+converter_registry = UnifiedDiagramConverter()

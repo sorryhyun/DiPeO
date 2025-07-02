@@ -1,14 +1,13 @@
 """Simplified server execution service using the shared engine."""
 
 import asyncio
-from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo_core import BaseService, SupportsExecution
-from dipeo_diagram import backend_to_graphql
-from dipeo_application import ExecutionEngine
+from dipeo_application import EngineFactory
 
-from ..observers import StateStoreObserver, StreamingObserver
+from ..observers import StreamingObserver
 
 if TYPE_CHECKING:
     from dipeo_domain.domains.ports import MessageRouterPort, StateStorePort
@@ -31,51 +30,54 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         self.state_store = state_store
         self.message_router = message_router
         self.diagram_storage_service = diagram_storage_service
-        self._streaming_observer = StreamingObserver(message_router)
 
     async def initialize(self):
         """Initialize the service."""
         # Import handlers to register them
         from dipeo_application import handlers  # noqa: F401
 
-    async def execute_diagram(
+    async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: dict | str,
-        options: dict,
+        diagram: Dict[str, Any],
+        options: Dict[str, Any],
         execution_id: str,
-        interactive_handler=None,
-    ) -> AsyncIterator[dict]:
+        interactive_handler: Optional[Callable] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
         """Execute diagram with streaming updates."""
 
-        # Load diagram if ID provided
-        if isinstance(diagram, str):
-            diagram_data = await self.diagram_storage_service.read_file(
-                f"{diagram}.json"
-            )
-            diagram_obj = backend_to_graphql(diagram_data)
-        else:
-            from dipeo_domain.models import DomainDiagram
+        from dipeo_domain.models import DomainDiagram
+        from dipeo_diagram import BackendDiagram, backend_to_graphql
 
+        # Check if diagram is in backend format (dict of dicts) or domain format (lists)
+        if isinstance(diagram.get("nodes"), dict):
+            # Convert from backend format to domain format
+            backend_diagram = BackendDiagram(**diagram)
+            diagram_obj = backend_to_graphql(backend_diagram)
+        else:
+            # Already in domain format, validate directly
             diagram_obj = DomainDiagram.model_validate(diagram)
 
-        # Create observers
-        observers = [
-            StateStoreObserver(self.state_store),
-            self._streaming_observer,
-        ]
+        # Create streaming observer for this execution
+        streaming_observer = StreamingObserver(self.message_router)
 
-        # Create engine
-        engine = ExecutionEngine(
+        # Create engine with factory
+        engine = EngineFactory.create_engine(
             service_registry=self.service_registry,
-            observers=observers,
+            state_store=self.state_store,
+            message_router=self.message_router,
+            custom_observers=[streaming_observer],
         )
 
         # Subscribe to streaming updates
-        update_queue = await self._streaming_observer.subscribe(execution_id)
+        update_queue = await streaming_observer.subscribe(execution_id)
 
         # Start execution in background
         async def run_execution():
             try:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.debug("Starting engine execution")
                 async for _ in engine.execute(
                     diagram_obj,
                     execution_id,
@@ -83,7 +85,12 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
                     interactive_handler,
                 ):
                     pass  # Engine uses observers for updates
+                logger.debug("Engine execution completed")
             except Exception as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Engine execution failed: {e}", exc_info=True)
                 await update_queue.put(
                     {
                         "type": "execution_error",

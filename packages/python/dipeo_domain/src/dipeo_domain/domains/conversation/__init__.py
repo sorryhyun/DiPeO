@@ -1,11 +1,8 @@
 # Barrel exports for conversation domain
-from .models import ExecutionMessage as Message, PersonConversation
-from .domain_service import ConversationDomainService
-from .service import ConversationMemoryDomainService
+from .simple_service import ConversationMemoryService
+from .aggregation_service import ConversationAggregationService
 
 __all__ = [
-    "ConversationDomainService",
-    "ConversationMemoryDomainService",
-    "Message",
-    "PersonConversation",
+    "ConversationMemoryService",
+    "ConversationAggregationService",
 ]

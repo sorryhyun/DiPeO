@@ -10,7 +10,7 @@ import { ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import {type ReactDiagram, diagramId, executionId } from '@/core/types';
+import {type DomainDiagramType, diagramId, executionId } from '@/core/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types';
 import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
@@ -41,7 +41,7 @@ export interface UseExecutionReturn {
   duration: string;
   
   // Execution Actions
-  execute: (diagram?: ReactDiagram, options?: ExecutionOptions) => Promise<void>;
+  execute: (diagram?: DomainDiagramType, options?: ExecutionOptions) => Promise<void>;
   abort: () => void;
   
   // Node Actions
@@ -118,7 +118,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   });
 
   // Main Actions
-  const execute = useCallback(async (diagram?: ReactDiagram, options?: ExecutionOptions) => {
+  const execute = useCallback(async (diagram?: DomainDiagramType, options?: ExecutionOptions) => {
     resetState();
     
     try {
@@ -134,24 +134,24 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       const result = await graphql.executeDiagram({
         variables: {
           data: {
-            diagramData,
-            diagramId: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
+            diagram_data: diagramData,
+            diagram_id: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
             variables: (options as ExecutionOptions & { variables?: Record<string, unknown> })?.variables || {},
-            debugMode: options?.debug || false,
-            timeout: (options as ExecutionOptions & { timeout?: number })?.timeout,
-            maxIterations: (options as ExecutionOptions & { maxIterations?: number })?.maxIterations
+            debug_mode: options?.debug || false,
+            timeout_seconds: (options as ExecutionOptions & { timeout?: number })?.timeout,
+            max_iterations: (options as ExecutionOptions & { maxIterations?: number })?.maxIterations
           }
         }
       });
       
-      if (result.data?.executeDiagram.success && result.data.executeDiagram.execution?.id) {
-        const execId = result.data.executeDiagram.execution.id;
+      if (result.data?.execute_diagram?.success && result.data.execute_diagram.execution?.id) {
+        const execId = result.data.execute_diagram.execution.id;
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(execId, totalNodes, formatDuration);
         executionActions.startExecution(execId);
-        onUpdate?.({ type: EventType.EXECUTION_STARTED, executionId: executionId(execId), timestamp: new Date().toISOString() });
+        onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, execution_id: executionId(execId), timestamp: new Date().toISOString() });
       } else {
-        throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
+        throw new Error(result.data?.execute_diagram?.error || 'Failed to start execution');
       }
     } catch (error) {
       const errorMessage = error instanceof ApolloError ? error.message : 'Failed to execute diagram';

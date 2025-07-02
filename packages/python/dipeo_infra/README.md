@@ -21,12 +21,12 @@ pip install -e .
 ## Usage
 
 ```python
-from dipeo_infra import SimpleConversationService, SimpleFileService, SimpleMemoryService
+from dipeo_infra import ConversationService, FileService, MemoryService
 
 # Create services
-memory_service = SimpleMemoryService()
-file_service = SimpleFileService()
-conversation_service = SimpleConversationService(
+memory_service = emoryService()
+file_service = FileService()
+conversation_service = ConversationService(
     llm_service=your_llm_service,
     memory_service=memory_service
 )

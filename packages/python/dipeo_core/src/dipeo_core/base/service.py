@@ -34,10 +34,10 @@ class BaseService(ABC):
     ) -> Path:
         """Validate file path for security."""
         rel_path = Path(file_path)
-        
+
         if allowed_base is None:
             return rel_path.resolve()
-            
+
         full_path = (allowed_base / rel_path).resolve()
         try:
             full_path.relative_to(allowed_base)

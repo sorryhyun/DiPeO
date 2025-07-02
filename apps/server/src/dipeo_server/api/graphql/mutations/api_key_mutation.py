@@ -38,11 +38,13 @@ class ApiKeyMutations:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=input.service,
-                maskedKey=f"{input.service.value}-****",
+                key=input.key,  # Use the actual key, not masked_key
             )
 
             return ApiKeyResult(
-                success=True, api_key=api_key, message=f"Created API key {api_key.id}"
+                success=True,
+                api_key=api_key,
+                message=f"Created API key {api_key.id}",
             )
 
         except ValueError as e:

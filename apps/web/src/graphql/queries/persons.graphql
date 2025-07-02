@@ -3,11 +3,13 @@ query GetPerson($id: PersonID!) {
   person(id: $id) {
     id
     label
-    service
-    model
-    apiKeyId
-    systemPrompt
-    maskedApiKey
+    llm_config {
+      service
+      model
+      api_key_id
+      system_prompt
+    }
+    masked_api_key
     type
   }
 }
@@ -16,27 +18,31 @@ query GetPersons($limit: Int = 100) {
   persons(limit: $limit) {
     id
     label
-    service
-    model
-    apiKeyId
-    systemPrompt
-    maskedApiKey
+    llm_config {
+      service
+      model
+      api_key_id
+      system_prompt
+    }
+    masked_api_key
     type
   }
 }
 
 # Person Mutations
 mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) {
-  createPerson(diagramId: $diagramId, personInput: $personInput) {
+  create_person(diagram_id: $diagramId, person_input: $personInput) {
     success
     person {
       id
       label
-      service
-      model
-      apiKeyId
-      systemPrompt
-      maskedApiKey
+      llm_config {
+        service
+        model
+        api_key_id
+        system_prompt
+      }
+      masked_api_key
       type
     }
     message
@@ -45,16 +51,18 @@ mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) 
 }
 
 mutation UpdatePerson($personInput: UpdatePersonInput!) {
-  updatePerson(personInput: $personInput) {
+  update_person(person_input: $personInput) {
     success
     person {
       id
       label
-      service
-      model
-      apiKeyId
-      systemPrompt
-      maskedApiKey
+      llm_config {
+        service
+        model
+        api_key_id
+        system_prompt
+      }
+      masked_api_key
       type
     }
     message
@@ -63,25 +71,27 @@ mutation UpdatePerson($personInput: UpdatePersonInput!) {
 }
 
 mutation DeletePerson($personId: PersonID!) {
-  deletePerson(personId: $personId) {
+  delete_person(person_id: $personId) {
     success
-    deletedId
+    deleted_id
     message
     error
   }
 }
 
 mutation InitializeModel($personId: PersonID!) {
-  initializeModel(personId: $personId) {
+  initialize_model(person_id: $personId) {
     success
     person {
       id
       label
-      service
-      model
-      apiKeyId
-      systemPrompt
-      maskedApiKey
+      llm_config {
+        service
+        model
+        api_key_id
+        system_prompt
+      }
+      masked_api_key
       type
     }
     message

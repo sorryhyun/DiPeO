@@ -1,21 +1,21 @@
 # Execution Operations
 
 mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
-    executeDiagram(data: $data) {
+    execute_diagram(data: $data) {
         success
         execution {
             id
             status
-            diagramId
-            startedAt
+            diagram_id
+            started_at
         }
         message
         error
     }
 }
 
-mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $includeMetadata: Boolean!) {
-    convertDiagram(content: $content, format: $format, includeMetadata: $includeMetadata) {
+mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat!, $includeMetadata: Boolean!) {
+    convert_diagram(content: $content, target_format: $targetFormat, include_metadata: $includeMetadata) {
         success
         message
         error
@@ -26,7 +26,7 @@ mutation ConvertDiagram($content: JSONScalar!, $format: DiagramFormat!, $include
 }
 
 mutation ControlExecution($data: ExecutionControlInput!) {
-    controlExecution(data: $data) {
+    control_execution(data: $data) {
         success
         execution {
             id
@@ -38,59 +38,58 @@ mutation ControlExecution($data: ExecutionControlInput!) {
 }
 
 mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
-    submitInteractiveResponse(data: $data) {
+    submit_interactive_response(data: $data) {
         success
         execution {
             id
             status
-            runningNodes
         }
         message
         error
     }
 }
 
-subscription ExecutionUpdates($executionId: ExecutionID!) {
-    executionUpdates(executionId: $executionId) {
+subscription ExecutionUpdates($execution_id: ExecutionID!) {
+    execution_updates(execution_id: $execution_id) {
         id
         status
-        diagramId
-        startedAt
-        endedAt
-        nodeStates
-        nodeOutputs
+        diagram_id
+        started_at
+        ended_at
+        node_states
+        node_outputs
         variables
-        tokenUsage {
+        token_usage {
             input
             output
             total
         }
         error
-        isActive
-        durationSeconds
+        is_active
+        duration_seconds
     }
 }
 
-subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
-    nodeUpdates(executionId: $executionId, nodeTypes: $nodeTypes) {
-        executionId
-        nodeId
-        nodeType
+subscription NodeUpdates($execution_id: ExecutionID!, $node_types: [NodeType!]) {
+    node_updates(execution_id: $execution_id, node_types: $node_types) {
+        execution_id
+        node_id
+        node_type
         status
         progress
         output
         error
-        tokensUsed
+        tokens_used
         timestamp
     }
 }
 
-subscription InteractivePrompts($executionId: ExecutionID!) {
-    interactivePrompts(executionId: $executionId) {
-        executionId
-        nodeId
+subscription InteractivePrompts($execution_id: ExecutionID!) {
+    interactive_prompts(execution_id: $execution_id) {
+        execution_id
+        node_id
         prompt
-        timeoutSeconds
+        timeout_seconds
         timestamp
     }
 }

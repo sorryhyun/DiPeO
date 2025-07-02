@@ -1,9 +1,8 @@
 """Server-specific dependency injection container."""
 
-import os
 from pathlib import Path
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
 from dipeo_container import Container as BaseContainer
 from dipeo_core import (
     SupportsAPIKey,
@@ -13,44 +12,41 @@ from dipeo_core import (
     SupportsMemory,
     SupportsNotion,
 )
-
 from dipeo_domain.domains.apikey import APIKeyDomainService
-from dipeo_domain.domains.conversation import ConversationMemoryDomainService
-from dipeo_domain.domains.conversation.domain_service import ConversationDomainService
+from dipeo_domain.domains.conversation.simple_service import ConversationMemoryService
 from dipeo_domain.domains.db import DBOperationsDomainService
-from dipeo_domain.domains.diagram.services import DiagramFileRepository, DiagramStorageAdapter
+from dipeo_domain.domains.diagram.services import (
+    DiagramFileRepository,
+    DiagramStorageAdapter,
+)
 from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
-from dipeo_domain.domains.execution.services import ExecuteDiagramUseCase, ServiceRegistry
+from dipeo_domain.domains.execution.services import (
+    ExecuteDiagramUseCase,
+    ServiceRegistry,
+)
 from dipeo_domain.domains.file import FileOperationsDomainService
 from dipeo_domain.domains.text import TextProcessingDomainService
 from dipeo_domain.domains.validation import ValidationDomainService
+from dipeo_infra import (
+    MessageRouter,
+    NotionIntegrationDomainService,
+    LLMInfraService,
+)
+from dipeo_domain.domains.api import APIIntegrationDomainService
 from dipeo_server.infra.external.integrations.notion import NotionAPIService
-from dipeo_server.infra.external.llm import LLMInfraService
-from dipeo_server.infra.messaging.message_router import MessageRouter
 from dipeo_server.infra.persistence import FileSystemRepository
 from dipeo_server.infra.persistence.state_registry import state_store
-from dipeo_infra import APIIntegrationDomainService, NotionIntegrationDomainService
 from dipeo_server.shared.constants import BASE_DIR
+from dipeo_infra.persistence.memory import MemoryService
 
 
 class ServerContainer(BaseContainer):
     """Server-specific dependency injection container."""
 
     # Infrastructure providers
-    state_store = providers.Singleton(
-        lambda: state_store
-    )
+    state_store = providers.Singleton(lambda: state_store)
 
-    message_router = providers.Singleton(
-        MessageRouter
-    )
-
-    file_repository = providers.Singleton(
-        FileSystemRepository,
-        base_dir=providers.Factory(
-            lambda: Path(os.getenv("DIPEO_BASE_DIR", Path.cwd()))
-        ),
-    )
+    message_router = providers.Singleton(MessageRouter)
 
     # Domain service providers
     api_key_service = providers.Singleton(
@@ -66,18 +62,17 @@ class ServerContainer(BaseContainer):
     )
 
     file_service = providers.Singleton(
-        lambda: FileSystemRepository()
+        FileSystemRepository,
+        base_dir=providers.Factory(lambda: BASE_DIR),
     )
 
+    memory_service = providers.Singleton(
+        MemoryService,
+    )
+    
     conversation_memory_service = providers.Singleton(
-        ConversationMemoryDomainService,
-    )
-
-    conversation_service = providers.Singleton(
-        ConversationDomainService,
-        llm_service=llm_service,
-        api_key_service=api_key_service,
-        conversation_service=conversation_memory_service,
+        ConversationMemoryService,
+        memory_service=memory_service,
     )
 
     diagram_file_repository = providers.Singleton(
@@ -92,9 +87,7 @@ class ServerContainer(BaseContainer):
 
     diagram_storage_service = diagram_file_repository
 
-    validation_service = providers.Singleton(
-        ValidationDomainService
-    )
+    validation_service = providers.Singleton(ValidationDomainService)
 
     prepare_diagram_use_case = providers.Singleton(
         PrepareDiagramForExecutionUseCase,
@@ -103,9 +96,7 @@ class ServerContainer(BaseContainer):
         api_key_service=api_key_service,
     )
 
-    text_processing_service = providers.Singleton(
-        TextProcessingDomainService
-    )
+    text_processing_service = providers.Singleton(TextProcessingDomainService)
 
     file_operations_service = providers.Singleton(
         FileOperationsDomainService,
@@ -123,9 +114,7 @@ class ServerContainer(BaseContainer):
         file_service=file_service,
     )
 
-    notion_api_service = providers.Singleton(
-        NotionAPIService
-    )
+    notion_api_service = providers.Singleton(NotionAPIService)
 
     notion_integration_service = providers.Factory(
         NotionIntegrationDomainService,
@@ -140,7 +129,6 @@ class ServerContainer(BaseContainer):
         llm_service=llm_service,
         file_service=file_service,
         conversation_memory_service=conversation_memory_service,
-        conversation_service=conversation_service,
         diagram_storage_service=diagram_storage_service,
         text_processing_service=text_processing_service,
         file_operations_service=file_operations_service,
@@ -192,7 +180,11 @@ def _validate_protocol_compliance(container: ServerContainer) -> None:
         (container.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.llm_service(), SupportsLLM, "LLMInfrastructureService"),
         (container.file_service(), SupportsFile, "FileSystemRepository"),
-        (container.conversation_memory_service(), SupportsMemory, "ConversationMemoryService"),
+        (
+            container.conversation_memory_service(),
+            SupportsMemory,
+            "ConversationMemoryService",
+        ),
         (container.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
         (container.notion_api_service(), SupportsNotion, "NotionAPIService"),
     ]

@@ -13,7 +13,7 @@ from ..base.exceptions import (
 
 class NodeExecutionError(ExecutionError):
     """Raised when a specific node fails to execute."""
-    
+
     error_code = "NODE_EXECUTION_ERROR"
 
     def __init__(
@@ -30,7 +30,7 @@ class NodeExecutionError(ExecutionError):
 
 class DependencyError(ExecutionError):
     """Raised when node dependencies aren't met."""
-    
+
     error_code = "DEPENDENCY_ERROR"
 
     def __init__(
@@ -49,7 +49,7 @@ class DependencyError(ExecutionError):
 
 class MaxIterationsError(ExecutionError):
     """Raised when max iterations are exceeded."""
-    
+
     error_code = "MAX_ITERATIONS_ERROR"
 
     def __init__(
@@ -67,7 +67,7 @@ class MaxIterationsError(ExecutionError):
 
 class TimeoutError(ExecutionError):
     """Raised when execution times out."""
-    
+
     error_code = "TIMEOUT_ERROR"
 
     def __init__(
@@ -84,13 +84,13 @@ class TimeoutError(ExecutionError):
 
 class APIKeyError(ServiceError):
     """Raised when API key operations fail."""
-    
+
     error_code = "API_KEY_ERROR"
 
 
 class APIKeyNotFoundError(APIKeyError):
     """Raised when an API key is not found."""
-    
+
     error_code = "API_KEY_NOT_FOUND"
 
     def __init__(self, key_id: str, details: Optional[dict[str, Any]] = None):
@@ -100,7 +100,7 @@ class APIKeyNotFoundError(APIKeyError):
 
 class LLMServiceError(ServiceError):
     """Raised when LLM service calls fail."""
-    
+
     error_code = "LLM_SERVICE_ERROR"
 
     def __init__(
@@ -121,7 +121,7 @@ class LLMServiceError(ServiceError):
 
 class FileOperationError(DiPeOError):
     """Raised when file operations fail."""
-    
+
     error_code = "FILE_OPERATION_ERROR"
 
     def __init__(
@@ -138,13 +138,13 @@ class FileOperationError(DiPeOError):
 
 class DiagramError(ValidationError):
     """Base class for diagram-related errors."""
-    
+
     error_code = "DIAGRAM_ERROR"
 
 
 class DiagramNotFoundError(DiagramError):
     """Raised when a diagram is not found."""
-    
+
     error_code = "DIAGRAM_NOT_FOUND"
 
     def __init__(self, diagram_id: str, details: Optional[dict[str, Any]] = None):
@@ -154,7 +154,7 @@ class DiagramNotFoundError(DiagramError):
 
 class InvalidDiagramError(DiagramError):
     """Raised when a diagram is invalid."""
-    
+
     error_code = "INVALID_DIAGRAM"
 
     def __init__(
