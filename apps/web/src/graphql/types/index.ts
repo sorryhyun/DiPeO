@@ -15,12 +15,12 @@ export type {
 export {
   diagramToStoreMaps,
   storeMapsToArrays,
-  reactDiagramToDomain,
-  domainToReactDiagram,
+  convertGraphQLDiagramToDomain,
+  convertGraphQLPersonToDomain,
   nodeKindToGraphQLType,
   graphQLTypeToNodeKind,
   isDomainNode,
-  isReactDiagram,
+  isDomainDiagram,
   areHandlesCompatible,
   getNodeHandles,
   getHandleById,
@@ -30,13 +30,12 @@ export {
   type ArrowData
 } from './graphql-mappings';
 
-// Re-export semantic type aliases from mappings
+// Re-export GraphQL types directly (semantic aliases)
 export type {
-  DomainNode,
-  DomainArrow,
-  DomainHandle,
-  DomainPerson,
-  DomainApiKey,
-  DomainDiagram,
-  ReactDiagram
+  DomainNodeType as DomainNode,
+  DomainArrowType as DomainArrow,
+  DomainHandleType as DomainHandle,
+  DomainPersonType as DomainPerson,
+  DomainApiKeyType as DomainApiKey,
+  DomainDiagramType as DomainDiagram
 } from './graphql-mappings';

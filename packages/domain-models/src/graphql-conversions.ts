@@ -15,9 +15,19 @@ import {
   DomainPerson,
   DomainDiagram,
   DiagramMetadata,
-  Vec2
+  Vec2,
+  PersonLLMConfig
 } from './diagram';
 import { parseHandleId } from './conversions';
+
+// GraphQL types (imported for conversion)
+export interface GraphQLDomainPersonType {
+  id: string;
+  label: string;
+  llm_config: PersonLLMConfig;
+  type: string;
+  masked_api_key?: string | null;
+}
 
 // ============================================================================
 // Store Format Types
@@ -32,6 +42,57 @@ export interface StoreDiagram {
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
   metadata?: DiagramMetadata;
+}
+
+// ============================================================================
+// GraphQL Type Conversions
+// ============================================================================
+
+/**
+ * Convert GraphQL DomainPersonType to domain DomainPerson
+ * Handles the api_key_id optional/required mismatch
+ */
+export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
+  // Handle missing or null api_key_id by providing a default value
+  const apiKeyId = graphqlPerson.llm_config?.api_key_id || '';
+  
+  return {
+    id: graphqlPerson.id as PersonID,
+    label: graphqlPerson.label,
+    llm_config: {
+      service: graphqlPerson.llm_config.service,
+      model: graphqlPerson.llm_config.model,
+      api_key_id: apiKeyId,
+      system_prompt: graphqlPerson.llm_config.system_prompt || null,
+    } as PersonLLMConfig,
+    type: 'person' as const,
+    masked_api_key: graphqlPerson.masked_api_key || null,
+  };
+}
+
+/**
+ * Convert GraphQL diagram data to domain format, handling type mismatches
+ */
+export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagram> {
+  const result: Partial<DomainDiagram> = {};
+  
+  if (diagram.nodes) {
+    result.nodes = diagram.nodes;
+  }
+  
+  if (diagram.handles) {
+    result.handles = diagram.handles;
+  }
+  
+  if (diagram.arrows) {
+    result.arrows = diagram.arrows;
+  }
+  
+  if (diagram.persons) {
+    result.persons = diagram.persons.map(convertGraphQLPersonToDomain);
+  }
+  
+  return result;
 }
 
 // ============================================================================

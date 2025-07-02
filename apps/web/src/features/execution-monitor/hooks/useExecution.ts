@@ -10,7 +10,7 @@ import { ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import {type ReactDiagram, diagramId, executionId } from '@/core/types';
+import {type DomainDiagramType, diagramId, executionId } from '@/core/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types';
 import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
@@ -41,7 +41,7 @@ export interface UseExecutionReturn {
   duration: string;
   
   // Execution Actions
-  execute: (diagram?: ReactDiagram, options?: ExecutionOptions) => Promise<void>;
+  execute: (diagram?: DomainDiagramType, options?: ExecutionOptions) => Promise<void>;
   abort: () => void;
   
   // Node Actions
@@ -118,7 +118,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   });
 
   // Main Actions
-  const execute = useCallback(async (diagram?: ReactDiagram, options?: ExecutionOptions) => {
+  const execute = useCallback(async (diagram?: DomainDiagramType, options?: ExecutionOptions) => {
     resetState();
     
     try {

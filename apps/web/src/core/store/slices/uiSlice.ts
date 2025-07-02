@@ -32,6 +32,7 @@ export interface UISlice {
   executionReadOnly: boolean;
   isDragging: boolean;
   isConnecting: boolean;
+  isMonitorMode: boolean;
   
   // Modal state
   showApiKeysModal: boolean;
@@ -97,6 +98,7 @@ export const createUISlice: StateCreator<
   executionReadOnly: false,
   isDragging: false,
   isConnecting: false,
+  isMonitorMode: false,
   
   showApiKeysModal: false,
   showExecutionModal: false,

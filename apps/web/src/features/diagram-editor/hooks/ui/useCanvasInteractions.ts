@@ -8,6 +8,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node } from '@xyflow/react';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useNodeData } from '@/shared/hooks/selectors/useDiagramData';
 import { NodeID, PersonID, ArrowID, nodeId, personId } from '@/core/types';
 import { Vec2, NodeType } from '@dipeo/domain-models';
 import { useNodeOperations } from '../operations/useNodeOperations';
@@ -88,6 +89,9 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   const selectedId = useUnifiedStore(state => state.selectedId);
   const selectedType = useUnifiedStore(state => state.selectedType);
   
+  // Get selected node data for duplication
+  const selectedNode = useNodeData(selectedType === 'node' ? (selectedId as NodeID) : null);
+  
   // Domain operations hooks
   const nodeOps = useNodeOperations();
   const arrowOps = useArrowOperations();
@@ -146,25 +150,22 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   const handleDuplicateSelected = useCallback(() => {
     if (!enabled || isMonitorMode) return;
     
-    if (selectedType === 'node' && selectedId) {
-      const node = nodeOps.getNode(selectedId as NodeID);
-      if (!node) return;
-      
+    if (selectedType === 'node' && selectedId && selectedNode) {
       const newPosition = {
-        x: (node.position?.x || 0) + 50,
-        y: (node.position?.y || 0) + 50
+        x: (selectedNode.position?.x || 0) + 50,
+        y: (selectedNode.position?.y || 0) + 50
       };
       
       const newNodeId = nodeOps.addNode(
-        node.type,
+        selectedNode.type,
         newPosition,
-        { ...node.data }
+        { ...selectedNode.data }
       );
       
       store.getState().select(newNodeId, 'node');
     }
     closeContextMenu();
-  }, [enabled, isMonitorMode, selectedId, selectedType, nodeOps, store, closeContextMenu]);
+  }, [enabled, isMonitorMode, selectedId, selectedType, selectedNode, nodeOps, store, closeContextMenu]);
   
   // Drag & Drop
   const onNodeDragStart = useCallback((event: React.DragEvent, nodeType: string) => {

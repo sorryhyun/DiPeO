@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useArrowOperations } from '../hooks';
 import { useUIState } from '@/shared/hooks/selectors';
+import { useArrowData } from '@/shared/hooks/selectors/useDiagramData';
 import { arrowId, ArrowData } from '@/core/types';
 import { getQuadraticPoint } from '@/shared/utils/geometry';
 
@@ -31,7 +32,8 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
   const { activeCanvas } = useUIState();
-  const { updateArrow, getArrow } = useArrowOperations();
+  const { updateArrow } = useArrowOperations();
+  const currentArrow = useArrowData(arrowId(id));
   const isExecutionMode = activeCanvas === 'execution';
   
   const arrowData = data as ArrowData | undefined;
@@ -80,15 +82,14 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const handleUpdateData = useCallback((edgeId: string, newData: Partial<ArrowData>) => {
     if (!newData) return;
     
-    // Get the current arrow to preserve existing data
-    const currentArrow = getArrow(arrowId(edgeId));
+    // Use the current arrow data to preserve existing data
     const currentData = (currentArrow?.data || {}) as ArrowData;
     
     // Merge the new data with existing data
     updateArrow(arrowId(edgeId), {
       data: { ...currentData, ...newData } as Record<string, unknown>
     });
-  }, [updateArrow, getArrow]);
+  }, [updateArrow, currentArrow]);
 
   // Memoize path and label position calculations
   const { edgePath, labelX, labelY } = useMemo(() => {

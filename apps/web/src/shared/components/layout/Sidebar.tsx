@@ -11,9 +11,9 @@ import { FileOperations } from '@/shared/components/sidebar/FileOperations';
 import { PersonID, DomainPerson, DomainArrow, personId } from '@/core/types';
 import type { Node } from '@xyflow/react';
 
-// Lazy load UniversalPropertiesPanel as it's only used in right sidebar
-const PropertiesPanel = React.lazy(() => import('@/features/properties-editor/components/PropertiesPanel').then(m => ({ default: m.UniversalPropertiesPanel })));
-import type { UniversalData } from '@/features/properties-editor/components/PropertiesPanel';
+// Lazy load PropertyPanel as it's only used in right sidebar
+const PropertiesPanelComponent = React.lazy(() => import('@/features/properties-editor/components/PropertyPanel').then(m => ({ default: m.PropertyPanel })));
+import type { UniversalData } from '@/features/properties-editor/components/PropertyPanel';
 
 // Memoized draggable block component
 export const DraggableBlock = React.memo<{ type: string; label: string }>(({ type, label }) => {
@@ -144,7 +144,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
       <aside className="h-full border-l bg-gray-50 overflow-y-auto">
         <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>
           {selectedId && selectedData ? (
-            <PropertiesPanel nodeId={selectedId} data={selectedData} />
+            <PropertiesPanelComponent entityId={selectedId} data={selectedData} />
           ) : (
             <div className="p-4 text-gray-500">Select an element to view properties</div>
           )}

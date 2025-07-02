@@ -17,7 +17,7 @@ import type {
   Handle as DomainHandle,
   Person as DomainPerson,
   ApiKey as DomainApiKey,
-  DomainDiagramType as ReactDiagram,
+  DomainDiagramType,
   ArrowData
 } from '@/graphql/types';
 
@@ -27,7 +27,7 @@ export type {
   DomainHandle,
   DomainPerson,
   DomainApiKey,
-  ReactDiagram,
+  DomainDiagramType,
   ArrowData
 };
 
@@ -49,4 +49,4 @@ export type NotionNodeData = WithUI<DomainNotionNodeData>;
 export type PersonBatchJobNodeData = WithUI<DomainPersonBatchJobNodeData>;
 
 // Type guards are now imported from graphql-mappings
-export { isDomainNode, isReactDiagram } from '@/graphql/types/graphql-mappings';
+export { isDomainNode, isDomainDiagram } from '@/graphql/types/graphql-mappings';

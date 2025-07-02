@@ -88,8 +88,6 @@ const ConversationDashboard: React.FC = () => {
 
   // Initial load - only run once on mount
   useEffect(() => {
-    // Don't automatically load conversation logs on mount
-    // void fetchConversationData();
      
   }, []); // Empty dependency array to run only once
 
@@ -124,9 +122,7 @@ const ConversationDashboard: React.FC = () => {
     [handleScrollInternal]
   );
 
-  // Export conversations
   // File operations are handled directly with utils
-  
   const exportConversations = async () => {
     if (!dashboardSelectedPerson || !conversationData[dashboardSelectedPerson]) return;
 
@@ -165,7 +161,6 @@ const ConversationDashboard: React.FC = () => {
 
     const messages: ConversationMessage[] = [];
     Object.entries(conversationData).forEach(([key, personData]) => {
-      // Add personId to each message
       const messagesWithPersonId = personData.messages.map((msg) => ({
         ...msg,
         personId: personId(key)

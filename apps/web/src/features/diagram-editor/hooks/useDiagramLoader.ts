@@ -3,7 +3,7 @@ import { useGetDiagramQuery } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramId } from '@/core/types';
-import { domainToReactDiagram, diagramToStoreMaps } from '@/graphql/types';
+import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/graphql/types';
 import { DiagramAdapter } from '../adapters/DiagramAdapter';
 
 /**
@@ -63,9 +63,6 @@ export function useDiagramLoader() {
           try {
             if (!data?.diagram) return;
           
-          // Clear adapter caches before loading new diagram
-          DiagramAdapter.clearCaches();
-          
           // Convert GraphQL diagram to domain format
           const diagramWithCounts = {
             ...data.diagram,
@@ -73,10 +70,12 @@ export function useDiagramLoader() {
             arrowCount: data.diagram.arrows.length,
             personCount: data.diagram.persons.length
           };
-          const reactDiagram = domainToReactDiagram(diagramWithCounts);
+          
+          // Convert GraphQL types to domain types (handles api_key_id optional/required mismatch)
+          const domainDiagram = convertGraphQLDiagramToDomain(diagramWithCounts);
           
           // Convert arrays to Maps for the store
-          const { nodes, handles, arrows, persons } = diagramToStoreMaps(reactDiagram);
+          const { nodes, handles, arrows, persons } = diagramToStoreMaps(domainDiagram);
           
           
           // Update store with all data at once in a single transaction
@@ -91,9 +90,9 @@ export function useDiagramLoader() {
               handles,
               arrows,
               persons,
-              nodesArray: reactDiagram.nodes || [],
-              arrowsArray: reactDiagram.arrows || [],
-              personsArray: reactDiagram.persons || [],
+              nodesArray: diagramWithCounts.nodes || [],
+              arrowsArray: diagramWithCounts.arrows || [],
+              personsArray: diagramWithCounts.persons || [],
               dataVersion: state.dataVersion + 1  // Single increment
             }));
           });
@@ -103,7 +102,7 @@ export function useDiagramLoader() {
           setHasLoaded(true);
           
           // Show success message
-          const diagramName = reactDiagram.metadata?.name || 'Unnamed diagram';
+          const diagramName = diagramWithCounts.metadata?.name || 'Unnamed diagram';
           toast.success(`Loaded diagram: ${diagramName}`);
           
         } catch (err) {

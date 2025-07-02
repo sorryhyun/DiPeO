@@ -1,4 +1,3 @@
-export * from './PropertiesPanel';
+export { PropertyPanel } from './PropertyPanel';
 export * from './fields';
-export * from './renderers';
 export { PropertiesTab } from './PropertiesTab';

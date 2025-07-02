@@ -22,9 +22,9 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, ReactDiagram, arrowId, nodeId } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagramType, arrowId, nodeId } from '@/core/types';
 
-import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible, getNodeHandles } from '@/graphql/types';
+import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, createHandleId, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
@@ -96,21 +96,17 @@ export function isDiPeoEdge(edge: Edge): edge is DiPeoEdge {
 }
 
 export class DiagramAdapter {
-  // Cache for performance optimization
-  private static nodeCache = new WeakMap<DomainNode, DiPeoNode>();
-  private static edgeCache = new WeakMap<DomainArrow, DiPeoEdge>();
-  private static reverseNodeCache = new WeakMap<RFNode, DomainNode>();
-  private static reverseEdgeCache = new WeakMap<RFEdge, DomainArrow>();
 
   /**
    * Convert full domain diagram to React Flow format
    */
-  static toReactFlow(diagram: ReactDiagram): {
+  static toReactFlow(diagram: DomainDiagramType): {
     nodes: DiPeoNode[];
     edges: DiPeoEdge[];
   } {
     const nodes = (diagram.nodes || []).map((node: DomainNode) => {
-      const handles = getNodeHandles(diagram, node.id as NodeID);
+      // Get handles for this node by filtering the diagram's handles array
+      const handles = (diagram.handles || []).filter(h => h.node_id === node.id);
       return this.nodeToReactFlow(node, handles);
     });
 
@@ -122,15 +118,9 @@ export class DiagramAdapter {
   }
 
   /**
-   * Convert domain node to React Flow node with caching
+   * Convert domain node to React Flow node
    */
   static nodeToReactFlow(node: DomainNode, handles: DomainHandle[]): DiPeoNode {
-    // Check cache first
-    const cached = this.nodeCache.get(node);
-    if (cached && this.handlesMatch(cached, handles)) {
-      return cached;
-    }
-
     // Generate handles map
     const inputs = handles
       .filter(h => h.direction === HandleDirection.INPUT)
@@ -147,7 +137,7 @@ export class DiagramAdapter {
                     ? { x: node.position.x, y: node.position.y }
                     : { x: 0, y: 0 };
 
-    const reactNode: DiPeoNode = {
+    return {
       id: node.id,
       type: graphQLTypeToNodeKind(node.type),
       position,
@@ -165,44 +155,13 @@ export class DiagramAdapter {
       focusable: true,
       deletable: true
     };
-
-    // Cache the result
-    this.nodeCache.set(node, reactNode);
-    return reactNode;
   }
 
-  /**
-   * Clear all caches - useful when loading new diagrams
-   */
-  static clearCaches() {
-    // WeakMap doesn't have clear(), so reassign new instances
-    this.nodeCache = new WeakMap<DomainNode, DiPeoNode>();
-    this.edgeCache = new WeakMap<DomainArrow, DiPeoEdge>();
-    this.reverseNodeCache = new WeakMap<RFNode, DomainNode>();
-    this.reverseEdgeCache = new WeakMap<RFEdge, DomainArrow>();
-  }
 
   /**
-   * Convert domain arrow to React Flow edge with caching
+   * Convert domain arrow to React Flow edge
    */
   static arrowToReactFlow(arrow: DomainArrow): DiPeoEdge {
-    // Check cache first
-    const cached = this.edgeCache.get(arrow);
-    if (cached) {
-      // Clear cache if arrow has been updated with label or content_type
-      const cacheInvalid = 
-        (arrow.label && cached.data?.label !== arrow.label) ||
-        (arrow.content_type && cached.data?.content_type !== arrow.content_type) ||
-        (!arrow.label && cached.data?.label) ||
-        (!arrow.content_type && cached.data?.content_type);
-        
-      if (cacheInvalid) {
-        this.edgeCache.delete(arrow);
-      } else {
-        return cached;
-      }
-    }
-
     const sourceParsed = parseHandleId(arrow.source as HandleID);
     const targetParsed = parseHandleId(arrow.target as HandleID);
     const sourceNode = sourceParsed.node_id;
@@ -217,10 +176,9 @@ export class DiagramAdapter {
     }
     if (arrow.label) {
       edgeData.label = arrow.label;
-      console.log(`DiagramAdapter: Arrow ${arrow.id} has label "${arrow.label}"`, edgeData);
     }
     
-    const reactEdge: DiPeoEdge = {
+    return {
       id: arrow.id,
       type: 'customArrow',
       source: sourceNode,
@@ -233,25 +191,15 @@ export class DiagramAdapter {
       focusable: true,
       selectable: true
     };
-
-    // Cache the result
-    this.edgeCache.set(arrow, reactEdge);
-    return reactEdge;
   }
 
   /**
    * Convert React Flow node back to domain node
    */
   static reactToNode(rfNode: RFNode): DomainNode {
-    // Check reverse cache
-    const cached = this.reverseNodeCache.get(rfNode);
-    if (cached) {
-      return cached;
-    }
-
     const { _handles, ...nodeData } = rfNode.data || {};
     
-    const domainNode: DomainNode = {
+    return {
       id: rfNode.id as NodeID,
       type: nodeKindToGraphQLType(rfNode.type || 'start'),
       position: { ...rfNode.position },
@@ -260,22 +208,12 @@ export class DiagramAdapter {
         label: (nodeData.label || rfNode.id) as string
       } as Record<string, unknown>
     };
-
-    // Cache the result
-    this.reverseNodeCache.set(rfNode, domainNode);
-    return domainNode;
   }
 
   /**
    * Convert React Flow edge back to domain arrow
    */
   static reactToArrow(rfEdge: RFEdge): DomainArrow {
-    // Check reverse cache
-    const cached = this.reverseEdgeCache.get(rfEdge);
-    if (cached) {
-      return cached;
-    }
-
     const sourceHandle = createHandleId(
       rfEdge.source as NodeID, 
       rfEdge.sourceHandle || 'default'
@@ -303,8 +241,6 @@ export class DiagramAdapter {
       domainArrow.label = label;
     }
 
-    // Cache the result
-    this.reverseEdgeCache.set(rfEdge, domainArrow);
     return domainArrow;
   }
 
@@ -338,7 +274,7 @@ export class DiagramAdapter {
    */
   static validateConnection(
     connection: Connection,
-    diagram: ReactDiagram
+    diagram: DomainDiagramType
   ): ValidatedConnection {
     const validated: ValidatedConnection = { ...connection };
 
@@ -374,8 +310,8 @@ export class DiagramAdapter {
       return validated;
     }
 
-    const sourceHandles = getNodeHandles(diagram, nodeId(connection.source));
-    const targetHandles = getNodeHandles(diagram, nodeId(connection.target));
+    const sourceHandles = (diagram.handles || []).filter(h => h.node_id === connection.source);
+    const targetHandles = (diagram.handles || []).filter(h => h.node_id === connection.target);
 
     const sourceHandle = sourceHandles.find((h: DomainHandle) => 
       h.label === (connection.sourceHandle || 'default')
@@ -422,23 +358,6 @@ export class DiagramAdapter {
   }
 
 
-  /**
-   * Helper to check if handles match cached version
-   */
-  private static handlesMatch(cachedNode: DiPeoNode, handles: DomainHandle[]): boolean {
-    const cachedHandles = cachedNode.data._handles;
-    if (!cachedHandles || !Array.isArray(cachedHandles) || cachedHandles.length !== handles.length) {
-      return false;
-    }
-    
-    return handles.every((h, i) => {
-      const cachedHandle = (cachedHandles as DomainHandle[])[i];
-      return cachedHandle && 
-        h.id === cachedHandle.id &&
-        h.label === cachedHandle.label &&
-        h.direction === cachedHandle.direction;
-    });
-  }
 
   /**
    * Convert array of React Flow nodes to domain nodes

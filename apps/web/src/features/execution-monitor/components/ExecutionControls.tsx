@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
 import { useDiagramData } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { nodeId, ReactDiagram } from '@/core/types';
+import { nodeId, DomainDiagramType } from '@/core/types';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 
@@ -82,8 +82,8 @@ const ExecutionControls = () => {
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
           onClick={async () => {
             try {
-              // Create a ReactDiagram for in-memory execution
-              const diagramForExecution: ReactDiagram = {
+              // Create a DomainDiagramType for in-memory execution
+              const diagramForExecution: DomainDiagramType = {
                 metadata: {
                   id: `temp-execution-${Date.now()}`,
                   created: new Date().toISOString(),

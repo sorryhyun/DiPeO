@@ -9,40 +9,16 @@ import React, { useRef, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
 import { isWithinTolerance } from '@/shared/utils/math';
-import { createHandlerTable } from '@/shared/utils/dispatchTable';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useUIState } from '@/shared/hooks/selectors';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
 import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
-import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { NodeType, type NodeID, type ArrowID, type HandleID, createHandleId } from '@dipeo/domain-models';
 
 
-// Helper hook for efficient Map to Array conversion
-function useCachedMapArray<K, V>(
-  map: Map<K, V>,
-  mapVersion?: number
-): V[] {
-  const cacheRef = useRef<{ array: V[]; size: number; version?: number; mapRef: Map<K, V> | null }>({
-    array: [],
-    size: -1,
-    version: -1,
-    mapRef: null
-  });
-  
-  return React.useMemo(() => {
-    // Check if map reference changed, size changed, or version changed
-    if (cacheRef.current.mapRef !== map ||
-        cacheRef.current.size !== map.size || 
-        (mapVersion !== undefined && cacheRef.current.version !== mapVersion)) {
-      cacheRef.current = {
-        array: Array.from(map.values()),
-        size: map.size,
-        version: mapVersion,
-        mapRef: map
-      };
-    }
-    return cacheRef.current.array;
-  }, [map, map.size, mapVersion]);
+// Simple memoized array conversion
+function useMapToArray<K, V>(map: Map<K, V>, version: number): V[] {
+  return React.useMemo(() => Array.from(map.values()), [map, version]);
 }
 
 export interface UseCanvasOptions {
@@ -50,40 +26,69 @@ export interface UseCanvasOptions {
 }
 
 export interface UseCanvasReturn {
-  // Canvas Data (optimized with caching)
+  // Canvas Data
   nodes: ReturnType<typeof DiagramAdapter.nodeToReactFlow>[];
   arrows: DomainArrow[];
   persons: DomainPerson[];
   handles: Map<HandleID, DomainHandle>;
   
+  // Array versions for React components
+  nodesArray: DomainNode[];
+  arrowsArray: DomainArrow[];
+  personsArray: DomainPerson[];
+  
   // Canvas State
   isMonitorMode: boolean;
-  isExecutionMode: boolean;
   isConnectable: boolean;
   
   // React Flow Handlers
   onNodesChange: (changes: NodeChange[]) => void;
   onArrowsChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  
-  // Direct access to arrays (for performance)
-  nodesArray: DomainNode[];
-  arrowsArray: DomainArrow[];
-  personsArray: DomainPerson[];
 }
 
 export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
   const { readOnly = false } = options;
   
-  // Create stable selector
-  const storeSelector = React.useMemo(() => createCommonStoreSelector(), []);
-  const storeState = useUnifiedStore(useShallow(storeSelector));
+  // Get UI state for execution mode detection
+  const { activeCanvas } = useUIState();
+  const isExecutionMode = activeCanvas === 'execution';
   
-  // Use arrays directly from store - no conversion needed
-  const nodesArray = storeState.nodesArray || [];
-  const arrowsArray = storeState.arrowsArray || [];
-  const personsArray = storeState.personsArray || [];
-  const handlesArray = useCachedMapArray(storeState.handlesMap, storeState.dataVersion) as DomainHandle[];
+  // Direct store access with simplified selectors
+  const { 
+    nodes: nodesMap, 
+    arrows: arrowsMap, 
+    persons: personsMap,
+    handles: handlesMap,
+    nodesArray,
+    arrowsArray,
+    personsArray,
+    dataVersion,
+    isMonitorMode,
+    addArrow,
+    deleteArrow,
+    updateNode,
+    deleteNode,
+    transaction
+  } = useUnifiedStore(useShallow(state => ({
+    nodes: state.nodes,
+    arrows: state.arrows,
+    persons: state.persons,
+    handles: state.handles,
+    nodesArray: state.nodesArray,
+    arrowsArray: state.arrowsArray,
+    personsArray: state.personsArray,
+    dataVersion: state.dataVersion,
+    isMonitorMode: state.isMonitorMode,
+    addArrow: state.addArrow,
+    deleteArrow: state.deleteArrow,
+    updateNode: state.updateNode,
+    deleteNode: state.deleteNode,
+    transaction: state.transaction
+  })));
+  
+  // We get arrays directly from store now, but keep handlesArray for local use
+  const handlesArray = useMapToArray(handlesMap, dataVersion);
   
   // Position update batching
   const positionUpdateQueueRef = useRef<Map<NodeID, { x: number; y: number }>>(new Map());
@@ -92,15 +97,15 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
   const processBatchedPositionUpdates = useCallback(() => {
     if (positionUpdateQueueRef.current.size === 0) return;
     
-    storeState.transaction(() => {
+    transaction(() => {
       positionUpdateQueueRef.current.forEach((position, nodeId) => {
-        storeState.updateNode(nodeId, { position });
+        updateNode(nodeId, { position });
       });
       positionUpdateQueueRef.current.clear();
     });
     
     rafIdRef.current = undefined;
-  }, [storeState]);
+  }, [transaction, updateNode]);
   
   
   // Cleanup on unmount
@@ -112,49 +117,15 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     };
   }, []);
   
-  // Create node change handler table
-  const nodeChangeHandlers = React.useMemo(() => 
-    createHandlerTable<NodeChange['type'], [NodeChange, typeof storeState], void>({
-      position: () => {
-        // Position changes are handled inline
-      },
-      dimensions: () => {
-        // Dimensions are handled by React Flow internally
-      },
-      replace: () => {
-        // Handle node replacement if needed
-      },
-      remove: (change, state) => {
-        if ('id' in change) {
-          state.deleteNode(change.id as NodeID);
-        }
-      },
-      select: (change, state) => {
-        if ('selected' in change && 'id' in change) {
-          if (change.selected) {
-            state.select(change.id as NodeID, 'node');
-          } else if (state.selectedId === change.id) {
-            state.clearSelection();
-          }
-        }
-      },
-      add: (change) => {
-        // React Flow is initializing the node - we need to handle this
-        // to avoid the "trying to drag a node that is not initialized" error
-        if ('item' in change && change.item) {
-          // The node is already in our store, but React Flow needs to track it internally
-          // We don't need to add it to our store again, just acknowledge the change
-        }
-      },
-    }), []
-  );
+  // Store for unified store access  
+  const store = useUnifiedStore;
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    if (readOnly || storeState.isMonitorMode || storeState.isExecutionMode) return;
+    if (readOnly || isMonitorMode) return;
     
     changes.forEach((change) => {
       if (change.type === 'position' && change.position) {
-        const node = storeState.nodesMap.get(change.id as NodeID);
+        const node = nodesMap.get(change.id as NodeID);
         if (node) {
           const tolerance = change.dragging ? 5 : 0.01;
           const currentX = node.position?.x ?? 0;
@@ -164,8 +135,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
             !isWithinTolerance(currentY, change.position.y, tolerance);
           
           if (positionChanged) {
-            // Update position immediately for natural movement
-            storeState.updateNode(change.id as NodeID, { 
+            updateNode(change.id as NodeID, { 
               position: {
                 x: change.position.x,
                 y: change.position.y
@@ -173,26 +143,33 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
             });
           }
         }
-      } else {
-        nodeChangeHandlers.execute(change.type, change, storeState);
+      } else if (change.type === 'remove' && 'id' in change) {
+        deleteNode(change.id as NodeID);
+      } else if (change.type === 'select' && 'selected' in change && 'id' in change) {
+        const { select, clearSelection, selectedId } = store.getState();
+        if (change.selected) {
+          select(change.id as NodeID, 'node');
+        } else if (selectedId === change.id) {
+          clearSelection();
+        }
       }
     });
-  }, [readOnly, storeState, nodeChangeHandlers]);
+  }, [readOnly, isMonitorMode, isExecutionMode, nodesMap, updateNode, deleteNode, store]);
   
   const onArrowsChange = useCallback((changes: EdgeChange[]) => {
-    if (readOnly || storeState.isMonitorMode || storeState.isExecutionMode) return;
+    if (readOnly || isMonitorMode || isExecutionMode) return;
     
-    storeState.transaction(() => {
+    transaction(() => {
       changes.forEach((change) => {
         if (change.type === 'remove') {
-          storeState.deleteArrow(change.id as ArrowID);
+          deleteArrow(change.id as ArrowID);
         }
       });
     });
-  }, [readOnly, storeState]);
+  }, [readOnly, isMonitorMode, isExecutionMode, transaction, deleteArrow]);
   
   const onConnect = useCallback((connection: Connection) => {
-    if (readOnly || storeState.isMonitorMode || storeState.isExecutionMode) return;
+    if (readOnly || isMonitorMode || isExecutionMode) return;
     
     if (connection.source && connection.target && 
         connection.sourceHandle && connection.targetHandle) {
@@ -219,15 +196,15 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
       const sourceHandleName = cleanSourceHandle.toLowerCase();
       if (sourceHandleName === 'true' || sourceHandleName === 'false') {
         // Get the source node to verify it's a condition node
-        const sourceNode = storeState.nodesMap.get(nodeId(connection.source));
+        const sourceNode = nodesMap.get(nodeId(connection.source));
         if (sourceNode && sourceNode.type === NodeType.CONDITION) {
           arrowData = { branch: sourceHandleName };
         }
       }
       
-      storeState.addArrow(sourceHandleId, targetHandleId, arrowData);
+      addArrow(sourceHandleId, targetHandleId, arrowData);
     }
-  }, [readOnly, storeState]);
+  }, [readOnly, isMonitorMode, isExecutionMode, nodesMap, addArrow]);
   
   // Create handle lookup for efficient access
   const handlesByNode = React.useMemo(() => {
@@ -248,28 +225,27 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     });
   }, [nodesArray, handlesByNode]);
   
-  const isConnectable = !readOnly && !storeState.isMonitorMode && !storeState.isExecutionMode;
+  const isConnectable = !readOnly && !isMonitorMode;
   
   return {
     // Canvas Data
     nodes,
     arrows: arrowsArray,
     persons: personsArray,
-    handles: storeState.handlesMap,
+    handles: handlesMap,
+    
+    // Array versions for React components
+    nodesArray,
+    arrowsArray,
+    personsArray,
     
     // Canvas State
-    isMonitorMode: storeState.isMonitorMode,
-    isExecutionMode: storeState.isExecutionMode,
+    isMonitorMode,
     isConnectable,
     
     // React Flow Handlers
     onNodesChange,
     onArrowsChange,
     onConnect,
-    
-    // Direct arrays for performance
-    nodesArray,
-    arrowsArray,
-    personsArray,
   };
 }

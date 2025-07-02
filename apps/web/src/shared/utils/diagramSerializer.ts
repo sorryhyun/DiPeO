@@ -6,7 +6,7 @@
 import { HandleDirection, DataType, NodeID, ArrowID, PersonID, HandleID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { storeMapsToArrays } from '@/graphql/types';
+import { storeMapsToArrays, convertGraphQLPersonToDomain, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // The serialized diagram should match the GraphQL schema format
@@ -147,29 +147,19 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
 function getStoreStateWithMaps() {
   const state = useUnifiedStore.getState();
   
-  // Direct access to store properties should give us Maps
-  // But in case they're serialized, we'll ensure they're Maps
-  const ensureMap = <K, V>(value: unknown): Map<K, V> => {
-    if (value instanceof Map) {
-      return value;
-    }
-    // Handle devtools serialized format
-    if (value && typeof value === 'object' && '_type' in value && value._type === 'Map' && '_value' in value && Array.isArray(value._value)) {
-      return new Map(value._value) as Map<K, V>;
-    }
-    // If it's a plain object, try to convert it
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return new Map(Object.entries(value)) as Map<K, V>;
-    }
-    return new Map<K, V>();
+  // Convert store arrays to a diagram format
+  const graphqlDiagram = {
+    nodes: state.nodesArray || [],
+    handles: Array.from(state.handles?.values() || []),
+    arrows: state.arrowsArray || [],
+    persons: state.personsArray || []
   };
   
-  return {
-    nodes: ensureMap<NodeID, DomainNode>(state.nodes),
-    handles: ensureMap<HandleID, DomainHandle>(state.handles),
-    arrows: ensureMap<ArrowID, DomainArrow>(state.arrows),
-    persons: ensureMap<PersonID, DomainPerson>(state.persons)
-  };
+  // Convert GraphQL diagram to domain format (handles type mismatches)
+  const domainDiagram = convertGraphQLDiagramToDomain(graphqlDiagram);
+  
+  // Convert back to Maps
+  return diagramToStoreMaps(domainDiagram);
 }
 
 /**

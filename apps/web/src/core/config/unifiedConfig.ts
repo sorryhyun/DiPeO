@@ -101,7 +101,6 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
     // Handle fields without explicit column assignment
     if (fieldsWithoutColumn.length > 0) {
       if (config.panelFieldOrder) {
-        // Legacy behavior for personJob
         const leftFieldNames = ['labelPersonRow', 'contextCleaningRule', 'maxIteration'];
         const rightFieldNames = ['defaultPrompt', 'firstOnlyPrompt'];
         
