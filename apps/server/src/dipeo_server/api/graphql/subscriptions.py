@@ -308,14 +308,12 @@ class Subscription:
                             output_value = output_data.get("value")
                             metadata = output_data.get("metadata")
                             if metadata and isinstance(metadata, dict):
-                                # Try multiple places for token usage
-                                # 1. Direct tokens_used field
-                                tokens_used = metadata.get("tokens_used", 0)
-                                # 2. tokenUsage object with total field
-                                if not tokens_used and "tokenUsage" in metadata:
-                                    token_usage = metadata["tokenUsage"]
-                                    if isinstance(token_usage, dict):
-                                        tokens_used = token_usage.get("total", 0)
+                                # Get token usage from tokenUsage object
+                                token_usage = metadata.get("tokenUsage", {})
+                                if isinstance(token_usage, dict):
+                                    tokens_used = token_usage.get("total", 0)
+                                else:
+                                    tokens_used = 0
 
                         yield NodeExecution(
                             execution_id=execution_id,
@@ -378,8 +376,6 @@ class Subscription:
                     # Fall back to database if not in cache
                     state = await state_store.get_state(execution_id)
 
-                # TODO: Check for actual interactive prompts in the state
-                # For now, this is a placeholder implementation
 
                 # Check if execution is complete
                 if state and state.status in [
@@ -402,10 +398,6 @@ class Subscription:
         except Exception as e:
             logger.error(f"Error in interactive prompt stream for {execution_id}: {e}")
             raise
-
-
-# Rename the old subscription class for backward compatibility
-DirectStreamingSubscription = Subscription
 
 
 # Function to be called by execution service to publish updates

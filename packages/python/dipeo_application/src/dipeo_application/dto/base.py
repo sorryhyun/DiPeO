@@ -91,17 +91,14 @@ class ListRequestDTO(RequestDTO):
 
     @property
     def offset(self) -> int:
-        """Calculate offset for database queries."""
         return (self.page - 1) * self.page_size
 
     @property
     def limit(self) -> int:
-        """Get limit for database queries."""
         return self.page_size
 
 
 class BatchRequestDTO(RequestDTO, Generic[T]):
-    """Base class for batch operations."""
 
     items: List[T] = Field(
         ..., min_items=1, max_items=1000, description="Items to process"
@@ -110,7 +107,6 @@ class BatchRequestDTO(RequestDTO, Generic[T]):
 
 
 class BatchResponseDTO(ResponseDTO[List[T]], Generic[T]):
-    """Base class for batch operation responses."""
 
     succeeded: int = Field(0, description="Number of successful operations")
     failed: int = Field(0, description="Number of failed operations")

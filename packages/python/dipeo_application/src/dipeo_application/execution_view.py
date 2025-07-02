@@ -9,7 +9,7 @@ from dipeo_domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutp
 
 @dataclass
 class NodeView:
-    """View of a node with its execution context."""
+    """Node view with execution context."""
 
     node: DomainNode
     handler: Optional[Callable] = None
@@ -41,14 +41,13 @@ class NodeView:
         return inputs
 
     def get_active_inputs(self) -> Dict[str, Any]:
-        """Get inputs considering condition routing and person_job first/default logic."""
+        """Get inputs considering routing and person_job logic."""
         import logging
 
         log = logging.getLogger(__name__)
 
         inputs = {}
 
-        # Separate first/default edges for person_job nodes
         first_edges = []
         default_edges = []
 
@@ -61,7 +60,6 @@ class NodeView:
             else:
                 default_edges.append(edge)
 
-        # Select edges based on node type and execution count
         if self.node.type == "person_job":
             if self.exec_count == 0 and first_edges:
                 selected_edges = first_edges
@@ -70,9 +68,7 @@ class NodeView:
         else:
             selected_edges = first_edges + default_edges
 
-        # Process selected edges
         for edge in selected_edges:
-            # Handle condition node branching
             if edge.source_view.node.type == "condition":
                 condition_result = edge.source_view.output.metadata.get(
                     "condition_result", False
@@ -84,7 +80,6 @@ class NodeView:
                     if edge_branch_bool != condition_result:
                         continue
 
-            # Extract value
             label = edge.label
             source_values = edge.source_view.output.value
 
@@ -92,26 +87,20 @@ class NodeView:
                 f"  Edge from {edge.source_view.id} - label={label}, source_values keys={list(source_values.keys())}"
             )
 
-            # Find the value to use
             value = None
-            
-            # First try: exact match with edge label
             if label in source_values:
                 value = source_values[label]
                 log.debug(
                     f"    Found exact match for label '{label}': {repr(value)[:100]}"
                 )
-            # Second try: use "default" if available
             elif "default" in source_values:
                 value = source_values["default"]
                 log.debug(
                     f"    Using 'default' value for label '{label}': {repr(value)[:100]}"
                 )
-            # Special case: conversation passthrough
             elif "conversation" in source_values:
                 value = source_values["conversation"]
                 log.debug(f"    Using 'conversation' value for label '{label}'")
-            # Fallback: use first available value if only one exists
             elif len(source_values) == 1:
                 value = list(source_values.values())[0]
                 log.debug(
@@ -119,8 +108,6 @@ class NodeView:
                 )
             else:
                 log.debug(f"    No suitable value found for label '{label}'")
-            
-            # Add to inputs using the edge label as key
             if value is not None:
                 inputs[label] = value
 
@@ -130,7 +117,7 @@ class NodeView:
 
 @dataclass
 class EdgeView:
-    """View of an edge (arrow) connecting two nodes."""
+    """Edge view connecting two nodes."""
 
     arrow: DomainArrow
     source_view: NodeView
@@ -156,7 +143,7 @@ class EdgeView:
 
 
 class LocalExecutionView:
-    """Simplified execution view for local execution."""
+    """Execution view for local execution."""
 
     def __init__(self, diagram: DomainDiagram):
         self.diagram = diagram
@@ -168,12 +155,10 @@ class LocalExecutionView:
 
     def _build_views(self) -> None:
         """Build node and edge views from diagram."""
-        # Create node views
         for node in self.diagram.nodes:
             node_view = NodeView(node=node)
             self.node_views[node.id] = node_view
 
-        # Create edge views and connect nodes
         import logging
 
         log = logging.getLogger(__name__)
@@ -191,7 +176,7 @@ class LocalExecutionView:
                 self.edge_views.append(edge_view)
                 self.node_views[source_id].outgoing_edges.append(edge_view)
                 self.node_views[target_id].incoming_edges.append(edge_view)
-                pass  # Removed debug log
+                pass
 
     def _compute_execution_order(self) -> List[List[NodeView]]:
         """Compute topological execution order using Kahn's algorithm."""
@@ -199,10 +184,8 @@ class LocalExecutionView:
 
         log = logging.getLogger(__name__)
 
-        # Calculate in-degrees
         in_degree = {}
         for node_id, node_view in self.node_views.items():
-            # For person_job nodes, only count "first" edges for initial execution
             if node_view.node.type == "person_job":
                 first_edges = [
                     e for e in node_view.incoming_edges if e.target_handle == "first"
@@ -215,13 +198,10 @@ class LocalExecutionView:
                 in_degree[node_id] = len(node_view.incoming_edges)
             pass  # Removed debug log
 
-        # Find nodes with no dependencies
         queue = [nv for nid, nv in self.node_views.items() if in_degree[nid] == 0]
-        # Initial queue computed
         levels = []
         processed = set()
 
-        # Process levels
         while queue:
             current_level = queue[:]
             levels.append(current_level)
@@ -233,13 +213,11 @@ class LocalExecutionView:
                     target_id = edge.target_view.id
                     target_view = edge.target_view
 
-                    # Only decrement if this edge matters for initial execution
                     should_decrement = True
                     if (
                         target_view.node.type == "person_job"
                         and edge.target_handle != "first"
                     ):
-                        # For person_job nodes, only "first" edges matter for initial topological sort
                         first_edges = [
                             e
                             for e in target_view.incoming_edges
@@ -255,9 +233,7 @@ class LocalExecutionView:
                             next_queue.append(edge.target_view)
 
             queue = next_queue
-            # Level processed
 
-        # Check for unprocessed nodes
         unprocessed = set(self.node_views.keys()) - processed
         if unprocessed:
             log.warning(f"Nodes not included in execution order: {unprocessed}")
@@ -269,11 +245,10 @@ class LocalExecutionView:
         return self.node_views.get(node_id)
 
     def get_ready_nodes(self) -> List[NodeView]:
-        """Get nodes that are ready to execute."""
+        """Get nodes ready to execute."""
         ready = []
         for node_view in self.node_views.values():
             if node_view.output is None:
-                # Check if all dependencies are satisfied
                 all_ready = all(
                     edge.source_view.output is not None
                     for edge in node_view.incoming_edges
@@ -284,7 +259,7 @@ class LocalExecutionView:
 
     @cached_property
     def static_edges_list(self) -> List[Dict[str, Any]]:
-        """Cached list of edge dictionaries for RuntimeContext."""
+        """Cached edge list for RuntimeContext."""
         return [
             {
                 "id": ev.arrow.id,
@@ -298,7 +273,7 @@ class LocalExecutionView:
 
     @cached_property
     def static_nodes_list(self) -> List[Dict[str, Any]]:
-        """Cached list of node dictionaries for RuntimeContext."""
+        """Cached node list for RuntimeContext."""
         return [
             {
                 "id": nv.id,

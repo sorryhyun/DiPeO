@@ -115,7 +115,7 @@ class StateRegistry:
         state = ExecutionState(
             id=ExecutionID(execution_id),
             status=ExecutionStatus.PENDING,
-            diagramId=DiagramID(diagram_id) if diagram_id else None,
+            diagram_id=DiagramID(diagram_id) if diagram_id else None,
             started_at=now,
             ended_at=None,
             node_states={},
@@ -132,11 +132,7 @@ class StateRegistry:
     async def save_state(self, state: ExecutionState):
         """Save execution state to database and cache."""
         # Update cache for active executions
-        if (
-            state.is_active
-            if hasattr(state, "is_active")
-            else (state.status in [ExecutionStatus.PENDING, ExecutionStatus.RUNNING])
-        ):
+        if state.is_active:
             await self._execution_cache.set(state.id, state)
         else:
             # Remove from cache if execution is no longer active
@@ -144,19 +140,15 @@ class StateRegistry:
 
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
-            node_states_dict = {}
-            for node_id, node_state in state.node_states.items():
-                if hasattr(node_state, "model_dump"):
-                    node_states_dict[node_id] = node_state.model_dump()
-                else:
-                    node_states_dict[node_id] = node_state
+            node_states_dict = {
+                node_id: node_state.model_dump() 
+                for node_id, node_state in state.node_states.items()
+            }
 
-            node_outputs_dict = {}
-            for node_id, node_output in state.node_outputs.items():
-                if hasattr(node_output, "model_dump"):
-                    node_outputs_dict[node_id] = node_output.model_dump()
-                else:
-                    node_outputs_dict[node_id] = node_output
+            node_outputs_dict = {
+                node_id: node_output.model_dump()
+                for node_id, node_output in state.node_outputs.items()
+            }
 
             await self._execute(
                 """
@@ -167,17 +159,13 @@ class StateRegistry:
                 """,
                 (
                     state.id,
-                    state.status.value
-                    if isinstance(state.status, ExecutionStatus)
-                    else state.status,
+                    state.status.value,
                     state.diagram_id,
                     state.started_at,
                     state.ended_at,
                     json.dumps(node_states_dict),
                     json.dumps(node_outputs_dict),
-                    json.dumps(
-                        state.token_usage.model_dump() if state.token_usage else {}
-                    ),
+                    json.dumps(state.token_usage.model_dump() if state.token_usage else {}),
                     state.error,
                     json.dumps(state.variables),
                 ),
@@ -225,7 +213,7 @@ class StateRegistry:
         return ExecutionState(
             id=ExecutionID(row[0]),
             status=ExecutionStatus(row[1]),
-            diagramId=DiagramID(row[2]) if row[2] else None,
+            diagram_id=DiagramID(row[2]) if row[2] else None,
             started_at=row[3],
             ended_at=row[4],
             node_states=node_states,
@@ -294,13 +282,7 @@ class StateRegistry:
             and node_output.metadata.get("_type") == "personjob_output"
         ):
             # Check if execution is active - defer persistence for active executions
-            is_active = (
-                state.is_active
-                if hasattr(state, "is_active")
-                else (
-                    state.status in [ExecutionStatus.STARTED, ExecutionStatus.RUNNING]
-                )
-            )
+            is_active = state.is_active
 
             if not is_active:
                 # Only persist conversation for completed executions
@@ -439,7 +421,7 @@ class StateRegistry:
 
         if status:
             conditions.append("status = ?")
-            params.append(status.value if hasattr(status, "value") else status)
+            params.append(status.value)
 
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
@@ -496,11 +478,11 @@ class StateRegistry:
 
             # Create ExecutionState object
             execution_state = ExecutionState(
-                executionId=ExecutionID(row[0]),
+                id=ExecutionID(row[0]),
                 status=ExecutionStatus(row[1]),
                 node_states=node_states,
                 node_outputs=node_outputs,
-                diagramId=DiagramID(row[5]) if row[5] else None,
+                diagram_id=DiagramID(row[5]) if row[5] else None,
                 variables=variables_data,
                 started_at=row[2],
                 ended_at=row[3],

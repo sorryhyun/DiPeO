@@ -20,6 +20,8 @@ from dipeo_domain import (
 from dipeo_domain.domains.apikey import APIKeyDomainService
 from strawberry.file_uploads import Upload
 
+from dipeo_server.shared.constants import DIAGRAM_VERSION
+
 from config import BASE_DIR, FILES_DIR, UPLOAD_DIR
 
 from ..context import GraphQLContext
@@ -293,7 +295,7 @@ class UploadMutations:
             if not include_metadata:
                 now = datetime.now(UTC).isoformat()
                 domain_diagram.metadata = DiagramMetadata(
-                    version="2.0.0", created=now, modified=now
+                    version=DIAGRAM_VERSION, created=now, modified=now
                 )
 
             content_str = converter.serialize(domain_diagram)

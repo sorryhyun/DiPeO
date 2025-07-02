@@ -10,6 +10,7 @@ from dipeo_diagram import converter_registry
 from dipeo_domain import DiagramMetadata, DomainDiagram
 from dipeo_domain.domains.diagram.services import DiagramFileRepository
 
+from dipeo_server.shared.constants import DIAGRAM_VERSION
 from ..types import (
     DiagramFilterInput,
     DiagramID,
@@ -75,7 +76,7 @@ class DiagramResolver:
                     .replace("_", " ")
                     .title(),
                     description=f"{format_type.title()} format diagram",
-                    version=diagram_data.get("version", "2.0.0"),
+                    version=diagram_data.get("version", DIAGRAM_VERSION),
                     created=diagram_data.get("created", datetime.now(UTC).isoformat()),
                     modified=diagram_data.get(
                         "modified", datetime.now(UTC).isoformat()
@@ -162,7 +163,7 @@ class DiagramResolver:
                     description=f"Format: {diagram_info['format']}, Size: {diagram_info['size']} bytes",
                     created=diagram_info["modified"],
                     modified=diagram_info["modified"],
-                    version="2.0.0",
+                    version=DIAGRAM_VERSION,
                 )
 
                 diagram = DomainDiagram(

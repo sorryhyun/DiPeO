@@ -30,6 +30,7 @@ generates:
         LLMService: "@dipeo/domain-models#LLMService"
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"
         ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
+        ContentType: "@dipeo/domain-models#ContentType"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

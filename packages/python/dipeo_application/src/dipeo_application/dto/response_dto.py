@@ -19,12 +19,10 @@ class ApiResponse(BaseModel, Generic[T]):
 
     @classmethod
     def ok(cls, data: T) -> "ApiResponse[T]":
-        """Create a successful response."""
         return cls(success=True, data=data, error=None)
 
     @classmethod
     def fail(cls, error: "ErrorDetail") -> "ApiResponse[T]":
-        """Create an error response."""
         return cls(success=False, data=None, error=error)
 
 

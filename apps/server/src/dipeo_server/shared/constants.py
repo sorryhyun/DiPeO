@@ -15,6 +15,9 @@ from dipeo_core.constants import (
 # API Configuration
 API_BASE_PATH: Final[str] = "/api"
 
+# Application Version
+DIAGRAM_VERSION: Final[str] = "2.0.0"
+
 # LLM Default Configuration
 DEFAULT_MAX_TOKENS: Final[int] = 4096
 DEFAULT_TEMPERATURE: Final[float] = 0.7
@@ -62,6 +65,7 @@ __all__ = [
     "DEFAULT_MEMORY_LIMIT",
     "DEFAULT_SERVICE",
     "DEFAULT_TEMPERATURE",
+    "DIAGRAM_VERSION",
     "SUPPORTED_CODE_EXTENSIONS",
     "SUPPORTED_DIAGRAM_EXTENSIONS",
     "SUPPORTED_DOC_EXTENSIONS",

@@ -11,10 +11,6 @@ export interface DiagramSlice {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   
-  // Maintain arrays for stable references
-  nodesArray: DomainNode[];
-  arrowsArray: DomainArrow[];
-  
   // Data version for tracking changes
   dataVersion: number;
   
@@ -47,16 +43,13 @@ export const createDiagramSlice: StateCreator<
   // Initialize data structures
   nodes: new Map(),
   arrows: new Map(),
-  nodesArray: [],
-  arrowsArray: [],
   dataVersion: 0,
   
-  // Node operations with array sync
+  // Node operations
   addNode: (type, position, initialData) => {
     const node = createNode(type, position, initialData);
     set(state => {
       state.nodes.set(node.id as NodeID, node);
-      state.nodesArray = Array.from(state.nodes.values());
       state.dataVersion += 1;
     });
     return node.id as NodeID;
@@ -67,7 +60,6 @@ export const createDiagramSlice: StateCreator<
     if (node) {
       const updatedNode = { ...node, ...updates };
       state.nodes.set(id, updatedNode);
-      state.nodesArray = Array.from(state.nodes.values());
       state.dataVersion += 1;
     }
   }),
@@ -77,7 +69,6 @@ export const createDiagramSlice: StateCreator<
     if (node) {
       const updatedNode = { ...node, ...updates };
       state.nodes.set(id, updatedNode);
-      state.nodesArray = Array.from(state.nodes.values());
       // No version increment for silent updates
     }
   }),
@@ -94,13 +85,11 @@ export const createDiagramSlice: StateCreator<
       
       arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
       
-      state.nodesArray = Array.from(state.nodes.values());
-      state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
     }
   }),
   
-  // Arrow operations with array sync
+  // Arrow operations
   addArrow: (source, target, data) => {
     // Extract content_type and label from data if present
     let content_type: ContentType | undefined;
@@ -130,7 +119,6 @@ export const createDiagramSlice: StateCreator<
     }
     set(state => {
       state.arrows.set(arrow.id as ArrowID, arrow);
-      state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
     });
     return arrow.id as ArrowID;
@@ -145,7 +133,6 @@ export const createDiagramSlice: StateCreator<
         updatedArrow.data = { ...arrow.data, ...updates.data };
       }
       state.arrows.set(id, updatedArrow);
-      state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
     }
   }),
@@ -153,7 +140,6 @@ export const createDiagramSlice: StateCreator<
   deleteArrow: (id) => set(state => {
     const deleted = state.arrows.delete(id);
     if (deleted) {
-      state.arrowsArray = Array.from(state.arrows.values());
       state.dataVersion += 1;
     }
   }),

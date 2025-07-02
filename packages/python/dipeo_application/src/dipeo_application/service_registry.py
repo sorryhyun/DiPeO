@@ -17,24 +17,16 @@ class LocalServiceRegistry:
         """Get a service by name, handling special cases."""
         # Service name mapping
         service_map = {
-            # File services
             "file": "file_service",
-            # Conversation service
             "conversation": "conversation_service",
-            # LLM service
             "llm": "llm_service",
-            # API key service
             "api_key": "api_key_service",
-            # Diagram storage
             "diagram_storage": "diagram_storage_service",
             "storage": "diagram_storage_service",
-            # API integration
             "api": "api_integration_service",
             "api_integration": "api_integration_service",
-            # Text processing
             "text": "text_processing_service",
             "text_processing": "text_processing_service",
-            # Notion integration
             "notion": "notion_service",
         }
 
