@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+import subprocess
 import webbrowser
 from pathlib import Path
 from typing import Any
@@ -10,6 +12,47 @@ from .server_manager import restart_backend_server, stop_backend_server
 from .utils import DiagramLoader
 
 
+def _resolve_diagram_path(path: str, format_id: str | None) -> str:
+    """Resolve short diagram names to full paths based on format.
+    
+    If the path is a short name (no path separators and no extension),
+    resolve it to the appropriate directory based on the format.
+    
+    Examples:
+        quicksave --format=light -> files/diagrams/light/quicksave.yaml
+        quicksave --format=native -> files/diagrams/native/quicksave.json
+        quicksave --format=readable -> files/diagrams/readable/quicksave.yaml
+    """
+    path_obj = Path(path)
+    
+    # Check if it's a short name (no path separators and no extension)
+    if "/" not in path and "\\" not in path and not path_obj.suffix:
+        # Determine format from options or default to native
+        if format_id is None:
+            format_id = "native"
+            
+        # Map format to directory and extension
+        format_mapping = {
+            "native": ("native", ".json"),
+            "light": ("light", ".yaml"),
+            "readable": ("readable", ".yaml")
+        }
+        
+        if format_id in format_mapping:
+            dir_name, extension = format_mapping[format_id]
+            resolved_path = f"files/diagrams/{dir_name}/{path}{extension}"
+            
+            # Check if the file exists
+            if Path(resolved_path).exists():
+                print(f"✓ Resolved '{path}' to '{resolved_path}'")
+                return resolved_path
+            else:
+                print(f"⚠️  Warning: Resolved path '{resolved_path}' does not exist")
+                # Fall back to original path
+    
+    return path
+
+
 async def run_command(args: list[str]) -> None:
     """Execute run command"""
     if not args:
@@ -18,6 +61,10 @@ async def run_command(args: list[str]) -> None:
 
     file_path = args[0]
     options = parse_run_options(args[1:])
+    
+    # Resolve short diagram names based on format
+    file_path = _resolve_diagram_path(file_path, options.format)
+    
     options.diagram_file = file_path  # Store the file path for later use
 
     # Load diagram
@@ -57,7 +104,21 @@ async def run_command(args: list[str]) -> None:
         and not options.keep_server
         and options.mode != ExecutionMode.MONITOR
     ):
-        await stop_backend_server()
+        # Only show server shutdown message if in verbose debug mode
+        verbose_debug = os.environ.get("VERBOSE_DEBUG", "false").lower() == "true"
+        if verbose_debug:
+            await stop_backend_server()
+        else:
+            # Silently stop the server for cleaner output
+            try:
+                subprocess.run(
+                    ["pkill", "-f", "python main.py"], check=False, capture_output=True
+                )
+                subprocess.run(
+                    ["pkill", "-f", "hypercorn"], check=False, capture_output=True
+                )
+            except Exception:
+                pass
     elif options.debug and (
         options.keep_server or options.mode == ExecutionMode.MONITOR
     ):

@@ -127,12 +127,35 @@ class PersonJobNodeHandler(BaseNodeHandler):
                 add_message("user", f"[developer]: {prompt}")
         elif self._has_conversation_state_input(context, diagram) and self._inputs_contain_conversation(inputs):
             # Handle conversation state inputs
-            for key, value in inputs.items():
-                if conversation_service.is_conversation(value) and key not in used_template_keys:
-                    conversation_service.rebuild_conversation_context(person_id, value)
-            # Add prompt if provided
-            if prompt:
-                add_message("user", f"[developer]: {prompt}")
+            # Get the forget_mode for the current person
+            forget_mode = props.memory_config.forget_mode if props.memory_config else None
+            
+            # For on_every_turn mode, we'll consolidate messages
+            if forget_mode == "on_every_turn" and prompt:
+                # Collect all conversation messages first
+                consolidated_messages = []
+                for key, value in inputs.items():
+                    if conversation_service.is_conversation(value) and key not in used_template_keys:
+                        for msg in value:
+                            if msg.get("role") == "assistant" and msg.get("person_id"):
+                                # Format message from other person
+                                sender_label = msg.get("person_label", msg.get("person_id"))
+                                consolidated_messages.append(f"[{sender_label}]: {msg.get('content', '')}")
+                
+                # Add consolidated message with developer prompt
+                if consolidated_messages:
+                    combined_content = "\n".join(consolidated_messages) + f"\n\n[developer]: {prompt}"
+                    add_message("user", combined_content)
+                else:
+                    add_message("user", f"[developer]: {prompt}")
+            else:
+                # Original behavior for other modes
+                for key, value in inputs.items():
+                    if conversation_service.is_conversation(value) and key not in used_template_keys:
+                        conversation_service.rebuild_conversation_context(person_id, value, forget_mode=forget_mode)
+                # Add prompt if provided
+                if prompt:
+                    add_message("user", f"[developer]: {prompt}")
         else:
             # Original behavior for non-conversation inputs
             if inputs:
@@ -163,8 +186,15 @@ class PersonJobNodeHandler(BaseNodeHandler):
         # Check if we need conversation output (for downstream nodes)
         if self._needs_conversation_output(context.current_node_id, diagram):
             # Get messages with person_id attached
-            forget_mode = props.memory_config.forget_mode if props.memory_config else None
-            output_value["conversation"] = conversation_service.get_messages_with_person_id(person_id, forget_mode)
+            # NOTE: We do NOT apply forget_mode here - downstream nodes should receive full conversation
+            messages = conversation_service.get_messages_with_person_id(person_id, forget_mode=None)
+            
+            # Add person labels to messages
+            person_label = self._get_person_label(person_id, diagram)
+            for msg in messages:
+                msg["person_label"] = person_label
+            
+            output_value["conversation"] = messages
 
         return NodeOutput(
             value=output_value,
@@ -186,6 +216,17 @@ class PersonJobNodeHandler(BaseNodeHandler):
         if not diagram:
             return None
         return next((p for p in diagram.persons if p.id == person_id), None)
+
+    def _get_person_label(self, person_id: str, diagram: Optional[DomainDiagram]) -> str:
+        """Get the label for a person from the diagram."""
+        if not diagram or not person_id:
+            return person_id or "Person"
+        
+        person = self._find_person(diagram, person_id)
+        if person:
+            return person.label or person_id
+        
+        return person_id
 
     def _has_conversation_state_input(
         self, context: RuntimeContext, diagram: Optional[DomainDiagram]

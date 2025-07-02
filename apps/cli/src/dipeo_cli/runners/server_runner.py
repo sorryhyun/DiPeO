@@ -115,7 +115,7 @@ class ServerDiagramRunner:
             async for update in client.subscribe_to_node_updates(execution_id):
                 self.last_activity_time = time.time()
 
-                node_id = update.get("nodeId", "unknown")
+                node_id = update.get("node_id", "unknown")
                 status = update.get("status", "")
 
                 if status == "pending":
@@ -191,18 +191,12 @@ class ServerDiagramRunner:
             async for update in client.subscribe_to_execution(execution_id):
                 self.last_activity_time = time.time()
                 status = update.get("status", "").upper()
-                
-                if self.options.debug:
-                    print(f"🐛 Debug: Execution status update: {status}")
 
                 if status == "COMPLETED":
                     # Try different field names for token usage
-                    token_usage = update.get("tokenUsage") or update.get("token_usage") or {}
-                    if self.options.debug:
-                        print(f"\n🐛 Debug: Execution completed update: {update}")
-                        print(f"🐛 Debug: Token usage extracted: {token_usage}")
+                    token_usage = update.get("token_usage") or {}
                     return {
-                        "context": update.get("nodeOutputs", {}),
+                        "context": update.get("node_outputs", {}),
                         "total_token_count": token_usage.get("total", 0)
                         if token_usage
                         else 0,

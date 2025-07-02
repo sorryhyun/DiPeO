@@ -43,20 +43,22 @@ async def restart_backend_server() -> None:
     start_cmd = ["python", "main.py"]
 
     try:
-        # Start server in background with debug output visible
+        # Start server in background 
+        # In debug mode with verbose flag, show all output
+        # Otherwise, capture output to reduce noise
+        verbose_debug = env.get("VERBOSE_DEBUG", "false").lower() == "true"
+        
         process = subprocess.Popen(
             start_cmd,
             cwd=server_path,
             env=env,
-            stdout=None,  # Show output in terminal
-            stderr=None,  # Show errors in terminal
+            stdout=None if verbose_debug else subprocess.DEVNULL,  # Show output only in verbose mode
+            stderr=None if verbose_debug else subprocess.DEVNULL,  # Show errors only in verbose mode
             start_new_session=True,
         )
 
-        print("⏳ Waiting for server to start...")
-
         # Wait for server to be ready with better health check
-        print("⏳ Waiting for server to be ready...")
+        print("⏳ Waiting for server to start...")
         max_wait_time = 10  # seconds
         start_time = time.time()
         server_ready = False

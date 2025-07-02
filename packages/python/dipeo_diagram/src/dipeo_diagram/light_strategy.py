@@ -42,6 +42,12 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 },
             }
 
+            # Convert legacy forgetting_mode to proper memory_config structure
+            if "forgetting_mode" in props:
+                props["memory_config"] = {
+                    "forget_mode": props.pop("forgetting_mode")
+                }
+
             # Add required fields for specific node types
             node_type = n.get("type", "job")
             if node_type == "start":

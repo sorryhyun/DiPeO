@@ -379,16 +379,12 @@ class StateRegistry:
 
     async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
         """Add token usage to existing statistics (incremental update)."""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"add_token_usage called for {execution_id} with tokens: {tokens}")
-        
+
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
 
         if state.token_usage:
-            logger.debug(f"Before update - token_usage: {state.token_usage}")
             state.token_usage.input += tokens.input
             state.token_usage.output += tokens.output
             if tokens.cached:
@@ -396,7 +392,6 @@ class StateRegistry:
                     state.token_usage.cached or 0
                 ) + tokens.cached
             state.token_usage.total = state.token_usage.input + state.token_usage.output
-            logger.debug(f"After update - token_usage: {state.token_usage}")
         else:
             state.token_usage = tokens
 

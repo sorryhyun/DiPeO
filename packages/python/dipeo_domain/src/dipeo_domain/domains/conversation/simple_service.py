@@ -182,7 +182,8 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         self, 
         person_id: str, 
         conversation_messages: List[Dict[str, Any]], 
-        clear_existing: bool = True
+        clear_existing: bool = True,
+        forget_mode: Optional[str] = None
     ) -> None:
         """Rebuild conversation context from passed messages.
         
@@ -190,6 +191,7 @@ class ConversationMemoryService(BaseService, SupportsMemory):
             person_id: The person ID to rebuild conversation for
             conversation_messages: List of message dictionaries
             clear_existing: Whether to clear existing messages first
+            forget_mode: The forget mode of the receiving person (e.g., "on_every_turn")
         """
         if not isinstance(conversation_messages, list):
             return
@@ -198,10 +200,36 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         if clear_existing:
             self.memory_service.forget_for_person(person_id, execution_id=self.current_execution_id)
         
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Rebuilding conversation for person_id={person_id}, messages count={len(conversation_messages)}, forget_mode={forget_mode}")
+        
+        # For on_every_turn mode, we should only process the incoming messages
+        # The sender has already filtered to just their last assistant message
+        if forget_mode == "on_every_turn":
+            logger.debug(f"Using on_every_turn mode for {person_id}")
+            # Filter out messages from the receiving person itself
+            conversation_messages = [
+                msg for msg in conversation_messages 
+                if msg.get("person_id") != person_id
+            ]
+            logger.debug(f"Filtered messages to {len(conversation_messages)} from other persons")
+        
         # Add messages to conversation history
         for msg in conversation_messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
+            
+            # If this is an assistant message from another person, format it as a user message
+            # with the person's label for proper context
+            if role == "assistant" and msg.get("person_id") and msg.get("person_id") != person_id:
+                # This is from another person, format with their label
+                sender_id = msg.get("person_id")
+                sender_label = msg.get("person_label", sender_id)  # Use label if available, fallback to ID
+                logger.debug(f"Message from {sender_label} (id={sender_id}) to {person_id}: {content[:100]}...")
+                content = f"[{sender_label}]: {content}"
+                role = "user"
             
             self.add_message_to_conversation(
                 person_id=person_id,

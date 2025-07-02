@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -8,6 +9,10 @@ from fastapi.responses import Response
 
 # Load environment variables first
 load_dotenv()
+
+# Suppress non-critical warnings
+warnings.filterwarnings("ignore", message="_type_definition is deprecated", category=UserWarning)
+warnings.filterwarnings("ignore", message="The config `workers` has no affect when using serve", category=Warning)
 
 # Set up logging
 logging.basicConfig(
