@@ -23,6 +23,8 @@ That's it! This single command will:
 - Generate required code
 - Start both frontend and backend services
 
+* Note that right-click is required for each edge/node property tweaks.
+
 ## Essential Scripts
 
 ### Makefile Commands
