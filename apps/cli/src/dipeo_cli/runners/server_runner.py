@@ -14,6 +14,7 @@ class ServerDiagramRunner:
         self.options = options
         self.node_timings = {} if options.debug else None
         self.last_activity_time = time.time()
+        self.node_labels = {}  # Mapping of node_id to label
 
     async def execute(
         self, diagram: dict[str, Any], host: str = "localhost:8000"
@@ -28,6 +29,14 @@ class ServerDiagramRunner:
 
         async with DiPeoAPIClient(host=host) as client:
             try:
+                # Extract node labels from diagram
+                if "nodes" in diagram:
+                    for node in diagram["nodes"]:
+                        node_id = node.get("id", "")
+                        node_data = node.get("data", {})
+                        label = node_data.get("label", node_id)  # Fallback to ID if no label
+                        self.node_labels[node_id] = label
+
                 # For CLI, we can execute diagrams directly without saving
                 if self.options.debug:
                     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -117,16 +126,19 @@ class ServerDiagramRunner:
 
                 node_id = update.get("node_id", "unknown")
                 status = update.get("status", "")
+                
+                # Get node label, fallback to ID if not found
+                node_label = self.node_labels.get(node_id, node_id)
 
                 if status == "pending":
-                    print(f"\n🔄 Executing node: {node_id}")
+                    print(f"\n🔄 Executing node: {node_label}")
                     if self.options.debug:
                         self.node_timings[node_id] = {"start": time.time()}
                         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                        print(f"   [🕰️ {timestamp}] Node started")
+                        print(f"   [🕰️ {timestamp}] Node started (ID: {node_id})")
 
                 elif status == "completed":
-                    print(f"✅ Node {node_id} completed")
+                    print(f"✅ Node '{node_label}' completed")
 
                     if self.options.debug and node_id in self.node_timings:
                         self.node_timings[node_id]["end"] = time.time()
@@ -145,7 +157,7 @@ class ServerDiagramRunner:
 
                 elif status == "failed":
                     error = update.get("error", "Unknown error")
-                    print(f"❌ Node {node_id} failed: {error}")
+                    print(f"❌ Node '{node_label}' failed: {error}")
 
         except asyncio.CancelledError:
             pass
@@ -165,8 +177,11 @@ class ServerDiagramRunner:
 
                 node_id = prompt.get("node_id")
                 prompt_text = prompt.get("prompt", "Input required:")
-
-                print(f"\n💬 {prompt_text}")
+                
+                # Get node label for display
+                node_label = self.node_labels.get(node_id, node_id)
+                
+                print(f"\n💬 [{node_label}] {prompt_text}")
                 user_input = input("Your response: ")
 
                 await client.submit_interactive_response(
