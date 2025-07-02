@@ -36,7 +36,7 @@ make install-all                  # Install all dependencies
 
 ### `./dipeo` - Run Diagrams
 ```bash
-./dipeo run files/diagrams/native/quicksave.json --debug
+./dipeo run quicksave --debug --format=native
 ```
 
 ### Docs
@@ -47,4 +47,12 @@ Note [docs](docs)
 - Python 3.13+
 - tmux (optional, for better parallel execution)
 
+## Next Release will be
+- Endpoint with MCP
+- Tool use for each LLMs
+- Claude Support
 
+## Near-future objectives
+- Gemini, Claude, Grok support
+- Custom LLM support
+- Job node support
