@@ -55,12 +55,18 @@ def _create_file_service(base_dir):
     return FileSystemRepository(base_dir=base_dir)
 
 
-def _create_conversation_service():
+def _create_memory_service():
+    from dipeo_infra.persistence.memory import MemoryService
+    
+    return MemoryService()
+
+
+def _create_conversation_service(memory_service):
     from dipeo_domain.domains.conversation.simple_service import (
         ConversationMemoryService,
     )
 
-    return ConversationMemoryService()
+    return ConversationMemoryService(memory_service)
 
 
 def _create_llm_service(api_key_service):
@@ -262,7 +268,12 @@ class Container(containers.DeclarativeContainer):
         base_dir=base_dir,
     )
 
-    conversation_service = providers.Singleton(_create_conversation_service)
+    memory_service = providers.Singleton(_create_memory_service)
+
+    conversation_service = providers.Singleton(
+        _create_conversation_service,
+        memory_service=memory_service,
+    )
 
     llm_service = providers.Singleton(
         _create_llm_service,

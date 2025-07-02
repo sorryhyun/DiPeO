@@ -139,13 +139,6 @@ class Subscription:
                         if state:
                             yield state
                     else:
-                        # For other updates, fetch current state
-                        # If execution is complete, wait a bit for final state updates
-                        # For execution completion we might have evicted the state from
-                        # the in-memory cache (the StateRegistry removes finished
-                        # executions to keep the cache size small).  In that case fall
-                        # back to the persistent store so that subscribers still receive
-                        # the final state with status = COMPLETED/FAILED/ABORTED.
 
                         if update.get("type") == "execution_complete":
                             # Give the persistence layer a brief moment to flush the
@@ -160,19 +153,8 @@ class Subscription:
                         if not state:
                             state = await state_store.get_state(execution_id)
 
-                        if state:
-                            logger.debug(
-                                f"Yielding state with token_usage: {state.token_usage}"
-                            )
-                            yield state
-                        else:
-                            # No state found (likely evicted). We still want to notify
-                            # clients that the execution has finished, so we break out
-                            # of the loop even without yielding a final state.
-                            logger.debug(
-                                "No execution state found in cache or DB after completion."
-                            )
-                            break
+                        if state: yield state
+                        else: break
 
                     # Check if execution is complete
                     if state and state.status in [
@@ -184,9 +166,6 @@ class Subscription:
                         break
 
                 except TimeoutError:
-                    # Send heartbeat by re-fetching state. Use the same cache->db
-                    # fallback logic as above so that clients can still obtain the
-                    # final state even after it has been evicted from the cache.
                     state = await state_store.get_state_from_cache(execution_id)
                     if not state:
                         state = await state_store.get_state(execution_id)

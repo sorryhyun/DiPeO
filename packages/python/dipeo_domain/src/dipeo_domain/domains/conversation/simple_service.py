@@ -1,7 +1,6 @@
 # Simplified conversation memory service focused on essential features.
 
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from dipeo_core import BaseService, SupportsMemory
 
@@ -10,10 +9,10 @@ class ConversationMemoryService(BaseService, SupportsMemory):
     # Minimal conversation memory for person_job nodes.
     # Supports system, user, assistant, and external message roles.
 
-    def __init__(self):
+    def __init__(self, memory_service: SupportsMemory):
         super().__init__()
-        # Simple structure: {person_id: [messages]}
-        self._conversations: Dict[str, List[Dict[str, str]]] = {}
+        self.memory_service = memory_service
+        self.current_execution_id: Optional[str] = None
 
     async def initialize(self) -> None:
         pass
@@ -21,31 +20,57 @@ class ConversationMemoryService(BaseService, SupportsMemory):
     def add_message_to_conversation(
         self,
         person_id: str,
-        execution_id: str,  # Required by interface but not used
+        execution_id: str,
         role: str,
         content: str,
-        current_person_id: str,  # Required by interface but not used
-        node_id: Optional[str] = None,  # Required by interface but not used
-        timestamp: Optional[float] = None,  # Required by interface but not used
+        current_person_id: str,
+        node_id: Optional[str] = None,
+        timestamp: Optional[float] = None,
     ) -> None:
-        """Main method to add a message. Extra parameters exist for interface compatibility but are ignored."""
-        if person_id not in self._conversations:
-            self._conversations[person_id] = []
+        """Main method to add a message. Delegates to memory service."""
+        # Store current execution ID for other methods to use
+        if execution_id:
+            self.current_execution_id = execution_id
         
-        self._conversations[person_id].append({"role": role, "content": content})
+        # Delegate to memory service
+        self.memory_service.add_message_to_conversation(
+            person_id=person_id,
+            execution_id=execution_id,
+            role=role,
+            content=content,
+            current_person_id=current_person_id,
+            node_id=node_id,
+            timestamp=timestamp
+        )
     
     def add_message(self, person_id: str, role: str, content: str) -> None:
         """Simplified method that delegates to add_message_to_conversation."""
         self.add_message_to_conversation(
             person_id=person_id,
-            execution_id="",
+            execution_id=self.current_execution_id or "",
             role=role,
             content=content,
-            current_person_id=""
+            current_person_id=person_id
         )
 
     def get_messages(self, person_id: str) -> List[Dict[str, str]]:
-        return self._conversations.get(person_id, [])
+        """Get messages for a person from the memory service."""
+        if not self.current_execution_id:
+            return []
+        
+        # Get conversation history from memory service
+        history = self.memory_service.get_conversation_history(person_id)
+        
+        # Filter by current execution and format for output
+        messages = []
+        for msg in history:
+            if msg.get("execution_id") == self.current_execution_id:
+                messages.append({
+                    "role": msg.get("role", ""),
+                    "content": msg.get("content", "")
+                })
+        
+        return messages
 
     def _clear_messages(
         self, 
@@ -59,51 +84,41 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         
         By default keeps all messages. Set parameters to False to clear specific roles.
         """
-        if person_id not in self._conversations:
-            return
+        # For now, use forget_for_person if we need to clear everything
+        # In the future, this could be enhanced to support role-based clearing
+        if not keep_system and not keep_user and not keep_assistant and not keep_external:
+            self.memory_service.forget_for_person(person_id, self.current_execution_id)
+        elif not keep_assistant:
+            # Special case for clearing only assistant messages
+            self.memory_service.forget_own_messages_for_person(person_id, self.current_execution_id)
 
-        roles_to_keep = set()
-        if keep_system:
-            roles_to_keep.add("system")
-        if keep_user:
-            roles_to_keep.add("user")
-        if keep_assistant:
-            roles_to_keep.add("assistant")
-        if keep_external:
-            roles_to_keep.add("external")
+    def get_or_create_person_memory(self, person_id: str) -> Any:
+        # Delegate to memory service
+        return self.memory_service.get_or_create_person_memory(person_id)
 
-        self._conversations[person_id] = [
-            msg for msg in self._conversations[person_id] 
-            if msg["role"] in roles_to_keep
-        ]
-
-    def get_or_create_person_memory(self, person_id: str) -> None:
-        # No-op: initialization happens automatically in add_message_to_conversation
-        pass
-
-    def get_conversation_history(self, person_id: str) -> List[Dict[str, str]]:
-        # Interface method - delegates to get_messages
-        return self.get_messages(person_id)
+    def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
+        # Interface method - delegates to memory service
+        return self.memory_service.get_conversation_history(person_id)
 
     def forget_for_person(
         self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
-        # Interface method - clear all messages
-        self._clear_messages(person_id, keep_system=False, keep_user=False, 
-                           keep_assistant=False, keep_external=False)
+        # Interface method - delegate to memory service
+        self.memory_service.forget_for_person(person_id, execution_id or self.current_execution_id)
 
     def forget_own_messages_for_person(
         self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
-        # Interface method - clear only assistant messages
-        self._clear_messages(person_id, keep_system=True, keep_user=True, 
-                           keep_assistant=False, keep_external=True)
+        # Interface method - delegate to memory service
+        self.memory_service.forget_own_messages_for_person(person_id, execution_id or self.current_execution_id)
 
     def clear_all_conversations(self) -> None:
-        self._conversations.clear()
+        # Delegate to memory service
+        self.memory_service.clear_all_conversations()
 
     async def save_conversation_log(self, execution_id: str, log_dir: any) -> str:
-        return f"{log_dir}/conversation_{execution_id}.json"
+        # Delegate to memory service
+        return await self.memory_service.save_conversation_log(execution_id, log_dir)
     
     def get_messages_for_output(self, person_id: str, forget_mode: Optional[str] = None) -> List[Dict[str, str]]:
         """Get messages to pass to downstream nodes, respecting forgetting mode."""
@@ -136,32 +151,6 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         return messages
     
     
-    @staticmethod
-    def substitute_template(template: str, values: Dict[str, Any]) -> Tuple[str, List[str], List[str]]:
-        """Substitute {{placeholders}} in template with values.
-        
-        Note: This is a utility method that could be moved to a separate utilities module.
-        
-        Returns:
-            tuple: (substituted_string, list_of_missing_keys, list_of_used_keys)
-        """
-        missing_keys = []
-        used_keys = []
-        
-        def replacer(match):
-            key = match.group(1)
-            if key in values:
-                used_keys.append(key)
-                return str(values[key])
-            else:
-                missing_keys.append(key)
-                return match.group(0)  # Keep original placeholder
-        
-        # Match {{key}} pattern
-        pattern = r'\{\{(\w+)\}\}'
-        result = re.sub(pattern, replacer, template)
-        
-        return result, missing_keys, used_keys
     
     def get_messages_with_person_id(self, person_id: str, forget_mode: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get messages for output with person_id attached."""
@@ -176,106 +165,50 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         
         return messages_with_id
     
-    def process_conversation_inputs(
-        self,
-        person_id: str,
-        inputs: Dict[str, Any],
-        prompt: Optional[str] = None,
-        used_template_keys: Optional[set] = None,
-        diagram: Optional[Any] = None
-    ) -> Optional[str]:
-        """Process conversation inputs and return remaining prompt if any.
+    def is_conversation(self, value: Any) -> bool:
+        """Check if a value is a conversation (list of messages)."""
+        if not isinstance(value, list) or not value:
+            return False
         
-        Simplifies conversation handling by:
-        1. Extracting the last opponent message from conversation data
-        2. Formatting it with opponent label and developer prompt
-        3. Adding as a single user message
+        # Check if all items look like messages
+        return all(
+            isinstance(item, dict) and 
+            'role' in item and 
+            'content' in item 
+            for item in value
+        )
+    
+    def rebuild_conversation_context(
+        self, 
+        person_id: str, 
+        conversation_messages: List[Dict[str, Any]], 
+        clear_existing: bool = True
+    ) -> None:
+        """Rebuild conversation context from passed messages.
         
-        Returns:
-            Optional[str]: The prompt if it wasn't consumed, None otherwise.
+        Args:
+            person_id: The person ID to rebuild conversation for
+            conversation_messages: List of message dictionaries
+            clear_existing: Whether to clear existing messages first
         """
-        if used_template_keys is None:
-            used_template_keys = set()
+        if not isinstance(conversation_messages, list):
+            return
         
-        prompt_consumed = False
+        # Clear existing conversation if requested
+        if clear_existing:
+            self.memory_service.forget_for_person(person_id, execution_id=self.current_execution_id)
         
-        for key, value in inputs.items():
-            if not value or key in used_template_keys:
-                continue
-                
-            # Check if this is conversation data
-            is_conversation = (
-                key == "conversation" or 
-                (key == "default" and 
-                 isinstance(value, list) and 
-                 value and 
-                 isinstance(value[0], dict) and 
-                 "role" in value[0])
+        # Add messages to conversation history
+        for msg in conversation_messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            self.add_message_to_conversation(
+                person_id=person_id,
+                execution_id=self.current_execution_id or "",
+                role=role,
+                content=content,
+                current_person_id=person_id
             )
-            
-            if is_conversation:
-                # Extract opponent's last message
-                opponent_message = self._extract_last_message(value)
-                
-                # Build formatted message
-                message_parts = []
-                
-                if opponent_message:
-                    opponent_label = self._get_opponent_label(opponent_message, diagram)
-                    message_parts.append(f"[{opponent_label}]: {opponent_message['content']}")
-                
-                if prompt:
-                    message_parts.append(f"[developer]: {prompt}")
-                    prompt_consumed = True
-                
-                # Add as a single user message
-                if message_parts:
-                    self.add_message_to_conversation(
-                        person_id=person_id,
-                        execution_id="",
-                        role="user",
-                        content="\n".join(message_parts),
-                        current_person_id=""
-                    )
-            else:
-                # Other non-conversation inputs - add as user message
-                self.add_message_to_conversation(
-                    person_id=person_id,
-                    execution_id="",
-                    role="user",
-                    content=str(value),
-                    current_person_id=""
-                )
-        
-        return None if prompt_consumed else prompt
     
-    @staticmethod
-    def _extract_last_message(conversation_value: Any) -> Optional[Dict[str, str]]:
-        """Extract the last relevant message from conversation data."""
-        if not isinstance(conversation_value, list) or not conversation_value:
-            return None
-            
-        # For on_every_turn mode, we expect only one message
-        if len(conversation_value) == 1:
-            return conversation_value[0]
-        
-        # Otherwise, find the last assistant message
-        for msg in reversed(conversation_value):
-            if msg.get("role") == "assistant":
-                return msg
-        
-        # Fallback to last message
-        return conversation_value[-1]
     
-    @staticmethod
-    def _get_opponent_label(message: Dict[str, str], diagram: Optional[Any]) -> str:
-        """Get the label for the opponent from the message and diagram."""
-        if "person_id" not in message or not diagram:
-            return "Opponent"
-            
-        person_id = message["person_id"]
-        for person in getattr(diagram, "persons", []):
-            if person.id == person_id:
-                return person.label or person_id
-                
-        return "Opponent"

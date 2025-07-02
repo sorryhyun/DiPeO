@@ -13,6 +13,8 @@ from dipeo_domain.models import (
 )
 from pydantic import BaseModel
 
+from ..utils.template import substitute_template
+
 
 @register_handler
 class PersonJobNodeHandler(BaseNodeHandler):
@@ -42,19 +44,21 @@ class PersonJobNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute person_job node."""
-        import logging
-        log = logging.getLogger(__name__)
-        log.debug(f"PersonJobNodeHandler.execute - inputs: {inputs}, first_only_prompt: {props.first_only_prompt}")
         
         conversation_service = services["conversation"]
         llm_service = services["llm"]
         diagram: Optional[DomainDiagram] = services.get("diagram")
+        
+        # Set the current execution ID on the conversation service
+        if hasattr(conversation_service, 'current_execution_id'):
+            conversation_service.current_execution_id = context.execution_id
 
         person_id = props.person
         if not person_id:
             return NodeOutput(
                 value={"default": ""}, metadata={"error": "No person specified"}
             )
+        
 
         # Find person config
         person = self._find_person(diagram, person_id) if diagram else None
@@ -93,7 +97,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
         # Substitute template if needed
         prompt = prompt_template
         if prompt_template and "{{" in prompt_template:
-            prompt, missing_keys, used_keys = conversation_service.substitute_template(prompt_template, inputs)
+            prompt, missing_keys, used_keys = substitute_template(prompt_template, inputs)
             used_template_keys.update(used_keys)
             
             if missing_keys:
@@ -103,51 +107,40 @@ class PersonJobNodeHandler(BaseNodeHandler):
                     f"Available inputs: {available_keys}. "
                     f"Make sure the edges connecting to this node are labeled with the required keys."
                 )
-                log.error(error_msg)
                 return NodeOutput(
                     value={"default": error_msg},
                     metadata={"error": error_msg, "missing_placeholders": missing_keys}
                 )
         
-        # Check if we have conversation state input
-        has_conversation_state = self._has_conversation_state_input(context, diagram)
-        
-        # Process inputs based on whether we have conversation state
-        log.debug(f"has_conversation_state: {has_conversation_state}, inputs: {bool(inputs)}")
-        if has_conversation_state and inputs:
-            log.debug("Processing conversation state input - delegating to conversation service")
-            # Delegate all conversation input processing to the service
-            remaining_prompt = conversation_service.process_conversation_inputs(
-                person_id=person_id,
-                inputs=inputs,
-                prompt=prompt,
-                used_template_keys=used_template_keys,
-                diagram=diagram
-            )
+        # Check if we need to aggregate conversations
+        if self._has_nested_conversation(inputs):
+            # Create aggregation service on demand
+            from dipeo_domain.domains.conversation import ConversationAggregationService
+            aggregation_service = ConversationAggregationService()
             
-            # If prompt wasn't consumed, add it now
-            if remaining_prompt:
-                add_message("user", f"[developer]: {remaining_prompt}")
+            # Use aggregation service to handle complex conversation structures
+            aggregated = aggregation_service.aggregate_conversations(inputs, diagram)
+            if aggregated:
+                add_message("user", aggregated)
+            # Add prompt after aggregated conversation if provided
+            if prompt:
+                add_message("user", f"[developer]: {prompt}")
+        elif self._has_conversation_state_input(context, diagram) and self._inputs_contain_conversation(inputs):
+            # Handle conversation state inputs
+            for key, value in inputs.items():
+                if conversation_service.is_conversation(value) and key not in used_template_keys:
+                    conversation_service.rebuild_conversation_context(person_id, value)
+            # Add prompt if provided
+            if prompt:
+                add_message("user", f"[developer]: {prompt}")
         else:
-            # Original behavior for non-conversation-state inputs
+            # Original behavior for non-conversation inputs
             if inputs:
-                # Handle special conversation input from other person nodes
-                if "conversation" in inputs:
-                    pass
-                else:
-                    for key, value in inputs.items():
-                        if value and key != "conversation" and key not in used_template_keys:
-                            external_content = f"[Input from {key}]: {value}"
-                            add_message("external", external_content)
-
-            # Check if this is a judge node and add conversation context
-            if "judge" in (props.label or "").lower():
-                from dipeo_domain.utils.judge_helper import prepare_judge_context
-
-                judge_context = prepare_judge_context(inputs, diagram)
-                if judge_context:
-                    add_message("external", judge_context)
-
+                for key, value in inputs.items():
+                    if value and key not in used_template_keys and key != "conversation":
+                        external_content = f"[Input from {key}]: {value}"
+                        add_message("external", external_content)
+            
             if prompt:
                 add_message("user", prompt)
 
@@ -210,6 +203,15 @@ class PersonJobNodeHandler(BaseNodeHandler):
                             return True
         return False
     
+    def _inputs_contain_conversation(self, inputs: dict[str, Any]) -> bool:
+        """Check if the inputs contain conversation data."""
+        for key, value in inputs.items():
+            if isinstance(value, list) and value:
+                # Check if it's a list of conversation messages
+                if all(isinstance(item, dict) and "role" in item and "content" in item for item in value):
+                    return True
+        return False
+    
     def _needs_conversation_output(
         self, node_id: str, diagram: Optional[DomainDiagram]
     ) -> bool:
@@ -220,4 +222,33 @@ class PersonJobNodeHandler(BaseNodeHandler):
             if arrow.source.startswith(node_id + ":"):
                 if arrow.content_type == ContentType.conversation_state:
                     return True
+        return False
+    
+    def _has_nested_conversation(self, inputs: dict[str, Any]) -> bool:
+        """Check if inputs contain nested conversation structures."""
+        for key, value in inputs.items():
+            # Check for direct conversation
+            if isinstance(value, list) and value and all(
+                isinstance(item, dict) and 'role' in item and 'content' in item 
+                for item in value
+            ):
+                return True
+                
+            # Check for nested structures
+            if isinstance(value, dict) and 'default' in value:
+                nested = value['default']
+                if isinstance(nested, list) and nested and all(
+                    isinstance(item, dict) and 'role' in item and 'content' in item 
+                    for item in nested
+                ):
+                    return True
+                # Check double nesting
+                if isinstance(nested, dict) and 'default' in nested:
+                    double_nested = nested['default']
+                    if isinstance(double_nested, list) and double_nested and all(
+                        isinstance(item, dict) and 'role' in item and 'content' in item 
+                        for item in double_nested
+                    ):
+                        return True
+        
         return False

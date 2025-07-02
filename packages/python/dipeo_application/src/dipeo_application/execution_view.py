@@ -83,9 +83,7 @@ class NodeView:
             label = edge.label
             source_values = edge.source_view.output.value
 
-            log.debug(
-                f"  Edge from {edge.source_view.id} - label={label}, source_values keys={list(source_values.keys())}"
-            )
+            # Process edge from source
 
             value = None
             # Special handling for condition nodes - use source handle to select branch
@@ -94,35 +92,29 @@ class NodeView:
                 source_handle = edge.source_handle
                 if source_handle in source_values:
                     value = source_values[source_handle]
-                    log.debug(f"    Using '{source_handle}' branch value from condition node")
+                    pass  # Using branch value from condition node
             # Special handling for conversation_state edges
             elif edge.content_type == "conversation_state" and "conversation" in source_values:
                 value = source_values["conversation"]
-                log.debug(f"    Using 'conversation' value for conversation_state edge")
+                pass  # Using conversation value for conversation_state edge
             elif label in source_values:
                 value = source_values[label]
-                log.debug(
-                    f"    Found exact match for label '{label}': {repr(value)[:100]}"
-                )
+                pass  # Found exact match for label
             elif "default" in source_values:
                 value = source_values["default"]
-                log.debug(
-                    f"    Using 'default' value for label '{label}': {repr(value)[:100]}"
-                )
+                pass  # Using default value
             elif "conversation" in source_values:
                 value = source_values["conversation"]
-                log.debug(f"    Using 'conversation' value for label '{label}'")
+                pass  # Using conversation value
             elif len(source_values) == 1:
                 value = list(source_values.values())[0]
-                log.debug(
-                    f"    Using only available value for label '{label}': {repr(value)[:100]}"
-                )
+                pass  # Using only available value
             else:
-                log.debug(f"    No suitable value found for label '{label}'")
+                pass  # No suitable value found
             if value is not None:
                 inputs[label] = value
 
-        log.debug(f"  Final inputs for {self.id}: {list(inputs.keys())}")
+        # Return final inputs
         return inputs
 
 

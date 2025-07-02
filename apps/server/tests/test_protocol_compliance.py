@@ -24,7 +24,7 @@ class TestProtocolCompliance:
         """Test that LLMInfraService implements SupportsLLM protocol."""
         from dipeo_domain.domains.apikey.service import APIKeyDomainService
 
-        from dipeo_server.infra.external.llm.services import LLMInfraService
+        from dipeo_infra import LLMInfraService
 
         # Create mock dependencies
         api_key_service = APIKeyDomainService()
@@ -77,11 +77,9 @@ class TestProtocolCompliance:
 
     def test_conversation_service_compliance(self):
         """Test that ConversationMemoryDomainService implements SupportsMemory protocol."""
-        from dipeo_domain.domains.conversation.service import (
-            ConversationMemoryDomainService,
-        )
+        from dipeo_domain.domains.conversation.simple_service import ConversationMemoryService
 
-        conversation_service = ConversationMemoryDomainService()
+        conversation_service = ConversationMemoryService()
 
         # Protocol compliance check
         assert isinstance(conversation_service, SupportsMemory), (
@@ -99,7 +97,7 @@ class TestProtocolCompliance:
 
     def test_message_router_compliance(self):
         """Test that MessageRouter implements MessageRouterPort protocol."""
-        from dipeo_server.infra.messaging.message_router import MessageRouter
+        from dipeo_infra import MessageRouter
 
         message_router = MessageRouter()
 

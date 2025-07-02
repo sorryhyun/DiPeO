@@ -37,6 +37,7 @@ from dipeo_server.infra.external.integrations.notion import NotionAPIService
 from dipeo_server.infra.persistence import FileSystemRepository
 from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR
+from dipeo_infra.persistence.memory import MemoryService
 
 
 class ServerContainer(BaseContainer):
@@ -65,8 +66,13 @@ class ServerContainer(BaseContainer):
         base_dir=providers.Factory(lambda: BASE_DIR),
     )
 
+    memory_service = providers.Singleton(
+        MemoryService,
+    )
+    
     conversation_memory_service = providers.Singleton(
         ConversationMemoryService,
+        memory_service=memory_service,
     )
 
     diagram_file_repository = providers.Singleton(
