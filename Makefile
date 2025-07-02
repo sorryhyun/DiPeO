@@ -18,7 +18,8 @@ help:
 # Combined install
 install:
 	@echo "📦 Installing dependencies..."
-	pip install -r requirements.txt -e ./apps/server -e ./apps/cli
+	pip install -r requirements.txt
+	pip install -e ./apps/server -e ./apps/cli
 	pnpm install
 	@echo "✅ All dependencies installed!"
 

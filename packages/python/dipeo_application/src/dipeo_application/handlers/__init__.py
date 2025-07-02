@@ -8,6 +8,7 @@ as they orchestrate across multiple domains.
 from .condition import ConditionNodeHandler
 from .db import DBNodeHandler
 from .endpoint import EndpointNodeHandler
+from .job import JobNodeHandler
 from .notion import NotionNodeHandler
 from .person_batch_job import PersonBatchJobNodeHandler
 from .person_job import PersonJobNodeHandler
@@ -18,6 +19,7 @@ __all__ = [
     "ConditionNodeHandler",
     "DBNodeHandler",
     "EndpointNodeHandler",
+    "JobNodeHandler",
     "NotionNodeHandler",
     "PersonBatchJobNodeHandler",
     "PersonJobNodeHandler",
