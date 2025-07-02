@@ -177,30 +177,30 @@ export function useExecutionUpdates({
     const status = (nodeUpdates.status || '').toLowerCase();
 
     if (status === 'running') {
-      handleNodeStart(nodeUpdates.nodeId, nodeUpdates.nodeType);
+      handleNodeStart(nodeUpdates.node_id, nodeUpdates.node_type);
     } else if (status === 'completed') {
-      handleNodeComplete(nodeUpdates.nodeId, nodeUpdates.tokensUsed || undefined, nodeUpdates.output);
+      handleNodeComplete(nodeUpdates.node_id, nodeUpdates.tokens_used || undefined, nodeUpdates.output);
     } else if (status === 'failed') {
-      updateNodeState(nodeUpdates.nodeId, {
+      updateNodeState(nodeUpdates.node_id, {
         status: 'error',
         endTime: new Date(),
         error: nodeUpdates.error || 'Unknown error'
       });
       
-      executionActions.updateNodeExecution(nodeId(nodeUpdates.nodeId), {
+      executionActions.updateNodeExecution(nodeId(nodeUpdates.node_id), {
         status: NodeExecutionStatus.FAILED,
         timestamp: Date.now(),
         error: nodeUpdates.error ?? undefined
       });
       
       if (showToasts) {
-        toast.error(`Node ${nodeUpdates.nodeId.slice(0, 8)}... failed: ${nodeUpdates.error}`);
+        toast.error(`Node ${nodeUpdates.node_id.slice(0, 8)}... failed: ${nodeUpdates.error}`);
       }
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR,
         execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeUpdates.nodeId),
+        node_id: nodeId(nodeUpdates.node_id),
         error: nodeUpdates.error || undefined, 
         status: NodeExecutionStatus.FAILED, 
         timestamp: new Date().toISOString() 
@@ -208,13 +208,13 @@ export function useExecutionUpdates({
     } else if (status === 'skipped') {
       incrementCompletedNodes();
       
-      updateNodeState(nodeUpdates.nodeId, {
+      updateNodeState(nodeUpdates.node_id, {
         status: 'skipped',
         endTime: new Date(),
       });
       
-      addSkippedNode(nodeUpdates.nodeId, 'Skipped');
-      executionActions.updateNodeExecution(nodeId(nodeUpdates.nodeId), {
+      addSkippedNode(nodeUpdates.node_id, 'Skipped');
+      executionActions.updateNodeExecution(nodeId(nodeUpdates.node_id), {
         status: NodeExecutionStatus.SKIPPED,
         timestamp: Date.now()
       });
@@ -222,19 +222,19 @@ export function useExecutionUpdates({
       onUpdate?.({ 
         type: EventType.EXECUTION_UPDATE,
         execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeUpdates.nodeId),
+        node_id: nodeId(nodeUpdates.node_id),
         status: NodeExecutionStatus.SKIPPED, 
         timestamp: new Date().toISOString() 
       });
     } else if (status === 'paused') {
-      updateNodeState(nodeUpdates.nodeId, {
+      updateNodeState(nodeUpdates.node_id, {
         status: 'paused'
       });
       
       onUpdate?.({ 
         type: EventType.NODE_STATUS_CHANGED, 
         execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeUpdates.nodeId),
+        node_id: nodeId(nodeUpdates.node_id),
         status: NodeExecutionStatus.PAUSED, 
         timestamp: new Date().toISOString() 
       });
@@ -242,14 +242,14 @@ export function useExecutionUpdates({
     
     // Handle progress updates
     if (nodeUpdates.progress) {
-      updateNodeState(nodeUpdates.nodeId, {
+      updateNodeState(nodeUpdates.node_id, {
         progress: nodeUpdates.progress
       });
       
       onUpdate?.({ 
         type: EventType.NODE_PROGRESS, 
         execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeUpdates.nodeId),
+        node_id: nodeId(nodeUpdates.node_id),
         status: NodeExecutionStatus.RUNNING, 
         timestamp: new Date().toISOString() 
       });
@@ -262,15 +262,15 @@ export function useExecutionUpdates({
     
     setInteractivePrompt({
       executionId: executionId(interactivePrompts.execution_id),
-      nodeId: nodeId(interactivePrompts.nodeId),
+      nodeId: nodeId(interactivePrompts.node_id),
       prompt: interactivePrompts.prompt,
-      timeout: interactivePrompts.timeoutSeconds || undefined,
+      timeout: interactivePrompts.timeout_seconds || undefined,
     });
     
     onUpdate?.({ 
       type: EventType.INTERACTIVE_PROMPT, 
       execution_id: executionId(executionIdRef.current!),
-      node_id: nodeId(interactivePrompts.nodeId),
+      node_id: nodeId(interactivePrompts.node_id),
       status: NodeExecutionStatus.PAUSED, 
       timestamp: new Date().toISOString() 
     });

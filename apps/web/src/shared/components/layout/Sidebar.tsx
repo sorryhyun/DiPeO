@@ -129,6 +129,8 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
           ...arrow.data,
           id: arrow.id,
           type: 'arrow' as const,
+          content_type: arrow.content_type,
+          label: arrow.label,
           _sourceNodeType: sourceNode?.type
         };
       }

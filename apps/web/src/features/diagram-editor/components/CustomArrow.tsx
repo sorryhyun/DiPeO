@@ -65,7 +65,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
         'empty': '⚪',
         'generic': '🔄',
       };
-      return <span>{arrowData.contentType && icons[arrowData.contentType] || '📋'}</span>;
+      return <span>{icons[arrowData.content_type] || '📋'}</span>;
     }
     
     // If arrow has a label but no content_type, assume it's raw text

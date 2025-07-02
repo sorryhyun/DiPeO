@@ -59,7 +59,7 @@ class ExecutionMutations:
 
             diagram_id = data.diagram_id if data.diagram_id else None
             execution = await state_store.create_execution(
-                execution_id, diagram_id, options
+                execution_id, diagram_id, data.variables
             )
 
             # Start the actual execution asynchronously

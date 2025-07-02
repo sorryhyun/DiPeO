@@ -1,47 +1,17 @@
 """Simplified person_job handler with direct implementation."""
 
-import re
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
 from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
 from dipeo_domain.models import (
     ChatResult,
+    ContentType,
     DomainDiagram,
     DomainPerson,
     NodeOutput,
     PersonJobNodeData,
 )
 from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from dipeo_domain.domains.conversation.simple_service import (
-        ConversationMemoryService,
-    )
-
-
-def substitute_template(template: str, values: dict[str, Any]) -> tuple[str, list[str], list[str]]:
-    """Substitute {{placeholders}} in template with values.
-    
-    Returns:
-        tuple: (substituted_string, list_of_missing_keys, list_of_used_keys)
-    """
-    missing_keys = []
-    used_keys = []
-    
-    def replacer(match):
-        key = match.group(1)
-        if key in values:
-            used_keys.append(key)
-            return str(values[key])
-        else:
-            missing_keys.append(key)
-            return match.group(0)  # Keep original placeholder
-    
-    # Match {{key}} pattern
-    pattern = r'\{\{(\w+)\}\}'
-    result = re.sub(pattern, replacer, template)
-    
-    return result, missing_keys, used_keys
 
 
 @register_handler
@@ -76,7 +46,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
         log = logging.getLogger(__name__)
         log.debug(f"PersonJobNodeHandler.execute - inputs: {inputs}, first_only_prompt: {props.first_only_prompt}")
         
-        conversation_service: "ConversationMemoryService" = services["conversation"]
+        conversation_service = services["conversation"]
         llm_service = services["llm"]
         diagram: Optional[DomainDiagram] = services.get("diagram")
 
@@ -93,21 +63,37 @@ class PersonJobNodeHandler(BaseNodeHandler):
                 value={"default": ""}, metadata={"error": "Person not found"}
             )
 
+        # Create a helper to reduce redundant parameters
+        def add_message(role: str, content: str) -> None:
+            """Helper to add messages with consistent parameters."""
+            conversation_service.add_message_to_conversation(
+                person_id=person_id,
+                execution_id=context.execution_id,
+                role=role,
+                content=content,
+                current_person_id=person_id
+            )
+        
         # Handle forgetting based on memory config
         if props.memory_config and props.memory_config.forget_mode == "on_every_turn":
             if context.get_node_execution_count(context.current_node_id) > 0:
-                conversation_service.clear_own_messages(person_id)
+                # Use interface method for forgetting only assistant messages
+                conversation_service.forget_own_messages_for_person(person_id)
 
-        # Track which keys are used in template substitution to avoid duplication
+        # Track which keys are used in template substitution
         used_template_keys = set()
         
         # Build prompt
         exec_count = context.get_node_execution_count(context.current_node_id)
         if exec_count == 0 and props.first_only_prompt:
-            # For first execution, use inputs for template substitution
-            # but don't include them in the prompt text
-            log.debug(f"Attempting template substitution with inputs: {inputs}")
-            prompt, missing_keys, used_keys = substitute_template(props.first_only_prompt, inputs)
+            prompt_template = props.first_only_prompt
+        else:
+            prompt_template = props.default_prompt or ""
+        
+        # Substitute template if needed
+        prompt = prompt_template
+        if prompt_template and "{{" in prompt_template:
+            prompt, missing_keys, used_keys = conversation_service.substitute_template(prompt_template, inputs)
             used_template_keys.update(used_keys)
             
             if missing_keys:
@@ -122,70 +108,51 @@ class PersonJobNodeHandler(BaseNodeHandler):
                     value={"default": error_msg},
                     metadata={"error": error_msg, "missing_placeholders": missing_keys}
                 )
-            
-            log.debug(f"Template substitution successful: {prompt}")
-        else:
-            prompt = props.default_prompt or ""
-            # Check if default_prompt has placeholders and substitute them
-            if prompt and "{{" in prompt:
-                prompt, missing_keys, used_keys = substitute_template(prompt, inputs)
-                used_template_keys.update(used_keys)
-                
-                if missing_keys:
-                    available_keys = list(inputs.keys())
-                    error_msg = (
-                        f"Missing placeholder(s) {missing_keys} in default prompt. "
-                        f"Available inputs: {available_keys}. "
-                        f"Make sure the edges connecting to this node are labeled with the required keys."
-                    )
-                    log.error(error_msg)
-                    return NodeOutput(
-                        value={"default": error_msg},
-                        metadata={"error": error_msg, "missing_placeholders": missing_keys}
-                    )
         
-        # Add external inputs as separate messages (only for keys not used in template)
-        if inputs:
-            # Handle special conversation input from other person nodes
-            if "conversation" in inputs:
-                # This is handled by judge_helper logic below
-                pass
-            else:
-                # Add other external inputs (from DB, API, etc.) as external messages
-                # Only add if they weren't already used in template substitution
-                for key, value in inputs.items():
-                    if value and key != "conversation" and key not in used_template_keys:
-                        # Format the external input with its source
-                        external_content = f"[Input from {key}]: {value}"
-                        conversation_service.add_message(person_id, "external", external_content)
-
-        # Check if this is a judge node and add conversation context
-        if "judge" in (props.label or "").lower():
-            from dipeo_domain.utils.judge_helper import prepare_judge_context
-
-            judge_context = prepare_judge_context(inputs, diagram)
-            if judge_context:
-                # Add judge context as external message
-                conversation_service.add_message(person_id, "external", judge_context)
-
-        # Add prompt to conversation
-        if prompt:
-            conversation_service.add_message(person_id, "user", prompt)
-
-        # Get messages and add system prompt
-        messages = []
-        if person.llm_config and person.llm_config.system_prompt:
-            messages.append(
-                {"role": "system", "content": person.llm_config.system_prompt}
+        # Check if we have conversation state input
+        has_conversation_state = self._has_conversation_state_input(context, diagram)
+        
+        # Process inputs based on whether we have conversation state
+        log.debug(f"has_conversation_state: {has_conversation_state}, inputs: {bool(inputs)}")
+        if has_conversation_state and inputs:
+            log.debug("Processing conversation state input - delegating to conversation service")
+            # Delegate all conversation input processing to the service
+            remaining_prompt = conversation_service.process_conversation_inputs(
+                person_id=person_id,
+                inputs=inputs,
+                prompt=prompt,
+                used_template_keys=used_template_keys,
+                diagram=diagram
             )
-        
-        # Convert messages, mapping 'external' to 'system' for LLM compatibility
-        for msg in conversation_service.get_messages(person_id):
-            if msg["role"] == "external":
-                # Convert external messages to system messages for LLM
-                messages.append({"role": "system", "content": msg["content"]})
-            else:
-                messages.append(msg)
+            
+            # If prompt wasn't consumed, add it now
+            if remaining_prompt:
+                add_message("user", f"[developer]: {remaining_prompt}")
+        else:
+            # Original behavior for non-conversation-state inputs
+            if inputs:
+                # Handle special conversation input from other person nodes
+                if "conversation" in inputs:
+                    pass
+                else:
+                    for key, value in inputs.items():
+                        if value and key != "conversation" and key not in used_template_keys:
+                            external_content = f"[Input from {key}]: {value}"
+                            add_message("external", external_content)
+
+            # Check if this is a judge node and add conversation context
+            if "judge" in (props.label or "").lower():
+                from dipeo_domain.utils.judge_helper import prepare_judge_context
+
+                judge_context = prepare_judge_context(inputs, diagram)
+                if judge_context:
+                    add_message("external", judge_context)
+
+            if prompt:
+                add_message("user", prompt)
+
+        system_prompt = person.llm_config.system_prompt if person.llm_config else None
+        messages = conversation_service.prepare_messages_for_llm(person_id, system_prompt)
 
         # Call LLM
         result: ChatResult = await llm_service.complete(
@@ -195,25 +162,16 @@ class PersonJobNodeHandler(BaseNodeHandler):
         )
 
         # Store response
-        conversation_service.add_message(person_id, "assistant", result.text)
-        
-        # Debug token usage
-        log.debug(f"PersonJobNodeHandler - result.token_usage: {result.token_usage}")
-        if result.token_usage:
-            log.debug(f"PersonJobNodeHandler - token_usage.total: {result.token_usage.total}")
+        add_message("assistant", result.text)
 
         # Prepare output
         output_value = {"default": result.text}
 
         # Check if we need conversation output (for downstream nodes)
         if self._needs_conversation_output(context.current_node_id, diagram):
-            # Add personId to messages for downstream nodes
-            conv_messages = []
-            for msg in conversation_service.get_messages(person_id):
-                msg_with_person = msg.copy()
-                msg_with_person["person_id"] = person_id
-                conv_messages.append(msg_with_person)
-            output_value["conversation"] = conv_messages
+            # Get messages with person_id attached
+            forget_mode = props.memory_config.forget_mode if props.memory_config else None
+            output_value["conversation"] = conversation_service.get_messages_with_person_id(person_id, forget_mode)
 
         return NodeOutput(
             value=output_value,
@@ -236,13 +194,28 @@ class PersonJobNodeHandler(BaseNodeHandler):
             return None
         return next((p for p in diagram.persons if p.id == person_id), None)
 
+    def _has_conversation_state_input(
+        self, context: RuntimeContext, diagram: Optional[DomainDiagram]
+    ) -> bool:
+        """Check if this node has incoming conversation state."""
+        if not diagram:
+            return False
+        
+        for edge in context.edges:
+            if edge.get("target") and edge["target"].startswith(context.current_node_id):
+                source_node_id = edge.get("source", "").split(":")[0]
+                for arrow in diagram.arrows:
+                    if arrow.source.startswith(source_node_id) and arrow.target.startswith(context.current_node_id):
+                        if arrow.content_type == ContentType.conversation_state:
+                            return True
+        return False
+    
     def _needs_conversation_output(
         self, node_id: str, diagram: Optional[DomainDiagram]
     ) -> bool:
         """Check if any outgoing edge needs conversation data."""
         if not diagram:
             return False
-        from dipeo_domain.models import ContentType
         for arrow in diagram.arrows:
             if arrow.source.startswith(node_id + ":"):
                 if arrow.content_type == ContentType.conversation_state:

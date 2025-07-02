@@ -1,7 +1,7 @@
 import type { PanelLayoutConfig, ArrowFormData } from '@/features/diagram-editor/types/panel';
 
 interface ExtendedArrowFormData extends ArrowFormData {
-  contentType?: string;
+  content_type?: string;
   objectKeyPath?: string;
   _sourceNodeType?: string;
 }
@@ -37,7 +37,7 @@ export const arrowPanelConfig: PanelLayoutConfig<ExtendedArrowFormData> = {
       label: 'Object Key Path',
       placeholder: 'e.g., user.name or data.items[0].value',
       conditional: {
-        field: 'contentType',
+        field: 'content_type',
         values: ['variable_in_object']
       }
     }
@@ -45,7 +45,7 @@ export const arrowPanelConfig: PanelLayoutConfig<ExtendedArrowFormData> = {
   rightColumn: [
     {
       type: 'select',
-      name: 'contentType',
+      name: 'content_type',
       label: 'Content Type',
       options: [
         { value: 'raw_text', label: 'Raw Text' },
@@ -60,7 +60,7 @@ export const arrowPanelConfig: PanelLayoutConfig<ExtendedArrowFormData> = {
     },
     {
       type: 'select',
-      name: 'contentType',
+      name: 'content_type',
       label: 'Content Type (Inherited from condition input)',
       options: [
         { value: 'raw_text', label: 'Raw Text' },
@@ -77,7 +77,7 @@ export const arrowPanelConfig: PanelLayoutConfig<ExtendedArrowFormData> = {
     },
     {
       type: 'select',
-      name: 'contentType',
+      name: 'content_type',
       label: 'Content Type',
       options: [
         { value: 'empty', label: 'Empty (Fixed)' }

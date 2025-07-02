@@ -34,6 +34,8 @@ export const PropertiesTab: React.FC = () => {
     // Ensure we have a valid id from arrow data
     return { 
       ...arrow.data,
+      content_type: arrow.content_type,  // Include direct property
+      label: arrow.label,                 // Include direct property
       id: arrow.id, // Use arrow's id directly
       type: 'arrow' as const,
       _sourceNodeType: sourceNode?.type,

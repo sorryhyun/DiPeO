@@ -88,7 +88,18 @@ class NodeView:
             )
 
             value = None
-            if label in source_values:
+            # Special handling for condition nodes - use source handle to select branch
+            if edge.source_view.node.type == "condition":
+                # For condition nodes, use the source handle (True/False) to select the value
+                source_handle = edge.source_handle
+                if source_handle in source_values:
+                    value = source_values[source_handle]
+                    log.debug(f"    Using '{source_handle}' branch value from condition node")
+            # Special handling for conversation_state edges
+            elif edge.content_type == "conversation_state" and "conversation" in source_values:
+                value = source_values["conversation"]
+                log.debug(f"    Using 'conversation' value for conversation_state edge")
+            elif label in source_values:
                 value = source_values[label]
                 log.debug(
                     f"    Found exact match for label '{label}': {repr(value)[:100]}"

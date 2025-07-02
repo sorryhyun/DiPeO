@@ -144,14 +144,14 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         }
       });
       
-      if (result.data?.executeDiagram.success && result.data.executeDiagram.execution?.id) {
-        const execId = result.data.executeDiagram.execution.id;
+      if (result.data?.execute_diagram?.success && result.data.execute_diagram.execution?.id) {
+        const execId = result.data.execute_diagram.execution.id;
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(execId, totalNodes, formatDuration);
         executionActions.startExecution(execId);
         onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, execution_id: executionId(execId), timestamp: new Date().toISOString() });
       } else {
-        throw new Error(result.data?.executeDiagram.error || 'Failed to start execution');
+        throw new Error(result.data?.execute_diagram?.error || 'Failed to start execution');
       }
     } catch (error) {
       const errorMessage = error instanceof ApolloError ? error.message : 'Failed to execute diagram';

@@ -53,6 +53,16 @@ class ConditionNodeHandler(BaseNodeHandler):
                         result = False
                         break
 
-        # Simply pass through all inputs unchanged
-        # The branch routing is handled by edge metadata, not by wrapping the data
-        return create_node_output(inputs, {"condition_result": result})
+        # Output data to the appropriate branch based on condition result
+        # The execution engine expects outputs keyed by branch name
+        # We need to pass through all inputs, including conversation data
+        if result:
+            # When condition is True, output goes to "True" branch
+            # Pass through all inputs as a single value
+            output_value = {"True": inputs if inputs else {}, "False": None}
+        else:
+            # When condition is False, output goes to "False" branch
+            # Pass through all inputs as a single value
+            output_value = {"False": inputs if inputs else {}, "True": None}
+        
+        return create_node_output(output_value, {"condition_result": result})

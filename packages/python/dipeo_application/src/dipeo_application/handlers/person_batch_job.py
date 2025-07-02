@@ -7,6 +7,7 @@ from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
 from dipeo_core.execution import create_node_output
 from dipeo_domain.models import (
     ChatResult,
+    ContentType,
     DomainDiagram,
     DomainPerson,
     NodeOutput,
@@ -148,19 +149,75 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         # Handle forgetting based on memory config
         if props.memory_config and props.memory_config.forget_mode == "on_every_turn":
             if context.get_node_execution_count(context.current_node_id) > 0:
-                conversation_service.clear_own_messages(person_id)
+                # For on_every_turn mode, clear all messages except system prompt
+                # This ensures the model only sees the current input from the arrow
+                conversation_service.clear_messages(person_id, keep_system=True)
 
-        # Add external inputs as separate messages
-        if inputs:
+        # Check if we have conversation state input
+        has_conversation_state = False
+        
+        # Check for conversation state in inputs
+        for edge in context.edges:
+            if edge.get("target") and edge["target"].startswith(context.current_node_id):
+                # Check if this edge has conversation_state content type
+                source_node_id = edge.get("source", "").split(":")[0]
+                for arrow in diagram.arrows if diagram else []:
+                    if arrow.source.startswith(source_node_id) and arrow.target.startswith(context.current_node_id):
+                        if arrow.content_type == ContentType.conversation_state:
+                            has_conversation_state = True
+                            break
+        
+        # Process inputs based on whether we have conversation state
+        if has_conversation_state and inputs:
+            # For conversation state input, combine the input content with the prompt
+            combined_content_parts = []
+            
+            # Add input content first
             for key, value in inputs.items():
-                if value and key != "conversation":
-                    # Format the external input with its source
-                    external_content = f"[Input from {key}]: {value}"
-                    conversation_service.add_message(person_id, "external", external_content)
+                if value:
+                    if key == "conversation":
+                        # Extract the last user message from conversation
+                        if isinstance(value, list):
+                            for msg in reversed(value):
+                                if msg.get("role") == "user":
+                                    combined_content_parts.append(msg.get("content", ""))
+                                    break
+                    elif key == "default":
+                        # Handle conversation data nested under 'default' key
+                        if isinstance(value, list) and value:
+                            # Check if this is conversation data
+                            if isinstance(value[0], dict) and "role" in value[0]:
+                                for msg in reversed(value):
+                                    if msg.get("role") == "user":
+                                        combined_content_parts.append(msg.get("content", ""))
+                                        break
+                            else:
+                                combined_content_parts.append(str(value))
+                        else:
+                            combined_content_parts.append(str(value))
+                    else:
+                        combined_content_parts.append(str(value))
+            
+            # Append the prompt
+            if prompt:
+                combined_content_parts.append(prompt)
+            
+            # Add as a single user message
+            if combined_content_parts:
+                combined_content = "\n".join(combined_content_parts)
+                conversation_service.add_message(person_id, "user", combined_content)
+        else:
+            # Original behavior for non-conversation-state inputs
+            if inputs:
+                for key, value in inputs.items():
+                    if value and key != "conversation":
+                        # Format the external input with its source
+                        external_content = f"[Input from {key}]: {value}"
+                        conversation_service.add_message(person_id, "external", external_content)
 
-        # Add prompt to conversation
-        if prompt:
-            conversation_service.add_message(person_id, "user", prompt)
+            # Add prompt to conversation separately only if not conversation state
+            if prompt:
+                conversation_service.add_message(person_id, "user", prompt)
 
         # Build messages with system prompt
         messages = []

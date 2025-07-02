@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, TYPE_CHECKING
 
 from dipeo_domain import (
     DataType,
@@ -15,7 +15,8 @@ from dipeo_domain import (
 )
 from dipeo_domain.conversions import create_handle_id
 
-from .conversion_utils import BackendDiagram
+if TYPE_CHECKING:
+    from .conversion_utils import BackendDiagram
 
 __all__ = (
     "HandleGenerator",
@@ -31,10 +32,11 @@ __all__ = (
 
 
 def _push_handle(
-    container: DomainDiagram | BackendDiagram, handle: DomainHandle
+    container: DomainDiagram | "BackendDiagram", handle: DomainHandle
 ) -> None:
     """Add *handle* to *container*, regardless of list / mapping storage."""
-    if isinstance(container, BackendDiagram):
+    # Avoid circular import by checking for dict attribute instead of type
+    if hasattr(container, 'handles') and isinstance(container.handles, dict):
         container.handles[handle.id] = handle  # type: ignore[index]
     else:
         container.handles.append(handle)
@@ -66,7 +68,7 @@ class HandleGenerator:
 
     def generate_for_node(
         self,
-        diagram: DomainDiagram | BackendDiagram,
+        diagram: DomainDiagram | "BackendDiagram",
         node_id: str,
         node_type: str,
     ) -> None:

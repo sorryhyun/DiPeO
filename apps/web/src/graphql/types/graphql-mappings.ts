@@ -67,6 +67,6 @@ export interface ArrowData {
   controlPointOffsetY?: number;
   loopRadius?: number;
   branch?: 'true' | 'false';
-  contentType?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'empty' | 'generic';
+  content_type?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'empty' | 'generic';
   [key: string]: unknown;
 }
