@@ -24,10 +24,13 @@ install:
 
 # Code generation
 codegen:
-	@echo "🔄 Generating code..."
-	cd packages/domain-models && pnpm build
+	@echo "🔄 Generating code from domain models..."
+	cd packages/domain-models && pnpm generate:all
+	@echo "📝 Exporting GraphQL schema from server..."
 	make graphql-schema
+	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
+	@echo "🔄 Generating GraphQL operations for CLI..."
 	cd apps/cli && python scripts/generate_graphql_operations.py
 	@echo "✅ All code generation completed!"
 

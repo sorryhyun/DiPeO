@@ -4,7 +4,6 @@ import logging
 import uuid
 
 import strawberry
-from dipeo_application.dto.__generated__ import DomainPerson as DomainPersonDTO
 from dipeo_domain import DomainPerson, LLMService, PersonLLMConfig
 from dipeo_domain import PersonID as DomainPersonID
 
@@ -73,12 +72,9 @@ class PersonMutations:
             # Save updated diagram
             await diagram_service.write_file(diagram_id, diagram_data)
 
-            # Convert domain model to DTO
-            person_dto = DomainPersonDTO.from_domain(person)
-
             return PersonResult(
                 success=True,
-                person=person_dto,
+                person=person,
                 message=f"Created person {person_id}",
             )
 
@@ -166,12 +162,9 @@ class PersonMutations:
             # Save updated diagram
             await diagram_service.write_file(diagram_id, diagram_data)
 
-            # Convert domain model to DTO
-            person_dto = DomainPersonDTO.from_domain(updated_person)
-
             return PersonResult(
                 success=True,
-                person=person_dto,
+                person=updated_person,
                 message=f"Updated person {person_input.id}",
             )
 
@@ -289,12 +282,9 @@ class PersonMutations:
                 type=person_data.get("type", "person"),
             )
 
-            # Convert domain model to DTO
-            person_dto = DomainPersonDTO.from_domain(person)
-
             return PersonResult(
                 success=True,
-                person=person_dto,
+                person=person,
                 message=f"Model {model} initialized successfully",
             )
 

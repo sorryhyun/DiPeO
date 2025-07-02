@@ -88,8 +88,7 @@ def validate_diagram(
 
 def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
     """Converts domain diagram to backend dict format."""
-    converter = converter_registry.get(DiagramFormat.native.value)
-    json_str = converter.serialize(diagram)
+    json_str = converter_registry.serialize(diagram, DiagramFormat.native.value)
     data = json.loads(json_str)
 
     if isinstance(data.get("nodes"), list):
@@ -106,9 +105,8 @@ def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
 
 def backend_to_domain_format(data: dict[str, Any]) -> DomainDiagram:
     """Converts backend dict to domain diagram."""
-    converter = converter_registry.get(DiagramFormat.native.value)
     json_str = json.dumps(data, indent=2)
-    return converter.deserialize(json_str)
+    return converter_registry.deserialize(json_str, DiagramFormat.native.value)
 
 
 @strawberry.type
@@ -259,8 +257,8 @@ class UploadMutations:
                     error="Content must be a JSON object representing a diagram",
                 )
 
-            converter = converter_registry.get(target_format.value)
-            if not converter:
+            # Check if format is supported
+            if target_format.value not in converter_registry.strategies:
                 return DiagramConvertResult(
                     success=False, error=f"Unknown format: {target_format.value}"
                 )
@@ -298,7 +296,8 @@ class UploadMutations:
                     version=DIAGRAM_VERSION, created=now, modified=now
                 )
 
-            content_str = converter.serialize(domain_diagram)
+            # Use the converter registry's serialize method, not the strategy directly
+            content_str = converter_registry.serialize(domain_diagram, target_format.value)
 
             diagram_name = content.get("metadata", {}).get("name", "diagram")
             extension = format_info.get("extension", ".yaml")

@@ -35,6 +35,7 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     default_prompt: {
       rows: 6,
       placeholder: 'Enter default prompt. Use {{variable_name}} for variables.',
+      column: 2,
       validate: (value) => {
         if (!value && typeof value !== 'string') {
           return { isValid: false, error: 'Default prompt is recommended' };
@@ -46,6 +47,7 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
       label: 'First-Only Prompt',
       rows: 4,
       placeholder: 'Prompt to use only on first execution.',
+      column: 2,
       validate: (value) => {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return { isValid: false, error: 'First-only prompt is required' };

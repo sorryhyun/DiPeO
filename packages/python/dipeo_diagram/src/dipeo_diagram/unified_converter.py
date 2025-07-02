@@ -332,6 +332,15 @@ class UnifiedDiagramConverter(DiagramConverter):
         diagram = self.deserialize(content, from_format)
         return self.serialize(diagram, to_format)
 
+    def get(self, format_id: str) -> FormatStrategy:
+        """Get strategy for the specified format (alias for get_strategy)."""
+        return self.get_strategy(format_id)
+
+    def get_info(self, format_id: str) -> dict[str, str]:
+        """Get format information for the specified format."""
+        strategy = self.get_strategy(format_id)
+        return strategy.format_info
+
 
 # Create a singleton instance to act as the registry
 converter_registry = UnifiedDiagramConverter()

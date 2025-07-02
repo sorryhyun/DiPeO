@@ -116,6 +116,7 @@ class PythonGenerator {
     if (ts.includes('|')) {
       const pieces = ts.split('|').map(p => p.trim()).filter(p => !['undefined', 'null'].includes(p));
       const uniq = [...new Set(pieces.map(p => this.py(p)))];
+      if (uniq.length === 0) return save('None'); // All parts were undefined/null
       if (uniq.length === 1) return save(opt ? this.optional(uniq[0]) : uniq[0]);
       this.add('typing', 'Union');
       const T = `Union[${uniq.join(', ')}]`;
@@ -125,10 +126,22 @@ class PythonGenerator {
     // ─── custom schema ─────────────────────────────────────────────
     if (this.schemas.has(ts)) return save(opt ? this.optional(ts) : ts);
 
-    // ─── primitives / fallback ─────────────────────────────────────
+    // ─── primitives / fallback ─────────────────────────────────────  
     let mapped = PY_TYPE_MAP[ts] ?? ts;
     if (ts === 'number' && INTEGER_FIELDS.has(field)) mapped = 'int';
     if (mapped === 'Any') this.add('typing', 'Any');
+    
+    // Handle standalone undefined/null as None
+    if (mapped === ts && ['undefined', 'null'].includes(ts)) {
+      mapped = 'None';
+    }
+    
+    // Final safety check for undefined results
+    if (mapped === 'undefined' || mapped === ts && ts === 'undefined') {
+      mapped = 'Dict[str, Any]';
+      this.add('typing', 'Dict', 'Any');
+    }
+    
     return save(opt ? this.optional(mapped) : mapped);
   }
 
@@ -152,7 +165,12 @@ class PythonGenerator {
     if (!Object.keys(props).length) return [...lines, '    pass'];
 
     for (const [p, info] of Object.entries(props)) {
-      const t = this.py(info.type, info.optional, p);
+      let t = this.py(info.type, info.optional, p);
+      // Fix any remaining undefined types
+      if (!t || t.includes('undefined')) {
+        t = info.optional ? 'Optional[Dict[str, Any]]' : 'Dict[str, Any]';
+        this.add('typing', 'Optional', 'Dict', 'Any');
+      }
       lines.push(`    ${p}: ${t}${info.optional ? ' = Field(default=None)' : ''}`);
     }
     return lines;

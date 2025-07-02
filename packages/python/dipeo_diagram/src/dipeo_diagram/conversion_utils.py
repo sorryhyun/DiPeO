@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 from dipeo_domain import DomainDiagram
+from dipeo_domain.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
 import json
 import yaml
 
@@ -35,38 +36,29 @@ def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
     The backend representation uses dicts of dicts for efficient lookup.
     The GraphQL representation uses lists for easier client handling.
     """
-
-    # Convert dict-of-dicts to lists (if necessary)
-    def ensure_list(obj):
-        if obj is None:
-            return []
-        if isinstance(obj, dict):
-            return list(obj.values())
-        return obj
+    # Use the imported conversion function to convert maps to arrays
+    arrays_dict = diagram_maps_to_arrays(
+        nodes=backend_dict.nodes or {},
+        arrows=backend_dict.arrows or {},
+        handles=backend_dict.handles or {},
+        persons=backend_dict.persons or {},
+        api_keys=None  # Not used in BackendDiagram
+    )
 
     # Special handling for handles to ensure 'id' field exists
-    def ensure_handles_list(handles_dict):
-        if handles_dict is None:
-            return []
-        if isinstance(handles_dict, dict):
-            result = []
-            for key, value in handles_dict.items():
-                if isinstance(value, dict) and "id" not in value:
-                    # Add the key as id if missing
-                    handle = value.copy()
-                    handle["id"] = key
-                    result.append(handle)
-                else:
-                    result.append(value)
-            return result
-        return handles_dict
+    handles_list = []
+    for handle in arrays_dict.get("handles", []):
+        if isinstance(handle, dict) and "id" not in handle:
+            # This shouldn't happen with proper domain models, but keep for safety
+            continue
+        handles_list.append(handle)
 
-    # Create a copy to avoid mutating the original
+    # Create the result dict
     result_dict = {
-        "nodes": ensure_list(backend_dict.nodes),
-        "arrows": ensure_list(backend_dict.arrows),
-        "handles": ensure_handles_list(backend_dict.handles),
-        "persons": ensure_list(backend_dict.persons),
+        "nodes": arrays_dict["nodes"],
+        "arrows": arrays_dict["arrows"],
+        "handles": handles_list,
+        "persons": arrays_dict["persons"],
         "metadata": backend_dict.metadata,
     }
 
@@ -82,39 +74,34 @@ def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, An
     The backend representation uses dicts of dicts for efficient lookup.
     The GraphQL representation uses lists for easier client handling.
     """
-
-    def list_to_dict(items, id_attr="id"):
-        if items is None:
-            return {}
-        # If already a dict, return as-is
-        if isinstance(items, Mapping):
-            return dict(items)
-        # Convert list to dict using ID
-        result = {}
-        for item in items:
-            # Handle both dict and object representations
-            if hasattr(item, "__dict__"):
-                item_dict = item.__dict__
-                item_id = getattr(item, id_attr)
-            else:
-                item_dict = item
-                item_id = item.get(id_attr)
-
-            if item_id:
-                result[item_id] = item_dict
-
-        return result
+    # Use the imported conversion function to convert arrays to maps
+    maps_dict = diagram_arrays_to_maps(
+        nodes=graphql_diagram.nodes or [],
+        arrows=graphql_diagram.arrows or [],
+        handles=graphql_diagram.handles or [],
+        persons=graphql_diagram.persons or [],
+        api_keys=None  # Not used in conversion
+    )
 
     # Build the backend dict structure
-    return {
-        "nodes": list_to_dict(graphql_diagram.nodes),
-        "arrows": list_to_dict(graphql_diagram.arrows),
-        "handles": list_to_dict(graphql_diagram.handles),
-        "persons": list_to_dict(graphql_diagram.persons),
+    result = {
+        "nodes": maps_dict["nodes"],
+        "arrows": maps_dict["arrows"],
+        "handles": maps_dict["handles"],
+        "persons": maps_dict["persons"],
         "metadata": graphql_diagram.metadata.model_dump()
         if graphql_diagram.metadata
         else {},
     }
+
+    # Convert domain models to dicts for backend storage
+    for key in ["nodes", "arrows", "handles", "persons"]:
+        result[key] = {
+            k: v.model_dump() if hasattr(v, "model_dump") else v
+            for k, v in result[key].items()
+        }
+
+    return result
 
 
 #  generic helpers

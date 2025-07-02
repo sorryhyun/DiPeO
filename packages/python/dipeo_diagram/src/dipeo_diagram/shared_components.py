@@ -13,6 +13,7 @@ from dipeo_domain import (
     NodeID,
     Vec2,
 )
+from dipeo_domain.conversions import create_handle_id
 
 from .conversion_utils import BackendDiagram
 
@@ -46,9 +47,9 @@ def _make_handle(
     direction: HandleDirection,
     dtype: DataType = DataType.any,
 ) -> DomainHandle:
-    hid = f"{node_id}:{suffix}"
+    hid = create_handle_id(NodeID(node_id), suffix)
     return DomainHandle(
-        id=HandleID(hid),
+        id=hid,
         node_id=NodeID(node_id),
         label=label,
         direction=direction,
@@ -146,8 +147,8 @@ class ArrowBuilder:
         source_label: str = "output",
         target_label: str = "input",
     ) -> tuple[str, str, str]:
-        s = f"{source_node}:{source_label}"
-        t = f"{target_node}:{target_label}"
+        s = str(create_handle_id(NodeID(source_node), source_label))
+        t = str(create_handle_id(NodeID(target_node), target_label))
         return ArrowBuilder.create_arrow_id(s, t), s, t
 
 
@@ -192,7 +193,7 @@ def ensure_position(
 
 
 def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:
-    """Return a normalised list of arrows `[{id, source, target, data}, …]`."""
+    """Return a normalised list of arrows `[{id, source, target, data, content_type, label}, …]`."""
     if not arrows:
         return []
 
@@ -201,13 +202,19 @@ def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:
         if isinstance(arrows, dict)
         else ((d.get("id"), d) for d in arrows if isinstance(d, dict))
     )
-    return [
-        {
-            "id": aid,
-            "source": a.get("source"),
-            "target": a.get("target"),
-            "data": a.get("data"),
-        }
-        for aid, a in pairs
-        if aid and a.get("source") and a.get("target")
-    ]
+    result = []
+    for aid, a in pairs:
+        if aid and a.get("source") and a.get("target"):
+            arrow_dict = {
+                "id": aid,
+                "source": a.get("source"),
+                "target": a.get("target"),
+                "data": a.get("data"),
+            }
+            # Include content_type and label if present (for native format compatibility)
+            if "content_type" in a:
+                arrow_dict["content_type"] = a["content_type"]
+            if "label" in a:
+                arrow_dict["label"] = a["label"]
+            result.append(arrow_dict)
+    return result
