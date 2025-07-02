@@ -23,11 +23,9 @@ from .shared_components import (
     HandleGenerator,
     PositionCalculator,
 )
-from .strategies import (
-    LightYamlStrategy,
-    NativeJsonStrategy,
-    ReadableYamlStrategy,
-)
+from .native_strategy import NativeJsonStrategy
+from .light_strategy import LightYamlStrategy
+from .readable_strategy import ReadableYamlStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -138,10 +136,33 @@ class UnifiedDiagramConverter(DiagramConverter):
             else:
                 persons_dict = persons_data
         elif isinstance(persons_data, list):
-            persons_dict = {
-                person.get("id", f"person_{i}"): person
-                for i, person in enumerate(persons_data)
-            }
+            # For readable format, persons are a list of dicts with person name as key
+            if fmt == "readable":
+                persons_dict = {}
+                for person_item in persons_data:
+                    if isinstance(person_item, dict):
+                        # Each item should have one key (the person name)
+                        for person_name, person_config in person_item.items():
+                            llm_config = {
+                                "service": person_config.get("service", "openai"),
+                                "model": person_config.get("model", "gpt-4-mini"),
+                                "api_key_id": person_config.get("api_key_id", "default"),
+                                "system_prompt": person_config.get("system_prompt"),
+                            }
+                            
+                            # Add required fields for DomainPerson
+                            person_dict = {
+                                "id": person_name,
+                                "label": person_name,
+                                "type": "person",
+                                "llm_config": llm_config,
+                            }
+                            persons_dict[person_name] = person_dict
+            else:
+                persons_dict = {
+                    person.get("id", f"person_{i}"): person
+                    for i, person in enumerate(persons_data)
+                }
         else:
             persons_dict = {}
 

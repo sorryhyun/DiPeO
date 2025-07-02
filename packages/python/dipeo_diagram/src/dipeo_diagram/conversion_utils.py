@@ -8,6 +8,9 @@ from dipeo_domain import DomainDiagram
 from dipeo_domain.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
 import json
 import yaml
+from .base import FormatStrategy
+from .shared_components import extract_common_arrows
+
 
 # Ensure models are rebuilt to resolve forward references
 DomainDiagram.model_rebuild()
@@ -153,3 +156,20 @@ def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
         label_map[label] = n["id"]
     return label_map
 
+
+class _BaseStrategy(FormatStrategy):
+    """Common scaffolding – subclasses only override what they need."""
+
+    # Concrete classes must define `format_id` and `format_info`.
+
+    # --- stubs that *may* be overridden ------------------------------------ #
+    def extract_arrows(
+        self, data: dict[str, Any], _nodes: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        return extract_common_arrows(data.get("arrows", []))
+
+    def detect_confidence(self, _data: dict[str, Any]) -> float:
+        return 0.5
+
+    def quick_match(self, _content: str) -> bool:  # noqa: D401 (one‑line doc)
+        return False

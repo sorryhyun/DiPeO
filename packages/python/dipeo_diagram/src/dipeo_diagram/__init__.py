@@ -11,7 +11,9 @@ from .shared_components import (
     ensure_position,
     extract_common_arrows,
 )
-from .strategies import LightYamlStrategy, NativeJsonStrategy, ReadableYamlStrategy
+from .native_strategy import NativeJsonStrategy
+from .light_strategy import LightYamlStrategy
+from .readable_strategy import ReadableYamlStrategy
 from .unified_converter import UnifiedDiagramConverter, converter_registry
 
 __all__ = [

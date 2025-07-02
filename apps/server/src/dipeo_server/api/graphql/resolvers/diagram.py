@@ -60,6 +60,11 @@ class DiagramResolver:
                 # Convert to YAML string for light format processing
                 yaml_content = yaml.dump(diagram_data, default_flow_style=False)
                 domain_diagram = converter_registry.deserialize(yaml_content, "light")
+            elif format_type == "readable":
+                logger.info(f"Detected readable format for diagram {diagram_id}")
+                # Convert to YAML string for readable format processing
+                yaml_content = yaml.dump(diagram_data, default_flow_style=False)
+                domain_diagram = converter_registry.deserialize(yaml_content, "readable")
             else:
                 # For native format, use converter registry
                 json_content = json.dumps(diagram_data)
