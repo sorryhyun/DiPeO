@@ -9,11 +9,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "dependency-injector>=4.41.0",
-    "dipeo-core @ file:///home/soryhyun/DiPeO/packages/python/dipeo_core",
-    "dipeo-domain @ file:///home/soryhyun/DiPeO/packages/python/dipeo_domain",
-    "dipeo-infra @ file:///home/soryhyun/DiPeO/packages/python/dipeo_infra",
-    "dipeo-application @ file:///home/soryhyun/DiPeO/packages/python/dipeo_application",
-    "dipeo-diagram @ file:///home/soryhyun/DiPeO/packages/python/dipeo_diagram",
     "structlog>=24.4.0",
 ]
 
