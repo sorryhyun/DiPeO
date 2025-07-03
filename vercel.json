@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @dipeo/domain-models build && pnpm --filter web codegen && pnpm --filter web build",
+  "buildCommand": "pnpm --filter @dipeo/domain-models build && cd apps/web && bash scripts/pre-build.sh && pnpm codegen && pnpm build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
