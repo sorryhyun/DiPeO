@@ -10,6 +10,7 @@ from dipeo_domain.models import (
     DomainPerson,
     NodeOutput,
     PersonJobNodeData,
+    LLMRequestOptions,
 )
 from pydantic import BaseModel
 
@@ -170,11 +171,17 @@ class PersonJobNodeHandler(BaseNodeHandler):
         system_prompt = person.llm_config.system_prompt if person.llm_config else None
         messages = conversation_service.prepare_messages_for_llm(person_id, system_prompt)
 
+        # Prepare LLM request options with tools if configured
+        request_options = None
+        if props.tools:
+            request_options = LLMRequestOptions(tools=props.tools)
+        
         # Call LLM
         result: ChatResult = await llm_service.complete(
             messages=messages,
             model=person.llm_config.model if person.llm_config else "gpt-4.1-nano",
             api_key_id=person.llm_config.api_key_id if person.llm_config else None,
+            options=request_options,
         )
 
         # Store response
@@ -196,17 +203,35 @@ class PersonJobNodeHandler(BaseNodeHandler):
             
             output_value["conversation"] = messages
 
+        # Build metadata
+        metadata = {
+            "model": person.llm_config.model
+            if person.llm_config
+            else "gpt-4.1-nano",
+            "tokens_used": result.token_usage.total
+            if result.token_usage and result.token_usage.total
+            else 0,
+            "token_usage": result.token_usage.model_dump() if result.token_usage else None,
+        }
+        
+        # Add tool outputs to metadata if present
+        if result.tool_outputs:
+            metadata["tool_outputs"] = [
+                output.model_dump() for output in result.tool_outputs
+            ]
+            
+            # Also add tool outputs to the output value for downstream nodes
+            for tool_output in result.tool_outputs:
+                # Add web search results as a separate output
+                if tool_output.type.value == "web_search_preview":
+                    output_value["web_search_results"] = tool_output.result
+                # Add image generation results  
+                elif tool_output.type.value == "image_generation":
+                    output_value["generated_image"] = tool_output.result
+
         return NodeOutput(
             value=output_value,
-            metadata={
-                "model": person.llm_config.model
-                if person.llm_config
-                else "gpt-4.1-nano",
-                "tokens_used": result.token_usage.total
-                if result.token_usage and result.token_usage.total
-                else 0,
-                "token_usage": result.token_usage.model_dump() if result.token_usage else None,
-            },
+            metadata=metadata,
         )
 
     def _find_person(

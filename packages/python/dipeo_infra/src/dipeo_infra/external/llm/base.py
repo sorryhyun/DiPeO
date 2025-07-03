@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo_domain import ChatResult
+from dipeo_domain import ChatResult, LLMRequestOptions, ToolConfig
 
 
 class BaseAdapter(ABC):
@@ -23,4 +23,28 @@ class BaseAdapter(ABC):
 
     def chat(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         """Main chat method - delegates to _make_api_call."""
+        # Extract LLMRequestOptions if provided
+        options = kwargs.get('options', None)
+        if isinstance(options, LLMRequestOptions):
+            # Pass tools to the adapter if supported
+            if options.tools and self.supports_tools():
+                kwargs['tools'] = options.tools
+            # Pass other options
+            if options.temperature is not None:
+                kwargs['temperature'] = options.temperature
+            if options.max_tokens is not None:
+                kwargs['max_tokens'] = options.max_tokens
+            if options.top_p is not None:
+                kwargs['top_p'] = options.top_p
+            if options.response_format is not None:
+                kwargs['response_format'] = options.response_format
+        
         return self._make_api_call(messages, **kwargs)
+    
+    def supports_tools(self) -> bool:
+        """Check if this adapter supports tool usage."""
+        return False
+    
+    def supports_response_api(self) -> bool:
+        """Check if this adapter supports the new response API."""
+        return False

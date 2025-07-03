@@ -4,10 +4,10 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { LLMService, NotionOperation } from './integration.js';
+import { LLMService, NotionOperation, ToolConfig } from './integration.js';
 
 // Re-export integration types for backward compatibility
-export { LLMService, NotionOperation };
+export { LLMService, NotionOperation, ToolConfig };
 
 
 // Enums
@@ -193,6 +193,7 @@ export interface PersonJobNodeData extends BaseNodeData {
   default_prompt?: string;
   max_iteration: number;
   memory_config?: MemoryConfig | null;
+  tools?: ToolConfig[] | null;
 }
 
 export interface EndpointNodeData extends BaseNodeData {
