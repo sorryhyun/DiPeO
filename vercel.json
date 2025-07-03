@@ -1,0 +1,12 @@
+{
+  "buildCommand": "pnpm --filter @dipeo/domain-models build && pnpm --filter web codegen && pnpm --filter web build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
