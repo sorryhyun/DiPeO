@@ -128,7 +128,7 @@ class _YamlMixin:
 
     def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
         # Create a custom YAML dumper class
-        class PositionDumper(yaml.SafeDumper):
+        class CustomDumper(yaml.SafeDumper):
             pass
 
         # Custom representer for position dicts to use flow style
@@ -139,10 +139,18 @@ class _YamlMixin:
                 )
             return dumper.represent_dict(data)
 
-        PositionDumper.add_representer(dict, position_representer)
+        # Custom representer for strings to handle multiline code properly
+        def str_representer(dumper, data):
+            if '\n' in data:
+                # Use literal block style for multiline strings
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+        CustomDumper.add_representer(dict, position_representer)
+        CustomDumper.add_representer(str, str_representer)
 
         return yaml.dump(
-            data, Dumper=PositionDumper, sort_keys=False, allow_unicode=True
+            data, Dumper=CustomDumper, sort_keys=False, allow_unicode=True, default_flow_style=False
         )
 
 

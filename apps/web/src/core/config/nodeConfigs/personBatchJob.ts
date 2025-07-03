@@ -72,6 +72,7 @@ export const personBatchJobConfig = createUnifiedConfig<PersonBatchJobFormData>(
       label: 'Batch Prompt',
       rows: 6,
       placeholder: 'Process each item: {{item}}',
+      showPromptFileButton: true,
       validate: (value) => {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return { isValid: false, error: 'Batch prompt is required' };
@@ -85,6 +86,7 @@ export const personBatchJobConfig = createUnifiedConfig<PersonBatchJobFormData>(
       label: 'Custom Aggregation',
       rows: 4,
       placeholder: 'Aggregate results: {{results}}',
+      showPromptFileButton: true,
       conditional: {
         field: 'aggregationMethod',
         values: ['custom'],

@@ -233,6 +233,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
         persons={getUnifiedFieldType(fieldConfig) === FIELD_TYPES.PERSON_SELECT ? personsForSelect : undefined}
         showFieldKey={false}
+        showPromptFileButton={fieldConfig.showPromptFileButton}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);

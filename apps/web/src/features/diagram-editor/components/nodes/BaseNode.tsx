@@ -308,12 +308,17 @@ export function BaseNode({
   
   // Get node display data
   const displayData = useMemo(() => {
-    const entries = Object.entries(data).filter(([key, value]) => 
+    const entries = Object.entries(data).filter(([key, value]) => {
+      // Filter out code field for code_job nodes
+      if (type === 'code_job' && key === 'code') {
+        return false;
+      }
+      
       // Filter out system keys and personId
-      !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
-      // Filter out blank values (null, undefined, empty string)
-      value !== null && value !== undefined && value !== ''
-    );
+      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
+        // Filter out blank values (null, undefined, empty string)
+        value !== null && value !== undefined && value !== '';
+    });
     
     return entries.slice(0, 3); // Limit to 3 fields for cleaner display
   }, [data]);

@@ -48,6 +48,7 @@ export interface BasePanelFieldConfig {
   max?: number;
   labelPlaceholder?: string;
   personPlaceholder?: string;
+  showPromptFileButton?: boolean;
 }
 
 export interface TypedPanelFieldConfig<T = unknown> extends BasePanelFieldConfig {
@@ -165,6 +166,11 @@ export class FieldConfigBuilder<T extends Record<string, unknown> = Record<strin
 
   column(column: 1 | 2): this {
     this.config.column = column;
+    return this;
+  }
+
+  showPromptFileButton(show = true): this {
+    this.config.showPromptFileButton = show;
     return this;
   }
 

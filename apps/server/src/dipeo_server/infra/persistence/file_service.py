@@ -301,3 +301,47 @@ class FileSystemRepository(BaseService, SupportsFile):
             await f.write(content)
 
         return {"path": str(file_path.relative_to(self.base_dir)), "size": len(content)}
+
+    async def list_prompt_files(self) -> list[dict[str, Any]]:
+        """List all prompt files in the prompts directory."""
+        prompts_dir = self.base_dir / "files" / "prompts"
+        if not prompts_dir.exists():
+            return []
+        
+        prompt_files = []
+        for file_path in prompts_dir.iterdir():
+            if file_path.is_file() and file_path.suffix in [".txt", ".json", ".yaml", ".yml"]:
+                stat = file_path.stat()
+                prompt_files.append({
+                    "name": file_path.name,
+                    "path": str(file_path.relative_to(self.base_dir)),
+                    "size": stat.st_size,
+                    "modified": stat.st_mtime,
+                    "extension": file_path.suffix
+                })
+        
+        # Sort by name
+        prompt_files.sort(key=lambda x: x["name"])
+        return prompt_files
+
+    async def read_prompt_file(self, filename: str) -> dict[str, Any]:
+        """Read a specific prompt file from the prompts directory."""
+        # Ensure filename doesn't contain path traversal
+        if "/" in filename or "\\" in filename or ".." in filename:
+            raise ValidationError(f"Invalid filename: {filename}")
+            
+        file_path = self.base_dir / "files" / "prompts" / filename
+        if not file_path.exists():
+            raise FileOperationError(f"Prompt file not found: {filename}")
+        
+        if not file_path.is_file():
+            raise FileOperationError(f"Not a file: {filename}")
+            
+        # Read the file content
+        content = await self.aread(str(file_path), "base", "utf-8")
+        
+        return {
+            "filename": filename,
+            "content": content,
+            "extension": file_path.suffix
+        }

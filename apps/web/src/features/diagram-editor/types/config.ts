@@ -28,6 +28,7 @@ export interface FieldConfig {
   min?: number;
   max?: number;
   multiline?: boolean;
+  rows?: number;
 }
 
 /**

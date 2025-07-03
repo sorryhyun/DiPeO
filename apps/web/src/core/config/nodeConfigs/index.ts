@@ -4,7 +4,8 @@ import type { UnifiedNodeConfig } from '../unifiedConfig';
 // Import all unified configs
 import { startConfig } from './start';
 import { conditionConfig } from './condition';
-import { jobConfig } from './job';
+import { codeJobConfig } from './codeJob';
+import { apiJobConfig } from './apiJob';
 import { endpointConfig } from './endpoint';
 import { personJobConfig } from './personJob';
 import { personBatchJobConfig } from './personBatchJob';
@@ -15,7 +16,16 @@ import { notionConfig } from './notion';
 export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> = {
   start: startConfig,
   condition: conditionConfig,
-  job: jobConfig,
+  job: {
+    label: 'Job (Deprecated)',
+    icon: '⚙️',
+    color: 'gray',
+    handles: {},
+    fields: [],
+    defaults: {}
+  }, // Deprecated - use code_job or api_job
+  code_job: codeJobConfig,
+  api_job: apiJobConfig,
   endpoint: endpointConfig,
   person_job: personJobConfig,
   person_batch_job: personBatchJobConfig,
@@ -27,7 +37,8 @@ export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<str
 // Export individual configs
 export { startConfig } from './start';
 export { conditionConfig } from './condition';
-export { jobConfig } from './job';
+export { codeJobConfig } from './codeJob';
+export { apiJobConfig } from './apiJob';
 export { endpointConfig } from './endpoint';
 export { personJobConfig } from './personJob';
 export { personBatchJobConfig } from './personBatchJob';

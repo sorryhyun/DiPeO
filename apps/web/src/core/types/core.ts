@@ -5,6 +5,8 @@ import {
   EndpointNodeData as DomainEndpointNodeData,
   DBNodeData as DomainDBNodeData,
   JobNodeData as DomainJobNodeData,
+  CodeJobNodeData as DomainCodeJobNodeData,
+  ApiJobNodeData as DomainApiJobNodeData,
   UserResponseNodeData as DomainUserResponseNodeData,
   NotionNodeData as DomainNotionNodeData,
   PersonBatchJobNodeData as DomainPersonBatchJobNodeData
@@ -44,6 +46,8 @@ export type PersonJobNodeData = WithUI<DomainPersonJobNodeData>;
 export type EndpointNodeData = WithUI<DomainEndpointNodeData>;
 export type DBNodeData = WithUI<DomainDBNodeData>;
 export type JobNodeData = WithUI<DomainJobNodeData>;
+export type CodeJobNodeData = WithUI<DomainCodeJobNodeData>;
+export type ApiJobNodeData = WithUI<DomainApiJobNodeData>;
 export type UserResponseNodeData = WithUI<DomainUserResponseNodeData>;
 export type NotionNodeData = WithUI<DomainNotionNodeData>;
 export type PersonBatchJobNodeData = WithUI<DomainPersonBatchJobNodeData>;

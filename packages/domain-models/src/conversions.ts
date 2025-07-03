@@ -28,6 +28,8 @@ import {
  */
 export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'job': NodeType.JOB,
+  'code_job': NodeType.CODE_JOB,
+  'api_job': NodeType.API_JOB,
   'person_job': NodeType.PERSON_JOB,
   'person_batch_job': NodeType.PERSON_BATCH_JOB,
   'condition': NodeType.CONDITION,
@@ -297,6 +299,24 @@ export function validateNodeData(
       }
       if (!data.url) {
         errors.push('URL is required');
+      }
+      break;
+    
+    case NodeType.CODE_JOB:
+      if (!data.language) {
+        errors.push('Language is required for code job nodes');
+      }
+      if (!data.code) {
+        errors.push('Code is required for code job nodes');
+      }
+      break;
+    
+    case NodeType.API_JOB:
+      if (!data.url) {
+        errors.push('URL is required for API job nodes');
+      }
+      if (!data.method) {
+        errors.push('HTTP method is required for API job nodes');
       }
       break;
   }

@@ -178,7 +178,8 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
               <DraggableBlock type="person_job" label={`${getNodeConfig(NodeType.PERSON_JOB)?.icon || '🤖'} ${getNodeConfig(NodeType.PERSON_JOB).label || 'Person Job'}`} />
               <DraggableBlock type="person_batch_job" label={`${getNodeConfig(NodeType.PERSON_BATCH_JOB).icon || '🤖📦'} ${getNodeConfig(NodeType.PERSON_BATCH_JOB).label || 'Person Batch Job'}`} />
               <DraggableBlock type="condition" label={`${getNodeConfig(NodeType.CONDITION).icon || '🔀'} ${getNodeConfig(NodeType.CONDITION).label || 'Condition'}`} />
-              <DraggableBlock type="job" label={`${getNodeConfig(NodeType.JOB).icon || '⚙️'} ${getNodeConfig(NodeType.JOB).label || 'Job'}`} />
+              <DraggableBlock type="code_job" label={`${getNodeConfig(NodeType.CODE_JOB).icon || '📝'} ${getNodeConfig(NodeType.CODE_JOB).label || 'Code Job'}`} />
+              <DraggableBlock type="api_job" label={`${getNodeConfig(NodeType.API_JOB).icon || '🌐'} ${getNodeConfig(NodeType.API_JOB).label || 'API Job'}`} />
               <DraggableBlock type="user_response" label={`${getNodeConfig(NodeType.USER_RESPONSE).icon || '💬'} ${getNodeConfig(NodeType.USER_RESPONSE).label || 'User Response'}`} />
               <DraggableBlock type="endpoint" label={`${getNodeConfig(NodeType.ENDPOINT).icon || '🎯'} ${getNodeConfig(NodeType.ENDPOINT).label || 'Endpoint'}`} />
             </div>

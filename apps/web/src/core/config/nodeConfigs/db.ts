@@ -65,6 +65,7 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
       rows: 6,
       placeholder: 'Enter content or file path...',
       column: 2,
+      showPromptFileButton: true,
       validate: (value, formData) => {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return { isValid: false, error: 'Source details are required' };

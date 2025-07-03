@@ -15,7 +15,9 @@ export enum NodeType {
   START = 'start',
   PERSON_JOB = 'person_job',
   CONDITION = 'condition',
-  JOB = 'job',
+  JOB = 'job',  // Deprecated: use CODE_JOB or API_JOB instead
+  CODE_JOB = 'code_job',
+  API_JOB = 'api_job',
   ENDPOINT = 'endpoint',
   DB = 'db',
   USER_RESPONSE = 'user_response',
@@ -66,6 +68,14 @@ export enum SupportedLanguage {
   PYTHON = 'python',
   JAVASCRIPT = 'javascript',
   BASH = 'bash'
+}
+
+export enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+  PATCH = 'PATCH'
 }
 
 // Basic types
@@ -202,6 +212,23 @@ export interface DBNodeData extends BaseNodeData {
 export interface JobNodeData extends BaseNodeData {
   code_type: SupportedLanguage;
   code: string;
+}
+
+export interface CodeJobNodeData extends BaseNodeData {
+  language: SupportedLanguage;
+  code: string;
+  timeout?: number;  // in seconds
+}
+
+export interface ApiJobNodeData extends BaseNodeData {
+  url: string;
+  method: HttpMethod;
+  headers?: Record<string, string>;
+  params?: Record<string, any>;
+  body?: any;
+  timeout?: number;  // in seconds
+  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
+  auth_config?: Record<string, string>;
 }
 
 export interface UserResponseNodeData extends BaseNodeData {

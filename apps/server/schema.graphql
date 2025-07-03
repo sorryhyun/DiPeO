@@ -365,6 +365,8 @@ enum NodeType {
   person_job
   condition
   job
+  code_job
+  api_job
   endpoint
   db
   user_response
@@ -405,6 +407,8 @@ type Query {
   conversations(person_id: PersonID = null, execution_id: ExecutionID = null, search: String = null, show_forgotten: Boolean! = false, limit: Int! = 100, offset: Int! = 0, since: DateTime = null): JSONScalar!
   supported_formats: [DiagramFormatInfo!]!
   execution_order(execution_id: ExecutionID!): JSONScalar!
+  prompt_files: [JSONScalar!]!
+  prompt_file(filename: String!): JSONScalar!
 }
 
 type Subscription {

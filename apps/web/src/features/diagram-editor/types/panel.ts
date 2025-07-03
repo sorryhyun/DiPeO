@@ -5,6 +5,8 @@ import type {
   EndpointNodeData,
   DBNodeData,
   JobNodeData,
+  CodeJobNodeData,
+  ApiJobNodeData,
   UserResponseNodeData,
   NotionNodeData,
   PersonBatchJobNodeData
@@ -32,6 +34,8 @@ export type PersonJobFormData = PanelFormData<PersonJobNodeData>;
 export type ConditionFormData = PanelFormData<ConditionNodeData>;
 export type EndpointFormData = PanelFormData<EndpointNodeData>;
 export type JobFormData = PanelFormData<JobNodeData>;
+export type CodeJobFormData = PanelFormData<CodeJobNodeData>;
+export type ApiJobFormData = PanelFormData<ApiJobNodeData>;
 export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
 export type NotionFormData = PanelFormData<NotionNodeData>;
 export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;

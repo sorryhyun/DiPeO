@@ -50,6 +50,18 @@ export const NODE_META: Record<NodeType, NodeMetadata> = {
     label: 'Job',
     displayName: 'Job'
   },
+  code_job: {
+    icon: '💻',
+    color: '#4ade80',
+    label: 'Code Job',
+    displayName: 'Code Job'
+  },
+  api_job: {
+    icon: '🌐',
+    color: '#06b6d4',
+    label: 'API Job',
+    displayName: 'API Job'
+  },
   user_response: {
     icon: '💬',
     color: '#14b8a6',

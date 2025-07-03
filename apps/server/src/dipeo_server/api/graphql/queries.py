@@ -379,3 +379,17 @@ class Query:
             "nodes": node_order,
             "totalNodes": len(node_order),
         }
+
+    @strawberry.field
+    async def prompt_files(self, info) -> list[JSONScalar]:
+        """List all available prompt files."""
+        context = info.context
+        file_service = context.file_service
+        return await file_service.list_prompt_files()
+
+    @strawberry.field
+    async def prompt_file(self, filename: str, info) -> JSONScalar:
+        """Read a specific prompt file."""
+        context = info.context
+        file_service = context.file_service
+        return await file_service.read_prompt_file(filename)
