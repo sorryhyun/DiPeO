@@ -19,7 +19,6 @@ AGENTS.md
 *.db-wal
 *.db
 apps/web/schema.graphql
-apps/server/schema.graphql
 packages/domain-models/schema.graphql
 server/diagrams
 docs/deprecated
