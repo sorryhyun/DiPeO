@@ -23,8 +23,6 @@ That's it! This single command will:
 - Generate required code
 - Start both frontend and backend services
 
-* Note that right-click is required for each edge/node property tweaks.
-
 ## Essential Scripts
 
 ### Makefile Commands
@@ -50,11 +48,13 @@ Note [docs](docs)
 - tmux (optional, for better parallel execution)
 
 ## Next Release will be
-- Endpoint with MCP
-- Tool use for each LLMs
-- Claude Support
+- hook node for general event hooks. i.e. youtube subtitle generator
+- gemini supports
+- tool use supports for openai adapter
+- code, api job nodes
+- windows installer deployment
 
 ## Near-future objectives
-- Gemini, Claude, Grok support
+- Gemini, Claude support (grok will be removed)
 - Custom LLM support
-- Job node support
+- various diagram examples
