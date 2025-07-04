@@ -64,9 +64,8 @@ jobs:
           pnpm build:packages
       
       - name: Build Frontend (smoke test)
-        working-directory: apps/web
         run: |
-          pnpm build
+          pnpm build:web
       
       - name: Test CLI execution
         run: |
@@ -76,4 +75,4 @@ jobs:
       - name: Check code generation
         run: |
           # Run code generation to ensure it works on Windows
-          pnpm generate:all
+          pnpm codegen

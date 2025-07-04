@@ -4,9 +4,13 @@ REM This script builds the complete Windows installer for DiPeO
 
 setlocal enabledelayedexpansion
 
+:: Parse command line arguments
+set VERSION=0.1.0
+if not "%1"=="" set VERSION=%1
+
 echo ========================================
 echo      DiPeO Windows Build Script
-echo         Version: 0.1.0
+echo         Version: %VERSION%
 echo ========================================
 echo.
 
@@ -111,6 +115,15 @@ if exist "src-tauri\target\release\bundle\nsis\*.exe" (
     echo.
     echo Installer location:
     dir /b "src-tauri\target\release\bundle\nsis\*.exe"
+    
+    REM Copy installer to dist directory
+    if not exist "%ROOT_DIR%\dist" mkdir "%ROOT_DIR%\dist"
+    for %%f in ("src-tauri\target\release\bundle\nsis\*.exe") do (
+        copy "%%f" "%ROOT_DIR%\dist\DiPeO-Setup-%VERSION%-x64.exe" >nul
+        echo.
+        echo Installer copied to: dist\DiPeO-Setup-%VERSION%-x64.exe
+    )
+    
     echo.
     echo Next steps:
     echo 1. Test the installer on a clean Windows machine

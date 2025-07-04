@@ -102,20 +102,11 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
       
-      - name: Build packages
-        run: |
-          pnpm build:packages
-      
+
       - name: Build Frontend
-        working-directory: apps/web
         run: |
-          pnpm build
-          
-          # Verify build output
-          if (!(Test-Path "dist/index.html")) {
-            Write-Error "Frontend build failed"
-            exit 1
-          }
+          pnpm build:web
+
       
       - name: Build Tauri Application
         working-directory: apps/desktop

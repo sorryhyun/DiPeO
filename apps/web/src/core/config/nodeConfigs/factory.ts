@@ -23,7 +23,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🚀',
     color: 'green',
     handles: {
-      output: [{ id: 'default', position: 'bottom' }]
+      output: [{ id: 'default', position: 'right' }]
     },
     fields: [],
     defaults: { label: 'Start' },
@@ -44,8 +44,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     handles: {
       input: [{ id: 'default', position: 'left' }],
       output: [
-        { id: 'true', position: 'right', label: 'True', offset: { x: 0, y: -30 } },
-        { id: 'false', position: 'right', label: 'False', offset: { x: 0, y: 30 } }
+        { id: 'true', position: 'right', label: 'True', offset: { x: 0, y: 30 } },
+        { id: 'false', position: 'right', label: 'False', offset: { x: 0, y: -30 } }
       ]
     },
     fields: [
@@ -166,7 +166,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🎯',
     color: 'red',
     handles: {
-      input: [{ id: 'default', position: 'top' }]
+      input: [{ id: 'default', position: 'right' }]
     },
     fields: [
       { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' }
