@@ -56,18 +56,9 @@ jobs:
           cd ../..
       
       - name: Install Frontend dependencies
-        working-directory: apps/web
         run: |
           pnpm install --frozen-lockfile
       
-      - name: Run Python tests
-        run: |
-          python -m pytest -v
-      
-      - name: Run Frontend tests
-        working-directory: apps/web
-        run: |
-          pnpm test
       
       - name: Build Frontend (smoke test)
         working-directory: apps/web

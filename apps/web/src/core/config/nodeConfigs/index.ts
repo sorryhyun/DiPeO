@@ -33,7 +33,7 @@ export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<str
   db: dbConfig,
   user_response: userResponseConfig,
   notion: notionConfig,
-  hook: hookConfig
+  hook: hookConfig as UnifiedNodeConfig<Record<string, unknown>>
 };
 
 // Export individual configs

@@ -73,6 +73,12 @@ export const NODE_META: Record<NodeType, NodeMetadata> = {
     color: '#ec4899',
     label: 'Notion',
     displayName: 'Notion'
+  },
+  hook: {
+    icon: '🪝',
+    color: '#9333ea',
+    label: 'Hook',
+    displayName: 'Hook'
   }
 } as const;
 

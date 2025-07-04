@@ -2,8 +2,11 @@ name: Build Windows Installer
 
 on:
   push:
+    branches: [ main, dev ]
     tags:
       - 'v*'
+  pull_request:
+    branches: [ main, dev ]
   workflow_dispatch:
     inputs:
       version:
@@ -56,9 +59,6 @@ jobs:
       - name: Generate icons
         working-directory: apps/desktop
         run: |
-          # Install icon generation tool
-          pnpm add -D @tauri-apps/cli
-          
           # Create a simple icon if not exists (for CI purposes)
           if (!(Test-Path "src-tauri/icons/icon.png")) {
             # Create icons directory
@@ -98,10 +98,13 @@ jobs:
             exit 1
           }
       
+      - name: Install all dependencies
+        run: |
+          pnpm install --frozen-lockfile
+      
       - name: Build Frontend
         working-directory: apps/web
         run: |
-          pnpm install --no-frozen-lockfile
           pnpm build
           
           # Verify build output
@@ -116,7 +119,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          pnpm install --no-frozen-lockfile
           pnpm tauri build --target x86_64-pc-windows-msvc
       
       - name: Prepare artifacts

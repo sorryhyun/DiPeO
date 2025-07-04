@@ -17,7 +17,7 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
     { name: 'max_iteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
     { name: 'first_only_prompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
     { name: 'default_prompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' },
-    { name: 'tools', type: 'text', label: 'Tools', required: false, placeholder: 'Enter tool names separated by commas (e.g., web_search, image_generation)' }
+    { name: 'tools', type: 'string', label: 'Tools', required: false, placeholder: 'Enter tool names separated by commas (e.g., web_search, image_generation)' }
   ],
   defaults: { 
     person: '', 

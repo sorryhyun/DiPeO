@@ -25,7 +25,8 @@ export type {
   FieldType as PanelFieldType,
   PanelFormData,
   ConditionalConfig,
-  OptionsConfig
+  OptionsConfig,
+  HookNodeData
 };
 
 
