@@ -51,7 +51,7 @@ importers:
   apps/desktop:
     devDependencies:
       '@tauri-apps/cli':
-        specifier: ^2.2.0
+        specifier: ^2.6.2
         version: 2.6.2
 
   apps/web:

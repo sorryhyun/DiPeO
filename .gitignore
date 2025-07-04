@@ -29,6 +29,11 @@ TODO.md
 .logs
 apps/server/.import_linter_cache
 
+part1.md
+part2.md
+part3.md
+part4.md
+
 packages/domain-models/__generated__
 packages/python/dipeo_domain/src/dipeo_domain/models.py
 packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
