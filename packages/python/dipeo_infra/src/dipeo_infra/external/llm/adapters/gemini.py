@@ -10,7 +10,6 @@ from google import genai
 from dipeo_domain import (
     ChatResult,
     ImageGenerationResult,
-    TokenUsage,
     ToolOutput,
     ToolType,
     WebSearchResult,
@@ -37,8 +36,6 @@ class GeminiAdapter(BaseAdapter):
         return None
     
     def supports_tools(self) -> bool:
-        """Check if this model supports tool usage."""
-        # Gemini models that support function calling
         supported_models = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-flash']
         return any(model in self.model_name for model in supported_models)
 
@@ -53,22 +50,21 @@ class GeminiAdapter(BaseAdapter):
                         for tool in tools):
             return self._make_image_generation_call(messages, **kwargs)
         
-        # Extract system prompt from messages
-        system_prompt = ""
+        # Use base method to extract system prompt and messages
+        system_prompt, processed_messages = self._extract_system_and_messages(messages)
+        
+        # Convert messages to Gemini format
         gemini_messages = []
-
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            if role == "system":
-                system_prompt = content
-            elif role == "user":
-                parts = self._convert_content_to_parts(content)
-                gemini_messages.append({"role": "user", "parts": parts})
-            elif role == "assistant":
-                parts = self._convert_content_to_parts(content)
+        for msg in processed_messages:
+            role = msg["role"]
+            content = msg["content"]
+            
+            # Convert role names and content format
+            parts = self._convert_content_to_parts(content)
+            if role == "assistant":
                 gemini_messages.append({"role": "model", "parts": parts})
+            else:  # user role
+                gemini_messages.append({"role": "user", "parts": parts})
 
         # Convert tools to Gemini function declarations if provided
         gemini_tools = None
@@ -82,11 +78,8 @@ class GeminiAdapter(BaseAdapter):
             tools=gemini_tools,
         )
 
-        # Extract allowed parameters
-        allowed_params = ["max_tokens", "temperature"]
-        api_params = {
-            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
-        }
+        # Use base method to extract allowed parameters
+        api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
 
         generation_config = self.client.GenerationConfig(
             max_output_tokens=api_params.get("max_tokens"),
@@ -118,25 +111,13 @@ class GeminiAdapter(BaseAdapter):
                         if tool_output:
                             tool_outputs.append(tool_output)
 
-        # Extract usage
-        prompt_tokens = None
-        completion_tokens = None
-
-        usage_obj = getattr(response, "usage_metadata", None)
-        if usage_obj:
-            prompt_tokens = getattr(usage_obj, "prompt_token_count", None)
-            completion_tokens = getattr(usage_obj, "candidates_token_count", None)
-
-        # Create TokenUsage if we have usage data
-        token_usage = None
-        if prompt_tokens is not None or completion_tokens is not None:
-            token_usage = TokenUsage(
-                input=prompt_tokens or 0,
-                output=completion_tokens or 0,
-                total=(prompt_tokens or 0) + (completion_tokens or 0)
-                if prompt_tokens is not None and completion_tokens is not None
-                else None,
-            )
+        # Use base method to create token usage
+        token_usage = self._create_token_usage(
+            response,
+            input_field="prompt_token_count",
+            output_field="candidates_token_count",
+            usage_attr="usage_metadata"
+        )
 
         return ChatResult(
             text=text,
@@ -146,7 +127,6 @@ class GeminiAdapter(BaseAdapter):
         )
     
     def _convert_tools_to_gemini_format(self, tools: list) -> list[types.Tool]:
-        """Convert DiPeO tools to Gemini function declarations."""
         function_declarations = []
         
         for tool in tools:
@@ -177,8 +157,6 @@ class GeminiAdapter(BaseAdapter):
     def _process_function_call(self, function_call) -> ToolOutput | None:
         """Process a function call from Gemini response."""
         if function_call.name == "web_search":
-            # For now, return a placeholder response
-            # In a real implementation, this would call an actual search API
             query = function_call.args.get("query", "")
             return ToolOutput(
                 type=ToolType.WEB_SEARCH,
@@ -350,22 +328,21 @@ class GeminiAdapter(BaseAdapter):
     
     async def stream_chat(self, messages: list[dict[str, str]], **kwargs) -> AsyncIterator[str]:
         """Stream chat responses token by token."""
-        # Extract system prompt from messages
-        system_prompt = ""
+        # Use base method to extract system prompt and messages
+        system_prompt, processed_messages = self._extract_system_and_messages(messages)
+        
+        # Convert messages to Gemini format
         gemini_messages = []
-
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            if role == "system":
-                system_prompt = content
-            elif role == "user":
-                parts = self._convert_content_to_parts(content)
-                gemini_messages.append({"role": "user", "parts": parts})
-            elif role == "assistant":
-                parts = self._convert_content_to_parts(content)
+        for msg in processed_messages:
+            role = msg["role"]
+            content = msg["content"]
+            
+            # Convert role names and content format
+            parts = self._convert_content_to_parts(content)
+            if role == "assistant":
                 gemini_messages.append({"role": "model", "parts": parts})
+            else:  # user role
+                gemini_messages.append({"role": "user", "parts": parts})
         
         # Get the model with system instruction
         model = self.client.GenerativeModel(
@@ -373,11 +350,8 @@ class GeminiAdapter(BaseAdapter):
             system_instruction=system_prompt,
         )
 
-        # Extract allowed parameters
-        allowed_params = ["max_tokens", "temperature"]
-        api_params = {
-            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
-        }
+        # Use base method to extract allowed parameters
+        api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
 
         generation_config = self.client.GenerationConfig(
             max_output_tokens=api_params.get("max_tokens"),

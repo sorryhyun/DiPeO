@@ -8,25 +8,10 @@ class ClaudeAdapter(BaseAdapter):
     """Adapter for Anthropic Claude models."""
 
     def _initialize_client(self) -> anthropic.Anthropic:
-        """Initialize the Anthropic client."""
         return anthropic.Anthropic(api_key=self.api_key, base_url=self.base_url)
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Make API call to Claude and return ChatResult."""
-        # Convert standard messages format to Claude format
-        system_prompt = ""
-        claude_messages = []
-
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            if role == "system":
-                system_prompt = content
-            elif role == "assistant":
-                claude_messages.append({"role": "assistant", "content": content})
-            else:  # user role
-                claude_messages.append({"role": "user", "content": content})
+        system_prompt, claude_messages = self._extract_system_and_messages(messages)
 
         # Build system blocks with caching
         system_blocks = []
@@ -39,11 +24,8 @@ class ClaudeAdapter(BaseAdapter):
                 }
             )
 
-        # Extract allowed parameters
-        allowed_params = ["max_tokens", "temperature", "tools"]
-        api_params = {
-            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
-        }
+        # Use base method to extract allowed parameters
+        api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature", "tools"])
 
         # Make API call
         response = self.client.messages.create(
@@ -65,24 +47,12 @@ class ClaudeAdapter(BaseAdapter):
                 elif hasattr(content_block, "text"):
                     text = content_block.text
 
-        # Extract usage
-        prompt_tokens = None
-        completion_tokens = None
-
-        if hasattr(response, "usage") and response.usage:
-            prompt_tokens = getattr(response.usage, "input_tokens", None)
-            completion_tokens = getattr(response.usage, "output_tokens", None)
-
-        # Create TokenUsage if we have usage data
-        token_usage = None
-        if prompt_tokens is not None or completion_tokens is not None:
-            token_usage = TokenUsage(
-                input=prompt_tokens or 0,
-                output=completion_tokens or 0,
-                total=(prompt_tokens or 0) + (completion_tokens or 0)
-                if prompt_tokens is not None and completion_tokens is not None
-                else None,
-            )
+        # Use base method to create token usage
+        token_usage = self._create_token_usage(
+            response, 
+            input_field="input_tokens",
+            output_field="output_tokens"
+        )
 
         return ChatResult(
             text=text,

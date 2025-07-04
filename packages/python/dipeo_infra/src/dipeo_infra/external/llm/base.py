@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo_domain import ChatResult, LLMRequestOptions, ToolConfig
+from dipeo_domain import ChatResult, LLMRequestOptions, ToolConfig, TokenUsage
 
 
 class BaseAdapter(ABC):
@@ -48,3 +48,95 @@ class BaseAdapter(ABC):
     def supports_response_api(self) -> bool:
         """Check if this adapter supports the new response API."""
         return False
+    
+    def _extract_system_and_messages(
+        self, messages: list[dict[str, str]]
+    ) -> tuple[str, list[dict[str, str]]]:
+        """Extract system prompt and convert messages to standard format.
+        
+        Returns:
+            tuple of (system_prompt, processed_messages)
+        """
+        system_prompt = ""
+        processed_messages = []
+        
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            if role == "system":
+                system_prompt = content
+            else:
+                processed_messages.append({"role": role, "content": content})
+        
+        return system_prompt, processed_messages
+    
+    def _extract_api_params(self, kwargs: dict, allowed_params: list[str]) -> dict:
+        """Extract allowed API parameters from kwargs.
+        
+        Args:
+            kwargs: All keyword arguments
+            allowed_params: List of parameter names to extract
+            
+        Returns:
+            Dictionary with only allowed parameters that have non-None values
+        """
+        return {
+            k: v for k, v in kwargs.items() 
+            if k in allowed_params and v is not None
+        }
+    
+    def _create_token_usage(
+        self, 
+        response: Any,
+        input_field: str | list[str],
+        output_field: str | list[str],
+        usage_attr: str = "usage"
+    ) -> TokenUsage | None:
+        """Create TokenUsage object from API response.
+        
+        Args:
+            response: The API response object
+            input_field: Field name(s) for input/prompt tokens
+            output_field: Field name(s) for output/completion tokens  
+            usage_attr: Attribute name for usage object in response
+            
+        Returns:
+            TokenUsage object or None if no usage data available
+        """
+        usage_obj = getattr(response, usage_attr, None)
+        if not usage_obj:
+            return None
+        
+        # Handle single field name or list of possible field names
+        input_fields = [input_field] if isinstance(input_field, str) else input_field
+        output_fields = [output_field] if isinstance(output_field, str) else output_field
+        
+        # Try to get input tokens
+        input_tokens = None
+        for field in input_fields:
+            input_tokens = getattr(usage_obj, field, None)
+            if input_tokens is not None:
+                break
+        
+        # Try to get output tokens
+        output_tokens = None
+        for field in output_fields:
+            output_tokens = getattr(usage_obj, field, None)
+            if output_tokens is not None:
+                break
+        
+        # Return None if we have no usage data
+        if input_tokens is None and output_tokens is None:
+            return None
+        
+        # Calculate total if both values are available
+        total = None
+        if input_tokens is not None and output_tokens is not None:
+            total = input_tokens + output_tokens
+        
+        return TokenUsage(
+            input=input_tokens or 0,
+            output=output_tokens or 0,
+            total=total
+        )

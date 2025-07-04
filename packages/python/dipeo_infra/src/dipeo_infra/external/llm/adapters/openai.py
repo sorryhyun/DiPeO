@@ -3,7 +3,7 @@
 import base64
 from typing import Any
 
-from dipeo_domain import ChatResult, TokenUsage, ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
+from dipeo_domain import ChatResult, ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
 from openai import OpenAI
 
 from ..base import BaseAdapter
@@ -16,28 +16,26 @@ class ChatGPTAdapter(BaseAdapter):
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
     
     def supports_tools(self) -> bool:
-        """Check if this model supports tool usage."""
-        # Only certain models support tools
         supported_models = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1-nano']
         return any(model in self.model_name for model in supported_models)
     
     def supports_response_api(self) -> bool:
-        """Check if this model supports the new response API."""
-        # Response API is supported for specific models
         return 'gpt-4o-mini' in self.model_name or 'gpt-4.1' in self.model_name
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Use the new response API with tool support."""
-        # Extract tools from kwargs
         tools = kwargs.pop('tools', [])
+
+        system_prompt, processed_messages = self._extract_system_and_messages(messages)
         
-        # Convert messages to response API format
+        # Build input messages with response API format
         input_messages = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            if role == "system":
-                role = "developer"  # Response API uses developer instead of system
-            input_messages.append({"role": role, "content": msg.get("content", "")})
+        if system_prompt:
+            # Response API uses developer instead of system
+            input_messages.append({"role": "developer", "content": system_prompt})
+        
+        # Add other messages
+        for msg in processed_messages:
+            input_messages.append({"role": msg["role"], "content": msg["content"]})
         
         # Convert tools to API format
         api_tools = []
@@ -47,17 +45,19 @@ class ChatGPTAdapter(BaseAdapter):
             elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
                 api_tools.append({"type": "image_generation"})
         
+        # Use base method to extract allowed parameters
+        api_params = self._extract_api_params(kwargs, ["temperature", "max_tokens"])
+        
         # Make response API call
         try:
             response = self.client.responses.create(
                 model=self.model_name,
                 input=input_messages,
                 tools=api_tools if api_tools else None,
-                **{k: v for k, v in kwargs.items() if k in ["temperature", "max_tokens"] and v is not None}
+                **api_params
             )
         except AttributeError:
-            # Fallback to chat API if responses is not available
-            return ''
+            return ChatResult(text='', raw_response=None)
         
         # Extract text output
         text = getattr(response, 'output_text', '')
@@ -94,14 +94,12 @@ class ChatGPTAdapter(BaseAdapter):
                         raw_response=output.result
                     ))
         
-        # Extract token usage if available
-        token_usage = None
-        if hasattr(response, 'usage'):
-            token_usage = TokenUsage(
-                input=getattr(response.usage, 'prompt_tokens', 0),
-                output=getattr(response.usage, 'completion_tokens', 0),
-                total=getattr(response.usage, 'total_tokens', 0)
-            )
+        # Use base method to create token usage
+        token_usage = self._create_token_usage(
+            response,
+            input_field="prompt_tokens",
+            output_field="completion_tokens"
+        )
         
         return ChatResult(
             text=text,

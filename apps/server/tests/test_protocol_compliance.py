@@ -42,14 +42,14 @@ class TestProtocolCompliance:
         assert hasattr(llm_service, "get_available_models")
 
     def test_file_service_compliance(self):
-        """Test that FileSystemRepository implements SupportsFile protocol."""
-        from dipeo_server.infra.persistence.file_service import FileSystemRepository
+        """Test that ConsolidatedFileService implements SupportsFile protocol."""
+        from dipeo_infra import ConsolidatedFileService
 
-        file_service = FileSystemRepository(base_dir=Path("/tmp"))
+        file_service = ConsolidatedFileService(base_dir=Path("/tmp"))
 
         # Protocol compliance check
         assert isinstance(file_service, SupportsFile), (
-            "FileSystemRepository must implement SupportsFile"
+            "ConsolidatedFileService must implement SupportsFile"
         )
 
         # Verify methods exist
@@ -58,21 +58,21 @@ class TestProtocolCompliance:
         assert hasattr(file_service, "save_file")
 
     def test_file_storage_port_compliance(self):
-        """Test that FileSystemRepository has methods compatible with FileStoragePort protocol."""
-        from dipeo_server.infra.persistence.file_service import FileSystemRepository
+        """Test that ConsolidatedFileService has methods compatible with FileStoragePort protocol."""
+        from dipeo_infra import ConsolidatedFileService
 
-        file_service = FileSystemRepository(base_dir=Path("/tmp"))
+        file_service = ConsolidatedFileService(base_dir=Path("/tmp"))
 
-        # FileSystemRepository implements SupportsFile, not FileStoragePort
+        # ConsolidatedFileService implements SupportsFile, not FileStoragePort
         # But it should have compatible methods
 
-        # Verify methods that FileSystemRepository actually implements
-        # It only implements basic file operations from SupportsFile protocol
-        actual_methods = ["initialize", "read", "aread", "write", "save_file"]
+        # Verify methods that ConsolidatedFileService actually implements
+        # It implements basic file operations from SupportsFile protocol
+        actual_methods = ["initialize", "read", "write", "save_file"]
 
         for method in actual_methods:
             assert hasattr(file_service, method), (
-                f"FileSystemRepository missing method: {method}"
+                f"ConsolidatedFileService missing method: {method}"
             )
 
     def test_conversation_service_compliance(self):

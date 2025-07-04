@@ -1,5 +1,5 @@
 """Notion API adapters."""
 
-from .notion_adapter import NotionIntegrationDomainService
+from .service import NotionAPIService
 
-__all__ = ["NotionIntegrationDomainService"]
+__all__ = ["NotionAPIService"]

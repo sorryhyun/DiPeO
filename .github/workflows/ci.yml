@@ -49,11 +49,10 @@ jobs:
     - name: Generate code
       run: make codegen
 
-
-    - name: Type check TypeScript
-      run: pnpm typecheck
-
     - name: Build packages
       run: |
         pnpm --filter @dipeo/domain-models build
         pnpm --filter web build
+
+    - name: Type check TypeScript
+      run: pnpm typecheck

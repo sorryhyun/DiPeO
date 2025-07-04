@@ -8,9 +8,7 @@ if TYPE_CHECKING:
         SupportsFile,
         SupportsLLM,
         SupportsMemory,
-    )
-    from dipeo_infra import (
-        NotionIntegrationDomainService,
+        SupportsNotion,
     )
     from dipeo_domain.domains.api import APIIntegrationDomainService
     from dipeo_domain.domains.diagram.services.domain_service import (
@@ -33,7 +31,7 @@ class ServiceRegistry:
         file_service: "SupportsFile",
         conversation_memory_service: "SupportsMemory",
         # Domain services
-        notion_integration_service: "NotionIntegrationDomainService",
+        notion_service: "SupportsNotion",
         diagram_storage_service: "DiagramStorageDomainService",
         api_integration_service: "APIIntegrationDomainService",
         text_processing_service: "TextProcessingDomainService",
@@ -49,7 +47,7 @@ class ServiceRegistry:
         self._conversation_memory_service = conversation_memory_service
 
         # Store domain services
-        self._notion_integration_service = notion_integration_service
+        self._notion_service = notion_service
         self._diagram_storage_service = diagram_storage_service
         self._api_integration_service = api_integration_service
         self._text_processing_service = text_processing_service
@@ -58,9 +56,9 @@ class ServiceRegistry:
         self._db_operations_service = db_operations_service
 
     @property
-    def notion_integration(self) -> "NotionIntegrationDomainService":
-        """Get notion integration domain service."""
-        return self._notion_integration_service
+    def notion(self) -> "SupportsNotion":
+        """Get notion service."""
+        return self._notion_service
 
     @property
     def diagram_storage(self) -> "DiagramStorageDomainService":
@@ -107,8 +105,8 @@ class ServiceRegistry:
             "conversation_memory_service": self._conversation_memory_service,
             # Domain services
             "conversation": self._conversation_memory_service,  # Use simple memory service for handlers
-            "notion": self.notion_integration,
-            "notion_integration": self.notion_integration,
+            "notion": self.notion,
+            "notion_service": self.notion,
             "diagram_storage": self.diagram_storage,
             "storage": self.diagram_storage,
             "api": self.api_integration,
