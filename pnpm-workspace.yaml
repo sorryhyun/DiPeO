@@ -1,5 +1,6 @@
 packages:
   - apps/web
+  - apps/desktop
   - packages/*
 ignoredBuiltDependencies:
   - esbuild
