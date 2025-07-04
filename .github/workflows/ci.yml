@@ -53,7 +53,7 @@ jobs:
     - name: Type check TypeScript
       run: pnpm typecheck
 
-    - name: build overall
+    - name: Build packages
       run: |
-        make dev-web
-        make dev-server
+        pnpm --filter @dipeo/domain-models build
+        pnpm --filter web build
