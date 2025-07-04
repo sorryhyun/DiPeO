@@ -91,7 +91,6 @@ data/
 web/src/generated/
 *.graphql.tsx.map
 
-pnpm-lock.yaml
 .claude
 example.yaml
 docs/TODO.md
