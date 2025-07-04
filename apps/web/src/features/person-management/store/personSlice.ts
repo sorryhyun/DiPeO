@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { DomainPerson, PersonID, apiKeyId } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
-import { LLMService, NodeType } from '@dipeo/domain-models';
+import { LLMService } from '@dipeo/domain-models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 export interface PersonSlice {
@@ -17,29 +17,25 @@ export interface PersonSlice {
   // Batch operations
   batchUpdatePersons: (updates: Array<{id: PersonID, updates: Partial<DomainPerson>}>) => void;
   importPersons: (persons: DomainPerson[]) => void;
-  
-  // Person queries
-  getPersonByLabel: (label: string) => DomainPerson | undefined;
-  getPersonsByService: (service: string) => DomainPerson[];
-  getUnusedPersons: () => DomainPerson[];
-  
-  // Validation
-  isPersonInUse: (personId: PersonID) => boolean;
-  canDeletePerson: (personId: PersonID) => boolean;
 }
+
+// Helper function to sync array with map
+const syncPersonsArray = (state: UnifiedStore) => {
+  state.personsArray = Array.from(state.persons.values());
+};
+
+// Helper to handle post-change operations
+const afterChange = (state: UnifiedStore) => {
+  state.dataVersion += 1;
+  syncPersonsArray(state);
+};
 
 export const createPersonSlice: StateCreator<
   UnifiedStore,
   [['zustand/immer', never]],
   [],
   PersonSlice
-> = (set, get) => {
-  // Helper function to sync array with map
-  const syncPersonsArray = (state: any) => {
-    state.personsArray = Array.from(state.persons.values());
-  };
-
-  return {
+> = (set, _get) => ({
     // Initialize data
     persons: new Map(),
     
@@ -63,8 +59,7 @@ export const createPersonSlice: StateCreator<
       
       set(state => {
         state.persons.set(person.id as PersonID, person);
-        syncPersonsArray(state);
-        state.dataVersion += 1;
+        afterChange(state);
       });
       
       return person.id as PersonID;
@@ -101,20 +96,14 @@ export const createPersonSlice: StateCreator<
         }
         
         state.persons.set(id, updatedPerson);
-        syncPersonsArray(state);
-        state.dataVersion += 1;
+        afterChange(state);
       }
     }),
     
     deletePerson: (id) => set(state => {
-      // Check if person is in use
-      const isInUse = Array.from(state.nodes.values()).some(
-        node => node.type === NodeType.PERSON_JOB && node.data.person_id === id
-      );
-      
-      if (!isInUse && state.persons.delete(id)) {
-        syncPersonsArray(state);
-        state.dataVersion += 1;
+      const deleted = state.persons.delete(id);
+      if (deleted) {
+        afterChange(state);
       }
     }),
   
@@ -130,8 +119,7 @@ export const createPersonSlice: StateCreator<
       });
       
       if (hasChanges) {
-        syncPersonsArray(state);
-        state.dataVersion += 1;
+        afterChange(state);
       }
     }),
     
@@ -139,51 +127,6 @@ export const createPersonSlice: StateCreator<
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
       });
-      syncPersonsArray(state);
-      state.dataVersion += 1;
-    }),
-  
-    // Person queries
-    getPersonByLabel: (label) => {
-      const state = get();
-      return Array.from(state.persons.values()).find(
-        person => person.label === label
-      );
-    },
-    
-    getPersonsByService: (service) => {
-      const state = get();
-      return Array.from(state.persons.values()).filter(
-        person => person.llm_config?.service === service
-      );
-    },
-    
-    getUnusedPersons: () => {
-      const state = get();
-      const usedPersonIds = new Set<PersonID>();
-    
-      state.nodes.forEach(node => {
-        if (node.type === NodeType.PERSON_JOB && node.data.person_id) {
-          usedPersonIds.add(node.data.person_id);
-        }
-      });
-      
-      return Array.from(state.persons.values()).filter(
-        person => !usedPersonIds.has(person.id as PersonID)
-      );
-    },
-    
-    // Validation
-    isPersonInUse: (personId) => {
-      const state = get();
-      return Array.from(state.nodes.values()).some(
-        node => node.type === NodeType.PERSON_JOB && node.data.person_id === personId
-      );
-    },
-  
-    canDeletePerson: (personId) => {
-      const state = get();
-      return !state.isPersonInUse(personId);
-    }
-  };
-};
+      afterChange(state);
+    })
+});

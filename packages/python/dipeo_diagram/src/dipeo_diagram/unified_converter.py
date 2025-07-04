@@ -23,9 +23,7 @@ from .shared_components import (
     HandleGenerator,
     PositionCalculator,
 )
-from .native_strategy import NativeJsonStrategy
-from .light_strategy import LightYamlStrategy
-from .readable_strategy import ReadableYamlStrategy
+from .strategies import NativeJsonStrategy, LightYamlStrategy, ReadableYamlStrategy
 
 logger = logging.getLogger(__name__)
 

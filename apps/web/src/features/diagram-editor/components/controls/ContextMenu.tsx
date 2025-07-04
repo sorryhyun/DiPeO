@@ -2,17 +2,13 @@ import React, { useMemo, useCallback } from 'react';
 import { DomainNode } from '@/core/types';
 import {ArrowID, NodeID} from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
+import { useCanvasOperationsContext, useCanvasSelection } from '../../contexts/CanvasContext';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
   target: 'pane' | 'node' | 'edge';
-  selectedNodeId?: NodeID | null;
-  selectedArrowId?: ArrowID | null;
   containerRef: React.RefObject<HTMLDivElement>;
-  onAddNode: (type: DomainNode['type'], position: { x: number; y: number }) => void;
-  onAddPerson: () => void;
-  onDeleteNode: (nodeId: NodeID) => void;
-  onDeleteArrow: (arrowId: ArrowID) => void;
   onClose: () => void;
   projectPosition: (x: number, y: number) => { x: number; y: number };
   nodeTypes?: Record<string, string>;
@@ -31,18 +27,15 @@ const DEFAULT_NODE_LABELS = Object.fromEntries(
 const ContextMenu: React.FC<ContextMenuProps> = ({
   position,
   target,
-  selectedNodeId,
-  selectedArrowId,
   containerRef,
-  onAddNode,
-  onAddPerson,
-  onDeleteNode,
-  onDeleteArrow,
   onClose,
   projectPosition,
   nodeTypes: nodeTypesProp,
   nodeLabels: nodeLabelsProp,
 }) => {
+  // Get operations and selection from context
+  const { nodeOps, arrowOps } = useCanvasOperationsContext();
+  const { selectedNodeId, selectedArrowId } = useCanvasSelection();
   // Use props if provided, otherwise use pre-computed defaults
   const nodeTypes = nodeTypesProp || DEFAULT_NODE_TYPES;
   const nodeLabels = nodeLabelsProp || DEFAULT_NODE_LABELS;
@@ -56,23 +49,25 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   
   const handleAddNode = useCallback((nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
-    onAddNode(nodeType as DomainNode['type'], pos);
+    nodeOps.addNode(nodeType as DomainNode['type'], pos);
     onClose();
-  }, [position.x, position.y, projectPosition, onAddNode, onClose]);
+  }, [position.x, position.y, projectPosition, nodeOps, onClose]);
 
   const handleDelete = useCallback(() => {
     if (target === 'node' && selectedNodeId) {
-      onDeleteNode(selectedNodeId);
+      nodeOps.deleteNode(selectedNodeId);
     } else if (target === 'edge' && selectedArrowId) {
-      onDeleteArrow(selectedArrowId);
+      arrowOps.deleteArrow(selectedArrowId);
     }
     onClose();
-  }, [target, selectedNodeId, selectedArrowId, onDeleteNode, onDeleteArrow, onClose]);
+  }, [target, selectedNodeId, selectedArrowId, nodeOps, arrowOps, onClose]);
 
   const handleAddPerson = useCallback(() => {
-    onAddPerson();
+    // Open modal instead of directly adding - let the modal handle the details
+    const openPersonModal = useUnifiedStore.getState().openModal;
+    openPersonModal('person');
     onClose();
-  }, [onAddPerson, onClose]);
+  }, [onClose]);
 
   // Memoize menu style calculation
   const menuStyle = useMemo(() => {

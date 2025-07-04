@@ -1,14 +1,25 @@
 import { useEffect, useState } from 'react';
-import { useGetDiagramQuery } from '@/__generated__/graphql';
+import { GetDiagramDocument } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramId } from '@/core/types';
 import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/graphql/types';
-import { DiagramAdapter } from '../adapters/DiagramAdapter';
+import { rebuildHandleIndex } from '@/core/store/helpers/handleIndexHelper';
+import { createEntityQuery } from '@/graphql/hooks';
 
 /**
- * Hook that loads a diagram from the backend when a diagram ID is present in the URL
+ * Refactored diagram loader using the GraphQL factory pattern
+ * Maintains all original functionality with cleaner code structure
  */
+
+// Create the diagram query using factory
+const useDiagramQuery = createEntityQuery({
+  entityName: 'Diagram',
+  document: GetDiagramDocument,
+  cacheStrategy: 'cache-first',
+  silent: true // We'll handle errors manually for custom logic
+});
+
 export function useDiagramLoader() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -38,31 +49,37 @@ export function useDiagramLoader() {
     };
   }, [diagramIdFromUrl]);
 
-  // Query for diagram data
-  const { data, loading, error } = useGetDiagramQuery({
-    variables: { id: diagramId(diagramIdFromUrl || '') },
-    skip: !diagramIdFromUrl || hasLoaded,
-    fetchPolicy: 'cache-first'
-  });
+  // Query for diagram data using factory-generated hook
+  const { data, loading, error } = useDiagramQuery(
+    { id: diagramId(diagramIdFromUrl || '') },
+    { 
+      skip: !diagramIdFromUrl || hasLoaded,
+      // Custom error handling
+      onError: (error) => {
+        console.error('Failed to fetch diagram:', error);
+        toast.error(`Failed to load diagram: ${error.message}`);
+        setHasLoaded(true); // Prevent retry loop
+      },
+      // Custom success handling
+      onCompleted: (data) => {
+        if (!data.diagram && diagramIdFromUrl) {
+          toast.error(`Diagram "${diagramIdFromUrl}" not found`);
+          setHasLoaded(true); // Prevent retry
+        }
+      }
+    }
+  );
 
   // Load diagram data into store - delay until after mount
   useEffect(() => {
-    if (!loading && !hasLoaded && diagramIdFromUrl) {
-      // Check if diagram was not found
-      if (data && !data.diagram) {
-        toast.error(`Diagram "${diagramIdFromUrl}" not found`);
-        setHasLoaded(true); // Prevent retry
-        return;
-      }
+    if (!loading && !hasLoaded && diagramIdFromUrl && data?.diagram) {
+      setIsLoading(true);
       
-      if (data?.diagram) {
-        setIsLoading(true);
+      // Delay loading until after the component tree has mounted
+      const loadTimer = setTimeout(() => {
+        try {
+          if (!data?.diagram) return;
         
-        // Delay loading until after the component tree has mounted
-        const loadTimer = setTimeout(() => {
-          try {
-            if (!data?.diagram) return;
-          
           // Convert GraphQL diagram to domain format
           const diagramWithCounts = {
             ...data.diagram,
@@ -71,12 +88,11 @@ export function useDiagramLoader() {
             personCount: data.diagram.persons.length
           };
           
-          // Convert GraphQL types to domain types (handles api_key_id optional/required mismatch)
+          // Convert GraphQL types to domain types
           const domainDiagram = convertGraphQLDiagramToDomain(diagramWithCounts);
           
           // Convert arrays to Maps for the store
           const { nodes, handles, arrows, persons } = diagramToStoreMaps(domainDiagram);
-          
           
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();
@@ -88,6 +104,7 @@ export function useDiagramLoader() {
             useUnifiedStore.setState(state => ({
               nodes,
               handles,
+              handleIndex: rebuildHandleIndex(handles),  // Rebuild index for O(1) lookups
               arrows,
               persons,
               nodesArray: diagramWithCounts.nodes || [],
@@ -97,7 +114,6 @@ export function useDiagramLoader() {
             }));
           });
 
-          
           // Mark as loaded after store is updated
           setHasLoaded(true);
           
@@ -116,18 +132,8 @@ export function useDiagramLoader() {
       
       // Cleanup timer on unmount
       return () => clearTimeout(loadTimer);
-      }
     }
   }, [data, loading, hasLoaded, diagramIdFromUrl]);
-
-  // Handle errors
-  useEffect(() => {
-    if (error && diagramIdFromUrl) {
-      console.error('Failed to fetch diagram:', error);
-      toast.error(`Failed to load diagram: ${error.message}`);
-      setHasLoaded(true); // Prevent retry loop
-    }
-  }, [error, diagramIdFromUrl]);
 
   return {
     isLoading: loading || isLoading,

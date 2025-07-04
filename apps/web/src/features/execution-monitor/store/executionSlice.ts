@@ -120,19 +120,30 @@ export interface ExecutionSlice {
   // Context management
   updateExecutionContext: (updates: Record<string, unknown>) => void;
   clearExecutionContext: () => void;
-  
-  // Execution state queries
-  isNodeRunning: (nodeId: NodeID) => boolean;
-  getNodeExecutionState: (nodeId: NodeID) => NodeState | undefined;
-  getExecutionProgress: () => { completed: number; total: number; percentage: number };
 }
+
+// Helper to clear node from running state
+const clearRunningNode = (state: UnifiedStore, nodeId: NodeID) => {
+  state.execution.runningNodes.delete(nodeId);
+};
+
+// Helper to update node state
+const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: NodeState) => {
+  state.execution.nodeStates.set(nodeId, nodeState);
+  
+  if (nodeState.status === NodeExecutionStatus.RUNNING) {
+    state.execution.runningNodes.add(nodeId);
+  } else {
+    clearRunningNode(state, nodeId);
+  }
+};
 
 export const createExecutionSlice: StateCreator<
   UnifiedStore,
   [['zustand/immer', never]],
   [],
   ExecutionSlice
-> = (set, get) => ({
+> = (set, _get) => ({
   execution: {
     id: null,
     isRunning: false,
@@ -195,13 +206,7 @@ export const createExecutionSlice: StateCreator<
   
   // Node state management
   updateNodeExecution: (nodeId, nodeState) => set(state => {
-    state.execution.nodeStates.set(nodeId, nodeState);
-    
-    if (nodeState.status === NodeExecutionStatus.RUNNING) {
-      state.execution.runningNodes.add(nodeId);
-    } else {
-      state.execution.runningNodes.delete(nodeId);
-    }
+    updateNodeState(state, nodeId, nodeState);
   }),
   
   setNodeRunning: (nodeId) => set(state => {
@@ -209,8 +214,7 @@ export const createExecutionSlice: StateCreator<
       status: NodeExecutionStatus.RUNNING,
       timestamp: Date.now()
     };
-    state.execution.nodeStates.set(nodeId, nodeState);
-    state.execution.runningNodes.add(nodeId);
+    updateNodeState(state, nodeId, nodeState);
   }),
   
   setNodeCompleted: (nodeId) => set(state => {
@@ -218,8 +222,7 @@ export const createExecutionSlice: StateCreator<
       status: NodeExecutionStatus.COMPLETED,
       timestamp: Date.now()
     };
-    state.execution.nodeStates.set(nodeId, nodeState);
-    state.execution.runningNodes.delete(nodeId);
+    updateNodeState(state, nodeId, nodeState);
   }),
   
   setNodeFailed: (nodeId, error) => set(state => {
@@ -228,8 +231,7 @@ export const createExecutionSlice: StateCreator<
       timestamp: Date.now(),
       error
     };
-    state.execution.nodeStates.set(nodeId, nodeState);
-    state.execution.runningNodes.delete(nodeId);
+    updateNodeState(state, nodeId, nodeState);
   }),
   
   setNodeSkipped: (nodeId, reason) => set(state => {
@@ -238,8 +240,7 @@ export const createExecutionSlice: StateCreator<
       timestamp: Date.now(),
       skipReason: reason
     };
-    state.execution.nodeStates.set(nodeId, nodeState);
-    state.execution.runningNodes.delete(nodeId);
+    updateNodeState(state, nodeId, nodeState);
   }),
   
   // Context management
@@ -252,33 +253,5 @@ export const createExecutionSlice: StateCreator<
   
   clearExecutionContext: () => set(state => {
     state.execution.context = {};
-  }),
-  
-  // Execution state queries
-  isNodeRunning: (nodeId) => {
-    const state = get();
-    return state.execution.runningNodes.has(nodeId);
-  },
-  
-  getNodeExecutionState: (nodeId) => {
-    const state = get();
-    return state.execution.nodeStates.get(nodeId);
-  },
-  
-  getExecutionProgress: () => {
-    const state = get();
-    const total = state.nodes.size;
-    const completed = Array.from(state.execution.nodeStates.values())
-      .filter(nodeState => 
-        nodeState.status === NodeExecutionStatus.COMPLETED || 
-        nodeState.status === NodeExecutionStatus.SKIPPED ||
-        nodeState.status === NodeExecutionStatus.FAILED
-      ).length;
-    
-    return {
-      completed,
-      total,
-      percentage: total > 0 ? Math.round((completed / total) * 100) : 0
-    };
-  }
+  })
 });

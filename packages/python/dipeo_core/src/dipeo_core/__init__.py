@@ -54,16 +54,37 @@ from .execution.types import (
     RuntimeContext,
 )
 from .types import Error, JsonDict, JsonList, JsonValue, Result
-from .utils import (
-    camel_to_snake,
-    ensure_list,
-    get_timestamp,
-    merge_dicts,
-    safe_json_dumps,
-    safe_json_loads,
-    snake_to_camel,
-    truncate_string,
+# Import utility functions directly from utils.py
+# We need to use importlib to specifically load the .py file
+# because Python prioritizes the utils/ package over utils.py
+import importlib.util
+import os
+_utils_spec = importlib.util.spec_from_file_location(
+    "dipeo_core_utils_file", 
+    os.path.join(os.path.dirname(__file__), "utils.py")
 )
+_utils_file = importlib.util.module_from_spec(_utils_spec)
+_utils_spec.loader.exec_module(_utils_file)
+
+# Re-export the functions
+camel_to_snake = _utils_file.camel_to_snake
+ensure_list = _utils_file.ensure_list
+get_timestamp = _utils_file.get_timestamp
+merge_dicts = _utils_file.merge_dicts
+safe_json_dumps = _utils_file.safe_json_dumps
+safe_json_loads = _utils_file.safe_json_loads
+snake_to_camel = _utils_file.snake_to_camel
+truncate_string = _utils_file.truncate_string
+from .utils.error_handling import (
+    ErrorResponse,
+    format_error_response,
+    handle_api_errors,
+    handle_exceptions,
+    handle_file_operation,
+    retry_with_backoff,
+    safe_parse,
+)
+from .utils.dynamic_registry import DynamicRegistry, TypedDynamicRegistry
 
 __version__ = "0.1.0"
 
@@ -130,4 +151,15 @@ __all__ = [
     "MAX_RETRIES",
     "DEFAULT_PAGE_SIZE",
     "MAX_PAGE_SIZE",
+    # Error handling utilities
+    "ErrorResponse",
+    "handle_exceptions",
+    "handle_file_operation",
+    "handle_api_errors",
+    "retry_with_backoff",
+    "safe_parse",
+    "format_error_response",
+    # Dynamic registry utilities
+    "DynamicRegistry",
+    "TypedDynamicRegistry",
 ]

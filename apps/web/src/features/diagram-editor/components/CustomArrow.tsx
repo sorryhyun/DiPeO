@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
-import { useArrowOperations } from '../hooks';
-import { useUIState } from '@/shared/hooks/selectors';
+import { useCanvasOperationsContext, useCanvasUIState } from '../contexts/CanvasContext';
 import { useArrowData } from '@/shared/hooks/selectors/useDiagramData';
 import { arrowId, ArrowData } from '@/core/types';
 import { getQuadraticPoint } from '@/shared/utils/geometry';
@@ -31,8 +30,9 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const { screenToFlowPosition } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
-  const { activeCanvas } = useUIState();
-  const { updateArrow } = useArrowOperations();
+  const { activeCanvas } = useCanvasUIState();
+  const { arrowOps } = useCanvasOperationsContext();
+  const { updateArrow } = arrowOps;
   const currentArrow = useArrowData(arrowId(id));
   const isExecutionMode = activeCanvas === 'execution';
   

@@ -5,10 +5,8 @@ import { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-edi
 import { NodeType } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { FIELD_TYPES } from '@/core/types/panel';
-import { useNodeOperations, useArrowOperations, usePersonOperations } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useCanvasOperationsContext, useCanvasPersons } from '@/features/diagram-editor';
 import { usePropertyManager } from '../hooks';
-import { usePersonsData } from '@/shared/hooks/selectors';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
@@ -94,28 +92,13 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
   const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
-  const { deleteNode } = useNodeOperations();
-  const { deleteArrow } = useArrowOperations();
-  const { deletePerson } = usePersonOperations();
-  const { clearSelection } = useUnifiedStore();
-  const { personsArray } = usePersonsData();
+  
+  // Use context instead of individual hooks
+  const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperationsContext();
+  const personsArray = useCanvasPersons();
   
   const panelConfig = getPanelConfig(nodeType as NodeType | 'arrow' | 'person');
   
-  if (!panelConfig) {
-    return (
-      <div className="p-4 space-y-4">
-        <div className="flex items-center space-x-2 border-b pb-2">
-          <Settings className="w-5 h-5" />
-          <h3 className="text-lg font-semibold">Unknown Node Type</h3>
-        </div>
-        <div className="space-y-4">
-          <div className="text-red-500">No configuration found for node type: {nodeType}</div>
-        </div>
-      </div>
-    );
-  }
-
   const personsForSelect = personsArray.map(person => ({ id: person.id, label: person.label }));
   
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
@@ -275,14 +258,28 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
 
   const handleDelete = () => {
     if (data.type === 'person') {
-      deletePerson(personId(entityId));
+      personOps.deletePerson(personId(entityId));
     } else if (data.type === 'arrow') {
-      deleteArrow(arrowId(entityId));
+      arrowOps.deleteArrow(arrowId(entityId));
     } else {
-      deleteNode(nodeId(entityId));
+      nodeOps.deleteNode(nodeId(entityId));
     }
     clearSelection();
   };
+
+  if (!panelConfig) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center space-x-2 border-b pb-2">
+          <Settings className="w-5 h-5" />
+          <h3 className="text-lg font-semibold">Unknown Node Type</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="text-red-500">No configuration found for node type: {nodeType}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-4">

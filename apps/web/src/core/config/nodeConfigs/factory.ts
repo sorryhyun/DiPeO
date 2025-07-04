@@ -1,6 +1,5 @@
 import type { NodeType } from '@dipeo/domain-models';
-import type { UnifiedNodeConfig } from '../unifiedConfig';
-import { createUnifiedConfig } from '../unifiedConfig';
+import { createUnifiedConfig, type UnifiedNodeConfig } from '../unifiedConfig';
 
 // Base interface for node type definitions
 interface NodeTypeDefinition {

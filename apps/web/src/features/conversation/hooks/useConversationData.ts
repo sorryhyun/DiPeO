@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useGetConversationsQuery } from '@/__generated__/graphql';
+import { GetConversationsDocument } from '@/__generated__/graphql';
+import { createEntityQuery } from '@/graphql/hooks';
 import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/core/types/conversation';
 import { type PersonID, ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 
@@ -26,79 +27,94 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   // Determine if we should poll based on execution status
   const shouldPoll = enableRealtimeUpdates && (!executionStatus || isExecutionActive(executionStatus as ExecutionStatus));
   
+  // Create query variables
+  const queryVariables = useMemo(() => ({
+    person_id: personId || undefined,
+    execution_id: filters.executionId || undefined,
+    search: filters.searchTerm || undefined,
+    show_forgotten: filters.showForgotten || false,
+    limit: MESSAGES_PER_PAGE,
+    offset: 0,
+    since: filters.startTime ? new Date(filters.startTime) : undefined
+  }), [personId, filters]);
+
+  // Create the query hook using factory pattern
+  const useConversationsQuery = useMemo(
+    () => createEntityQuery({
+      entityName: 'Conversations',
+      document: GetConversationsDocument,
+      cacheStrategy: 'cache-and-network',
+    }),
+    []
+  );
+
   // GraphQL query with automatic loading state
-  const { data, loading, error, refetch, fetchMore } = useGetConversationsQuery({
-    variables: {
-      person_id: personId || undefined,
-      execution_id: filters.executionId || undefined,
-      search: filters.searchTerm || undefined,
-      show_forgotten: filters.showForgotten || false,
-      limit: MESSAGES_PER_PAGE,
-      offset: 0,
-      since: filters.startTime ? new Date(filters.startTime) : undefined
-    },
-    skip: false,
-    // Poll for updates only when realtime updates are enabled AND execution is active
-    pollInterval: shouldPoll ? 5000 : 0,
-    // Error handling
-    onError: (error) => {
-      console.error('Failed to fetch conversation data:', error);
-      toast.error('Failed to load conversations');
+  const { data, loading, error, refetch, fetchMore } = useConversationsQuery(
+    queryVariables,
+    {
+      skip: false,
+      // Poll for updates only when realtime updates are enabled AND execution is active
+      pollInterval: shouldPoll ? 5000 : 0,
     }
-  });
+  );
+
+  // Transform function for conversation data
+  const transformConversationsData = useCallback((conversationsData: any) => {
+    const transformed: Record<string, PersonMemoryState> = {};
+    
+    // Group conversations by personId
+    const groupedByPerson: Record<string, any[]> = {};
+    conversationsData.conversations?.forEach((conv: any) => {
+      const pid = conv.personId;
+      if (!groupedByPerson[pid]) {
+        groupedByPerson[pid] = [];
+      }
+      groupedByPerson[pid].push(conv);
+    });
+    
+    // Transform to PersonMemoryState format
+    Object.entries(groupedByPerson).forEach(([pid, convs]) => {
+      transformed[pid as PersonID] = {
+        messages: convs.map((conv: any) => ({
+          id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
+          role: 'assistant' as const,
+          personId: pid as PersonID,
+          content: conv.assistantResponse || '',
+          timestamp: conv.timestamp,
+          tokenCount: conv.tokenUsage?.total || 0,
+          // Additional fields for internal use
+          nodeId: conv.nodeId,
+          userPrompt: conv.userPrompt,
+          executionId: conv.executionId,
+          forgotten: conv.forgotten || false
+        })),
+        visibleMessages: convs.filter((c: any) => !c.forgotten).length,
+        hasMore: conversationsData.has_more || false,
+        config: {
+          forgetMode: 'no_forget',
+          maxMessages: 20
+        }
+      };
+      
+      // Update message counts
+      messageCounts.current[pid] = convs.length;
+      
+      // Update last fetch time
+      if (convs.length > 0) {
+        lastUpdateTime.current = convs[convs.length - 1].timestamp;
+      }
+    });
+    
+    return transformed;
+  }, []);
 
   // Transform GraphQL response to match expected format
   useEffect(() => {
     if (data?.conversations) {
-      const conversationsData = data.conversations as any;
-      const transformed: Record<string, PersonMemoryState> = {};
-      
-      // Group conversations by personId
-      const groupedByPerson: Record<string, any[]> = {};
-      conversationsData.conversations?.forEach((conv: any) => {
-        const pid = conv.personId;
-        if (!groupedByPerson[pid]) {
-          groupedByPerson[pid] = [];
-        }
-        groupedByPerson[pid].push(conv);
-      });
-      
-      // Transform to PersonMemoryState format
-      Object.entries(groupedByPerson).forEach(([pid, convs]) => {
-        transformed[pid as PersonID] = {
-          messages: convs.map((conv: any) => ({
-            id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
-            role: 'assistant' as const,
-            personId: pid as PersonID,
-            content: conv.assistantResponse || '',
-            timestamp: conv.timestamp,
-            tokenCount: conv.tokenUsage?.total || 0,
-            // Additional fields for internal use
-            nodeId: conv.nodeId,
-            userPrompt: conv.userPrompt,
-            executionId: conv.executionId,
-            forgotten: conv.forgotten || false
-          })),
-          visibleMessages: convs.filter((c: any) => !c.forgotten).length,
-          hasMore: conversationsData.has_more || false,
-          config: {
-            forgetMode: 'no_forget',
-            maxMessages: 20
-          }
-        };
-        
-        // Update message counts
-        messageCounts.current[pid] = convs.length;
-        
-        // Update last fetch time
-        if (convs.length > 0) {
-          lastUpdateTime.current = convs[convs.length - 1].timestamp;
-        }
-      });
-      
+      const transformed = transformConversationsData(data.conversations);
       setConversationData(transformed);
     }
-  }, [data]);
+  }, [data, transformConversationsData]);
 
   // Add new message to conversation data
   const addMessage = useCallback((personId: PersonID, message: ConversationMessage) => {
@@ -121,17 +137,28 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   }, []);
 
   // Refresh data for a specific person or all
-  const refresh = useCallback((personId?: PersonID) => {
-    return refetch({
-      person_id: personId || undefined,
-      execution_id: filters.executionId || undefined,
-      search: filters.searchTerm || undefined,
-      show_forgotten: filters.showForgotten || false,
-      limit: MESSAGES_PER_PAGE,
-      offset: 0,
-      since: filters.startTime ? new Date(filters.startTime) : undefined
-    });
-  }, [refetch, filters]);
+  const refresh = useCallback(async (personId?: PersonID) => {
+    try {
+      const result = await refetch({
+        person_id: personId || undefined,
+        execution_id: filters.executionId || undefined,
+        search: filters.searchTerm || undefined,
+        show_forgotten: filters.showForgotten || false,
+        limit: MESSAGES_PER_PAGE,
+        offset: 0,
+        since: filters.startTime ? new Date(filters.startTime) : undefined
+      });
+      if (result.data?.conversations) {
+        const transformed = transformConversationsData(result.data.conversations);
+        setConversationData(transformed);
+      }
+      return result;
+    } catch (error) {
+      // Error is handled by the query factory
+      console.error('Failed to refresh conversations:', error);
+      throw error;
+    }
+  }, [refetch, filters, transformConversationsData]);
 
   // Load more messages for pagination
   const loadMoreMessages = useCallback(async (personId: PersonID) => {

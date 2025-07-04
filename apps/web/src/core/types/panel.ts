@@ -87,14 +87,8 @@ export interface PanelFormProps<T extends Record<string, unknown>> {
   className?: string;
 }
 
-export const DOMAIN_TO_UI_FIELD_TYPE: Record<string, FieldType> = {
-  'string': FIELD_TYPES.TEXT,
-  'number': FIELD_TYPES.NUMBER,
-  'boolean': FIELD_TYPES.BOOLEAN,
-  'select': FIELD_TYPES.SELECT,
-  'textarea': FIELD_TYPES.VARIABLE_TEXTAREA,
-  'person': FIELD_TYPES.PERSON_SELECT,
-};
+// Note: DOMAIN_TO_UI_FIELD_TYPE has been moved to fieldTypeRegistry.ts 
+// to avoid circular dependencies
 
 export function createPanelFormData<T extends Record<string, unknown>>(
   data: T

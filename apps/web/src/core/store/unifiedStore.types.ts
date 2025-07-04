@@ -35,6 +35,7 @@ export interface UnifiedStore extends
   UISlice {
   // === Additional Core Data not in slices ===
   handles: Map<HandleID, DomainHandle>;
+  handleIndex: Map<NodeID, DomainHandle[]>;  // Performance optimization: O(1) handle lookups by node
   
   // === History ===
   history: {

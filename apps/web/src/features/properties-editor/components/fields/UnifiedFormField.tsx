@@ -7,6 +7,7 @@ import {
 } from '../styles.constants';
 import { readFileAsText } from '@/shared/utils/file';
 import { FIELD_TYPES } from '@/core/types/panel';
+import { LEGACY_TYPE_MAP } from '@/core/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';
 
 export type FieldValue = string | number | boolean | null | undefined;
@@ -22,14 +23,6 @@ export type UnifiedFieldType =
   | typeof FIELD_TYPES.MAX_ITERATION
   | typeof FIELD_TYPES.VARIABLE_TEXTAREA
   | 'file'; // File is UI-specific, not in base types
-
-// Legacy type mapping for backward compatibility
-const LEGACY_TYPE_MAP: Record<string, UnifiedFieldType> = {
-  'checkbox': FIELD_TYPES.BOOLEAN,
-  'iteration-count': FIELD_TYPES.MAX_ITERATION,
-  'person-select': FIELD_TYPES.PERSON_SELECT,
-  'variable-textarea': FIELD_TYPES.VARIABLE_TEXTAREA,
-};
 
 export interface UnifiedFormFieldProps {
   type: UnifiedFieldType;
@@ -66,8 +59,8 @@ type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layo
 };
 
 // Normalize legacy type names
-function normalizeFieldType(type: string): UnifiedFieldType {
-  return (LEGACY_TYPE_MAP[type] || type) as UnifiedFieldType;
+function normalizeUnifiedFieldType(type: string): UnifiedFieldType {
+  return (LEGACY_TYPE_MAP[type as keyof typeof LEGACY_TYPE_MAP] || type) as UnifiedFieldType;
 }
 
 // Widget lookup table for field types
@@ -297,7 +290,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   };
   
   // Normalize field type for lookup
-  const normalizedType = normalizeFieldType(type);
+  const normalizedType = normalizeUnifiedFieldType(type);
   const fieldElement = widgets[normalizedType]?.(widgetProps) ?? null;
   
   if (layout === 'vertical') {

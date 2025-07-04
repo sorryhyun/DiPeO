@@ -9,6 +9,7 @@ from dipeo_core import (
     BaseService,
     FileOperationError, 
     SupportsFile,
+    handle_file_operation,
 )
 from dipeo_core.base.file_protocol import FileServiceProtocol
 
@@ -57,6 +58,7 @@ class ModularFileService(BaseService, SupportsFile, FileServiceProtocol):
     
     # === Basic Operations (SupportsFile Protocol) ===
     
+    @handle_file_operation("read")
     def read(
         self,
         file_id: str,
@@ -64,39 +66,36 @@ class ModularFileService(BaseService, SupportsFile, FileServiceProtocol):
         directory: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Read a file synchronously."""
-        try:
-            file_path = self._resolve_path(file_id, person_id, directory)
-            
-            if not file_path.exists():
-                return {
-                    "success": False,
-                    "error": f"File not found: {file_id}",
-                    "file_id": file_id,
-                    "path": str(file_path),
-                }
-            
-            # Use format registry to read
-            content, raw_content = self.formats.read_file(file_path)
-            
-            # Determine if JSON based on handler
-            is_json = file_path.suffix.lower() == '.json'
-            
+        file_path = self._resolve_path(file_id, person_id, directory)
+        
+        if not file_path.exists():
             return {
-                "success": True,
+                "success": False,
+                "error": f"File not found: {file_id}",
                 "file_id": file_id,
                 "path": str(file_path),
-                "content": content,
-                "raw_content": raw_content,
-                "is_json": is_json,
-                "size": file_path.stat().st_size,
-                "modified": datetime.fromtimestamp(
-                    file_path.stat().st_mtime, tz=UTC
-                ).isoformat(),
             }
         
-        except Exception as e:
-            return {"success": False, "error": str(e), "file_id": file_id}
+        # Use format registry to read
+        content, raw_content = self.formats.read_file(file_path)
+        
+        # Determine if JSON based on handler
+        is_json = file_path.suffix.lower() == '.json'
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "path": str(file_path),
+            "content": content,
+            "raw_content": raw_content,
+            "is_json": is_json,
+            "size": file_path.stat().st_size,
+            "modified": datetime.fromtimestamp(
+                file_path.stat().st_mtime, tz=UTC
+            ).isoformat(),
+        }
     
+    @handle_file_operation("write")
     async def write(
         self,
         file_id: str,
@@ -105,29 +104,25 @@ class ModularFileService(BaseService, SupportsFile, FileServiceProtocol):
         content: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Write content to a file asynchronously."""
-        try:
-            file_path = self._resolve_path(file_id, person_id, directory)
-            
-            # Create backup if file exists
-            backup_path = await self._create_backup_if_exists(file_path)
-            
-            # Write using format registry
-            if content is None:
-                content = ""
-            
-            await self.formats.write_file(file_path, content)
-            
-            return {
-                "success": True,
-                "file_id": file_id,
-                "path": str(file_path),
-                "size": len(str(content)),
-                "backup_path": str(backup_path) if backup_path else None,
-                "created": datetime.now().isoformat(),
-            }
+        file_path = self._resolve_path(file_id, person_id, directory)
         
-        except Exception as e:
-            return {"success": False, "error": str(e), "file_id": file_id}
+        # Create backup if file exists
+        backup_path = await self._create_backup_if_exists(file_path)
+        
+        # Write using format registry
+        if content is None:
+            content = ""
+        
+        await self.formats.write_file(file_path, content)
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "path": str(file_path),
+            "size": len(str(content)),
+            "backup_path": str(backup_path) if backup_path else None,
+            "created": datetime.now().isoformat(),
+        }
     
     async def save_file(
         self, content: bytes, filename: str, target_path: Optional[str] = None

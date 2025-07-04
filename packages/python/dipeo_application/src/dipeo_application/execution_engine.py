@@ -5,10 +5,12 @@ from dataclasses import dataclass
 from collections import deque
 import asyncio
 import logging
+import json
 
 from dipeo_core import RuntimeContext, get_global_registry
 from dipeo_domain import NodeOutput
 from .execution_view import LocalExecutionView
+from .execution_flow_controller import ExecutionFlowController
 
 log = logging.getLogger(__name__)
 
@@ -63,23 +65,31 @@ class ExecutionEngine:
             node_view._handler_def = node_def
 
         try:
-            endpoint_executed = False
+            flow_controller = ExecutionFlowController(execution_view)
+            
+            # Execute initial topological levels
             for i, level in enumerate(execution_view.execution_order):
                 await self._execute_level(
                     level, execution_id, options, execution_view, interactive_handler
                 )
-                for node_view in execution_view.node_views.values():
-                    if node_view.node.type == "endpoint" and node_view.output is not None:
-                        endpoint_executed = True
-                        break
                 
-                if endpoint_executed:
-                    log.info(f"Endpoint node executed, terminating execution early")
+                if flow_controller.has_endpoint_executed():
+                    log.info("Endpoint node executed, terminating execution early")
                     break
-            if not endpoint_executed:
-                await self._execute_iterations(
-                    execution_view, execution_id, options, interactive_handler
+            
+            # Execute iterations if no endpoint was executed
+            if not flow_controller.has_endpoint_executed():
+                await self._execute_iterations_with_controller(
+                    flow_controller, execution_id, options, interactive_handler
                 )
+            
+            # Store flow controller for later access
+            self._last_flow_controller = flow_controller
+            
+            # Log final visualization if enabled
+            if flow_controller.enable_visualization:
+                visualization = flow_controller.get_flow_visualization()
+                log.info(f"Execution flow visualization: {json.dumps(visualization, indent=2)}")
 
             for observer in self.observers:
                 await observer.on_execution_complete(execution_id)
@@ -122,6 +132,12 @@ class ExecutionEngine:
     ):
         """Execute single node with observer notifications."""
         async with self._concurrency_semaphore:
+            # Record node start for visualization
+            if hasattr(self, '_flow_controller'):
+                self._flow_controller.record_node_execution(
+                    node_view.id, "started", {"inputs": list(inputs.keys()) if inputs else []}
+                )
+            
             for observer in self.observers:
                 await observer.on_node_start(execution_id, node_view.id)
 
@@ -139,28 +155,16 @@ class ExecutionEngine:
                     "interactive_handler": interactive_handler
                 }
 
-                was_skipped = hasattr(node_view, '_skip_execution') and node_view._skip_execution
                 node_data = node_view.data.copy() if node_view.data else {}
                 if node_view.node.type == "person_job" and "first_only_prompt" not in node_data:
                     node_data["first_only_prompt"] = ""
                 
-                if was_skipped:
-                    from dipeo_core.execution import create_node_output
-                    if hasattr(node_view, 'output_history') and node_view.output_history:
-                        last_output = node_view.output_history[-1]
-                        output_value = last_output.value.copy() if last_output.value else {}
-                    else:
-                        output_value = {}
-                    
-                    if inputs:
-                        output_value.update(inputs)
-                        if 'default' not in output_value and inputs:
-                            first_key = next(iter(inputs.keys()), None)
-                            if first_key:
-                                output_value['default'] = inputs[first_key]
-                    
-                    output = create_node_output(output_value, {"skipped": True, "reason": "max_iterations_reached"})
-                    node_view._skip_execution = False
+                # Check if we should skip execution due to max iterations
+                flow_controller = ExecutionFlowController(execution_view)
+                should_skip = flow_controller.should_skip_node_execution(node_view)
+                
+                if should_skip:
+                    output = self._create_skipped_output(node_view, inputs)
                 else:
                     output = await node_view.handler(
                         props=node_view._handler_def.node_schema.model_validate(
@@ -172,7 +176,7 @@ class ExecutionEngine:
                     )
 
                 node_view.output = output
-                if not was_skipped:
+                if not should_skip:
                     node_view.exec_count += 1
 
                 if node_view.node.type in ["job", "person_job", "loop"]:
@@ -267,52 +271,26 @@ class ExecutionEngine:
             else None,
         )
 
-    async def _execute_iterations(
-        self, execution_view, execution_id, options, interactive_handler
+    async def _execute_iterations_with_controller(
+        self, flow_controller, execution_id, options, interactive_handler
     ):
-        """Execute iterative nodes using breadth-first queue."""
+        """Execute iterative nodes using the flow controller."""
         max_iterations = options.get("max_iterations", 100)
-        iteration_count = 0
-
-        ready_queue = deque()
-
-        for node_view in execution_view.node_views.values():
-            if node_view.node.type in ["job", "person_job", "loop"]:
-                max_iter = node_view.data.get("max_iteration", 1)
-                if node_view.exec_count < max_iter and node_view.output is None:
-                    if self._can_execute(node_view):
-                        ready_queue.append(node_view)
-
-        while ready_queue and iteration_count < max_iterations:
-            endpoint_executed = False
-            for node_view in execution_view.node_views.values():
-                if node_view.node.type == "endpoint" and node_view.output is not None:
-                    endpoint_executed = True
-                    log.info(f"Endpoint node executed, terminating iterations early")
-                    break
+        execution_view = flow_controller.execution_view
+        
+        # Initialize queue with iterative nodes
+        iterative_nodes = flow_controller.get_iterative_nodes()
+        ready_nodes = [node for node in iterative_nodes if self._can_execute(node)]
+        flow_controller.add_to_queue(ready_nodes)
+        
+        # Main iteration loop
+        while flow_controller.should_continue_iterations(max_iterations):
+            current_batch = self._prepare_execution_batch(flow_controller)
             
-            if endpoint_executed:
-                break
-            current_batch = []
-            batch_size = len(ready_queue)
-
-            for _ in range(batch_size):
-                node_view = ready_queue.popleft()
-
-                if node_view.node.type in ["job", "person_job", "loop"]:
-                    max_iter = node_view.data.get("max_iteration", 1)
-                    if node_view.exec_count >= max_iter:
-                        if self._can_execute(node_view):
-                            node_view._skip_execution = True
-                            current_batch.append(node_view)
-                        continue
-
-                if self._can_execute(node_view):
-                    current_batch.append(node_view)
-
             if not current_batch:
                 break
-
+            
+            # Execute the batch
             await self._execute_level(
                 current_batch,
                 execution_id,
@@ -321,55 +299,78 @@ class ExecutionEngine:
                 interactive_handler,
             )
             
-            # Check if any endpoint nodes have been executed after this batch
-            endpoint_executed = False
-            for node_view in execution_view.node_views.values():
-                if node_view.node.type == "endpoint" and node_view.output is not None:
-                    endpoint_executed = True
-                    log.info(f"Endpoint node executed during iterations, terminating early")
-                    break
+            # Check for early termination
+            if flow_controller.has_endpoint_executed():
+                log.info("Endpoint node executed during iterations, terminating early")
+                break
             
-            if endpoint_executed:
-                break
-
-            for executed_node in current_batch:
-                for edge in executed_node.outgoing_edges:
-                    target = edge.target_view
-
-                    if target.node.type in ["job", "person_job", "loop"]:
-                        max_iter = target.data.get("max_iteration", 1)
-                        if target.exec_count < max_iter and target.output is None:
-                            if self._can_execute(target):
-                                if target not in ready_queue:
-                                    ready_queue.append(target)
-                    elif target.output is None and self._can_execute(target):
-                        if target not in ready_queue:
-                            ready_queue.append(target)
-                    elif target.node.type == "condition" and target.data.get("condition_type") == "detect_max_iterations":
-                        target.output = None
-                        if self._can_execute(target) and target not in ready_queue:
-                            ready_queue.append(target)
-
-            iteration_count += 1
-        endpoint_executed = False
-        for node_view in execution_view.node_views.values():
-            if node_view.node.type == "endpoint" and node_view.output is not None:
-                endpoint_executed = True
-                break
+            # Queue successors for execution
+            self._queue_successors(current_batch, flow_controller)
+            
+            flow_controller.increment_iteration()
         
-        if not endpoint_executed:
-            final_batch = []
-            for node_view in execution_view.node_views.values():
-                if (node_view.output is None and 
-                    node_view.node.type not in ["job", "person_job", "loop"] and
-                    self._can_execute(node_view)):
-                    final_batch.append(node_view)
-            
-            if final_batch:
-                await self._execute_level(
-                    final_batch,
-                    execution_id,
-                    options,
-                    execution_view,
-                    interactive_handler,
-                )
+        # Execute any remaining non-iterative nodes
+        if not flow_controller.has_endpoint_executed():
+            await self._execute_final_batch(flow_controller, execution_id, options, interactive_handler)
+    
+    def _prepare_execution_batch(self, flow_controller):
+        """Prepare the next batch of nodes for execution."""
+        batch = []
+        candidates = flow_controller.get_next_batch()
+        
+        for node_view in candidates:
+            if self._can_execute(node_view):
+                batch.append(node_view)
+        
+        return batch
+    
+    def _queue_successors(self, executed_nodes, flow_controller):
+        """Queue successor nodes that are ready for execution."""
+        for node in executed_nodes:
+            successors = flow_controller.get_executable_successors(
+                node, self._can_execute
+            )
+            flow_controller.add_to_queue(successors)
+    
+    async def _execute_final_batch(self, flow_controller, execution_id, options, interactive_handler):
+        """Execute final batch of non-iterative nodes."""
+        final_batch = flow_controller.get_final_batch_nodes(self._can_execute)
+        
+        if final_batch:
+            await self._execute_level(
+                final_batch,
+                execution_id,
+                options,
+                flow_controller.execution_view,
+                interactive_handler,
+            )
+    
+    def _create_skipped_output(self, node_view, inputs):
+        """Create output for nodes that are skipped due to max iterations."""
+        from dipeo_core.execution import create_node_output
+        
+        # Start with previous output values if available
+        if hasattr(node_view, 'output_history') and node_view.output_history:
+            last_output = node_view.output_history[-1]
+            output_value = last_output.value.copy() if last_output.value else {}
+        else:
+            output_value = {}
+        
+        # Merge with current inputs
+        if inputs:
+            output_value.update(inputs)
+            if 'default' not in output_value and inputs:
+                first_key = next(iter(inputs.keys()), None)
+                if first_key:
+                    output_value['default'] = inputs[first_key]
+        
+        return create_node_output(
+            output_value, 
+            {"skipped": True, "reason": "max_iterations_reached"}
+        )
+    
+    def get_last_flow_visualization(self) -> Optional[dict]:
+        """Get flow visualization data from the last execution."""
+        if hasattr(self, '_last_flow_controller') and self._last_flow_controller:
+            return self._last_flow_controller.get_flow_visualization()
+        return None

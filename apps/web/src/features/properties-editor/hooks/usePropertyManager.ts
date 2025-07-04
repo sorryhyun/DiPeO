@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { useNodeOperations, useArrowOperations, usePersonOperations, useCanvas } from '@/features/diagram-editor/hooks';
+import { useCanvasContext } from '@/features/diagram-editor';
 import { arrowId, nodeId, personId } from '@/core/types';
 import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
 
@@ -54,11 +54,12 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     onError
   } = options;
 
-  // Store selectors
-  const { updateNode } = useNodeOperations();
-  const { updateArrow } = useArrowOperations();
-  const { updatePerson } = usePersonOperations();
-  const { isMonitorMode } = useCanvas();
+  // Get operations from context
+  const { nodeOps, arrowOps, personOps, canvas } = useCanvasContext();
+  const { updateNode } = nodeOps;
+  const { updateArrow } = arrowOps;
+  const { updatePerson } = personOps;
+  const { isMonitorMode } = canvas;
 
   // Form state
   const [formData, setFormData] = useState<T>(initialData);

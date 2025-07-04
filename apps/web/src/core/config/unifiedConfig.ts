@@ -1,15 +1,7 @@
 import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
 import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { FIELD_TYPES, type FieldType } from '@/core/types/panel';
-
-const fieldTypeMapping: Record<FieldConfig['type'], FieldType> = {
-  string: FIELD_TYPES.TEXT,
-  number: FIELD_TYPES.TEXT, // Will add number validation
-  select: FIELD_TYPES.SELECT,
-  textarea: FIELD_TYPES.VARIABLE_TEXTAREA,
-  person: FIELD_TYPES.PERSON_SELECT,
-  boolean: FIELD_TYPES.BOOLEAN
-};
+import { normalizeFieldType } from '@/core/types/fieldTypeRegistry';
 
 
 export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<string, unknown>> {
@@ -39,10 +31,10 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
 
 
   for (const field of config.fields) {
-    const panelFieldType = fieldTypeMapping[field.type];
+    const panelFieldType = normalizeFieldType(field.type);
     
     const panelField: TypedPanelFieldConfig<T> = {
-      type: panelFieldType as FieldType,
+      type: panelFieldType,
       name: field.name as keyof T & string,
       label: field.label,
       placeholder: field.placeholder,

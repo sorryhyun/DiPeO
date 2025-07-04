@@ -27,6 +27,9 @@ from .execution import LocalExecutionService
 # Export execution engine and observer
 from .execution_engine import ExecutionEngine, ExecutionObserver
 
+# Export execution flow controller
+from .execution_flow_controller import ExecutionFlowController
+
 # Export engine factory
 from .engine_factory import EngineFactory
 
@@ -46,6 +49,7 @@ __all__ = [
     "LocalExecutionService",
     "ExecutionEngine",
     "ExecutionObserver",
+    "ExecutionFlowController",
     "EngineFactory",
     "LocalExecutionView",
     "NodeView",

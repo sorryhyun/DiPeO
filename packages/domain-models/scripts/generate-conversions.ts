@@ -11,7 +11,48 @@ import process from 'node:process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const PYTHON_TEMPLATE = `"""
+/**
+ * Extract NODE_TYPE_MAP from TypeScript conversions file
+ */
+async function extractNodeTypeMap(): Promise<string> {
+  const conversionsPath = join(__dirname, '../src/conversions.ts');
+  const content = await readFile(conversionsPath, 'utf-8');
+  
+  // Find the NODE_TYPE_MAP definition
+  const mapRegex = /export const NODE_TYPE_MAP[^{]*{([^}]+)}/s;
+  const match = content.match(mapRegex);
+  
+  if (!match) {
+    throw new Error('Could not find NODE_TYPE_MAP in conversions.ts');
+  }
+  
+  // Extract the mapping content
+  const mapContent = match[1];
+  
+  // Parse each mapping line
+  const lines = mapContent.split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith('//'));
+  
+  // Convert TypeScript format to Python format
+  const pythonMappings: string[] = [];
+  
+  for (const line of lines) {
+    // Match patterns like: 'job': NodeType.JOB,
+    const lineMatch = line.match(/['"]([^'"]+)['"]\s*:\s*NodeType\.([A-Z_]+),?/);
+    if (lineMatch) {
+      const [, key, enumValue] = lineMatch;
+      // Convert enum value format (e.g., JOB -> job, PERSON_JOB -> person_job)
+      const pythonEnumValue = enumValue.toLowerCase();
+      pythonMappings.push(`    '${key}': NodeType.${pythonEnumValue},`);
+    }
+  }
+  
+  return pythonMappings.join('\n');
+}
+
+async function generatePythonTemplate(nodeTypeMapContent: string): Promise<string> {
+  return `"""
 Single-source conversion utilities for DiPeO domain models.
 This file is auto-generated from TypeScript - DO NOT EDIT.
 """
@@ -42,17 +83,7 @@ from dipeo_domain import (
 # ============================================================================
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
-    'start': NodeType.start,
-    'person_job': NodeType.person_job,
-    'condition': NodeType.condition,
-    'job': NodeType.job,
-    'code_job': NodeType.code_job,
-    'api_job': NodeType.api_job,
-    'endpoint': NodeType.endpoint,
-    'db': NodeType.db,
-    'user_response': NodeType.user_response,
-    'notion': NodeType.notion,
-    'person_batch_job': NodeType.person_batch_job,
+${nodeTypeMapContent}
 }
 
 NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {
@@ -330,16 +361,24 @@ __all__ = [
     "validate_arrow_connection",
 ]
 `;
+}
 
 async function generateConversions() {
   try {
+    // Extract NODE_TYPE_MAP from TypeScript source
+    console.log('📖 Extracting NODE_TYPE_MAP from TypeScript source...');
+    const nodeTypeMapContent = await extractNodeTypeMap();
+    
+    // Generate Python template with extracted mapping
+    const pythonTemplate = await generatePythonTemplate(nodeTypeMapContent);
+    
     // Create output directory
     const outputDir = join(__dirname, '../../python/dipeo_domain/src/dipeo_domain');
     await mkdir(outputDir, { recursive: true });
     
     // Write Python conversion utilities
     const outputPath = join(outputDir, 'conversions.py');
-    await writeFile(outputPath, PYTHON_TEMPLATE);
+    await writeFile(outputPath, pythonTemplate);
     
     console.log('✅ Generated Python conversion utilities at:', outputPath);
   } catch (err) {

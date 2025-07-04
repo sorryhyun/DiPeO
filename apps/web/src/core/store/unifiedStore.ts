@@ -18,6 +18,7 @@ import {
   createFullSnapshot, 
   recordHistory 
 } from "./helpers/entityHelpers";
+import { rebuildHandleIndex } from "./helpers/handleIndexHelper";
 
 // Custom serializer for Redux DevTools to handle Maps
 const devtoolsOptions = {
@@ -55,6 +56,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
         
         // Additional data not in slices
         handles: new Map(),
+        handleIndex: new Map(),
         
         // Initial history state
         history: {
@@ -87,6 +89,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
               handles: new Map(snapshot.handles)
             });
             
+            // Rebuild handle index for O(1) lookups
+            state.handleIndex = rebuildHandleIndex(state.handles);
+            
             // Update arrays after restoring maps
             state.nodesArray = Array.from(state.nodes.values());
             state.arrowsArray = Array.from(state.arrows.values());
@@ -107,6 +112,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
               persons: new Map(snapshot.persons),
               handles: new Map(snapshot.handles)
             });
+            
+            // Rebuild handle index for O(1) lookups
+            state.handleIndex = rebuildHandleIndex(state.handles);
             
             // Update arrays after restoring maps
             state.nodesArray = Array.from(state.nodes.values());
@@ -151,6 +159,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
             dataVersion: state.dataVersion + 1,
           });
           
+          // Rebuild handle index for O(1) lookups
+          state.handleIndex = rebuildHandleIndex(state.handles);
+          
           // Update arrays after restoring maps
           state.nodesArray = Array.from(state.nodes.values());
           state.arrowsArray = Array.from(state.arrows.values());
@@ -162,6 +173,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
           state.arrows = new Map();
           state.persons = new Map();
           state.handles = new Map();
+          state.handleIndex = new Map();
           state.nodesArray = [];
           state.arrowsArray = [];
           state.personsArray = [];
