@@ -137,13 +137,23 @@ export class DiagramAdapter {
                     ? { x: node.position.x, y: node.position.y }
                     : { x: 0, y: 0 };
 
+    // Process node data
+    const nodeData = { ...(node.data || {}) };
+    
+    // Convert tools array to comma-separated string for person_job nodes
+    if (node.type === 'person_job' && Array.isArray(nodeData.tools)) {
+      nodeData.tools = nodeData.tools
+        .map((tool: any) => tool.type || tool)
+        .join(', ');
+    }
+
     return {
       id: node.id,
       type: graphQLTypeToNodeKind(node.type),
       position,
       data: {
-        ...(node.data || {}), // Spread all existing node data first
-        label: ((node.data as Record<string, unknown>)?.label as string) || '', // Use label from data
+        ...nodeData, // Spread processed node data
+        label: (nodeData?.label as string) || '', // Use label from data
         inputs,
         outputs,
         _handles: handles // Store original handles for reference

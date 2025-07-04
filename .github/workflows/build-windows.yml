@@ -1,0 +1,192 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [ main, dev ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '0.1.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+          run_install: false
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './apps/desktop/src-tauri -> target'
+      
+      - name: Install Windows dependencies
+        run: |
+          # Install Visual Studio Build Tools components if needed
+          # This is usually pre-installed on GitHub Actions Windows runners
+      
+      - name: Generate icons
+        working-directory: apps/desktop
+        run: |
+          # Create a simple icon if not exists (for CI purposes)
+          if (!(Test-Path "src-tauri/icons/icon.png")) {
+            # Create icons directory
+            New-Item -ItemType Directory -Force -Path "src-tauri/icons"
+            
+            # Download a placeholder icon or generate one
+            # For now, we'll skip this step and assume icons are committed
+          }
+      
+      - name: Build Python Backend
+        working-directory: apps/server
+        run: |
+          # Create virtual environment
+          python -m venv .venv
+          
+          # Activate and install dependencies
+          .\.venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pyinstaller
+          
+          # Install DiPeO packages
+          pip install -e ../../packages/python/dipeo_core
+          pip install -e ../../packages/python/dipeo_domain
+          pip install -e ../../packages/python/dipeo_diagram
+          pip install -e ../../packages/python/dipeo_application
+          pip install -e ../../packages/python/dipeo_infra
+          pip install -e ../../packages/python/dipeo_container
+          pip install -e .
+          
+          # Build executable
+          pyinstaller build.spec --clean --noconfirm
+          
+          # Verify executable was created
+          if (!(Test-Path "dist/dipeo-server.exe")) {
+            Write-Error "Backend build failed"
+            exit 1
+          }
+      
+      - name: Install all dependencies
+        run: |
+          pnpm install --frozen-lockfile
+      
+      - name: Build packages
+        run: |
+          pnpm build:packages
+      
+      - name: Build Frontend
+        working-directory: apps/web
+        run: |
+          pnpm build
+          
+          # Verify build output
+          if (!(Test-Path "dist/index.html")) {
+            Write-Error "Frontend build failed"
+            exit 1
+          }
+      
+      - name: Build Tauri Application
+        working-directory: apps/desktop
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          pnpm tauri build --target x86_64-pc-windows-msvc
+      
+      - name: Prepare artifacts
+        run: |
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path "./dist"
+          
+          # Find and copy installers
+          $version = "${{ github.event.inputs.version || '0.1.0' }}"
+          
+          # Copy NSIS installer
+          $nsisInstaller = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle/nsis" -Filter "*.exe" | Select-Object -First 1
+          if ($nsisInstaller) {
+            Copy-Item $nsisInstaller.FullName -Destination "./dist/DiPeO-Setup-$version-x64.exe"
+          }
+          
+          # Copy MSI installer
+          $msiInstaller = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1
+          if ($msiInstaller) {
+            Copy-Item $msiInstaller.FullName -Destination "./dist/DiPeO-$version-x64.msi"
+          }
+          
+          # List artifacts
+          Get-ChildItem -Path "./dist"
+      
+      - name: Upload NSIS Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: dipeo-windows-nsis
+          path: dist/DiPeO-Setup-*.exe
+          retention-days: 30
+      
+      - name: Upload MSI Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: dipeo-windows-msi
+          path: dist/DiPeO-*.msi
+          retention-days: 30
+      
+      - name: Create Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          prerelease: false
+          files: |
+            dist/DiPeO-Setup-*.exe
+            dist/DiPeO-*.msi
+          body: |
+            # DiPeO ${{ github.ref_name }}
+            
+            ## Downloads
+            - 🪟 **Windows Installer (Recommended):** `DiPeO-Setup-${{ github.ref_name }}-x64.exe`
+            - 📦 **Windows MSI:** `DiPeO-${{ github.ref_name }}-x64.msi`
+            
+            ## Installation
+            1. Download the installer for your platform
+            2. Run the installer (you may need to click "More info" → "Run anyway" if you see a SmartScreen warning)
+            3. Follow the installation wizard
+            4. Launch DiPeO from the Start Menu or Desktop shortcut
+            
+            ## System Requirements
+            - Windows 10 or later (64-bit)
+            - 4GB RAM minimum (8GB recommended)
+            - 200MB free disk space
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

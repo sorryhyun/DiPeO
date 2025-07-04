@@ -16,7 +16,11 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
-    "codegen": "pnpm --filter web codegen"
+    "codegen": "pnpm --filter web codegen",
+    "build:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/build-windows.ps1",
+    "build:windows:bat": "scripts\\build-windows.bat",
+    "desktop:dev": "pnpm --filter '@dipeo/desktop' dev",
+    "desktop:build": "pnpm --filter '@dipeo/desktop' build"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",

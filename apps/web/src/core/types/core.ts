@@ -5,9 +5,12 @@ import {
   EndpointNodeData as DomainEndpointNodeData,
   DBNodeData as DomainDBNodeData,
   JobNodeData as DomainJobNodeData,
+  CodeJobNodeData as DomainCodeJobNodeData,
+  ApiJobNodeData as DomainApiJobNodeData,
   UserResponseNodeData as DomainUserResponseNodeData,
   NotionNodeData as DomainNotionNodeData,
-  PersonBatchJobNodeData as DomainPersonBatchJobNodeData
+  PersonBatchJobNodeData as DomainPersonBatchJobNodeData,
+  HookNodeData as DomainHookNodeData
 } from "@dipeo/domain-models";
 
 // Re-export GraphQL types for use in core domain
@@ -44,9 +47,12 @@ export type PersonJobNodeData = WithUI<DomainPersonJobNodeData>;
 export type EndpointNodeData = WithUI<DomainEndpointNodeData>;
 export type DBNodeData = WithUI<DomainDBNodeData>;
 export type JobNodeData = WithUI<DomainJobNodeData>;
+export type CodeJobNodeData = WithUI<DomainCodeJobNodeData>;
+export type ApiJobNodeData = WithUI<DomainApiJobNodeData>;
 export type UserResponseNodeData = WithUI<DomainUserResponseNodeData>;
 export type NotionNodeData = WithUI<DomainNotionNodeData>;
 export type PersonBatchJobNodeData = WithUI<DomainPersonBatchJobNodeData>;
+export type HookNodeData = WithUI<DomainHookNodeData>;
 
 // Type guards are now imported from graphql-mappings
 export { isDomainNode, isDomainDiagram } from '@/graphql/types/graphql-mappings';

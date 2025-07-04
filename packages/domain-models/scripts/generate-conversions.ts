@@ -46,6 +46,8 @@ NODE_TYPE_MAP: Dict[str, NodeType] = {
     'person_job': NodeType.person_job,
     'condition': NodeType.condition,
     'job': NodeType.job,
+    'code_job': NodeType.code_job,
+    'api_job': NodeType.api_job,
     'endpoint': NodeType.endpoint,
     'db': NodeType.db,
     'user_response': NodeType.user_response,
@@ -256,6 +258,18 @@ def validate_node_data(
             errors.append("HTTP method is required")
         if not data.get("url"):
             errors.append("URL is required")
+    
+    elif node_type == NodeType.code_job:
+        if not data.get("language"):
+            errors.append("Language is required for code job nodes")
+        if not data.get("code"):
+            errors.append("Code is required for code job nodes")
+    
+    elif node_type == NodeType.api_job:
+        if not data.get("url"):
+            errors.append("URL is required for API job nodes")
+        if not data.get("method"):
+            errors.append("HTTP method is required for API job nodes")
     
     return len(errors) == 0, errors
 

@@ -19,7 +19,6 @@ AGENTS.md
 *.db-wal
 *.db
 apps/web/schema.graphql
-apps/server/schema.graphql
 packages/domain-models/schema.graphql
 server/diagrams
 docs/deprecated
@@ -29,6 +28,11 @@ TODO.md
 **/.ruff_cache/
 .logs
 apps/server/.import_linter_cache
+
+part1.md
+part2.md
+part3.md
+part4.md
 
 packages/domain-models/__generated__
 packages/python/dipeo_domain/src/dipeo_domain/models.py
@@ -92,7 +96,6 @@ data/
 web/src/generated/
 *.graphql.tsx.map
 
-pnpm-lock.yaml
 .claude
 example.yaml
 docs/TODO.md

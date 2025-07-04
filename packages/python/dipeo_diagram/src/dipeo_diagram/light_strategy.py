@@ -55,9 +55,20 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
                 props.setdefault("custom_data", {})
                 props.setdefault("output_data_structure", {})
             elif node_type == "endpoint":
-                # Map filePath to fileName for endpoint nodes
-                if "filePath" in props and "file_name" not in props:
-                    props["file_name"] = props.pop("filePath")
+                # Map file_path to file_name for endpoint nodes
+                if "file_path" in props and "file_name" not in props:
+                    props["file_name"] = props.pop("file_path")
+            elif node_type == "job":
+                # Legacy job node - map to code_job for backward compatibility
+                if "code" in props:
+                    node_type = "code_job"
+                    # Map code_type to language
+                    if "code_type" in props:
+                        props["language"] = props.pop("code_type")
+            elif node_type == "code_job":
+                # Ensure language field exists
+                if "code_type" in props and "language" not in props:
+                    props["language"] = props.pop("code_type")
 
             node = build_node(
                 id=f"node_{idx}",
@@ -156,6 +167,9 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
             # Map fileName back to filePath for endpoint nodes
             if node_type == "endpoint" and "file_name" in props:
                 props["file_path"] = props.pop("file_name")
+            # Map language back to code_type for code_job nodes (for backward compatibility)
+            elif node_type == "code_job" and "language" in props:
+                props["code_type"] = props.pop("language")
             if props:
                 node_dict["props"] = props
             nodes_out.append(node_dict)

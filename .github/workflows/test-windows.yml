@@ -1,0 +1,79 @@
+name: Test on Windows
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+          run_install: false
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          
+          # Install DiPeO packages in development mode
+          pip install -e ./packages/python/dipeo_core
+          pip install -e ./packages/python/dipeo_domain
+          pip install -e ./packages/python/dipeo_diagram
+          pip install -e ./packages/python/dipeo_application
+          pip install -e ./packages/python/dipeo_infra
+          pip install -e ./packages/python/dipeo_container
+          
+          # Install server dependencies
+          cd apps/server
+          pip install -r requirements.txt
+          pip install -e .
+          cd ../..
+          
+          # Install CLI dependencies
+          cd apps/cli
+          pip install -r requirements.txt
+          pip install -e .
+          cd ../..
+      
+      - name: Install Frontend dependencies
+        run: |
+          pnpm install --frozen-lockfile
+      
+      - name: Build packages
+        run: |
+          pnpm build:packages
+      
+      - name: Build Frontend (smoke test)
+        working-directory: apps/web
+        run: |
+          pnpm build
+      
+      - name: Test CLI execution
+        run: |
+          # Test that the CLI can at least show help
+          python -m dipeo_cli --help
+      
+      - name: Check code generation
+        run: |
+          # Run code generation to ensure it works on Windows
+          pnpm generate:all

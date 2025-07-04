@@ -17,28 +17,19 @@ class GrokAdapter(BaseAdapter):
         return anthropic.Anthropic(api_key=self.api_key, base_url=base_url)
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Make API call to Grok and return ChatResult."""
-        # Extract system prompt and convert messages to Anthropic format
-        system_prompt = ""
+        system_prompt, processed_messages = self._extract_system_and_messages(messages)
+        
+        # Convert messages to Anthropic format with content blocks
         anthropic_messages = []
+        for msg in processed_messages:
+            role = msg["role"]
+            content = msg["content"]
+            anthropic_messages.append(
+                {"role": role, "content": [{"type": "text", "text": content}]}
+            )
 
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            if role == "system":
-                system_prompt = content
-            elif role in ["user", "assistant"]:
-                # Grok uses Anthropic's message format with content blocks
-                anthropic_messages.append(
-                    {"role": role, "content": [{"type": "text", "text": content}]}
-                )
-
-        # Extract allowed parameters
-        allowed_params = ["max_tokens", "temperature"]
-        api_params = {
-            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
-        }
+        # Use base method to extract allowed parameters
+        api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
 
         # Make the API call
         response = self.client.messages.create(
@@ -54,25 +45,12 @@ class GrokAdapter(BaseAdapter):
         if response.content and len(response.content) > 0:
             text = response.content[0].text
 
-        # Extract usage
-        prompt_tokens = None
-        completion_tokens = None
-
-        usage_obj = getattr(response, "usage", None)
-        if usage_obj:
-            prompt_tokens = getattr(usage_obj, "input_tokens", None)
-            completion_tokens = getattr(usage_obj, "output_tokens", None)
-
-        # Create TokenUsage if we have usage data
-        token_usage = None
-        if prompt_tokens is not None or completion_tokens is not None:
-            token_usage = TokenUsage(
-                input=prompt_tokens or 0,
-                output=completion_tokens or 0,
-                total=(prompt_tokens or 0) + (completion_tokens or 0)
-                if prompt_tokens is not None and completion_tokens is not None
-                else None,
-            )
+        # Use base method to create token usage
+        token_usage = self._create_token_usage(
+            response,
+            input_field="input_tokens",
+            output_field="output_tokens"
+        )
 
         return ChatResult(
             text=text,

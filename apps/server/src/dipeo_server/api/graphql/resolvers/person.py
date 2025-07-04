@@ -2,7 +2,7 @@
 
 import logging
 
-from dipeo_domain import LLMService, DomainApiKey, DomainPerson
+from dipeo_domain import LLMService, APIServiceType, DomainApiKey, DomainPerson
 
 from ..context import GraphQLContext
 from ..types import (
@@ -41,16 +41,16 @@ class PersonResolver:
             if not api_key_data:
                 return None
 
-            if not self._is_llm_service(api_key_data["service"]):
+            if not self._is_valid_service(api_key_data["service"]):
                 logger.debug(
-                    f"API key {api_key_id} is for non-LLM service: {api_key_data['service']}"
+                    f"API key {api_key_id} has unknown service: {api_key_data['service']}"
                 )
                 return None
 
             return DomainApiKey(
                 id=api_key_data["id"],
                 label=api_key_data["label"],
-                service=self._map_service(api_key_data["service"]),
+                service=self._map_api_service(api_key_data["service"]),
                 masked_key=f"{api_key_data['service']}-****",
             )
 
@@ -72,17 +72,17 @@ class PersonResolver:
 
             result = []
             for key_data in all_keys:
-                if self._is_llm_service(key_data["service"]):
+                if self._is_valid_service(key_data["service"]):
                     pydantic_api_key = DomainApiKey(
                         id=key_data["id"],
                         label=key_data["label"],
-                        service=self._map_service(key_data["service"]),
+                        service=self._map_api_service(key_data["service"]),
                         masked_key=f"{key_data['service']}-****",
                     )
                     result.append(pydantic_api_key)
                 else:
                     logger.info(
-                        f"Skipping non-LLM service API key: {key_data['service']}"
+                        f"Skipping unknown service API key: {key_data['service']}"
                     )
 
             return result
@@ -109,21 +109,21 @@ class PersonResolver:
             )
             return []
 
-    def _is_llm_service(self, service: str) -> bool:
-        """Validates LLM service."""
+    def _is_valid_service(self, service: str) -> bool:
+        """Validates API service."""
         try:
-            LLMService(service.lower())
+            APIServiceType(service.lower())
             return True
         except ValueError:
             return False
 
-    def _map_service(self, service: str) -> str:
+    def _map_api_service(self, service: str) -> str:
         """Maps service string to enum value."""
         try:
-            enum_value = LLMService(service.lower())
+            enum_value = APIServiceType(service.lower())
             return enum_value.value
         except ValueError:
-            raise ValueError(f"Unknown LLM service: {service}")
+            raise ValueError(f"Unknown API service: {service}")
 
 
 person_resolver = PersonResolver()

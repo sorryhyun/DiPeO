@@ -29,12 +29,11 @@ from dipeo_domain.domains.text import TextProcessingDomainService
 from dipeo_domain.domains.validation import ValidationDomainService
 from dipeo_infra import (
     MessageRouter,
-    NotionIntegrationDomainService,
+    NotionAPIService,
     LLMInfraService,
+    ConsolidatedFileService,
 )
 from dipeo_domain.domains.api import APIIntegrationDomainService
-from dipeo_server.infra.external.integrations.notion import NotionAPIService
-from dipeo_server.infra.persistence import FileSystemRepository
 from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR
 from dipeo_infra.persistence.memory import MemoryService
@@ -62,7 +61,7 @@ class ServerContainer(BaseContainer):
     )
 
     file_service = providers.Singleton(
-        FileSystemRepository,
+        ConsolidatedFileService,
         base_dir=providers.Factory(lambda: BASE_DIR),
     )
 
@@ -116,12 +115,6 @@ class ServerContainer(BaseContainer):
 
     notion_api_service = providers.Singleton(NotionAPIService)
 
-    notion_integration_service = providers.Factory(
-        NotionIntegrationDomainService,
-        notion_service=notion_api_service,
-        file_service=file_service,
-    )
-
     # Service registry for node handlers
     service_registry = providers.Singleton(
         ServiceRegistry,
@@ -135,7 +128,7 @@ class ServerContainer(BaseContainer):
         validation_service=validation_service,
         db_operations_service=db_operations_service,
         api_integration_service=api_integration_service,
-        notion_integration_service=notion_integration_service,
+        notion_service=notion_api_service,
     )
 
     # Execution service
@@ -179,7 +172,7 @@ def _validate_protocol_compliance(container: ServerContainer) -> None:
     validations = [
         (container.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.llm_service(), SupportsLLM, "LLMInfrastructureService"),
-        (container.file_service(), SupportsFile, "FileSystemRepository"),
+        (container.file_service(), SupportsFile, "ConsolidatedFileService"),
         (
             container.conversation_memory_service(),
             SupportsMemory,

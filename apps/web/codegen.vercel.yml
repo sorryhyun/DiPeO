@@ -1,0 +1,69 @@
+# GraphQL Code Generation Configuration for Vercel builds
+
+overwrite: true
+schema: "../server/schema.graphql"
+documents: 
+  - "src/**/*.graphql"
+  - "src/**/*.{ts,tsx}"
+generates:
+  src/__generated__/graphql.tsx:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      # Use branded types from @dipeo/domain-models
+      scalars:
+        NodeID: "@dipeo/domain-models#NodeID"
+        HandleID: "@dipeo/domain-models#HandleID"
+        ArrowID: "@dipeo/domain-models#ArrowID"
+        PersonID: "@dipeo/domain-models#PersonID"
+        ApiKeyID: "@dipeo/domain-models#ApiKeyID"
+        ExecutionID: "@dipeo/domain-models#ExecutionID"
+        DiagramID: "@dipeo/domain-models#DiagramID"
+      # Import enums from @dipeo/domain-models
+      enumsAsTypes: false
+      enumValues:
+        NodeType: "@dipeo/domain-models#NodeType"
+        HandleDirection: "@dipeo/domain-models#HandleDirection"
+        DataType: "@dipeo/domain-models#DataType"
+        LLMService: "@dipeo/domain-models#LLMService"
+        DiagramFormat: "@dipeo/domain-models#DiagramFormat"
+        ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
+        ContentType: "@dipeo/domain-models#ContentType"
+      # Skip generating TypeScript types for enums
+      skipTypename: false
+      # Use proper imports
+      useTypeImports: true
+      # Keep all names as-is from schema (including snake_case field names)
+      namingConvention:
+        enumValues: keep
+        typeNames: keep
+        fieldNames: keep
+      # Generate React hooks
+      withHooks: true
+      # Generate HOCs for components
+      withHOC: false
+      withComponent: false
+      apolloClientVersion: 3
+      avoidOptionals: false
+      withResultType: true
+      addDocumentNodeToOperations: true
+
+      possibleTypes:
+        NodeDataUnion:
+          - StartNodeData
+          - PersonJobNodeData
+          - ConditionNodeData
+          - JobNodeData
+          - EndpointNodeData
+          - DBNodeData
+          - UserResponseNodeData
+          - NotionNodeData
+          - PersonBatchJobNodeData
+        DiagramOperationResult:
+          - Diagram
+          - OperationError
+        ExecutionOperationResult:
+          - ExecutionState
+          - OperationError

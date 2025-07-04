@@ -37,7 +37,7 @@ codegen:
 
 # Development servers
 dev-server:
-	cd apps/server && python main.py
+	cd apps/server && DIPEO_BASE_DIR="$(shell pwd)" python main.py
 
 dev-web:
 	pnpm -F web dev
@@ -53,7 +53,7 @@ dev-all:
 # Export GraphQL schema
 graphql-schema:
 	@echo "📝 Exporting GraphQL schema..."
-	cd apps/server && python -m dipeo_server.api.graphql.schema > schema.graphql
+	cd apps/server && DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > schema.graphql
 	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 
 # Python directories

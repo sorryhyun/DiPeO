@@ -117,6 +117,7 @@ class LocalExecutionService(BaseService, SupportsExecution):
         options: dict[str, Any],
         execution_id: str,
         interactive_handler=None,
+        custom_observers: list[ExecutionObserver] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Execute diagram locally with streaming updates."""
         log.info(
@@ -135,6 +136,11 @@ class LocalExecutionService(BaseService, SupportsExecution):
         # Create update collector
         update_collector = LocalUpdateCollector()
 
+        # Combine observers
+        observers = [update_collector]
+        if custom_observers:
+            observers.extend(custom_observers)
+
         # Create engine with factory
         engine = EngineFactory.create_engine(
             service_registry=self.service_registry,
@@ -142,7 +148,7 @@ class LocalExecutionService(BaseService, SupportsExecution):
             message_router=None,  # No streaming in local mode
             include_state_observer=False,
             include_streaming_observer=False,
-            custom_observers=[update_collector],
+            custom_observers=observers,
         )
 
         # Start execution in background

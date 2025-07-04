@@ -15,7 +15,7 @@ pnpm build  # This runs TypeScript compilation and all generators
 
 # 2. Install all Python packages from requirements.txt
 echo "🐍 Installing Python packages..."
-cd ../../..
+cd ../..
 pip install -r requirements.txt
 
 # 3. Now install the server (which depends on dipeo_domain)

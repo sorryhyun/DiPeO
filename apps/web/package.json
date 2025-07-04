@@ -30,6 +30,7 @@
     "@xyflow/react": "^12.6.4",
     "apollo-upload-client": "^17.0.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "graphql": "^16.11.0",
     "graphql-ws": "^6.0.5",
     "immer": "^10.1.1",

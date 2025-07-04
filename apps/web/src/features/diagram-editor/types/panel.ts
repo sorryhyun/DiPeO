@@ -5,9 +5,12 @@ import type {
   EndpointNodeData,
   DBNodeData,
   JobNodeData,
+  CodeJobNodeData,
+  ApiJobNodeData,
   UserResponseNodeData,
   NotionNodeData,
-  PersonBatchJobNodeData
+  PersonBatchJobNodeData,
+  HookNodeData
 } from '@/core/types';
 
 // Import shared panel types
@@ -22,7 +25,8 @@ export type {
   FieldType as PanelFieldType,
   PanelFormData,
   ConditionalConfig,
-  OptionsConfig
+  OptionsConfig,
+  HookNodeData
 };
 
 
@@ -32,9 +36,12 @@ export type PersonJobFormData = PanelFormData<PersonJobNodeData>;
 export type ConditionFormData = PanelFormData<ConditionNodeData>;
 export type EndpointFormData = PanelFormData<EndpointNodeData>;
 export type JobFormData = PanelFormData<JobNodeData>;
+export type CodeJobFormData = PanelFormData<CodeJobNodeData>;
+export type ApiJobFormData = PanelFormData<ApiJobNodeData>;
 export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
 export type NotionFormData = PanelFormData<NotionNodeData>;
 export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;
+export type HookFormData = PanelFormData<HookNodeData>;
 
 /**
  * DB form data with UI-specific field mapping

@@ -69,6 +69,25 @@ function cleanNodeData(node: DomainNode): DomainNode {
     case 'person_job':
       nodeData.first_only_prompt = nodeData.first_only_prompt || '';
       nodeData.max_iteration = nodeData.max_iteration || 1;
+      // Convert tools from comma-separated string to array format
+      if (typeof nodeData.tools === 'string' && nodeData.tools) {
+        const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
+        nodeData.tools = toolNames.map((toolName: string) => {
+          // Map common tool names to their enum values
+          const toolTypeMap: Record<string, string> = {
+            'web_search': 'web_search',
+            'web_search_preview': 'web_search_preview',
+            'image_generation': 'image_generation'
+          };
+          return {
+            type: toolTypeMap[toolName] || toolName,
+            enabled: true
+          };
+        });
+      } else if (typeof nodeData.tools === 'string' && !nodeData.tools) {
+        // Empty string means no tools
+        nodeData.tools = null;
+      }
       break;
     case 'endpoint':
       nodeData.save_to_file = nodeData.save_to_file ?? false;

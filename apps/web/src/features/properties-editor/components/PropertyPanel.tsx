@@ -68,6 +68,29 @@ function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string
   return flattened;
 }
 
+// Helper function to ensure all expected fields are present in flattened person data
+function ensurePersonFields(flattenedData: Record<string, unknown>): Record<string, unknown> {
+  // Ensure llm_config fields are present even if undefined
+  const ensuredData = { ...flattenedData };
+  
+  // List of expected fields that should always be present
+  const expectedFields = [
+    'llm_config.api_key_id',
+    'llm_config.model',
+    'llm_config.service',
+    'llm_config.system_prompt',
+    'temperature'
+  ];
+  
+  expectedFields.forEach(field => {
+    if (!(field in ensuredData)) {
+      ensuredData[field] = undefined;
+    }
+  });
+  
+  return ensuredData;
+}
+
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
   const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
@@ -104,7 +127,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   const entityType = getEntityType(data.type);
 
   // Flatten the data for form fields if it's a person
-  const flattenedData = entityType === 'person' ? flattenObject(data) : data;
+  const flattenedData = entityType === 'person' ? ensurePersonFields(flattenObject(data)) : data;
 
   const {
     formData,
@@ -120,18 +143,23 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   const handleFieldUpdate = useCallback(async (name: string, value: unknown) => {
     updateField(name, value);
     
-    if (data.type === 'person' && name === 'llm_config.api_key_id' && value) {
-      try {
-        const { data } = await apolloClient.query<GetApiKeysQuery>({
-          query: GetApiKeysDocument,
-          fetchPolicy: 'cache-first'
-        });
-        const selectedKey = data.api_keys.find((k) => k.id === value);
-        if (selectedKey) {
-          updateField('llm_config.service', selectedKey.service);
+    if (data.type === 'person' && name === 'llm_config.api_key_id') {
+      // Clear the model when API key changes
+      updateField('llm_config.model', undefined);
+      
+      if (value) {
+        try {
+          const { data } = await apolloClient.query<GetApiKeysQuery>({
+            query: GetApiKeysDocument,
+            fetchPolicy: 'cache-first'
+          });
+          const selectedKey = data.api_keys.find((k) => k.id === value);
+          if (selectedKey) {
+            updateField('llm_config.service', selectedKey.service);
+          }
+        } catch (error) {
+          console.error('Failed to update service:', error);
         }
-      } catch (error) {
-        console.error('Failed to update service:', error);
       }
     }
     
@@ -233,6 +261,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         rows={fieldConfig.type === 'textarea' || fieldConfig.type === 'variableTextArea' ? fieldConfig.rows : undefined}
         persons={getUnifiedFieldType(fieldConfig) === FIELD_TYPES.PERSON_SELECT ? personsForSelect : undefined}
         showFieldKey={false}
+        showPromptFileButton={fieldConfig.showPromptFileButton}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);

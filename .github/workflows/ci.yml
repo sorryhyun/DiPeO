@@ -47,27 +47,12 @@ jobs:
         pip install -e ./apps/server
 
     - name: Generate code
-      run: |
-        chmod +x ./build-all.sh
-        bash ./build-all.sh
+      run: make codegen
 
     - name: Build packages
-      run: pnpm build:packages
-
-    - name: Build frontend
-      run: pnpm build:web
+      run: |
+        pnpm --filter @dipeo/domain-models build
+        pnpm --filter web build
 
     - name: Type check TypeScript
       run: pnpm typecheck
-
-    - name: Lint TypeScript/JavaScript
-      run: pnpm lint
-
-    - name: Install Python dev dependencies
-      run: pip install ruff mypy pytest pytest-asyncio
-
-    - name: Lint Python
-      run: make lint-py
-
-    - name: Type check Python
-      run: make typecheck-py

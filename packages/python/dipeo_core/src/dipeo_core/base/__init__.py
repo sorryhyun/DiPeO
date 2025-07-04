@@ -17,6 +17,7 @@ from .protocols import (
     SupportsNotion,
 )
 from .service import BaseService
+from .file_protocol import FileServiceProtocol
 
 __all__ = [
     # Base classes
@@ -35,4 +36,6 @@ __all__ = [
     "SupportsLLM",
     "SupportsMemory",
     "SupportsNotion",
+    # New unified protocol
+    "FileServiceProtocol",
 ]

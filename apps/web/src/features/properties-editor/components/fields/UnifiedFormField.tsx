@@ -7,6 +7,7 @@ import {
 } from '../styles.constants';
 import { readFileAsText } from '@/shared/utils/file';
 import { FIELD_TYPES } from '@/core/types/panel';
+import { PromptFileButton } from '../PromptFileButton';
 
 export type FieldValue = string | number | boolean | null | undefined;
 
@@ -55,6 +56,7 @@ export interface UnifiedFormFieldProps {
   onFileUpload?: (file: File) => Promise<void>;
   isLoading?: boolean;
   showFieldKey?: boolean;
+  showPromptFileButton?: boolean;
 }
 
 type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layout' | 'error' | 'helperText'> & {
@@ -101,16 +103,26 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
   [FIELD_TYPES.MAX_ITERATION]: (p) => widgets[FIELD_TYPES.NUMBER](p),
   
   [FIELD_TYPES.TEXTAREA]: (p) => (
-    <textarea
-      id={p.fieldId}
-      value={String(p.value || '')}
-      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
-      placeholder={p.placeholder}
-      disabled={p.disabled}
-      rows={p.rows}
-      className={TEXTAREA_CLASSES}
-      {...p.customProps}
-    />
+    <div className="relative">
+      <textarea
+        id={p.fieldId}
+        value={String(p.value || '')}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
+        placeholder={p.placeholder}
+        disabled={p.disabled}
+        rows={p.rows}
+        className={TEXTAREA_CLASSES}
+        {...p.customProps}
+      />
+      {p.showPromptFileButton && (
+        <div className="absolute top-2 right-2">
+          <PromptFileButton
+            onSelectContent={(content) => p.onChange(content)}
+            tooltip="Load prompt from file"
+          />
+        </div>
+      )}
+    </div>
   ),
   
   [FIELD_TYPES.VARIABLE_TEXTAREA]: (p) => widgets[FIELD_TYPES.TEXTAREA](p),
@@ -247,7 +259,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   detectedVariables,
   onFileUpload,
   isLoading = false,
-  showFieldKey = false
+  showFieldKey = false,
+  showPromptFileButton = false
 }) => {
   const fieldId = `field-${name}`;
   const [localLoading, setLocalLoading] = useState(false);
@@ -279,7 +292,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     isLoading,
     fieldId,
     isLoadingState,
-    setLocalLoading
+    setLocalLoading,
+    showPromptFileButton
   };
   
   // Normalize field type for lookup

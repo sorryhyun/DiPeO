@@ -50,9 +50,9 @@ def _create_api_key_service():
 
 
 def _create_file_service(base_dir):
-    from dipeo_server.infra.persistence import FileSystemRepository
+    from dipeo_infra import ConsolidatedFileService
 
-    return FileSystemRepository(base_dir=base_dir)
+    return ConsolidatedFileService(base_dir=base_dir)
 
 
 def _create_memory_service():
@@ -127,10 +127,10 @@ def _create_file_operations_service(file_service):
     return FileOperationsDomainService(file_service)
 
 
-def _create_notion_integration_service(notion_service, file_service):
-    from dipeo_infra import NotionIntegrationDomainService
+def _create_notion_service():
+    from dipeo_infra import NotionAPIService
 
-    return NotionIntegrationDomainService(notion_service, file_service)
+    return NotionAPIService()
 
 
 def _create_diagram_storage_domain_service(storage_service):
@@ -158,7 +158,7 @@ def _create_service_registry(
     api_key_service,
     file_service,
     conversation_memory_service,
-    notion_integration_service,
+    notion_service,
     diagram_storage_domain_service,
     api_integration_service,
     text_processing_service,
@@ -174,7 +174,7 @@ def _create_service_registry(
         api_key_service=api_key_service,
         file_service=file_service,
         conversation_memory_service=conversation_memory_service,
-        notion_integration_service=notion_integration_service,
+        notion_service=notion_service,
         diagram_storage_service=diagram_storage_domain_service,
         api_integration_service=api_integration_service,
         text_processing_service=text_processing_service,
@@ -319,11 +319,6 @@ class Container(containers.DeclarativeContainer):
         file_service=file_service,
     )
 
-    notion_integration_service = providers.Singleton(
-        _create_notion_integration_service,
-        notion_service=notion_service,
-        file_service=file_service,
-    )
 
     # Additional Domain Services
 
@@ -347,7 +342,7 @@ class Container(containers.DeclarativeContainer):
         api_key_service=api_key_service,
         file_service=file_service,
         conversation_memory_service=conversation_service,
-        notion_integration_service=notion_integration_service,
+        notion_service=notion_service,
         diagram_storage_domain_service=diagram_storage_domain_service,
         api_integration_service=api_integration_service,
         text_processing_service=text_processing_service,

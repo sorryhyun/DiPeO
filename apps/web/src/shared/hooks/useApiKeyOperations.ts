@@ -15,10 +15,10 @@ export const useApiKeyOperations = () => {
   // Mutation to create API key
   const [createApiKeyMutation, { loading: creatingApiKey }] = useMutation(CreateApiKeyDocument, {
     onCompleted: (data) => {
-      if (data.createApiKey.success && data.createApiKey.apiKey) {
-        toast.success(`API key "${data.createApiKey.apiKey.label}" added successfully`);
+      if (data.create_api_key.success && data.create_api_key.api_key) {
+        toast.success(`API key "${data.create_api_key.api_key.label}" added successfully`);
       } else {
-        toast.error(data.createApiKey.error || 'Failed to create API key');
+        toast.error(data.create_api_key.error || 'Failed to create API key');
       }
     },
     onError: (error) => {
@@ -30,10 +30,10 @@ export const useApiKeyOperations = () => {
   // Mutation to delete API key
   const [deleteApiKeyMutation, { loading: deletingApiKey }] = useMutation(DeleteApiKeyDocument, {
     onCompleted: (data) => {
-      if (data.deleteApiKey.success && data.deleteApiKey.deletedId) {
+      if (data.delete_api_key.success) {
         toast.success('API key deleted successfully');
       } else {
-        toast.error(data.deleteApiKey.error || 'Failed to delete API key');
+        toast.error(data.delete_api_key.message || 'Failed to delete API key');
       }
     },
     onError: (error) => {
@@ -82,7 +82,7 @@ export const useApiKeyOperations = () => {
 
   return {
     // Data
-    apiKeys: apiKeysData?.apiKeys || [],
+    apiKeys: apiKeysData?.api_keys || [],
     
     // Loading states
     loadingApiKeys,

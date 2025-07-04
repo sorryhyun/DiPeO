@@ -1,7 +1,9 @@
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Optional
+from pathlib import Path
 
 from ..execution_options import ExecutionOptions
 from ..local_context import LocalAppContext
+from ..hooks import HookRegistry, HookObserver
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -35,11 +37,23 @@ class LocalDiagramRunner:
 
             print(f"🚀 Starting local execution with ID: {execution_id}")
 
+            # Check if hooks are enabled
+            custom_observers = []
+            hooks_dir = Path("files/hooks")
+            if hooks_dir.exists() and (hooks_dir / "hooks.json").exists():
+                hook_registry = HookRegistry(hooks_dir)
+                if hook_registry.hooks:  # Only add observer if there are hooks
+                    hook_observer = HookObserver(hook_registry)
+                    custom_observers.append(hook_observer)
+                    if self.options.debug:
+                        print(f"🪝 Loaded {len(hook_registry.hooks)} hooks")
+
             # Execute diagram using local execution service
             updates: AsyncIterator[dict[str, Any]] = context.execution_service.execute_diagram(  # type: ignore
                 diagram=diagram,
                 options={"variables": {}},
                 execution_id=execution_id,
+                custom_observers=custom_observers,
             )
             async for update in updates:
                 # Handle updates
@@ -65,5 +79,11 @@ class LocalDiagramRunner:
         except Exception as e:
             result["error"] = str(e)  # type: ignore
             print(f"\n❌ Error during local execution: {e!s}")
+        finally:
+            # Cleanup hook observer if used
+            if custom_observers:
+                for observer in custom_observers:
+                    if isinstance(observer, HookObserver):
+                        await observer.cleanup()
 
         return result
