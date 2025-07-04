@@ -29,7 +29,7 @@ DiPeO now supports Windows through a native desktop application built with Tauri
 ### Prerequisites
 - Windows 10 or later
 - [Python 3.13+](https://www.python.org/downloads/)
-- [Node.js 18+](https://nodejs.org/)
+- [Node.js 22+](https://nodejs.org/)
 - [pnpm](https://pnpm.io/installation)
 - [Rust](https://rustup.rs/)
 - [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
