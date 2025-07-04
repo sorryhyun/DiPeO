@@ -4,10 +4,11 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { LLMService, NotionOperation, ToolConfig } from './integration.js';
+import { LLMService, APIServiceType, NotionOperation, ToolConfig } from './integration.js';
 
 // Re-export integration types for backward compatibility
-export { LLMService, NotionOperation, ToolConfig };
+export { LLMService, APIServiceType, NotionOperation };
+export type { ToolConfig };
 
 
 // Enums
@@ -22,7 +23,8 @@ export enum NodeType {
   DB = 'db',
   USER_RESPONSE = 'user_response',
   NOTION = 'notion',
-  PERSON_BATCH_JOB = 'person_batch_job'
+  PERSON_BATCH_JOB = 'person_batch_job',
+  HOOK = 'hook'
 }
 
 export enum HandleDirection {
@@ -76,6 +78,18 @@ export enum HttpMethod {
   PUT = 'PUT',
   DELETE = 'DELETE',
   PATCH = 'PATCH'
+}
+
+export enum HookType {
+  SHELL = 'shell',
+  WEBHOOK = 'webhook',
+  PYTHON = 'python',
+  FILE = 'file'
+}
+
+export enum HookTriggerMode {
+  MANUAL = 'manual',
+  HOOK = 'hook'
 }
 
 // Basic types
@@ -137,13 +151,12 @@ export interface DomainPerson {
   label: string;
   llm_config: PersonLLMConfig;
   type: 'person';
-  masked_api_key?: string | null;
 }
 
 export interface DomainApiKey {
   id: ApiKeyID;
   label: string;
-  service: LLMService;
+  service: APIServiceType;
   key?: string; // Excluded from serialization by default
   masked_key: string;
 }
@@ -179,6 +192,9 @@ export interface BaseNodeData {
 export interface StartNodeData extends BaseNodeData {
   custom_data: Record<string, string | number | boolean>;
   output_data_structure: Record<string, string>;
+  trigger_mode?: HookTriggerMode;
+  hook_event?: string;  // Event name to listen for when trigger_mode is 'hook'
+  hook_filters?: Record<string, any>;  // Filters to match specific events
 }
 
 export interface ConditionNodeData extends BaseNodeData {
@@ -244,5 +260,32 @@ export interface NotionNodeData extends BaseNodeData {
 }
 
 export type PersonBatchJobNodeData = PersonJobNodeData;
+
+export interface HookNodeData extends BaseNodeData {
+  hook_type: HookType;
+  config: {
+    // For shell hooks
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+    cwd?: string;
+    
+    // For webhook hooks
+    url?: string;
+    method?: HttpMethod;
+    headers?: Record<string, string>;
+    
+    // For Python hooks
+    script?: string;
+    function_name?: string;
+    
+    // For file hooks  
+    file_path?: string;
+    format?: 'json' | 'yaml' | 'text';
+  };
+  timeout?: number;  // in seconds
+  retry_count?: number;
+  retry_delay?: number;  // in seconds
+}
 
 

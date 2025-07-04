@@ -15,6 +15,26 @@ export enum LLMService {
   DEEPSEEK = 'deepseek'
 }
 
+// All API Service Types (including non-LLM services)
+export enum APIServiceType {
+  // LLM Services
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  GOOGLE = 'google',
+  GEMINI = 'gemini',  // Google Gemini specifically
+  GROK = 'grok',
+  BEDROCK = 'bedrock',
+  VERTEX = 'vertex',
+  DEEPSEEK = 'deepseek',
+  
+  // Other Services
+  NOTION = 'notion',
+  GOOGLE_SEARCH = 'google_search',
+  SLACK = 'slack',
+  GITHUB = 'github',
+  JIRA = 'jira'
+}
+
 // Notion API Operations
 export enum NotionOperation {
   CREATE_PAGE = 'create_page',

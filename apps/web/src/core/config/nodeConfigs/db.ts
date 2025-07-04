@@ -4,7 +4,7 @@ import { createUnifiedConfig } from '../unifiedConfig';
 type DBFormDataType = {
   label?: string;
   sub_type?: string;
-  sourceDetails?: string;
+  source_details?: string;
   operation?: string;
   [key: string]: unknown;
 };
@@ -23,11 +23,11 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
     output: [{ id: 'default', position: 'bottom', offset: { x: 30, y: 0 } }]
   },
   fields: [], // Fields are defined in panelCustomFields to match backend expectations
-  defaults: { label: '', sub_type: 'fixed_prompt', sourceDetails: '', operation: 'read' },
+  defaults: { label: '', sub_type: 'fixed_prompt', source_details: '', operation: 'read' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'sub_type', 'operation', 'sourceDetails'],
+  panelFieldOrder: ['label', 'sub_type', 'operation', 'source_details'],
   panelCustomFields: [
     {
       type: 'text',
@@ -51,6 +51,7 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
       name: 'operation',
       label: 'Operation',
       options: [
+        { value: 'prompt', label: 'Prompt' },
         { value: 'read', label: 'Read' },
         { value: 'write', label: 'Write' },
         { value: 'update', label: 'Update' },
@@ -60,7 +61,7 @@ export const dbConfig = createUnifiedConfig<DBFormDataType>({
     },
     {
       type: 'variableTextArea',
-      name: 'sourceDetails',
+      name: 'source_details',
       label: 'Source Details',
       rows: 6,
       placeholder: 'Enter content or file path...',

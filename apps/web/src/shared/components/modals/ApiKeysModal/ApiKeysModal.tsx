@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Modal, Select } from '@/shared/components/ui';
+import { Button, Input, Modal } from '@/shared/components/ui';
 import { createErrorHandlerFactory, DomainApiKey } from '@/core/types';
-import { LLMService } from '@dipeo/domain-models';
 import { useApiKeyOperations } from '@/shared/hooks';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 
@@ -10,15 +9,21 @@ interface ApiKeysModalProps {
   onClose: () => void;
 }
 
-const API_SERVICES = [
-  { value: LLMService.ANTHROPIC, label: 'Claude (Anthropic)' },
-  { value: LLMService.OPENAI, label: 'ChatGPT (OpenAI)' },
-  { value: LLMService.GROK, label: 'Grok' },
-  { value: LLMService.GOOGLE, label: 'Gemini (Google)' },
-  { value: LLMService.BEDROCK, label: 'AWS Bedrock' },
-  { value: LLMService.VERTEX, label: 'Google Vertex' },
-  { value: LLMService.DEEPSEEK, label: 'DeepSeek' },
-] as const;
+// Helper function to get display name for known services
+const getServiceDisplayName = (service: string): string => {
+  const serviceNames: Record<string, string> = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    google: 'Google AI',
+    gemini: 'Google Gemini',
+    grok: 'Grok',
+    notion: 'Notion',
+    google_search: 'Google Search',
+    slack: 'Slack',
+    github: 'GitHub',
+  };
+  return serviceNames[service.toLowerCase()] || service;
+};
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   // Use GraphQL operations for API key management
@@ -27,9 +32,9 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   // Convert Map to array for display
   const apiKeysArray = graphQLOperations.apiKeys;
     
-  const [newKeyForm, setNewKeyForm] = useState<Partial<DomainApiKey> & { key?: string }>({
+  const [newKeyForm, setNewKeyForm] = useState<{ label: string; service: string; key: string }>({
     label: '',
-    service: LLMService.OPENAI,
+    service: '',
     key: '',
   });
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -56,6 +61,11 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       return;
     }
     
+    if (!newKeyForm.service?.trim()) {
+      setErrors({ service: 'Service is required' });
+      return;
+    }
+    
     if (!newKeyForm.key?.trim()) {
       setErrors({ key: 'API key is required' });
       return;
@@ -65,14 +75,14 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       // Use GraphQL mutation
       await graphQLOperations.createApiKey(
         newKeyForm.label.trim(),
-        newKeyForm.service || LLMService.OPENAI,
+        newKeyForm.service!.trim(),
         newKeyForm.key.trim()
       );
       
       // Reset form
       setNewKeyForm({
         label: '',
-        service: LLMService.OPENAI,
+        service: '',
         key: '',
       });
     } catch {
@@ -125,7 +135,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{key.label}</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        ({API_SERVICES.find(s => s.value === key.service)?.label})
+                        ({getServiceDisplayName(key.service)})
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -181,16 +191,16 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Service
               </label>
-              <Select
-                value={newKeyForm.service || LLMService.OPENAI}
-                onValueChange={(value) => setNewKeyForm({ ...newKeyForm, service: value as DomainApiKey['service'] })}
-              >
-                {API_SERVICES.map((service) => (
-                  <option key={service.value} value={service.value}>
-                    {service.label}
-                  </option>
-                ))}
-              </Select>
+              <Input
+                placeholder="e.g., openai, anthropic, notion, google_search"
+                value={newKeyForm.service || ''}
+                onChange={(e) => setNewKeyForm({ ...newKeyForm, service: e.target.value.toLowerCase() })}
+                className={errors.service ? 'border-red-500' : ''}
+              />
+              {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Common: openai, anthropic, gemini, grok, notion, google_search
+              </p>
             </div>
             
             <div>

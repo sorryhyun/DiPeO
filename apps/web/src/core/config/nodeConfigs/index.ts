@@ -12,6 +12,7 @@ import { personBatchJobConfig } from './personBatchJob';
 import { dbConfig } from './db';
 import { userResponseConfig } from './userResponse';
 import { notionConfig } from './notion';
+import { hookConfig } from './hook';
 
 export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> = {
   start: startConfig,
@@ -31,7 +32,8 @@ export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<str
   person_batch_job: personBatchJobConfig,
   db: dbConfig,
   user_response: userResponseConfig,
-  notion: notionConfig
+  notion: notionConfig,
+  hook: hookConfig
 };
 
 // Export individual configs
@@ -45,3 +47,4 @@ export { personBatchJobConfig } from './personBatchJob';
 export { dbConfig } from './db';
 export { userResponseConfig } from './userResponse';
 export { notionConfig } from './notion';
+export { hookConfig } from './hook';

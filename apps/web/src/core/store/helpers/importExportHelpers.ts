@@ -1,5 +1,5 @@
 import {  DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson,  apiKeyId } from '@/core/types';
-import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, type HandleID, NodeType, Vec2, LLMService } from '@dipeo/domain-models';
+import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, type HandleID, NodeType, Vec2, LLMService, APIServiceType } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
 import { generateNodeLabel } from '@/core/config/nodeMeta';
 import { getNodeDefaults } from '@/core/config';
@@ -60,19 +60,18 @@ export function createImportState() {
       return arrowId;
     },
     
-    addPerson: (label: string, service: string, model: string) => {
+    addPerson: (label: string, service: string, model: string, apiKeyIdValue?: string) => {
       const personId = generatePersonId();
       persons.set(personId, {
         id: personId,
         label,
         llm_config: {
-          api_key_id: apiKeyId(''),
+          api_key_id: apiKeyId(apiKeyIdValue || ''),
           service: service as LLMService,
           model,
           system_prompt: ''
         },
-        type: 'person',
-        masked_api_key: null
+        type: 'person'
       });
       return personId;
     },
@@ -82,7 +81,7 @@ export function createImportState() {
       apiKeys.set(id, {
         id,
         label,
-        service: service as LLMService,
+        service: service as any,
         masked_key: '••••••••'
       });
       return id;

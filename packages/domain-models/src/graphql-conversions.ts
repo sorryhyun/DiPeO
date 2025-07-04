@@ -26,7 +26,6 @@ export interface GraphQLDomainPersonType {
   label: string;
   llm_config: PersonLLMConfig;
   type: string;
-  masked_api_key?: string | null;
 }
 
 // ============================================================================
@@ -66,7 +65,6 @@ export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
       system_prompt: graphqlPerson.llm_config.system_prompt || null,
     } as PersonLLMConfig,
     type: 'person' as const,
-    masked_api_key: graphqlPerson.masked_api_key || null,
   };
 }
 

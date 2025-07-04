@@ -186,6 +186,7 @@ const Sidebar = React.memo<SidebarProps>(({ position }) => {
             <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
             <div className="grid grid-cols-2 gap-2 px-2">
               <DraggableBlock type="db" label={`${getNodeConfig(NodeType.DB).icon || '📊'} ${getNodeConfig(NodeType.DB).label || 'DB Source'} Block`} />
+              <DraggableBlock type="hook" label={`${getNodeConfig(NodeType.HOOK).icon || '🪝'} ${getNodeConfig(NodeType.HOOK).label || 'Hook'}`} />
             </div>
           </div>
         )}

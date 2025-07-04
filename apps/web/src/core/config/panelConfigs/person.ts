@@ -8,9 +8,10 @@ interface ExtendedPersonFormData extends PersonFormData {
   label?: string;
   systemPrompt?: string;
   temperature?: number;
-  'llmConfig.apiKeyId'?: string;
-  'llmConfig.model'?: string;
-  'llmConfig.systemPrompt'?: string;
+  'llm_config.api_key_id'?: string;
+  'llm_config.model'?: string;
+  'llm_config.system_prompt'?: string;
+  'llm_config.service'?: string;
 }
 
 export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
@@ -24,7 +25,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'llmConfig.apiKeyId',
+      name: 'llm_config.api_key_id',
       label: 'API Key',
       options: async () => {
         try {
@@ -45,11 +46,11 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
     },
     {
       type: 'select',
-      name: 'llmConfig.model',
+      name: 'llm_config.model',
       label: 'Model',
       options: async (formData: unknown) => {
         const data = formData as Record<string, unknown>;
-        const apiKeyId = data['llmConfig.apiKeyId'] as string;
+        const apiKeyId = data['llm_config.api_key_id'] as string;
         if (!apiKeyId) {
           return [];
         }
@@ -72,12 +73,12 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             }
           });
           
-          if (!modelsData || !modelsData.availableModels) {
+          if (!modelsData || !modelsData.available_models) {
             console.warn('No models data received from API');
             return [];
           }
           
-          return modelsData.availableModels.map((model: string) => ({
+          return modelsData.available_models.map((model: string) => ({
             value: model,
             label: model
           }));
@@ -86,7 +87,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
           return [];
         }
       },
-      dependsOn: ['llmConfig.apiKeyId'],
+      dependsOn: ['llm_config.api_key_id'],
       placeholder: 'Select Model'
     },
     {
@@ -101,7 +102,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
   rightColumn: [
     {
       type: 'textarea',
-      name: 'llmConfig.systemPrompt',
+      name: 'llm_config.system_prompt',
       label: 'System Prompt',
       placeholder: 'Enter system prompt',
       rows: 4

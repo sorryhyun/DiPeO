@@ -1,3 +1,19 @@
+enum APIServiceType {
+  openai
+  anthropic
+  google
+  gemini
+  grok
+  bedrock
+  vertex
+  deepseek
+  notion
+  google_search
+  slack
+  github
+  jira
+}
+
 """Unique identifier for an API key"""
 scalar ApiKeyID
 
@@ -148,7 +164,7 @@ type DomainApiKeyType {
   id: ApiKeyID!
   masked_key: String!
   label: String!
-  service: LLMService!
+  service: APIServiceType!
   key: String
 }
 
@@ -372,6 +388,7 @@ enum NodeType {
   user_response
   notion
   person_batch_job
+  hook
 }
 
 """Unique identifier for a person"""

@@ -11,6 +11,7 @@ from .convert import convert_command as convert
 from .execution_handler import run_command as run
 from .monitor import monitor_command as monitor
 from .stats import stats_command as stats
+from .hooks import hook_command as hook
 
 
 def print_usage():
@@ -28,6 +29,7 @@ def print_usage():
     print("  monitor                    - Open browser monitoring page")
     print("  convert <input> <output>   - Convert between JSON/YAML formats")
     print("  stats <file>               - Show diagram statistics")
+    print("  hook <subcommand>          - Manage execution hooks")
     print("\nExamples:")
     print("  dipeo run diagram.json")
     print("  dipeo run diagram.yaml --debug --timeout=60")
@@ -53,6 +55,8 @@ def main():
             asyncio.run(convert(args))
         elif command == "stats":
             stats(args)
+        elif command == "hook":
+            hook(args)
         else:
             print(f"Unknown command: {command}")
             print_usage()

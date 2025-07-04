@@ -16,6 +16,7 @@ from .person_batch_job import PersonBatchJobNodeHandler
 from .person_job import PersonJobNodeHandler
 from .start import StartNodeHandler
 from .user_response import UserResponseNodeHandler
+from .hook import HookNodeHandler
 
 __all__ = [
     "ConditionNodeHandler",
@@ -29,6 +30,7 @@ __all__ = [
     "PersonJobNodeHandler",
     "StartNodeHandler",
     "UserResponseNodeHandler",
+    "HookNodeHandler",
 ]
 
 

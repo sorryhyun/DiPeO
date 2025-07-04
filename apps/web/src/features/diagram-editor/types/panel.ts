@@ -9,7 +9,8 @@ import type {
   ApiJobNodeData,
   UserResponseNodeData,
   NotionNodeData,
-  PersonBatchJobNodeData
+  PersonBatchJobNodeData,
+  HookNodeData
 } from '@/core/types';
 
 // Import shared panel types
@@ -39,6 +40,7 @@ export type ApiJobFormData = PanelFormData<ApiJobNodeData>;
 export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
 export type NotionFormData = PanelFormData<NotionNodeData>;
 export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;
+export type HookFormData = PanelFormData<HookNodeData>;
 
 /**
  * DB form data with UI-specific field mapping

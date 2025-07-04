@@ -16,18 +16,20 @@ export const personJobConfig = createUnifiedConfig<PersonJobFormData>({
   fields: [
     { name: 'max_iteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
     { name: 'first_only_prompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
-    { name: 'default_prompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' }
+    { name: 'default_prompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' },
+    { name: 'tools', type: 'text', label: 'Tools', required: false, placeholder: 'Enter tool names separated by commas (e.g., web_search, image_generation)' }
   ],
   defaults: { 
     person: '', 
     max_iteration: 1, 
     first_only_prompt: '', 
-    default_prompt: ''
+    default_prompt: '',
+    tools: ''
   },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['labelPersonRow', 'max_iteration', 'default_prompt', 'first_only_prompt'],
+  panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'default_prompt', 'first_only_prompt'],
   panelFieldOverrides: {
     max_iteration: {
       type: 'maxIteration' // Use the special maxIteration component

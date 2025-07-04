@@ -13,7 +13,7 @@ class DBOperationsDomainService:
     # Supports read, write, and append operations with validation.
     # Handles different file service implementations.
 
-    ALLOWED_OPERATIONS = ["read", "write", "append"]
+    ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def __init__(
         self, file_service: SupportsFile, validation_service: ValidationDomainService
@@ -26,8 +26,20 @@ class DBOperationsDomainService:
     ) -> Dict[str, Any]:
         self.validation_service.validate_operation(operation, self.ALLOWED_OPERATIONS)
         self.validation_service.validate_db_operation_input(operation, value)
-        file_path = await self._get_db_file_path(db_name)
 
+        if operation == "prompt":
+            # For prompt operation, return the db_name directly as the prompt content
+            return {
+                "value": db_name,
+                "metadata": {
+                    "operation": "prompt",
+                    "content_type": "text"
+                }
+            }
+        
+        # For file-based operations, get the file path
+        file_path = await self._get_db_file_path(db_name)
+        
         if operation == "read":
             return await self._read_db(file_path)
         elif operation == "write":

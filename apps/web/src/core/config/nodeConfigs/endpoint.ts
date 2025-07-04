@@ -10,11 +10,11 @@ export const endpointConfig = createUnifiedConfig<EndpointFormData>({
     input: [{ id: 'default', position: 'left' }]
   },
   fields: [], // Fields are defined in panelCustomFields to match backend expectations
-  defaults: { label: '', save_to_file: false, file_path: '', file_format: 'text' },
+  defaults: { label: '', save_to_file: false, file_name: '', file_format: 'text' },
   
   // Panel configuration overrides
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'save_to_file', 'file_path', 'file_format'],
+  panelFieldOrder: ['label', 'save_to_file', 'file_name', 'file_format'],
   panelCustomFields: [
     {
       type: 'text',
@@ -31,7 +31,7 @@ export const endpointConfig = createUnifiedConfig<EndpointFormData>({
     },
     {
       type: 'text',
-      name: 'file_path',
+      name: 'file_name',
       label: 'File Path',
       placeholder: 'files/output.txt',
       column: 2,

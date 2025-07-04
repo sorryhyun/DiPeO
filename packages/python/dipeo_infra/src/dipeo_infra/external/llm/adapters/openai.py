@@ -27,67 +27,10 @@ class ChatGPTAdapter(BaseAdapter):
         return 'gpt-4o-mini' in self.model_name or 'gpt-4.1' in self.model_name
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        # Check if we should use the response API
-        tools = kwargs.pop('tools', None)
-        if tools and self.supports_response_api() and self.supports_tools():
-            return self._make_response_api_call(messages, tools, **kwargs)
-        
-        # Otherwise use the standard chat API
-        return self._make_chat_api_call(messages, **kwargs)
-    
-    def _make_chat_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Standard chat completion API call."""
-        # Map roles for OpenAI compatibility
-        mapped_messages = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            # OpenAI uses "developer" role instead of "system" in newer models
-            if role == "system" and "o1" in self.model_name:
-                role = "developer"
-            mapped_messages.append({"role": role, "content": msg.get("content", "")})
-
-        # Extract allowed parameters
-        allowed_params = ["temperature", "max_tokens", "n", "top_p"]
-        api_params = {
-            k: v for k, v in kwargs.items() if k in allowed_params and v is not None
-        }
-
-        # Make API call
-        params = {"model": self.model_name, "messages": mapped_messages, **api_params}
-        response = self.client.chat.completions.create(**params)
-
-        # Extract response data
-        text = ""
-        if response.choices:
-            text = response.choices[0].message.content or ""
-
-        # Extract usage
-        prompt_tokens = None
-        completion_tokens = None
-
-        if hasattr(response, "usage") and response.usage:
-            prompt_tokens = getattr(response.usage, "prompt_tokens", None)
-            completion_tokens = getattr(response.usage, "completion_tokens", None)
-
-        # Create TokenUsage if we have usage data
-        token_usage = None
-        if prompt_tokens is not None or completion_tokens is not None:
-            token_usage = TokenUsage(
-                input=prompt_tokens or 0,
-                output=completion_tokens or 0,
-                total=(prompt_tokens or 0) + (completion_tokens or 0)
-                if prompt_tokens is not None and completion_tokens is not None
-                else None,
-            )
-
-        return ChatResult(
-            text=text,
-            token_usage=token_usage,
-            raw_response=response,
-        )
-    
-    def _make_response_api_call(self, messages: list[dict[str, str]], tools: list, **kwargs) -> ChatResult:
         """Use the new response API with tool support."""
+        # Extract tools from kwargs
+        tools = kwargs.pop('tools', [])
+        
         # Convert messages to response API format
         input_messages = []
         for msg in messages:
@@ -114,7 +57,7 @@ class ChatGPTAdapter(BaseAdapter):
             )
         except AttributeError:
             # Fallback to chat API if responses is not available
-            return self._make_chat_api_call(messages, **kwargs)
+            return ''
         
         # Extract text output
         text = getattr(response, 'output_text', '')

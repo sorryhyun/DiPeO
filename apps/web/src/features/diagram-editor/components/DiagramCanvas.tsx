@@ -140,16 +140,15 @@ function useCommonFlowProps({
     return {
       ...baseProps,
       onNodeClick: (event: React.MouseEvent, n: ReactFlowNode) => {
-        // Enable left-click selection only for person nodes
-        if (n.type === 'person') {
-          selectNode(n.id);
-        }
+        // Enable left-click selection for all nodes
+        selectNode(n.id);
         // Clear highlight on any left-click
         const { highlightPerson } = useUnifiedStore.getState();
         highlightPerson(null);
-        // For other nodes, left-click is disabled - properties can be opened via right-click
       },
       onEdgeClick: (event: React.MouseEvent, e: Edge) => {
+        // Enable left-click selection for edges/arrows
+        selectArrow(e.id);
       },
       onNodeDragStart,
       onNodeDragStop,
