@@ -7,15 +7,23 @@ import {
 } from '@/shared/utils/file';
 import { DiagramFormat } from '@dipeo/domain-models';
 import { serializeDiagram } from '@/shared/utils/diagramSerializer';
-import { apolloClient } from '@/graphql/client';
+import { createEntityMutation } from '@/graphql/hooks';
 import { 
   ConvertDiagramDocument,
   type ConvertDiagramMutation,
   type ConvertDiagramMutationVariables
 } from '@/__generated__/graphql';
 
+// Create the mutation hook using factory pattern
+const useConvertDiagramMutation = createEntityMutation<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
+  entityName: 'Diagram',
+  document: ConvertDiagramDocument,
+  silent: true, // We handle our own toast messages
+});
+
 export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [convertDiagram] = useConvertDiagramMutation();
 
   // LOAD OPERATIONS (from file to browser via server upload)
 
@@ -148,8 +156,7 @@ export const useFileOperations = () => {
       const diagramContent = serializeDiagram();
       
       // Export via GraphQL - convert format to uppercase for GraphQL enum
-      const { data } = await apolloClient.mutate<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
-        mutation: ConvertDiagramDocument,
+      const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
           targetFormat: format,
@@ -184,7 +191,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [convertDiagram]);
 
   /**
    * Convert diagram to specified format (without downloading)
@@ -196,8 +203,7 @@ export const useFileOperations = () => {
     try {
       const diagramContent = serializeDiagram();
       
-      const { data } = await apolloClient.mutate<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
-        mutation: ConvertDiagramDocument,
+      const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
           targetFormat: format,
@@ -221,7 +227,7 @@ export const useFileOperations = () => {
       toast.error(`Conversion failed: ${(error as Error).message}`);
       throw error;
     }
-  }, []);
+  }, [convertDiagram]);
 
   
   // FORMAT INFORMATION

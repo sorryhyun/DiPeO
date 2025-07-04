@@ -1,21 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from typing import Any
 from dipeo_domain import DomainDiagram
-from .shared_components import (
-    build_node,
-    coerce_to_dict,
-    ensure_position,
-)
+from ..shared_components import build_node
+from .base_strategy import BaseConversionStrategy
+from ..conversion_utils import _YamlMixin, _node_id_map
 
 log = logging.getLogger(__name__)
 
-from .conversion_utils import _YamlMixin, _BaseStrategy, _node_id_map
 
 
-
-class LightYamlStrategy(_YamlMixin, _BaseStrategy):
+class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     """Simplified YAML that uses labels instead of IDs."""
 
     format_id = "light"
@@ -28,58 +24,60 @@ class LightYamlStrategy(_YamlMixin, _BaseStrategy):
     }
 
     # ---- extraction ------------------------------------------------------- #
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:  # noqa: D401
-        nodes: list[dict[str, Any]] = []
-        for idx, n in enumerate(data.get("nodes", [])):
-            if not isinstance(n, dict):
-                continue
-            props = {
-                **n.get("props", {}),
-                **{
-                    k: v
-                    for k, v in n.items()
-                    if k not in {"label", "type", "position", "props"}
-                },
+    def _get_raw_nodes(self, data: dict[str, Any]) -> list[Any]:
+        """Get nodes from light format (list of dicts)."""
+        return data.get("nodes", [])
+    
+    def _process_node(self, node_data: Any, index: int) -> dict[str, Any] | None:
+        """Process light format node data."""
+        if not isinstance(node_data, dict):
+            return None
+        
+        n = node_data
+        props = {
+            **n.get("props", {}),
+            **{
+                k: v
+                for k, v in n.items()
+                if k not in {"label", "type", "position", "props"}
+            },
+        }
+
+        # Convert legacy forgetting_mode to proper memory_config structure
+        if "forgetting_mode" in props:
+            props["memory_config"] = {
+                "forget_mode": props.pop("forgetting_mode")
             }
 
-            # Convert legacy forgetting_mode to proper memory_config structure
-            if "forgetting_mode" in props:
-                props["memory_config"] = {
-                    "forget_mode": props.pop("forgetting_mode")
-                }
-
-            # Add required fields for specific node types
-            node_type = n.get("type", "job")
-            if node_type == "start":
-                # Add default values for required fields
-                props.setdefault("custom_data", {})
-                props.setdefault("output_data_structure", {})
-            elif node_type == "endpoint":
-                # Map file_path to file_name for endpoint nodes
-                if "file_path" in props and "file_name" not in props:
-                    props["file_name"] = props.pop("file_path")
-            elif node_type == "job":
-                # Legacy job node - map to code_job for backward compatibility
-                if "code" in props:
-                    node_type = "code_job"
-                    # Map code_type to language
-                    if "code_type" in props:
-                        props["language"] = props.pop("code_type")
-            elif node_type == "code_job":
-                # Ensure language field exists
-                if "code_type" in props and "language" not in props:
+        # Add required fields for specific node types
+        node_type = n.get("type", "job")
+        if node_type == "start":
+            # Add default values for required fields
+            props.setdefault("custom_data", {})
+            props.setdefault("output_data_structure", {})
+        elif node_type == "endpoint":
+            # Map file_path to file_name for endpoint nodes
+            if "file_path" in props and "file_name" not in props:
+                props["file_name"] = props.pop("file_path")
+        elif node_type == "job":
+            # Legacy job node - map to code_job for backward compatibility
+            if "code" in props:
+                node_type = "code_job"
+                # Map code_type to language
+                if "code_type" in props:
                     props["language"] = props.pop("code_type")
+        elif node_type == "code_job":
+            # Ensure language field exists
+            if "code_type" in props and "language" not in props:
+                props["language"] = props.pop("code_type")
 
-            node = build_node(
-                id=f"node_{idx}",
-                type_=node_type,
-                pos=n.get("position", {}),
-                label=n.get("label"),
-                **props,
-            )
-            ensure_position(node, idx)
-            nodes.append(node)
-        return nodes
+        return build_node(
+            id=self._create_node_id(index),
+            type_=node_type,
+            pos=n.get("position", {}),
+            label=n.get("label"),
+            **props,
+        )
 
     def extract_arrows(
             self, data: dict[str, Any], nodes: list[dict[str, Any]]

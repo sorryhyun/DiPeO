@@ -1,4 +1,3 @@
-import { useMutation, useSubscription } from '@apollo/client';
 import {
   ExecutionUpdatesDocument,
   NodeUpdatesDocument,
@@ -6,45 +5,76 @@ import {
   ExecuteDiagramDocument,
   ControlExecutionDocument,
   SubmitInteractiveResponseDocument,
-  ExecutionUpdatesSubscription,
-  NodeUpdatesSubscription,
-  InteractivePromptsSubscription,
 } from '@/__generated__/graphql';
+import { createEntityMutation, createEntitySubscription } from '@/graphql/hooks';
 
 export interface UseExecutionGraphQLProps {
   executionId: string | null;
   skip?: boolean;
 }
 
+/**
+ * Create individual hooks for each operation
+ * Following the pattern from successfully refactored files
+ */
+// Mutations
+const useExecuteDiagramMutation = createEntityMutation({
+  entityName: 'Execution',
+  document: ExecuteDiagramDocument,
+  silent: true // Custom handling in component
+});
+
+const useControlExecutionMutation = createEntityMutation({
+  entityName: 'Execution',
+  document: ControlExecutionDocument,
+  silent: true // Custom handling in component
+});
+
+const useSubmitInteractiveResponseMutation = createEntityMutation({
+  entityName: 'Execution',
+  document: SubmitInteractiveResponseDocument,
+  silent: true // Custom handling in component
+});
+
+// Subscriptions
+const useExecutionUpdatesSubscription = createEntitySubscription({
+  entityName: 'Execution',
+  document: ExecutionUpdatesDocument,
+  silent: true
+});
+
+const useNodeUpdatesSubscription = createEntitySubscription({
+  entityName: 'Execution',
+  document: NodeUpdatesDocument,
+  silent: true
+});
+
+const useInteractivePromptsSubscription = createEntitySubscription({
+  entityName: 'Execution',
+  document: InteractivePromptsDocument,
+  silent: true
+});
+
 export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionGraphQLProps) {
-  // Mutations
-  const [executeDiagramMutation] = useMutation(ExecuteDiagramDocument);
-  const [controlExecutionMutation] = useMutation(ControlExecutionDocument);
-  const [submitInteractiveResponseMutation] = useMutation(SubmitInteractiveResponseDocument);
+  // Mutations - using factory-generated hooks
+  const [executeDiagramMutation] = useExecuteDiagramMutation();
+  const [controlExecutionMutation] = useControlExecutionMutation();
+  const [submitInteractiveResponseMutation] = useSubmitInteractiveResponseMutation();
 
-  // Subscriptions
-  const { data: executionData } = useSubscription<ExecutionUpdatesSubscription>(
-    ExecutionUpdatesDocument,
-    {
-      variables: { executionId: executionId! },
-      skip: skip || !executionId,
-    }
+  // Subscriptions - using factory-generated hooks
+  const { data: executionData } = useExecutionUpdatesSubscription(
+    { executionId: executionId! },
+    { skip: skip || !executionId }
   );
 
-  const { data: nodeData } = useSubscription<NodeUpdatesSubscription>(
-    NodeUpdatesDocument,
-    {
-      variables: { executionId: executionId! },
-      skip: skip || !executionId,
-    }
+  const { data: nodeData } = useNodeUpdatesSubscription(
+    { executionId: executionId! },
+    { skip: skip || !executionId }
   );
 
-  const { data: promptData } = useSubscription<InteractivePromptsSubscription>(
-    InteractivePromptsDocument,
-    {
-      variables: { executionId: executionId! },
-      skip: skip || !executionId,
-    }
+  const { data: promptData } = useInteractivePromptsSubscription(
+    { executionId: executionId! },
+    { skip: skip || !executionId }
   );
 
   return {

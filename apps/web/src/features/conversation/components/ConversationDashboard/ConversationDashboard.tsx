@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   User, MessageSquare,
-  Search, Filter, Download, DollarSign, List, Activity
+  Search, Filter, Download, DollarSign, List
 } from 'lucide-react';
 import { Button, Input, Select } from '@/shared/components/ui';
 import { downloadFile } from '@/shared/utils/file';

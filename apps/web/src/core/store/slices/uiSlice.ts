@@ -8,6 +8,7 @@ export type SelectableType = 'node' | 'arrow' | 'person';
 export type ActiveView = 'diagram' | 'execution' | 'persons' | 'apikeys';
 export type ActiveCanvas = 'main' | 'execution' | 'memory' | 'preview' | 'monitor';
 export type DashboardTab = 'properties' | 'persons' | 'settings' | 'history';
+export type CanvasMode = 'select' | 'pan' | 'zoom';
 
 export interface UISlice {
   // Selection state
@@ -39,6 +40,13 @@ export interface UISlice {
   showExecutionModal: boolean;
   showSettingsModal: boolean;
   showPersonModal: boolean;
+  activeModal: string | null;
+  
+  // Canvas settings
+  showGrid: boolean;
+  showMinimap: boolean;
+  showDebugInfo: boolean;
+  canvasMode: CanvasMode;
   
   // Selection operations
   select: (id: SelectableID, type: SelectableType) => void;
@@ -64,23 +72,34 @@ export interface UISlice {
   setReadOnly: (readOnly: boolean) => void;
   setDraggingState: (isDragging: boolean) => void;
   setConnectingState: (isConnecting: boolean) => void;
+  setCanvasMode: (mode: CanvasMode) => void;
+  
+  // Canvas settings operations
+  setShowGrid: (show: boolean) => void;
+  setShowMinimap: (show: boolean) => void;
+  setShowDebugInfo: (show: boolean) => void;
   
   // Modal operations
   openModal: (modal: 'apikeys' | 'execution' | 'settings' | 'person') => void;
   closeModal: (modal: 'apikeys' | 'execution' | 'settings' | 'person') => void;
   closeAllModals: () => void;
-  
-  // UI helpers
-  isSelected: (id: SelectableID) => boolean;
-  getSelectionBounds: () => { min: Vec2; max: Vec2 } | null;
 }
+
+// Helper to auto-switch dashboard tab based on selection
+const autoSwitchTab = (state: UnifiedStore, type: SelectableType | null) => {
+  if (type === 'person') {
+    state.dashboardTab = 'persons';
+  } else if (type === 'node' || type === 'arrow') {
+    state.dashboardTab = 'properties';
+  }
+};
 
 export const createUISlice: StateCreator<
   UnifiedStore,
   [['zustand/immer', never]],
   [],
   UISlice
-> = (set, get) => ({
+> = (set, _get) => ({
   // Initialize UI state
   selectedId: null,
   selectedType: null,
@@ -104,19 +123,19 @@ export const createUISlice: StateCreator<
   showExecutionModal: false,
   showSettingsModal: false,
   showPersonModal: false,
+  activeModal: null,
+  
+  showGrid: true,
+  showMinimap: false,
+  showDebugInfo: false,
+  canvasMode: 'select',
   
   // Selection operations
   select: (id, type) => set(state => {
     state.selectedId = id;
     state.selectedType = type;
     state.multiSelectedIds.clear();
-    
-    // Auto-switch dashboard tab based on selection
-    if (type === 'person') {
-      state.dashboardTab = 'persons';
-    } else if (type === 'node' || type === 'arrow') {
-      state.dashboardTab = 'properties';
-    }
+    autoSwitchTab(state, type);
   }),
   
   multiSelect: (ids, type) => set(state => {
@@ -201,8 +220,26 @@ export const createUISlice: StateCreator<
     state.isConnecting = isConnecting;
   }),
   
+  setCanvasMode: (mode) => set(state => {
+    state.canvasMode = mode;
+  }),
+  
+  // Canvas settings operations
+  setShowGrid: (show) => set(state => {
+    state.showGrid = show;
+  }),
+  
+  setShowMinimap: (show) => set(state => {
+    state.showMinimap = show;
+  }),
+  
+  setShowDebugInfo: (show) => set(state => {
+    state.showDebugInfo = show;
+  }),
+  
   // Modal operations
   openModal: (modal) => set(state => {
+    state.activeModal = modal;
     switch (modal) {
       case 'apikeys':
         state.showApiKeysModal = true;
@@ -220,6 +257,9 @@ export const createUISlice: StateCreator<
   }),
   
   closeModal: (modal) => set(state => {
+    if (state.activeModal === modal) {
+      state.activeModal = null;
+    }
     switch (modal) {
       case 'apikeys':
         state.showApiKeysModal = false;
@@ -237,42 +277,10 @@ export const createUISlice: StateCreator<
   }),
   
   closeAllModals: () => set(state => {
+    state.activeModal = null;
     state.showApiKeysModal = false;
     state.showExecutionModal = false;
     state.showSettingsModal = false;
     state.showPersonModal = false;
-  }),
-  
-  // UI helpers
-  isSelected: (id) => {
-    const state = get();
-    return state.selectedId === id || state.multiSelectedIds.has(id);
-  },
-  
-  getSelectionBounds: () => {
-    const state = get();
-    const selectedIds = state.multiSelectedIds.size > 0 
-      ? Array.from(state.multiSelectedIds)
-      : state.selectedId ? [state.selectedId] : [];
-    
-    if (selectedIds.length === 0) return null;
-    
-    let minX = Infinity, minY = Infinity;
-    let maxX = -Infinity, maxY = -Infinity;
-    
-    selectedIds.forEach(id => {
-      const node = state.nodes.get(id as NodeID);
-      if (node) {
-        minX = Math.min(minX, node.position.x);
-        minY = Math.min(minY, node.position.y);
-        maxX = Math.max(maxX, node.position.x + 200); // Assume node width
-        maxY = Math.max(maxY, node.position.y + 100); // Assume node height
-      }
-    });
-    
-    return {
-      min: { x: minX, y: minY },
-      max: { x: maxX, y: maxY }
-    };
-  }
+  })
 });

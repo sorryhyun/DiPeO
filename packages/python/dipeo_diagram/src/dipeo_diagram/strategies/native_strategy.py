@@ -1,20 +1,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from typing import Any
 from dipeo_domain import DomainDiagram
-from .shared_components import (
-    build_node,
-    coerce_to_dict,
-    ensure_position,
-)
+from ..shared_components import build_node, coerce_to_dict
+from .base_strategy import BaseConversionStrategy
+from ..conversion_utils import _JsonMixin
 
 log = logging.getLogger(__name__)
 
-from .conversion_utils import _JsonMixin, _BaseStrategy
 
-
-class NativeJsonStrategy(_JsonMixin, _BaseStrategy):
+class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
     """Canonical domain JSON."""
 
     format_id = "native"
@@ -27,20 +23,20 @@ class NativeJsonStrategy(_JsonMixin, _BaseStrategy):
     }
 
     # ---- extraction ------------------------------------------------------- #
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:  # noqa: D401
-        built: list[dict[str, Any]] = []
-        for idx, (nid, ndata) in enumerate(
-            coerce_to_dict(data.get("nodes", {})).items()
-        ):
-            node = build_node(
-                id=nid,
-                type_=ndata.get("type", "job"),
-                pos=ndata.get("position", {}),
-                **ndata.get("data", {}),
-            )
-            ensure_position(node, idx)
-            built.append(node)
-        return built
+    def _get_raw_nodes(self, data: dict[str, Any]) -> list[Any]:
+        """Get nodes from native format (dict of dicts)."""
+        nodes_dict = coerce_to_dict(data.get("nodes", {}))
+        return [(nid, ndata) for nid, ndata in nodes_dict.items()]
+    
+    def _process_node(self, node_data: Any, index: int) -> dict[str, Any] | None:
+        """Process native format node data."""
+        nid, ndata = node_data
+        return build_node(
+            id=nid,
+            type_=ndata.get("type", "job"),
+            pos=ndata.get("position", {}),
+            **ndata.get("data", {}),
+        )
 
     # ---- export ----------------------------------------------------------- #
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401

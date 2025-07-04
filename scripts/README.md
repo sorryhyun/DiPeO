@@ -11,7 +11,7 @@ The recommended way to build DiPeO for Windows.
 #### Prerequisites:
 - Windows 10 or later
 - Python 3.13+
-- Node.js 18+ with pnpm
+- Node.js 22+ with pnpm
 - Rust (for Tauri)
 - Visual Studio Build Tools (for native modules)
 
@@ -46,6 +46,9 @@ Alternative for environments where PowerShell scripts are restricted.
 ```batch
 # Run from project root
 scripts\build-windows.bat
+
+# Build with specific version
+scripts\build-windows.bat 1.0.0
 ```
 
 ## Build Output
@@ -54,17 +57,22 @@ The final installer will be created in:
 - `apps/desktop/src-tauri/target/release/bundle/nsis/*.exe` (NSIS installer)
 - `apps/desktop/src-tauri/target/release/bundle/msi/*.msi` (MSI installer)
 
-The PowerShell script also copies the installer to `dist/DiPeO-Setup-{version}-x64.exe`.
+Both build scripts also copy the installer to `dist/DiPeO-Setup-{version}-x64.exe` for easy access.
 
 ## Icon Generation
 
-Before building, generate icon files:
+**Important:** Icon files are currently missing from the project. Before building, you must generate icon files:
+
 ```bash
 cd apps/desktop
 pnpm tauri icon path/to/your/logo.png
 ```
 
-This creates all required icon formats in `src-tauri/icons/`.
+This creates all required icon formats in `src-tauri/icons/`. Without proper icons:
+- The Windows executable will use a default icon
+- The installer may show warnings about missing icons
+
+**Note:** The build scripts will continue even without icons, but it's recommended to add them for a professional appearance.
 
 ## Signing the Installer
 

@@ -8,7 +8,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations } from '../hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
-import type { Vec2, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
+import { useDiagramData } from '@/shared/hooks/selectors/useDiagramData';
+import { useUIState } from '@/shared/hooks/selectors/useUIState';
+import { useExecutionData } from '@/shared/hooks/selectors/useExecutionData';
+import { usePersonsData } from '@/shared/hooks/selectors/usePersonsData';
+import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/domain-models';
+import type { DomainPersonType } from '@/__generated__/graphql';
 
 interface CanvasUIState {
   // Selection state
@@ -31,6 +36,37 @@ interface CanvasUIState {
   showGrid: boolean;
   showMinimap: boolean;
   showDebugInfo: boolean;
+  
+  // Additional UI state from useUIState
+  activeModal: string | null;
+  activePanel: 'properties' | 'conversation' | null;
+  canvasMode: 'select' | 'pan' | 'zoom';
+}
+
+interface DiagramData {
+  // Core diagram data
+  nodes: Map<NodeID, DomainNode>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
+  
+  // Array versions for convenience
+  nodesArray: DomainNode[];
+  arrowsArray: DomainArrow[];
+  personsArray: DomainPerson[];
+  
+  // Metadata
+  dataVersion: number;
+  diagramName: string;
+  diagramId: string | null;
+}
+
+interface ExecutionState {
+  // Execution data from useExecutionData
+  nodeStates: Map<NodeID, any>;
+  progress: number;
+  runningNodeCount: number;
+  completedNodeCount: number;
+  failedNodeCount: number;
 }
 
 interface CanvasOperations {
@@ -43,6 +79,7 @@ interface CanvasOperations {
   
   // Mode operations
   setReadOnly: (readOnly: boolean) => void;
+  setCanvasMode: (mode: 'select' | 'pan' | 'zoom') => void;
   
   // Canvas operations from focused hooks
   canvas: ReturnType<typeof useCanvas>;
@@ -51,9 +88,25 @@ interface CanvasOperations {
   arrowOps: ReturnType<typeof useArrowOperations>;
   personOps: ReturnType<typeof usePersonOperations>;
   executionOps: ReturnType<typeof useExecution>;
+  
+  // Store operations for direct access
+  store: {
+    clearDiagram: () => void;
+    clearAll: () => void;
+    validateDiagram: () => { isValid: boolean; errors: string[] };
+  };
 }
 
-interface CanvasContextValue extends CanvasUIState, CanvasOperations {}
+interface CanvasContextValue extends CanvasUIState, CanvasOperations {
+  // Diagram data
+  diagram: DiagramData;
+  
+  // Execution state
+  execution: ExecutionState;
+  
+  // Person data with usage stats  
+  personsWithUsage: Array<DomainPerson & { nodeCount: number }>;
+}
 
 const CanvasContext = createContext<CanvasContextValue | null>(null);
 
@@ -76,9 +129,12 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       isPaused: state.execution.isPaused,
       zoom: state.zoom,
       position: state.position,
-      showGrid: true, // TODO: Add to settings
-      showMinimap: false, // TODO: Add to settings
-      showDebugInfo: false, // TODO: Add to settings
+      showGrid: state.showGrid,
+      showMinimap: state.showMinimap,
+      showDebugInfo: state.showDebugInfo,
+      activeModal: state.activeModal,
+      activePanel: state.dashboardTab === 'properties' ? 'properties' as const : null,
+      canvasMode: state.canvasMode
     }))
   );
 
@@ -98,6 +154,12 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const clearSelection = useUnifiedStore(state => state.clearSelection);
   const multiSelect = useUnifiedStore(state => state.multiSelect);
   const setReadOnly = useUnifiedStore(state => state.setReadOnly);
+  const setCanvasMode = useUnifiedStore(state => state.setCanvasMode);
+  
+  // Get store operations for direct access
+  const clearDiagram = useUnifiedStore(state => state.clearDiagram);
+  const clearAll = useUnifiedStore(state => state.clearAll);
+  const validateDiagram = useUnifiedStore(state => state.validateDiagram);
   
   // Create stable operation wrappers
   const selectionOps = React.useMemo(() => ({
@@ -127,7 +189,15 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     },
     clearSelection,
     setReadOnly,
-  }), [select, clearSelection, multiSelect, setReadOnly]);
+    setCanvasMode,
+  }), [select, clearSelection, multiSelect, setReadOnly, setCanvasMode]);
+  
+  // Create stable store operations object
+  const storeOps = React.useMemo(() => ({
+    clearDiagram,
+    clearAll,
+    validateDiagram,
+  }), [clearDiagram, clearAll, validateDiagram]);
 
   // Get hook-based operations
   const canvas = useCanvas();
@@ -136,6 +206,53 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const arrowOps = useArrowOperations();
   const personOps = usePersonOperations();
   const executionOps = useExecution();
+  
+  // Get diagram data
+  const diagramData = useDiagramData();
+  const executionData = useExecutionData();
+  const { personsArray, persons: personsMap } = usePersonsData();
+  
+  // Calculate persons with usage stats
+  const nodePersonUsage = useMemo(() => {
+    const usageMap = new Map<PersonID, number>();
+    diagramData.nodesArray.forEach(node => {
+      if ((node.type === 'person_job' || node.type === 'person_batch_job') && node.data?.person) {
+        const personId = node.data.person as PersonID;
+        usageMap.set(personId, (usageMap.get(personId) || 0) + 1);
+      } else if ((node.type === 'person_job' || node.type === 'person_batch_job') && node.data?.personId) {
+        // Also check personId for compatibility
+        const personId = node.data.personId as PersonID;
+        usageMap.set(personId, (usageMap.get(personId) || 0) + 1);
+      }
+    });
+    return usageMap;
+  }, [diagramData.nodesArray]);
+  
+  const personsWithUsage = useMemo(() => {
+    // Type assertion helper to ensure GraphQL persons are compatible with domain model
+    const toDomainPerson = (person: DomainPersonType): DomainPerson => {
+      return {
+        ...person,
+        llm_config: {
+          ...person.llm_config,
+          api_key_id: person.llm_config.api_key_id || ''
+        }
+      } as DomainPerson;
+    };
+    
+    return personsArray.map(person => ({
+      ...toDomainPerson(person as any),
+      nodeCount: nodePersonUsage.get(person.id as PersonID) || 0
+    }));
+  }, [personsArray, nodePersonUsage]);
+  
+  // Get diagram metadata from store
+  const diagramMetadata = useUnifiedStore(
+    useShallow(state => ({
+      diagramName: state.diagramName,
+      diagramId: state.diagramId,
+    }))
+  );
 
   // Memoize context value
   const contextValue = useMemo<CanvasContextValue>(
@@ -146,14 +263,53 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       
       // Operations
       ...selectionOps,
+      store: storeOps,
       canvas,
       interactions,
       nodeOps,
       arrowOps,
       personOps,
       executionOps,
+      
+      // Diagram data
+      diagram: {
+        nodes: diagramData.nodes,
+        arrows: diagramData.arrows,
+        persons: new Map(Array.from(personsMap.entries()).map(([id, person]) => [
+          id,
+          {
+            ...person,
+            llm_config: {
+              ...person.llm_config,
+              api_key_id: person.llm_config.api_key_id || ''
+            }
+          } as DomainPerson
+        ])),
+        nodesArray: diagramData.nodesArray,
+        arrowsArray: diagramData.arrowsArray,
+        personsArray: personsWithUsage.map(({ nodeCount: _nodeCount, ...person }) => person),
+        dataVersion: diagramData.dataVersion,
+        diagramName: diagramMetadata.diagramName,
+        diagramId: diagramMetadata.diagramId,
+      },
+      
+      // Execution state
+      execution: {
+        nodeStates: executionData.nodeStates,
+        progress: executionData.progress,
+        runningNodeCount: executionData.runningNodeCount,
+        completedNodeCount: executionData.completedNodeCount,
+        failedNodeCount: executionData.failedNodeCount,
+      },
+      
+      // Person data with usage
+      personsWithUsage,
     }),
-    [uiState, selectedNodeIds, selectionOps, canvas, interactions, nodeOps, arrowOps, personOps, executionOps]
+    [
+      uiState, selectedNodeIds, selectionOps, storeOps, canvas, interactions, 
+      nodeOps, arrowOps, personOps, executionOps, diagramData, executionData, 
+      personsMap, personsWithUsage, diagramMetadata
+    ]
   );
 
   return (
@@ -194,6 +350,9 @@ export function useCanvasUIState(): CanvasUIState {
     showGrid: context.showGrid,
     showMinimap: context.showMinimap,
     showDebugInfo: context.showDebugInfo,
+    activeModal: context.activeModal,
+    activePanel: context.activePanel,
+    canvasMode: context.canvasMode,
   };
 }
 
@@ -242,4 +401,36 @@ export function useCanvasSelection() {
 export function useCanvasReadOnly(): boolean {
   const { readOnly, isExecuting } = useCanvasUIState();
   return readOnly || isExecuting;
+}
+
+/**
+ * useCanvasDiagramData - Hook for components that need diagram data
+ */
+export function useCanvasDiagramData(): DiagramData {
+  const context = useCanvasContext();
+  return context.diagram;
+}
+
+/**
+ * useCanvasExecutionState - Hook for components that need execution state
+ */
+export function useCanvasExecutionState(): ExecutionState {
+  const context = useCanvasContext();
+  return context.execution;
+}
+
+/**
+ * useCanvasStore - Hook for components that need direct store operations
+ */
+export function useCanvasStore() {
+  const context = useCanvasContext();
+  return context.store;
+}
+
+/**
+ * useCanvasPersons - Hook for components that need person data with usage stats
+ */
+export function useCanvasPersons() {
+  const context = useCanvasContext();
+  return context.personsWithUsage;
 }

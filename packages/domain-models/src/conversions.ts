@@ -38,6 +38,7 @@ export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'endpoint': NodeType.ENDPOINT,
   'db': NodeType.DB,
   'notion': NodeType.NOTION,
+  'hook': NodeType.HOOK,
 } as const;
 
 /**

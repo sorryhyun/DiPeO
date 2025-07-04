@@ -28,6 +28,7 @@ import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } fr
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, createHandleId, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
+import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 
 /**
  * React Flow specific diagram representation
@@ -104,15 +105,38 @@ export class DiagramAdapter {
     nodes: DiPeoNode[];
     edges: DiPeoEdge[];
   } {
+    const startTime = performance.now();
+    
+    // Pre-index handles for O(1) lookups
+    const handleIndex = createHandleIndex(diagram.handles || []);
+    const indexTime = performance.now();
+    
     const nodes = (diagram.nodes || []).map((node: DomainNode) => {
-      // Get handles for this node by filtering the diagram's handles array
-      const handles = (diagram.handles || []).filter(h => h.node_id === node.id);
+      // O(1) lookup instead of O(n) filtering
+      const handles = getHandlesForNode(handleIndex, node.id);
       return this.nodeToReactFlow(node, handles);
     });
+    
+    const nodesTime = performance.now();
 
     const edges = (diagram.arrows || []).map((arrow: DomainArrow) => 
       this.arrowToReactFlow(arrow)
     );
+    
+    const endTime = performance.now();
+    
+    // Log performance metrics in development
+    if (import.meta.env.DEV && diagram.nodes.length > 10) {
+      console.log('[Performance] DiagramAdapter.toReactFlow:', {
+        totalTime: `${(endTime - startTime).toFixed(2)}ms`,
+        indexingTime: `${(indexTime - startTime).toFixed(2)}ms`,
+        nodeConversionTime: `${(nodesTime - indexTime).toFixed(2)}ms`,
+        edgeConversionTime: `${(endTime - nodesTime).toFixed(2)}ms`,
+        nodeCount: diagram.nodes.length,
+        handleCount: diagram.handles?.length || 0,
+        edgeCount: diagram.arrows?.length || 0
+      });
+    }
 
     return { nodes, edges };
   }
@@ -320,14 +344,18 @@ export class DiagramAdapter {
       return validated;
     }
 
-    const sourceHandles = (diagram.handles || []).filter(h => h.node_id === connection.source);
-    const targetHandles = (diagram.handles || []).filter(h => h.node_id === connection.target);
-
-    const sourceHandle = sourceHandles.find((h: DomainHandle) => 
-      h.label === (connection.sourceHandle || 'default')
+    // Pre-index handles for O(1) lookups
+    const handleIndex = createHandleIndex(diagram.handles || []);
+    
+    const sourceHandle = findHandleByLabel(
+      handleIndex,
+      connection.source as NodeID,
+      connection.sourceHandle || 'default'
     );
-    const targetHandle = targetHandles.find((h: DomainHandle) => 
-      h.label === (connection.targetHandle || 'default')
+    const targetHandle = findHandleByLabel(
+      handleIndex,
+      connection.target as NodeID,
+      connection.targetHandle || 'default'
     );
 
     if (!sourceHandle || !targetHandle) {

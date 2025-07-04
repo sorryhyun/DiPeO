@@ -11,15 +11,19 @@ from .shared_components import (
     ensure_position,
     extract_common_arrows,
 )
-from .native_strategy import NativeJsonStrategy
-from .light_strategy import LightYamlStrategy
-from .readable_strategy import ReadableYamlStrategy
+from .strategies import (
+    BaseConversionStrategy,
+    NativeJsonStrategy,
+    LightYamlStrategy,
+    ReadableYamlStrategy,
+)
 from .unified_converter import UnifiedDiagramConverter, converter_registry
 
 __all__ = [
     # Base classes
     "DiagramConverter",
     "FormatStrategy",
+    "BaseConversionStrategy",
     # Converter
     "UnifiedDiagramConverter",
     # Registry

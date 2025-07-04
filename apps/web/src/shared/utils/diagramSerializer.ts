@@ -3,10 +3,10 @@
  * into a format that can be saved to the backend
  */
 
-import { HandleDirection, DataType, NodeID, ArrowID, PersonID, HandleID } from '@dipeo/domain-models';
+import { HandleDirection, DataType } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { storeMapsToArrays, convertGraphQLPersonToDomain, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
+import { storeMapsToArrays, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // The serialized diagram should match the GraphQL schema format

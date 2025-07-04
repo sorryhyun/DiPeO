@@ -19,18 +19,9 @@ export type PropertyFieldType =
 /**
  * Map property field types to base field types
  */
-export const PROPERTY_TO_BASE_FIELD_TYPE: Record<string, FieldType> = {
-  'text': FIELD_TYPES.TEXT,
-  'number': FIELD_TYPES.NUMBER,
-  'boolean': FIELD_TYPES.BOOLEAN,
-  'select': FIELD_TYPES.SELECT,
-  'textarea': FIELD_TYPES.TEXTAREA,
-  'json': FIELD_TYPES.TEXTAREA,
-  'array': FIELD_TYPES.CUSTOM,
-  'object': FIELD_TYPES.CUSTOM,
-  'email': FIELD_TYPES.TEXT,
-  'url': FIELD_TYPES.TEXT,
-};
+// Import from centralized field type registry
+import { PROPERTY_TO_BASE_FIELD_TYPE } from '@/core/types/fieldTypeRegistry';
+export { PROPERTY_TO_BASE_FIELD_TYPE };
 
 /**
  * Field configuration for dynamic forms

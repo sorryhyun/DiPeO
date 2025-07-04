@@ -1,21 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from typing import Any
 from dipeo_domain import DomainDiagram
-from .shared_components import (
-    build_node,
-    coerce_to_dict,
-    ensure_position,
-)
+from ..shared_components import build_node
+from .base_strategy import BaseConversionStrategy
+from ..conversion_utils import _YamlMixin, _node_id_map
 
 log = logging.getLogger(__name__)
 
-from .conversion_utils import _YamlMixin, _BaseStrategy, _node_id_map
 
 
-
-class ReadableYamlStrategy(_YamlMixin, _BaseStrategy):
+class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
     """Human‑friendly workflow YAML."""
 
     format_id = "readable"
@@ -28,43 +24,45 @@ class ReadableYamlStrategy(_YamlMixin, _BaseStrategy):
     }
 
     # ---- extraction ------------------------------------------------------- #
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:  # noqa: D401
-        nodes: list[dict[str, Any]] = []
-        for idx, step in enumerate(data.get("workflow", [])):
-            if not isinstance(step, dict):
-                continue
-            ((name, cfg),) = step.items()
+    def _get_raw_nodes(self, data: dict[str, Any]) -> list[Any]:
+        """Get workflow steps from readable format."""
+        return data.get("workflow", [])
+    
+    def _process_node(self, node_data: Any, index: int) -> dict[str, Any] | None:
+        """Process readable format workflow step."""
+        if not isinstance(node_data, dict):
+            return None
+        
+        step = node_data
+        ((name, cfg),) = step.items()
 
-            # Parse position from name if present (@(x,y) syntax)
-            position = {}
-            clean_name = name
-            if " @(" in name and name.endswith(")"):
-                parts = name.split(" @(")
-                if len(parts) == 2:
-                    clean_name = parts[0]
-                    pos_str = parts[1][:-1]  # Remove trailing )
-                    try:
-                        x, y = pos_str.split(",")
-                        position = {"x": int(x.strip()), "y": int(y.strip())}
-                    except (ValueError, IndexError):
-                        # If parsing fails, ignore position
-                        pass
+        # Parse position from name if present (@(x,y) syntax)
+        position = {}
+        clean_name = name
+        if " @(" in name and name.endswith(")"):
+            parts = name.split(" @(")
+            if len(parts) == 2:
+                clean_name = parts[0]
+                pos_str = parts[1][:-1]  # Remove trailing )
+                try:
+                    x, y = pos_str.split(",")
+                    position = {"x": int(x.strip()), "y": int(y.strip())}
+                except (ValueError, IndexError):
+                    # If parsing fails, ignore position
+                    pass
 
-            # Use position from name or fallback to cfg position
-            if not position:
-                position = cfg.get("position", {})
+        # Use position from name or fallback to cfg position
+        if not position:
+            position = cfg.get("position", {})
 
-            node_type = cfg.get("type") or ("start" if idx == 0 else "job")
-            node = build_node(
-                id=f"node_{idx}",
-                type_=node_type,
-                pos=position,
-                label=clean_name,
-                **{k: v for k, v in cfg.items() if k not in {"position", "type"}},
-            )
-            ensure_position(node, idx)
-            nodes.append(node)
-        return nodes
+        node_type = cfg.get("type") or ("start" if index == 0 else "job")
+        return build_node(
+            id=self._create_node_id(index),
+            type_=node_type,
+            pos=position,
+            label=clean_name,
+            **{k: v for k, v in cfg.items() if k not in {"position", "type"}},
+        )
 
     def extract_arrows(
             self, data: dict[str, Any], nodes: list[dict[str, Any]]

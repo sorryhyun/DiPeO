@@ -1,7 +1,9 @@
 import { StateCreator } from 'zustand';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
-import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID  } from '@dipeo/domain-models';
+import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/domain-models';
 import { UnifiedStore } from '../unifiedStore.types';
+import type { SelectableID } from './uiSlice';
+import type { NodeState } from '@/features/execution-monitor/store/executionSlice';
 
 export interface ComputedSlice {
   // Node-related computed getters
@@ -42,6 +44,22 @@ export interface ComputedSlice {
     totalConnections: number;
     unconnectedNodes: number;
   };
+  
+  // Person-related computed getters
+  getPersonByLabel: (label: string) => DomainPerson | undefined;
+  getPersonsByService: (service: string) => DomainPerson[];
+  getUnusedPersons: () => DomainPerson[];
+  isPersonInUse: (personId: PersonID) => boolean;
+  canDeletePerson: (personId: PersonID) => boolean;
+  
+  // UI-related computed getters
+  isSelected: (id: SelectableID) => boolean;
+  getSelectionBounds: () => { min: Vec2; max: Vec2 } | null;
+  
+  // Execution-related computed getters
+  isNodeRunning: (nodeId: NodeID) => boolean;
+  getNodeExecutionState: (nodeId: NodeID) => NodeState | undefined;
+  getExecutionProgress: () => { completed: number; total: number; percentage: number };
 }
 
 export const createComputedSlice: StateCreator<
@@ -56,10 +74,8 @@ export const createComputedSlice: StateCreator<
     const node = state.nodes.get(nodeId);
     if (!node) return undefined;
     
-    // Get handles for this node by filtering all handles
-    const nodeHandles = Array.from(state.handles.values()).filter(
-      handle => handle.node_id === nodeId
-    );
+    // O(1) lookup using handle index
+    const nodeHandles = state.handleIndex.get(nodeId) || [];
     return nodeHandles.length > 0 ? { ...node, handles: nodeHandles } : node;
   },
   
@@ -107,18 +123,16 @@ export const createComputedSlice: StateCreator<
   // Handle-related computed getters
   getNodeHandles: (nodeId) => {
     const state = get();
-    // Filter handles by nodeId
-    return Array.from(state.handles.values()).filter(
-      handle => handle.node_id === nodeId
-    );
+    // O(1) lookup using handle index
+    return state.handleIndex.get(nodeId) || [];
   },
   
   getHandleByName: (nodeId, handleName) => {
     const state = get();
-    // Find handle by nodeId and handleName
-    return Array.from(state.handles.values()).find(
-      h => h.node_id === nodeId && h.label === handleName
-    );
+    // O(1) node lookup then O(m) handle search where m is handles per node (typically small)
+    const nodeHandles = state.handleIndex.get(nodeId);
+    if (!nodeHandles) return undefined;
+    return nodeHandles.find(h => h.label === handleName);
   },
   
   // Graph analysis
@@ -252,6 +266,111 @@ export const createComputedSlice: StateCreator<
       nodesByType,
       totalConnections: state.arrows.size,
       unconnectedNodes: unconnectedNodesCount
+    };
+  },
+  
+  // Person-related computed getters
+  getPersonByLabel: (label) => {
+    const state = get();
+    return Array.from(state.persons.values()).find(
+      person => person.label === label
+    );
+  },
+  
+  getPersonsByService: (service) => {
+    const state = get();
+    return Array.from(state.persons.values()).filter(
+      person => person.llm_config?.service === service
+    );
+  },
+  
+  getUnusedPersons: () => {
+    const state = get();
+    const usedPersonIds = new Set<PersonID>();
+    
+    state.nodes.forEach(node => {
+      if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id) {
+        usedPersonIds.add(node.data.person_id);
+      }
+    });
+    
+    return Array.from(state.persons.values()).filter(
+      person => !usedPersonIds.has(person.id as PersonID)
+    );
+  },
+  
+  isPersonInUse: (personId) => {
+    const state = get();
+    return Array.from(state.nodes.values()).some(
+      node => (node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id === personId
+    );
+  },
+  
+  canDeletePerson: (personId) => {
+    const state = get();
+    return !Array.from(state.nodes.values()).some(
+      node => (node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id === personId
+    );
+  },
+  
+  // UI-related computed getters
+  isSelected: (id) => {
+    const state = get();
+    return state.selectedId === id || state.multiSelectedIds.has(id);
+  },
+  
+  getSelectionBounds: () => {
+    const state = get();
+    const selectedIds = state.multiSelectedIds.size > 0 
+      ? Array.from(state.multiSelectedIds)
+      : state.selectedId ? [state.selectedId] : [];
+    
+    if (selectedIds.length === 0) return null;
+    
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+    
+    selectedIds.forEach(id => {
+      const node = state.nodes.get(id as NodeID);
+      if (node) {
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + 200); // Assume node width
+        maxY = Math.max(maxY, node.position.y + 100); // Assume node height
+      }
+    });
+    
+    return {
+      min: { x: minX, y: minY },
+      max: { x: maxX, y: maxY }
+    };
+  },
+  
+  // Execution-related computed getters
+  isNodeRunning: (nodeId) => {
+    const state = get();
+    return state.execution.runningNodes.has(nodeId);
+  },
+  
+  getNodeExecutionState: (nodeId) => {
+    const state = get();
+    return state.execution.nodeStates.get(nodeId);
+  },
+  
+  getExecutionProgress: () => {
+    const state = get();
+    const total = state.nodes.size;
+    const completed = Array.from(state.execution.nodeStates.values())
+      .filter(nodeState => 
+        nodeState.status === NodeExecutionStatus.COMPLETED || 
+        nodeState.status === NodeExecutionStatus.SKIPPED ||
+        nodeState.status === NodeExecutionStatus.FAILED
+      ).length;
+    
+    return {
+      completed,
+      total,
+      percentage: total > 0 ? Math.round((completed / total) * 100) : 0
     };
   }
 });

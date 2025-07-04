@@ -1,6 +1,6 @@
 import type React from 'react';
 import {
-  NodeID, ArrowID, HandleID, PersonID, DiagramID,
+  NodeID, HandleID,
   parseHandleId as domainParseHandleId
 } from '@dipeo/domain-models';
 

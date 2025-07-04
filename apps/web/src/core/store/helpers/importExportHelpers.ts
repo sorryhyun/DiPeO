@@ -1,5 +1,5 @@
 import {  DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson,  apiKeyId } from '@/core/types';
-import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, type HandleID, NodeType, Vec2, LLMService, APIServiceType } from '@dipeo/domain-models';
+import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, type HandleID, NodeType, Vec2, LLMService } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
 import { generateNodeLabel } from '@/core/config/nodeMeta';
 import { getNodeDefaults } from '@/core/config';
