@@ -5,11 +5,11 @@ import { Button } from '@/shared/components/ui/buttons';
 import { getNodeConfig } from '@/core/config/helpers';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../hooks';
-import { useCanvasOperationsContext } from '../../contexts/CanvasContext';
+import { useCanvasOperationsContext } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
-import { nodeId } from '@/core/types';
+import { nodeId, personId } from '@/core/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -107,8 +107,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
         }
         
         const handleName = handle.id || 'default';
-        // Generate unique ID by combining nodeId, handle type, and handleName
-        const uniqueId = `${nodeId}:${handle.type}:${handleName}`;
+        const uniqueId = `${nodeId}_${handle.type}_${handleName}`;
         
         processedHandles.push({
           type: handle.type,
@@ -262,6 +261,15 @@ export function BaseNode({
     state.selectedType === 'person' ? state.selectedId : null
   );
   
+  // Get person label for person_job nodes
+  const personLabel = useUnifiedStore(state => {
+    if (type === 'person_job' && data?.person) {
+      const person = state.persons.get(personId(String(data.person)));
+      return person?.label || '';
+    }
+    return '';
+  });
+  
   // Use custom hooks
   const nId = nodeId(id);
   const status = useNodeStatus(id);
@@ -315,13 +323,18 @@ export function BaseNode({
       }
       
       // Filter out system keys and personId
-      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
+      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId', 'person'].includes(key) &&
         // Filter out blank values (null, undefined, empty string)
         value !== null && value !== undefined && value !== '';
     });
     
+    // Add person label display for person_job nodes
+    if (type === 'person_job' && personLabel) {
+      entries.unshift(['person', personLabel]);
+    }
+    
     return entries.slice(0, 3); // Limit to 3 fields for cleaner display
-  }, [data]);
+  }, [data, type, personLabel]);
 
   return (
     <div

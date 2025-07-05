@@ -18,6 +18,7 @@ DomainDiagram.model_rebuild()
 from .base import DiagramConverter, FormatStrategy
 from .conversion_utils import backend_to_graphql, BackendDiagram
 from dipeo_domain.conversions import node_kind_to_domain_type
+from dipeo_domain import create_handle_id
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
@@ -207,32 +208,68 @@ class UnifiedDiagramConverter(DiagramConverter):
             # Check source handle
             if ":" in arrow.source:
                 node_id, handle_name = arrow.source.split(":", 1)
-                handle_id = f"{node_id}:{handle_name}"
-                if handle_id not in diagram_dict.handles and node_id in nodes_dict:
+                
+                # Check if a handle with same node_id and label already exists
+                handle_exists = False
+                actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
+                expected_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.output)
+                
+                if expected_handle_id in diagram_dict.handles:
+                    handle = diagram_dict.handles[expected_handle_id]
+                    if handle.direction == HandleDirection.output:
+                        handle_exists = True
+                        # Update arrow to use the existing handle ID
+                        arrow.source = expected_handle_id
+                
+                # Check if node exists (case-insensitive)
+                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
+                if not handle_exists and node_exists:
+                    # Create handle with normalized ID, including direction for new format
+                    normalized_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.output)
                     # Create output handle
-                    diagram_dict.handles[handle_id] = DomainHandle(
-                        id=handle_id,
-                        node_id=node_id,
+                    diagram_dict.handles[normalized_handle_id] = DomainHandle(
+                        id=normalized_handle_id,
+                        node_id=actual_node_id,
                         label=handle_name,
                         direction=HandleDirection.output,
                         data_type=DataType.any,
                         position="right",
                     )
+                    # Update arrow to use the normalized handle ID
+                    arrow.source = normalized_handle_id
 
             # Check target handle
             if ":" in arrow.target:
                 node_id, handle_name = arrow.target.split(":", 1)
-                handle_id = f"{node_id}:{handle_name}"
-                if handle_id not in diagram_dict.handles and node_id in nodes_dict:
+                
+                # Check if a handle with same node_id and label already exists
+                handle_exists = False
+                actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
+                expected_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.input)
+                
+                if expected_handle_id in diagram_dict.handles:
+                    handle = diagram_dict.handles[expected_handle_id]
+                    if handle.direction == HandleDirection.input:
+                        handle_exists = True
+                        # Update arrow to use the existing handle ID
+                        arrow.target = expected_handle_id
+                
+                # Check if node exists (case-insensitive)
+                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
+                if not handle_exists and node_exists:
+                    # Create handle with normalized ID, including direction for new format
+                    normalized_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.input)
                     # Create input handle
-                    diagram_dict.handles[handle_id] = DomainHandle(
-                        id=handle_id,
-                        node_id=node_id,
+                    diagram_dict.handles[normalized_handle_id] = DomainHandle(
+                        id=normalized_handle_id,
+                        node_id=actual_node_id,
                         label=handle_name,
                         direction=HandleDirection.input,
                         data_type=DataType.any,
                         position="left",
                     )
+                    # Update arrow to use the normalized handle ID
+                    arrow.target = normalized_handle_id
 
         return backend_to_graphql(diagram_dict)
 

@@ -25,16 +25,46 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     handles: {
       output: [{ id: 'default', position: 'right' }]
     },
-    fields: [],
-    defaults: { label: 'Start' },
+    fields: [
+      { name: 'enable_hook', type: 'boolean', label: 'Enable Hook', required: false },
+      { name: 'hook_type', type: 'select', label: 'Hook Type', required: false, options: [
+        { value: 'webhook', label: 'Webhook' },
+        { value: 'file', label: 'File' },
+        { value: 'shell', label: 'Shell' }
+      ]},
+      { name: 'hook_config', type: 'textarea', label: 'Hook Configuration', required: false, placeholder: 'Hook configuration (e.g., URL, file path, or command)' }
+    ],
+    defaults: { label: 'Start', enable_hook: false, hook_type: 'webhook', hook_config: '' },
+    panelLayout: 'twoColumn',
+    panelFieldOrder: ['label', 'enable_hook', 'hook_type', 'hook_config'],
     panelCustomFields: [
       {
         type: 'text',
         name: 'label',
         label: 'Block Label',
-        placeholder: 'Start'
+        placeholder: 'Start',
+        column: 1
       }
-    ]
+    ],
+    panelFieldOverrides: {
+      enable_hook: { column: 1 },
+      hook_type: { 
+        column: 1,
+        showIf: (formData: any) => formData?.enable_hook === true
+      },
+      hook_config: { 
+        column: 2,
+        rows: 4,
+        showIf: (formData: any) => formData?.enable_hook === true,
+        placeholder: 'Enter webhook URL, file path, or shell command based on hook type',
+        validate: (value: any, formData: any) => {
+          if (formData?.enable_hook && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+            return { isValid: false, error: 'Hook configuration is required when hook is enabled' };
+          }
+          return { isValid: true };
+        }
+      }
+    }
   },
   
   condition: {
@@ -44,17 +74,20 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     handles: {
       input: [{ id: 'default', position: 'left' }],
       output: [
-        { id: 'true', position: 'right', label: 'True', offset: { x: 0, y: 30 } },
-        { id: 'false', position: 'right', label: 'False', offset: { x: 0, y: -30 } }
+        { id: 'true', position: 'right', label: 'true', offset: { x: 0, y: 30 } },
+        { id: 'false', position: 'right', label: 'false', offset: { x: 0, y: -30 } }
       ]
     },
     fields: [
-      { name: 'input_variable', type: 'string', label: 'Input Variable', required: true, placeholder: 'Variable to check' },
-      { name: 'target_value', type: 'string', label: 'Target Value', required: true, placeholder: 'Value to match' }
+      { name: 'condition_type', type: 'select', label: 'Condition Type', required: true, options: [
+        { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
+        { value: 'custom', label: 'Custom Expression' }
+      ]},
+      { name: 'expression', type: 'textarea', label: 'Expression', required: true, placeholder: 'e.g., {{variable}} == "value"' }
     ],
-    defaults: { label: 'Condition', input_variable: '', target_value: '' },
+    defaults: { label: 'Condition', condition_type: 'custom', expression: '' },
     panelLayout: 'twoColumn',
-    panelFieldOrder: ['label', 'input_variable', 'target_value'],
+    panelFieldOrder: ['label', 'condition_type', 'expression'],
     panelCustomFields: [
       {
         type: 'text',
@@ -65,8 +98,24 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       }
     ],
     panelFieldOverrides: {
-      input_variable: { column: 1 },
-      target_value: { column: 2 }
+      condition_type: { column: 1 },
+      expression: { 
+        column: 2,
+        rows: 3,
+        placeholder: 'Enter condition expression. Use {{variable_name}} for variables.',
+        conditional: {
+          field: 'condition_type',
+          values: ['custom'],
+          operator: 'equals'
+        },
+        validate: (value: any, formData: any) => {
+          // Only validate expression for custom type
+          if (formData?.condition_type === 'custom' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+            return { isValid: false, error: 'Expression is required for custom conditions' };
+          }
+          return { isValid: true };
+        }
+      }
     }
   },
   
@@ -169,17 +218,46 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       input: [{ id: 'default', position: 'right' }]
     },
     fields: [
-      { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' }
+      { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' },
+      { name: 'save_to_file', type: 'boolean', label: 'Save to File', required: false },
+      { name: 'file_format', type: 'select', label: 'File Format', required: false, options: [
+        { value: 'json', label: 'JSON' },
+        { value: 'yaml', label: 'YAML' },
+        { value: 'txt', label: 'Text' },
+        { value: 'md', label: 'Markdown' }
+      ]},
+      { name: 'file_name', type: 'string', label: 'File Name', required: false, placeholder: 'output.json' }
     ],
-    defaults: { label: 'End', output_variable: '' },
+    defaults: { label: 'End', output_variable: '', save_to_file: false, file_format: 'json', file_name: '' },
+    panelLayout: 'twoColumn',
+    panelFieldOrder: ['label', 'output_variable', 'save_to_file', 'file_format', 'file_name'],
     panelCustomFields: [
       {
         type: 'text',
         name: 'label',
         label: 'Block Label',
-        placeholder: 'End'
+        placeholder: 'End',
+        column: 1
       }
-    ]
+    ],
+    panelFieldOverrides: {
+      output_variable: { column: 1 },
+      save_to_file: { column: 2 },
+      file_format: { 
+        column: 2,
+        showIf: (formData: any) => formData?.save_to_file === true
+      },
+      file_name: { 
+        column: 2,
+        showIf: (formData: any) => formData?.save_to_file === true,
+        validate: (value: any, formData: any) => {
+          if (formData?.save_to_file && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+            return { isValid: false, error: 'File name is required when saving to file' };
+          }
+          return { isValid: true };
+        }
+      }
+    }
   },
   
   person_job: {
@@ -415,12 +493,13 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     },
     fields: [
       { name: 'hook_type', type: 'select', label: 'Hook Type', required: true, options: [
-        { value: 'before', label: 'Before' },
-        { value: 'after', label: 'After' }
+        { value: 'webhook', label: 'Webhook' },
+        { value: 'file', label: 'File' },
+        { value: 'shell', label: 'Shell' }
       ]},
       { name: 'command', type: 'string', label: 'Command', required: true, placeholder: 'Command to execute' }
     ],
-    defaults: { label: 'Hook', hook_type: 'before', command: '' }
+    defaults: { label: 'Hook', hook_type: 'webhook', command: '' }
   }
 };
 

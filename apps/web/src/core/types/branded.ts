@@ -45,7 +45,7 @@ export const diagramId = (id: string): DiagramID => id as DiagramID;
 
 // Additional handle validation not provided by domain models
 export const isValidHandleIdFormat = (id: string): boolean => {
-  return id.includes(':') && id.split(':').length >= 2;
+  return id.includes('_') && id.split('_').length >= 2;
 };
 
 // UI-specific type guards with validation

@@ -5,6 +5,7 @@ from functools import cached_property
 from typing import Any, Callable, Dict, List, Optional
 
 from dipeo_domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutput
+from dipeo_domain.handle_utils import parse_handle_id
 
 
 @dataclass
@@ -128,13 +129,23 @@ class EdgeView:
 
     @property
     def source_handle(self) -> str:
-        parts = self.arrow.source.split(":", 1)
-        return parts[1] if len(parts) > 1 else "default"
+        try:
+            _, handle_label, _ = parse_handle_id(self.arrow.source)
+            return handle_label
+        except:
+            # Fallback for old format
+            parts = self.arrow.source.split(":", 1)
+            return parts[1] if len(parts) > 1 else "default"
 
     @property
     def target_handle(self) -> str:
-        parts = self.arrow.target.split(":", 1)
-        return parts[1] if len(parts) > 1 else "default"
+        try:
+            _, handle_label, _ = parse_handle_id(self.arrow.target)
+            return handle_label
+        except:
+            # Fallback for old format
+            parts = self.arrow.target.split(":", 1)
+            return parts[1] if len(parts) > 1 else "default"
 
     @property
     def label(self) -> str:
@@ -166,8 +177,13 @@ class LocalExecutionView:
 
         log = logging.getLogger(__name__)
         for arrow in self.diagram.arrows:
-            source_id = arrow.source.split(":")[0]
-            target_id = arrow.target.split(":")[0]
+            try:
+                source_id, _, _ = parse_handle_id(arrow.source)
+                target_id, _, _ = parse_handle_id(arrow.target)
+            except:
+                # Fallback for old format
+                source_id = arrow.source.split(":")[0]
+                target_id = arrow.target.split(":")[0]
 
             if source_id in self.node_views and target_id in self.node_views:
                 edge_view = EdgeView(

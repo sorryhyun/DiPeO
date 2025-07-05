@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
-import { useCanvasOperationsContext, useCanvasUIState } from '../contexts/CanvasContext';
+import { useCanvasOperationsContext, useCanvasUIState } from '@/shared/contexts/CanvasContext';
 import { useArrowData } from '@/shared/hooks/selectors/useDiagramData';
 import { arrowId, ArrowData } from '@/core/types';
 import { getQuadraticPoint } from '@/shared/utils/geometry';

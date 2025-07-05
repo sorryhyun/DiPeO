@@ -97,8 +97,8 @@ class ChatGPTAdapter(BaseAdapter):
         # Use base method to create token usage
         token_usage = self._create_token_usage(
             response,
-            input_field="prompt_tokens",
-            output_field="completion_tokens"
+            input_field="input_tokens",
+            output_field="output_tokens"
         )
         
         return ChatResult(

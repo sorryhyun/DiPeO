@@ -92,7 +92,29 @@ export function useDiagramLoader() {
           const domainDiagram = convertGraphQLDiagramToDomain(diagramWithCounts);
           
           // Convert arrays to Maps for the store
-          const { nodes, handles, arrows, persons } = diagramToStoreMaps(domainDiagram);
+          let { nodes, handles, arrows, persons } = diagramToStoreMaps(domainDiagram);
+          
+          // Deduplicate arrows based on source/target
+          const arrowMap = new Map<string, typeof arrows extends Map<any, infer V> ? V : never>();
+          arrows.forEach((arrow, id) => {
+            // Create a key for deduplication without changing case
+            const key = `${arrow.source}->${arrow.target}`;
+            
+            // Keep the first occurrence
+            if (!arrowMap.has(key)) {
+              arrowMap.set(key, arrow);
+            }
+          });
+          
+          // Convert back to arrow Map with original IDs
+          const deduplicatedArrows = new Map();
+          arrowMap.forEach((arrow) => {
+            deduplicatedArrows.set(arrow.id, arrow);
+          });
+          arrows = deduplicatedArrows;
+          
+          // Keep handles as-is without normalization
+          // Handle IDs contain node IDs which must preserve their original casing
           
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();

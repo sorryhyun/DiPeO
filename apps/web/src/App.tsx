@@ -3,7 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './shared/components/layout';
 import { GlobalKeyboardHandler } from './shared/components/GlobalKeyboardHandler';
-import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './features/diagram-editor/contexts/CanvasContext';
+import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './shared/contexts/CanvasContext';
 import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
 import { useUnifiedStore } from './core/store/unifiedStore';
 

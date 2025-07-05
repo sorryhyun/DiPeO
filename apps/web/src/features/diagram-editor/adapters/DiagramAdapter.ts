@@ -199,9 +199,11 @@ export class DiagramAdapter {
     const sourceParsed = parseHandleId(arrow.source as HandleID);
     const targetParsed = parseHandleId(arrow.target as HandleID);
     const sourceNode = sourceParsed.node_id;
-    const sourceHandle = sourceParsed.handle_label;
     const targetNode = targetParsed.node_id;
-    const targetHandle = targetParsed.handle_label;
+    
+    // Use the full handle IDs as they are, since that's what our FlowHandle component generates
+    const sourceHandle = arrow.source;
+    const targetHandle = arrow.target;
     
     // Merge arrow's direct fields (content_type, label) into data
     const edgeData = { ...(arrow.data || {}) };
@@ -250,11 +252,13 @@ export class DiagramAdapter {
   static reactToArrow(rfEdge: RFEdge): DomainArrow {
     const sourceHandle = createHandleId(
       rfEdge.source as NodeID, 
-      rfEdge.sourceHandle || 'default'
+      rfEdge.sourceHandle || 'default',
+      HandleDirection.OUTPUT
     );
     const targetHandle = createHandleId(
       rfEdge.target as NodeID,
-      rfEdge.targetHandle || 'default'
+      rfEdge.targetHandle || 'default',
+      HandleDirection.INPUT
     );
 
     // Extract content_type and label from data
@@ -288,11 +292,13 @@ export class DiagramAdapter {
 
     const sourceHandle = createHandleId(
       connection.source as NodeID,
-      connection.sourceHandle || 'default'
+      connection.sourceHandle || 'default',
+      HandleDirection.OUTPUT
     );
     const targetHandle = createHandleId(
       connection.target as NodeID,
-      connection.targetHandle || 'default'
+      connection.targetHandle || 'default',
+      HandleDirection.INPUT
     );
 
     return {

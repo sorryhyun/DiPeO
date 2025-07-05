@@ -18,7 +18,7 @@ export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
 const HANDLE_DISTANCE = 30; // Increased distance from node edge
 
 const FlowHandleComponent: React.FC<FlowHandleProps> = ({
-  nodeId: _nodeId,
+  nodeId,
   type,
   label,
   position,
@@ -29,6 +29,9 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   ...props
 }) => {
   const rfType = type === 'output' ? 'source' : 'target';
+  
+  // Generate the handle ID in the expected format: nodeId_label_direction
+  const handleId = `${nodeId}_${label}_${type === 'output' ? 'output' : 'input'}`;
 
   // Memoize computed styles for integrated pill-shaped handle
   const handleStyle = useMemo(() => {
@@ -91,7 +94,7 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
     <Handle
       type={rfType}
       position={position}
-      id={label}
+      id={handleId}
       style={handleStyle}
       className={className}
       {...props}

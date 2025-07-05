@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { DomainNode } from '@/core/types';
 import {ArrowID, NodeID} from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { useCanvasOperationsContext, useCanvasSelection } from '../../contexts/CanvasContext';
+import { useCanvasOperationsContext, useCanvasSelection } from '@/shared/contexts/CanvasContext';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 export interface ContextMenuProps {

@@ -74,24 +74,55 @@ export function domainTypeToNodeKind(type: NodeType): string {
 // ============================================================================
 
 /**
- * Create a handle ID from node ID and handle label
+ * Normalize a node ID to ensure consistent casing
  */
-export function createHandleId(nodeId: NodeID, handleLabel: string): HandleID {
-  return `${nodeId}:${handleLabel}` as HandleID;
+export function normalizeNodeId(nodeId: string): NodeID {
+  // For now, we keep the original casing for node IDs
+  // This allows both uppercase and lowercase to work
+  return nodeId as NodeID;
+}
+
+/**
+ * Create a handle ID from node ID, handle label, and direction
+ * Format: [nodeId]_[handleLabel]_[direction]
+ */
+export function createHandleId(
+  nodeId: NodeID,
+  handleLabel: string,
+  direction: HandleDirection
+): HandleID {
+  // Use underscores for simpler format
+  return `${nodeId}_${handleLabel}_${direction}` as HandleID;
 }
 
 /**
  * Parse a handle ID into its components
+ * Returns (node_id, handle_label, direction)
  */
-export function parseHandleId(handleId: HandleID): { node_id: NodeID; handle_label: string } {
-  const [nodeId, ...labelParts] = handleId.split(':');
-  const handleLabel = labelParts.join(':'); // Handle labels might contain ':'
-  
-  if (!nodeId || !handleLabel) {
+export function parseHandleId(
+  handleId: HandleID
+): { node_id: NodeID; handle_label: string; direction: HandleDirection } {
+  // Format: [nodeId]_[handleLabel]_[direction]
+  const parts = handleId.split('_');
+  if (parts.length < 3) {
     throw new Error(`Invalid handle ID format: ${handleId}`);
   }
   
-  return { node_id: nodeId as NodeID, handle_label: handleLabel };
+  // Extract parts: nodeId_label_direction
+  const direction = parts[parts.length - 1] as HandleDirection;
+  const handleLabel = parts[parts.length - 2];
+  const nodeIdParts = parts.slice(0, -2);
+  const nodeId = nodeIdParts.join('_');
+  
+  if (!nodeId || !handleLabel || !Object.values(HandleDirection).includes(direction)) {
+    throw new Error(`Invalid handle ID format: ${handleId}`);
+  }
+  
+  return {
+    node_id: nodeId as NodeID,
+    handle_label: handleLabel,
+    direction,
+  };
 }
 
 // ============================================================================
@@ -367,4 +398,3 @@ export function validateArrowConnection(
     errors,
   };
 }
-

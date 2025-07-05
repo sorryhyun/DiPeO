@@ -13,7 +13,7 @@ import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { useUIState } from '@/shared/hooks/selectors';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
 import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
-import { NodeType, type NodeID, type ArrowID, type HandleID, createHandleId } from '@dipeo/domain-models';
+import { NodeType, type NodeID, type ArrowID, type HandleID } from '@dipeo/domain-models';
 
 
 // Simple memoized array conversion
@@ -173,27 +173,18 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     
     if (connection.source && connection.target && 
         connection.sourceHandle && connection.targetHandle) {
-      // Strip any numeric suffixes that React Flow might have added
-      const stripSuffix = (handleName: string): string => {
-        const match = handleName.match(/^(.+)_\d+$/);
-        return match && match[1] ? match[1] : handleName;
-      };
+      // The handle IDs from React Flow are already in the correct format
+      // Just use them directly as HandleIDs
+      const sourceHandleId = connection.sourceHandle as HandleID;
+      const targetHandleId = connection.targetHandle as HandleID;
       
-      const cleanSourceHandle = stripSuffix(connection.sourceHandle);
-      const cleanTargetHandle = stripSuffix(connection.targetHandle);
-      
-      const sourceHandleId = createHandleId(
-        nodeId(connection.source),
-        cleanSourceHandle
-      );
-      const targetHandleId = createHandleId(
-        nodeId(connection.target),
-        cleanTargetHandle
-      );
+      // Extract handle name from the handle ID for condition node check
+      // Handle ID format: nodeId_handleName_direction
+      const sourceHandleParts = sourceHandleId.split('_');
+      const sourceHandleName = sourceHandleParts[sourceHandleParts.length - 2]?.toLowerCase();
       
       // Check if this is a connection from a condition node's True/False handle
       let arrowData: Record<string, any> | undefined;
-      const sourceHandleName = cleanSourceHandle.toLowerCase();
       if (sourceHandleName === 'true' || sourceHandleName === 'false') {
         // Get the source node to verify it's a condition node
         const sourceNode = nodesMap.get(nodeId(connection.source));

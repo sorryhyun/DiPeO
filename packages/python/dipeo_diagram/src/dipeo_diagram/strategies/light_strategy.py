@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo_domain import DomainDiagram
+from dipeo_domain import DomainDiagram, NodeID, HandleDirection, create_handle_id
+from dipeo_domain.handle_utils import parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
 from ..conversion_utils import _YamlMixin, _node_id_map
@@ -88,8 +89,35 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if not isinstance(c, dict):
                 continue
             src_raw, dst_raw = c.get("from", ""), c.get("to", "")
-            src_label, *_ = src_raw.split(":", 1)
-            dst_label, *_ = dst_raw.split(":", 1)
+            
+            # Parse source label and handle
+            src_label = src_raw
+            src_handle_from_split = None
+            if "_" in src_raw:
+                # Try to find the node label by checking all possible splits
+                # This handles cases where node labels contain spaces or underscores
+                # We need to find the longest matching label in label2id
+                parts = src_raw.split("_")
+                for i in range(len(parts) - 1, 0, -1):
+                    potential_label = "_".join(parts[:i])
+                    if potential_label in label2id:
+                        src_label = potential_label
+                        src_handle_from_split = "_".join(parts[i:])
+                        break
+            
+            # Parse destination label and handle
+            dst_label = dst_raw
+            dst_handle_from_split = None
+            if "_" in dst_raw:
+                # Try to find the node label by checking all possible splits
+                parts = dst_raw.split("_")
+                for i in range(len(parts) - 1, 0, -1):
+                    potential_label = "_".join(parts[:i])
+                    if potential_label in label2id:
+                        dst_label = potential_label
+                        dst_handle_from_split = "_".join(parts[i:])
+                        break
+                    
             sid, tid = label2id.get(src_label), label2id.get(dst_label)
             if not (sid and tid):
                 log.warning(
@@ -98,8 +126,8 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 continue
 
             # Handle source handle
-            if ":" in src_raw:
-                src_handle = src_raw.split(":", 1)[1]
+            if src_handle_from_split:
+                src_handle = src_handle_from_split
             elif "branch" in c.get("data", {}):
                 # For condition nodes, use branch data
                 branch_value = c.get("data", {}).get("branch")
@@ -114,16 +142,23 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 src_handle = "default"
 
             # Handle target handle
-            dst_handle = dst_raw.split(":", 1)[1] if ":" in dst_raw else "default"
+            if dst_handle_from_split:
+                dst_handle = dst_handle_from_split
+            else:
+                dst_handle = "default"
 
             # Create arrow with data (light format doesn't include controlPointOffset)
             arrow_data = c.get("data", {})
 
+            # Create proper handle IDs
+            source_handle_id = create_handle_id(NodeID(sid), src_handle, HandleDirection.output)
+            target_handle_id = create_handle_id(NodeID(tid), dst_handle, HandleDirection.input)
+
             # Extract contentType and label from connection level
             arrow_dict = {
                 "id": c.get("data", {}).get("id", f"arrow_{idx}"),
-                "source": f"{sid}:{src_handle}",
-                "target": f"{tid}:{dst_handle}",
+                "source": source_handle_id,
+                "target": target_handle_id,
                 "data": arrow_data,
             }
 
@@ -174,11 +209,13 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
         connections = []
         for a in diagram.arrows:
-            s_id, s_handle = (a.source.split(":") + ["default"])[:2]
-            t_id, t_handle = (a.target.split(":") + ["default"])[:2]
+            # Parse handle IDs using the new format
+            s_node_id, s_handle, _ = parse_handle_id(a.source)
+            t_node_id, t_handle, _ = parse_handle_id(a.target)
+            
             conn = {
-                "from": f"{id_to_label[s_id]}{':' + s_handle if s_handle != 'default' else ''}",
-                "to": f"{id_to_label[t_id]}{':' + t_handle if t_handle != 'default' else ''}",
+                "from": f"{id_to_label[s_node_id]}{'_' + s_handle if s_handle != 'default' else ''}",
+                "to": f"{id_to_label[t_node_id]}{'_' + t_handle if t_handle != 'default' else ''}",
             }
             # Add contentType and label from direct fields
             if a.content_type:

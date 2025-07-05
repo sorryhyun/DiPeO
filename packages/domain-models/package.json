@@ -22,7 +22,7 @@
     "generate:schema": "tsx scripts/generate-schema.ts",
     "generate:python": "tsx scripts/generate-python.ts",
     "generate:conversions": "tsx scripts/generate-conversions.ts",
-    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions"
+    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm build"
   },
   "dependencies": {
     "zod": "^3.25.42"

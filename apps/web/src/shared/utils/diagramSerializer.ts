@@ -3,7 +3,7 @@
  * into a format that can be saved to the backend
  */
 
-import { HandleDirection, DataType } from '@dipeo/domain-models';
+import { HandleDirection, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
 import { storeMapsToArrays, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
@@ -68,7 +68,36 @@ function cleanNodeData(node: DomainNode): DomainNode {
       break;
     case 'person_job':
       nodeData.first_only_prompt = nodeData.first_only_prompt || '';
-      nodeData.max_iteration = nodeData.max_iteration || 1;
+      // Ensure max_iteration is a number
+      nodeData.max_iteration = typeof nodeData.max_iteration === 'number' 
+        ? nodeData.max_iteration 
+        : (Number(nodeData.max_iteration) || 1);
+      // Convert tools from comma-separated string to array format
+      if (typeof nodeData.tools === 'string' && nodeData.tools) {
+        const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
+        nodeData.tools = toolNames.map((toolName: string) => {
+          // Map common tool names to their enum values
+          const toolTypeMap: Record<string, string> = {
+            'web_search': 'web_search',
+            'web_search_preview': 'web_search_preview',
+            'image_generation': 'image_generation'
+          };
+          return {
+            type: toolTypeMap[toolName] || toolName,
+            enabled: true
+          };
+        });
+      } else if (typeof nodeData.tools === 'string' && !nodeData.tools) {
+        // Empty string means no tools
+        nodeData.tools = null;
+      }
+      break;
+    case 'person_batch_job':
+      nodeData.first_only_prompt = nodeData.first_only_prompt || '';
+      // Ensure max_iteration is a number
+      nodeData.max_iteration = typeof nodeData.max_iteration === 'number' 
+        ? nodeData.max_iteration 
+        : (Number(nodeData.max_iteration) || 1);
       // Convert tools from comma-separated string to array format
       if (typeof nodeData.tools === 'string' && nodeData.tools) {
         const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
@@ -130,11 +159,12 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   // Generate input handles
   if (config.handles.input) {
     config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleId = `${node.id}:${handleConfig.id}`;
+      const handleLabel = (handleConfig.label || handleConfig.id).toLowerCase();
+      const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.INPUT);
       handles.push({
-        id: handleId as import('@dipeo/domain-models').HandleID,
+        id: handleId,
         node_id: node.id,
-        label: handleConfig.label || handleConfig.id,
+        label: handleLabel,
         direction: HandleDirection.INPUT,
         data_type: DataType.ANY,
         position: handleConfig.position || 'left'
@@ -145,11 +175,12 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   // Generate output handles
   if (config.handles.output) {
     config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleId = `${node.id}:${handleConfig.id}`;
+      const handleLabel = (handleConfig.label || handleConfig.id).toLowerCase();
+      const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.OUTPUT);
       handles.push({
-        id: handleId as import('@dipeo/domain-models').HandleID,
+        id: handleId,
         node_id: node.id,
-        label: handleConfig.label || handleConfig.id,
+        label: handleLabel,
         direction: HandleDirection.OUTPUT,
         data_type: DataType.ANY,
         position: handleConfig.position || 'right'
@@ -166,19 +197,28 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
 function getStoreStateWithMaps() {
   const state = useUnifiedStore.getState();
   
-  // Convert store arrays to a diagram format
-  const graphqlDiagram = {
-    nodes: state.nodesArray || [],
-    handles: Array.from(state.handles?.values() || []),
-    arrows: state.arrowsArray || [],
-    persons: state.personsArray || []
+  // Convert persons to ensure they have required fields
+  const personsWithRequiredFields = new Map(state.persons);
+  personsWithRequiredFields.forEach((person, id) => {
+    if (person.llm_config && !person.llm_config.api_key_id) {
+      // Provide a default api_key_id if missing
+      personsWithRequiredFields.set(id, {
+        ...person,
+        llm_config: {
+          ...person.llm_config,
+          api_key_id: 'default' as any // This should be a valid ApiKeyID in your system
+        }
+      });
+    }
+  });
+  
+  // Return the Maps with converted persons
+  return {
+    nodes: state.nodes,
+    handles: state.handles,
+    arrows: state.arrows,
+    persons: personsWithRequiredFields as any
   };
-  
-  // Convert GraphQL diagram to domain format (handles type mismatches)
-  const domainDiagram = convertGraphQLDiagramToDomain(graphqlDiagram);
-  
-  // Convert back to Maps
-  return diagramToStoreMaps(domainDiagram);
 }
 
 /**
@@ -205,26 +245,48 @@ export function serializeDiagram(): SerializedDiagram {
   const storeMaps = getStoreStateWithMaps();
   const diagramArrays = storeMapsToArrays(storeMaps);
 
-  // Clean node data and generate handles
+  // Clean node data
   const cleanNodes = diagramArrays.nodes?.map(node => cleanNodeData(node)) || [];
-  const generatedHandles: DomainHandle[] = [];
   
-  // Generate handles for all nodes
-  cleanNodes.forEach(node => {
-    const nodeHandles = generateHandlesForNode(node);
-    generatedHandles.push(...nodeHandles);
+  // Get existing handles from store
+  const existingHandles = diagramArrays.handles || [];
+  
+  // Create a map of existing handles by node ID and label (normalized)
+  const existingHandleMap = new Map<string, DomainHandle>();
+  existingHandles.forEach(handle => {
+    const key = `${handle.node_id}_${handle.label}`;
+    existingHandleMap.set(key, handle);
   });
   
-  // Use generated handles if store handles are empty
-  const handles = diagramArrays.handles && diagramArrays.handles.length > 0 
-    ? diagramArrays.handles 
-    : generatedHandles;
+  // Generate handles only for nodes that are missing required handles
+  const generatedHandles: DomainHandle[] = [];
+  cleanNodes.forEach(node => {
+    const nodeHandles = generateHandlesForNode(node);
+    nodeHandles.forEach(newHandle => {
+      const key = `${newHandle.node_id}_${newHandle.label}`;
+      // Only add if this specific handle doesn't exist
+      if (!existingHandleMap.has(key)) {
+        generatedHandles.push(newHandle);
+        existingHandleMap.set(key, newHandle);
+      }
+    });
+  });
   
+  // Use the map values to get all unique handles
+  const handles = Array.from(existingHandleMap.values());
+  
+  // Clean persons data by removing masked_api_key
+  const cleanPersons = (diagramArrays.persons || []).map(person => {
+    // Remove masked_api_key as it's a runtime display-only field
+    const { masked_api_key, ...cleanPerson } = person as any;
+    return cleanPerson as DomainPerson;
+  });
+
   // Return the serialized diagram
   return {
     nodes: cleanNodes,
     arrows: diagramArrays.arrows || [],
-    persons: diagramArrays.persons || [],
+    persons: cleanPersons,
     handles,
     metadata
   };

@@ -143,7 +143,7 @@ export const createComputedSlice: StateCreator<
     // Find all nodes that this node depends on (incoming connections)
     state.arrows.forEach(arrow => {
       if (arrow.target.includes(nodeId)) {
-        const sourceNodeId = arrow.source.split(':')[0] as NodeID;
+        const sourceNodeId = arrow.source.split('_')[0] as NodeID;
         dependencies.add(sourceNodeId);
       }
     });
@@ -158,7 +158,7 @@ export const createComputedSlice: StateCreator<
     // Find all nodes that depend on this node (outgoing connections)
     state.arrows.forEach(arrow => {
       if (arrow.source.includes(nodeId)) {
-        const targetNodeId = arrow.target.split(':')[0] as NodeID;
+        const targetNodeId = arrow.target.split('_')[0] as NodeID;
         dependents.add(targetNodeId);
       }
     });
@@ -177,8 +177,8 @@ export const createComputedSlice: StateCreator<
     const nodesWithIncoming = new Set<NodeID>();
     
     state.arrows.forEach(arrow => {
-      nodesWithOutgoing.add(arrow.source.split(':')[0] as NodeID);
-      nodesWithIncoming.add(arrow.target.split(':')[0] as NodeID);
+      nodesWithOutgoing.add(arrow.source.split('_')[0] as NodeID);
+      nodesWithIncoming.add(arrow.target.split('_')[0] as NodeID);
     });
     
     // End nodes are nodes with incoming connections but no outgoing connections
@@ -248,8 +248,8 @@ export const createComputedSlice: StateCreator<
     // Find unconnected nodes
     const connectedNodes = new Set<string>();
     state.arrows.forEach(arrow => {
-      const sourceNodeId = arrow.source.split(':')[0];
-      const targetNodeId = arrow.target.split(':')[0];
+      const sourceNodeId = arrow.source.split('_')[0];
+      const targetNodeId = arrow.target.split('_')[0];
       if (sourceNodeId) connectedNodes.add(sourceNodeId);
       if (targetNodeId) connectedNodes.add(targetNodeId);
     });

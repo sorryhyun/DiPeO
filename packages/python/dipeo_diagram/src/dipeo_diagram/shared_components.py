@@ -12,8 +12,8 @@ from dipeo_domain import (
     HandleID,
     NodeID,
     Vec2,
+    create_handle_id,
 )
-from dipeo_domain.conversions import create_handle_id
 
 if TYPE_CHECKING:
     from .conversion_utils import BackendDiagram
@@ -49,7 +49,7 @@ def _make_handle(
     direction: HandleDirection,
     dtype: DataType = DataType.any,
 ) -> DomainHandle:
-    hid = create_handle_id(NodeID(node_id), suffix)
+    hid = create_handle_id(NodeID(node_id), suffix, direction)
     return DomainHandle(
         id=hid,
         node_id=NodeID(node_id),
@@ -72,34 +72,99 @@ class HandleGenerator:
         node_id: str,
         node_type: str,
     ) -> None:
-        # database nodes use a single *default* input
-        if node_type == "db":
+        # Start nodes only have output
+        if node_type == "start":
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.output),
+            )
+            return
+            
+        # Endpoint nodes only have input
+        if node_type == "endpoint":
             _push_handle(
                 diagram,
                 _make_handle(node_id, "default", "default", HandleDirection.input),
             )
             return
+            
+        # Condition nodes have one input and two outputs (true/false)
+        if node_type == "condition":
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.input),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "true", "true", HandleDirection.output, DataType.boolean),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "false", "false", HandleDirection.output, DataType.boolean),
+            )
+            return
+            
+        # Database nodes have input and output
+        if node_type == "db":
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.input),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.output),
+            )
+            return
 
-        table = [
-            ("input", "input", HandleDirection.input, node_type != "start"),
-            ("output", "output", HandleDirection.output, node_type != "endpoint"),
-            ("true", "true", HandleDirection.output, node_type == "condition"),
-            ("false", "false", HandleDirection.output, node_type == "condition"),
-        ]
-        for suffix, label, direction, keep in table:
-            if keep:
-                _push_handle(
-                    diagram,
-                    _make_handle(
-                        node_id,
-                        suffix,
-                        label,
-                        direction,
-                        DataType.boolean
-                        if suffix in {"true", "false"}
-                        else DataType.any,
-                    ),
-                )
+        # person_job nodes have specific handles: first input, default input, default output
+        if node_type == "person_job":
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "first", "first", HandleDirection.input),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.input),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.output),
+            )
+            return
+            
+        # person_batch_job nodes have default input and output
+        if node_type == "person_batch_job":
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.input),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.output),
+            )
+            return
+            
+        # user_response nodes have default input and output
+        if node_type == "user_response":
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.input),
+            )
+            _push_handle(
+                diagram,
+                _make_handle(node_id, "default", "default", HandleDirection.output),
+            )
+            return
+
+        # For all other node types (code_job, api_job, hook, notion, etc.), use default handles
+        _push_handle(
+            diagram,
+            _make_handle(node_id, "default", "default", HandleDirection.input),
+        )
+        _push_handle(
+            diagram,
+            _make_handle(node_id, "default", "default", HandleDirection.output),
+        )
 
 
 class PositionCalculator:
@@ -149,8 +214,9 @@ class ArrowBuilder:
         source_label: str = "output",
         target_label: str = "input",
     ) -> tuple[str, str, str]:
-        s = str(create_handle_id(NodeID(source_node), source_label))
-        t = str(create_handle_id(NodeID(target_node), target_label))
+        # Source handle is typically output, target handle is typically input
+        s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.output))
+        t = str(create_handle_id(NodeID(target_node), target_label, HandleDirection.input))
         return ArrowBuilder.create_arrow_id(s, t), s, t
 
 

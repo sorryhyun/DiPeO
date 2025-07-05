@@ -24,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
-import { useCanvasContext } from "../contexts/CanvasContext";
+import { useCanvasContext } from "@/shared/contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";

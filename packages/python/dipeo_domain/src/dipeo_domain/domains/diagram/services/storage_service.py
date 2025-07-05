@@ -58,7 +58,18 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
         try:
             if file_path.suffix.lower() in [".yaml", ".yml"]:
                 with file_path.open(encoding="utf-8") as f:
-                    return yaml.safe_load(f)
+                    try:
+                        # First try safe_load
+                        return yaml.safe_load(f)
+                    except yaml.constructor.ConstructorError as e:
+                        # If that fails due to Python objects, try unsafe load and clean up
+                        logger.warning(f"YAML file {path} contains Python objects, using unsafe_load: {e}")
+                        f.seek(0)
+                        data = yaml.unsafe_load(f)
+                        # Convert any enum values to strings
+                        self._clean_enums(data)
+                        logger.info(f"Successfully loaded and cleaned YAML file {path}")
+                        return data
             elif file_path.suffix.lower() == ".json":
                 with file_path.open(encoding="utf-8") as f:
                     return json.load(f)
@@ -194,6 +205,21 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
         logger.warning(f"Diagram not found: {diagram_id}")
         return None
 
+    def _clean_enums(self, data: Any) -> None:
+        """Recursively convert enum values to strings in the data structure."""
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if hasattr(value, 'value'):  # It's an enum
+                    data[key] = value.value
+                else:
+                    self._clean_enums(value)
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                if hasattr(item, 'value'):  # It's an enum
+                    data[i] = item.value
+                else:
+                    self._clean_enums(item)
+    
     def _determine_format_type(self, relative_path: Path) -> str:
         str(relative_path)
 

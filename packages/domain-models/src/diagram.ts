@@ -126,8 +126,8 @@ export interface DomainNode {
 
 export interface DomainArrow {
   id: ArrowID;
-  source: HandleID; // "nodeId:handleName" format
-  target: HandleID; // "nodeId:handleName" format
+  source: HandleID; // "nodeId_handleName_direction" format
+  target: HandleID; // "nodeId_handleName_direction" format
   content_type?: ContentType | null;
   label?: string | null;
   data?: Record<string, any> | null;

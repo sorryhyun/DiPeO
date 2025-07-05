@@ -47,16 +47,18 @@ class PersonMutations:
             person = DomainPerson(
                 id=DomainPersonID(person_id),
                 label=person_input.label,
-                llmConfig=PersonLLMConfig(
+                llm_config=PersonLLMConfig(  # Use snake_case for field name
                     service=person_input.service,
                     model=person_input.model,
-                    apiKeyId=person_input.api_key_id,
-                    systemPrompt=person_input.system_prompt or "",
+                    api_key_id=person_input.api_key_id,  # Use snake_case
+                    system_prompt=person_input.system_prompt or "",
                 ),
                 type="person",
             )
 
-            person_data = person.model_dump()
+            # Use mode='json' to serialize enums as values
+            person_data = person.model_dump(mode='json')
+            
             person_data.update(
                 {
                     "temperature": getattr(person_input, "temperature", 0.7),
@@ -115,46 +117,85 @@ class PersonMutations:
 
             person_data = diagram_data["persons"][person_input.id]
 
+            # Handle both flat and nested llmConfig structures
+            # Get existing values with fallbacks for different formats
+            existing_service = person_data.get("service") or person_data.get("llmConfig", {}).get("service", "openai")
+            existing_api_key = person_data.get("api_key_id") or person_data.get("apiKeyId") or person_data.get("llmConfig", {}).get("apiKeyId", "")
+            existing_model = person_data.get("model") or person_data.get("modelName") or person_data.get("llmConfig", {}).get("model", "gpt-4")
+            existing_system_prompt = person_data.get("system_prompt") or person_data.get("systemPrompt") or person_data.get("llmConfig", {}).get("systemPrompt", "")
+            
             if person_input.label is not None:
                 person_data["label"] = person_input.label
             if person_input.model is not None:
-                person_data["model"] = person_input.model
+                # If model is empty string or null, remove it so it can be re-selected
+                if person_input.model:
+                    person_data["model"] = person_input.model
+                else:
+                    # Clear the model field
+                    person_data.pop("model", None)
+                    person_data.pop("modelName", None)
             if person_input.api_key_id is not None:
-                person_data["apiKeyId"] = person_input.api_key_id
+                person_data["api_key_id"] = person_input.api_key_id
+                person_data["apiKeyId"] = person_input.api_key_id  # Support both formats
             if person_input.system_prompt is not None:
-                person_data["systemPrompt"] = person_input.system_prompt
+                person_data["system_prompt"] = person_input.system_prompt
+                person_data["systemPrompt"] = person_input.system_prompt  # Support both formats
             if person_input.temperature is not None:
                 person_data["temperature"] = person_input.temperature
             if person_input.max_tokens is not None:
                 person_data["maxTokens"] = person_input.max_tokens
+                person_data["max_tokens"] = person_input.max_tokens  # Support both formats
             if person_input.top_p is not None:
                 person_data["topP"] = person_input.top_p
+                person_data["top_p"] = person_input.top_p  # Support both formats
+
+            # Ensure service field exists
+            if "service" not in person_data:
+                person_data["service"] = existing_service
 
             try:
-                service = LLMService(person_data["service"].lower())
-            except ValueError:
+                service = LLMService(person_data.get("service", existing_service).lower())
+            except (ValueError, AttributeError):
                 service = LLMService.openai
 
+            # Get the current API key ID - check all possible field names
+            current_api_key_id = (
+                person_data.get("api_key_id") or 
+                person_data.get("apiKeyId") or 
+                person_data.get("llmConfig", {}).get("apiKeyId") or
+                person_data.get("llmConfig", {}).get("api_key_id") or
+                existing_api_key
+            )
+            
+            if not current_api_key_id:
+                return PersonResult(
+                    success=False,
+                    error="API key ID is required for person configuration"
+                )
+            
             updated_person = DomainPerson(
                 id=person_input.id,
                 label=person_data["label"],
-                llmConfig=PersonLLMConfig(
+                llm_config=PersonLLMConfig(  # Use snake_case for field name
                     service=service,
-                    model=person_data.get(
-                        "model", person_data.get("modelName", "gpt-4")
-                    ),
-                    apiKeyId=person_data.get("apiKeyId", ""),
-                    systemPrompt=person_data.get("systemPrompt", ""),
+                    model=person_data.get("model") or person_data.get("modelName") or existing_model or "gpt-4",  # Default to gpt-4 if no model
+                    api_key_id=current_api_key_id,  # Use snake_case as expected by the model
+                    system_prompt=person_data.get("system_prompt") or person_data.get("systemPrompt") or existing_system_prompt,
                 ),
                 type=person_data.get("type", "person"),
             )
 
-            person_dict = updated_person.model_dump()
+            # Use mode='json' to serialize enums as values
+            person_dict = updated_person.model_dump(mode='json')
+            
+            # Store additional fields for backward compatibility
             person_dict.update(
                 {
                     "temperature": person_data.get("temperature"),
                     "maxTokens": person_data.get("maxTokens"),
                     "topP": person_data.get("topP"),
+                    "api_key_id": current_api_key_id,
+                    "apiKeyId": current_api_key_id,
                 }
             )
             diagram_data["persons"][person_input.id] = person_dict
@@ -246,15 +287,27 @@ class PersonMutations:
                     success=False, error=f"Person {person_id} not found"
                 )
 
-            api_key_id = person_data.get("apiKeyId")
+            # Check for API key in multiple possible locations
+            api_key_id = (
+                person_data.get("api_key_id") or 
+                person_data.get("apiKeyId") or
+                person_data.get("llm_config", {}).get("api_key_id") or
+                person_data.get("llm_config", {}).get("apiKeyId") or
+                person_data.get("llmConfig", {}).get("api_key_id") or
+                person_data.get("llmConfig", {}).get("apiKeyId")
+            )
             if not api_key_id:
                 return PersonResult(
                     success=False, error=f"Person {person_id} has no API key configured"
                 )
 
             service_str = context.api_key_service.get_api_key(api_key_id)["service"]
-            model = person_data.get(
-                "model", person_data.get("modelName", "gpt-4o-mini")
+            model = (
+                person_data.get("model") or 
+                person_data.get("modelName") or
+                person_data.get("llm_config", {}).get("model") or
+                person_data.get("llmConfig", {}).get("model") or
+                "gpt-4o-mini"
             )
 
             # Initialize the model by making a simple call
@@ -273,11 +326,17 @@ class PersonMutations:
             person = DomainPerson(
                 id=person_id,
                 label=person_data.get("label", ""),
-                llmConfig=PersonLLMConfig(
+                llm_config=PersonLLMConfig(  # Use snake_case for field name
                     service=service,
                     model=model,
-                    apiKeyId=api_key_id,
-                    systemPrompt=person_data.get("systemPrompt", ""),
+                    api_key_id=api_key_id,  # Use snake_case
+                    system_prompt=(
+                        person_data.get("system_prompt") or
+                        person_data.get("systemPrompt") or
+                        person_data.get("llm_config", {}).get("system_prompt") or
+                        person_data.get("llmConfig", {}).get("systemPrompt") or
+                        ""
+                    ),
                 ),
                 type=person_data.get("type", "person"),
             )

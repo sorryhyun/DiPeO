@@ -160,7 +160,18 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         for edge in context.edges:
             if edge.get("target") and edge["target"].startswith(context.current_node_id):
                 # Check if this edge has conversation_state content type
-                source_node_id = edge.get("source", "").split(":")[0]
+                # Parse handle ID to get node ID (format: nodeId_handleName_direction)
+                source_handle = edge.get("source", "")
+                if source_handle:
+                    # Split by underscore and reconstruct node ID
+                    parts = source_handle.split("_")
+                    if len(parts) >= 3:
+                        # Everything except last two parts (handleName and direction)
+                        source_node_id = "_".join(parts[:-2])
+                    else:
+                        source_node_id = source_handle
+                else:
+                    source_node_id = ""
                 for arrow in diagram.arrows if diagram else []:
                     if arrow.source.startswith(source_node_id) and arrow.target.startswith(context.current_node_id):
                         if arrow.content_type == ContentType.conversation_state:

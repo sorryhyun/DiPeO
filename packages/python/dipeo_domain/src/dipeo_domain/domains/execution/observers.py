@@ -37,7 +37,7 @@ class StateStoreObserver(ExecutionObserver):
         # Store the output separately
         token_usage = None
         if output.metadata:
-            if "token_usage" in output.metadata:
+            if "token_usage" in output.metadata and output.metadata["token_usage"] is not None:
                 token_usage = TokenUsage(**output.metadata["token_usage"])
 
         await self.state_store.update_node_output(

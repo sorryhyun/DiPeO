@@ -4,7 +4,7 @@ import { generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
-import { NodeType, Vec2 } from '@dipeo/domain-models';
+import { NodeType, Vec2, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
@@ -152,10 +152,20 @@ export const createDiagramSlice: StateCreator<
       arrowData = Object.keys(restData).length > 0 ? restData : undefined;
     }
     
+    // React Flow generates handle IDs in format: handle_nodeId_label_direction
+    // We need to convert to our format: nodeId_label_direction
+    const normalizeHandleIdForStorage = (handleId: string): string => {
+      if (handleId.startsWith('handle_')) {
+        // Remove the 'handle_' prefix
+        return handleId.substring(7);
+      }
+      return handleId;
+    };
+    
     const arrow: DomainArrow = {
       id: generateArrowId(),
-      source: source as HandleID,
-      target: target as HandleID,
+      source: normalizeHandleIdForStorage(source) as HandleID,
+      target: normalizeHandleIdForStorage(target) as HandleID,
       data: arrowData  // DomainArrow.data is optional
     };
     
@@ -169,12 +179,50 @@ export const createDiagramSlice: StateCreator<
     
     set(state => {
       // Validate source and target nodes exist
-      const sourceNodeId = source.split(':')[0];
-      const targetNodeId = target.split(':')[0];
-      if (!state.nodes.has(sourceNodeId as NodeID)) {
+      console.log('Raw handle IDs from React Flow:', { source, target });
+      
+      // React Flow adds a 'handle_' prefix to handle IDs
+      const normalizeHandleId = (handleId: string): string => {
+        if (handleId.startsWith('handle_')) {
+          return handleId.substring(7); // Remove 'handle_' prefix
+        }
+        return handleId;
+      };
+      
+      const normalizedSource = normalizeHandleId(source);
+      const normalizedTarget = normalizeHandleId(target);
+      
+      console.log('Normalized handle IDs:', { normalizedSource, normalizedTarget });
+      
+      // Debug: Check if the handle IDs match expected format
+      const sourceparts = normalizedSource.split('_');
+      const targetParts = normalizedTarget.split('_');
+      console.log('Handle ID parts:', { 
+        source: sourceparts, 
+        target: targetParts,
+        sourceLength: sourceparts.length,
+        targetLength: targetParts.length
+      });
+      
+      let sourceNodeId: NodeID;
+      let targetNodeId: NodeID;
+      
+      try {
+        const sourceParsed = parseHandleId(normalizedSource as HandleID);
+        const targetParsed = parseHandleId(normalizedTarget as HandleID);
+        sourceNodeId = sourceParsed.node_id;
+        targetNodeId = targetParsed.node_id;
+        console.log('Parsed node IDs:', { sourceNodeId, targetNodeId });
+      } catch (e) {
+        console.error('Failed to parse handle IDs:', e);
+        throw new Error(`Invalid handle ID format: ${normalizedSource} or ${normalizedTarget}`);
+      }
+      
+      if (!state.nodes.has(sourceNodeId)) {
+        console.error('Available nodes:', Array.from(state.nodes.keys()));
         throw new Error(`Source node ${sourceNodeId} not found`);
       }
-      if (!state.nodes.has(targetNodeId as NodeID)) {
+      if (!state.nodes.has(targetNodeId)) {
         throw new Error(`Target node ${targetNodeId} not found`);
       }
       

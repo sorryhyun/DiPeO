@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations } from '../hooks';
+import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations } from '@/features/diagram-editor/hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import { useDiagramData } from '@/shared/hooks/selectors/useDiagramData';
 import { useUIState } from '@/shared/hooks/selectors/useUIState';

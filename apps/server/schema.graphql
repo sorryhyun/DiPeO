@@ -35,7 +35,7 @@ enum ContentType {
 
 input CreateApiKeyInput {
   label: String!
-  service: LLMService!
+  service: APIServiceType!
   key: String!
 }
 

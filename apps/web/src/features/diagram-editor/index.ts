@@ -3,7 +3,7 @@ export * from './components';
 export * from './hooks';
 export * from './store';
 
-// Context exports
+// Context exports moved to @/shared/contexts
 export {
   CanvasProvider,
   useCanvasContext,
@@ -15,7 +15,7 @@ export {
   useCanvasExecutionState,
   useCanvasStore,
   useCanvasPersons
-} from './contexts/CanvasContext';
+} from '@/shared/contexts/CanvasContext';
 
 // Main component exports
 export { default as DiagramCanvas } from './components/DiagramCanvas';

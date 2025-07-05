@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
-import { ArrowData, Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowData, Dict, DomainPerson, nodeId, arrowId, personId, apiKeyId } from '@/core/types';
 import { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { NodeType } from '@dipeo/domain-models';
+import { NodeType, LLMService } from '@dipeo/domain-models';
 import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
 import { FIELD_TYPES } from '@/core/types/panel';
 import { useCanvasOperationsContext, useCanvasPersons } from '@/features/diagram-editor';
@@ -10,7 +11,23 @@ import { usePropertyManager } from '../hooks';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
 import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
+import { GetApiKeysDocument, InitializeModelDocument, UpdatePersonDocument, type GetApiKeysQuery, APIServiceType } from '@/__generated__/graphql';
+
+// Local conversion function for GraphQL APIServiceType to domain LLMService
+function convertApiServiceToLLM(service: APIServiceType): LLMService {
+  switch (service) {
+    case APIServiceType.openai: return LLMService.OPENAI;
+    case APIServiceType.anthropic: return LLMService.ANTHROPIC;
+    case APIServiceType.google: return LLMService.GOOGLE;
+    case APIServiceType.gemini: return LLMService.GOOGLE; // Gemini maps to Google
+    case APIServiceType.grok: return LLMService.GROK;
+    case APIServiceType.bedrock: return LLMService.BEDROCK;
+    case APIServiceType.vertex: return LLMService.VERTEX;
+    case APIServiceType.deepseek: return LLMService.DEEPSEEK;
+    default:
+      throw new Error(`Service ${service} is not an LLM service`);
+  }
+}
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
@@ -89,9 +106,38 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
   return ensuredData;
 }
 
+// Helper function to unflatten nested object properties (reverse of flattenObject)
+function unflattenObject(flattened: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  
+  Object.keys(flattened).forEach(key => {
+    const value = flattened[key];
+    const parts = key.split('.');
+    
+    let current = result;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      if (!part) continue; // Skip empty parts
+      
+      if (!(part in current)) {
+        current[part] = {};
+      }
+      current = current[part] as Record<string, unknown>;
+    }
+    
+    const lastPart = parts[parts.length - 1];
+    if (lastPart) {
+      current[lastPart] = value;
+    }
+  });
+  
+  return result;
+}
+
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
   const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
+  const queryClient = useQueryClient();
   
   // Use context instead of individual hooks
   const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperationsContext();
@@ -115,53 +161,83 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   const {
     formData,
     updateField,
+    updateFormData,
     processedFields,
     isReadOnly
   } = usePropertyManager(entityId, entityType, flattenedData as Record<string, unknown>, {
     autoSave: true,
-    autoSaveDelay: 50,
+    autoSaveDelay: 100, // Increased from 500ms to 1000ms to prevent race conditions
     panelConfig: panelConfig as PanelLayoutConfig<Record<string, unknown>>
   });
 
   const handleFieldUpdate = useCallback(async (name: string, value: unknown) => {
-    updateField(name, value);
-    
+    // For API key changes, batch the updates to prevent race conditions
     if (data.type === 'person' && name === 'llm_config.api_key_id') {
-      // Clear the model when API key changes
-      updateField('llm_config.model', undefined);
+      // Create a batch update
+      const updates: Record<string, unknown> = {
+        [name]: value,
+        'llm_config.model': '', // Clear model when API key changes
+      };
       
       if (value) {
         try {
-          const { data } = await apolloClient.query<GetApiKeysQuery>({
+          const { data: apiKeysData } = await apolloClient.query<GetApiKeysQuery>({
             query: GetApiKeysDocument,
-            fetchPolicy: 'cache-first'
+            fetchPolicy: 'network-only'  // Always fetch fresh data to avoid stale API keys
           });
-          const selectedKey = data.api_keys.find((k) => k.id === value);
+          const selectedKey = apiKeysData.api_keys.find((k) => k.id === value);
           if (selectedKey) {
-            updateField('llm_config.service', selectedKey.service);
+            updates['llm_config.service'] = selectedKey.service;
           }
         } catch (error) {
           console.error('Failed to update service:', error);
         }
       }
+      
+      // Invalidate model options cache when API key changes
+      queryClient.invalidateQueries({ queryKey: ['field-options', 'llm_config.model'] });
+      
+      // Update all fields at once with a small delay to prevent race conditions
+      setTimeout(() => {
+        updateFormData(updates);
+      }, 50);
+      return;
     }
     
+    // Regular field update
+    updateField(name, value);
+    
     if (data.type === 'person' && name === 'llm_config.model' && value) {
+      const apiKeyIdStr = formData['llm_config.api_key_id'] as string;
+      
+      // Only proceed if we have an API key
+      if (!apiKeyIdStr) {
+        console.warn('Cannot set model without an API key');
+        updateField('llm_config.model', undefined);
+        return;
+      }
+      
+      // Initialize the model after it's selected
       try {
-        const personId = entityId;
-        const { data: result } = await apolloClient.mutate({
+        // Wait for auto-save to complete
+        await new Promise(resolve => setTimeout(resolve, 600));
+        
+        // Then initialize the model
+        const { data: initResult } = await apolloClient.mutate({
           mutation: InitializeModelDocument,
-          variables: { personId }
+          variables: { personId: entityId }
         });
         
-        if (!result?.initializeModel?.success) {
-          console.error('Failed to initialize model:', result?.initializeModel?.error);
+        if (!initResult?.initialize_model?.success) {
+          console.error('Failed to initialize model:', initResult?.initialize_model?.error);
         }
       } catch (error) {
         console.error('Error initializing model:', error);
       }
     }
-  }, [updateField, formData, data, entityId]);
+    
+    // Don't manually sync other fields - let auto-save handle everything
+  }, [updateField, updateFormData, formData, data, entityId, queryClient]);
 
   const shouldRenderField = useCallback((fieldConfig: TypedPanelFieldConfig<Record<string, unknown>>): boolean => {
     if (!fieldConfig.conditional) return true;

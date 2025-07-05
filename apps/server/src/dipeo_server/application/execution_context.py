@@ -3,6 +3,7 @@ from typing import Any
 
 from dipeo_core import ExecutionContext as CoreExecutionContext
 from dipeo_core import RuntimeContext
+from dipeo_domain.handle_utils import parse_handle_id
 
 
 @dataclass
@@ -16,12 +17,40 @@ class ExecutionContext(CoreExecutionContext):
     def find_edges_from(self, node_id: str) -> list[Any]:
         """Find edges originating from a node."""
         from dipeo_domain.models import DomainArrow
-        return [edge for edge in self.edges if edge.source.split(":")[0] == node_id]
+        # Parse handle IDs to extract node IDs (format: nodeId_handleName_direction)
+        result = []
+        for edge in self.edges:
+            if hasattr(edge, 'source') and edge.source:
+                # Split by underscore and reconstruct node ID
+                parts = edge.source.split("_")
+                if len(parts) >= 3:
+                    # Everything except last two parts (handleName and direction)
+                    edge_node_id = "_".join(parts[:-2])
+                    if edge_node_id == node_id:
+                        result.append(edge)
+                elif edge.source == node_id:
+                    # Fallback for simple node IDs
+                    result.append(edge)
+        return result
 
     def find_edges_to(self, node_id: str) -> list[Any]:
         """Find edges targeting a node."""
         from dipeo_domain.models import DomainArrow
-        return [edge for edge in self.edges if edge.target.split(":")[0] == node_id]
+        # Parse handle IDs to extract node IDs (format: nodeId_handleName_direction)
+        result = []
+        for edge in self.edges:
+            if hasattr(edge, 'target') and edge.target:
+                # Split by underscore and reconstruct node ID
+                parts = edge.target.split("_")
+                if len(parts) >= 3:
+                    # Everything except last two parts (handleName and direction)
+                    edge_node_id = "_".join(parts[:-2])
+                    if edge_node_id == node_id:
+                        result.append(edge)
+                elif edge.target == node_id:
+                    # Fallback for simple node IDs
+                    result.append(edge)
+        return result
 
     def to_runtime_context(self, current_node_id: str = "", node_view: Any | None = None) -> RuntimeContext:
         """Convert ExecutionContext to RuntimeContext for BaseNodeHandler compatibility."""
