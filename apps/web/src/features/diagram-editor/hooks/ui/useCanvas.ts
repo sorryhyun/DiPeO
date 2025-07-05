@@ -185,11 +185,11 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
       
       // Check if this is a connection from a condition node's True/False handle
       let arrowData: Record<string, any> | undefined;
-      if (sourceHandleName === 'true' || sourceHandleName === 'false') {
+      if (sourceHandleName === 'condtrue' || sourceHandleName === 'condfalse') {
         // Get the source node to verify it's a condition node
         const sourceNode = nodesMap.get(nodeId(connection.source));
         if (sourceNode && sourceNode.type === NodeType.CONDITION) {
-          arrowData = { branch: sourceHandleName };
+          arrowData = { branch: sourceHandleName === 'condtrue' ? 'true' : 'false' };
         }
       }
       

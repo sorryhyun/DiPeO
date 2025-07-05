@@ -3,7 +3,7 @@
  * into a format that can be saved to the backend
  */
 
-import { HandleDirection, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
 import { storeMapsToArrays, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
@@ -159,7 +159,7 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   // Generate input handles
   if (config.handles.input) {
     config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleLabel = (handleConfig.label || handleConfig.id).toLowerCase();
+      const handleLabel = handleConfig.id as HandleLabel;
       const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.INPUT);
       handles.push({
         id: handleId,
@@ -175,7 +175,7 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   // Generate output handles
   if (config.handles.output) {
     config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleLabel = (handleConfig.label || handleConfig.id).toLowerCase();
+      const handleLabel = handleConfig.id as HandleLabel;
       const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.OUTPUT);
       handles.push({
         id: handleId,
@@ -251,29 +251,71 @@ export function serializeDiagram(): SerializedDiagram {
   // Get existing handles from store
   const existingHandles = diagramArrays.handles || [];
   
-  // Create a map of existing handles by node ID and label (normalized)
+  // Create a map of existing handles by their handle ID
   const existingHandleMap = new Map<string, DomainHandle>();
   existingHandles.forEach(handle => {
-    const key = `${handle.node_id}_${handle.label}`;
-    existingHandleMap.set(key, handle);
+    existingHandleMap.set(handle.id, handle);
   });
   
   // Generate handles only for nodes that are missing required handles
   const generatedHandles: DomainHandle[] = [];
   cleanNodes.forEach(node => {
     const nodeHandles = generateHandlesForNode(node);
+    
+    
     nodeHandles.forEach(newHandle => {
-      const key = `${newHandle.node_id}_${newHandle.label}`;
       // Only add if this specific handle doesn't exist
-      if (!existingHandleMap.has(key)) {
+      if (!existingHandleMap.has(newHandle.id)) {
         generatedHandles.push(newHandle);
-        existingHandleMap.set(key, newHandle);
+        existingHandleMap.set(newHandle.id, newHandle);
       }
     });
   });
   
   // Use the map values to get all unique handles
-  const handles = Array.from(existingHandleMap.values());
+  const allHandles = Array.from(existingHandleMap.values());
+  
+  // Filter out orphaned handles (handles for nodes that don't exist)
+  const nodeIds = new Set(cleanNodes.map(node => node.id));
+  const validHandles = allHandles.filter(handle => {
+    if (!nodeIds.has(handle.node_id)) {
+      console.warn(`Removing orphaned handle ${handle.id} for non-existent node ${handle.node_id}`);
+      return false;
+    }
+    return true;
+  });
+  
+  // Create a set of valid handle IDs for arrow validation (use allHandles first to validate arrows)
+  const allHandleIds = new Set(allHandles.map(handle => handle.id));
+  
+  
+  // Filter out arrows that reference invalid handles
+  // First check against all handles, then ensure the handles belong to valid nodes
+  const validArrows = (diagramArrays.arrows || []).filter(arrow => {
+    const sourceValid = allHandleIds.has(arrow.source);
+    const targetValid = allHandleIds.has(arrow.target);
+    
+    if (!sourceValid || !targetValid) {
+      console.warn(`Removing arrow ${arrow.id} with invalid handle references: ${arrow.source} -> ${arrow.target}`);
+      return false;
+    }
+    
+    // Also check if the handles belong to existing nodes
+    const sourceHandle = existingHandleMap.get(arrow.source);
+    const targetHandle = existingHandleMap.get(arrow.target);
+    
+    if (sourceHandle && !nodeIds.has(sourceHandle.node_id)) {
+      console.warn(`Removing arrow ${arrow.id} - source handle belongs to non-existent node`);
+      return false;
+    }
+    
+    if (targetHandle && !nodeIds.has(targetHandle.node_id)) {
+      console.warn(`Removing arrow ${arrow.id} - target handle belongs to non-existent node`);
+      return false;
+    }
+    
+    return true;
+  });
   
   // Clean persons data by removing masked_api_key
   const cleanPersons = (diagramArrays.persons || []).map(person => {
@@ -285,9 +327,9 @@ export function serializeDiagram(): SerializedDiagram {
   // Return the serialized diagram
   return {
     nodes: cleanNodes,
-    arrows: diagramArrays.arrows || [],
+    arrows: validArrows,
     persons: cleanPersons,
-    handles,
+    handles: validHandles,
     metadata
   };
 }

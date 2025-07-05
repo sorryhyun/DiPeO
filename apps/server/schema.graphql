@@ -191,7 +191,7 @@ type DomainDiagramType {
 type DomainHandleType {
   id: HandleID!
   node_id: NodeID!
-  label: String!
+  label: HandleLabel!
   direction: HandleDirection!
   data_type: DataType!
   position: String
@@ -287,6 +287,13 @@ enum HandleDirection {
 
 """Unique identifier for a handle"""
 scalar HandleID
+
+enum HandleLabel {
+  default
+  first
+  condtrue
+  condfalse
+}
 
 type HandleResult {
   success: Boolean!

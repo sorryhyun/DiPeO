@@ -67,6 +67,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
       type: 'input' | 'output';
       position: Position;
       id: string;
+      handleId: string;
       name: string;
       style: Record<string, unknown>;
       offset: number;
@@ -113,7 +114,8 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
           type: handle.type,
           position,
           id: uniqueId,
-          name: handle.label || handleName,
+          handleId: handleName, // The actual handle ID (e.g., 'condtrue', 'condfalse')
+          name: handle.label || handleName, // The display label (e.g., 'true', 'false')
           style: {},
           offset: offsetPercentage,
           color: handle.color
@@ -399,6 +401,7 @@ export function BaseNode({
           key={handle.id}
           nodeId={nId}
           type={handle.type}
+          handleId={handle.handleId}
           label={handle.name}
           position={handle.position}
           offset={handle.offset}

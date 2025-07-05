@@ -6,6 +6,7 @@ import type { NodeID } from '@dipeo/domain-models';
 export interface FlowHandleProps extends Omit<HandleProps, 'type' | 'id'> {
   nodeId: NodeID;
   type: 'input' | 'output';
+  handleId: string;
   label: string;
   position: Position;
   offset?: number;
@@ -20,6 +21,7 @@ const HANDLE_DISTANCE = 30; // Increased distance from node edge
 const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   nodeId,
   type,
+  handleId,
   label,
   position,
   offset = 50,
@@ -30,8 +32,8 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
 }) => {
   const rfType = type === 'output' ? 'source' : 'target';
   
-  // Generate the handle ID in the expected format: nodeId_label_direction
-  const handleId = `${nodeId}_${label}_${type === 'output' ? 'output' : 'input'}`;
+  // Generate the handle ID in the expected format: nodeId_handleId_direction
+  const rfHandleId = `${nodeId}_${handleId}_${type === 'output' ? 'output' : 'input'}`;
 
   // Memoize computed styles for integrated pill-shaped handle
   const handleStyle = useMemo(() => {
@@ -94,7 +96,7 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
     <Handle
       type={rfType}
       position={position}
-      id={handleId}
+      id={rfHandleId}
       style={handleStyle}
       className={className}
       {...props}
@@ -109,6 +111,7 @@ export const FlowHandle = React.memo(FlowHandleComponent, (prevProps, nextProps)
   // Compare only the props that affect rendering
   return (
     prevProps.nodeId === nextProps.nodeId &&
+    prevProps.handleId === nextProps.handleId &&
     prevProps.label === nextProps.label &&
     prevProps.type === nextProps.type &&
     prevProps.position === nextProps.position &&

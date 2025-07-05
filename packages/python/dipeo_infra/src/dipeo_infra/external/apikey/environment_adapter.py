@@ -47,7 +47,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
                 key_id = f"env_{service}"
                 self._cached_keys[key_id] = {
                     "id": key_id,
-                    "label": f"{service.title()} (from {env_var})",
+                    "label": f"{service} (from {env_var})",
                     "service": service,
                     "key": api_key,
                 }
@@ -109,7 +109,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
             if api_key:
                 key_data = {
                     "id": env_key_id,
-                    "label": f"{normalized_service.title()} (from {env_var})",
+                    "label": f"{normalized_service} (from {env_var})",
                     "service": normalized_service,
                     "key": api_key,
                 }

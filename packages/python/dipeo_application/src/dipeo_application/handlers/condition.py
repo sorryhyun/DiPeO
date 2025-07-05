@@ -51,11 +51,11 @@ class ConditionNodeHandler(BaseNodeHandler):
         if result:
             # When condition is true, output goes to "true" branch
             # Pass through all inputs as a single value
-            output_value = {"true": inputs if inputs else {}, "false": None}
+            output_value = {"condtrue": inputs if inputs else {}, "condfalse": None}
         else:
             # When condition is false, output goes to "false" branch
             # Pass through all inputs as a single value
-            output_value = {"false": inputs if inputs else {}, "true": None}
+            output_value = {"condfalse": inputs if inputs else {}, "condtrue": None}
         
         return create_node_output(output_value, {"condition_result": result})
 

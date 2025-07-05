@@ -22,7 +22,8 @@ export type {
 // Re-export handle utilities from domain models
 export {
   createHandleId,
-  parseHandleId
+  parseHandleId,
+  HandleDirection
 } from '@dipeo/domain-models';
 
 // Generic brand type utility
@@ -45,7 +46,14 @@ export const diagramId = (id: string): DiagramID => id as DiagramID;
 
 // Additional handle validation not provided by domain models
 export const isValidHandleIdFormat = (id: string): boolean => {
-  return id.includes('_') && id.split('_').length >= 2;
+  // Handle ID format: [nodeId]_[handleLabel]_[direction]
+  // We need at least 3 parts when split by underscore
+  const parts = id.split('_');
+  if (parts.length < 3) return false;
+  
+  // The last part should be a valid direction
+  const direction = parts[parts.length - 1];
+  return direction === 'input' || direction === 'output';
 };
 
 // UI-specific type guards with validation

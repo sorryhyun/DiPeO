@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo_domain import DomainDiagram, NodeID, HandleDirection, create_handle_id
+from dipeo_domain import DomainDiagram, NodeID, HandleDirection, HandleLabel, create_handle_id
 from dipeo_domain.handle_utils import parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
@@ -132,10 +132,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 # For condition nodes, use branch data
                 branch_value = c.get("data", {}).get("branch")
                 src_handle = (
-                    "True"
-                    if branch_value == "true"
-                    else "False"
-                    if branch_value == "false"
+                    "condtrue"
+                    if branch_value == "condtrue"
+                    else "condfalse"
+                    if branch_value == "condfalse"
                     else "default"
                 )
             else:
@@ -151,8 +151,19 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             arrow_data = c.get("data", {})
 
             # Create proper handle IDs
-            source_handle_id = create_handle_id(NodeID(sid), src_handle, HandleDirection.output)
-            target_handle_id = create_handle_id(NodeID(tid), dst_handle, HandleDirection.input)
+            # Convert string handle labels to HandleLabel enum
+            try:
+                src_handle_enum = HandleLabel(src_handle)
+            except ValueError:
+                src_handle_enum = HandleLabel.default
+                
+            try:
+                dst_handle_enum = HandleLabel(dst_handle)
+            except ValueError:
+                dst_handle_enum = HandleLabel.default
+                
+            source_handle_id = create_handle_id(NodeID(sid), src_handle_enum, HandleDirection.output)
+            target_handle_id = create_handle_id(NodeID(tid), dst_handle_enum, HandleDirection.input)
 
             # Extract contentType and label from connection level
             arrow_dict = {

@@ -74,13 +74,8 @@ class DiagramResolver:
             if not domain_diagram.metadata or not domain_diagram.metadata.id:
                 domain_diagram.metadata = DiagramMetadata(
                     id=diagram_id,
-                    name=diagram_id.replace("/", " - ")
-                    .replace(".yaml", "")
-                    .replace(".yml", "")
-                    .replace(".json", "")
-                    .replace("_", " ")
-                    .title(),
-                    description=f"{format_type.title()} format diagram",
+                    name=diagram_id,
+                    description=f"{format_type} format diagram",
                     version=diagram_data.get("version", DIAGRAM_VERSION),
                     created=diagram_data.get("created", datetime.now(UTC).isoformat()),
                     modified=diagram_data.get(

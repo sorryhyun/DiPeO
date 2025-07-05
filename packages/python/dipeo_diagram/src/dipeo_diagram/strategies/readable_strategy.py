@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo_domain import DomainDiagram, NodeID, HandleDirection, create_handle_id
+from dipeo_domain import DomainDiagram, NodeID, HandleDirection, HandleLabel, create_handle_id
 from dipeo_domain.handle_utils import parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
@@ -122,7 +122,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         # Parse source and target handles
         # Use rsplit to handle node labels with spaces
         src_label = src.strip()
-        src_handle = "output"
+        src_handle = "default"
         if "_" in src:
             parts = src.rsplit("_", 1)
             if parts[0] in label2id:
@@ -130,7 +130,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 src_handle = parts[1].strip()
 
         dst_label = clean_dst.strip()
-        dst_handle = "input"
+        dst_handle = "default"
         if "_" in clean_dst:
             parts = clean_dst.rsplit("_", 1)
             if parts[0] in label2id:
@@ -143,8 +143,19 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
         if sid and tid:
             # Create proper handle IDs
-            source_handle_id = create_handle_id(NodeID(sid), src_handle, HandleDirection.output)
-            target_handle_id = create_handle_id(NodeID(tid), dst_handle, HandleDirection.input)
+            # Convert string handle labels to HandleLabel enum
+            try:
+                src_handle_enum = HandleLabel(src_handle)
+            except ValueError:
+                src_handle_enum = HandleLabel.default
+                
+            try:
+                dst_handle_enum = HandleLabel(dst_handle)
+            except ValueError:
+                dst_handle_enum = HandleLabel.default
+                
+            source_handle_id = create_handle_id(NodeID(sid), src_handle_enum, HandleDirection.output)
+            target_handle_id = create_handle_id(NodeID(tid), dst_handle_enum, HandleDirection.input)
             
             arrow_dict = {
                 "id": f"arrow_{idx}",

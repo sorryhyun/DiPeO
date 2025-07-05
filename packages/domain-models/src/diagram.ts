@@ -32,6 +32,13 @@ export enum HandleDirection {
   OUTPUT = 'output'
 }
 
+export enum HandleLabel {
+  DEFAULT = 'default',
+  FIRST = 'first',
+  CONDITION_TRUE = 'condtrue',
+  CONDITION_FALSE = 'condfalse'
+}
+
 export enum DataType {
   ANY = 'any',
   STRING = 'string',
@@ -111,7 +118,7 @@ export type DiagramID = string & { readonly __brand: 'DiagramID' };
 export interface DomainHandle {
   id: HandleID;
   node_id: NodeID;
-  label: string;
+  label: HandleLabel;
   direction: HandleDirection;
   data_type: DataType;
   position?: string | null; // 'left' | 'right' | 'top' | 'bottom'

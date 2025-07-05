@@ -1,4 +1,5 @@
 import type { NodeType } from '@dipeo/domain-models';
+import { HandleLabel } from '@dipeo/domain-models';
 import { createUnifiedConfig, type UnifiedNodeConfig } from '../unifiedConfig';
 
 // Base interface for node type definitions
@@ -23,7 +24,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🚀',
     color: 'green',
     handles: {
-      output: [{ id: 'default', position: 'right' }]
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'enable_hook', type: 'boolean', label: 'Enable Hook', required: false },
@@ -72,10 +73,10 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🔀',
     color: 'orange',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [
-        { id: 'true', position: 'right', label: 'true', offset: { x: 0, y: 30 } },
-        { id: 'false', position: 'right', label: 'false', offset: { x: 0, y: -30 } }
+        { id: HandleLabel.CONDITION_TRUE, position: 'right', label: 'true', offset: { x: 0, y: 30 } },
+        { id: HandleLabel.CONDITION_FALSE, position: 'right', label: 'false', offset: { x: 0, y: -30 } }
       ]
     },
     fields: [
@@ -133,8 +134,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '💻',
     color: 'purple',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'language', type: 'select', label: 'Language', required: true, options: [
@@ -176,8 +177,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🌐',
     color: 'teal',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'url', type: 'string', label: 'URL', required: true, placeholder: 'https://api.example.com/endpoint' },
@@ -215,7 +216,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🎯',
     color: 'red',
     handles: {
-      input: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' },
@@ -266,10 +267,10 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     color: 'indigo',
     handles: {
       input: [
-        { id: 'first', position: 'left', label: 'first', offset: { x: 0, y: -60 }, color: '#f59e0b' },
-        { id: 'default', position: 'left', label: 'default', offset: { x: 0, y: 60 }, color: '#2563eb' }
+        { id: HandleLabel.FIRST, position: 'left', label: 'first', offset: { x: 0, y: -60 }, color: '#f59e0b' },
+        { id: HandleLabel.DEFAULT, position: 'left', label: 'default', offset: { x: 0, y: 60 }, color: '#2563eb' }
       ],
-      output: [{ id: 'default', position: 'right' }]
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'max_iteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
@@ -329,8 +330,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '📋',
     color: 'purple',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'batch_key', type: 'string', label: 'Batch Key', required: true, placeholder: 'Variable containing array to iterate over' },
@@ -371,8 +372,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '💾',
     color: 'yellow',
     handles: {
-      input: [{ id: 'default', position: 'bottom', offset: { x: -30, y: 0 } }],
-      output: [{ id: 'default', position: 'bottom', offset: { x: 30, y: 0 } }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'bottom', offset: { x: -30, y: 0 } }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'bottom', offset: { x: 30, y: 0 } }]
     },
     fields: [],
     defaults: { label: '', sub_type: 'fixed_prompt', source_details: '', operation: 'read' },
@@ -435,8 +436,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '👤',
     color: 'cyan',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, placeholder: 'Question to ask the user' }
@@ -470,8 +471,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '📝',
     color: 'gray',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'page_id', type: 'string', label: 'Page ID', required: true, placeholder: 'Notion page ID' },
@@ -488,8 +489,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🪝',
     color: 'pink',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'hook_type', type: 'select', label: 'Hook Type', required: true, options: [

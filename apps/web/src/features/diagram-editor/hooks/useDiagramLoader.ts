@@ -116,6 +116,11 @@ export function useDiagramLoader() {
           // Keep handles as-is without normalization
           // Handle IDs contain node IDs which must preserve their original casing
           
+          // Note: We don't clean up orphaned handles during loading anymore
+          // This is handled when saving the diagram and when deleting nodes
+          // This prevents issues with timing and ensures we don't accidentally
+          // remove valid handles during the loading process
+          
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();
           store.transaction(() => {

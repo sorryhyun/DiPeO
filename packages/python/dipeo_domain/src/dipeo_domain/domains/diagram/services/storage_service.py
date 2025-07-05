@@ -151,7 +151,7 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
 
                     file_info = FileInfo(
                         id=file_id,
-                        name=file_path.stem.replace("_", " ").replace("-", " ").title(),
+                        name=file_path.stem,
                         path=str(relative_path),
                         format=format_type,
                         extension=file_path.suffix[1:],

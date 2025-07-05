@@ -10,6 +10,7 @@ from dipeo_domain import (
     DomainHandle,
     HandleDirection,
     HandleID,
+    HandleLabel,
     NodeID,
     Vec2,
     create_handle_id,
@@ -39,17 +40,16 @@ def _push_handle(
     if hasattr(container, 'handles') and isinstance(container.handles, dict):
         container.handles[handle.id] = handle  # type: ignore[index]
     else:
-        container.handles.append(handle)
+        container.handles.append(handle)  # type: ignore[union-attr]
 
 
 def _make_handle(
     node_id: str,
-    suffix: str,
-    label: str,
+    label: HandleLabel,
     direction: HandleDirection,
     dtype: DataType = DataType.any,
 ) -> DomainHandle:
-    hid = create_handle_id(NodeID(node_id), suffix, direction)
+    hid = create_handle_id(NodeID(node_id), label, direction)
     return DomainHandle(
         id=hid,
         node_id=NodeID(node_id),
@@ -76,7 +76,7 @@ class HandleGenerator:
         if node_type == "start":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.output),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
             )
             return
             
@@ -84,7 +84,7 @@ class HandleGenerator:
         if node_type == "endpoint":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
             )
             return
             
@@ -92,15 +92,15 @@ class HandleGenerator:
         if node_type == "condition":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "true", "true", HandleDirection.output, DataType.boolean),
+                _make_handle(node_id, HandleLabel.condtrue, HandleDirection.output, DataType.boolean),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "false", "false", HandleDirection.output, DataType.boolean),
+                _make_handle(node_id, HandleLabel.condfalse, HandleDirection.output, DataType.boolean),
             )
             return
             
@@ -108,11 +108,11 @@ class HandleGenerator:
         if node_type == "db":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.output),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
             )
             return
 
@@ -120,15 +120,15 @@ class HandleGenerator:
         if node_type == "person_job":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "first", "first", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.first, HandleDirection.input),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.output),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
             )
             return
             
@@ -136,11 +136,11 @@ class HandleGenerator:
         if node_type == "person_batch_job":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.output),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
             )
             return
             
@@ -148,22 +148,22 @@ class HandleGenerator:
         if node_type == "user_response":
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.input),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, "default", "default", HandleDirection.output),
+                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
             )
             return
 
         # For all other node types (code_job, api_job, hook, notion, etc.), use default handles
         _push_handle(
             diagram,
-            _make_handle(node_id, "default", "default", HandleDirection.input),
+            _make_handle(node_id, HandleLabel.default, HandleDirection.input),
         )
         _push_handle(
             diagram,
-            _make_handle(node_id, "default", "default", HandleDirection.output),
+            _make_handle(node_id, HandleLabel.default, HandleDirection.output),
         )
 
 
@@ -211,8 +211,8 @@ class ArrowBuilder:
     def create_simple_arrow(
         source_node: str,
         target_node: str,
-        source_label: str = "output",
-        target_label: str = "input",
+        source_label: HandleLabel = HandleLabel.default,
+        target_label: HandleLabel = HandleLabel.default,
     ) -> tuple[str, str, str]:
         # Source handle is typically output, target handle is typically input
         s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.output))

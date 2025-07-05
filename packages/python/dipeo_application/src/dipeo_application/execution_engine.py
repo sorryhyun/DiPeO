@@ -8,7 +8,7 @@ import logging
 import json
 
 from dipeo_core import RuntimeContext, get_global_registry
-from dipeo_domain import NodeOutput
+from dipeo_domain import NodeOutput, HandleLabel
 from .execution_view import LocalExecutionView
 from .execution_flow_controller import ExecutionFlowController
 
@@ -156,12 +156,16 @@ class ExecutionEngine:
                 }
 
                 node_data = node_view.data.copy() if node_view.data else {}
-                if node_view.node.type == "person_job" and "first_only_prompt" not in node_data:
-                    node_data["first_only_prompt"] = ""
+                
+                # Ensure required fields have defaults for person_job nodes
+                if node_view.node.type == "person_job":
+                    node_data.setdefault("first_only_prompt", "")
                 
                 # Check if we should skip execution due to max iterations
-                flow_controller = ExecutionFlowController(execution_view)
-                should_skip = flow_controller.should_skip_node_execution(node_view)
+                should_skip = (
+                    node_view.node.type in ["job", "person_job", "loop"] and
+                    node_view.exec_count >= node_view.data.get("max_iteration", 1)
+                )
                 
                 if should_skip:
                     output = self._create_skipped_output(node_view, inputs)
@@ -180,8 +184,6 @@ class ExecutionEngine:
                     node_view.exec_count += 1
 
                 if node_view.node.type in ["job", "person_job", "loop"]:
-                    if not hasattr(node_view, "output_history"):
-                        node_view.output_history = []
                     node_view.output_history.append(output)
 
                     max_iter = node_view.data.get("max_iteration", 1)
@@ -209,7 +211,7 @@ class ExecutionEngine:
             return True
             
         if source.node.type in ["job", "person_job", "loop"]:
-            return hasattr(source, "output_history") and len(source.output_history) > 0
+            return len(source.output_history) > 0
             
         return False
 
@@ -221,7 +223,7 @@ class ExecutionEngine:
         if node_view.node.type == "person_job":
             if node_view.exec_count == 0:
                 first_edges = [
-                    e for e in node_view.incoming_edges if e.target_handle == "first"
+                    e for e in node_view.incoming_edges if e.target_handle == HandleLabel.first.value
                 ]
                 if first_edges:
                     return all(
@@ -229,7 +231,7 @@ class ExecutionEngine:
                     )
             else:
                 default_edges = [
-                    e for e in node_view.incoming_edges if e.target_handle == "default"
+                    e for e in node_view.incoming_edges if e.target_handle == HandleLabel.default.value
                 ]
                 if default_edges:
                     return all(

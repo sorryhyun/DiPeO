@@ -6,6 +6,7 @@
 import {
   NodeType,
   HandleDirection,
+  HandleLabel,
   DataType,
   NodeID,
   ArrowID,
@@ -88,7 +89,7 @@ export function normalizeNodeId(nodeId: string): NodeID {
  */
 export function createHandleId(
   nodeId: NodeID,
-  handleLabel: string,
+  handleLabel: HandleLabel,
   direction: HandleDirection
 ): HandleID {
   // Use underscores for simpler format
@@ -101,7 +102,7 @@ export function createHandleId(
  */
 export function parseHandleId(
   handleId: HandleID
-): { node_id: NodeID; handle_label: string; direction: HandleDirection } {
+): { node_id: NodeID; handle_label: HandleLabel; direction: HandleDirection } {
   // Format: [nodeId]_[handleLabel]_[direction]
   const parts = handleId.split('_');
   if (parts.length < 3) {
@@ -110,12 +111,17 @@ export function parseHandleId(
   
   // Extract parts: nodeId_label_direction
   const direction = parts[parts.length - 1] as HandleDirection;
-  const handleLabel = parts[parts.length - 2];
+  const handleLabel = parts[parts.length - 2] as HandleLabel;
   const nodeIdParts = parts.slice(0, -2);
   const nodeId = nodeIdParts.join('_');
   
   if (!nodeId || !handleLabel || !Object.values(HandleDirection).includes(direction)) {
     throw new Error(`Invalid handle ID format: ${handleId}`);
+  }
+  
+  // Validate handle label
+  if (!Object.values(HandleLabel).includes(handleLabel)) {
+    throw new Error(`Invalid handle label in handle ID: ${handleId}`);
   }
   
   return {

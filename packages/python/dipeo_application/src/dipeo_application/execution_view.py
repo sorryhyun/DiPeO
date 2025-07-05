@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any, Callable, Dict, List, Optional
 
-from dipeo_domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutput
+from dipeo_domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutput, HandleLabel
 from dipeo_domain.handle_utils import parse_handle_id
 
 
@@ -18,6 +18,7 @@ class NodeView:
     outgoing_edges: List["EdgeView"] = field(default_factory=list)
     output: Optional[NodeOutput] = None
     exec_count: int = 0
+    output_history: List[NodeOutput] = field(default_factory=list)
 
     @property
     def id(self) -> str:
@@ -56,7 +57,7 @@ class NodeView:
             if edge.source_view.output is None:
                 continue
 
-            if edge.target_handle == "first":
+            if edge.target_handle == HandleLabel.first.value:
                 first_edges.append(edge)
             else:
                 default_edges.append(edge)
@@ -101,8 +102,8 @@ class NodeView:
             elif label in source_values:
                 value = source_values[label]
                 pass  # Found exact match for label
-            elif "default" in source_values:
-                value = source_values["default"]
+            elif HandleLabel.default.value in source_values:
+                value = source_values[HandleLabel.default.value]
                 pass  # Using default value
             elif "conversation" in source_values:
                 value = source_values["conversation"]
@@ -135,7 +136,7 @@ class EdgeView:
         except:
             # Fallback for old format
             parts = self.arrow.source.split(":", 1)
-            return parts[1] if len(parts) > 1 else "default"
+            return parts[1] if len(parts) > 1 else HandleLabel.default.value
 
     @property
     def target_handle(self) -> str:
@@ -145,11 +146,11 @@ class EdgeView:
         except:
             # Fallback for old format
             parts = self.arrow.target.split(":", 1)
-            return parts[1] if len(parts) > 1 else "default"
+            return parts[1] if len(parts) > 1 else HandleLabel.default.value
 
     @property
     def label(self) -> str:
-        return self.arrow.label or "default"
+        return self.arrow.label or HandleLabel.default.value
 
     @property
     def content_type(self) -> str:

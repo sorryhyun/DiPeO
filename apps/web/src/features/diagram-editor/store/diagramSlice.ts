@@ -4,6 +4,7 @@ import { generateArrowId } from '@/core/types/utilities';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
+import { updateHandleIndex } from '@/core/store/helpers/handleIndexHelper';
 import { NodeType, Vec2, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 
@@ -114,6 +115,21 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       const deleted = state.nodes.delete(id);
       if (deleted) {
+        // Remove handles associated with this node
+        const handleIdsToDelete: HandleID[] = [];
+        state.handles.forEach((handle, handleId) => {
+          if (handle.node_id === id) {
+            handleIdsToDelete.push(handleId);
+          }
+        });
+        
+        handleIdsToDelete.forEach(handleId => {
+          state.handles.delete(handleId);
+        });
+        
+        // Update handle index
+        state.handleIndex.delete(id);
+        
         // Remove connected arrows
         const arrowsToDelete = Array.from(state.arrows.entries())
           .filter(([_, arrow]) => {
@@ -284,6 +300,21 @@ export const createDiagramSlice: StateCreator<
         if (state.nodes.delete(id)) {
           hasChanges = true;
           
+          // Remove handles associated with this node
+          const handleIdsToDelete: HandleID[] = [];
+          state.handles.forEach((handle, handleId) => {
+            if (handle.node_id === id) {
+              handleIdsToDelete.push(handleId);
+            }
+          });
+          
+          handleIdsToDelete.forEach(handleId => {
+            state.handles.delete(handleId);
+          });
+          
+          // Update handle index
+          state.handleIndex.delete(id);
+          
           // Remove connected arrows
           const arrowsToDelete = Array.from(state.arrows.entries())
             .filter(([_, arrow]) => {
@@ -328,6 +359,8 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       state.nodes.clear();
       state.arrows.clear();
+      state.handles.clear();
+      state.handleIndex.clear();
       afterChange(state);
     });
   },
