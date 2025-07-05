@@ -114,7 +114,7 @@ class UnifiedDiagramConverter(DiagramConverter):
             # For light format, transform the persons data
             if fmt == "light":
                 persons_dict = {}
-                for person_id, person_config in persons_data.items():
+                for person_key, person_config in persons_data.items():
                     # Transform flat structure to nested llmConfig structure
                     llm_config = {
                         "service": person_config.get("service", "openai"),
@@ -124,10 +124,14 @@ class UnifiedDiagramConverter(DiagramConverter):
                     if "system_prompt" in person_config:
                         llm_config["system_prompt"] = person_config["system_prompt"]
                     
+                    # In new format, the key is the label
+                    # Check if there's an explicit ID, otherwise generate one
+                    person_id = person_config.get("id", f"person_{person_key.replace(' ', '_')}")
+                    
                     # Add required fields for DomainPerson
                     person_dict = {
                         "id": person_id,
-                        "label": person_config.get("label", person_id),
+                        "label": person_key,  # The key is the label in light format
                         "type": "person",
                         "llm_config": llm_config,
                     }
@@ -165,7 +169,38 @@ class UnifiedDiagramConverter(DiagramConverter):
         else:
             persons_dict = {}
 
+        # Create person label to ID mapping for light format
+        person_label_to_id: dict[str, str] = {}
+        if fmt == "light" and persons_dict:
+            for person_id, person_data in persons_dict.items():
+                label = person_data.get("label", person_id)
+                person_label_to_id[label] = person_id
+        
         node_data_list = strategy.extract_nodes(data)
+        
+        # For light format, resolve person labels to IDs
+        if fmt == "light" and person_label_to_id:
+            for node_data in node_data_list:
+                node_type = node_data.get("type")
+                if node_type == "person_job":
+                    # Check if person is in top-level or in props/data
+                    person_ref = None
+                    if "person" in node_data:
+                        person_ref = node_data["person"]
+                        # If person_ref is a label (not an ID), resolve it
+                        if person_ref in person_label_to_id:
+                            node_data["person"] = person_label_to_id[person_ref]
+                    elif "props" in node_data and isinstance(node_data["props"], dict) and "person" in node_data["props"]:
+                        person_ref = node_data["props"]["person"]
+                        # If person_ref is a label (not an ID), resolve it
+                        if person_ref in person_label_to_id:
+                            node_data["props"]["person"] = person_label_to_id[person_ref]
+                    elif "data" in node_data and isinstance(node_data["data"], dict) and "person" in node_data["data"]:
+                        person_ref = node_data["data"]["person"]
+                        # If person_ref is a label (not an ID), resolve it
+                        if person_ref in person_label_to_id:
+                            node_data["data"]["person"] = person_label_to_id[person_ref]
+        
         for index, node_data in enumerate(node_data_list):
             node = self._create_node(node_data, index)
             nodes_dict[node.id] = node

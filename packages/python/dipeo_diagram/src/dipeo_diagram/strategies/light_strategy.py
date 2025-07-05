@@ -133,9 +133,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 branch_value = c.get("data", {}).get("branch")
                 src_handle = (
                     "condtrue"
-                    if branch_value == "condtrue"
+                    if branch_value == "true"
                     else "condfalse"
-                    if branch_value == "condfalse"
+                    if branch_value == "false"
                     else "default"
                 )
             else:
@@ -148,7 +148,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 dst_handle = "default"
 
             # Create arrow with data (light format doesn't include controlPointOffset)
-            arrow_data = c.get("data", {})
+            arrow_data = c.get("data", {}).copy() if c.get("data") else {}
+            
+            # Add branch data if this is from a condition handle and not already present
+            if src_handle in ["condtrue", "condfalse"] and "branch" not in arrow_data:
+                arrow_data["branch"] = "true" if src_handle == "condtrue" else "false"
 
             # Create proper handle IDs
             # Convert string handle labels to HandleLabel enum
@@ -186,6 +190,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
+        
+        # Create person ID to label mapping
+        person_id_to_label: dict[str, str] = {}
+        for p in diagram.persons:
+            person_id_to_label[p.id] = p.label
 
         def _unique(base: str) -> str:
             cnt = label_counts.get(base, 0)
@@ -208,6 +217,13 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 for k, v in (n.data or {}).items()
                 if k not in {"label", "position"} and v not in (None, "", {}, [])
             }
+            
+            # Replace person ID with person label for person_job nodes
+            if node_type == "person_job" and "person" in props:
+                person_id = props["person"]
+                if person_id in person_id_to_label:
+                    props["person"] = person_id_to_label[person_id]
+            
             # Map fileName back to filePath for endpoint nodes
             if node_type == "endpoint" and "file_name" in props:
                 props["file_path"] = props.pop("file_name")
@@ -237,27 +253,19 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if a.data:
                 # Only include essential arrow data for light format
                 filtered_data = {}
-                # Include arrow metadata but exclude UI-specific fields and ID
-                # ID will be auto-generated during loading, just like node IDs
-                for key in [
-                    "type",
-                    "_sourceNodeType",
-                    "_isFromConditionBranch",
-                    "branch",
-                ]:
-                    if key in a.data:
-                        filtered_data[key] = a.data[key]
-                # Explicitly exclude controlPointOffset fields from light format
-                # These are UI presentation details that don't belong in simplified format
+                # Skip 'branch' if the handle name already contains the branch info (condtrue/condfalse)
+                # This makes the format more dense by avoiding redundancy
+                if "branch" in a.data and s_handle not in ["condtrue", "condfalse"]:
+                    filtered_data["branch"] = a.data["branch"]
+                # Only add data field if we have meaningful data to include
                 if filtered_data:
                     conn["data"] = filtered_data
             connections.append(conn)
 
-        # Add persons to the light format export
+        # Add persons to the light format export using label as key
         persons_out = {}
         for p in diagram.persons:
             person_data = {
-                "label": p.label,
                 "service": p.llm_config.service.value
                 if hasattr(p.llm_config.service, "value")
                 else str(p.llm_config.service),
@@ -268,7 +276,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_data["system_prompt"] = p.llm_config.system_prompt
             if p.llm_config.api_key_id:
                 person_data["api_key_id"] = p.llm_config.api_key_id
-            persons_out[p.id] = person_data
+            # Store the original ID for round-trip conversion
+            person_data["id"] = p.id
+            persons_out[p.label] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
         if connections:

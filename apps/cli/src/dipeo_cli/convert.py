@@ -65,13 +65,13 @@ async def convert_command(args: list[str]) -> None:
                     diagram_data=diagram, format=format_name, include_metadata=True
                 )
 
-                if result["content"]:
+                if result and result.get("content"):
                     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                     with open(output_path, "w") as f:
                         f.write(result["content"])
 
                     print(
-                        f"✓ Converted: {input_path} → {output_path} (format: {result['format']})"
+                        f"✓ Converted: {input_path} → {output_path} (format: {result.get('format', format_name)})"
                     )
                 else:
                     print("Error: Conversion returned empty content")

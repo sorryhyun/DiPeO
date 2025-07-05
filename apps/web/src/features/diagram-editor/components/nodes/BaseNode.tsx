@@ -218,14 +218,17 @@ const NodeBody = React.memo(({
         );
       }
       
-      // Special handling for forgettingMode - use emojis
-      if (key === 'forgetting_mode') {
-        const emoji = value === 'keep_first' ? '📌' : 
+      // Special handling for forget_mode - use emojis
+      if (key === 'memory_config.forget_mode') {
+        const emoji = value === 'no_forget' ? '🔒' :
+                     value === 'on_every_turn' ? '🔄' :
+                     value === 'upon_request' ? '📍' :
+                     value === 'keep_first' ? '📌' : 
                      value === 'keep_last' ? '📍' : 
                      value === 'summarize' ? '📄' : '❓';
         return (
-          <div key={key} className="text-sm text-black font-medium text-center">
-            <span className="text-xs text-gray-500">mode:</span> {emoji} {String(value)}
+          <div key={key} className="text-lg text-center" title={`Memory: ${value}`}>
+            {emoji}
           </div>
         );
       }
@@ -325,7 +328,7 @@ export function BaseNode({
       }
       
       // Filter out system keys and personId
-      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId', 'person'].includes(key) &&
+      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId', 'person', 'memory_config', 'memory_config.forget_mode'].includes(key) &&
         // Filter out blank values (null, undefined, empty string)
         value !== null && value !== undefined && value !== '';
     });
@@ -333,6 +336,11 @@ export function BaseNode({
     // Add person label display for person_job nodes
     if (type === 'person_job' && personLabel) {
       entries.unshift(['person', personLabel]);
+    }
+    
+    // Add memory_config.forget_mode for person_job nodes
+    if (type === 'person_job' && data['memory_config.forget_mode']) {
+      entries.push(['memory_config.forget_mode', data['memory_config.forget_mode']]);
     }
     
     return entries.slice(0, 3); // Limit to 3 fields for cleaner display

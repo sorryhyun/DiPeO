@@ -283,10 +283,13 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       max_iteration: 1, 
       first_only_prompt: '', 
       default_prompt: '',
-      tools: ''
+      tools: '',
+      memory_config: {
+        forget_mode: 'no_forget'
+      }
     },
     panelLayout: 'twoColumn',
-    panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'default_prompt', 'first_only_prompt'],
+    panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_config.forget_mode', 'default_prompt', 'first_only_prompt'],
     panelFieldOverrides: {
       max_iteration: {
         type: 'maxIteration'
@@ -321,6 +324,18 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       {
         type: 'labelPersonRow',
         labelPlaceholder: 'Person Job'
+      },
+      {
+        type: 'select',
+        name: 'memory_config.forget_mode',
+        label: 'Forget Mode',
+        column: 1,
+        options: [
+          { value: 'no_forget', label: 'No Forget (Keep all history)' },
+          { value: 'on_every_turn', label: 'On Every Turn' },
+          { value: 'upon_request', label: 'Upon Request' }
+        ],
+        defaultValue: 'no_forget'
       }
     ]
   },

@@ -195,8 +195,6 @@ export const createDiagramSlice: StateCreator<
     
     set(state => {
       // Validate source and target nodes exist
-      console.log('Raw handle IDs from React Flow:', { source, target });
-      
       // React Flow adds a 'handle_' prefix to handle IDs
       const normalizeHandleId = (handleId: string): string => {
         if (handleId.startsWith('handle_')) {
@@ -207,19 +205,7 @@ export const createDiagramSlice: StateCreator<
       
       const normalizedSource = normalizeHandleId(source);
       const normalizedTarget = normalizeHandleId(target);
-      
-      console.log('Normalized handle IDs:', { normalizedSource, normalizedTarget });
-      
-      // Debug: Check if the handle IDs match expected format
-      const sourceparts = normalizedSource.split('_');
-      const targetParts = normalizedTarget.split('_');
-      console.log('Handle ID parts:', { 
-        source: sourceparts, 
-        target: targetParts,
-        sourceLength: sourceparts.length,
-        targetLength: targetParts.length
-      });
-      
+
       let sourceNodeId: NodeID;
       let targetNodeId: NodeID;
       
