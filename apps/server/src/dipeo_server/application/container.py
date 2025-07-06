@@ -20,10 +20,8 @@ from dipeo_domain.domains.diagram.services import (
     DiagramStorageAdapter,
 )
 from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
-from dipeo_domain.domains.execution.services import (
-    ExecuteDiagramUseCase,
-    ServiceRegistry,
-)
+from dipeo_domain.domains.execution.services import ExecuteDiagramUseCase
+from dipeo_application.unified_service_registry import UnifiedServiceRegistry
 from dipeo_domain.domains.file import FileOperationsDomainService
 from dipeo_domain.domains.text import TextProcessingDomainService
 from dipeo_domain.domains.validation import ValidationDomainService
@@ -116,19 +114,37 @@ class ServerContainer(BaseContainer):
     notion_api_service = providers.Singleton(NotionAPIService)
 
     # Service registry for node handlers
-    service_registry = providers.Singleton(
-        ServiceRegistry,
-        api_key_service=api_key_service,
-        llm_service=llm_service,
-        file_service=file_service,
-        conversation_memory_service=conversation_memory_service,
-        diagram_storage_service=diagram_storage_service,
-        text_processing_service=text_processing_service,
-        file_operations_service=file_operations_service,
-        validation_service=validation_service,
-        db_operations_service=db_operations_service,
-        api_integration_service=api_integration_service,
-        notion_service=notion_api_service,
+    service_registry = providers.Factory(
+        lambda: UnifiedServiceRegistry(
+            llm=llm_service(),
+            llm_service=llm_service(),
+            api_key=api_key_service(),
+            api_key_service=api_key_service(),
+            file=file_service(),
+            file_service=file_service(),
+            conversation_memory=conversation_memory_service(),
+            conversation_memory_service=conversation_memory_service(),
+            memory=conversation_memory_service(),
+            memory_service=conversation_memory_service(),
+            conversation=conversation_memory_service(),
+            notion=notion_api_service(),
+            notion_service=notion_api_service(),
+            diagram_storage=diagram_storage_service(),
+            diagram_storage_service=diagram_storage_service(),
+            storage=diagram_storage_service(),
+            api_integration=api_integration_service(),
+            api_integration_service=api_integration_service(),
+            api=api_integration_service(),
+            text_processing=text_processing_service(),
+            text_processing_service=text_processing_service(),
+            text=text_processing_service(),
+            file_operations=file_operations_service(),
+            file_operations_service=file_operations_service(),
+            validation=validation_service(),
+            validation_service=validation_service(),
+            db_operations=db_operations_service(),
+            db_operations_service=db_operations_service(),
+        )
     )
 
     # Execution service

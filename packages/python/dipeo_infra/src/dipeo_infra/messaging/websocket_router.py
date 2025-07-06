@@ -33,7 +33,6 @@ class MessageRouter:
             return
 
         self._initialized = True
-        logger.info(f"SimpleMessageRouter initialized for {self.worker_id}")
 
     async def cleanup(self):
         self.local_handlers.clear()
@@ -46,7 +45,6 @@ class MessageRouter:
             last_successful_send=time.time()
         )
         self._message_queue_size[connection_id] = 0
-        logger.debug(f"Registered connection {connection_id}")
 
     async def unregister_connection(self, connection_id: str):
         self.local_handlers.pop(connection_id, None)
@@ -57,8 +55,6 @@ class MessageRouter:
             connections.discard(connection_id)
             if not connections:
                 del self.execution_subscriptions[exec_id]
-
-        logger.debug(f"Unregistered connection {connection_id}")
 
     async def route_to_connection(self, connection_id: str, message: dict) -> bool:
         handler = self.local_handlers.get(connection_id)
@@ -197,7 +193,6 @@ class MessageRouter:
             self.execution_subscriptions[execution_id] = set()
 
         self.execution_subscriptions[execution_id].add(connection_id)
-        logger.debug(f"Subscribed {connection_id} to execution {execution_id}")
 
     async def unsubscribe_connection_from_execution(
         self, connection_id: str, execution_id: str
@@ -207,8 +202,6 @@ class MessageRouter:
 
             if not self.execution_subscriptions[execution_id]:
                 del self.execution_subscriptions[execution_id]
-
-        logger.debug(f"Unsubscribed {connection_id} from execution {execution_id}")
 
     def get_stats(self) -> dict:
         now = time.time()

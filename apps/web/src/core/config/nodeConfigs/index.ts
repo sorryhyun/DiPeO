@@ -5,4 +5,4 @@ import type { UnifiedNodeConfig } from '../unifiedConfig';
 import { nodeConfigs } from './factory';
 
 // Export the unified node configs from factory
-export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> = nodeConfigs;
+export const UNIFIED_NODE_CONFIGS: Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> = nodeConfigs as Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>>;

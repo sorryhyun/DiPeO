@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import Any, Callable, Dict, List, Optional
 
 from dipeo_domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutput, HandleLabel, NodeType
-from dipeo_domain.handle_utils import parse_handle_id
+from dipeo_domain.handle_utils import parse_handle_id, HandleReference
 from .input_resolution import get_active_inputs_simplified
 
 
@@ -58,24 +58,20 @@ class EdgeView:
     arrow: DomainArrow
     source_view: NodeView
     target_view: NodeView
+    source_handle_ref: Optional[HandleReference] = None
+    target_handle_ref: Optional[HandleReference] = None
 
     @property
     def source_handle(self) -> str:
-        try:
-            _, handle_label, _ = parse_handle_id(self.arrow.source)
-            return handle_label.value
-        except ValueError:
-            # Log warning and return default
-            return HandleLabel.default.value
+        if self.source_handle_ref and self.source_handle_ref.is_valid:
+            return self.source_handle_ref.handle_label.value
+        return HandleLabel.default.value
 
     @property
     def target_handle(self) -> str:
-        try:
-            _, handle_label, _ = parse_handle_id(self.arrow.target)
-            return handle_label.value
-        except ValueError:
-            # Log warning and return default
-            return HandleLabel.default.value
+        if self.target_handle_ref and self.target_handle_ref.is_valid:
+            return self.target_handle_ref.handle_label.value
+        return HandleLabel.default.value
 
     @property
     def label(self) -> str:
@@ -106,19 +102,29 @@ class LocalExecutionView:
         import logging
 
         log = logging.getLogger(__name__)
+        
+        # Clear handle cache at start of diagram loading
+        HandleReference.clear_cache()
+        
         for arrow in self.diagram.arrows:
-            try:
-                source_id, _, _ = parse_handle_id(arrow.source)
-                target_id, _, _ = parse_handle_id(arrow.target)
-            except ValueError:
+            # Use cached handle references for performance
+            source_ref = HandleReference.get_or_create(arrow.source)
+            target_ref = HandleReference.get_or_create(arrow.target)
+            
+            if not source_ref.is_valid or not target_ref.is_valid:
                 log.warning(f"Invalid handle format in arrow: {arrow.source} -> {arrow.target}")
                 continue
+
+            source_id = source_ref.node_id
+            target_id = target_ref.node_id
 
             if source_id in self.node_views and target_id in self.node_views:
                 edge_view = EdgeView(
                     arrow=arrow,
                     source_view=self.node_views[source_id],
                     target_view=self.node_views[target_id],
+                    source_handle_ref=source_ref,
+                    target_handle_ref=target_ref,
                 )
 
                 self.edge_views.append(edge_view)

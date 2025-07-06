@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .execution_options import ExecutionMode, ExecutionOptions, parse_run_options
+from .logging_config import configure_logging
 from .runners import LocalDiagramRunner, ServerDiagramRunner
 from .server_manager import restart_backend_server, stop_backend_server
 from .utils import DiagramLoader
@@ -44,7 +45,6 @@ def _resolve_diagram_path(path: str, format_id: str | None) -> str:
             
             # Check if the file exists
             if Path(resolved_path).exists():
-                print(f"✓ Resolved '{path}' to '{resolved_path}'")
                 return resolved_path
             else:
                 print(f"⚠️  Warning: Resolved path '{resolved_path}' does not exist")
@@ -61,6 +61,10 @@ async def run_command(args: list[str]) -> None:
 
     file_path = args[0]
     options = parse_run_options(args[1:])
+    
+    # Configure logging if debug mode is enabled
+    if options.debug:
+        configure_logging(debug=True)
     
     # Resolve short diagram names based on format
     file_path = _resolve_diagram_path(file_path, options.format)

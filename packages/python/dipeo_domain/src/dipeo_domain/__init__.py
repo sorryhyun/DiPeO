@@ -14,6 +14,7 @@ from .models import *  # noqa: F401, F403
 from .handle_utils import (
     create_handle_id,
     parse_handle_id,
+    HandleReference,
 )
 
 # Import service utilities

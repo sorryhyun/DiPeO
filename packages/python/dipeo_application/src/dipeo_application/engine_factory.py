@@ -4,7 +4,7 @@ import warnings
 from typing import Any, Optional
 
 from .observers import ExecutionObserver
-from .unified_execution_engine import UnifiedExecutionEngine
+from .execution_engine import ExecutionEngine
 
 
 class EngineFactory:
@@ -19,7 +19,7 @@ class EngineFactory:
         include_state_observer: bool = True,
         include_streaming_observer: bool = True,
         custom_observers: Optional[list[ExecutionObserver]] = None,
-    ) -> UnifiedExecutionEngine:
+    ) -> ExecutionEngine:
         """Create a UnifiedExecutionEngine with standard observers.
         
         Args:
@@ -49,7 +49,7 @@ class EngineFactory:
         if custom_observers:
             observers.extend(custom_observers)
             
-        return UnifiedExecutionEngine(
+        return ExecutionEngine(
             service_registry=service_registry,
             observers=observers,
         )

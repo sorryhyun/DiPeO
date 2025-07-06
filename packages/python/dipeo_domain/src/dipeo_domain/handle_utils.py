@@ -5,7 +5,7 @@ This is a manually maintained file, not auto-generated.
 Provides a single source of truth for handle ID parsing and creation.
 """
 
-from typing import Tuple, Optional, NamedTuple
+from typing import Tuple, Optional, NamedTuple, Dict
 from dipeo_domain import HandleID, NodeID, HandleDirection, HandleLabel
 
 
@@ -14,6 +14,81 @@ class ParsedHandle(NamedTuple):
     node_id: NodeID
     handle_label: HandleLabel
     direction: HandleDirection
+
+
+class HandleReference:
+    """Handle reference with cached parsed components for performance.
+    
+    This class provides efficient access to handle components by parsing
+    the handle ID once and caching the results. Use this for frequently
+    accessed handles in hot paths like edge traversal.
+    """
+    
+    # Class-level cache for handle references
+    _cache: Dict[HandleID, 'HandleReference'] = {}
+    
+    def __init__(self, handle_id: HandleID):
+        """Initialize handle reference with cached parsing."""
+        self.handle_id = handle_id
+        self._parsed: Optional[ParsedHandle] = None
+        self._parse_error: Optional[str] = None
+        
+        # Parse immediately to cache result
+        self._ensure_parsed()
+    
+    def _ensure_parsed(self) -> None:
+        """Parse handle ID if not already parsed."""
+        if self._parsed is None and self._parse_error is None:
+            try:
+                node_id, handle_label, direction = parse_handle_id(self.handle_id)
+                self._parsed = ParsedHandle(node_id, handle_label, direction)
+            except ValueError as e:
+                self._parse_error = str(e)
+    
+    @property
+    def node_id(self) -> NodeID:
+        """Get node ID from handle."""
+        if self._parsed:
+            return self._parsed.node_id
+        raise ValueError(f"Invalid handle ID: {self._parse_error}")
+    
+    @property
+    def handle_label(self) -> HandleLabel:
+        """Get handle label from handle."""
+        if self._parsed:
+            return self._parsed.handle_label
+        raise ValueError(f"Invalid handle ID: {self._parse_error}")
+    
+    @property
+    def direction(self) -> HandleDirection:
+        """Get direction from handle."""
+        if self._parsed:
+            return self._parsed.direction
+        raise ValueError(f"Invalid handle ID: {self._parse_error}")
+    
+    @property
+    def is_valid(self) -> bool:
+        """Check if handle ID is valid."""
+        return self._parsed is not None
+    
+    @classmethod
+    def get_or_create(cls, handle_id: HandleID) -> 'HandleReference':
+        """Get cached handle reference or create new one.
+        
+        This method ensures only one HandleReference instance exists per
+        unique handle ID, reducing memory usage and parsing overhead.
+        """
+        if handle_id not in cls._cache:
+            cls._cache[handle_id] = cls(handle_id)
+        return cls._cache[handle_id]
+    
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clear the handle reference cache.
+        
+        Use this when switching between diagrams or in tests.
+        """
+        cls._cache.clear()
 
 
 def create_handle_id(

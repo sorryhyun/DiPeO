@@ -50,14 +50,15 @@ class ConditionNodeHandler(BaseNodeHandler):
         # Output data to the appropriate branch based on condition result
         # The execution engine expects outputs keyed by branch name
         # We need to pass through all inputs, including conversation data
+        # Only create output for the active branch to prevent execution of the inactive branch
         if result:
-            # When condition is true, output goes to "true" branch
+            # When condition is true, output goes to "true" branch only
             # Pass through all inputs as a single value
-            output_value = {"condtrue": inputs if inputs else {}, "condfalse": None}
+            output_value = {"condtrue": inputs if inputs else {}}
         else:
-            # When condition is false, output goes to "false" branch
+            # When condition is false, output goes to "false" branch only
             # Pass through all inputs as a single value
-            output_value = {"condfalse": inputs if inputs else {}, "condtrue": None}
+            output_value = {"condfalse": inputs if inputs else {}}
         
         return create_node_output(output_value, {"condition_result": result})
 

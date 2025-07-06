@@ -36,15 +36,12 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
     def __init__(self, base_dir: Path | None = None):
         super().__init__()
         self.diagrams_dir = (base_dir or BASE_DIR) / "files" / "diagrams"
-        logger.info(f"DiagramFileRepository initialized with dir: {self.diagrams_dir}")
 
     async def initialize(self) -> None:
         self.diagrams_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Ensured diagrams directory exists: {self.diagrams_dir}")
 
     async def read_file(self, path: str) -> dict[str, Any]:
         file_path = self.diagrams_dir / path
-        logger.debug(f"Attempting to read file: {file_path}")
 
         if not file_path.exists():
             logger.error(
@@ -68,7 +65,6 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
                         data = yaml.unsafe_load(f)
                         # Convert any enum values to strings
                         self._clean_enums(data)
-                        logger.info(f"Successfully loaded and cleaned YAML file {path}")
                         return data
             elif file_path.suffix.lower() == ".json":
                 with file_path.open(encoding="utf-8") as f:
@@ -163,8 +159,8 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
 
                     files.append(file_info)
 
-                except Exception as e:
-                    logger.warning(f"Failed to process file {file_path}: {e}")
+                except Exception:
+                    # Skip files that can't be processed
                     continue
 
         files.sort(key=lambda x: x.modified, reverse=True)
@@ -191,18 +187,14 @@ class DiagramFileRepository(BaseService, SupportsDiagram):
                 for ext in [".yaml", ".yml", ".json"]:
                     path = f"{subdir}/{diagram_id}{ext}"
                     if await self.exists(path):
-                        logger.info(f"Found diagram at: {path}")
                         return path
 
         # Finally, check all files using list_files (for any other subdirectories)
         all_files = await self.list_files()
         for file_info in all_files:
-            logger.debug(f"Checking file: id={file_info.id}, path={file_info.path}")
             if file_info.id == diagram_id:
-                logger.info(f"Found diagram via list_files: {file_info.path}")
                 return file_info.path
 
-        logger.warning(f"Diagram not found: {diagram_id}")
         return None
 
     def _clean_enums(self, data: Any) -> None:

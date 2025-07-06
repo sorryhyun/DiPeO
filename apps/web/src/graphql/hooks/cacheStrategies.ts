@@ -17,13 +17,13 @@ export function addToListStrategy<T, TData = Record<string, unknown>, TVariables
 ) {
   const data = cache.readQuery<TData>({ query, variables });
   if (data && (data as Record<string, unknown>)[listField]) {
-    cache.writeQuery({
+    cache.writeQuery<TData>({
       query,
       variables,
       data: {
         ...data,
         [listField]: [...((data as Record<string, unknown>)[listField] as T[]), newItem]
-      }
+      } as any
     });
   }
 }
@@ -41,13 +41,13 @@ export function removeFromListStrategy<T extends Record<string, unknown>, TData 
 ) {
   const data = cache.readQuery<TData>({ query, variables });
   if (data && (data as Record<string, unknown>)[listField]) {
-    cache.writeQuery({
+    cache.writeQuery<TData>({
       query,
       variables,
       data: {
         ...data,
         [listField]: ((data as Record<string, unknown>)[listField] as T[]).filter((item: T) => item[keyField] !== itemId)
-      }
+      } as any
     });
   }
 }
@@ -65,7 +65,7 @@ export function updateInListStrategy<T extends Record<string, unknown>, TData = 
 ) {
   const data = cache.readQuery<TData>({ query, variables });
   if (data && (data as Record<string, unknown>)[listField]) {
-    cache.writeQuery({
+    cache.writeQuery<TData>({
       query,
       variables,
       data: {
@@ -73,7 +73,7 @@ export function updateInListStrategy<T extends Record<string, unknown>, TData = 
         [listField]: ((data as Record<string, unknown>)[listField] as T[]).map((item: T) => 
           item[keyField] === updatedItem[keyField] ? updatedItem : item
         )
-      }
+      } as any
     });
   }
 }

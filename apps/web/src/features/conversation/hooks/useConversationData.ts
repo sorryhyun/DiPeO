@@ -87,6 +87,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     
     // Transform to PersonMemoryState format
     Object.entries(groupedByPerson).forEach(([pid, convs]) => {
+      if (!convs) return;
       transformed[pid as PersonID] = {
         messages: convs.map((conv) => ({
           id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
@@ -110,11 +111,11 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       };
       
       // Update message counts
-      messageCounts.current[pid] = convs.length;
+      messageCounts.current[pid] = convs?.length || 0;
       
       // Update last fetch time
-      if (convs.length > 0) {
-        lastUpdateTime.current = convs[convs.length - 1].timestamp;
+      if (convs && convs.length > 0) {
+        lastUpdateTime.current = convs[convs.length - 1]!.timestamp;
       }
     });
     

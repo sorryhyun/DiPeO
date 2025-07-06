@@ -242,13 +242,11 @@ class UnifiedDiagramConverter(DiagramConverter):
         # Create any custom handles referenced by arrows but not yet defined
         for arrow in arrows_dict.values():
             # Check source handle
-            logger.debug(f"Processing arrow source: {arrow.source}")
             if "_" in arrow.source:
                 # First check if this is a full handle ID format (nodeId_handleLabel_direction)
                 parts = arrow.source.split("_")
                 if len(parts) >= 3 and parts[-1] in ["input", "output"]:
                     # This is already a full handle ID, don't parse it
-                    logger.debug(f"Arrow source is already a full handle ID: {arrow.source}")
                     # Verify it exists in handles
                     if arrow.source in diagram_dict.handles:
                         continue
@@ -278,7 +276,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                 # If no match found, fall back to simple split
                 if not node_id:
                     parts = arrow.source.rsplit("_", 1)
-                    logger.debug(f"Arrow source parts after rsplit: {parts}")
                     if len(parts) == 2:
                         node_label_or_id, handle_name = parts
                         # Try to find node by label or ID
@@ -291,9 +288,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                     else:
                         node_id = arrow.source
                         handle_name = "default"
-                
-                logger.debug(f"Parsed source - node_id: {node_id}, handle_name: {handle_name}")
-                
+
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
                 actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
@@ -337,13 +332,11 @@ class UnifiedDiagramConverter(DiagramConverter):
                     arrow.source = normalized_handle_id
 
             # Check target handle
-            logger.debug(f"Processing arrow target: {arrow.target}")
             if "_" in arrow.target:
                 # First check if this is a full handle ID format (nodeId_handleLabel_direction)
                 parts = arrow.target.split("_")
                 if len(parts) >= 3 and parts[-1] in ["input", "output"]:
                     # This is already a full handle ID, don't parse it
-                    logger.debug(f"Arrow target is already a full handle ID: {arrow.target}")
                     # Verify it exists in handles
                     if arrow.target in diagram_dict.handles:
                         continue
@@ -373,7 +366,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                 # If no match found, fall back to simple split
                 if not node_id:
                     parts = arrow.target.rsplit("_", 1)
-                    logger.debug(f"Arrow target parts after rsplit: {parts}")
                     if len(parts) == 2:
                         node_label_or_id, handle_name = parts
                         # Try to find node by label or ID
@@ -387,8 +379,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                         node_id = arrow.target
                         handle_name = "default"
                 
-                logger.debug(f"Parsed target - node_id: {node_id}, handle_name: {handle_name}")
-                
+
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
                 actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)

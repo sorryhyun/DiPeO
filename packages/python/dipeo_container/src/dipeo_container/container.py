@@ -161,22 +161,45 @@ def _create_service_registry(
     validation_service,
     db_operations_service,
 ):
-    """Factory for ServiceRegistry with explicit dependencies."""
-    from dipeo_domain.domains.execution.services.service_registry import ServiceRegistry
+    """Factory for UnifiedServiceRegistry with explicit dependencies."""
+    from dipeo_application.unified_service_registry import UnifiedServiceRegistry
 
-    return ServiceRegistry(
-        llm_service=llm_service,
-        api_key_service=api_key_service,
-        file_service=file_service,
-        conversation_memory_service=conversation_memory_service,
-        notion_service=notion_service,
-        diagram_storage_service=diagram_storage_domain_service,
-        api_integration_service=api_integration_service,
-        text_processing_service=text_processing_service,
-        file_operations_service=file_operations_service,
-        validation_service=validation_service,
-        db_operations_service=db_operations_service,
-    )
+    # Create registry and register all services dynamically
+    registry = UnifiedServiceRegistry()
+    
+    # Core services
+    registry.register("llm", llm_service)
+    registry.register("llm_service", llm_service)
+    registry.register("api_key", api_key_service)
+    registry.register("api_key_service", api_key_service)
+    registry.register("file", file_service)
+    registry.register("file_service", file_service)
+    registry.register("conversation_memory", conversation_memory_service)
+    registry.register("conversation_memory_service", conversation_memory_service)
+    registry.register("memory", conversation_memory_service)
+    registry.register("memory_service", conversation_memory_service)
+    registry.register("conversation", conversation_memory_service)
+    
+    # Domain services
+    registry.register("notion", notion_service)
+    registry.register("notion_service", notion_service)
+    registry.register("diagram_storage", diagram_storage_domain_service)
+    registry.register("diagram_storage_service", diagram_storage_domain_service)
+    registry.register("storage", diagram_storage_domain_service)
+    registry.register("api_integration", api_integration_service)
+    registry.register("api_integration_service", api_integration_service)
+    registry.register("api", api_integration_service)
+    registry.register("text_processing", text_processing_service)
+    registry.register("text_processing_service", text_processing_service)
+    registry.register("text", text_processing_service)
+    registry.register("file_operations", file_operations_service)
+    registry.register("file_operations_service", file_operations_service)
+    registry.register("validation", validation_service)
+    registry.register("validation_service", validation_service)
+    registry.register("db_operations", db_operations_service)
+    registry.register("db_operations_service", db_operations_service)
+    
+    return registry
 
 
 def _create_execute_diagram_use_case(

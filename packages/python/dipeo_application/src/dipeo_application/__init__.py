@@ -26,7 +26,7 @@ from .execution import LocalExecutionService
 
 # Export execution engine and observer
 from .observers import ExecutionObserver
-from .unified_execution_engine import UnifiedExecutionEngine
+from .execution_engine import ExecutionEngine
 
 
 # Export engine factory
@@ -46,7 +46,7 @@ __all__ = [
     "ApplicationContext",
     # Execution
     "LocalExecutionService",
-    "UnifiedExecutionEngine",
+    "ExecutionEngine",
     "ExecutionObserver",
     "EngineFactory",
     "LocalExecutionView",

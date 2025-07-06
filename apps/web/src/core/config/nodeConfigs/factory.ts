@@ -82,12 +82,18 @@ export const NODE_DEFINITIONS: {
       enable_hook: { column: 1 },
       hook_type: { 
         column: 1,
-        showIf: (formData: StartNodeData) => formData?.enable_hook === true
+        conditional: {
+          field: 'enable_hook',
+          values: [true]
+        }
       },
       hook_config: { 
         column: 2,
         rows: 4,
-        showIf: (formData: StartNodeData) => formData?.enable_hook === true,
+        conditional: {
+          field: 'enable_hook',
+          values: [true]
+        },
         placeholder: 'Enter webhook URL, file path, or shell command based on hook type',
         validate: (value: unknown, formData: StartNodeData) => {
           if (formData?.enable_hook && (!value || typeof value !== 'string' || value.trim().length === 0)) {
@@ -277,11 +283,17 @@ export const NODE_DEFINITIONS: {
       save_to_file: { column: 2 },
       file_format: { 
         column: 2,
-        showIf: (formData: EndpointNodeData) => formData?.save_to_file === true
+        conditional: {
+          field: 'save_to_file',
+          values: [true]
+        }
       },
       file_name: { 
         column: 2,
-        showIf: (formData: EndpointNodeData) => formData?.save_to_file === true,
+        conditional: {
+          field: 'save_to_file',
+          values: [true]
+        },
         validate: (value: unknown, formData: EndpointNodeData) => {
           if (formData?.save_to_file && (!value || typeof value !== 'string' || value.trim().length === 0)) {
             return { isValid: false, error: 'File name is required when saving to file' };
@@ -365,8 +377,7 @@ export const NODE_DEFINITIONS: {
           { value: 'no_forget', label: 'No Forget (Keep all history)' },
           { value: 'on_every_turn', label: 'On Every Turn' },
           { value: 'upon_request', label: 'Upon Request' }
-        ],
-        defaultValue: 'no_forget'
+        ]
       }
     ]
   },
@@ -551,8 +562,10 @@ export const NODE_DEFINITIONS: {
 };
 
 // Factory function to create node configs
-export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DEFINITIONS): Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> {
-  const configs: Record<string, UnifiedNodeConfig<Record<string, unknown>>> = {};
+export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DEFINITIONS): {
+  [K in NodeType]: UnifiedNodeConfig<NodeDataTypeMap[K]>
+} {
+  const configs: Record<string, UnifiedNodeConfig<any>> = {};
   
   for (const [nodeType, definition] of Object.entries(definitions)) {
     configs[nodeType] = createUnifiedConfig({
@@ -566,10 +579,12 @@ export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DE
       panelFieldOrder: definition.panelFieldOrder,
       panelFieldOverrides: definition.panelFieldOverrides,
       panelCustomFields: definition.panelCustomFields
-    });
+    } as any);
   }
   
-  return configs as Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>>;
+  return configs as {
+    [K in NodeType]: UnifiedNodeConfig<NodeDataTypeMap[K]>
+  };
 }
 
 // Export the node configs using the factory
