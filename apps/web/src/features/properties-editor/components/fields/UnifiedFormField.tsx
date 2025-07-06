@@ -93,7 +93,23 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     />
   ),
   
-  [FIELD_TYPES.MAX_ITERATION]: (p) => widgets[FIELD_TYPES.NUMBER](p),
+  [FIELD_TYPES.MAX_ITERATION]: (p) => (
+    <Input
+      id={p.fieldId}
+      type="number"
+      value={String(p.value || '')}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        const numValue = e.target.value ? Number(e.target.value) : 1; // Default to 1 instead of null
+        p.onChange(numValue);
+      }}
+      placeholder={p.placeholder || '1'}
+      disabled={p.disabled}
+      min={p.min || 1}
+      max={p.max || 100}
+      className={FULL_WIDTH}
+      {...p.customProps}
+    />
+  ),
   
   [FIELD_TYPES.TEXTAREA]: (p) => (
     <div className="relative">
@@ -124,12 +140,19 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Select
       id={p.fieldId}
       value={String(p.value || '')}
-      onValueChange={p.onChange}
-      disabled={p.disabled}
+      onValueChange={(value) => {
+        // Handle empty string as null/undefined for consistency
+        p.onChange(value === '' ? null : value);
+      }}
+      disabled={p.disabled || p.isLoadingState}
       className={FULL_WIDTH}
       {...p.customProps}
     >
-      {p.placeholder && <option value="">{p.placeholder}</option>}
+      {p.isLoadingState ? (
+        <option value="">Loading...</option>
+      ) : (
+        p.placeholder && <option value="">{p.placeholder}</option>
+      )}
       {p.options?.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}

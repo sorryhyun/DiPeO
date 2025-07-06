@@ -22,6 +22,7 @@ from dipeo_domain import (
 
 # Import enums and basic types from domain
 from dipeo_domain import (
+    APIServiceType,
     DataType,
     DiagramFormat,
     EventType,
@@ -99,6 +100,7 @@ NodeTypeEnum = strawberry.enum(NodeType)
 HandleDirectionEnum = strawberry.enum(HandleDirection)
 DataTypeEnum = strawberry.enum(DataType)
 LLMServiceEnum = strawberry.enum(LLMService)
+APIServiceTypeEnum = strawberry.enum(APIServiceType)
 ForgettingModeEnum = strawberry.enum(ForgettingMode)
 DiagramFormatEnum = strawberry.enum(DiagramFormat)
 ExecutionStatusEnum = strawberry.enum(ExecutionStatus)
@@ -367,7 +369,7 @@ class UpdatePersonInput:
 @strawberry.input
 class CreateApiKeyInput:
     label: str
-    service: LLMServiceEnum
+    service: APIServiceTypeEnum
     key: str
 
 
@@ -514,6 +516,7 @@ class DiagramFormatInfo:
 __all__ = [
     "ApiKeyID",
     "ApiKeyResult",
+    "APIServiceTypeEnum",
     "ArrowID",
     "ArrowResult",
     "CreateApiKeyInput",

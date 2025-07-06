@@ -26,7 +26,7 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, Domai
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/graphql/types';
 import { generateId } from '@/core/types/utilities';
-import { HandleDirection, createHandleId, parseHandleId } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 
@@ -199,9 +199,11 @@ export class DiagramAdapter {
     const sourceParsed = parseHandleId(arrow.source as HandleID);
     const targetParsed = parseHandleId(arrow.target as HandleID);
     const sourceNode = sourceParsed.node_id;
-    const sourceHandle = sourceParsed.handle_label;
     const targetNode = targetParsed.node_id;
-    const targetHandle = targetParsed.handle_label;
+    
+    // Use the full handle IDs as they are, since that's what our FlowHandle component generates
+    const sourceHandle = arrow.source;
+    const targetHandle = arrow.target;
     
     // Merge arrow's direct fields (content_type, label) into data
     const edgeData = { ...(arrow.data || {}) };
@@ -248,13 +250,19 @@ export class DiagramAdapter {
    * Convert React Flow edge back to domain arrow
    */
   static reactToArrow(rfEdge: RFEdge): DomainArrow {
+    // Map handle strings to HandleLabel enum
+    const sourceHandleLabel = (rfEdge.sourceHandle || 'default') as HandleLabel;
+    const targetHandleLabel = (rfEdge.targetHandle || 'default') as HandleLabel;
+    
     const sourceHandle = createHandleId(
       rfEdge.source as NodeID, 
-      rfEdge.sourceHandle || 'default'
+      sourceHandleLabel,
+      HandleDirection.OUTPUT
     );
     const targetHandle = createHandleId(
       rfEdge.target as NodeID,
-      rfEdge.targetHandle || 'default'
+      targetHandleLabel,
+      HandleDirection.INPUT
     );
 
     // Extract content_type and label from data
@@ -286,13 +294,18 @@ export class DiagramAdapter {
       return null;
     }
 
+    const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
+    const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
+    
     const sourceHandle = createHandleId(
       connection.source as NodeID,
-      connection.sourceHandle || 'default'
+      sourceHandleLabel,
+      HandleDirection.OUTPUT
     );
     const targetHandle = createHandleId(
       connection.target as NodeID,
-      connection.targetHandle || 'default'
+      targetHandleLabel,
+      HandleDirection.INPUT
     );
 
     return {
@@ -325,13 +338,18 @@ export class DiagramAdapter {
       return validated;
     }
 
+    const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
+    const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
+    
     const sourceHandleId = createHandleId(
       connection.source as NodeID,
-      connection.sourceHandle || 'default'
+      sourceHandleLabel,
+      HandleDirection.OUTPUT
     );
     const targetHandleId = createHandleId(
       connection.target as NodeID,
-      connection.targetHandle || 'default'
+      targetHandleLabel,
+      HandleDirection.INPUT
     );
 
     // Find the actual handles

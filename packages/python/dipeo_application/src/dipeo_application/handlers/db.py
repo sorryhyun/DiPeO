@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.execution import create_node_output
 from dipeo_domain.models import DBNodeData, NodeOutput
 from pydantic import BaseModel
@@ -31,12 +32,15 @@ class DBNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: DBNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute db node - delegates to domain service for validation and execution."""
-        db_service = services["db_operations"]
+        # Get service from context or fallback to services dict
+        db_service = context.get_service("db_operations")
+        if not db_service:
+            db_service = services.get("db_operations")
 
         # Get single input value
         input_val = None

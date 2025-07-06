@@ -1,8 +1,38 @@
-import type { NodeType } from '@dipeo/domain-models';
+import { HandleLabel, type NodeType } from '@dipeo/domain-models';
 import { createUnifiedConfig, type UnifiedNodeConfig } from '../unifiedConfig';
+import type { TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import type {
+  StartNodeData,
+  ConditionNodeData,
+  PersonJobNodeData,
+  EndpointNodeData,
+  DBNodeData,
+  CodeJobNodeData,
+  ApiJobNodeData,
+  UserResponseNodeData,
+  NotionNodeData,
+  PersonBatchJobNodeData,
+  HookNodeData
+} from '@/core/types';
+
+// Map node types to their data types
+type NodeDataTypeMap = {
+  start: StartNodeData;
+  condition: ConditionNodeData;
+  job: Record<string, unknown>;
+  code_job: CodeJobNodeData;
+  api_job: ApiJobNodeData;
+  endpoint: EndpointNodeData;
+  person_job: PersonJobNodeData;
+  person_batch_job: PersonBatchJobNodeData;
+  db: DBNodeData;
+  user_response: UserResponseNodeData;
+  notion: NotionNodeData;
+  hook: HookNodeData;
+};
 
 // Base interface for node type definitions
-interface NodeTypeDefinition {
+interface NodeTypeDefinition<T extends Record<string, unknown> = Record<string, unknown>> {
   label: string;
   icon: string;
   color: string;
@@ -12,29 +42,67 @@ interface NodeTypeDefinition {
   // Panel configuration
   panelLayout?: 'single' | 'twoColumn';
   panelFieldOrder?: string[];
-  panelFieldOverrides?: Record<string, any>;
-  panelCustomFields?: any[];
+  panelFieldOverrides?: Partial<Record<keyof T, Partial<TypedPanelFieldConfig<T>>>>;
+  panelCustomFields?: Array<TypedPanelFieldConfig<T>>;
 }
 
 // Centralized node definitions
-export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
+export const NODE_DEFINITIONS: {
+  [K in NodeType]: NodeTypeDefinition<NodeDataTypeMap[K]>
+} = {
   start: {
     label: 'Start',
     icon: '🚀',
     color: 'green',
     handles: {
-      output: [{ id: 'default', position: 'right' }]
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [],
-    defaults: { label: 'Start' },
+    fields: [
+      { name: 'enable_hook', type: 'boolean', label: 'Enable Hook', required: false },
+      { name: 'hook_type', type: 'select', label: 'Hook Type', required: false, options: [
+        { value: 'webhook', label: 'Webhook' },
+        { value: 'file', label: 'File' },
+        { value: 'shell', label: 'Shell' }
+      ]},
+      { name: 'hook_config', type: 'textarea', label: 'Hook Configuration', required: false, placeholder: 'Hook configuration (e.g., URL, file path, or command)' }
+    ],
+    defaults: { label: 'Start', enable_hook: false, hook_type: 'webhook', hook_config: '' },
+    panelLayout: 'twoColumn',
+    panelFieldOrder: ['label', 'enable_hook', 'hook_type', 'hook_config'],
     panelCustomFields: [
       {
         type: 'text',
         name: 'label',
         label: 'Block Label',
-        placeholder: 'Start'
+        placeholder: 'Start',
+        column: 1
       }
-    ]
+    ],
+    panelFieldOverrides: {
+      enable_hook: { column: 1 },
+      hook_type: { 
+        column: 1,
+        conditional: {
+          field: 'enable_hook',
+          values: [true]
+        }
+      },
+      hook_config: { 
+        column: 2,
+        rows: 4,
+        conditional: {
+          field: 'enable_hook',
+          values: [true]
+        },
+        placeholder: 'Enter webhook URL, file path, or shell command based on hook type',
+        validate: (value: unknown, formData: StartNodeData) => {
+          if (formData?.enable_hook && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+            return { isValid: false, error: 'Hook configuration is required when hook is enabled' };
+          }
+          return { isValid: true };
+        }
+      }
+    }
   },
   
   condition: {
@@ -42,19 +110,22 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🔀',
     color: 'orange',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [
-        { id: 'true', position: 'right', label: 'True', offset: { x: 0, y: 30 } },
-        { id: 'false', position: 'right', label: 'False', offset: { x: 0, y: -30 } }
+        { id: HandleLabel.CONDITION_TRUE, position: 'right', label: 'true', offset: { x: 0, y: 30 } },
+        { id: HandleLabel.CONDITION_FALSE, position: 'right', label: 'false', offset: { x: 0, y: -30 } }
       ]
     },
     fields: [
-      { name: 'input_variable', type: 'string', label: 'Input Variable', required: true, placeholder: 'Variable to check' },
-      { name: 'target_value', type: 'string', label: 'Target Value', required: true, placeholder: 'Value to match' }
+      { name: 'condition_type', type: 'select', label: 'Condition Type', required: true, options: [
+        { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
+        { value: 'custom', label: 'Custom Expression' }
+      ]},
+      { name: 'expression', type: 'textarea', label: 'Expression', required: true, placeholder: 'e.g., {{variable}} == "value"' }
     ],
-    defaults: { label: 'Condition', input_variable: '', target_value: '' },
+    defaults: { label: 'Condition', condition_type: 'custom', expression: '' },
     panelLayout: 'twoColumn',
-    panelFieldOrder: ['label', 'input_variable', 'target_value'],
+    panelFieldOrder: ['label', 'condition_type', 'expression'],
     panelCustomFields: [
       {
         type: 'text',
@@ -65,8 +136,24 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       }
     ],
     panelFieldOverrides: {
-      input_variable: { column: 1 },
-      target_value: { column: 2 }
+      condition_type: { column: 1 },
+      expression: { 
+        column: 2,
+        rows: 3,
+        placeholder: 'Enter condition expression. Use {{variable_name}} for variables.',
+        conditional: {
+          field: 'condition_type',
+          values: ['custom'],
+          operator: 'equals'
+        },
+        validate: (value: unknown, formData: ConditionNodeData) => {
+          // Only validate expression for custom type
+          if (formData?.condition_type === 'custom' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+            return { isValid: false, error: 'Expression is required for custom conditions' };
+          }
+          return { isValid: true };
+        }
+      }
     }
   },
   
@@ -84,8 +171,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '💻',
     color: 'purple',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'language', type: 'select', label: 'Language', required: true, options: [
@@ -112,7 +199,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       code: { 
         rows: 8,
         column: 2,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Code is required' };
           }
@@ -127,8 +214,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🌐',
     color: 'teal',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'url', type: 'string', label: 'URL', required: true, placeholder: 'https://api.example.com/endpoint' },
@@ -166,20 +253,55 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🎯',
     color: 'red',
     handles: {
-      input: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
-      { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' }
+      { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' },
+      { name: 'save_to_file', type: 'boolean', label: 'Save to File', required: false },
+      { name: 'file_format', type: 'select', label: 'File Format', required: false, options: [
+        { value: 'json', label: 'JSON' },
+        { value: 'yaml', label: 'YAML' },
+        { value: 'txt', label: 'Text' },
+        { value: 'md', label: 'Markdown' }
+      ]},
+      { name: 'file_name', type: 'string', label: 'File Name', required: false, placeholder: 'output.json' }
     ],
-    defaults: { label: 'End', output_variable: '' },
+    defaults: { label: 'End', output_variable: '', save_to_file: false, file_format: 'json', file_name: '' },
+    panelLayout: 'twoColumn',
+    panelFieldOrder: ['label', 'output_variable', 'save_to_file', 'file_format', 'file_name'],
     panelCustomFields: [
       {
         type: 'text',
         name: 'label',
         label: 'Block Label',
-        placeholder: 'End'
+        placeholder: 'End',
+        column: 1
       }
-    ]
+    ],
+    panelFieldOverrides: {
+      output_variable: { column: 1 },
+      save_to_file: { column: 2 },
+      file_format: { 
+        column: 2,
+        conditional: {
+          field: 'save_to_file',
+          values: [true]
+        }
+      },
+      file_name: { 
+        column: 2,
+        conditional: {
+          field: 'save_to_file',
+          values: [true]
+        },
+        validate: (value: unknown, formData: EndpointNodeData) => {
+          if (formData?.save_to_file && (!value || typeof value !== 'string' || value.trim().length === 0)) {
+            return { isValid: false, error: 'File name is required when saving to file' };
+          }
+          return { isValid: true };
+        }
+      }
+    }
   },
   
   person_job: {
@@ -188,10 +310,10 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     color: 'indigo',
     handles: {
       input: [
-        { id: 'first', position: 'left', label: 'first', offset: { x: 0, y: -60 }, color: '#f59e0b' },
-        { id: 'default', position: 'left', label: 'default', offset: { x: 0, y: 60 }, color: '#2563eb' }
+        { id: HandleLabel.FIRST, position: 'left', label: 'first', offset: { x: 0, y: -60 }, color: '#f59e0b' },
+        { id: HandleLabel.DEFAULT, position: 'left', label: 'default', offset: { x: 0, y: 60 }, color: '#2563eb' }
       ],
-      output: [{ id: 'default', position: 'right' }]
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'max_iteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
@@ -204,10 +326,13 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       max_iteration: 1, 
       first_only_prompt: '', 
       default_prompt: '',
-      tools: ''
+      tools: '',
+      memory_config: {
+        forget_mode: 'no_forget'
+      }
     },
     panelLayout: 'twoColumn',
-    panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'default_prompt', 'first_only_prompt'],
+    panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_config.forget_mode', 'default_prompt', 'first_only_prompt'],
     panelFieldOverrides: {
       max_iteration: {
         type: 'maxIteration'
@@ -217,7 +342,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Enter default prompt. Use {{variable_name}} for variables.',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value && typeof value !== 'string') {
             return { isValid: false, error: 'Default prompt is recommended' };
           }
@@ -230,7 +355,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Prompt to use only on first execution.',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'First-only prompt is required' };
           }
@@ -242,6 +367,17 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       {
         type: 'labelPersonRow',
         labelPlaceholder: 'Person Job'
+      },
+      {
+        type: 'select',
+        name: 'memory_config.forget_mode',
+        label: 'Forget Mode',
+        column: 1,
+        options: [
+          { value: 'no_forget', label: 'No Forget (Keep all history)' },
+          { value: 'on_every_turn', label: 'On Every Turn' },
+          { value: 'upon_request', label: 'Upon Request' }
+        ]
       }
     ]
   },
@@ -251,8 +387,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '📋',
     color: 'purple',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'batch_key', type: 'string', label: 'Batch Key', required: true, placeholder: 'Variable containing array to iterate over' },
@@ -272,7 +408,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Enter prompt. Use {{item}} for current batch item, {{variable_name}} for other variables.',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Prompt is required' };
           }
@@ -293,8 +429,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '💾',
     color: 'yellow',
     handles: {
-      input: [{ id: 'default', position: 'bottom', offset: { x: -30, y: 0 } }],
-      output: [{ id: 'default', position: 'bottom', offset: { x: 30, y: 0 } }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'bottom', offset: { x: -30, y: 0 } }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'bottom', offset: { x: 30, y: 0 } }]
     },
     fields: [],
     defaults: { label: '', sub_type: 'fixed_prompt', source_details: '', operation: 'read' },
@@ -339,7 +475,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Enter content or file path...',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any, formData: any) => {
+        validate: (value: unknown, formData: DBNodeData) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Source details are required' };
           }
@@ -357,8 +493,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '👤',
     color: 'cyan',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, placeholder: 'Question to ask the user' }
@@ -377,7 +513,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         rows: 4,
         placeholder: 'Enter the question to ask the user. Use {{variable_name}} for variables.',
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Prompt is required' };
           }
@@ -392,8 +528,8 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '📝',
     color: 'gray',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'page_id', type: 'string', label: 'Page ID', required: true, placeholder: 'Notion page ID' },
@@ -410,23 +546,26 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
     icon: '🪝',
     color: 'pink',
     handles: {
-      input: [{ id: 'default', position: 'left' }],
-      output: [{ id: 'default', position: 'right' }]
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
     fields: [
       { name: 'hook_type', type: 'select', label: 'Hook Type', required: true, options: [
-        { value: 'before', label: 'Before' },
-        { value: 'after', label: 'After' }
+        { value: 'webhook', label: 'Webhook' },
+        { value: 'file', label: 'File' },
+        { value: 'shell', label: 'Shell' }
       ]},
       { name: 'command', type: 'string', label: 'Command', required: true, placeholder: 'Command to execute' }
     ],
-    defaults: { label: 'Hook', hook_type: 'before', command: '' }
+    defaults: { label: 'Hook', hook_type: 'webhook', command: '' }
   }
 };
 
 // Factory function to create node configs
-export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DEFINITIONS): Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>> {
-  const configs: Record<string, UnifiedNodeConfig<Record<string, unknown>>> = {};
+export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DEFINITIONS): {
+  [K in NodeType]: UnifiedNodeConfig<NodeDataTypeMap[K]>
+} {
+  const configs: Record<string, UnifiedNodeConfig<any>> = {};
   
   for (const [nodeType, definition] of Object.entries(definitions)) {
     configs[nodeType] = createUnifiedConfig({
@@ -440,10 +579,12 @@ export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DE
       panelFieldOrder: definition.panelFieldOrder,
       panelFieldOverrides: definition.panelFieldOverrides,
       panelCustomFields: definition.panelCustomFields
-    });
+    } as any);
   }
   
-  return configs as Record<NodeType, UnifiedNodeConfig<Record<string, unknown>>>;
+  return configs as {
+    [K in NodeType]: UnifiedNodeConfig<NodeDataTypeMap[K]>
+  };
 }
 
 // Export the node configs using the factory

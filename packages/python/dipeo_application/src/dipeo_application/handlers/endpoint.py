@@ -1,61 +1,17 @@
-"""Endpoint node handler - passes through data and optionally saves to file."""
+"""Endpoint node handler - passes through data and optionally saves to file.
 
-from typing import Any
+DEPRECATED: This module has been moved to dipeo.application.handlers.
+Please update your imports to use the new location.
+"""
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
-from dipeo_core.execution import create_node_output
-from dipeo_domain.models import EndpointNodeData, NodeOutput
-from pydantic import BaseModel
+import warnings
+from dipeo.application.handlers import EndpointNodeHandler
 
+warnings.warn(
+    "Importing EndpointNodeHandler from dipeo_application.handlers.endpoint "
+    "is deprecated. Please import from dipeo.application.handlers instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
-@register_handler
-class EndpointNodeHandler(BaseNodeHandler):
-    """Handler for endpoint nodes."""
-
-    @property
-    def node_type(self) -> str:
-        return "endpoint"
-
-    @property
-    def schema(self) -> type[BaseModel]:
-        return EndpointNodeData
-
-    @property
-    def requires_services(self) -> list[str]:
-        return ["file"]
-
-    @property
-    def description(self) -> str:
-        return "Endpoint node – pass through data and optionally save to file"
-
-    async def execute(
-        self,
-        props: EndpointNodeData,
-        context: RuntimeContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        """Execute endpoint node."""
-        file_service = services["file"]
-
-        # Endpoint nodes pass through their inputs
-        result_data = inputs if inputs else {}
-
-        if props.save_to_file and props.file_name:
-            try:
-                if isinstance(result_data, dict) and "default" in result_data:
-                    content = str(result_data["default"])
-                else:
-                    content = str(result_data)
-
-                await file_service.write(props.file_name, None, None, content)
-
-                return create_node_output(
-                    {"default": result_data}, {"saved_to": props.file_name}
-                )
-            except Exception as exc:
-                return create_node_output(
-                    {"default": result_data}, {"save_error": str(exc)}
-                )
-
-        return create_node_output({"default": result_data})
+__all__ = ["EndpointNodeHandler"]

@@ -126,8 +126,6 @@ class LLMInfraService(BaseService, SupportsLLM):
             return "claude"
         if model.startswith("gemini-"):
             return "gemini"
-        if model.startswith("grok-"):
-            return "grok"
         # Default to openai for backwards compatibility
         return "openai"
 

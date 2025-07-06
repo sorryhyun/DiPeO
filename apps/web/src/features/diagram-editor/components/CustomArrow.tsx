@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
-import { useCanvasOperationsContext, useCanvasUIState } from '../contexts/CanvasContext';
+import { useCanvasOperationsContext, useCanvasUIState } from '@/shared/contexts/CanvasContext';
 import { useArrowData } from '@/shared/hooks/selectors/useDiagramData';
 import { arrowId, ArrowData } from '@/core/types';
 import { getQuadraticPoint } from '@/shared/utils/geometry';
@@ -42,10 +42,13 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
 
   // Memoize label content - moved here to avoid initialization error
   const labelContent = useMemo(() => {
+    // Extract handle name from the full handle ID (e.g., "node-123_condtrue_output" -> "condtrue")
+    const sourceHandleParts = sourceHandle?.split('_') || [];
+    const sourceHandleName = sourceHandleParts[sourceHandleParts.length - 2]?.toLowerCase();
+    
     // Check if this is a branch arrow from a condition node
     // by looking at the source handle name
-    const isConditionBranch = sourceHandle === 'True' || sourceHandle === 'False' || 
-                             sourceHandle === 'true' || sourceHandle === 'false';
+    const isConditionBranch = sourceHandleName === 'condtrue' || sourceHandleName === 'condfalse';
     
     if (arrowData?.branch) {
       return <span>{arrowData.branch === 'true' ? '✅' : '❌'}</span>;
@@ -53,7 +56,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     
     // If no explicit branch data but it's from a condition node, infer from handle name
     if (isConditionBranch) {
-      const isTrueBranch = sourceHandle === 'True' || sourceHandle === 'true';
+      const isTrueBranch = sourceHandleName === 'condtrue';
       return <span>{isTrueBranch ? '✅' : '❌'}</span>;
     }
     

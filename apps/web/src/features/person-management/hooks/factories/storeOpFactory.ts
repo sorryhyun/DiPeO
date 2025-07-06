@@ -10,7 +10,7 @@ import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import type { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 // Base configuration for operation hooks
-export interface OperationHookConfig<TEntity, TCreateArgs extends any[] = any[]> {
+export interface OperationHookConfig<TEntity, TCreateArgs extends unknown[] = unknown[]> {
   // Entity configuration
   entityName: string; // Human-readable name for toasts
   entityNamePlural?: string; // Plural form (defaults to entityName + 's')
@@ -23,7 +23,7 @@ export interface OperationHookConfig<TEntity, TCreateArgs extends any[] = any[]>
   selectClearAction?: (state: UnifiedStore) => () => void;
   
   // Additional selectors for related data
-  selectRelated?: (state: UnifiedStore) => any;
+  selectRelated?: (state: UnifiedStore) => unknown;
   
   // Lifecycle hooks
   beforeAdd?: (...args: TCreateArgs) => TCreateArgs | Promise<TCreateArgs>;
@@ -57,7 +57,7 @@ export interface OperationHookConfig<TEntity, TCreateArgs extends any[] = any[]>
 }
 
 // Return type for operation hooks
-export interface OperationHookReturn<TEntity, TCreateArgs extends any[] = any[]> {
+export interface OperationHookReturn<TEntity, TCreateArgs extends unknown[] = unknown[]> {
   // Collection state
   items: TEntity[];
   itemsMap: Map<string, TEntity>;
@@ -77,7 +77,7 @@ export interface OperationHookReturn<TEntity, TCreateArgs extends any[] = any[]>
   // Utilities
   getById: (id: string) => TEntity | undefined;
   exists: (id: string) => boolean;
-  validate: (operation: 'add' | 'update', ...args: any[]) => { isValid: boolean; errors: string[] };
+  validate: (operation: 'add' | 'update', ...args: unknown[]) => { isValid: boolean; errors: string[] };
   clearErrors: () => void;
   setDirty: (dirty: boolean) => void;
 }
@@ -85,7 +85,7 @@ export interface OperationHookReturn<TEntity, TCreateArgs extends any[] = any[]>
 /**
  * Creates a store operation hook with standardized CRUD operations
  */
-export function createStoreOperationHook<TEntity, TCreateArgs extends any[] = any[]>(
+export function createStoreOperationHook<TEntity, TCreateArgs extends unknown[] = unknown[]>(
   config: OperationHookConfig<TEntity, TCreateArgs>
 ): () => OperationHookReturn<TEntity, TCreateArgs> {
   const {
@@ -124,11 +124,11 @@ export function createStoreOperationHook<TEntity, TCreateArgs extends any[] = an
     // Helper to get message
     const getMessage = (
       messageKey: keyof NonNullable<typeof config.messages>,
-      ...args: any[]
+      ...args: unknown[]
     ): string => {
       const message = config.messages?.[messageKey];
       if (typeof message === 'function') {
-        return (message as any)(...args);
+        return (message as (...args: unknown[]) => string)(...args);
       }
       return message || `${entityName} operation ${messageKey.replace(/Success|Error/, '')}`;
     };
@@ -136,14 +136,14 @@ export function createStoreOperationHook<TEntity, TCreateArgs extends any[] = an
     // Validation helper
     const validate = useCallback((
       operation: 'add' | 'update',
-      ...args: any[]
+      ...args: unknown[]
     ): { isValid: boolean; errors: string[] } => {
       if (operation === 'add' && config.validateAdd) {
         // Apply the spread using apply to avoid TypeScript issues
-        return config.validateAdd.apply(null, args as any);
+        return config.validateAdd.apply(null, args as TCreateArgs);
       }
       if (operation === 'update' && config.validateUpdate) {
-        return config.validateUpdate(args[0], args[1]);
+        return config.validateUpdate(args[0] as string, args[1] as Partial<TEntity>);
       }
       return { isValid: true, errors: [] };
     }, []);
@@ -181,7 +181,7 @@ export function createStoreOperationHook<TEntity, TCreateArgs extends any[] = an
             id = storeState.addAction!(...processedArgs);
           });
         } else {
-          id = storeState.addAction(...processedArgs);
+          id = storeState.addAction!(...processedArgs);
         }
         
         // After hook

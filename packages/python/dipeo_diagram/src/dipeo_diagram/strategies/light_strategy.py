@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo_domain import DomainDiagram
+from dipeo_domain import DomainDiagram, NodeID, HandleDirection, HandleLabel, create_handle_id
+from dipeo_domain.handle_utils import parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
 from ..conversion_utils import _YamlMixin, _node_id_map
@@ -42,6 +43,18 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 if k not in {"label", "type", "position", "props"}
             },
         }
+        
+        # Handle dot notation keys (e.g., "memory_config.forget_mode")
+        dotted_keys = [k for k in props.keys() if '.' in k]
+        for key in dotted_keys:
+            value = props.pop(key)
+            parts = key.split('.')
+            current = props
+            for part in parts[:-1]:
+                if part not in current:
+                    current[part] = {}
+                current = current[part]
+            current[parts[-1]] = value
 
         # Convert legacy forgetting_mode to proper memory_config structure
         if "forgetting_mode" in props:
@@ -88,8 +101,35 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if not isinstance(c, dict):
                 continue
             src_raw, dst_raw = c.get("from", ""), c.get("to", "")
-            src_label, *_ = src_raw.split(":", 1)
-            dst_label, *_ = dst_raw.split(":", 1)
+            
+            # Parse source label and handle
+            src_label = src_raw
+            src_handle_from_split = None
+            if "_" in src_raw:
+                # Try to find the node label by checking all possible splits
+                # This handles cases where node labels contain spaces or underscores
+                # We need to find the longest matching label in label2id
+                parts = src_raw.split("_")
+                for i in range(len(parts) - 1, 0, -1):
+                    potential_label = "_".join(parts[:i])
+                    if potential_label in label2id:
+                        src_label = potential_label
+                        src_handle_from_split = "_".join(parts[i:])
+                        break
+            
+            # Parse destination label and handle
+            dst_label = dst_raw
+            dst_handle_from_split = None
+            if "_" in dst_raw:
+                # Try to find the node label by checking all possible splits
+                parts = dst_raw.split("_")
+                for i in range(len(parts) - 1, 0, -1):
+                    potential_label = "_".join(parts[:i])
+                    if potential_label in label2id:
+                        dst_label = potential_label
+                        dst_handle_from_split = "_".join(parts[i:])
+                        break
+                    
             sid, tid = label2id.get(src_label), label2id.get(dst_label)
             if not (sid and tid):
                 log.warning(
@@ -98,15 +138,15 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 continue
 
             # Handle source handle
-            if ":" in src_raw:
-                src_handle = src_raw.split(":", 1)[1]
+            if src_handle_from_split:
+                src_handle = src_handle_from_split
             elif "branch" in c.get("data", {}):
                 # For condition nodes, use branch data
                 branch_value = c.get("data", {}).get("branch")
                 src_handle = (
-                    "True"
+                    "condtrue"
                     if branch_value == "true"
-                    else "False"
+                    else "condfalse"
                     if branch_value == "false"
                     else "default"
                 )
@@ -114,16 +154,38 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 src_handle = "default"
 
             # Handle target handle
-            dst_handle = dst_raw.split(":", 1)[1] if ":" in dst_raw else "default"
+            if dst_handle_from_split:
+                dst_handle = dst_handle_from_split
+            else:
+                dst_handle = "default"
 
             # Create arrow with data (light format doesn't include controlPointOffset)
-            arrow_data = c.get("data", {})
+            arrow_data = c.get("data", {}).copy() if c.get("data") else {}
+            
+            # Add branch data if this is from a condition handle and not already present
+            if src_handle in ["condtrue", "condfalse"] and "branch" not in arrow_data:
+                arrow_data["branch"] = "true" if src_handle == "condtrue" else "false"
+
+            # Create proper handle IDs
+            # Convert string handle labels to HandleLabel enum
+            try:
+                src_handle_enum = HandleLabel(src_handle)
+            except ValueError:
+                src_handle_enum = HandleLabel.default
+                
+            try:
+                dst_handle_enum = HandleLabel(dst_handle)
+            except ValueError:
+                dst_handle_enum = HandleLabel.default
+                
+            source_handle_id = create_handle_id(NodeID(sid), src_handle_enum, HandleDirection.output)
+            target_handle_id = create_handle_id(NodeID(tid), dst_handle_enum, HandleDirection.input)
 
             # Extract contentType and label from connection level
             arrow_dict = {
                 "id": c.get("data", {}).get("id", f"arrow_{idx}"),
-                "source": f"{sid}:{src_handle}",
-                "target": f"{tid}:{dst_handle}",
+                "source": source_handle_id,
+                "target": target_handle_id,
                 "data": arrow_data,
             }
 
@@ -140,6 +202,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
+        
+        # Create person ID to label mapping
+        person_id_to_label: dict[str, str] = {}
+        for p in diagram.persons:
+            person_id_to_label[p.id] = p.label
 
         def _unique(base: str) -> str:
             cnt = label_counts.get(base, 0)
@@ -162,6 +229,13 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 for k, v in (n.data or {}).items()
                 if k not in {"label", "position"} and v not in (None, "", {}, [])
             }
+            
+            # Replace person ID with person label for person_job nodes
+            if node_type == "person_job" and "person" in props:
+                person_id = props["person"]
+                if person_id in person_id_to_label:
+                    props["person"] = person_id_to_label[person_id]
+            
             # Map fileName back to filePath for endpoint nodes
             if node_type == "endpoint" and "file_name" in props:
                 props["file_path"] = props.pop("file_name")
@@ -174,11 +248,13 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
         connections = []
         for a in diagram.arrows:
-            s_id, s_handle = (a.source.split(":") + ["default"])[:2]
-            t_id, t_handle = (a.target.split(":") + ["default"])[:2]
+            # Parse handle IDs using the new format
+            s_node_id, s_handle, _ = parse_handle_id(a.source)
+            t_node_id, t_handle, _ = parse_handle_id(a.target)
+            
             conn = {
-                "from": f"{id_to_label[s_id]}{':' + s_handle if s_handle != 'default' else ''}",
-                "to": f"{id_to_label[t_id]}{':' + t_handle if t_handle != 'default' else ''}",
+                "from": f"{id_to_label[s_node_id]}{'_' + s_handle if s_handle != 'default' else ''}",
+                "to": f"{id_to_label[t_node_id]}{'_' + t_handle if t_handle != 'default' else ''}",
             }
             # Add contentType and label from direct fields
             if a.content_type:
@@ -189,27 +265,19 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if a.data:
                 # Only include essential arrow data for light format
                 filtered_data = {}
-                # Include arrow metadata but exclude UI-specific fields and ID
-                # ID will be auto-generated during loading, just like node IDs
-                for key in [
-                    "type",
-                    "_sourceNodeType",
-                    "_isFromConditionBranch",
-                    "branch",
-                ]:
-                    if key in a.data:
-                        filtered_data[key] = a.data[key]
-                # Explicitly exclude controlPointOffset fields from light format
-                # These are UI presentation details that don't belong in simplified format
+                # Skip 'branch' if the handle name already contains the branch info (condtrue/condfalse)
+                # This makes the format more dense by avoiding redundancy
+                if "branch" in a.data and s_handle not in ["condtrue", "condfalse"]:
+                    filtered_data["branch"] = a.data["branch"]
+                # Only add data field if we have meaningful data to include
                 if filtered_data:
                     conn["data"] = filtered_data
             connections.append(conn)
 
-        # Add persons to the light format export
+        # Add persons to the light format export using label as key
         persons_out = {}
         for p in diagram.persons:
             person_data = {
-                "label": p.label,
                 "service": p.llm_config.service.value
                 if hasattr(p.llm_config.service, "value")
                 else str(p.llm_config.service),
@@ -220,7 +288,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_data["system_prompt"] = p.llm_config.system_prompt
             if p.llm_config.api_key_id:
                 person_data["api_key_id"] = p.llm_config.api_key_id
-            persons_out[p.id] = person_data
+            # Store the original ID for round-trip conversion
+            person_data["id"] = p.id
+            persons_out[p.label] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
         if connections:

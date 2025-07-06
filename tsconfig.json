@@ -16,7 +16,7 @@
     "declarationMap": true
   },
   "references": [
-    { "path": "./packages/domain-models" }
+    { "path": "./dipeo/models" }
   ],
   "exclude": ["node_modules", "dist", "build", "server", "cli"]
 }

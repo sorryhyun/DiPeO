@@ -94,7 +94,45 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [entityId, initialData]); // Depend on both but only reset when entityId changes
+  }, [entityId]); // Only depend on entityId changes
+
+  // Separate effect for handling external data updates
+  useEffect(() => {
+    // Skip if this is the initial mount or entity changed
+    if (entityId !== entityIdRef.current) {
+      return;
+    }
+
+    // Only update if initialData has actually changed
+    const hasDataChanged = JSON.stringify(initialData) !== JSON.stringify(initialDataRef.current);
+    if (!hasDataChanged) {
+      return;
+    }
+
+    // Update form data for fields that haven't been locally modified
+    setFormData(prevData => {
+      // Use a ref to track dirty state to avoid closure issues
+      if (!isDirty) {
+        // If form isn't dirty, take all new data
+        initialDataRef.current = initialData;
+        return initialData;
+      }
+      
+      // If form is dirty, preserve local changes but update unchanged fields
+      const updatedData = { ...initialData };
+      // Preserve fields that have been locally modified
+      Object.keys(prevData).forEach(key => {
+        const typedKey = key as keyof T;
+        if (prevData[typedKey] !== initialDataRef.current[typedKey]) {
+          // This field was modified locally, preserve the local change
+          updatedData[typedKey] = prevData[typedKey];
+        }
+      });
+      
+      initialDataRef.current = initialData;
+      return updatedData;
+    });
+  }, [entityId, initialData, isDirty]); // Include isDirty in dependencies
 
   // Validation function - no need for useCallback since validationRules is stable
   const validateField = (field: keyof T, value: unknown, currentFormData: T): string | null => {
@@ -137,7 +175,25 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
         }
         updateArrow(arrowId(entityId), updates);
       } else {
-        updatePerson(personId(entityId), data);
+        // For person entities, we need to unflatten the data structure
+        // Convert flat keys like 'llm_config.api_key_id' back to nested structure
+        const unflattenedData: any = {};
+        const llmConfig: any = {};
+        
+        Object.entries(data).forEach(([key, value]) => {
+          if (key.startsWith('llm_config.')) {
+            const fieldName = key.substring('llm_config.'.length);
+            llmConfig[fieldName] = value;
+          } else {
+            unflattenedData[key] = value;
+          }
+        });
+        
+        if (Object.keys(llmConfig).length > 0) {
+          unflattenedData.llm_config = llmConfig;
+        }
+        
+        updatePerson(personId(entityId), unflattenedData);
       }
       setLastSaved(new Date());
     } catch (error) {
@@ -344,8 +400,10 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
           return await optionsFn();
         },
         enabled: checkDependencies(),
-        staleTime: 5 * 60 * 1000,
-        cacheTime: 10 * 60 * 1000,
+        // Reduce cache times for API key related fields to prevent stale data
+        staleTime: field.name === 'llm_config.model' ? 0 : 5 * 60 * 1000,  // No stale time for model field
+        cacheTime: field.name === 'llm_config.model' ? 30 * 1000 : 10 * 60 * 1000,  // 30s cache for model field
+        retry: 1,
       };
     })
   });

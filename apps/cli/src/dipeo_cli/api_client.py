@@ -162,12 +162,12 @@ class DiPeoAPIClient:
             mutation,
             variable_values={
                 "content": diagram_data,
-                "format": format.upper(),
+                "targetFormat": format,
                 "includeMetadata": include_metadata,
             },
         )
 
-        response = result.get("convertDiagram")
+        response = result.get("convert_diagram") if result else None
         if not response:
             raise Exception(
                 f"No response from convertDiagram mutation. Result: {result}"

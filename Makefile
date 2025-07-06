@@ -1,6 +1,6 @@
 # DiPeO Makefile
 
-.PHONY: install codegen dev-server dev-web dev-all clean help lint format graphql-schema
+.PHONY: install codegen dev-server dev-web dev-all clean help lint format graphql-schema lint-imports
 
 # Default target
 help:
@@ -12,6 +12,7 @@ help:
 	@echo "  make dev-web      - Run frontend server"
 	@echo "  make graphql-schema - Export GraphQL schema from server"
 	@echo "  make lint-{server, web, cli} - Run linters"
+	@echo "  make lint-imports - Check import dependencies"
 	@echo "  make format       - Format all code"
 	@echo "  make clean        - Clean generated files"
 
@@ -26,7 +27,7 @@ install:
 # Code generation
 codegen:
 	@echo "🔄 Generating code from domain models..."
-	cd packages/domain-models && pnpm generate:all
+	cd dipeo/models && pnpm generate:all
 	@echo "📝 Exporting GraphQL schema from server..."
 	make graphql-schema
 	@echo "🔄 Generating TypeScript types for frontend..."
@@ -53,7 +54,7 @@ dev-all:
 # Export GraphQL schema
 graphql-schema:
 	@echo "📝 Exporting GraphQL schema..."
-	cd apps/server && DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > schema.graphql
+	cd apps/server && PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > schema.graphql
 	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 
 # Python directories
@@ -77,6 +78,11 @@ lint-cli:
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/cli && mypy src || true
+
+# Import linting
+lint-imports:
+	@echo "🔍 Checking import dependencies..."
+	@lint-imports || (echo "❌ Import violations found!" && exit 1)
 
 # Formatting
 format:

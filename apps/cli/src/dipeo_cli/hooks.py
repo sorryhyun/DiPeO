@@ -11,8 +11,8 @@ from enum import Enum
 import aiohttp
 import sys
 
-from dipeo_application import ExecutionObserver
-from dipeo_domain.models import NodeOutput
+from dipeo_application import ExecutionObserver  # Not migrated yet
+from dipeo.domain.models import NodeOutput
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,6 @@ class HookRegistry:
                 with open(self.hooks_file) as f:
                     hooks_data = json.load(f)
                     self.hooks = [Hook(**hook_data) for hook_data in hooks_data]
-                    logger.info(f"Loaded {len(self.hooks)} hooks")
             except Exception as e:
                 logger.error(f"Failed to load hooks: {e}")
                 self.hooks = []
@@ -180,7 +179,7 @@ class HookObserver(ExecutionObserver):
             if not hook.matches_filters(event_data):
                 return
                 
-            logger.info(f"Executing hook '{hook.name}' for event {hook.event}")
+            # Execute hook silently unless there's an error
             
             if hook.type == HookType.SHELL:
                 await self._execute_shell_hook(hook, event_data)
@@ -231,8 +230,6 @@ class HookObserver(ExecutionObserver):
             
             if process.returncode != 0:
                 logger.error(f"Hook script failed: {stderr.decode()}")
-            else:
-                logger.debug(f"Hook output: {stdout.decode()}")
                 
         except asyncio.TimeoutError:
             process.kill()
@@ -261,8 +258,6 @@ class HookObserver(ExecutionObserver):
             ) as response:
                 if response.status >= 400:
                     logger.error(f"Webhook failed with status {response.status}")
-                else:
-                    logger.debug(f"Webhook successful: {response.status}")
                     
         except Exception as e:
             logger.error(f"Webhook request failed: {e}")
@@ -302,8 +297,6 @@ class HookObserver(ExecutionObserver):
             
             if process.returncode != 0:
                 logger.error(f"Python hook failed: {stderr.decode()}")
-            else:
-                logger.debug(f"Python hook output: {stdout.decode()}")
                 
         except asyncio.TimeoutError:
             process.kill()

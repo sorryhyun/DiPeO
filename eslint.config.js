@@ -21,7 +21,7 @@ export default [
       'server/**', // Python backend
       'cli/**', // Python CLI
       '**/__generated__/**', // Generated GraphQL files
-      '**/server/.venv/**', // Python virtual environment
+      '.venv/**', // Python virtual environment
       'files/**', // Diagram files
       'docs/**' // Documentation
     ],

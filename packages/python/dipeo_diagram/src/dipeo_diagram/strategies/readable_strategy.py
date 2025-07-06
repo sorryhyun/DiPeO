@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo_domain import DomainDiagram
+from dipeo_domain import DomainDiagram, NodeID, HandleDirection, HandleLabel, create_handle_id
+from dipeo_domain.handle_utils import parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
 from ..conversion_utils import _YamlMixin, _node_id_map
@@ -119,24 +120,47 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 clean_dst = clean_dst[:start].strip() + clean_dst[end + 1:].strip()
 
         # Parse source and target handles
-        src_parts = src.split(":")
-        dst_parts = clean_dst.split(":")
+        # Use rsplit to handle node labels with spaces
+        src_label = src.strip()
+        src_handle = "default"
+        if "_" in src:
+            parts = src.rsplit("_", 1)
+            if parts[0] in label2id:
+                src_label = parts[0].strip()
+                src_handle = parts[1].strip()
 
-        src_label = src_parts[0].strip()
-        src_handle = src_parts[1].strip() if len(src_parts) > 1 else "output"
-
-        dst_label = dst_parts[0].strip()
-        dst_handle = dst_parts[1].strip() if len(dst_parts) > 1 else "input"
+        dst_label = clean_dst.strip()
+        dst_handle = "default"
+        if "_" in clean_dst:
+            parts = clean_dst.rsplit("_", 1)
+            if parts[0] in label2id:
+                dst_label = parts[0].strip()
+                dst_handle = parts[1].strip()
 
         # Get node IDs
         sid = label2id.get(src_label)
         tid = label2id.get(dst_label)
 
         if sid and tid:
+            # Create proper handle IDs
+            # Convert string handle labels to HandleLabel enum
+            try:
+                src_handle_enum = HandleLabel(src_handle)
+            except ValueError:
+                src_handle_enum = HandleLabel.default
+                
+            try:
+                dst_handle_enum = HandleLabel(dst_handle)
+            except ValueError:
+                dst_handle_enum = HandleLabel.default
+                
+            source_handle_id = create_handle_id(NodeID(sid), src_handle_enum, HandleDirection.output)
+            target_handle_id = create_handle_id(NodeID(tid), dst_handle_enum, HandleDirection.input)
+            
             arrow_dict = {
                 "id": f"arrow_{idx}",
-                "source": f"{sid}:{src_handle}",
-                "target": f"{tid}:{dst_handle}",
+                "source": source_handle_id,
+                "target": target_handle_id,
             }
 
             # Add content type and label if present
@@ -211,20 +235,19 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         source_groups: dict[str, list] = {}
 
         for a in diagram.arrows:
-            source_id = a.source.split(':')[0]
-            source_handle = a.source.split(':', 1)[1] if ':' in a.source else "output"
-            source_key = f"{source_id}:{source_handle}" if source_handle not in ("output", "default") else source_id
+            # Parse handle IDs using the new format
+            source_id, source_handle, _ = parse_handle_id(a.source)
+            source_key = f"{source_id}_{source_handle}" if source_handle not in ("output", "default") else source_id
 
             if source_key not in source_groups:
                 source_groups[source_key] = []
 
-            target_id = a.target.split(':')[0]
-            target_handle = a.target.split(':', 1)[1] if ':' in a.target else "input"
+            target_id, target_handle, _ = parse_handle_id(a.target)
 
             # Build target string with handle, content type, and label
             target_str = id_to_label.get(target_id, target_id)
             if target_handle not in ("input", "default"):
-                target_str += f":{target_handle}"
+                target_str += f"_{target_handle}"
 
             # Add content type and label annotations
             annotations = []
@@ -242,12 +265,12 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         # Generate flow dictionaries
         flow = []
         for source_key, targets in source_groups.items():
-            source_id = source_key.split(':')[0]
-            source_handle = source_key.split(':', 1)[1] if ':' in source_key else None
+            source_id = source_key.split('_')[0]
+            source_handle = source_key.split('_', 1)[1] if '_' in source_key else None
 
             source_str = id_to_label.get(source_id, source_id)
             if source_handle and source_handle not in ("output", "default"):
-                source_str += f":{source_handle}"
+                source_str += f"_{source_handle}"
 
             if len(targets) == 1:
                 # Single target: {source: "target"}

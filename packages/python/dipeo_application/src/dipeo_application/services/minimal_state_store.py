@@ -1,29 +1,16 @@
-"""Minimal state store implementation for local/CLI execution."""
+"""Minimal state store service."""
 
-from typing import Any
+import warnings
 
+# Deprecation warning
+warnings.warn(
+    "dipeo_application.services.minimal_state_store is deprecated. "
+    "Use dipeo.application.services.minimal_state_store instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
-class MinimalStateStore:
-    """Minimal state store for local execution.
-    
-    This implementation provides no-op methods for state management,
-    suitable for CLI or local execution where persistence is not required.
-    """
+# Re-export from new location for backward compatibility
+from dipeo.application.services.minimal_state_store import MinimalStateStore
 
-    async def create_execution_in_cache(
-        self, execution_id: str, diagram_id: str | None, variables: dict[str, Any]
-    ) -> None:
-        pass
-
-    async def update_node_state(
-        self, execution_id: str, node_id: str, state: str
-    ) -> None:
-        pass
-
-    async def get_execution_state(self, execution_id: str) -> dict[str, Any] | None:
-        return None
-
-    async def save_execution_result(
-        self, execution_id: str, result: dict[str, Any]
-    ) -> None:
-        pass
+__all__ = ["MinimalStateStore"]

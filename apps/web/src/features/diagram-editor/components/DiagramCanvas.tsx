@@ -24,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
-import { useCanvasContext } from "../contexts/CanvasContext";
+import { useCanvasContext } from "@/shared/contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
@@ -229,14 +229,14 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onPaneContextMenu,
     contextMenu,
     isContextMenuOpen,
-    closeContextMenu,
+    closeContextMenu: _closeContextMenu,
     onNodeDragStartCanvas,
     onNodeDragStopCanvas,
   } = context.interactions;
   
   // Extract from operation hooks
-  const { addNode, deleteNode } = context.nodeOps;
-  const { deleteArrow } = context.arrowOps;
+  const { addNode: _addNode, deleteNode: _deleteNode } = context.nodeOps;
+  const { deleteArrow: _deleteArrow } = context.arrowOps;
   const { addPerson } = context.personOps;
   
   const {

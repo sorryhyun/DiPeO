@@ -26,6 +26,7 @@ generates:
       enumValues:
         NodeType: "@dipeo/domain-models#NodeType"
         HandleDirection: "@dipeo/domain-models#HandleDirection"
+        HandleLabel: "@dipeo/domain-models#HandleLabel"
         DataType: "@dipeo/domain-models#DataType"
         LLMService: "@dipeo/domain-models#LLMService"
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"

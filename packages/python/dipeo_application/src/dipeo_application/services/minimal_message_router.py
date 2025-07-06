@@ -1,31 +1,16 @@
-"""Minimal message router implementation for local/CLI execution."""
+"""Minimal message router service."""
 
-from typing import Any
+import warnings
 
+# Deprecation warning
+warnings.warn(
+    "dipeo_application.services.minimal_message_router is deprecated. "
+    "Use dipeo.application.services.minimal_message_router instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
-class MinimalMessageRouter:
-    """Minimal message router for local execution.
-    
-    This implementation provides no-op methods for message routing,
-    suitable for CLI or local execution where real-time updates are not required.
-    """
+# Re-export from new location for backward compatibility
+from dipeo.application.services.minimal_message_router import MinimalMessageRouter
 
-    async def send_update(
-        self, execution_id: str, update: dict[str, Any]
-    ) -> None:
-        pass
-
-    async def send_node_update(
-        self, execution_id: str, node_id: str, update: dict[str, Any]
-    ) -> None:
-        pass
-
-    async def send_error(
-        self, execution_id: str, error: str, details: dict[str, Any] | None = None
-    ) -> None:
-        pass
-
-    async def broadcast(
-        self, message: dict[str, Any]
-    ) -> None:
-        pass
+__all__ = ["MinimalMessageRouter"]

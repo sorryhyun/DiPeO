@@ -5,7 +5,8 @@ from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
 from pydantic import BaseModel
 
-from .types import NodeDefinition, NodeHandler, RuntimeContext
+from .types import NodeDefinition, NodeHandler
+from ..unified_context import UnifiedExecutionContext
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -34,7 +35,7 @@ class BaseNodeHandler(ABC):
     async def execute(
         self,
         props: BaseModel,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: Dict[str, Any],
         services: Dict[str, Any],
     ) -> Any:

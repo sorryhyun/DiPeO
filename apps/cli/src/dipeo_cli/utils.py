@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dipeo_diagram import UnifiedDiagramConverter
-from dipeo_domain import DomainDiagram
+from dipeo.diagram import UnifiedDiagramConverter
+from dipeo.domain import DomainDiagram
 
 
 

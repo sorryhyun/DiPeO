@@ -7,9 +7,10 @@ from dipeo_domain.models import (
     ExecutionStatus,
     NodeExecutionStatus,
     NodeOutput,
+    NodeState,
     TokenUsage,
 )
-from dipeo_application.execution_engine import ExecutionObserver
+from dipeo_application import ExecutionObserver
 
 
 class StateStoreObserver(ExecutionObserver):
@@ -27,22 +28,18 @@ class StateStoreObserver(ExecutionObserver):
         )
 
     async def on_node_complete(
-        self, execution_id: str, node_id: str, output: NodeOutput
+        self, execution_id: str, node_id: str, state: NodeState
     ):
         # Update node status
         await self.state_store.update_node_status(
-            execution_id, node_id, NodeExecutionStatus.COMPLETED
+            execution_id, node_id, state.status
         )
 
-        # Store the output separately
-        token_usage = None
-        if output.metadata:
-            if "token_usage" in output.metadata:
-                token_usage = TokenUsage(**output.metadata["token_usage"])
-
-        await self.state_store.update_node_output(
-            execution_id, node_id, output, token_usage=token_usage
-        )
+        # Store the output separately if available
+        if state.output:
+            await self.state_store.update_node_output(
+                execution_id, node_id, state.output, token_usage=state.token_usage
+            )
 
     async def on_node_error(self, execution_id: str, node_id: str, error: str):
         await self.state_store.update_node_status(
@@ -101,7 +98,7 @@ class StreamingObserver(ExecutionObserver):
         )
 
     async def on_node_complete(
-        self, execution_id: str, node_id: str, output: NodeOutput
+        self, execution_id: str, node_id: str, state: NodeState
     ):
         await self._publish(
             execution_id,
@@ -110,8 +107,11 @@ class StreamingObserver(ExecutionObserver):
                 "execution_id": execution_id,
                 "data": {
                     "node_id": node_id,
-                    "state": NodeExecutionStatus.COMPLETED.value,
-                    "output": output.model_dump() if output else None,
+                    "state": state.status.value,
+                    "output": state.output.model_dump() if state.output else None,
+                    "started_at": state.started_at,
+                    "ended_at": state.ended_at,
+                    "token_usage": state.token_usage.model_dump() if state.token_usage else None,
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             },

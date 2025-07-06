@@ -1,7 +1,6 @@
 import type React from 'react';
 import {
-  NodeID, HandleID,
-  parseHandleId as domainParseHandleId
+  NodeID, HandleID
 } from '@dipeo/domain-models';
 
 // Re-export GraphQL types directly
@@ -44,17 +43,9 @@ export { createEmptyDiagram } from '@dipeo/domain-models';
 // Re-export handle utility functions directly
 export {
   getNodeHandles,
-  getHandleById
+  getHandleById,
+  parseHandleId
 } from '@dipeo/domain-models';
-
-export function parseHandleId(handleId: HandleID): { nodeId: NodeID; handleName: string } {
-  // Use centralized implementation, but adapt return type names
-  const result = domainParseHandleId(handleId);
-  return {
-    nodeId: result.node_id,
-    handleName: result.handle_label
-  };
-}
 
 // Re-export handle compatibility check
 export { areHandlesCompatible } from '@dipeo/domain-models';

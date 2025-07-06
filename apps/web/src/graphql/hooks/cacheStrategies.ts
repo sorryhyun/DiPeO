@@ -1,4 +1,4 @@
-import { ApolloCache } from '@apollo/client';
+import { ApolloCache, DocumentNode, OperationVariables } from '@apollo/client';
 
 /**
  * Common cache update strategies for GraphQL operations
@@ -7,23 +7,23 @@ import { ApolloCache } from '@apollo/client';
 /**
  * Strategy for adding an item to a list in the cache
  */
-export function addToListStrategy<T>(
-  cache: ApolloCache<any>,
-  query: any,
-  variables: any,
+export function addToListStrategy<T, TData = Record<string, unknown>, TVariables = OperationVariables>(
+  cache: ApolloCache<TData>,
+  query: DocumentNode,
+  variables: TVariables,
   newItem: T,
   listField: string,
   keyField: string = 'id'
 ) {
-  const data = cache.readQuery<Record<string, any>>({ query, variables });
-  if (data && data[listField]) {
-    cache.writeQuery({
+  const data = cache.readQuery<TData>({ query, variables });
+  if (data && (data as Record<string, unknown>)[listField]) {
+    cache.writeQuery<TData>({
       query,
       variables,
       data: {
         ...data,
-        [listField]: [...data[listField], newItem]
-      }
+        [listField]: [...((data as Record<string, unknown>)[listField] as T[]), newItem]
+      } as any
     });
   }
 }
@@ -31,23 +31,23 @@ export function addToListStrategy<T>(
 /**
  * Strategy for removing an item from a list in the cache
  */
-export function removeFromListStrategy<T extends { [key: string]: any }>(
-  cache: ApolloCache<any>,
-  query: any,
-  variables: any,
+export function removeFromListStrategy<T extends Record<string, unknown>, TData = Record<string, unknown>, TVariables = OperationVariables>(
+  cache: ApolloCache<TData>,
+  query: DocumentNode,
+  variables: TVariables,
   itemId: string,
   listField: string,
   keyField: string = 'id'
 ) {
-  const data = cache.readQuery<Record<string, any>>({ query, variables });
-  if (data && data[listField]) {
-    cache.writeQuery({
+  const data = cache.readQuery<TData>({ query, variables });
+  if (data && (data as Record<string, unknown>)[listField]) {
+    cache.writeQuery<TData>({
       query,
       variables,
       data: {
         ...data,
-        [listField]: data[listField].filter((item: T) => item[keyField] !== itemId)
-      }
+        [listField]: ((data as Record<string, unknown>)[listField] as T[]).filter((item: T) => item[keyField] !== itemId)
+      } as any
     });
   }
 }
@@ -55,25 +55,25 @@ export function removeFromListStrategy<T extends { [key: string]: any }>(
 /**
  * Strategy for updating an item in a list in the cache
  */
-export function updateInListStrategy<T extends { [key: string]: any }>(
-  cache: ApolloCache<any>,
-  query: any,
-  variables: any,
+export function updateInListStrategy<T extends Record<string, unknown>, TData = Record<string, unknown>, TVariables = OperationVariables>(
+  cache: ApolloCache<TData>,
+  query: DocumentNode,
+  variables: TVariables,
   updatedItem: T,
   listField: string,
   keyField: string = 'id'
 ) {
-  const data = cache.readQuery<Record<string, any>>({ query, variables });
-  if (data && data[listField]) {
-    cache.writeQuery({
+  const data = cache.readQuery<TData>({ query, variables });
+  if (data && (data as Record<string, unknown>)[listField]) {
+    cache.writeQuery<TData>({
       query,
       variables,
       data: {
         ...data,
-        [listField]: data[listField].map((item: T) => 
+        [listField]: ((data as Record<string, unknown>)[listField] as T[]).map((item: T) => 
           item[keyField] === updatedItem[keyField] ? updatedItem : item
         )
-      }
+      } as any
     });
   }
 }
@@ -96,8 +96,8 @@ export function createOptimisticResponse<T>(
 /**
  * Strategy for cache eviction after mutations
  */
-export function evictFromCache(
-  cache: ApolloCache<any>,
+export function evictFromCache<T = unknown>(
+  cache: ApolloCache<T>,
   typename: string,
   id: string
 ) {
@@ -110,14 +110,14 @@ export function evictFromCache(
 /**
  * Common refetch queries configuration
  */
-export interface RefetchConfig {
+export interface RefetchConfig<TVariables = OperationVariables> {
   queries: Array<{
-    query: any;
-    variables?: any;
+    query: DocumentNode;
+    variables?: TVariables;
   }>;
 }
 
-export function createRefetchQueries(config: RefetchConfig) {
+export function createRefetchQueries<TVariables = OperationVariables>(config: RefetchConfig<TVariables>) {
   return config.queries.map(({ query, variables }) => ({
     query,
     variables: variables || {}

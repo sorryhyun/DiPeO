@@ -5,11 +5,11 @@ import { Button } from '@/shared/components/ui/buttons';
 import { getNodeConfig } from '@/core/config/helpers';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../hooks';
-import { useCanvasOperationsContext } from '../../contexts/CanvasContext';
+import { useCanvasOperationsContext } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
-import { nodeId } from '@/core/types';
+import { nodeId, personId } from '@/core/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer
@@ -67,6 +67,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
       type: 'input' | 'output';
       position: Position;
       id: string;
+      handleId: string;
       name: string;
       style: Record<string, unknown>;
       offset: number;
@@ -107,14 +108,14 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
         }
         
         const handleName = handle.id || 'default';
-        // Generate unique ID by combining nodeId, handle type, and handleName
-        const uniqueId = `${nodeId}:${handle.type}:${handleName}`;
+        const uniqueId = `${nodeId}_${handle.type}_${handleName}`;
         
         processedHandles.push({
           type: handle.type,
           position,
           id: uniqueId,
-          name: handle.label || handleName,
+          handleId: handleName, // The actual handle ID (e.g., 'condtrue', 'condfalse')
+          name: handle.label || handleName, // The display label (e.g., 'true', 'false')
           style: {},
           offset: offsetPercentage,
           color: handle.color
@@ -217,14 +218,17 @@ const NodeBody = React.memo(({
         );
       }
       
-      // Special handling for forgettingMode - use emojis
-      if (key === 'forgetting_mode') {
-        const emoji = value === 'keep_first' ? '📌' : 
+      // Special handling for forget_mode - use emojis
+      if (key === 'memory_config.forget_mode') {
+        const emoji = value === 'no_forget' ? '🔒' :
+                     value === 'on_every_turn' ? '🔄' :
+                     value === 'upon_request' ? '📍' :
+                     value === 'keep_first' ? '📌' : 
                      value === 'keep_last' ? '📍' : 
                      value === 'summarize' ? '📄' : '❓';
         return (
-          <div key={key} className="text-sm text-black font-medium text-center">
-            <span className="text-xs text-gray-500">mode:</span> {emoji} {String(value)}
+          <div key={key} className="text-lg text-center" title={`Memory: ${value}`}>
+            {emoji}
           </div>
         );
       }
@@ -261,6 +265,15 @@ export function BaseNode({
   const selectedPersonId = useUnifiedStore(state => 
     state.selectedType === 'person' ? state.selectedId : null
   );
+  
+  // Get person label for person_job nodes
+  const personLabel = useUnifiedStore(state => {
+    if (type === 'person_job' && data?.person) {
+      const person = state.persons.get(personId(String(data.person)));
+      return person?.label || '';
+    }
+    return '';
+  });
   
   // Use custom hooks
   const nId = nodeId(id);
@@ -315,13 +328,23 @@ export function BaseNode({
       }
       
       // Filter out system keys and personId
-      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId'].includes(key) &&
+      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId', 'person', 'memory_config', 'memory_config.forget_mode'].includes(key) &&
         // Filter out blank values (null, undefined, empty string)
         value !== null && value !== undefined && value !== '';
     });
     
+    // Add person label display for person_job nodes
+    if (type === 'person_job' && personLabel) {
+      entries.unshift(['person', personLabel]);
+    }
+    
+    // Add memory_config.forget_mode for person_job nodes
+    if (type === 'person_job' && data['memory_config.forget_mode']) {
+      entries.push(['memory_config.forget_mode', data['memory_config.forget_mode']]);
+    }
+    
     return entries.slice(0, 3); // Limit to 3 fields for cleaner display
-  }, [data]);
+  }, [data, type, personLabel]);
 
   return (
     <div
@@ -386,6 +409,7 @@ export function BaseNode({
           key={handle.id}
           nodeId={nId}
           type={handle.type}
+          handleId={handle.handleId}
           label={handle.name}
           position={handle.position}
           offset={handle.offset}

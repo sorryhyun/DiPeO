@@ -47,7 +47,7 @@ dev = [
 ]
 
 [project.scripts]
-dipeo = "dipeo_cli.__main__:main"
+dipeo-cli = "dipeo_cli.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

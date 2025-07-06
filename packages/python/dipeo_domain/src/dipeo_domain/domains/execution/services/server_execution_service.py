@@ -12,7 +12,7 @@ from ..observers import StreamingObserver
 if TYPE_CHECKING:
     from dipeo_domain.domains.ports import MessageRouterPort, StateStorePort
     from dipeo_domain.domains.diagram.services import DiagramStorageAdapter
-    from .service_registry import ServiceRegistry
+    from dipeo_application.unified_service_registry import UnifiedServiceRegistry
 
 
 class ExecuteDiagramUseCase(BaseService, SupportsExecution):
@@ -20,7 +20,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
 
     def __init__(
         self,
-        service_registry: "ServiceRegistry",
+        service_registry: "UnifiedServiceRegistry",
         state_store: "StateStorePort",
         message_router: "MessageRouterPort",
         diagram_storage_service: "DiagramStorageAdapter",

@@ -4,6 +4,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class MessageRouter:
         self._initialized = False
         self.connection_health: dict[str, ConnectionHealth] = {}
         self._message_queue_size: dict[str, int] = {}
+        self._queue_lock = threading.Lock()  # Thread-safe queue operations
         self.max_queue_size = 100  # Backpressure threshold
 
     async def initialize(self):
@@ -31,7 +33,6 @@ class MessageRouter:
             return
 
         self._initialized = True
-        logger.info(f"SimpleMessageRouter initialized for {self.worker_id}")
 
     async def cleanup(self):
         self.local_handlers.clear()
@@ -44,7 +45,6 @@ class MessageRouter:
             last_successful_send=time.time()
         )
         self._message_queue_size[connection_id] = 0
-        logger.debug(f"Registered connection {connection_id}")
 
     async def unregister_connection(self, connection_id: str):
         self.local_handlers.pop(connection_id, None)
@@ -56,23 +56,22 @@ class MessageRouter:
             if not connections:
                 del self.execution_subscriptions[exec_id]
 
-        logger.debug(f"Unregistered connection {connection_id}")
-
     async def route_to_connection(self, connection_id: str, message: dict) -> bool:
         handler = self.local_handlers.get(connection_id)
         if not handler:
             logger.warning(f"No handler for connection {connection_id}")
             return False
             
-        # Check backpressure
-        queue_size = self._message_queue_size.get(connection_id, 0)
-        if queue_size > self.max_queue_size:
-            logger.warning(f"Connection {connection_id} queue full ({queue_size} messages), applying backpressure")
-            return False
+        # Check backpressure with thread-safe operations
+        with self._queue_lock:
+            queue_size = self._message_queue_size.get(connection_id, 0)
+            if queue_size > self.max_queue_size:
+                logger.warning(f"Connection {connection_id} queue full ({queue_size} messages), applying backpressure")
+                return False
+            self._message_queue_size[connection_id] = queue_size + 1
             
         start_time = time.time()
         try:
-            self._message_queue_size[connection_id] = queue_size + 1
             await handler(message)
             
             # Update health metrics
@@ -98,7 +97,8 @@ class MessageRouter:
             
             return False
         finally:
-            self._message_queue_size[connection_id] = max(0, self._message_queue_size.get(connection_id, 1) - 1)
+            with self._queue_lock:
+                self._message_queue_size[connection_id] = max(0, self._message_queue_size.get(connection_id, 1) - 1)
 
     async def broadcast_to_execution(self, execution_id: str, message: dict):
         start_time = time.time()
@@ -126,17 +126,38 @@ class MessageRouter:
         successful_broadcasts = 0
         failed_broadcasts = 0
         
-        # Python 3.11+ has TaskGroup, for earlier versions we'll fallback to gather
-        try:
-            async with asyncio.TaskGroup() as tg:
-                for conn_id in list(connection_ids):
-                    tg.create_task(self._broadcast_with_metrics(conn_id, message))
-        except* Exception as eg:
-            # Handle exception group from TaskGroup
-            for e in eg.exceptions:
-                logger.error(f"Broadcast error: {e}")
-                failed_broadcasts += 1
-        except AttributeError:
+        # Check Python version for TaskGroup support
+        import sys
+        if sys.version_info >= (3, 11):
+            # Use TaskGroup for Python 3.11+
+            try:
+                async def track_broadcast(connection_id: str, msg: dict):
+                    broadcast_result = await self._broadcast_with_metrics(connection_id, msg)
+                    return connection_id, broadcast_result
+                
+                results = []
+                async with asyncio.TaskGroup() as tg:
+                    for conn_id in list(connection_ids):
+                        task = tg.create_task(track_broadcast(conn_id, message))
+                        results.append(task)
+                
+                # Count successes after all tasks complete
+                for task in results:
+                    try:
+                        conn_id, success = task.result()
+                        if success:
+                            successful_broadcasts += 1
+                        else:
+                            failed_broadcasts += 1
+                    except Exception as e:
+                        logger.error(f"Broadcast error: {e}")
+                        failed_broadcasts += 1
+                        
+            except Exception as e:
+                # Handle any TaskGroup errors
+                logger.error(f"TaskGroup error during broadcast: {e}")
+                failed_broadcasts = len(connection_ids)
+        else:
             # Fallback for Python < 3.11
             tasks = []
             for conn_id in list(connection_ids):
@@ -156,7 +177,8 @@ class MessageRouter:
         if broadcast_time > 0.1:  # Log slow broadcasts
             logger.warning(
                 f"Slow broadcast to execution {execution_id}: "
-                f"{broadcast_time:.2f}s for {len(connection_ids)} connections"
+                f"{broadcast_time:.2f}s for {len(connection_ids)} connections "
+                f"(success: {successful_broadcasts}, failed: {failed_broadcasts})"
             )
     
     async def _broadcast_with_metrics(self, conn_id: str, message: dict) -> bool:
@@ -171,7 +193,6 @@ class MessageRouter:
             self.execution_subscriptions[execution_id] = set()
 
         self.execution_subscriptions[execution_id].add(connection_id)
-        logger.debug(f"Subscribed {connection_id} to execution {execution_id}")
 
     async def unsubscribe_connection_from_execution(
         self, connection_id: str, execution_id: str
@@ -181,8 +202,6 @@ class MessageRouter:
 
             if not self.execution_subscriptions[execution_id]:
                 del self.execution_subscriptions[execution_id]
-
-        logger.debug(f"Unsubscribed {connection_id} from execution {execution_id}")
 
     def get_stats(self) -> dict:
         now = time.time()

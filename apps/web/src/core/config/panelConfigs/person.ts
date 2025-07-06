@@ -1,6 +1,7 @@
 import type { PanelLayoutConfig, PersonFormData } from '@/features/diagram-editor/types/panel';
 import { apolloClient } from '@/graphql/client';
 import { GetApiKeysDocument, GetAvailableModelsDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
+import { isLLMService } from '@dipeo/domain-models';
 
 interface ExtendedPersonFormData extends PersonFormData {
   apiKeyId?: string;
@@ -33,10 +34,13 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             query: GetApiKeysDocument,
             fetchPolicy: 'network-only'
           });
-          return data.api_keys.map((key) => ({
-            value: key.id,
-            label: `${key.label} (${key.service})`
-          }));
+          // Filter to only show LLM service API keys
+          return data.api_keys
+            .filter((key) => isLLMService(key.service as any))
+            .map((key) => ({
+              value: key.id,
+              label: `${key.label} (${key.service})`
+            }));
         } catch (error) {
           console.error('Failed to fetch API keys:', error);
           return [];
@@ -58,7 +62,7 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
           // Get service from selected API key
           const { data: apiKeysData } = await apolloClient.query<GetApiKeysQuery>({
             query: GetApiKeysDocument,
-            fetchPolicy: 'cache-first'
+            fetchPolicy: 'network-only'  // Always fetch fresh data to avoid stale API keys
           });
           const selectedKey = apiKeysData.api_keys.find((k) => k.id === apiKeyId);
           if (!selectedKey) {
@@ -70,14 +74,14 @@ export const personPanelConfig: PanelLayoutConfig<ExtendedPersonFormData> = {
             variables: {
               service: selectedKey.service,
               apiKeyId
-            }
+            },
+            fetchPolicy: 'network-only'
           });
           
           if (!modelsData || !modelsData.available_models) {
             console.warn('No models data received from API');
             return [];
           }
-          
           return modelsData.available_models.map((model: string) => ({
             value: model,
             label: model

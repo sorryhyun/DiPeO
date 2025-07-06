@@ -32,9 +32,3 @@ __all__ = [
     "UserResponseNodeHandler",
     "HookNodeHandler",
 ]
-
-
-# Legacy compatibility - handlers are auto-registered via @register_handler
-def register_all_handlers(registry):
-    """Legacy function - handlers are now auto-registered."""
-    pass

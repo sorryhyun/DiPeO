@@ -3,10 +3,10 @@
  * into a format that can be saved to the backend
  */
 
-import { HandleDirection, DataType } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { storeMapsToArrays, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
+import { storeMapsToArrays } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // The serialized diagram should match the GraphQL schema format
@@ -68,7 +68,36 @@ function cleanNodeData(node: DomainNode): DomainNode {
       break;
     case 'person_job':
       nodeData.first_only_prompt = nodeData.first_only_prompt || '';
-      nodeData.max_iteration = nodeData.max_iteration || 1;
+      // Ensure max_iteration is a number
+      nodeData.max_iteration = typeof nodeData.max_iteration === 'number' 
+        ? nodeData.max_iteration 
+        : (Number(nodeData.max_iteration) || 1);
+      // Convert tools from comma-separated string to array format
+      if (typeof nodeData.tools === 'string' && nodeData.tools) {
+        const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
+        nodeData.tools = toolNames.map((toolName: string) => {
+          // Map common tool names to their enum values
+          const toolTypeMap: Record<string, string> = {
+            'web_search': 'web_search',
+            'web_search_preview': 'web_search_preview',
+            'image_generation': 'image_generation'
+          };
+          return {
+            type: toolTypeMap[toolName] || toolName,
+            enabled: true
+          };
+        });
+      } else if (typeof nodeData.tools === 'string' && !nodeData.tools) {
+        // Empty string means no tools
+        nodeData.tools = null;
+      }
+      break;
+    case 'person_batch_job':
+      nodeData.first_only_prompt = nodeData.first_only_prompt || '';
+      // Ensure max_iteration is a number
+      nodeData.max_iteration = typeof nodeData.max_iteration === 'number' 
+        ? nodeData.max_iteration 
+        : (Number(nodeData.max_iteration) || 1);
       // Convert tools from comma-separated string to array format
       if (typeof nodeData.tools === 'string' && nodeData.tools) {
         const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
@@ -130,11 +159,12 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   // Generate input handles
   if (config.handles.input) {
     config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleId = `${node.id}:${handleConfig.id}`;
+      const handleLabel = handleConfig.id as HandleLabel;
+      const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.INPUT);
       handles.push({
-        id: handleId as import('@dipeo/domain-models').HandleID,
+        id: handleId,
         node_id: node.id,
-        label: handleConfig.label || handleConfig.id,
+        label: handleLabel,
         direction: HandleDirection.INPUT,
         data_type: DataType.ANY,
         position: handleConfig.position || 'left'
@@ -145,11 +175,12 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   // Generate output handles
   if (config.handles.output) {
     config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleId = `${node.id}:${handleConfig.id}`;
+      const handleLabel = handleConfig.id as HandleLabel;
+      const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.OUTPUT);
       handles.push({
-        id: handleId as import('@dipeo/domain-models').HandleID,
+        id: handleId,
         node_id: node.id,
-        label: handleConfig.label || handleConfig.id,
+        label: handleLabel,
         direction: HandleDirection.OUTPUT,
         data_type: DataType.ANY,
         position: handleConfig.position || 'right'
@@ -166,19 +197,28 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
 function getStoreStateWithMaps() {
   const state = useUnifiedStore.getState();
   
-  // Convert store arrays to a diagram format
-  const graphqlDiagram = {
-    nodes: state.nodesArray || [],
-    handles: Array.from(state.handles?.values() || []),
-    arrows: state.arrowsArray || [],
-    persons: state.personsArray || []
+  // Convert persons to ensure they have required fields
+  const personsWithRequiredFields = new Map(state.persons);
+  personsWithRequiredFields.forEach((person, id) => {
+    if (person.llm_config && !person.llm_config.api_key_id) {
+      // Provide a default api_key_id if missing
+      personsWithRequiredFields.set(id, {
+        ...person,
+        llm_config: {
+          ...person.llm_config,
+          api_key_id: 'default' as any // This should be a valid ApiKeyID in your system
+        }
+      });
+    }
+  });
+  
+  // Return the Maps with converted persons
+  return {
+    nodes: state.nodes,
+    handles: state.handles,
+    arrows: state.arrows,
+    persons: personsWithRequiredFields as any
   };
-  
-  // Convert GraphQL diagram to domain format (handles type mismatches)
-  const domainDiagram = convertGraphQLDiagramToDomain(graphqlDiagram);
-  
-  // Convert back to Maps
-  return diagramToStoreMaps(domainDiagram);
 }
 
 /**
@@ -205,27 +245,91 @@ export function serializeDiagram(): SerializedDiagram {
   const storeMaps = getStoreStateWithMaps();
   const diagramArrays = storeMapsToArrays(storeMaps);
 
-  // Clean node data and generate handles
+  // Clean node data
   const cleanNodes = diagramArrays.nodes?.map(node => cleanNodeData(node)) || [];
-  const generatedHandles: DomainHandle[] = [];
   
-  // Generate handles for all nodes
-  cleanNodes.forEach(node => {
-    const nodeHandles = generateHandlesForNode(node);
-    generatedHandles.push(...nodeHandles);
+  // Get existing handles from store
+  const existingHandles = diagramArrays.handles || [];
+  
+  // Create a map of existing handles by their handle ID
+  const existingHandleMap = new Map<string, DomainHandle>();
+  existingHandles.forEach(handle => {
+    existingHandleMap.set(handle.id, handle);
   });
   
-  // Use generated handles if store handles are empty
-  const handles = diagramArrays.handles && diagramArrays.handles.length > 0 
-    ? diagramArrays.handles 
-    : generatedHandles;
+  // Generate handles only for nodes that are missing required handles
+  const generatedHandles: DomainHandle[] = [];
+  cleanNodes.forEach(node => {
+    const nodeHandles = generateHandlesForNode(node);
+    
+    
+    nodeHandles.forEach(newHandle => {
+      // Only add if this specific handle doesn't exist
+      if (!existingHandleMap.has(newHandle.id)) {
+        generatedHandles.push(newHandle);
+        existingHandleMap.set(newHandle.id, newHandle);
+      }
+    });
+  });
   
+  // Use the map values to get all unique handles
+  const allHandles = Array.from(existingHandleMap.values());
+  
+  // Filter out orphaned handles (handles for nodes that don't exist)
+  const nodeIds = new Set(cleanNodes.map(node => node.id));
+  const validHandles = allHandles.filter(handle => {
+    if (!nodeIds.has(handle.node_id)) {
+      console.warn(`Removing orphaned handle ${handle.id} for non-existent node ${handle.node_id}`);
+      return false;
+    }
+    return true;
+  });
+  
+  // Create a set of valid handle IDs for arrow validation (use allHandles first to validate arrows)
+  const allHandleIds = new Set(allHandles.map(handle => handle.id));
+  
+  
+  // Filter out arrows that reference invalid handles
+  // First check against all handles, then ensure the handles belong to valid nodes
+  const validArrows = (diagramArrays.arrows || []).filter(arrow => {
+    const sourceValid = allHandleIds.has(arrow.source);
+    const targetValid = allHandleIds.has(arrow.target);
+    
+    if (!sourceValid || !targetValid) {
+      console.warn(`Removing arrow ${arrow.id} with invalid handle references: ${arrow.source} -> ${arrow.target}`);
+      return false;
+    }
+    
+    // Also check if the handles belong to existing nodes
+    const sourceHandle = existingHandleMap.get(arrow.source);
+    const targetHandle = existingHandleMap.get(arrow.target);
+    
+    if (sourceHandle && !nodeIds.has(sourceHandle.node_id)) {
+      console.warn(`Removing arrow ${arrow.id} - source handle belongs to non-existent node`);
+      return false;
+    }
+    
+    if (targetHandle && !nodeIds.has(targetHandle.node_id)) {
+      console.warn(`Removing arrow ${arrow.id} - target handle belongs to non-existent node`);
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Clean persons data by removing masked_api_key
+  const cleanPersons = (diagramArrays.persons || []).map(person => {
+    // Remove masked_api_key as it's a runtime display-only field
+    const { masked_api_key: _masked_api_key, ...cleanPerson } = person as any;
+    return cleanPerson as DomainPerson;
+  });
+
   // Return the serialized diagram
   return {
     nodes: cleanNodes,
-    arrows: diagramArrays.arrows || [],
-    persons: diagramArrays.persons || [],
-    handles,
+    arrows: validArrows,
+    persons: cleanPersons,
+    handles: validHandles,
     metadata
   };
 }

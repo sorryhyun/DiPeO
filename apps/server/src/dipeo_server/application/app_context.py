@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from dipeo_container.app_context_adapter import AppContextAdapter
+from dipeo.container.adapters import AppContextAdapter
 from fastapi import FastAPI
 
 from .container import ServerContainer, init_server_resources, shutdown_server_resources
@@ -19,14 +19,14 @@ if TYPE_CHECKING:
         SupportsMemory,
         SupportsNotion,
     )
-    from dipeo_domain.domains.diagram.services import (
+    from dipeo.domain.domains.diagram.services import (
         DiagramStorageAdapter,
     )
-    from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
-    from dipeo_domain.domains.api import APIIntegrationDomainService
-    from dipeo_domain.domains.file import FileOperationsDomainService
-    from dipeo_domain.domains.text import TextProcessingDomainService
-    from dipeo_infra import MessageRouter
+    from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
+    from dipeo.domain.domains.api import APIIntegrationDomainService
+    from dipeo.domain.domains.file import FileOperationsDomainService
+    from dipeo.domain.domains.text import TextProcessingDomainService
+    from dipeo.infra import MessageRouter
 
     from dipeo_server.infra.persistence.state_registry import StateRegistry
 
@@ -63,7 +63,7 @@ def initialize_container() -> ServerContainer:
                 "dipeo_server.api.graphql.mutations",
                 "dipeo_server.api.graphql.subscriptions",
                 "dipeo_server.api.graphql.resolvers",
-                "dipeo_domain.domains.execution.services",
+                "dipeo.domain.domains.execution.services",
             ]
         )
 

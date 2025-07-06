@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { GetConversationsDocument } from '@/__generated__/graphql';
 import { createEntityQuery } from '@/graphql/hooks';
 import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/core/types/conversation';
-import { type PersonID, ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
+import { type PersonID, type ExecutionID, type NodeID, ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -59,12 +59,25 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   );
 
   // Transform function for conversation data
-  const transformConversationsData = useCallback((conversationsData: any) => {
+  const transformConversationsData = useCallback((conversationsData: {
+    conversations?: Array<{
+      id?: string;
+      personId: PersonID;
+      nodeId: NodeID;
+      userPrompt?: string;
+      assistantResponse?: string;
+      timestamp: string;
+      executionId?: ExecutionID;
+      forgotten?: boolean;
+      tokenUsage?: { total?: number };
+    }>;
+    has_more?: boolean;
+  }) => {
     const transformed: Record<string, PersonMemoryState> = {};
     
     // Group conversations by personId
-    const groupedByPerson: Record<string, any[]> = {};
-    conversationsData.conversations?.forEach((conv: any) => {
+    const groupedByPerson: Record<string, typeof conversationsData.conversations> = {};
+    conversationsData.conversations?.forEach((conv) => {
       const pid = conv.personId;
       if (!groupedByPerson[pid]) {
         groupedByPerson[pid] = [];
@@ -74,8 +87,9 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     
     // Transform to PersonMemoryState format
     Object.entries(groupedByPerson).forEach(([pid, convs]) => {
+      if (!convs) return;
       transformed[pid as PersonID] = {
-        messages: convs.map((conv: any) => ({
+        messages: convs.map((conv) => ({
           id: conv.id || `${conv.nodeId}-${conv.timestamp}`,
           role: 'assistant' as const,
           personId: pid as PersonID,
@@ -88,7 +102,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
           executionId: conv.executionId,
           forgotten: conv.forgotten || false
         })),
-        visibleMessages: convs.filter((c: any) => !c.forgotten).length,
+        visibleMessages: convs.filter((c) => !c.forgotten).length,
         hasMore: conversationsData.has_more || false,
         config: {
           forgetMode: 'no_forget',
@@ -97,11 +111,11 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       };
       
       // Update message counts
-      messageCounts.current[pid] = convs.length;
+      messageCounts.current[pid] = convs?.length || 0;
       
       // Update last fetch time
-      if (convs.length > 0) {
-        lastUpdateTime.current = convs[convs.length - 1].timestamp;
+      if (convs && convs.length > 0) {
+        lastUpdateTime.current = convs[convs.length - 1]!.timestamp;
       }
     });
     
@@ -178,8 +192,14 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
         updateQuery: (prev, { fetchMoreResult }) => {
           if (!fetchMoreResult) return prev;
           
-          const newData = fetchMoreResult.conversations as any;
-          const prevData = prev.conversations as any;
+          const newData = fetchMoreResult.conversations as {
+            conversations?: Array<unknown>;
+            has_more?: boolean;
+          };
+          const prevData = prev.conversations as {
+            conversations?: Array<unknown>;
+            has_more?: boolean;
+          };
           
           return {
             conversations: {
@@ -196,7 +216,10 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       
       // Update message count
       if (result.data) {
-        const newMessages = (result.data.conversations as any).conversations || [];
+        const newMessages = ((result.data.conversations as {
+          conversations?: Array<unknown>;
+          has_more?: boolean;
+        }).conversations || []) as Array<unknown>;
         messageCounts.current[personId] = currentOffset + newMessages.length;
       }
     } catch (error) {

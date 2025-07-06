@@ -23,9 +23,6 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
         "claude": "ANTHROPIC_API_KEY",
         "google": "GOOGLE_API_KEY",
         "gemini": "GOOGLE_API_KEY",
-        "groq": "GROQ_API_KEY",
-        "xai": "XAI_API_KEY",
-        "grok": "XAI_API_KEY",
         "notion": "NOTION_API_KEY",
     }
 
@@ -47,7 +44,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
                 key_id = f"env_{service}"
                 self._cached_keys[key_id] = {
                     "id": key_id,
-                    "label": f"{service.title()} (from {env_var})",
+                    "label": f"{service} (from {env_var})",
                     "service": service,
                     "key": api_key,
                 }
@@ -64,8 +61,6 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
             return "google"
         if "groq" in model_lower or "llama" in model_lower or "mixtral" in model_lower:
             return "groq"
-        if "grok" in model_lower:
-            return "xai"
         # Default to OpenAI for unknown models
         return "openai"
 
@@ -83,7 +78,6 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
                 "claude",
                 "gemini",
                 "groq",
-                "grok",
                 "llama",
                 "mixtral",
                 "o1",
@@ -109,7 +103,7 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
             if api_key:
                 key_data = {
                     "id": env_key_id,
-                    "label": f"{normalized_service.title()} (from {env_var})",
+                    "label": f"{normalized_service} (from {env_var})",
                     "service": normalized_service,
                     "key": api_key,
                 }

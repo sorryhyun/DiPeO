@@ -1,6 +1,6 @@
 import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
 import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { FIELD_TYPES, type FieldType } from '@/core/types/panel';
+import { FIELD_TYPES } from '@/core/types/panel';
 import { normalizeFieldType } from '@/core/types/fieldTypeRegistry';
 
 

@@ -12,8 +12,8 @@ from dipeo_core import BaseService, SupportsExecution
 from dipeo_domain.models import DomainDiagram
 
 from .engine_factory import EngineFactory
-from .execution_engine import ExecutionObserver
-from .service_registry import LocalServiceRegistry
+from .observers import ExecutionObserver
+from .unified_service_registry import UnifiedServiceRegistry
 
 if TYPE_CHECKING:
     from .context import ApplicationContext
@@ -104,7 +104,7 @@ class LocalExecutionService(BaseService, SupportsExecution):
         """Initialize with application context."""
         super().__init__()
         self.app_context = app_context
-        self.service_registry = LocalServiceRegistry(app_context)
+        self.service_registry = UnifiedServiceRegistry.from_context(app_context)
 
     async def initialize(self) -> None:
         """Initialize the service."""

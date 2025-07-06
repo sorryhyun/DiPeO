@@ -9,7 +9,7 @@
 
 ## 어떻게 시작하면 되나요?
 
-우선 api key가 있어야 합니다. openai에서 계정을 만들고 돈을 충전한 다음, api key를 만들어주세요. custom LLM API는 추후 지원 예정입니다. (추가하고 싶다면 `apps/server/src/dipeo_server/domains/llm` 및 `packages/domain-models/src/diagram.ts` 를 참고하여 추가해주세요.)
+우선 api key가 있어야 합니다. openai에서 계정을 만들고 돈을 충전한 다음, api key를 만들어주세요. custom LLM API는 추후 지원 예정입니다. (추가하고 싶다면 `apps/server/src/dipeo_server/domains/llm` 및 `dipeo/models/src/diagram.ts` 를 참고하여 추가해주세요.)
 
 좌측 사이드바의 api keys 버튼을 누르시면 api key를 입력하는 창이 뜹니다. 여기에서 api key를 등록하면 자동으로 `files/apikeys.json` 이라는 파일이 만들어지며, 해당 파일로 api key를 관리할 수 있습니다.
 

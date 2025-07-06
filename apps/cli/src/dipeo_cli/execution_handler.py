@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .execution_options import ExecutionMode, ExecutionOptions, parse_run_options
+from .logging_config import configure_logging
 from .runners import LocalDiagramRunner, ServerDiagramRunner
 from .server_manager import restart_backend_server, stop_backend_server
 from .utils import DiagramLoader
@@ -44,7 +45,6 @@ def _resolve_diagram_path(path: str, format_id: str | None) -> str:
             
             # Check if the file exists
             if Path(resolved_path).exists():
-                print(f"✓ Resolved '{path}' to '{resolved_path}'")
                 return resolved_path
             else:
                 print(f"⚠️  Warning: Resolved path '{resolved_path}' does not exist")
@@ -61,6 +61,10 @@ async def run_command(args: list[str]) -> None:
 
     file_path = args[0]
     options = parse_run_options(args[1:])
+    
+    # Configure logging if debug mode is enabled
+    if options.debug:
+        configure_logging(debug=True)
     
     # Resolve short diagram names based on format
     file_path = _resolve_diagram_path(file_path, options.format)
@@ -95,6 +99,9 @@ async def run_command(args: list[str]) -> None:
         f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}"
     )
 
+    # Display conversation logs
+    _display_conversation_logs(result, options)
+
     # Save results
     _save_results(result, options)
 
@@ -104,21 +111,10 @@ async def run_command(args: list[str]) -> None:
         and not options.keep_server
         and options.mode != ExecutionMode.MONITOR
     ):
-        # Only show server shutdown message if in verbose debug mode
-        verbose_debug = os.environ.get("VERBOSE_DEBUG", "false").lower() == "true"
-        if verbose_debug:
-            await stop_backend_server()
-        else:
-            # Silently stop the server for cleaner output
-            try:
-                subprocess.run(
-                    ["pkill", "-f", "python main.py"], check=False, capture_output=True
-                )
-                subprocess.run(
-                    ["pkill", "-f", "hypercorn"], check=False, capture_output=True
-                )
-            except Exception:
-                pass
+        # Always stop the server in debug mode and provide feedback
+        print("\n🐛 Debug: Stopping backend server...")
+        await stop_backend_server(show_message=False)  # Don't show verbose message
+        print("✅ Backend server stopped")
     elif options.debug and (
         options.keep_server or options.mode == ExecutionMode.MONITOR
     ):
@@ -152,6 +148,57 @@ async def _run_monitor_mode(diagram: dict[str, Any], options: ExecutionOptions) 
 
     if options.debug:
         print("💡 Tip: Server will remain running after execution for monitoring")
+
+
+def _display_conversation_logs(result: dict[str, Any], options: ExecutionOptions) -> None:
+    """Display conversation logs from execution results."""
+    context = result.get("context", {})
+    
+    # Collect all conversations from node outputs
+    conversations = []
+    for node_id, node_output in context.items():
+        if isinstance(node_output, dict) and "value" in node_output:
+            value = node_output["value"]
+            if isinstance(value, dict) and "conversation" in value:
+                conversation = value["conversation"]
+                if conversation:
+                    conversations.append({
+                        "node_id": node_id,
+                        "conversation": conversation
+                    })
+    
+    # Display conversations if found
+    if conversations:
+        print("\n📝 Conversation Logs:")
+        print("=" * 60)
+        
+        for conv_data in conversations:
+            node_id = conv_data["node_id"]
+            conversation = conv_data["conversation"]
+            
+            # Get person label from first message if available
+            person_label = None
+            if conversation and isinstance(conversation[0], dict):
+                person_label = conversation[0].get("person_label", conversation[0].get("person_id", node_id))
+            
+            print(f"\n🤖 Person: {person_label or node_id}")
+            print("-" * 40)
+            
+            for msg in conversation:
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                
+                # Format role display
+                role_icon = "👤" if role == "user" else "🤖" if role == "assistant" else "📎"
+                role_display = role.capitalize()
+                
+                # Display message
+                print(f"\n{role_icon} {role_display}:")
+                # Indent content for readability
+                for line in content.split('\n'):
+                    print(f"   {line}")
+        
+        print("\n" + "=" * 60)
 
 
 def _save_results(result: dict[str, Any], options: ExecutionOptions) -> None:

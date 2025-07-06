@@ -14,11 +14,12 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 For Korean guide for quickstart, read [Korean docs](docs/korean_install_guide.md)
 
 ```bash
-# Start everything (first-time setup is automatic)
+make install
+make codegen
 make dev-all
 ```
 
-That's it! This single command will:
+That's it! This will:
 - Install dependencies if it's your first time
 - Generate required code
 - Start both frontend and backend services
@@ -29,14 +30,14 @@ That's it! This single command will:
 ```bash
 make dev-server                   # Start backend server
 make dev-web                      # Start frontend server
-make build-all                    # Build all components
-make codegen                      # Generate code from domain models
-make install-all                  # Install all dependencies
 ```
 
 ### `./dipeo` - Run Diagrams
 ```bash
-./dipeo run quicksave --debug --format=native
+# run diagram with automatically running server
+./dipeo-cli run quicksave --debug --format=native
+# or, feed actual directory
+./dipeo-cli run files/diagrams/native/quicksave --debug
 ```
 
 ### Docs
@@ -46,6 +47,7 @@ Note [docs](docs)
 - Node.js 22+ with pnpm 10+
 - Python 3.13+
 - tmux (optional, for better parallel execution)
+
 
 ## Next Release will be
 - hook node for general event hooks. i.e. youtube subtitle generator

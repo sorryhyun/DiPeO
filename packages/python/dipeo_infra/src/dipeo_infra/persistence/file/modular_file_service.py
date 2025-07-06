@@ -244,7 +244,7 @@ class ModularFileService(BaseService, SupportsFile, FileServiceProtocol):
                     
                     file_info = FileInfo(
                         id=str(relative_path.with_suffix("")),
-                        name=file_path.stem.replace("_", " ").replace("-", " ").title(),
+                        name=file_path.stem,
                         path=str(relative_path),
                         format=format_type,
                         extension=file_path.suffix[1:],

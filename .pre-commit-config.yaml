@@ -12,7 +12,7 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [types-requests, types-PyYAML]
-        exclude: ^(packages/python/dipeo_domain/|.*/__generated__/)
+        exclude: ^(dipeo/domain/|.*/__generated__/)
 
   # TypeScript/JavaScript formatting and linting
   - repo: local
@@ -27,9 +27,9 @@ repos:
       # Code generation for domain models
       - id: domain-model-codegen
         name: Generate code from domain models
-        entry: bash -c 'cd packages/domain-models && pnpm build'
+        entry: bash -c 'cd dipeo/models && pnpm build'
         language: system
-        files: ^packages/domain-models/src/.*\.ts$
+        files: ^dipeo/models/src/.*\.ts$
         pass_filenames: false
         stages: [commit]
 

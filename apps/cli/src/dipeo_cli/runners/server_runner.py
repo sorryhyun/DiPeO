@@ -38,9 +38,6 @@ class ServerDiagramRunner:
                         self.node_labels[node_id] = label
 
                 # For CLI, we can execute diagrams directly without saving
-                if self.options.debug:
-                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                    print(f"[🕰️ {timestamp}] 🐛 Debug: Executing diagram directly...")
 
                 # Execute the diagram directly with diagram_data
                 execution_id = await client.execute_diagram(
@@ -52,11 +49,8 @@ class ServerDiagramRunner:
                 result["execution_id"] = execution_id
 
                 if self.options.debug:
-                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                    print(
-                        f"[🕰️ {timestamp}] 🚀 Execution started with ID: {execution_id}"
-                    )
                     if self.options.mode == ExecutionMode.MONITOR:
+                        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
                         print(
                             f"[🕰️ {timestamp}] 📊 Monitor mode active - server will keep running"
                         )
@@ -134,8 +128,6 @@ class ServerDiagramRunner:
                     print(f"\n🔄 Executing node: {node_label}")
                     if self.options.debug:
                         self.node_timings[node_id] = {"start": time.time()}
-                        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                        print(f"   [🕰️ {timestamp}] Node started (ID: {node_id})")
 
                 elif status == "completed":
                     print(f"✅ Node '{node_label}' completed")
