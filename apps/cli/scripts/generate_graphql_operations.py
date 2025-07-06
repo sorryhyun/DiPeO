@@ -127,7 +127,7 @@ def generate_python_operations(operations: list[tuple[str, str, str]]) -> str:
     """Generate Python code for GraphQL operations."""
     imports = [
         "from typing import Dict, Any, List, Optional",
-        "from dipeo_domain.models import NodeType, DiagramFormat, ExecutionStatus",
+        "from dipeo.domain.models import NodeType, DiagramFormat, ExecutionStatus",
         "",
         '"""',
         "Auto-generated typed GraphQL operations for CLI",

@@ -5,7 +5,7 @@ Convert command implementation for DiPeO CLI.
 import json
 from pathlib import Path
 
-from dipeo_diagram import UnifiedDiagramConverter
+from dipeo.diagram import UnifiedDiagramConverter
 
 from .api_client import DiPeoAPIClient
 from .utils import DiagramLoader

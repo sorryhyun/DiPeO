@@ -3,8 +3,8 @@
 import logging
 from typing import Any
 
-from dipeo_application import MinimalMessageRouter, MinimalStateStore
-from dipeo_core import (
+from dipeo.application import MinimalMessageRouter, MinimalStateStore
+from dipeo.core import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
@@ -13,8 +13,8 @@ from dipeo_core import (
     SupportsMemory,
     SupportsNotion,
 )
-from dipeo_application import ApplicationContext
-from dipeo_infra.external.apikey import EnvironmentAPIKeyService
+from dipeo_application import ApplicationContext  # Not migrated yet
+from dipeo_infra.external.apikey import EnvironmentAPIKeyService  # Not migrated yet
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,10 @@ class LocalAppContext:
         self._execution_service: SupportsExecution | None = None
         self._notion_service: SupportsNotion | None = None
         self._diagram_storage_service: SupportsDiagram | None = None
+        self._db_operations_service: Any | None = None
+        self._text_processing_service: Any | None = None
+        self._api_integration_service: Any | None = None
+        self._code_execution_service: Any | None = None
 
         # Minimal infrastructure
         self._state_store = MinimalStateStore()
@@ -77,12 +81,32 @@ class LocalAppContext:
     @property
     def message_router(self):
         return self._message_router
+    
+    @property
+    def db_operations_service(self) -> Any | None:
+        return self._db_operations_service
+    
+    @property
+    def text_processing_service(self) -> Any | None:
+        return self._text_processing_service
+    
+    @property
+    def api_integration_service(self) -> Any | None:
+        return self._api_integration_service
+    
+    @property
+    def code_execution_service(self) -> Any | None:
+        return self._code_execution_service
 
     async def initialize_for_local(self):
         """Initialize minimal services for local execution."""
         # Import necessary services
-        from dipeo_application import LocalExecutionService
-        from dipeo_infra import ConsolidatedFileService, LLMInfraService, MemoryService
+        from dipeo_application import LocalExecutionService  # Not migrated yet
+        from dipeo_infra import ConsolidatedFileService, LLMInfraService, MemoryService  # Not migrated yet
+        from dipeo.domain.domains.db import DBOperationsDomainService
+        from dipeo.domain.domains.validation import ValidationDomainService
+        from dipeo.domain.domains.text import TextProcessingDomainService
+        from dipeo.domain.domains.api import APIIntegrationDomainService
 
         # Initialize API key service with environment variables
         self._api_key_service = EnvironmentAPIKeyService()
@@ -95,10 +119,24 @@ class LocalAppContext:
         # Initialize memory service
         self._memory_service = MemoryService()
         
-        # Set conversation_service to memory_service (as per ApplicationContext protocol)
-        self._conversation_service = self._memory_service
+        # Initialize conversation memory service
+        from dipeo.domain.domains.conversation import ConversationMemoryService
+        self._conversation_service = ConversationMemoryService(memory_service=self._memory_service)
 
         self._file_service = ConsolidatedFileService()
+
+        # Initialize domain services
+        validation_service = ValidationDomainService()
+        self._db_operations_service = DBOperationsDomainService(
+            file_service=self._file_service,
+            validation_service=validation_service
+        )
+        
+        self._text_processing_service = TextProcessingDomainService()
+        
+        self._api_integration_service = APIIntegrationDomainService(
+            file_service=self._file_service
+        )
 
         # Initialize execution service
         self._execution_service = LocalExecutionService(self)

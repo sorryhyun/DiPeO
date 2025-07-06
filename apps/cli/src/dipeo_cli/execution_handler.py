@@ -111,21 +111,10 @@ async def run_command(args: list[str]) -> None:
         and not options.keep_server
         and options.mode != ExecutionMode.MONITOR
     ):
-        # Only show server shutdown message if in verbose debug mode
-        verbose_debug = os.environ.get("VERBOSE_DEBUG", "false").lower() == "true"
-        if verbose_debug:
-            await stop_backend_server()
-        else:
-            # Silently stop the server for cleaner output
-            try:
-                subprocess.run(
-                    ["pkill", "-f", "python main.py"], check=False, capture_output=True
-                )
-                subprocess.run(
-                    ["pkill", "-f", "hypercorn"], check=False, capture_output=True
-                )
-            except Exception:
-                pass
+        # Always stop the server in debug mode and provide feedback
+        print("\n🐛 Debug: Stopping backend server...")
+        await stop_backend_server(show_message=False)  # Don't show verbose message
+        print("✅ Backend server stopped")
     elif options.debug and (
         options.keep_server or options.mode == ExecutionMode.MONITOR
     ):

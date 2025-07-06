@@ -30,16 +30,14 @@ That's it! This will:
 ```bash
 make dev-server                   # Start backend server
 make dev-web                      # Start frontend server
-make codegen                      # Generate code from domain models
-make install                  # Install all dependencies
 ```
 
 ### `./dipeo` - Run Diagrams
 ```bash
 # run diagram with automatically running server
-./dipeo run quicksave --debug --format=native
+./dipeo-cli run quicksave --debug --format=native
 # or, feed actual directory
-./dipeo run files/diagrams/native/quicksave --debug
+./dipeo-cli run files/diagrams/native/quicksave --debug
 ```
 
 ### Docs

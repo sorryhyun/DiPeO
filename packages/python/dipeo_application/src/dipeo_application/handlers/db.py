@@ -37,7 +37,10 @@ class DBNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute db node - delegates to domain service for validation and execution."""
-        db_service = services["db_operations"]
+        # Get service from context or fallback to services dict
+        db_service = context.get_service("db_operations")
+        if not db_service:
+            db_service = services.get("db_operations")
 
         # Get single input value
         input_val = None

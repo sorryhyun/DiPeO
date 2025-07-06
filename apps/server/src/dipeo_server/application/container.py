@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from dependency_injector import providers
-from dipeo_container import Container as BaseContainer
+from dipeo.container import Container as BaseContainer
 from dipeo_core import (
     SupportsAPIKey,
     SupportsExecution,
@@ -12,29 +12,29 @@ from dipeo_core import (
     SupportsMemory,
     SupportsNotion,
 )
-from dipeo_domain.domains.apikey import APIKeyDomainService
-from dipeo_domain.domains.conversation.simple_service import ConversationMemoryService
-from dipeo_domain.domains.db import DBOperationsDomainService
-from dipeo_domain.domains.diagram.services import (
+from dipeo.domain.domains.apikey import APIKeyDomainService
+from dipeo.domain.domains.conversation.simple_service import ConversationMemoryService
+from dipeo.domain.domains.db import DBOperationsDomainService
+from dipeo.domain.domains.diagram.services import (
     DiagramFileRepository,
     DiagramStorageAdapter,
 )
-from dipeo_domain.domains.execution import PrepareDiagramForExecutionUseCase
-from dipeo_domain.domains.execution.services import ExecuteDiagramUseCase
-from dipeo_application.unified_service_registry import UnifiedServiceRegistry
-from dipeo_domain.domains.file import FileOperationsDomainService
-from dipeo_domain.domains.text import TextProcessingDomainService
-from dipeo_domain.domains.validation import ValidationDomainService
-from dipeo_infra import (
+from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
+from dipeo.domain.domains.execution.services import ExecuteDiagramUseCase
+from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.domain.domains.file import FileOperationsDomainService
+from dipeo.domain.domains.text import TextProcessingDomainService
+from dipeo.domain.domains.validation import ValidationDomainService
+from dipeo.infra import (
     MessageRouter,
     NotionAPIService,
     LLMInfraService,
     ConsolidatedFileService,
 )
-from dipeo_domain.domains.api import APIIntegrationDomainService
+from dipeo.domain.domains.api import APIIntegrationDomainService
 from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR
-from dipeo_infra.persistence.memory import MemoryService
+from dipeo.infra.persistence.memory import MemoryService
 
 
 class ServerContainer(BaseContainer):
@@ -115,36 +115,35 @@ class ServerContainer(BaseContainer):
 
     # Service registry for node handlers
     service_registry = providers.Factory(
-        lambda: UnifiedServiceRegistry(
-            llm=llm_service(),
-            llm_service=llm_service(),
-            api_key=api_key_service(),
-            api_key_service=api_key_service(),
-            file=file_service(),
-            file_service=file_service(),
-            conversation_memory=conversation_memory_service(),
-            conversation_memory_service=conversation_memory_service(),
-            memory=conversation_memory_service(),
-            memory_service=conversation_memory_service(),
-            conversation=conversation_memory_service(),
-            notion=notion_api_service(),
-            notion_service=notion_api_service(),
-            diagram_storage=diagram_storage_service(),
-            diagram_storage_service=diagram_storage_service(),
-            storage=diagram_storage_service(),
-            api_integration=api_integration_service(),
-            api_integration_service=api_integration_service(),
-            api=api_integration_service(),
-            text_processing=text_processing_service(),
-            text_processing_service=text_processing_service(),
-            text=text_processing_service(),
-            file_operations=file_operations_service(),
-            file_operations_service=file_operations_service(),
-            validation=validation_service(),
-            validation_service=validation_service(),
-            db_operations=db_operations_service(),
-            db_operations_service=db_operations_service(),
-        )
+        UnifiedServiceRegistry,
+        llm=llm_service,
+        llm_service=llm_service,
+        api_key=api_key_service,
+        api_key_service=api_key_service,
+        file=file_service,
+        file_service=file_service,
+        conversation_memory=conversation_memory_service,
+        conversation_memory_service=conversation_memory_service,
+        memory=conversation_memory_service,
+        memory_service=conversation_memory_service,
+        conversation=conversation_memory_service,
+        notion=notion_api_service,
+        notion_service=notion_api_service,
+        diagram_storage=diagram_storage_service,
+        diagram_storage_service=diagram_storage_service,
+        storage=diagram_storage_service,
+        api_integration=api_integration_service,
+        api_integration_service=api_integration_service,
+        api=api_integration_service,
+        text_processing=text_processing_service,
+        text_processing_service=text_processing_service,
+        text=text_processing_service,
+        file_operations=file_operations_service,
+        file_operations_service=file_operations_service,
+        validation=validation_service,
+        validation_service=validation_service,
+        db_operations=db_operations_service,
+        db_operations_service=db_operations_service,
     )
 
     # Execution service

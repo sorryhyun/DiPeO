@@ -33,13 +33,13 @@ def configure_logging(debug: bool = False) -> None:
     )
     
     # Add filter to exclude noisy loggers
+    # In debug mode, allow openai logs to see LLM interactions
     excluded_loggers = [
         "gql.transport",
         "websockets",
         "asyncio",
         "httpcore",
         "httpx",
-        "openai",
         "hypercorn.access",
         "multipart",
         "python_multipart",
@@ -47,6 +47,10 @@ def configure_logging(debug: bool = False) -> None:
         "requests",
         "aiohttp"
     ]
+    
+    # Only exclude openai logs when not in debug mode
+    if not debug:
+        excluded_loggers.append("openai")
     
     # Get root logger and add filter
     root_logger = logging.getLogger()
@@ -61,10 +65,17 @@ def configure_logging(debug: bool = False) -> None:
     
     if debug:
         logger.debug("Debug logging enabled for DiPeO CLI")
+        
+        # Enable debug logging for OpenAI to see API requests
+        openai_logger = logging.getLogger("openai")
+        openai_logger.setLevel(logging.DEBUG)
+        httpx_logger = logging.getLogger("httpx")
+        httpx_logger.setLevel(logging.INFO)  # INFO level to see requests without too much noise
+        
         # Show which loggers are at DEBUG level
         debug_loggers = []
-        for name in ["dipeo", "dipeo_core", "dipeo_domain", "dipeo_diagram", 
-                     "dipeo_application", "dipeo_infra", "dipeo_container"]:
+        for name in ["dipeo", "dipeo.core", "dipeo.domain", "dipeo.diagram", 
+                     "dipeo.application", "dipeo.infra", "dipeo_container", "openai"]:
             if logging.getLogger(name).getEffectiveLevel() <= logging.DEBUG:
                 debug_loggers.append(name)
         if debug_loggers:

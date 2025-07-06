@@ -2,13 +2,13 @@
 
 ## Overview
 
-DiPeO uses TypeScript domain models in `@packages/domain-models/` as the single source of truth. These models are automatically converted to Python for the backend and integrated with the frontend through a sophisticated code generation pipeline.
+DiPeO uses TypeScript domain models in `@dipeo/models/` as the single source of truth. These models are automatically converted to Python for the backend and integrated with the frontend through a sophisticated code generation pipeline.
 
 ## Domain Model Architecture
 
 ### Source of Truth: TypeScript Models
 
-The TypeScript domain models are located in `packages/domain-models/src/`:
+The TypeScript domain models are located in `dipeo/models/src/`:
 - **diagram.ts**: Core diagram structure (nodes, arrows, handles, persons)
 - **execution.ts**: Execution state and token usage tracking
 - **conversation.ts**: Message formats and conversation state
@@ -29,14 +29,14 @@ Key features:
 
 ### 1. TypeScript → Schema JSON
 
-**Script**: `packages/domain-models/scripts/generate-schema.ts`
+**Script**: `dipeo/models/scripts/generate-schema.ts`
 - Uses ts-morph to parse TypeScript AST
 - Extracts interfaces, enums, and type aliases
 - Generates `__generated__/schemas.json`
 
 ### 2. Schema JSON → Python Models
 
-**Script**: `packages/domain-models/scripts/generate-python.ts`
+**Script**: `dipeo/models/scripts/generate-python.ts`
 - Reads schema JSON
 - Generates Pydantic models with proper type mappings
 - Outputs to `packages/python/dipeo_domain/src/dipeo_domain/models.py`
@@ -50,7 +50,7 @@ Type mapping examples:
 
 ### 3. TypeScript → Python Conversions
 
-**Script**: `packages/domain-models/scripts/generate-conversions.ts`
+**Script**: `dipeo/models/scripts/generate-conversions.ts`
 - Extracts NODE_TYPE_MAP from conversions.ts
 - Generates Python conversion utilities
 - Outputs to `packages/python/dipeo_domain/src/dipeo_domain/conversions.py`
@@ -108,24 +108,24 @@ import {
   StartNodeData,
   NodeType,
   HandleDirection
-} from "@dipeo/domain-models";
+} from "@dipeo/models";
 ```
 
 ### GraphQL Code Generation
 
 **Configuration**: `apps/web/codegen.yml`
 - Uses `@graphql-codegen` to generate TypeScript types from GraphQL schema
-- Maps GraphQL scalars back to branded types from `@dipeo/domain-models`
+- Maps GraphQL scalars back to branded types from `@dipeo/models`
 - Reuses enums from the domain models package
 
 Key mappings:
 ```yaml
 scalars:
-  NodeID: "@dipeo/domain-models#NodeID"
-  HandleID: "@dipeo/domain-models#HandleID"
+  NodeID: "@dipeo/models#NodeID"
+  HandleID: "@dipeo/models#HandleID"
 enumValues:
-  NodeType: "@dipeo/domain-models#NodeType"
-  HandleDirection: "@dipeo/domain-models#HandleDirection"
+  NodeType: "@dipeo/models#NodeType"
+  HandleDirection: "@dipeo/models#HandleDirection"
 ```
 
 ### Frontend Usage Pattern
@@ -183,7 +183,7 @@ enumValues:
 
 ## Development Workflow
 
-1. Modify TypeScript models in `packages/domain-models/src/`
+1. Modify TypeScript models in `dipeo/models/src/`
 2. Run `make codegen` or `pnpm codegen` which performs:
    - Domain model generation (TypeScript → Python)
    - GraphQL schema export from server
@@ -280,7 +280,7 @@ Note: The handle ID format uses underscores as separators. The `nodeId` componen
 
 This format is created and parsed by utility functions:
 
-**TypeScript** (`packages/domain-models/src/conversions.ts`):
+**TypeScript** (`dipeo/models/src/conversions.ts`):
 ```typescript
 export function createHandleId(
   nodeId: NodeID,

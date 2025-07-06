@@ -29,5 +29,8 @@ else
     source "$VENV_DIR/bin/activate"
 fi
 
+# Set PYTHONPATH to include project root for dipeo imports
+export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+
 # Run the CLI with all arguments
-exec dipeo "$@"
+exec dipeo-cli "$@"

@@ -1,0 +1,41 @@
+{
+  "name": "@dipeo/domain-models",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "generate:schema": "tsx scripts/generate-schema.ts",
+    "generate:python": "tsx scripts/generate-python.ts",
+    "generate:conversions": "tsx scripts/generate-conversions.ts",
+    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm build"
+  },
+  "dependencies": {
+    "zod": "^3.25.42"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.32",
+    "typescript": "^5.8.3",
+    "tsx": "^4.0.0",
+    "ts-morph": "^21.0.0",
+    "zod-to-json-schema": "^3.21.0",
+    "prettier": "^3.5.3"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.42"
+  }
+}

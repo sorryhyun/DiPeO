@@ -1,5 +1,13 @@
 # Barrel exports for llm domain
+import warnings
 from dipeo_domain import ForgettingMode, LLMService
+
+warnings.warn(
+    "Importing from dipeo_infra.external.llm is deprecated. "
+    "Use dipeo.infra.adapters.llm instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from .base import BaseAdapter, ChatResult
 from .factory import create_adapter

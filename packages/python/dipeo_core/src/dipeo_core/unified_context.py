@@ -3,12 +3,20 @@
 This module provides a single, consolidated execution context that replaces
 the various context types (RuntimeContext, ExecutionContext, ExtendedExecutionContext)
 with a unified implementation.
+
+NOTE: This class is now a facade that delegates to the new ApplicationExecutionContext.
+It will be deprecated in a future release.
 """
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Protocol
+import warnings
+from datetime import datetime
 
-from dipeo_domain.models import DomainArrow, DomainDiagram, NodeOutput, TokenUsage
+from dipeo_domain.models import (
+    DomainArrow, DomainDiagram, NodeOutput, TokenUsage,
+    ExecutionState, ExecutionStatus, NodeState
+)
 from dipeo_domain.handle_utils import extract_node_id_from_handle
 
 
@@ -28,6 +36,9 @@ class NodeHandler(Protocol):
 @dataclass
 class UnifiedExecutionContext:
     """Unified execution context combining all previous context types.
+    
+    DEPRECATED: This class is now a facade that delegates to ApplicationExecutionContext.
+    Use ExecutionContextPort or ApplicationExecutionContext directly for new code.
     
     This class consolidates:
     - RuntimeContext (for node handlers)
@@ -74,9 +85,76 @@ class UnifiedExecutionContext:
     # Execution view (for view-based engine)
     _execution_view: Optional[Any] = field(default=None, init=False)
     
+    # Internal: new context implementation (lazy-loaded)
+    _app_context: Optional[Any] = field(default=None, init=False)
+    _warned: bool = field(default=False, init=False)
+    
+    def _ensure_app_context(self) -> None:
+        """Ensure the new ApplicationExecutionContext is initialized."""
+        if not self._warned:
+            warnings.warn(
+                "UnifiedExecutionContext is deprecated. "
+                "Use ApplicationExecutionContext for new code.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            self._warned = True
+        
+        if self._app_context is None:
+            # Import here to avoid circular dependency
+            from dipeo_application.execution.application_execution_context import ApplicationExecutionContext
+            
+            # Convert current state to ExecutionState
+            execution_state = self._to_execution_state()
+            
+            # Create a simple service registry from current services
+            service_registry = type('ServiceRegistry', (), {
+                'llm_service': self.llm_service,
+                'file_service': self.file_service,
+                'notion_service': self.notion_service,
+                'conversation_service': self.conversation_service,
+                'api_key_service': self.api_key_service,
+                'state_store': self.state_store,
+            })()
+            
+            self._app_context = ApplicationExecutionContext(execution_state, service_registry)
+    
+    def _to_execution_state(self) -> ExecutionState:
+        """Convert current context to ExecutionState."""
+        # Convert node_states to proper format
+        node_states = {}
+        for node_id, state in self.node_states.items():
+            if isinstance(state, dict):
+                node_states[node_id] = NodeState(**state)
+            else:
+                node_states[node_id] = state
+        
+        # Convert node_outputs to proper format
+        node_outputs = {}
+        for node_id, output in self.node_outputs.items():
+            if isinstance(output, NodeOutput):
+                node_outputs[node_id] = output
+            elif isinstance(output, dict) and 'value' in output:
+                node_outputs[node_id] = NodeOutput(**output)
+            else:
+                node_outputs[node_id] = NodeOutput(value=output)
+        
+        return ExecutionState(
+            id=self.execution_id,
+            status=ExecutionStatus.RUNNING,
+            diagram_id=self.diagram_id,
+            started_at=datetime.now().isoformat(),
+            node_states=node_states,
+            node_outputs=node_outputs,
+            token_usage=self.get_total_token_usage(),
+            variables=self.variables,
+            is_active=True
+        )
+    
     # Node management methods
     def get_node_output(self, node_id: str) -> Any:
         """Get output for a node (supports both dict and NodeOutput)."""
+        # Use legacy implementation for now to avoid circular updates
         output = self.node_outputs.get(node_id)
         if hasattr(output, 'value'):
             return output.value
@@ -93,8 +171,34 @@ class UnifiedExecutionContext:
         self.exec_counts[node_id] = self.exec_counts.get(node_id, 0) + 1
         return self.exec_counts[node_id]
     
+    # Service management
+    def get_service(self, service_name: str) -> Optional[Any]:
+        """Get a service by name from the context."""
+        # Map service names to attributes
+        service_map = {
+            'llm': self.llm_service,
+            'llm_service': self.llm_service,
+            'file': self.file_service,
+            'file_service': self.file_service,
+            'notion': self.notion_service,
+            'notion_service': self.notion_service,
+            'conversation': self.conversation_service,
+            'conversation_service': self.conversation_service,
+            'api_key': self.api_key_service,
+            'api_key_service': self.api_key_service,
+            'state_store': self.state_store,
+        }
+        return service_map.get(service_name)
+    
+    @property
+    def execution_state(self) -> ExecutionState:
+        """Get the current execution state."""
+        return self._to_execution_state()
+    
     # Variable management
     def get_variable(self, name: str, default: Any = None) -> Any:
+        """Get a variable from the context."""
+        # Use legacy implementation to avoid circular updates
         return self.variables.get(name, default)
     
     def set_variable(self, name: str, value: Any) -> None:
@@ -103,6 +207,9 @@ class UnifiedExecutionContext:
     # API key management
     def get_api_key(self, service: str) -> Optional[str]:
         """Get API key for a service."""
+        self._ensure_app_context()
+        if self.api_key_service:
+            return self.api_key_service.get_api_key(service)
         return self.api_keys.get(service)
     
     # Conversation management

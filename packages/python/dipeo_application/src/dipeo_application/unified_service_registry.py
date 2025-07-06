@@ -64,7 +64,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "api_key": "api_key_service",
             "notion": "notion_service",
             "diagram": "diagram_storage_service",
-            "conversation": "memory_service",  # Fixed: conversation maps to memory_service
+            "conversation": "conversation_service",  # Fixed: conversation maps to conversation_service
             "memory_service": "memory_service",  # Alias
             "api_integration": "api_integration_service",
             "code_execution": "code_execution_service",
@@ -75,6 +75,8 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "api": "api_integration_service",  # Alias
             "text": "text_processing_service",
             "text_processing": "text_processing_service",
+            "db_operations": "db_operations_service",
+            "db_operations_service": "db_operations_service",
         }
         
         # Register services from context

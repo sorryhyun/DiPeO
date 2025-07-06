@@ -19,7 +19,10 @@ AGENTS.md
 *.db-wal
 *.db
 apps/web/schema.graphql
-packages/domain-models/schema.graphql
+dipeo/models/schema.graphql
+dipeo/domain/models.py
+dipeo/domain/conversions.py
+
 server/diagrams
 docs/deprecated
 TODO.md
@@ -34,10 +37,10 @@ part2.md
 part3.md
 part4.md
 
-packages/domain-models/__generated__
-packages/python/dipeo_domain/src/dipeo_domain/models.py
+dipeo/models/__generated__
+# Generated models now in dipeo/domain/models.py (tracked)
 packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
-packages/python/dipeo_domain/src/dipeo_domain/conversions.py
+# Generated conversions now in dipeo/domain/conversions.py (tracked)
 apps/cli/src/dipeo_cli/__generated__
 apps/web/src/__generated__
 
@@ -63,8 +66,8 @@ web/CLAUDE.md
 server/CLAUDE.md
 server.log
 dipeo_events.db
-packages/domain-models/dist/
-packages/domain-models/node_modules/
+dipeo/models/dist/
+dipeo/models/node_modules/
 
 # Environment files
 .env
