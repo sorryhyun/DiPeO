@@ -10,6 +10,7 @@ from dipeo_domain import (
     DomainHandle,
     DomainNode,
     HandleDirection,
+    HandleLabel,
 )
 
 # Ensure models are rebuilt to resolve forward references
@@ -241,13 +242,75 @@ class UnifiedDiagramConverter(DiagramConverter):
         # Create any custom handles referenced by arrows but not yet defined
         for arrow in arrows_dict.values():
             # Check source handle
-            if ":" in arrow.source:
-                node_id, handle_name = arrow.source.split(":", 1)
+            logger.debug(f"Processing arrow source: {arrow.source}")
+            if "_" in arrow.source:
+                # First check if this is a full handle ID format (nodeId_handleLabel_direction)
+                parts = arrow.source.split("_")
+                if len(parts) >= 3 and parts[-1] in ["input", "output"]:
+                    # This is already a full handle ID, don't parse it
+                    logger.debug(f"Arrow source is already a full handle ID: {arrow.source}")
+                    # Verify it exists in handles
+                    if arrow.source in diagram_dict.handles:
+                        continue
+                    else:
+                        logger.warning(f"Referenced handle ID not found: {arrow.source}")
+                        continue
+                
+                # Otherwise, parse as light format (nodeLabel_handleName)
+                # For light format, we need to handle node labels with spaces
+                # Try to match against existing node labels first
+                node_id = None
+                handle_name = "default"
+                
+                # Check if any node label + "_handleName" matches the arrow source
+                for nid, node in nodes_dict.items():
+                    node_label = node.data.get("label", nid) if node.data else nid
+                    # Check for exact match with handle name appended
+                    for possible_handle in ["first", "default", "condtrue", "condfalse"]:
+                        if arrow.source == f"{node_label}_{possible_handle}":
+                            node_id = nid
+                            handle_name = possible_handle
+                            logger.debug(f"Matched node label '{node_label}' with handle '{possible_handle}'")
+                            break
+                    if node_id:
+                        break
+                
+                # If no match found, fall back to simple split
+                if not node_id:
+                    parts = arrow.source.rsplit("_", 1)
+                    logger.debug(f"Arrow source parts after rsplit: {parts}")
+                    if len(parts) == 2:
+                        node_label_or_id, handle_name = parts
+                        # Try to find node by label or ID
+                        node_id = next(
+                            (nid for nid, node in nodes_dict.items() 
+                             if nid == node_label_or_id or 
+                             (node.data and node.data.get("label") == node_label_or_id)),
+                            node_label_or_id
+                        )
+                    else:
+                        node_id = arrow.source
+                        handle_name = "default"
+                
+                logger.debug(f"Parsed source - node_id: {node_id}, handle_name: {handle_name}")
                 
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
                 actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
-                expected_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.output)
+                
+                # Validate handle_name is not a direction value
+                if handle_name in ["input", "output"]:
+                    logger.warning(f"Invalid handle name '{handle_name}' - using 'default' instead")
+                    handle_name = "default"
+                
+                try:
+                    # Try to create handle label - this allows custom labels
+                    handle_label = HandleLabel(handle_name)
+                except ValueError:
+                    # For custom handle labels (e.g., DB nodes)
+                    handle_label = handle_name
+                    
+                expected_handle_id = create_handle_id(actual_node_id, handle_label, HandleDirection.output)
                 
                 if expected_handle_id in diagram_dict.handles:
                     handle = diagram_dict.handles[expected_handle_id]
@@ -260,7 +323,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
                 if not handle_exists and node_exists:
                     # Create handle with normalized ID, including direction for new format
-                    normalized_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.output)
+                    normalized_handle_id = create_handle_id(actual_node_id, HandleLabel(handle_name), HandleDirection.output)
                     # Create output handle
                     diagram_dict.handles[normalized_handle_id] = DomainHandle(
                         id=normalized_handle_id,
@@ -274,13 +337,75 @@ class UnifiedDiagramConverter(DiagramConverter):
                     arrow.source = normalized_handle_id
 
             # Check target handle
-            if ":" in arrow.target:
-                node_id, handle_name = arrow.target.split(":", 1)
+            logger.debug(f"Processing arrow target: {arrow.target}")
+            if "_" in arrow.target:
+                # First check if this is a full handle ID format (nodeId_handleLabel_direction)
+                parts = arrow.target.split("_")
+                if len(parts) >= 3 and parts[-1] in ["input", "output"]:
+                    # This is already a full handle ID, don't parse it
+                    logger.debug(f"Arrow target is already a full handle ID: {arrow.target}")
+                    # Verify it exists in handles
+                    if arrow.target in diagram_dict.handles:
+                        continue
+                    else:
+                        logger.warning(f"Referenced handle ID not found: {arrow.target}")
+                        continue
+                
+                # Otherwise, parse as light format (nodeLabel_handleName)
+                # For light format, we need to handle node labels with spaces
+                # Try to match against existing node labels first
+                node_id = None
+                handle_name = "default"
+                
+                # Check if any node label + "_handleName" matches the arrow target
+                for nid, node in nodes_dict.items():
+                    node_label = node.data.get("label", nid) if node.data else nid
+                    # Check for exact match with handle name appended
+                    for possible_handle in ["first", "default", "condtrue", "condfalse"]:
+                        if arrow.target == f"{node_label}_{possible_handle}":
+                            node_id = nid
+                            handle_name = possible_handle
+                            logger.debug(f"Matched node label '{node_label}' with handle '{possible_handle}'")
+                            break
+                    if node_id:
+                        break
+                
+                # If no match found, fall back to simple split
+                if not node_id:
+                    parts = arrow.target.rsplit("_", 1)
+                    logger.debug(f"Arrow target parts after rsplit: {parts}")
+                    if len(parts) == 2:
+                        node_label_or_id, handle_name = parts
+                        # Try to find node by label or ID
+                        node_id = next(
+                            (nid for nid, node in nodes_dict.items() 
+                             if nid == node_label_or_id or 
+                             (node.data and node.data.get("label") == node_label_or_id)),
+                            node_label_or_id
+                        )
+                    else:
+                        node_id = arrow.target
+                        handle_name = "default"
+                
+                logger.debug(f"Parsed target - node_id: {node_id}, handle_name: {handle_name}")
                 
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
                 actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
-                expected_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.input)
+                
+                # Validate handle_name is not a direction value
+                if handle_name in ["input", "output"]:
+                    logger.warning(f"Invalid handle name '{handle_name}' - using 'default' instead")
+                    handle_name = "default"
+                
+                try:
+                    # Try to create handle label - this allows custom labels
+                    handle_label = HandleLabel(handle_name)
+                except ValueError:
+                    # For custom handle labels (e.g., DB nodes)
+                    handle_label = handle_name
+                    
+                expected_handle_id = create_handle_id(actual_node_id, handle_label, HandleDirection.input)
                 
                 if expected_handle_id in diagram_dict.handles:
                     handle = diagram_dict.handles[expected_handle_id]
@@ -293,7 +418,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
                 if not handle_exists and node_exists:
                     # Create handle with normalized ID, including direction for new format
-                    normalized_handle_id = create_handle_id(actual_node_id, handle_name, HandleDirection.input)
+                    normalized_handle_id = create_handle_id(actual_node_id, HandleLabel(handle_name), HandleDirection.input)
                     # Create input handle
                     diagram_dict.handles[normalized_handle_id] = DomainHandle(
                         id=normalized_handle_id,

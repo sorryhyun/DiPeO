@@ -6,6 +6,9 @@ import {
   ExecutionStatus,
   type NodeState as DomainNodeState,
   type ExecutionState as CanonicalExecutionState,
+  type ExecutionID,
+  type DiagramID,
+  type NodeOutput,
 } from '@dipeo/domain-models';
 
 /**
@@ -66,19 +69,19 @@ export function toCanonicalExecutionState(
   }
   
   // Convert Map to dictionary for nodeStates
-  const nodeStatesDict: Record<string, any> = {};
+  const nodeStatesDict: Record<string, DomainNodeState> = {};
   storeState.nodeStates.forEach((nodeState, nodeId) => {
     nodeStatesDict[nodeId] = {
       status: nodeState.status,
-      startedAt: new Date(nodeState.timestamp).toISOString(),
-      endedAt: nodeState.status !== NodeExecutionStatus.RUNNING ? new Date(nodeState.timestamp).toISOString() : null,
+      started_at: new Date(nodeState.timestamp).toISOString(),
+      ended_at: nodeState.status !== NodeExecutionStatus.RUNNING ? new Date(nodeState.timestamp).toISOString() : null,
       error: nodeState.error || null,
-      tokenUsage: null,
+      token_usage: null,
     };
   });
   
   // Convert context to nodeOutputs with proper NodeOutput format
-  const nodeOutputsDict: Record<string, any> = {};
+  const nodeOutputsDict: Record<string, NodeOutput> = {};
   Object.entries(storeState.context).forEach(([nodeId, value]) => {
     nodeOutputsDict[nodeId] = {
       value,
@@ -87,9 +90,9 @@ export function toCanonicalExecutionState(
   });
   
   return {
-    id: (storeState.id || '') as any, // ExecutionID branded type
+    id: (storeState.id || '') as ExecutionID,
     status,
-    diagram_id: diagramId as any, // DiagramID branded type
+    diagram_id: diagramId as DiagramID | null,
     started_at: new Date().toISOString(), // Store doesn't track this, using current time
     node_states: nodeStatesDict,
     node_outputs: nodeOutputsDict,

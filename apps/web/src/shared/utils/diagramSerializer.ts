@@ -6,7 +6,7 @@
 import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
-import { storeMapsToArrays, convertGraphQLDiagramToDomain, diagramToStoreMaps } from '@/graphql/types';
+import { storeMapsToArrays } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // The serialized diagram should match the GraphQL schema format
@@ -320,7 +320,7 @@ export function serializeDiagram(): SerializedDiagram {
   // Clean persons data by removing masked_api_key
   const cleanPersons = (diagramArrays.persons || []).map(person => {
     // Remove masked_api_key as it's a runtime display-only field
-    const { masked_api_key, ...cleanPerson } = person as any;
+    const { masked_api_key: _masked_api_key, ...cleanPerson } = person as any;
     return cleanPerson as DomainPerson;
   });
 

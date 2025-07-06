@@ -84,13 +84,20 @@ class DynamicRegistry:
         Returns:
             The item or default value
         """
+        # Use object.__getattribute__ to avoid recursion
+        try:
+            items = object.__getattribute__(self, '_items')
+            aliases = object.__getattribute__(self, '_aliases')
+        except AttributeError:
+            return default
+            
         # Check direct name first
-        if name in self._items:
-            return self._items[name]
+        if name in items:
+            return items[name]
         
         # Check aliases
-        if name in self._aliases:
-            return self._items.get(self._aliases[name], default)
+        if name in aliases:
+            return items.get(aliases[name], default)
         
         return default
     
@@ -103,7 +110,13 @@ class DynamicRegistry:
         Returns:
             True if the item exists
         """
-        return name in self._items or name in self._aliases
+        # Use object.__getattribute__ to avoid recursion
+        try:
+            items = object.__getattribute__(self, '_items')
+            aliases = object.__getattribute__(self, '_aliases')
+            return name in items or name in aliases
+        except AttributeError:
+            return False
     
     def create_alias(self, alias: str, target: str) -> None:
         """Create an alias for an existing item.
@@ -150,7 +163,18 @@ class DynamicRegistry:
     
     def __setattr__(self, name: str, value: Any) -> None:
         """Handle attribute setting."""
-        if name in self._reserved_attrs or name.startswith('_'):
+        # Use object.__getattribute__ to avoid recursion
+        try:
+            reserved_attrs = object.__getattribute__(self, '_reserved_attrs')
+        except AttributeError:
+            # During initialization, _reserved_attrs doesn't exist yet
+            # Allow setting private attributes during init
+            if name.startswith('_'):
+                super().__setattr__(name, value)
+                return
+            reserved_attrs = set()
+        
+        if name in reserved_attrs or name.startswith('_'):
             # Use default behavior for reserved/private attributes
             super().__setattr__(name, value)
         else:
@@ -167,7 +191,15 @@ class DynamicRegistry:
     def __dir__(self) -> list[str]:
         """List available attributes including dynamic ones."""
         base_attrs = list(super().__dir__())
-        dynamic_attrs = list(self._items.keys()) + list(self._aliases.keys())
+        
+        # Use object.__getattribute__ to avoid recursion
+        try:
+            items = object.__getattribute__(self, '_items')
+            aliases = object.__getattribute__(self, '_aliases')
+            dynamic_attrs = list(items.keys()) + list(aliases.keys())
+        except AttributeError:
+            dynamic_attrs = []
+        
         return sorted(set(base_attrs + dynamic_attrs))
 
 

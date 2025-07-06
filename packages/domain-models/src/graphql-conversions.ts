@@ -8,17 +8,14 @@ import {
   ArrowID,
   HandleID,
   PersonID,
-  DiagramID,
   DomainNode,
   DomainArrow,
   DomainHandle,
   DomainPerson,
   DomainDiagram,
   DiagramMetadata,
-  Vec2,
   PersonLLMConfig
 } from './diagram';
-import { parseHandleId } from './conversions';
 
 // GraphQL types (imported for conversion)
 export interface GraphQLDomainPersonType {

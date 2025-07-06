@@ -25,11 +25,9 @@ from .context import ApplicationContext
 from .execution import LocalExecutionService
 
 # Export execution engine and observer
-from .execution_engine import ExecutionEngine, ExecutionObserver
+from .observers import ExecutionObserver
 from .unified_execution_engine import UnifiedExecutionEngine
 
-# Export execution flow controller
-from .execution_flow_controller import ExecutionFlowController
 
 # Export engine factory
 from .engine_factory import EngineFactory
@@ -38,7 +36,6 @@ from .engine_factory import EngineFactory
 from .execution_view import LocalExecutionView, NodeView, EdgeView
 
 # Export service registry
-from .service_registry import LocalServiceRegistry
 from .unified_service_registry import UnifiedServiceRegistry
 
 # Export minimal services
@@ -49,16 +46,13 @@ __all__ = [
     "ApplicationContext",
     # Execution
     "LocalExecutionService",
-    "ExecutionEngine",
     "UnifiedExecutionEngine",
     "ExecutionObserver",
-    "ExecutionFlowController",
     "EngineFactory",
     "LocalExecutionView",
     "NodeView",
     "EdgeView",
     # Service Registry
-    "LocalServiceRegistry",
     "UnifiedServiceRegistry",
     # Minimal Services
     "MinimalStateStore",

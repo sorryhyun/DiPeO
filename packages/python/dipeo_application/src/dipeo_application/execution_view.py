@@ -136,7 +136,7 @@ class LocalExecutionView:
         for node_id, node_view in self.node_views.items():
             if node_view.node.type == NodeType.person_job.value:
                 first_edges = [
-                    e for e in node_view.incoming_edges if e.target_handle == HandleLabel.first.value
+                    e for e in node_view.incoming_edges if e.target_handle == "first"
                 ]
                 if first_edges:
                     in_degree[node_id] = len(first_edges)
@@ -169,7 +169,7 @@ class LocalExecutionView:
                         first_edges = [
                             e
                             for e in target_view.incoming_edges
-                            if e.target_handle == HandleLabel.first.value
+                            if e.target_handle == "first"
                         ]
                         if first_edges:
                             should_decrement = False

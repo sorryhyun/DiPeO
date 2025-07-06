@@ -23,6 +23,9 @@ class LocalDiagramRunner:
             "messages": [],
             "execution_id": None,
         }
+        
+        # Initialize custom_observers early to avoid UnboundLocalError
+        custom_observers = []
 
         try:
             # Initialize local context
@@ -38,7 +41,6 @@ class LocalDiagramRunner:
             print(f"🚀 Starting local execution with ID: {execution_id}")
 
             # Check if hooks are enabled
-            custom_observers = []
             hooks_dir = Path("files/hooks")
             if hooks_dir.exists() and (hooks_dir / "hooks.json").exists():
                 hook_registry = HookRegistry(hooks_dir)
@@ -79,6 +81,9 @@ class LocalDiagramRunner:
         except Exception as e:
             result["error"] = str(e)  # type: ignore
             print(f"\n❌ Error during local execution: {e!s}")
+            if self.options.debug:
+                import traceback
+                traceback.print_exc()
         finally:
             # Cleanup hook observer if used
             if custom_observers:

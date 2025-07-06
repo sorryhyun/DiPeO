@@ -2,6 +2,13 @@ import React, { useCallback, useRef, useEffect } from 'react';
 import { NodeProps, useReactFlow } from '@xyflow/react';
 import { Vec2 } from '@dipeo/domain-models';
 
+// Extend window interface for our cleanup function
+declare global {
+  interface Window {
+    __rightClickDragCleanup?: () => void;
+  }
+}
+
 /**
  * Higher-order component that adds right-click drag functionality to nodes
  */
@@ -52,7 +59,7 @@ export function withRightClickDrag<P extends NodeProps>(
       };
       
       // Store cleanup function
-      (window as any).__rightClickDragCleanup = cleanup;
+      window.__rightClickDragCleanup = cleanup;
     }, [props.id, getNode]);
 
     const handleMouseMove = useCallback((event: MouseEvent) => {
@@ -84,18 +91,18 @@ export function withRightClickDrag<P extends NodeProps>(
       if (event.button !== 2) return;
       
       // Call cleanup
-      if ((window as any).__rightClickDragCleanup) {
-        (window as any).__rightClickDragCleanup();
-        delete (window as any).__rightClickDragCleanup;
+      if (window.__rightClickDragCleanup) {
+        window.__rightClickDragCleanup();
+        delete window.__rightClickDragCleanup;
       }
     }, []);
 
     // Cleanup on unmount
     useEffect(() => {
       return () => {
-        if ((window as any).__rightClickDragCleanup) {
-          (window as any).__rightClickDragCleanup();
-          delete (window as any).__rightClickDragCleanup;
+        if (window.__rightClickDragCleanup) {
+          window.__rightClickDragCleanup();
+          delete window.__rightClickDragCleanup;
         }
       };
     }, []);
@@ -117,7 +124,7 @@ export function withRightClickDrag<P extends NodeProps>(
 export function applyRightClickDragToNodeTypes<T extends Record<string, React.ComponentType<NodeProps>>>(
   nodeTypes: T
 ): T {
-  const wrappedNodeTypes: any = {};
+  const wrappedNodeTypes: Record<string, React.ComponentType<NodeProps>> = {};
   
   for (const [key, Component] of Object.entries(nodeTypes)) {
     wrappedNodeTypes[key] = withRightClickDrag(Component);

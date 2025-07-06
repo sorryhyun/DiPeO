@@ -58,7 +58,7 @@ export function benchmarkHandleLookup(
   const end = performance.now();
   const duration = end - start;
   
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.log(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
   }
   

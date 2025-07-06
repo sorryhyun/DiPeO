@@ -52,7 +52,6 @@ from .execution.types import (
     ExecutionOptions,
     NodeDefinition,
     NodeHandler,
-    RuntimeContext as LegacyRuntimeContext,
 )
 
 # Type aliases removed - use UnifiedExecutionContext directly
@@ -98,9 +97,6 @@ __all__ = [
     "BaseNodeHandler",
     # Core types
     "UnifiedExecutionContext",
-    "to_runtime_context",
-    "from_runtime_context",
-    "LegacyRuntimeContext",
     "ExecutionOptions",
     "NodeDefinition",
     "NodeHandler",

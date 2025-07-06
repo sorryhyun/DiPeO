@@ -7,9 +7,10 @@ topological execution and iterative execution in a unified manner.
 import asyncio
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Optional, Set
 
-from dipeo_domain.models import NodeOutput, NodeType, HandleLabel
+from dipeo_domain.models import NodeOutput, NodeState, NodeType, HandleLabel, NodeExecutionStatus, TokenUsage
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +65,9 @@ class UnifiedExecutionController:
         ready = []
         
         for node_id, state in self.node_states.items():
+            log.debug(f"Checking node {node_id}: type={state.node_type}, exec_count={state.exec_count}, max_iter={state.max_iterations}, completed={state.completed}")
             if not state.can_execute():
+                log.debug(f"  - Node {node_id} cannot execute (completed={state.completed} or reached max iterations)")
                 continue
                 
             node_view = execution_view.node_views[node_id]
@@ -72,7 +75,11 @@ class UnifiedExecutionController:
             # Check dependencies
             if self._dependencies_satisfied(node_view, execution_view):
                 ready.append(node_id)
+                log.debug(f"  - Node {node_id} is ready for execution")
+            else:
+                log.debug(f"  - Node {node_id} dependencies not satisfied")
         
+        log.debug(f"Total ready nodes: {ready}")
         return ready
     
     def _dependencies_satisfied(self, node_view: Any, execution_view: Any) -> bool:
@@ -81,23 +88,65 @@ class UnifiedExecutionController:
         if node_view.node.type == NodeType.start.value:
             return True
         
-        # Check all incoming edges
+        # Debug logging
+        log.debug(f"Checking dependencies for node {node_view.id} (type: {node_view.node.type})")
+        
+        # For person_job nodes on first execution, only check "first" handle dependencies
+        if (node_view.node.type == NodeType.person_job.value and 
+            self.node_states[node_view.id].exec_count == 0):
+            # Check if this node has any "first" handle connections
+            has_first_handle = any(edge.target_handle == "first" for edge in node_view.incoming_edges)
+            
+            if has_first_handle:
+                # If it has first handles, require at least one to be satisfied
+                first_handle_satisfied = False
+                for edge in node_view.incoming_edges:
+                    source_state = self.node_states.get(edge.source_view.id)
+                    if not source_state:
+                        continue
+                        
+                    log.debug(f"  - Edge from {edge.source_view.id}, target_handle={edge.target_handle}, source has output={source_state.output is not None}")
+                    
+                    if edge.target_handle == "first" and source_state.output is not None:
+                        first_handle_satisfied = True
+                        log.debug(f"  - First handle satisfied by {edge.source_view.id}")
+                    elif edge.target_handle != "first":
+                        # Ignore non-first handles on first execution
+                        log.debug(f"  - Ignoring {edge.target_handle} handle on first execution")
+                        
+                if first_handle_satisfied:
+                    log.debug(f"  -> Dependencies satisfied for {node_view.id} (first execution)")
+                    return True
+                else:
+                    log.debug(f"  -> Dependencies NOT satisfied for {node_view.id} (no first handle input)")
+                    return False
+            else:
+                # If no first handles exist, fall through to normal dependency checking
+                log.debug(f"  - No first handles found for {node_view.id}, checking all dependencies normally")
+                # Don't return here, let it fall through to the normal dependency check below
+        
+        # For all other cases, check all dependencies normally
         for edge in node_view.incoming_edges:
             source_state = self.node_states.get(edge.source_view.id)
             if not source_state:
+                log.debug(f"  - No state found for source {edge.source_view.id}")
                 continue
                 
-            # For first edges on person_job nodes
+            # Skip "first" edges after first execution
             if (node_view.node.type == NodeType.person_job.value and 
-                edge.target_handle == HandleLabel.first.value and 
+                edge.target_handle == "first" and 
                 self.node_states[node_view.id].exec_count > 0):
-                # Skip first edges after first execution
+                log.debug(f"  - Skipping first edge from {edge.source_view.id} (already executed)")
                 continue
             
-            # Source must have executed at least once
-            if source_state.exec_count == 0:
+            # Source must have produced output
+            if source_state.output is None:
+                log.debug(f"  - Dependency {edge.source_view.id} not executed yet (no output)")
                 return False
+            else:
+                log.debug(f"  - Dependency {edge.source_view.id} satisfied (has output, exec_count={source_state.exec_count})")
         
+        log.debug(f"  -> All dependencies satisfied for {node_view.id}")
         return True
     
     def mark_executed(self, node_id: str, output: NodeOutput) -> None:
@@ -106,9 +155,12 @@ class UnifiedExecutionController:
         state.exec_count += 1
         state.output = output
         
+        log.debug(f"Marked {node_id} as executed (exec_count={state.exec_count}, type={state.node_type})")
+        
         # Check if node is completed
         if state.exec_count >= state.max_iterations:
             state.completed = True
+            log.debug(f"  - Node {node_id} completed (reached max_iterations={state.max_iterations})")
         
         # Track endpoint execution
         if state.node_type == NodeType.endpoint.value:
@@ -186,10 +238,15 @@ class UnifiedExecutionEngine:
                 # Get all ready nodes
                 ready_nodes = controller.get_ready_nodes(execution_view)
                 
+                log.debug(f"Iteration {controller.iteration_count}: {len(ready_nodes)} nodes ready")
+                log.debug(f"Ready nodes: {ready_nodes}")
+                log.debug(f"Executed nodes so far: {controller.executed_nodes}")
+                
                 if not ready_nodes:
                     # No nodes ready, check for deadlock
                     if not controller.executed_nodes:
                         raise RuntimeError("No nodes ready for execution - possible deadlock")
+                    log.debug("No more nodes ready, ending execution")
                     break
                 
                 # Execute ready nodes concurrently
@@ -265,6 +322,9 @@ class UnifiedExecutionEngine:
     ) -> None:
         """Execute a single node."""
         async with self._concurrency_semaphore:
+            # Track start time
+            start_time = datetime.utcnow()
+            
             # Notify observers
             for observer in self.observers:
                 await observer.on_node_start(execution_id, node_view.id)
@@ -291,6 +351,7 @@ class UnifiedExecutionEngine:
                 node_data = node_view.data.copy() if node_view.data else {}
                 if node_view.node.type == NodeType.person_job.value:
                     node_data.setdefault("first_only_prompt", "")
+                    node_data.setdefault("max_iteration", 1)
                 
                 # Execute handler
                 output = await node_view.handler(
@@ -305,10 +366,29 @@ class UnifiedExecutionEngine:
                 node_view.exec_count += 1
                 controller.mark_executed(node_view.id, output)
                 
+                # Create NodeState with output and timing information
+                end_time = datetime.utcnow()
+                
+                # Extract token usage from output metadata if available
+                token_usage = None
+                if output and output.metadata and "token_usage" in output.metadata:
+                    token_usage_data = output.metadata["token_usage"]
+                    if token_usage_data:
+                        token_usage = TokenUsage(**token_usage_data)
+                
+                node_state = NodeState(
+                    status=NodeExecutionStatus.COMPLETED,
+                    started_at=start_time.isoformat(),
+                    ended_at=end_time.isoformat(),
+                    error=None,
+                    token_usage=token_usage,
+                    output=output
+                )
+                
                 # Notify observers
                 for observer in self.observers:
                     await observer.on_node_complete(
-                        execution_id, node_view.id, output.value
+                        execution_id, node_view.id, node_state
                     )
                     
             except Exception as e:

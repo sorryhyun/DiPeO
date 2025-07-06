@@ -43,6 +43,18 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 if k not in {"label", "type", "position", "props"}
             },
         }
+        
+        # Handle dot notation keys (e.g., "memory_config.forget_mode")
+        dotted_keys = [k for k in props.keys() if '.' in k]
+        for key in dotted_keys:
+            value = props.pop(key)
+            parts = key.split('.')
+            current = props
+            for part in parts[:-1]:
+                if part not in current:
+                    current[part] = {}
+                current = current[part]
+            current[parts[-1]] = value
 
         # Convert legacy forgetting_mode to proper memory_config structure
         if "forgetting_mode" in props:

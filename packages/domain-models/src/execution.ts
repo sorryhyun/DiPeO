@@ -63,6 +63,7 @@ export interface NodeState {
   ended_at?: string | null;
   error?: string | null;
   token_usage?: TokenUsage | null;
+  output?: NodeOutput | null;  // Optional output field to unify state and output
 }
 
 // Single output format for ALL nodes

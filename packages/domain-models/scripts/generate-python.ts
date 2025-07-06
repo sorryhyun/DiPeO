@@ -85,7 +85,7 @@ class PythonGenerator {
 
     // ─── Map<k,v> / Record<k,v> ────────────────────────────────────
     const mapRec = (kw: 'Map' | 'Record') => {
-      const m = ts.match(new RegExp(`^${kw}<([^,]+),\s*(.+)>$`));
+      const m = ts.match(new RegExp(`^${kw}<([^,]+),\\s*(.+)>$`));
       if (!m) return;
       const k = BRANDED_IDS.includes(m[1] as any) || m[1] === 'string' ? 'str' : this.py(m[1]);
       const v = this.py(m[2]);

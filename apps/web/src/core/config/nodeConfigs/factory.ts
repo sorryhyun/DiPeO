@@ -1,9 +1,38 @@
-import type { NodeType } from '@dipeo/domain-models';
-import { HandleLabel } from '@dipeo/domain-models';
+import { HandleLabel, type NodeType } from '@dipeo/domain-models';
 import { createUnifiedConfig, type UnifiedNodeConfig } from '../unifiedConfig';
+import type { TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import type {
+  StartNodeData,
+  ConditionNodeData,
+  PersonJobNodeData,
+  EndpointNodeData,
+  DBNodeData,
+  CodeJobNodeData,
+  ApiJobNodeData,
+  UserResponseNodeData,
+  NotionNodeData,
+  PersonBatchJobNodeData,
+  HookNodeData
+} from '@/core/types';
+
+// Map node types to their data types
+type NodeDataTypeMap = {
+  start: StartNodeData;
+  condition: ConditionNodeData;
+  job: Record<string, unknown>;
+  code_job: CodeJobNodeData;
+  api_job: ApiJobNodeData;
+  endpoint: EndpointNodeData;
+  person_job: PersonJobNodeData;
+  person_batch_job: PersonBatchJobNodeData;
+  db: DBNodeData;
+  user_response: UserResponseNodeData;
+  notion: NotionNodeData;
+  hook: HookNodeData;
+};
 
 // Base interface for node type definitions
-interface NodeTypeDefinition {
+interface NodeTypeDefinition<T extends Record<string, unknown> = Record<string, unknown>> {
   label: string;
   icon: string;
   color: string;
@@ -13,12 +42,14 @@ interface NodeTypeDefinition {
   // Panel configuration
   panelLayout?: 'single' | 'twoColumn';
   panelFieldOrder?: string[];
-  panelFieldOverrides?: Record<string, any>;
-  panelCustomFields?: any[];
+  panelFieldOverrides?: Partial<Record<keyof T, Partial<TypedPanelFieldConfig<T>>>>;
+  panelCustomFields?: Array<TypedPanelFieldConfig<T>>;
 }
 
 // Centralized node definitions
-export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
+export const NODE_DEFINITIONS: {
+  [K in NodeType]: NodeTypeDefinition<NodeDataTypeMap[K]>
+} = {
   start: {
     label: 'Start',
     icon: '🚀',
@@ -51,14 +82,14 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       enable_hook: { column: 1 },
       hook_type: { 
         column: 1,
-        showIf: (formData: any) => formData?.enable_hook === true
+        showIf: (formData: StartNodeData) => formData?.enable_hook === true
       },
       hook_config: { 
         column: 2,
         rows: 4,
-        showIf: (formData: any) => formData?.enable_hook === true,
+        showIf: (formData: StartNodeData) => formData?.enable_hook === true,
         placeholder: 'Enter webhook URL, file path, or shell command based on hook type',
-        validate: (value: any, formData: any) => {
+        validate: (value: unknown, formData: StartNodeData) => {
           if (formData?.enable_hook && (!value || typeof value !== 'string' || value.trim().length === 0)) {
             return { isValid: false, error: 'Hook configuration is required when hook is enabled' };
           }
@@ -109,7 +140,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
           values: ['custom'],
           operator: 'equals'
         },
-        validate: (value: any, formData: any) => {
+        validate: (value: unknown, formData: ConditionNodeData) => {
           // Only validate expression for custom type
           if (formData?.condition_type === 'custom' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
             return { isValid: false, error: 'Expression is required for custom conditions' };
@@ -162,7 +193,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       code: { 
         rows: 8,
         column: 2,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Code is required' };
           }
@@ -246,12 +277,12 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
       save_to_file: { column: 2 },
       file_format: { 
         column: 2,
-        showIf: (formData: any) => formData?.save_to_file === true
+        showIf: (formData: EndpointNodeData) => formData?.save_to_file === true
       },
       file_name: { 
         column: 2,
-        showIf: (formData: any) => formData?.save_to_file === true,
-        validate: (value: any, formData: any) => {
+        showIf: (formData: EndpointNodeData) => formData?.save_to_file === true,
+        validate: (value: unknown, formData: EndpointNodeData) => {
           if (formData?.save_to_file && (!value || typeof value !== 'string' || value.trim().length === 0)) {
             return { isValid: false, error: 'File name is required when saving to file' };
           }
@@ -299,7 +330,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Enter default prompt. Use {{variable_name}} for variables.',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value && typeof value !== 'string') {
             return { isValid: false, error: 'Default prompt is recommended' };
           }
@@ -312,7 +343,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Prompt to use only on first execution.',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'First-only prompt is required' };
           }
@@ -366,7 +397,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Enter prompt. Use {{item}} for current batch item, {{variable_name}} for other variables.',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Prompt is required' };
           }
@@ -433,7 +464,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         placeholder: 'Enter content or file path...',
         column: 2,
         showPromptFileButton: true,
-        validate: (value: any, formData: any) => {
+        validate: (value: unknown, formData: DBNodeData) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Source details are required' };
           }
@@ -471,7 +502,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeTypeDefinition> = {
         rows: 4,
         placeholder: 'Enter the question to ask the user. Use {{variable_name}} for variables.',
         showPromptFileButton: true,
-        validate: (value: any) => {
+        validate: (value: unknown) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
             return { isValid: false, error: 'Prompt is required' };
           }

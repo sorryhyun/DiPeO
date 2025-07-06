@@ -122,7 +122,7 @@ class InputResolutionStrategy:
         
         # Handle person_job first edge logic
         if node_type == NodeType.person_job.value:
-            is_first_edge = edge.target_handle == HandleLabel.first.value
+            is_first_edge = edge.target_handle == "first"
             is_first_execution = exec_count == 0
             
             # Process first edges only on first execution
@@ -143,10 +143,18 @@ class InputResolutionStrategy:
         condition_result = edge.source_view.output.metadata.get("condition_result", False)
         edge_branch = edge.arrow.data.get("branch") if edge.arrow.data else None
         
+        # If branch data exists in arrow data, use it
         if edge_branch is not None:
             edge_branch_bool = edge_branch.lower() == "true"
             return edge_branch_bool != condition_result
+        
+        # Otherwise, check the source handle for condtrue/condfalse
+        source_handle = edge.source_handle
+        if source_handle in ["condtrue", "condfalse"]:
+            edge_branch_bool = source_handle == "condtrue"
+            return edge_branch_bool != condition_result
             
+        # If no branch info found, don't skip
         return False
 
 

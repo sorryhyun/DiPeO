@@ -3,7 +3,7 @@
 import base64
 from typing import Any
 
-from dipeo_domain import ChatResult, ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
+from dipeo_domain.models import ChatResult, ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
 from openai import OpenAI
 
 from ..base import BaseAdapter
@@ -77,14 +77,14 @@ class ChatGPTAdapter(BaseAdapter):
                             score=result.get('score')
                         ))
                     tool_outputs.append(ToolOutput(
-                        type=ToolType.WEB_SEARCH_PREVIEW,
+                        type=ToolType.web_search,
                         result=search_results,
                         raw_response=output.result
                     ))
                 elif output.type == 'image_generation_call' and hasattr(output, 'result'):
                     # Handle image generation result
                     tool_outputs.append(ToolOutput(
-                        type=ToolType.IMAGE_GENERATION,
+                        type=ToolType.image_generation,
                         result=ImageGenerationResult(
                             image_data=output.result,  # Base64 encoded
                             format='png',

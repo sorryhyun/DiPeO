@@ -68,18 +68,18 @@ class ConditionNodeHandler(BaseNodeHandler):
         if not diagram:
             return False
 
-        # Check if ALL upstream person_job nodes have reached their max_iterations
+        # Check person_job nodes that have executed at least once
+        # This prevents checking downstream nodes that haven't run yet
         found_person_job = False
         all_reached_max = True
         
-        for edge in context.edges:
-            if edge.get("target", "").startswith(context.current_node_id):
-                src_node_id = extract_node_id_from_handle(edge.get("source", ""))
-                src_node = next((n for n in diagram.nodes if n.id == src_node_id), None)
-                if src_node and src_node.type == NodeType.person_job.value:
+        for node in diagram.nodes:
+            if node.type == NodeType.person_job.value:
+                exec_count = context.get_node_execution_count(node.id)
+                # Only check nodes that have executed at least once
+                if exec_count > 0:
                     found_person_job = True
-                    exec_count = context.get_node_execution_count(src_node_id)
-                    max_iter = int((src_node.data or {}).get("max_iteration", 1))
+                    max_iter = int((node.data or {}).get("max_iteration", 1))
                     if exec_count < max_iter:
                         all_reached_max = False
                         break

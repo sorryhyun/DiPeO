@@ -229,14 +229,14 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onPaneContextMenu,
     contextMenu,
     isContextMenuOpen,
-    closeContextMenu,
+    closeContextMenu: _closeContextMenu,
     onNodeDragStartCanvas,
     onNodeDragStopCanvas,
   } = context.interactions;
   
   // Extract from operation hooks
-  const { addNode, deleteNode } = context.nodeOps;
-  const { deleteArrow } = context.arrowOps;
+  const { addNode: _addNode, deleteNode: _deleteNode } = context.nodeOps;
+  const { deleteArrow: _deleteArrow } = context.arrowOps;
   const { addPerson } = context.personOps;
   
   const {

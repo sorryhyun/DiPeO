@@ -59,15 +59,22 @@ class UnifiedServiceRegistry(DynamicRegistry):
         # Map of service names to context attributes
         service_mapping = {
             "file": "file_service",
-            "llm": "conversation_service",
+            "llm": "llm_service",  # Fixed: LLM should map to llm_service
             "memory": "memory_service",
             "api_key": "api_key_service",
             "notion": "notion_service",
             "diagram": "diagram_storage_service",
-            "conversation": "conversation_service",
+            "conversation": "memory_service",  # Fixed: conversation maps to memory_service
             "memory_service": "memory_service",  # Alias
             "api_integration": "api_integration_service",
             "code_execution": "code_execution_service",
+            # Additional mappings from LocalServiceRegistry
+            "llm_service": "llm_service",  # Some contexts use llm_service instead
+            "diagram_storage": "diagram_storage_service",  # Alias
+            "storage": "diagram_storage_service",  # Alias
+            "api": "api_integration_service",  # Alias
+            "text": "text_processing_service",
+            "text_processing": "text_processing_service",
         }
         
         # Register services from context
@@ -76,6 +83,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
                 service = getattr(context, context_attr)
                 if service is not None:
                     registry.register(service_name, service)
+        
         
         # Add context itself for handlers that need it
         registry.register("context", context)
